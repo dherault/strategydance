@@ -39,12 +39,25 @@ changes — a dependency bump, a refactor and a feature are three commits, not o
 Write the commit subject in the imperative mood and say what the change does, not which files
 it touches.
 
-### Every unit of work ends in an open pull request
+### Every unit of work happens on a branch off `dev`
 
-Never commit to `main` directly, and never leave a branch with commits on it but no pull
-request. A unit of work is finished when a PR for it is open, not when the code is written.
+`dev` is the integration branch: every pull request starts from it and goes back into it.
+Never commit to `dev` or `main` directly, and never leave a branch with commits on it but no
+pull request. A unit of work is finished when its pull request is merged into `dev`, not when
+the code is written.
 
-Branch off `main`, commit granularly, push, and open the PR with `gh pr create`.
+Start from an up-to-date `dev`, commit granularly, push, and open the pull request against
+`dev`:
+
+```sh
+git switch dev && git pull --ff-only
+git switch -c <branch>
+# commit, then:
+gh pr create --base dev
+```
+
+The repository's default base branch is `main`, so `--base dev` is not optional — without it
+`gh pr create` targets `main`.
 
 ### Copilot review loop
 
@@ -60,4 +73,14 @@ Once a PR is open, drive it through review rather than handing it back unreviewe
 6. **Repeat from step 2** until a review round produces no meaningful comments — pure
    nitpicks, praise, or nothing at all.
 
-Only then is the PR ready for a human.
+### Merge into `dev`
+
+When a review round comes back clean — Copilot approves, or its remaining comments are pure
+nitpicks or praise — and CI is green, merge the pull request into `dev` and delete the branch:
+
+```sh
+gh pr merge <number> --merge --delete-branch
+```
+
+Merge, do not squash. The granular commits are the point of the workflow, and squashing
+collapses them into one.

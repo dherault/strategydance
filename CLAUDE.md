@@ -51,11 +51,6 @@ Branch off `main`, commit granularly, push, and open the PR with `gh pr create`.
 Once a PR is open, drive it through review rather than handing it back unreviewed:
 
 1. **Request a review from GitHub Copilot** with `gh pr edit <number> --add-reviewer @copilot`.
-   The review depth is not selectable from the CLI or the REST API — it comes from the
-   repository's Copilot code review setting, which is set to Balanced. Copilot removes itself
-   from the requested reviewers once it posts, so an empty `reviewRequests` does not mean the
-   request failed; check the PR timeline or the reviews themselves. Confirm the **Review
-   effort** line in the review overview says Balanced, and say so if a review comes back Lite.
 2. **Watch CI.** Wait for the checks to finish and fix anything that fails before moving on.
 3. **Respond to every Copilot comment.** Each one gets a real answer: either an edit to the
    codebase that addresses it, or a reply explaining why the suggestion does not apply here.

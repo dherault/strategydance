@@ -43,8 +43,8 @@ it touches.
 
 `dev` is the integration branch: every pull request starts from it and goes back into it.
 Never commit to `dev` or `main` directly, and never leave a branch with commits on it but no
-pull request. A unit of work is finished when its pull request is merged into `dev`, not when
-the code is written.
+pull request. A unit of work is finished when its pull request is reviewed, green and waiting
+for a human, not when the code is written.
 
 Start from an up-to-date `dev`, commit granularly, push, and open the pull request against
 `dev`:
@@ -73,14 +73,12 @@ Once a PR is open, drive it through review rather than handing it back unreviewe
 6. **Repeat from step 2** until a review round produces no meaningful comments — pure
    nitpicks, praise, or nothing at all.
 
-### Merge into `dev`
+### Hand the PR to a human
 
-When a review round comes back clean — Copilot approves, or its remaining comments are pure
-nitpicks or praise — and CI is green, merge the pull request into `dev` and delete the branch:
+Never merge a pull request. Merging is a human decision, taken on GitHub after a human
+approval. When CI is green and a review round comes back clean — Copilot approves, or its
+remaining comments are pure nitpicks or praise — say so, link the pull request, and stop
+there.
 
-```sh
-gh pr merge <number> --merge --delete-branch
-```
-
-Merge, do not squash. The granular commits are the point of the workflow, and squashing
-collapses them into one.
+Humans merge these pull requests with a merge commit, not a squash: the granular commits are
+the point of the workflow, and squashing collapses them into one.

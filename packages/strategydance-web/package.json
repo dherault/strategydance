@@ -9,14 +9,22 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.36",
     "@tanstack/react-start": "^1.168.53",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "firebase": "^12.19.0",
+    "lucide-react": "^1.46.0",
+    "radix-ui": "^1.6.7",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-hook-form": "^7.88.0",
     "react-intl": "^10.2.2",
-    "strategydance-core": "workspace:*"
+    "strategydance-core": "workspace:*",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@formatjs/unplugin": "^1.2.10",

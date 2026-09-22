@@ -7,5 +7,8 @@ generate:
     # has no Data Connect service to regenerate it against. Never edited by hand
     - outputDir: ../generated/strategydance-web-connector
       package: "@strategydance/web-connector"
-      react: false
+      # The React bindings wrap each operation in a TanStack Query hook, which is the cache and
+      # the refetch this app would otherwise hand roll. `@tanstack/react-query` is already
+      # mounted in `Wrap`, so the hooks land in a provider that exists
+      react: true
       angular: false

@@ -1,4 +1,4 @@
-import { signInWithPopup, signInWithRedirect } from 'firebase/auth'
+import { signInWithPopup } from 'firebase/auth'
 import { type ComponentProps, useState } from 'react'
 import { FormattedMessage } from 'react-intl'
 
@@ -24,22 +24,19 @@ function GoogleButton({ onErrorCode, ...props }: Props) {
     setLoading(true)
 
     /*
-      Computed here rather than at module scope, which would read `navigator` while the build
-      prerenders the document shell in Node.
+      Popup for everybody, not just desktop Safari.
 
-      Desktop Safari gets the popup: it partitions storage for the redirect flow, which loses
-      the pending sign-in on the way back and lands the reader where they started
+      `signInWithRedirect` hands the credential back through `authDomain`, which is
+      `strategydance.firebaseapp.com` while the app is served from web.app and from preview
+      channels. That is a cross-origin handoff, and Chrome and Firefox now partition storage
+      for it too, so the reader returns from Google signed out and nothing says why. Safari was
+      only the first browser to do this.
+
+      The alternative is a same-origin auth helper on the app's own domain, which is worth
+      doing the day a popup blocker becomes the bigger problem
     */
-    const isSafariDesktop = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-      && !/Mobi|Android/i.test(navigator.userAgent)
-
     try {
-      if (isSafariDesktop) {
-        await signInWithPopup(authentication, googleProvider)
-      }
-      else {
-        await signInWithRedirect(authentication, googleProvider)
-      }
+      await signInWithPopup(authentication, googleProvider)
     }
     catch (error: any) {
       console.error('Error during Google sign-in', error)

@@ -96,6 +96,14 @@ function Authentication() {
   const hasGoogle = providers.includes(AuthenticationProvider.GOOGLE)
   const hasPassword = providers.includes(AuthenticationProvider.PASSWORD)
 
+  /*
+    A recognized account whose providers this app cannot offer. `getAuthenticationProviders`
+    drops ids it does not know, so a row written by a future version, or an account linked
+    somewhere else, arrives here as an empty list. Without this the LOGIN screen renders
+    neither control and the reader is left with a Back link and no explanation
+  */
+  const hasNoSupportedProvider = !hasGoogle && !hasPassword
+
   async function handleEmailSubmit(values: EmailFormValues) {
     if (loading) return
 
@@ -301,6 +309,16 @@ function Authentication() {
           </form>
         </>
       )}
+      {mode === MODES.LOGIN && hasNoSupportedProvider && (
+        <>
+          <Label className="mt-8 block text-center">
+            {email}
+          </Label>
+          <Label className="mt-1.5 block text-center text-muted-foreground">
+            <FormattedMessage {...authenticationMessages.modeLoginNoSupportedProvider} />
+          </Label>
+        </>
+      )}
       {mode === MODES.LOGIN && hasPassword && (
         <>
           {!hasGoogle && (
@@ -372,7 +390,17 @@ function Authentication() {
             <FormattedMessage {...authenticationMessages.actionBack} />
           </button>
         )}
-        {mode === MODES.LOGIN && hasPassword && (
+        {mode === MODES.LOGIN && hasNoSupportedProvider && (
+        <>
+          <Label className="mt-8 block text-center">
+            {email}
+          </Label>
+          <Label className="mt-1.5 block text-center text-muted-foreground">
+            <FormattedMessage {...authenticationMessages.modeLoginNoSupportedProvider} />
+          </Label>
+        </>
+      )}
+      {mode === MODES.LOGIN && hasPassword && (
           <Link
             to="/authentication/password-reset"
             className="text-sm text-muted-foreground hover:underline"

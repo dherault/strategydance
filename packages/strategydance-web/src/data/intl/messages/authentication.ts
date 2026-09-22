@@ -36,6 +36,11 @@ const authenticationMessages = defineMessages({
     defaultMessage: 'You can use either Google or your password to continue',
     description: 'Instruction shown when the recognized account has both Google and password sign-in.',
   },
+  modeLoginNoSupportedProvider: {
+    id: 'authentication.mode.login.noSupportedProvider',
+    defaultMessage: 'This account signs in a way this app does not offer. Please contact support.',
+    description: 'Shown when a recognized account has no sign-in method this app supports, so neither the Google button nor the password field would work.',
+  },
   modeSignupTitle: {
     id: 'authentication.mode.signup.title',
     defaultMessage: 'Create your account',

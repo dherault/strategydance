@@ -48,18 +48,24 @@ function AuthenticationPasswordReset() {
 
     try {
       await sendPasswordResetEmail(authentication, formatEmail(values.email))
-
-      /*
-        Back to the sign-in page either way, and the banner there says the same thing whether
-        or not the address had an account. Reporting "no such account" here would answer, for
-        anybody who asks, a question the sign-in screen is careful about
-      */
-      await navigate({ to: '/authentication', search: { passwordResetSent: true }, replace: true })
     }
     catch (error: any) {
-      setLoading(false)
-      setErrorCode(error.code)
+      /*
+        An unknown address takes the success path. Firebase only raises this when email
+        enumeration protection is off in the project, and surfacing it would turn this form
+        into the account checker the sign-in screen is careful not to be. Every other code is
+        a real failure and is shown
+      */
+      if (error.code !== 'auth/user-not-found') {
+        setLoading(false)
+        setErrorCode(error.code)
+
+        return
+      }
     }
+
+    // The banner says the same thing whether or not the address had an account
+    await navigate({ to: '/authentication', search: { passwordResetSent: true }, replace: true })
   }
 
   return (

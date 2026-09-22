@@ -1,3 +1,16 @@
+# The languages the product speaks. A second declaration of `Locale` in strategydance-core,
+# which is what the message catalogues and the language picker are built from, and the two have
+# to agree: `schema.test.ts` is what fails when they stop agreeing
+enum Locale {
+  EN
+  FR
+  ES
+  DE
+  PT
+  ZH
+  JA
+}
+
 # How somebody proves who they are. An enum rather than a string, so Postgres refuses a value
 # this app never defined and the generated SDK types it as a union rather than as `string[]`
 enum AuthenticationProvider {
@@ -22,12 +35,8 @@ type User @table {
   imageUrl: String
   # The language the account was created in, as a hint for anything sent to this reader rather
   # than rendered for them. Written once: the interface language is a preference the browser
-  # holds, and an account page will own this one.
-  #
-  # A string rather than an enum, unlike `authenticationProviders` below: the set of locales is
-  # already declared in `strategydance-core`, which is what the catalogues and the language
-  # picker are built from, and a second copy here would be a second place to edit
-  locale: String!
+  # holds, and an account page will own this one
+  locale: Locale!
   # An IANA identifier, validated against `Intl` before it is sent. Unlike `locale` this is
   # observed rather than chosen, so the newest answer overwrites the stored one
   timezone: String

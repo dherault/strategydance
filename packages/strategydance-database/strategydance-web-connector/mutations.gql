@@ -6,7 +6,7 @@ mutation CreateCurrentUser(
   $email: String!
   $displayName: String
   $imageUrl: String
-  $locale: String!
+  $locale: Locale!
   $timezone: String
   $authenticationProviders: [AuthenticationProvider!]!
 ) @auth(level: USER) {

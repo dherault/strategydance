@@ -7,10 +7,17 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
     }
 
-    // Public read, because a profile picture is rendered next to its owner's name wherever
-    // that name appears, and an authenticated fetch for each one buys nothing: the URL is
-    // already handed to anybody who can see the person
-    match /users/{userId}/profile-pictures/{fileName} {
+    /*
+      One fixed object rather than a `{fileName}` wildcard. A wildcard lets each reader create
+      an unbounded number of public objects, and the size check bounds each file rather than
+      the bucket: replacing a picture would leave the old one paid for and still served.
+      Overwriting one path keeps the count at one per account.
+
+      Public read, because a profile picture is rendered next to its owner's name wherever that
+      name appears, and an authenticated fetch for each one buys nothing: the URL is already
+      handed to anybody who can see the person
+    */
+    match /users/{userId}/profile-picture {
       allow read: if true;
       allow create, update: if request.auth != null
         && request.auth.uid == userId

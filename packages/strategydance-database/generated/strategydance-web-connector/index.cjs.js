@@ -13,6 +13,34 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+const createCurrentUserRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateCurrentUser', inputVars);
+}
+createCurrentUserRef.operationName = 'CreateCurrentUser';
+exports.createCurrentUserRef = createCurrentUserRef;
+
+exports.createCurrentUser = function createCurrentUser(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createCurrentUserRef(dcInstance, inputVars));
+}
+;
+
+const updateCurrentUserRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateCurrentUser', inputVars);
+}
+updateCurrentUserRef.operationName = 'UpdateCurrentUser';
+exports.updateCurrentUserRef = updateCurrentUserRef;
+
+exports.updateCurrentUser = function updateCurrentUser(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateCurrentUserRef(dcInstance, inputVars));
+}
+;
+
 const getCurrentUserRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -40,33 +68,5 @@ exports.getAuthenticationProvidersByEmail = function getAuthenticationProvidersB
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getAuthenticationProvidersByEmailRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
-}
-;
-
-const createCurrentUserRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'CreateCurrentUser', inputVars);
-}
-createCurrentUserRef.operationName = 'CreateCurrentUser';
-exports.createCurrentUserRef = createCurrentUserRef;
-
-exports.createCurrentUser = function createCurrentUser(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(createCurrentUserRef(dcInstance, inputVars));
-}
-;
-
-const updateCurrentUserRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'UpdateCurrentUser', inputVars);
-}
-updateCurrentUserRef.operationName = 'UpdateCurrentUser';
-exports.updateCurrentUserRef = updateCurrentUserRef;
-
-exports.updateCurrentUser = function updateCurrentUser(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(updateCurrentUserRef(dcInstance, inputVars));
 }
 ;

@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { ReCaptchaV3Provider, initializeAppCheck } from 'firebase/app-check'
 import { GoogleAuthProvider, connectAuthEmulator, getAuth } from 'firebase/auth'
 import { connectDataConnectEmulator, getDataConnect } from 'firebase/data-connect'
+import { connectorConfig } from 'strategydance-database/web'
 import { getPerformance } from 'firebase/performance'
 import { connectStorageEmulator, getStorage } from 'firebase/storage'
 
@@ -73,14 +74,10 @@ googleProvider.addScope('profile')
   Data Connect
 --- */
 
-// Mirrors `dataconnect/dataconnect.yaml` and `dataconnect/connector/connector.yaml` at the
-// repository root. The three names are how the SDK addresses a deployed service, so they have
-// to agree with what was deployed, not merely with each other
-export const dataConnect = getDataConnect(app, {
-  service: 'strategydance',
-  location: 'europe-north1',
-  connector: 'strategydance-web-connector',
-})
+// The service, location and connector come from the generated SDK rather than being written
+// out again here. They are how the SDK addresses a deployed service, so a copy that drifted
+// from `dataconnect.yaml` would fail at runtime against a service that exists
+export const dataConnect = getDataConnect(app, connectorConfig)
 
 /* ---
   Storage

@@ -69,30 +69,6 @@ export interface User_Key {
   __typename?: 'User_Key';
 }
 
-interface GetCurrentUserRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<GetCurrentUserData, undefined>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<GetCurrentUserData, undefined>;
-  operationName: string;
-}
-export const getCurrentUserRef: GetCurrentUserRef;
-
-export function getCurrentUser(options?: ExecuteQueryOptions): QueryPromise<GetCurrentUserData, undefined>;
-export function getCurrentUser(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetCurrentUserData, undefined>;
-
-interface GetAuthenticationProvidersByEmailRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: GetAuthenticationProvidersByEmailVariables): QueryRef<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetAuthenticationProvidersByEmailVariables): QueryRef<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
-  operationName: string;
-}
-export const getAuthenticationProvidersByEmailRef: GetAuthenticationProvidersByEmailRef;
-
-export function getAuthenticationProvidersByEmail(vars: GetAuthenticationProvidersByEmailVariables, options?: ExecuteQueryOptions): QueryPromise<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
-export function getAuthenticationProvidersByEmail(dc: DataConnect, vars: GetAuthenticationProvidersByEmailVariables, options?: ExecuteQueryOptions): QueryPromise<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
-
 interface CreateCurrentUserRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: CreateCurrentUserVariables): MutationRef<CreateCurrentUserData, CreateCurrentUserVariables>;
@@ -116,4 +92,28 @@ export const updateCurrentUserRef: UpdateCurrentUserRef;
 
 export function updateCurrentUser(vars: UpdateCurrentUserVariables): MutationPromise<UpdateCurrentUserData, UpdateCurrentUserVariables>;
 export function updateCurrentUser(dc: DataConnect, vars: UpdateCurrentUserVariables): MutationPromise<UpdateCurrentUserData, UpdateCurrentUserVariables>;
+
+interface GetCurrentUserRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetCurrentUserData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetCurrentUserData, undefined>;
+  operationName: string;
+}
+export const getCurrentUserRef: GetCurrentUserRef;
+
+export function getCurrentUser(options?: ExecuteQueryOptions): QueryPromise<GetCurrentUserData, undefined>;
+export function getCurrentUser(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetCurrentUserData, undefined>;
+
+interface GetAuthenticationProvidersByEmailRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetAuthenticationProvidersByEmailVariables): QueryRef<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetAuthenticationProvidersByEmailVariables): QueryRef<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
+  operationName: string;
+}
+export const getAuthenticationProvidersByEmailRef: GetAuthenticationProvidersByEmailRef;
+
+export function getAuthenticationProvidersByEmail(vars: GetAuthenticationProvidersByEmailVariables, options?: ExecuteQueryOptions): QueryPromise<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
+export function getAuthenticationProvidersByEmail(dc: DataConnect, vars: GetAuthenticationProvidersByEmailVariables, options?: ExecuteQueryOptions): QueryPromise<GetAuthenticationProvidersByEmailData, GetAuthenticationProvidersByEmailVariables>;
 

@@ -3,6 +3,7 @@ import { createRouter } from '@tanstack/react-router'
 
 import AuthenticationProvider from '~components/authentication/_AuthenticationProvider'
 import IntlProvider from '~components/intl/_IntlProvider'
+import UserProvider from '~components/user/_UserProvider'
 
 import { routeTree } from './routeTree.gen'
 
@@ -29,7 +30,9 @@ export function getRouter() {
       <QueryClientProvider client={queryClient}>
         <IntlProvider>
           <AuthenticationProvider>
-            {children}
+            <UserProvider>
+              {children}
+            </UserProvider>
           </AuthenticationProvider>
         </IntlProvider>
       </QueryClientProvider>

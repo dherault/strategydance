@@ -1,3 +1,5 @@
+import type { GetCurrentUserData } from 'strategydance-database/web'
+
 import type { MESSAGE_TYPES } from '~constants'
 
 export type MessageType = typeof MESSAGE_TYPES[number]
@@ -16,3 +18,11 @@ export type DataSource<Data> = {
   loading: boolean
   refetch: () => Promise<void>
 }
+
+/*
+  The reader's row in Postgres, as opposed to the Firebase account in
+  `AuthenticationContext`. Taken from the generated SDK rather than written out again, so a
+  column added to `schema.gql` reaches every consumer the moment the SDK is regenerated
+*/
+export type User = NonNullable<GetCurrentUserData['user']>
+

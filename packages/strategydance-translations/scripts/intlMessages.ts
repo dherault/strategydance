@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { Locale, SUPPORTED_LOCALES } from 'strategydance-core'
 
+import isFileNotFound from './isFileNotFound'
 import { compareKeys } from './translationLock'
 
 // Minimal shape of a react-intl MessageDescriptor, redeclared so this package stays React-free
@@ -127,7 +128,12 @@ export async function loadExistingTranslations(locale: Locale, messageTypes: Mes
 
       result[messageType] = JSON.parse(content) as FlatMessages
     }
-    catch {
+    catch (error) {
+      // A message type a locale has never been translated for has no file yet, and that is the
+      // normal state for a newly added catalogue. A damaged one is not: read as empty it would be
+      // re-sent to the model in full and then overwritten, losing whatever was recoverable
+      if (!isFileNotFound(error)) throw error
+
       result[messageType] = {}
     }
   }))

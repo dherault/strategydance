@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import type { Locale } from 'strategydance-core'
 import * as z from 'zod'
 
+import isFileNotFound from './isFileNotFound'
+
 /*
   An entry records the hash of the English source AND which target locales hold a translation of
   *that* hash.
@@ -73,9 +75,12 @@ export async function readLock(): Promise<TranslationLock> {
   try {
     content = await fs.readFile(lockFilePath, 'utf-8')
   }
-  catch {
+  catch (error) {
     // No lock file is the documented way to force a full retranslation, so it is a valid state and
-    // not an error
+    // not an error. Any other read failure is: it would start that same full retranslation without
+    // anybody having asked for one
+    if (!isFileNotFound(error)) throw error
+
     return { messages: {} }
   }
 

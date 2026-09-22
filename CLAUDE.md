@@ -155,7 +155,7 @@ would re-enable every `-`-prefixed excluded file in the tree.
   are dotted `<messageType>.<path>` and unique across every message file
 - A new message type needs its source module, an entry in `MESSAGE_TYPES`, and an
   `IntlMessagesRegistration` on the route that needs it
-- **Never edit `src/data/intl/locales/` by hand.** Those files are written by
+- **Never edit `src/data/intl/messages-translated/` by hand.** Those files are written by
   `bun run translate` and nothing else
 - **Run `bun run translate` whenever a message changes**, and commit the result. It is
   incremental: `translations.lock.json` records a hash per id, so only genuinely new or edited

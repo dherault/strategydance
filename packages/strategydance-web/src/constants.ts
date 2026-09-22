@@ -5,7 +5,7 @@
 /*
   Every message catalogue the app can load. A message type is the basename of a file in
   `~data/intl/messages`, and the name of the JSON file each locale carries for it in
-  `~data/intl/locales/<LOCALE>/`.
+  `~data/intl/messages-translated/<LOCALE>/`.
 
   Adding one means adding the source module, the entry here, and an `IntlMessagesRegistration` on
   whichever route needs it. The translation CLI reads the directory rather than this list, so the

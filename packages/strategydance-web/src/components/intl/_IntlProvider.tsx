@@ -39,7 +39,7 @@ function loadMessages(locale: Locale, messageType: MessageType): Promise<IntlMes
 
   if (cached) return cached
 
-  const promise = (import(`../../data/intl/locales/${locale}/${messageType}.json`) as Promise<IntlMessagesModule>)
+  const promise = (import(`../../data/intl/messages-translated/${locale}/${messageType}.json`) as Promise<IntlMessagesModule>)
     .then(module => module.default)
     /*
       A message catalogue added before the human `bun run translate` step has no locale file yet. An

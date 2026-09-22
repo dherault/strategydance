@@ -13,3 +13,19 @@ query GetCurrentUser @auth(level: USER) {
     updatedAt
   }
 }
+
+# Which buttons to offer somebody who has typed their email and not yet signed in.
+#
+# PUBLIC because there is no caller to authenticate yet, and that is the cost of the design:
+# the answer distinguishes an address that has an account from one that does not, so this
+# endpoint can be asked whether somebody is a member. App Check is what keeps that to real
+# browsers rather than a script working through a list.
+#
+# It returns the providers and nothing else. The row's existence is inherent to the question,
+# so nothing is gained by leaking a name or an id alongside it
+query GetAuthenticationProvidersByEmail($email: String!)
+@auth(level: PUBLIC, insecureReason: "The sign-in screen has to know which button to offer before anybody has signed in.") {
+  users(where: { email: { eq: $email } }, limit: 1) {
+    authenticationProviders
+  }
+}

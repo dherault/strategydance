@@ -203,7 +203,20 @@ gh pr create --base dev
    otherwise nothing was requested.
 2. Wait for CI and fix whatever fails.
 3. Answer every Copilot comment, either with an edit that addresses it or a reply explaining
-   why it does not apply. Never ignore or silently resolve one.
+   why it does not apply. Never ignore one, and never resolve one without replying first.
+
+   Then resolve the thread, so the next round shows only what is still open. `gh` has no
+   command for it, so it is GraphQL:
+
+   ```sh
+   # Thread ids, with the first comment of each so you can tell them apart
+   gh api graphql -f query='query($owner:String!,$name:String!,$pr:Int!){repository(owner:$owner,name:$name){pullRequest(number:$pr){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{path body}}}}}}}'      -f owner=dherault -f name=strategydance -F pr=<number>
+
+   gh api graphql -f query='mutation($t:ID!){resolveReviewThread(input:{threadId:$t}){thread{isResolved}}}' -f t=<thread id>
+   ```
+
+   Reply first, resolve second: resolving hides the thread, and a reviewer who cannot see the
+   answer reads it as the comment having been waved away.
 4. Push the fixes as their own granular commits.
 5. Re-request Copilot's review.
 6. Repeat from step 2 until a round comes back with nothing but nitpicks or praise.

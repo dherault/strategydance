@@ -13,10 +13,13 @@
     }
   },
   "scripts": {
-    "generate": "firebase dataconnect:sdk:generate"
+    "generate": "firebase dataconnect:sdk:generate",
+    "typecheck": "tsc -b"
   },
   "devDependencies": {
-    "strategydance-core": "workspace:*"
+    "@types/bun": "^1.4.2",
+    "strategydance-core": "workspace:*",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "@tanstack-query-firebase/react": "^2.1.1",

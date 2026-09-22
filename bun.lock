@@ -23,7 +23,9 @@
     "packages/strategydance-database": {
       "name": "strategydance-database",
       "devDependencies": {
+        "@types/bun": "^1.4.2",
         "strategydance-core": "workspace:*",
+        "typescript": "^7.0.2",
       },
       "peerDependencies": {
         "@tanstack-query-firebase/react": "^2.1.1",

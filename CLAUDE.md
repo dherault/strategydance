@@ -189,7 +189,8 @@ gh pr create --base dev
 
 ### Copilot review loop
 
-1. Request a review. `gh pr edit <number> --add-reviewer @copilot` **silently does nothing
+1. Request the first review, if pushing the branch has not already done it. `gh pr edit
+   <number> --add-reviewer @copilot` **silently does nothing
    here**: resolving `@copilot` needs a `read:project` scope the token does not have, and gh
    swallows the partial GraphQL error and then sends `requestReviews` with no reviewer at all.
    It exits 0 and prints the PR URL, so it looks like it worked. Go through GraphQL instead:
@@ -200,10 +201,9 @@ gh pr create --base dev
    gh api graphql -f query='mutation($pr:ID!,$bot:ID!){requestReviews(input:{pullRequestId:$pr,botIds:[$bot],union:true}){clientMutationId}}'      -f pr=<pull request node id> -f bot="$BOT"
    ```
 
-   `union: true` adds to the existing reviewers rather than replacing them, and the same
-   mutation is how you **re-request** after pushing fixes. There is no
-   `removeRequestedReviewers` mutation: to clear the reviewers first, call `requestReviews`
-   with empty lists and `union: false`.
+   `union: true` adds to the existing reviewers rather than replacing them. There is no
+   `removeRequestedReviewers` mutation: to clear the reviewers, call `requestReviews` with
+   empty lists and `union: false`.
 
    Confirm it landed. `gh pr view <number> --json reviewRequests` has to come back non-empty,
    otherwise nothing was requested.
@@ -224,7 +224,18 @@ gh pr create --base dev
    Reply first, resolve second: resolving hides the thread, and a reviewer who cannot see the
    answer reads it as the comment having been waved away.
 4. Push the fixes as their own granular commits.
-5. Re-request Copilot's review.
+5. **Do not re-request.** The repository is configured to request a fresh Copilot review on
+   every new commit, so pushing is the re-request. Calling `requestReviews` again returns an
+   empty `reviewRequests` and looks like a failure when it is really a duplicate.
+
+   Wait for the new review instead. It is a new review by Copilot with a non-empty body, and
+   counting reviews alone will mislead you: every reply you post creates a review record with
+   an empty body.
+
+   ```sh
+   gh api repos/dherault/strategydance/pulls/<number>/reviews \
+     --jq '[.[] | select(.user.login | test("copilot")) | select(.body | length > 0)] | length'
+   ```
 6. Repeat from step 2 until a round comes back with nothing but nitpicks or praise.
 
 ### Hand the pull request to a human

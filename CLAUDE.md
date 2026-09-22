@@ -9,7 +9,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/frontend` — TanStack Start in SPA mode, React 19 (with the React compiler),
   Tailwind CSS v4, built by Vite
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
-- `tsc` for typechecking; no TypeScript path aliases, so imports are relative
+- `tsc` for typechecking. In `packages/frontend`, imports go through `~` aliases: `~components`,
+  `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
+  `tsconfig.json` and mirrored in `vite.config.ts`. Cross-package imports use the package name
 - `bunfig.toml` sets a 7-day install cooldown: a version must have been published for a week
   before it can be installed
 

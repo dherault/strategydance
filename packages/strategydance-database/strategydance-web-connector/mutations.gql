@@ -1,9 +1,12 @@
 # Insert and update are separate rather than one upsert, and `locale` is why: it is written at
 # creation and never again, so an upsert carrying it would quietly reset the account's language
-# every time an unrelated field changed
+# every time an unrelated field changed.
+#
+# Neither takes an email. `email_expr` reads it off the verified token, so a signed-in caller
+# cannot put somebody else's address on their own row: `email` is unique, and a client that
+# chose its own could squat the address a real person is about to sign up with
 
 mutation CreateCurrentUser(
-  $email: String!
   $displayName: String
   $imageUrl: String
   $locale: Locale!
@@ -13,7 +16,7 @@ mutation CreateCurrentUser(
   user_insert(
     data: {
       id_expr: "auth.uid"
-      email: $email
+      email_expr: "auth.token.email"
       displayName: $displayName
       imageUrl: $imageUrl
       locale: $locale
@@ -26,7 +29,6 @@ mutation CreateCurrentUser(
 # The fields that mirror the Firebase profile, plus the observed time zone. The caller sends
 # this only when one of them has actually drifted, so `updatedAt` keeps meaning something
 mutation UpdateCurrentUser(
-  $email: String!
   $displayName: String
   $imageUrl: String
   $timezone: String
@@ -35,7 +37,7 @@ mutation UpdateCurrentUser(
   user_update(
     key: { id_expr: "auth.uid" }
     data: {
-      email: $email
+      email_expr: "auth.token.email"
       displayName: $displayName
       imageUrl: $imageUrl
       timezone: $timezone

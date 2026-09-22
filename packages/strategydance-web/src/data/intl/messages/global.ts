@@ -24,6 +24,11 @@ const globalMessages = defineMessages({
     defaultMessage: 'Language',
     description: 'Accessible label of the control that switches the interface language.',
   },
+  signIn: {
+    id: 'global.signIn',
+    defaultMessage: 'Sign in',
+    description: 'Button on the home page that leads to the sign-in page.',
+  },
   loading: {
     id: 'global.loading',
     defaultMessage: 'Loading',

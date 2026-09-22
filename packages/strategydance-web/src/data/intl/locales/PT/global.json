@@ -1,6 +1,7 @@
 {
   "global.language": "Idioma",
   "global.loading": "Carregando",
+  "global.signIn": "Entrar",
   "global.tagline": "Um experimento de IA.",
   "global.welcome": "Strategy Dance"
 }

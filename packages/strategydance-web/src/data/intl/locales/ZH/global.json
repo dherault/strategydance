@@ -1,6 +1,7 @@
 {
   "global.language": "语言",
   "global.loading": "加载中",
+  "global.signIn": "登录",
   "global.tagline": "一个 AI 实验项目。",
   "global.welcome": "Strategy Dance"
 }

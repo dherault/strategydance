@@ -159,6 +159,10 @@
         "hash": "4369fb27292c2256",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "global.signIn": {
+        "hash": "a928ba1e11eed6a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "global.tagline": {
         "hash": "21bb96225df2333d",
         "locales": "DE,ES,FR,JA,PT,ZH"

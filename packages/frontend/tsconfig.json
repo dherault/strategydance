@@ -23,7 +23,18 @@
 
     /* Custom */
     "esModuleInterop": true,
-    "types": ["node", "bun", "vite/client"]
+    "types": ["node", "bun", "vite/client"],
+
+    /* Path aliases, resolved relative to this file and mirrored by resolve.alias in vite.config.ts */
+    "paths": {
+      "~components/*": ["./src/components/*"],
+      "~contexts/*": ["./src/contexts/*"],
+      "~data/*": ["./src/data/*"],
+      "~hooks/*": ["./src/hooks/*"],
+      "~utils/*": ["./src/utils/*"],
+      "~constants": ["./src/constants.ts"],
+      "~types": ["./src/types.ts"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }

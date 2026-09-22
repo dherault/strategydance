@@ -13,9 +13,12 @@
     "@tanstack/react-router": "^1.170.36",
     "@tanstack/react-start": "^1.168.53",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-intl": "^10.2.2",
+    "strategydance-core": "workspace:*"
   },
   "devDependencies": {
+    "@formatjs/unplugin": "^1.2.10",
     "@tailwindcss/vite": "^4.3.3",
     "@types/bun": "^1.4.2",
     "@types/react": "^19.3.0",

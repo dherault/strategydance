@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { resolveSystemTimezone } from 'strategydance-core'
 
 /*
@@ -13,11 +13,11 @@ import { resolveSystemTimezone } from 'strategydance-core'
 function useSystemTimezone() {
   const [timezone, setTimezone] = useState(resolveSystemTimezone)
 
-  const recheck = useCallback(() => {
-    setTimezone(resolveSystemTimezone())
-  }, [])
-
   useEffect(() => {
+    function recheck() {
+      setTimezone(resolveSystemTimezone())
+    }
+
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') recheck()
     }
@@ -29,9 +29,7 @@ function useSystemTimezone() {
       window.removeEventListener('focus', recheck)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [
-    recheck,
-  ])
+  }, [])
 
   return timezone
 }

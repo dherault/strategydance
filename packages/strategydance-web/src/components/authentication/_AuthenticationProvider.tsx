@@ -1,5 +1,5 @@
 import { type User as Viewer, signOut as firebaseSignOut, onIdTokenChanged } from 'firebase/auth'
-import { type PropsWithChildren, useCallback, useEffect, useState } from 'react'
+import { type PropsWithChildren, useEffect, useState } from 'react'
 
 import AuthenticationContext, { type AuthenticationContextType } from '~contexts/AuthenticationContext'
 
@@ -22,7 +22,7 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
 
   // Reads `currentUser` rather than the state above, which keeps the callback identity stable
   // across a sign-in and lets a consumer put it in a dependency list without re-running
-  const refetch = useCallback(async () => {
+  async function refetch() {
     const currentViewer = authentication.currentUser
 
     if (!currentViewer) return
@@ -32,11 +32,11 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
     await currentViewer.reload()
 
     setEmailVerified(currentViewer.emailVerified)
-  }, [])
+  }
 
-  const signOut = useCallback(async () => {
+  async function signOut() {
     await firebaseSignOut(authentication)
-  }, [])
+  }
 
   /*
     `onIdTokenChanged` rather than `onAuthStateChanged`: it fires on both, so a token minted

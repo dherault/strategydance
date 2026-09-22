@@ -1,4 +1,4 @@
-import { type SetStateAction, useCallback, useState } from 'react'
+import { type SetStateAction, useState } from 'react'
 
 import { LOCAL_STORAGE_PREFIX } from '~constants'
 
@@ -40,7 +40,7 @@ function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>
     return defaultValue
   })
 
-  const setPersistedState = useCallback((nextState: SetStateAction<T>) => {
+  function setPersistedState(nextState: SetStateAction<T>) {
     if (!enabled) return
 
     setState(previousState => {
@@ -58,11 +58,7 @@ function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>
 
       return nextValue
     })
-  }, [
-    enabled,
-    key,
-    localStorageKey,
-  ])
+  }
 
   return [state, setPersistedState] as const
 }

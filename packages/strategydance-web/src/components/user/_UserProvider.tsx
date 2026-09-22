@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useCallback, useEffect, useRef } from 'react'
+import { type PropsWithChildren, useEffect, useRef } from 'react'
 import type { UpdateCurrentUserVariables } from 'strategydance-database/web'
 import { useCreateCurrentUser, useGetCurrentUser, useUpdateCurrentUser } from 'strategydance-database/web/react'
 
@@ -54,13 +54,11 @@ function UserProvider({ children }: PropsWithChildren) {
   const user = viewerId ? data?.user ?? null : null
   const loading = Boolean(viewerId) && isPending
 
-  const refetch = useCallback(async () => {
+  async function refetch() {
     await refetchUser()
-  }, [
-    refetchUser,
-  ])
+  }
 
-  const updateUser = useCallback(async (variables: UpdateCurrentUserVariables) => {
+  async function updateUser(variables: UpdateCurrentUserVariables) {
     try {
       await updateCurrentUser(variables)
       await refetchUser()
@@ -68,10 +66,7 @@ function UserProvider({ children }: PropsWithChildren) {
     catch (error) {
       console.error('Failed to update the user', error)
     }
-  }, [
-    updateCurrentUser,
-    refetchUser,
-  ])
+  }
 
   // Insert the row the first time this account is seen
   useEffect(() => {
@@ -137,17 +132,25 @@ function UserProvider({ children }: PropsWithChildren) {
     // meaning anything
     if (!hasDrifted) return
 
-    updateUser({
+    // The mutation rather than `updateUser`, so nothing this component defines ends up in a
+    // dependency array. The compiler would keep such a function stable, but the lint rule
+    // reads the source rather than the compiler's output and cannot know that
+    updateCurrentUser({
       displayName: viewer.displayName,
       imageUrl: viewer.photoURL,
       timezone: timezone ?? user.timezone,
       authenticationProviders,
     })
+      .then(() => refetchUser())
+      .catch(error => {
+        console.error('Failed to update the user', error)
+      })
   }, [
     viewer,
     user,
     timezone,
-    updateUser,
+    updateCurrentUser,
+    refetchUser,
   ])
 
   /*

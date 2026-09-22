@@ -38,6 +38,25 @@ committed because `tsc` needs it. Never edit it by hand.
 
 ## Frontend conventions
 
+### No manual memoization
+
+The React compiler is on, so it memoizes components and values itself. Never write
+`useCallback` or `useMemo`: a hand-written memo is now noise the compiler has to see past, and
+the repo has none.
+
+`useRef` is not a memo and stays. `useState`'s lazy initializer stays.
+
+`.oxlintrc.json` turns on the compiler's own diagnostics as `react/*` rules: `purity`,
+`immutability`, `memo-dependencies`, `set-state-in-render`, `no-deriving-state-in-effects` and
+the rest. They report what the compiler would refuse to optimize, which is worth knowing at
+lint time rather than as quietly missing memoization.
+
+The one friction is oxlint's `react-hooks(exhaustive-deps)`, which reads the source rather than
+the compiler's output and so cannot tell that a plain function in a component body is stable.
+It fires when such a function appears in a dependency array. Restructure rather than reaching
+for `useCallback`: define the function inside the effect that uses it, or have the effect call
+the underlying stable thing (a mutation from a hook, a setter) directly.
+
 ### One concern, one file
 
 A hook, a context, a provider, a waiter and a bouncer are five kinds of thing, and each gets its

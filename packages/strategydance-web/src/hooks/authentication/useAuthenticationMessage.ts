@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import { useIntl } from 'react-intl'
 
 import { DEFAULT_AUTHENTICATION_ERROR, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '~constants'
@@ -19,7 +18,7 @@ import authenticationMessages from '~data/intl/messages/authentication'
 function useAuthenticationMessage() {
   const { formatMessage } = useIntl()
 
-  return useCallback((key: string) => {
+  return (key: string) => {
     const descriptor = authenticationMessages[key as keyof typeof authenticationMessages]
       ?? authenticationMessages[DEFAULT_AUTHENTICATION_ERROR as keyof typeof authenticationMessages]
 
@@ -27,9 +26,7 @@ function useAuthenticationMessage() {
       minPasswordLength: MIN_PASSWORD_LENGTH,
       maxPasswordLength: MAX_PASSWORD_LENGTH,
     })
-  }, [
-    formatMessage,
-  ])
+  }
 }
 
 export default useAuthenticationMessage

@@ -29,11 +29,6 @@ const globalMessages = defineMessages({
     defaultMessage: 'Loading',
     description: 'Accessible label announced while the page waits for content.',
   },
-  pageNotFound: {
-    id: 'global.pageNotFound',
-    defaultMessage: 'Page not found',
-    description: 'Main title shown on the generic not found page.',
-  },
 })
 
 export default globalMessages

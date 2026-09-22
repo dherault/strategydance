@@ -3,6 +3,7 @@ import { createRouter } from '@tanstack/react-router'
 
 import AuthenticationProvider from '~components/authentication/_AuthenticationProvider'
 import IntlProvider from '~components/intl/_IntlProvider'
+import OrganizationProvider from '~components/organization/_OrganizationProvider'
 import UserProvider from '~components/user/_UserProvider'
 
 import { routeTree } from './routeTree.gen'
@@ -31,7 +32,9 @@ export function getRouter() {
         <IntlProvider>
           <AuthenticationProvider>
             <UserProvider>
-              {children}
+              <OrganizationProvider>
+                {children}
+              </OrganizationProvider>
             </UserProvider>
           </AuthenticationProvider>
         </IntlProvider>

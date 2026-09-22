@@ -257,7 +257,9 @@ squashing collapses them into one.
 
 `bun run ship` opens the release pull request, the one that takes everything sitting on `dev`
 to `main`. It is the only pull request nobody writes by hand: its title never varies and its
-body is the list of commits `main` has not seen yet.
+body is the list of commits `main` has not seen yet, merges dropped, since a merge names the
+branch work arrived on and the commits under it say what the release does. A range holding
+nothing but merges lists those instead, rather than nothing.
 
 Running it twice is safe. `dev` is long lived, so the release pull request stays open while
 further work merges into it, and a second run prints its URL instead of failing.

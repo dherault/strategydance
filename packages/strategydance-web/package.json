@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "frontend",
+  "name": "strategydance-web",
   "type": "module",
   "scripts": {
     "dev": "vite dev",

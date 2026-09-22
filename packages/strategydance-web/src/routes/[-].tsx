@@ -17,7 +17,7 @@ import UserOrganizationsWait from '~components/userOrganization/UserOrganization
 
   The third holds it until the memberships are known, so `useUserOrganizations().data` is a list
   rather than a maybe, and `useCurrentOrganization()` resolves against a list that has arrived.
-  It sits below the second rather than beside it because `OrganizationUser.user` is a required
+  It sits below the second rather than beside it because `UserOrganization.user` is a required
   foreign key: creating an organization before the reader's row exists is a constraint
   violation, not a slow request
 */

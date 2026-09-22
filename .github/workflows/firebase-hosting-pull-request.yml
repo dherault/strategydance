@@ -11,6 +11,12 @@ jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
+    # The head check stops forks, but `pull_request` runs the workflow from the pull request's
+    # own code, so anybody who can push a branch can edit this file and print the service
+    # account. Scoping the secret to an environment is what fixes that, and only once the
+    # environment carries a protection rule: add required reviewers to `preview` in the
+    # repository settings, or this line buys nothing
+    environment: preview
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2

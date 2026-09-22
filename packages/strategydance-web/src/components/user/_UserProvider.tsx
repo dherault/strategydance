@@ -55,9 +55,13 @@ function UserProvider({ children }: PropsWithChildren) {
 
   const user = viewerId ? data?.user ?? null : null
 
-  // The read has answered, which is a different thing from there being a row. It is the
-  // precondition for inserting one: before it, "no row" only means "not asked yet"
-  const hasReadUser = Boolean(viewerId) && !isPending
+  /*
+    The read has answered *and* succeeded, which is a different thing from there being a row.
+    It is the precondition for inserting one: before it, "no row" only means "not asked yet",
+    and a failed read means the same thing while looking like an answer. Inserting on one
+    would attempt a duplicate for a row that already exists
+  */
+  const hasReadUser = Boolean(viewerId) && !isPending && !isError
 
   /*
     True until the row actually exists, not merely until the read resolves. Between a first

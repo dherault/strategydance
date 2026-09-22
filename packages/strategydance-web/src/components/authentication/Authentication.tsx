@@ -390,17 +390,7 @@ function Authentication() {
             <FormattedMessage {...authenticationMessages.actionBack} />
           </button>
         )}
-        {mode === MODES.LOGIN && hasNoSupportedProvider && (
-        <>
-          <Label className="mt-8 block text-center">
-            {email}
-          </Label>
-          <Label className="mt-1.5 block text-center text-muted-foreground">
-            <FormattedMessage {...authenticationMessages.modeLoginNoSupportedProvider} />
-          </Label>
-        </>
-      )}
-      {mode === MODES.LOGIN && hasPassword && (
+        {mode === MODES.LOGIN && hasPassword && (
           <Link
             to="/authentication/password-reset"
             className="text-sm text-muted-foreground hover:underline"

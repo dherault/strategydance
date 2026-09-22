@@ -3,8 +3,8 @@
 connectorId: strategydance-web-connector
 generate:
   javascriptSdk:
-    # Committed, like `routeTree.gen.ts`, because the web package's typecheck reads it and CI
-    # has no Data Connect service to regenerate it against. Never edited by hand
+    # Not committed: generating it needs neither credentials nor a network, so `postinstall`
+    # produces it on every clone. Never edited by hand
     - outputDir: ../generated/strategydance-web-connector
       package: "@strategydance/web-connector"
       # The React bindings wrap each operation in a TanStack Query hook, which is the cache and

@@ -117,7 +117,13 @@ Development always talks to the emulators, so `bun run dev` wants `bun run dev:e
 beside it. So does `bun run preview`, which starts its own: its bundle is a production build,
 so the `DEV` check cannot carry it, and `VITE_USE_FIREBASE_EMULATORS=true` is what does. A
 local preview that signs people into the real project and writes real rows would be a trap
-rather than a preview. The App Check debug token prints to the console on first run and has to be
+rather than a preview.
+
+**The Hosting preview channel on each pull request is the exception, and it writes real
+data.** There is one Firebase project, so a preview build talks to it: signing in on a
+preview URL creates a real account, and anything it stores is a real row. Use a preview to
+look at what renders, not to exercise sign-up. Isolating it means a second project with its
+own Cloud SQL instance, which is a deliberate decision nobody has taken yet. The App Check debug token prints to the console on first run and has to be
 registered in the Firebase console before a browser can reach the real project; the emulators
 do not enforce App Check, so the usual loop never needs it.
 

@@ -6,7 +6,8 @@ A [Bun](https://bun.com) monorepo. Packages live under `packages/`.
 
 ## Packages
 
-- [`packages/frontend`](packages/frontend) — TanStack Start (SPA mode) + React + Tailwind CSS v4, built with Vite
+- [`packages/strategydance-web`](packages/strategydance-web) — TanStack Start (SPA mode) + React + Tailwind CSS v4, built with Vite
+- [`packages/strategydance-database`](packages/strategydance-database) — the Firebase Data Connect service: the Postgres schema, its connectors, and the SDK generated from them
 - [`packages/strategydance-core`](packages/strategydance-core) — types, enums and constants shared by every package, with zero runtime dependencies
 - [`packages/strategydance-translations`](packages/strategydance-translations) — the Gemini-backed CLI that translates the message catalogues. Node-only
 
@@ -23,7 +24,7 @@ The frontend is served on http://localhost:5173.
 
 The interface is localized with [React Intl](https://formatjs.io/docs/react-intl/) into English,
 French, Spanish, German, Portuguese, Chinese and Japanese. English is the source: its strings are
-the `defaultMessage`s in `packages/frontend/src/data/intl/messages/`, so it has no catalogue of its
+the `defaultMessage`s in `packages/strategydance-web/src/data/intl/messages/`, so it has no catalogue of its
 own.
 
 `bun run translate` fills the other six from those sources with Gemini, and only sends what has

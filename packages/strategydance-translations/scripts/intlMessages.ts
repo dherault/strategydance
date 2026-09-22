@@ -34,11 +34,11 @@ export type MessagesInput = Record<MessageType, SourceMessages>
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const appRoot = path.resolve(dirname, '../../frontend')
+const appRoot = path.resolve(dirname, '../../strategydance-web')
 const intlDirectory = path.resolve(appRoot, 'src/data/intl')
 const messagesDirectory = path.resolve(intlDirectory, 'messages')
 
-const localesDirectory = path.resolve(intlDirectory, 'locales')
+const localesDirectory = path.resolve(intlDirectory, 'messages-translated')
 
 // Not exported: the source locale is only ever needed here, to subtract it from the targets
 const sourceLocale = Locale.EN

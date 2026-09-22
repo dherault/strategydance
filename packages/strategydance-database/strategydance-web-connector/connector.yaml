@@ -1,0 +1,14 @@
+# One connector per caller, because `@auth` levels and the operations themselves differ by who
+# is asking. A backend connector will sit beside this one rather than widening it
+connectorId: strategydance-web-connector
+generate:
+  javascriptSdk:
+    # Not committed: generating it needs neither credentials nor a network, so `postinstall`
+    # produces it on every clone. Never edited by hand
+    - outputDir: ../generated/strategydance-web-connector
+      package: "@strategydance/web-connector"
+      # The React bindings wrap each operation in a TanStack Query hook, which is the cache and
+      # the refetch this app would otherwise hand roll. `@tanstack/react-query` is already
+      # mounted in `Wrap`, so the hooks land in a provider that exists
+      react: true
+      angular: false

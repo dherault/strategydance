@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Custom */
+    "esModuleInterop": true,
+    "types": ["bun"]
+  },
+  /* Only what is written by hand. `generated/` is the Firebase CLI's output, is not committed,
+     and is typechecked where it is consumed, in strategydance-web */
+  "include": ["*.ts"],
+  "exclude": ["generated"]
+}

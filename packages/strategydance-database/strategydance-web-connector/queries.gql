@@ -1,0 +1,35 @@
+# The caller's own row, and only ever their own: the key comes from the token rather than from
+# a variable, so there is no shape of this query that reads somebody else
+query GetCurrentUser @auth(level: USER) {
+  user(key: { id_expr: "auth.uid" }) {
+    id
+    email
+    displayName
+    imageUrl
+    locale
+    timezone
+    authenticationProviders
+    createdAt
+    updatedAt
+  }
+}
+
+# Which buttons to offer somebody who has typed their email and not yet signed in.
+#
+# PUBLIC because there is no caller to authenticate yet, and that is the cost of the design:
+# the answer distinguishes an address that has an account from one that does not, so this
+# endpoint can be asked whether somebody is a member.
+#
+# App Check is what is meant to keep that to real browsers, and initializing it in the bundle
+# only attaches a token: **enforcement has to be switched on for Data Connect in the Firebase
+# console**, and until it is, this endpoint enumerates registered emails to anyone who calls
+# it directly. That is a deployment prerequisite, not something this file can assert.
+#
+# It returns the providers and nothing else. The row's existence is inherent to the question,
+# so nothing is gained by leaking a name or an id alongside it
+query GetAuthenticationProvidersByEmail($email: String!)
+@auth(level: PUBLIC, insecureReason: "The sign-in screen has to know which button to offer before anybody has signed in.") {
+  users(where: { email: { eq: $email } }, limit: 1) {
+    authenticationProviders
+  }
+}

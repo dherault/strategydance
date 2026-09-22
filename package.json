@@ -35,11 +35,13 @@
     "kill:emulators": "kill -9 $(lsof -t -i:4000 -i:9099 -i:9199 -i:9399) 2>/dev/null || true",
     "rmnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "clean": "bun run rmnm && bun install",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "bun run generate:database"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/node": "^24.13.2",
+    "firebase-tools": "^15.30.1",
     "husky": "^9.1.7",
     "npm-check-updates": "^23.1.0",
     "oxlint": "^1.82.0"

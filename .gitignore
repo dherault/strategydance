@@ -152,6 +152,5 @@ firebase-debug.log
 dataconnect-debug.log
 ui-debug.log
 
-# Generated Data Connect SDK docs. The SDK itself is committed, its prose is not
-packages/strategydance-database/generated/**/README.md
-packages/strategydance-database/generated/**/.guides/
+# The Data Connect SDK, generated from the schema and the connector by `bun install`
+packages/strategydance-database/generated/

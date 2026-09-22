@@ -13,6 +13,10 @@ jobs:
           # Pins CI to the packageManager version in package.json
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      # `postinstall` already does this. Repeated explicitly so a run with scripts disabled
+      # fails here, naming the missing step, rather than inside a typecheck that cannot
+      # resolve strategydance-database
+      - run: bun run generate:database
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run test

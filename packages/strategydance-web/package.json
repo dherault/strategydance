@@ -12,6 +12,7 @@
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.36",
     "@tanstack/react-start": "^1.168.53",
+    "firebase": "^12.19.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-intl": "^10.2.2",

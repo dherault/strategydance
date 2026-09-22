@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { ReCaptchaV3Provider, initializeAppCheck } from 'firebase/app-check'
 import { GoogleAuthProvider, connectAuthEmulator, getAuth } from 'firebase/auth'
-import { connectDataConnectEmulator, getDataConnect } from 'firebase/data-connect'
+import { connectDataConnectEmulator, getDataConnect, makeMemoryCacheProvider } from 'firebase/data-connect'
 import { connectorConfig } from 'strategydance-database/web'
 import { getPerformance } from 'firebase/performance'
 import { connectStorageEmulator, getStorage } from 'firebase/storage'
@@ -74,10 +74,25 @@ googleProvider.addScope('profile')
   Data Connect
 --- */
 
-// The service, location and connector come from the generated SDK rather than being written
-// out again here. They are how the SDK addresses a deployed service, so a copy that drifted
-// from `dataconnect.yaml` would fail at runtime against a service that exists
-export const dataConnect = getDataConnect(app, connectorConfig)
+/*
+  The service, location and connector come from the generated SDK rather than being written
+  out again here. They are how the SDK addresses a deployed service, so a copy that drifted
+  from `dataconnect.yaml` would fail at runtime against a service that exists.
+
+  `maxAgeSeconds: 0` turns the SDK's own cache off, and it is not an optimization being
+  declined. TanStack Query is already the cache: the generated React hooks call
+  `executeQuery(ref)` with no fetch policy, so a second cache sits underneath the first and
+  answers `PREFER_CACHE` from it. A refetch after a mutation then returns what was true before
+  the mutation, and the worst case is not staleness but a hang: a reader who has just signed up
+  refetches the row that was absent a moment ago, is told it is still absent, and `UserWait`
+  holds the tree forever
+*/
+export const dataConnect = getDataConnect(app, connectorConfig, {
+  cacheSettings: {
+    cacheProvider: makeMemoryCacheProvider(),
+    maxAgeSeconds: 0,
+  },
+})
 
 /* ---
   Storage

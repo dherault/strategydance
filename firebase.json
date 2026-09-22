@@ -60,6 +60,9 @@
       "port": 9399,
       "dataDir": "./emulators-data/dataconnect"
     },
+    "hosting": {
+      "port": 5050
+    },
     "storage": {
       "port": 9199
     }

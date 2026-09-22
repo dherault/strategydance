@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
+    "build": "tsc -b && vite build && rm -rf dist/server",
     "typecheck": "tsc -b"
   },
   "dependencies": {

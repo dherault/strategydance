@@ -33,3 +33,34 @@ query GetAuthenticationProvidersByEmail($email: String!)
     authenticationProviders
   }
 }
+
+# Every organization the caller belongs to, and what they are in it.
+#
+# Rooted at the join table rather than at the reader, for two reasons. `role` lives on the join
+# row, and the `_via_` relation Data Connect generates is typed `[Organization!]!`, so it has
+# nowhere to put one. And `organizationUsers` is a non-null list at the top level, where
+# `user(key: ...) { organizationUsers_on_user }` would be a nullable row wrapping one, which is a
+# second optional hop for a case `UserWait` has already ruled out.
+#
+# `eq_expr` keeps this as safe as `GetCurrentUser`: the uid comes off the token rather than from
+# a variable, so there is no shape of this query that lists somebody else's memberships.
+#
+# The generated field's `limit` defaults to 100. Somebody in more than a hundred organizations
+# sees the first hundred, which is a ceiling worth raising deliberately rather than discovering
+query GetCurrentUserOrganizations @auth(level: USER) {
+  organizationUsers(
+    where: { userId: { eq_expr: "auth.uid" } }
+    # Joined-at order, so the list does not reshuffle between reads. `organizationId` is the
+    # tiebreak for two memberships created in one transaction, which share `request.time`
+    orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
+  ) {
+    role
+    createdAt
+    organization {
+      id
+      name
+      createdAt
+      updatedAt
+    }
+  }
+}

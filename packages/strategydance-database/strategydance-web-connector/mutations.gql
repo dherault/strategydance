@@ -46,3 +46,29 @@ mutation UpdateCurrentUser(
     }
   )
 }
+
+# An organization and its first administrator, which are one act rather than two: an organization
+# nobody can administer is unreachable, and a membership without its organization is a foreign key
+# violation. `@transaction` is what makes the pair atomic, so a failure on the second step rolls
+# the first back rather than leaving an orphan behind.
+#
+# The caller never names themselves. `userId_expr` reads the uid off the token, so this cannot be
+# shaped to make somebody else an administrator of an organization they never asked for, and it is
+# also what keeps the operation out of the insecure set: `@auth(level: USER)` counts as insecure
+# unless `auth.uid` is referenced somewhere in the operation.
+#
+# `response.organization.id` is the uuid Postgres generated a step ago. It is keyed by the response
+# key, so it is the alias rather than `organization_insert`, which is also what gives the generated
+# `CreateOrganizationData` a field called `organization`
+mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+  organization: organization_insert(data: { name: $name })
+  organizationUser: organizationUser_insert(
+    data: {
+      organizationId_expr: "response.organization.id"
+      userId_expr: "auth.uid"
+      # Whoever creates it administers it. A second member arrives through an invitation mutation
+      # that does not exist yet, and that one will say `MEMBER`
+      role: ADMINISTRATOR
+    }
+  )
+}

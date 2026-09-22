@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useEffect, useRef } from 'react'
+import { type PropsWithChildren, useEffect, useRef, useState } from 'react'
 import type { UpdateCurrentUserVariables } from 'strategydance-database/web'
 import { useCreateCurrentUser, useGetCurrentUser, useUpdateCurrentUser } from 'strategydance-database/web/react'
 
@@ -49,6 +49,10 @@ function UserProvider({ children }: PropsWithChildren) {
   // insert, which Postgres then refuses for a duplicate key
   const insertingForViewerIdRef = useRef<string | null>(null)
 
+  // Whose insert failed, rather than a bare boolean, so signing into another account on the
+  // same tab starts from a clean slate instead of inheriting the last one's failure
+  const [insertFailedForViewerId, setInsertFailedForViewerId] = useState<string | null>(null)
+
   const user = viewerId ? data?.user ?? null : null
 
   // The read has answered, which is a different thing from there being a row. It is the
@@ -64,7 +68,7 @@ function UserProvider({ children }: PropsWithChildren) {
     `isError` releases it anyway. A read this reader is not allowed to make is not going to
     start working, and a hang says less than an empty screen does
   */
-  const loading = Boolean(viewerId) && !user && !isError
+  const loading = Boolean(viewerId) && !user && !isError && insertFailedForViewerId !== viewerId
 
   async function refetch() {
     await refetchUser()
@@ -110,6 +114,10 @@ function UserProvider({ children }: PropsWithChildren) {
       .then(() => refetchUser())
       .catch(error => {
         insertingForViewerIdRef.current = null
+
+        // Releases the waiter. Nothing re-runs this effect on its own, so without it the
+        // failure is a permanent spinner rather than a page that renders and says nothing
+        setInsertFailedForViewerId(viewer.uid)
 
         console.error('Failed to create the user', error)
       })

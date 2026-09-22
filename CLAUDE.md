@@ -36,7 +36,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run typecheck` | `tsc` across the packages |
 | `bun run test` | `bun test` across the packages |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
-| `bun run translate` | Fills the locale catalogues. Human-only, see below |
+| `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run kill` / `kill:emulators` | Frees the dev server port, or the four emulator ports |
 
 Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
@@ -155,9 +155,14 @@ would re-enable every `-`-prefixed excluded file in the tree.
   are dotted `<messageType>.<path>` and unique across every message file
 - A new message type needs its source module, an entry in `MESSAGE_TYPES`, and an
   `IntlMessagesRegistration` on the route that needs it
-- **Never edit `src/data/intl/locales/` by hand, and never run `bun run translate`** — it spends
-  Gemini quota, so it is a human's call. Commit `translations.lock.json` with the locale files it
-  vouches for; deleting the lock, a locale file, or one entry forces a retranslation
+- **Never edit `src/data/intl/locales/` by hand.** Those files are written by
+  `bun run translate` and nothing else
+- **Run `bun run translate` whenever a message changes**, and commit the result. It is
+  incremental: `translations.lock.json` records a hash per id, so only genuinely new or edited
+  strings reach Gemini and a no-op run costs nothing. Leaving it for somebody else means the
+  branch ships six locales that silently render English. Commit `translations.lock.json` with
+  the locale files it vouches for; deleting the lock, a locale file, or one entry forces a
+  retranslation
 - **Never write an em dash in a `defaultMessage` or a `description`.** Use a full stop, a comma
   or a colon. It reads as machine-written, and all six translated locales inherit it
 

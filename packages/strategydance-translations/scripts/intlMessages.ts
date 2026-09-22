@@ -34,7 +34,7 @@ export type MessagesInput = Record<MessageType, SourceMessages>
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const appRoot = path.resolve(dirname, '../../frontend')
+const appRoot = path.resolve(dirname, '../../strategydance-web')
 const intlDirectory = path.resolve(appRoot, 'src/data/intl')
 const messagesDirectory = path.resolve(intlDirectory, 'messages')
 

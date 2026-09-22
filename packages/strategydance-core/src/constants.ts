@@ -16,3 +16,18 @@ export const SUPPORTED_LOCALES = supportedLocales
 // The source locale. It has no catalogue of its own: its strings are the `defaultMessage`s the
 // frontend bundle already carries
 export const DEFAULT_LOCALE = Locale.EN
+
+
+/* ---
+  URLS
+--- */
+
+/* Environment */
+
+export const DEVELOPMENT_APP_PORT = 5173
+
+export const DEVELOPMENT_APP_URL = `http://localhost:${DEVELOPMENT_APP_PORT}`
+
+export const PRODUCTION_APP_HOSTNAME = 'sunshineteams.com'
+
+export const PRODUCTION_APP_URL = `https://${PRODUCTION_APP_HOSTNAME}`

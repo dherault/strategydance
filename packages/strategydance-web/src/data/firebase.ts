@@ -5,6 +5,7 @@ import { connectDataConnectEmulator, getDataConnect, makeMemoryCacheProvider } f
 import { connectorConfig } from 'strategydance-database/web'
 import { getPerformance } from 'firebase/performance'
 import { connectStorageEmulator, getStorage } from 'firebase/storage'
+import { PRODUCTION_APP_HOSTNAME } from 'strategydance-core'
 
 /*
   SPA mode prerenders the document shell in Node at build time, and the route tree really is
@@ -38,7 +39,7 @@ const EMULATORS_REQUESTED = import.meta.env.DEV || import.meta.env.VITE_USE_FIRE
 // the Firebase console. Initializing it here attaches a token and nothing more
 const firebaseConfig = {
   apiKey: 'AIzaSyD4xUIFDDOo2KVV7AtsR9VdKoIZZbqBS28',
-  authDomain: 'strategydance.firebaseapp.com',
+  authDomain: PRODUCTION_APP_HOSTNAME,
   projectId: 'strategydance',
   storageBucket: 'strategydance.firebasestorage.app',
   messagingSenderId: '995028545701',

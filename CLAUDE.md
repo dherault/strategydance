@@ -183,7 +183,24 @@ gh pr create --base dev
 
 ### Copilot review loop
 
-1. Request a review: `gh pr edit <number> --add-reviewer @copilot`.
+1. Request a review. `gh pr edit <number> --add-reviewer @copilot` **silently does nothing
+   here**: resolving `@copilot` needs a `read:project` scope the token does not have, and gh
+   swallows the partial GraphQL error and then sends `requestReviews` with no reviewer at all.
+   It exits 0 and prints the PR URL, so it looks like it worked. Go through GraphQL instead:
+
+   ```sh
+   BOT=$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){suggestedActors(capabilities:[CAN_BE_ASSIGNED],first:50){nodes{__typename ... on Bot{id login}}}}}'      -f owner=dherault -f name=strategydance      --jq '.data.repository.suggestedActors.nodes[] | select(.login=="copilot-swe-agent") | .id')
+
+   gh api graphql -f query='mutation($pr:ID!,$bot:ID!){requestReviews(input:{pullRequestId:$pr,botIds:[$bot],union:true}){clientMutationId}}'      -f pr=<pull request node id> -f bot="$BOT"
+   ```
+
+   `union: true` adds to the existing reviewers rather than replacing them. The same mutation
+   is how you **re-request** after pushing fixes, but only once Copilot has actually reviewed:
+   while a request is still outstanding it is a no-op, so to force one, remove the reviewer
+   with `removeRequestedReviewers` and request again.
+
+   Confirm it landed. `gh pr view <number> --json reviewRequests` has to come back non-empty,
+   otherwise nothing was requested.
 2. Wait for CI and fix whatever fails.
 3. Answer every Copilot comment, either with an edit that addresses it or a reply explaining
    why it does not apply. Never ignore or silently resolve one.

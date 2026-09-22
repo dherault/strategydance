@@ -1,4 +1,4 @@
-name: Lint and build on PR
+name: Check on PR
 
 on:
   pull_request:
@@ -14,4 +14,6 @@ jobs:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
       - run: bun run build

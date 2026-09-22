@@ -1,0 +1,46 @@
+# Insert and update are separate rather than one upsert, and `locale` is why: it is written at
+# creation and never again, so an upsert carrying it would quietly reset the account's language
+# every time an unrelated field changed
+
+mutation CreateCurrentUser(
+  $email: String
+  $displayName: String
+  $imageUrl: String
+  $locale: String!
+  $timezone: String
+  $authenticationProviders: [String!]!
+) @auth(level: USER) {
+  user_insert(
+    data: {
+      id_expr: "auth.uid"
+      email: $email
+      displayName: $displayName
+      imageUrl: $imageUrl
+      locale: $locale
+      timezone: $timezone
+      authenticationProviders: $authenticationProviders
+    }
+  )
+}
+
+# The fields that mirror the Firebase profile, plus the observed time zone. The caller sends
+# this only when one of them has actually drifted, so `updatedAt` keeps meaning something
+mutation UpdateCurrentUser(
+  $email: String
+  $displayName: String
+  $imageUrl: String
+  $timezone: String
+  $authenticationProviders: [String!]!
+) @auth(level: USER) {
+  user_update(
+    key: { id_expr: "auth.uid" }
+    data: {
+      email: $email
+      displayName: $displayName
+      imageUrl: $imageUrl
+      timezone: $timezone
+      authenticationProviders: $authenticationProviders
+      updatedAt_expr: "request.time"
+    }
+  )
+}

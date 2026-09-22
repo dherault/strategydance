@@ -1,0 +1,15 @@
+# The caller's own row, and only ever their own: the key comes from the token rather than from
+# a variable, so there is no shape of this query that reads somebody else
+query GetCurrentUser @auth(level: USER) {
+  user(key: { id_expr: "auth.uid" }) {
+    id
+    email
+    displayName
+    imageUrl
+    locale
+    timezone
+    authenticationProviders
+    createdAt
+    updatedAt
+  }
+}

@@ -1,0 +1,11 @@
+# One connector per caller, because `@auth` levels and the operations themselves differ by who
+# is asking. A backend connector will sit beside this one rather than widening it
+connectorId: strategydance-web-connector
+generate:
+  javascriptSdk:
+    # Committed, like `routeTree.gen.ts`, because the web package's typecheck reads it and CI
+    # has no Data Connect service to regenerate it against. Never edited by hand
+    - outputDir: ../generated/strategydance-web-connector
+      package: "@strategydance/web-connector"
+      react: false
+      angular: false

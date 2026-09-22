@@ -1,0 +1,27 @@
+# The reader's account, one row per Firebase Auth uid.
+#
+# Distinct from the Firebase account itself, which the SDK holds and this table only mirrors:
+# `email`, `displayName` and `imageUrl` are copies kept in step so a join can render somebody's
+# name without a round trip to the auth service, which has no bulk read anyway.
+type User @table {
+  # `@default(expr: "auth.uid")` fills this in from the caller's token on insert and upsert, so
+  # the key is never something a client chooses and nobody can write a row as somebody else
+  id: String! @default(expr: "auth.uid")
+  # Nullable because a provider is not obliged to report one, and because an account can drop
+  # the address it was created with
+  email: String
+  displayName: String
+  imageUrl: String
+  # The language the account was created in, as a hint for anything sent to this reader rather
+  # than rendered for them. Written once: the interface language is a preference the browser
+  # holds, and an account page will own this one
+  locale: String!
+  # An IANA identifier, validated against `Intl` before it is sent. Unlike `locale` this is
+  # observed rather than chosen, so the newest answer overwrites the stored one
+  timezone: String
+  # Which buttons this account can sign in with, so a screen can say so without asking Firebase
+  # and getting an answer shaped by email enumeration protection
+  authenticationProviders: [String!]!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

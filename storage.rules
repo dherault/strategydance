@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isLightImage() {
+      return request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+    }
+
+    // Public read, because a profile picture is rendered next to its owner's name wherever
+    // that name appears, and an authenticated fetch for each one buys nothing: the URL is
+    // already handed to anybody who can see the person
+    match /users/{userId}/profile-pictures/{fileName} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && isLightImage();
+    }
+  }
+}

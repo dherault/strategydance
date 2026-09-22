@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "name": "strategydance-database",
+  "type": "module",
+  "exports": {
+    "./web": {
+      "types": "./generated/strategydance-web-connector/index.d.ts",
+      "default": "./generated/strategydance-web-connector/esm/index.esm.js"
+    }
+  },
+  "scripts": {
+    "generate": "firebase dataconnect:sdk:generate"
+  },
+  "peerDependencies": {
+    "firebase": "^12.19.0"
+  }
+}

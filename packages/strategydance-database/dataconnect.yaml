@@ -1,13 +1,13 @@
 specVersion: "v1"
-serviceId: "strategydance"
-location: "europe-north1"
+serviceId: "strategydance-service"
+location: "us-central1"
 schemas:
   - source: "./schema"
     datasource:
       postgresql:
-        database: "strategydance"
+        database: "strategydance-database"
         cloudSql:
-          instanceId: "strategydance-fdc"
+          instanceId: "strategydance-instance"
           # COMPATIBLE lets Postgres carry columns Data Connect does not name, which is what
           # makes a migration that adds one deployable before the schema catches up
           schemaValidation: "COMPATIBLE"

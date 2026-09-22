@@ -157,3 +157,6 @@ packages/strategydance-database/generated/
 
 # The schema Data Connect derives from ours, written by the CLI and the emulator
 packages/strategydance-database/.dataconnect/
+
+# Where the emulators dump their data when `--export-on-exit` cannot use `--import`'s path
+firebase-export-*/

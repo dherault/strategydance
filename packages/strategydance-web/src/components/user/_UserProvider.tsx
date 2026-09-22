@@ -10,7 +10,6 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useAppIntl from '~hooks/intl/useAppIntl'
 import useSystemTimezone from '~hooks/user/useSystemTimezone'
 
-import fromDatabaseLocale from '~utils/user/fromDatabaseLocale'
 import getAuthenticationProviders from '~utils/user/getAuthenticationProviders'
 import toDatabaseLocale from '~utils/user/toDatabaseLocale'
 
@@ -25,7 +24,7 @@ import { dataConnect } from '~data/firebase'
 */
 function UserProvider({ children }: PropsWithChildren) {
   const { data: viewer } = useAuthentication()
-  const { locale, setLocale } = useAppIntl()
+  const { locale } = useAppIntl()
   const timezone = useSystemTimezone()
 
   const viewerId = viewer?.uid ?? null
@@ -37,7 +36,7 @@ function UserProvider({ children }: PropsWithChildren) {
     `enabled` keeps it from running for a signed out reader, whose token the `@auth(level: USER)`
     operation would refuse anyway
   */
-  const { data, isPending, refetch: refetchUser } = useGetCurrentUser(dataConnect, {
+  const { data, isPending, isError, refetch: refetchUser } = useGetCurrentUser(dataConnect, {
     queryKey: ['GetCurrentUser', viewerId],
     enabled: Boolean(viewerId),
   })
@@ -49,10 +48,23 @@ function UserProvider({ children }: PropsWithChildren) {
   // inserting does not exist until the write lands. Without this the second run fires a second
   // insert, which Postgres then refuses for a duplicate key
   const insertingForViewerIdRef = useRef<string | null>(null)
-  const hasSyncedLocaleRef = useRef(false)
 
   const user = viewerId ? data?.user ?? null : null
-  const loading = Boolean(viewerId) && isPending
+
+  // The read has answered, which is a different thing from there being a row. It is the
+  // precondition for inserting one: before it, "no row" only means "not asked yet"
+  const hasReadUser = Boolean(viewerId) && !isPending
+
+  /*
+    True until the row actually exists, not merely until the read resolves. Between a first
+    read that finds nothing and the insert landing there is no row and nothing pending, and
+    releasing the waiter there renders `/-` with `useUser().data` still null, which is the one
+    thing the route promises cannot happen.
+
+    `isError` releases it anyway. A read this reader is not allowed to make is not going to
+    start working, and a hang says less than an empty screen does
+  */
+  const loading = Boolean(viewerId) && !user && !isError
 
   async function refetch() {
     await refetchUser()
@@ -70,7 +82,7 @@ function UserProvider({ children }: PropsWithChildren) {
 
   // Insert the row the first time this account is seen
   useEffect(() => {
-    if (!viewer || loading || user) return
+    if (!viewer || !hasReadUser || user) return
 
     /*
       The schema requires an email and the mutation reads it off the token, so an account
@@ -104,7 +116,7 @@ function UserProvider({ children }: PropsWithChildren) {
   }, [
     viewer,
     user,
-    loading,
+    hasReadUser,
     locale,
     timezone,
     createCurrentUser,
@@ -117,7 +129,13 @@ function UserProvider({ children }: PropsWithChildren) {
 
     const authenticationProviders = getAuthenticationProviders(viewer)
 
-    const hasDrifted = user.displayName !== viewer.displayName
+    /*
+      `email` is compared even though the mutation reads it off the token rather than from
+      here. It is the column the sign-in screen looks accounts up by, so an address that
+      changed in Firebase and not in Postgres is an account nobody can find again
+    */
+    const hasDrifted = user.email !== viewer.email
+      || user.displayName !== viewer.displayName
       || user.imageUrl !== viewer.photoURL
       || user.authenticationProviders.join() !== authenticationProviders.join()
       /*
@@ -151,28 +169,6 @@ function UserProvider({ children }: PropsWithChildren) {
     timezone,
     updateCurrentUser,
     refetchUser,
-  ])
-
-  /*
-    Adopt the language the account was created in, once, and only when the reader has not
-    already chosen one this session. After that the browser's preference wins: the stored value
-    is a hint for what gets sent to somebody, not a remote control for the tab they are in
-  */
-  useEffect(() => {
-    if (!user) return
-    if (hasSyncedLocaleRef.current) return
-
-    hasSyncedLocaleRef.current = true
-
-    const userLocale = fromDatabaseLocale(user.locale)
-
-    if (userLocale === locale) return
-
-    setLocale(userLocale)
-  }, [
-    user,
-    locale,
-    setLocale,
   ])
 
   const contextValue: UserContextType = {

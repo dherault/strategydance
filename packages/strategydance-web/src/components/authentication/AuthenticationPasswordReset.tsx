@@ -22,7 +22,10 @@ import { authentication } from '~data/firebase'
 import authenticationMessages from '~data/intl/messages/authentication'
 
 const formSchema = z.object({
-  email: z.email('validationEmailInvalid').trim().toLowerCase(),
+  // Normalize first, validate second. `.trim()` is a transform, so chained after `z.email()`
+  // it runs on the way out and the check still sees the raw string: an address pasted with a
+  // trailing space was rejected, having been trimmed everywhere else in this flow
+  email: z.string().trim().toLowerCase().pipe(z.email('validationEmailInvalid')),
 })
 
 type FormValues = z.infer<typeof formSchema>

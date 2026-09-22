@@ -42,7 +42,10 @@ type Mode = typeof MODES[keyof typeof MODES]
 // zod carries a *key* into the authentication catalogue rather than a sentence, so the message
 // is formatted in the reader's language at render rather than in English at schema definition
 const emailFormSchema = z.object({
-  email: z.email('validationEmailInvalid').trim().toLowerCase(),
+  // Normalize first, validate second. `.trim()` is a transform, so chained after `z.email()`
+  // it runs on the way out and the check still sees the raw string: an address pasted with a
+  // trailing space was rejected, having been trimmed everywhere else in this flow
+  email: z.string().trim().toLowerCase().pipe(z.email('validationEmailInvalid')),
 })
 
 const passwordSchema = z

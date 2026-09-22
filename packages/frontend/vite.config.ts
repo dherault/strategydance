@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 
+import formatjs from '@formatjs/unplugin/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
@@ -34,5 +35,16 @@ export default defineConfig({
     }),
     // The React compiler memoizes components automatically, via oxc rather than babel
     react({ compiler: true }),
+    /*
+      Compiles every `defaultMessage` to its parsed AST at build time, so react-intl renders the
+      source locale from the faster of its two paths and never parses ICU syntax in the browser.
+
+      Purely an optimization: react-intl parses the strings at runtime without it, and dropping
+      this plugin changes nothing that is rendered
+    */
+    formatjs({
+      idInterpolationPattern: '[sha512:contenthash:base64:6]',
+      ast: true,
+    }),
   ],
 })

@@ -47,52 +47,36 @@ type User @table {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-# What somebody can do inside an organization. Two values because there are two answers the
-# product needs so far: everybody reads, and somebody has to be able to change the roster.
-#
-# Unlike `Locale` this one has no second declaration in strategydance-core, so there is nothing
-# for `schema.test.ts` to keep in step. Add one the day the frontend has to enumerate roles
-# rather than render the one it was handed
+# What somebody can do inside an organization
 enum OrganizationRole {
   MEMBER
   ADMINISTRATOR
 }
 
-# A team, and the thing every row this product stores will eventually hang off.
-#
-# It names no members. `OrganizationUser` owns that, so somebody can be added or removed without
-# this row being written and `updatedAt` keeps meaning "the organization itself changed"
+# A team. It names no members: `UserOrganization` owns those, so adding or removing somebody
+# does not touch this row
 type Organization @table {
-  # Written out rather than left implicit. `@table` adds exactly this field when `key` names
-  # nothing, and having it on the page is what makes `response.organization.id` in
-  # `CreateOrganization` obviously refer to something
+  # Written out rather than left implicit, so `response.organization.id` in `CreateOrganization`
+  # refers to something on the page
   id: UUID! @default(expr: "uuidV4()")
   name: String!
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-# Who is in which organization, and as what.
+# Which organizations somebody is in, and as what.
 #
-# The composite key does two jobs. It is the uniqueness constraint, so a second insert for a pair
-# is a Postgres error rather than a second membership. And it is what tells Data Connect this is
-# a join table: seeing two reference fields as the primary key, it generates
-# `organizations_via_OrganizationUser` on `User` and `users_via_OrganizationUser` here.
-#
-# Neither of those carries `role`: they are typed `[Organization!]!` and `[User!]!`, so the join
-# row's own columns have nowhere to appear. That is why `GetCurrentUserOrganizations` is rooted
-# at this table rather than at the reader
-type OrganizationUser @table(key: ["organization", "user"]) {
-  # Implies an `organizationId: UUID!` column, and a foreign key that cascade deletes: a
-  # membership of an organization that is gone is not a membership
-  organization: Organization!
-  # Implies a `userId: String!` column, String rather than UUID because `User.id` is a Firebase
-  # uid. That is what lets `where: { userId: { eq_expr: "auth.uid" } }` compare like with like
+# Two reference fields as the primary key is what tells Data Connect this is a join table. The
+# pair is unique, so a repeated insert is an error rather than a second membership, and `user`
+# leads because a composite key indexes left to right: filtering on it is the read this table
+# exists for
+type UserOrganization @table(key: ["user", "organization"]) {
+  # Implies a `userId: String!` column, String because `User.id` is a Firebase uid
   user: User!
-  # No default, deliberately. An insert has to say which, so nobody becomes an administrator by
-  # omission and nobody is quietly demoted to member by one either
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # No default. An insert has to say which, so nobody becomes an administrator by omission
   role: OrganizationRole!
   createdAt: Timestamp! @default(expr: "request.time")
-  # Written when the role changes, which is the only thing about a membership that can change
   updatedAt: Timestamp! @default(expr: "request.time")
 }

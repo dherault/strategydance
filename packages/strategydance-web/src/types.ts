@@ -27,14 +27,14 @@ export type DataSource<Data> = {
 export type User = NonNullable<GetCurrentUserData['user']>
 
 /*
-  One row of the join table, which is where the role lives: the `_via_` relation Data Connect
-  generates is typed `[Organization!]!` and has nowhere to put the join row's own columns. So what
-  the context holds is a list of memberships, each carrying the organization it is a membership of.
+  One of the reader's memberships: an organization, and what they are in it. The role is why this
+  is the join row rather than the organization on its own, the `_via_` relation Data Connect
+  generates being typed `[Organization!]!` and so having nowhere to put it.
 
   Taken from the generated SDK rather than written out again, for the same reason `User` is. No
-  `NonNullable` here though: `organizationUsers` is a list rather than a row lookup, so it is never
+  `NonNullable` here though: `userOrganizations` is a list rather than a row lookup, so it is never
   null, only empty
 */
-export type OrganizationMembership = GetCurrentUserOrganizationsData['organizationUsers'][number]
+export type UserOrganization = GetCurrentUserOrganizationsData['userOrganizations'][number]
 
-export type Organization = OrganizationMembership['organization']
+export type Organization = UserOrganization['organization']

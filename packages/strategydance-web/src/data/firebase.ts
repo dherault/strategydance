@@ -20,8 +20,9 @@ const isBrowser = typeof window !== 'undefined'
 --- */
 
 // Public by design. An apiKey identifies the project rather than authorizing anything, and what
-// actually guards the backend is App Check below, the storage rules, and the `@auth` level on
-// every Data Connect operation
+// actually guards the backend is the storage rules, the `@auth` level on every Data Connect
+// operation, and App Check, which only counts once enforcement is switched on per service in
+// the Firebase console. Initializing it here attaches a token and nothing more
 const firebaseConfig = {
   apiKey: 'AIzaSyD4xUIFDDOo2KVV7AtsR9VdKoIZZbqBS28',
   authDomain: 'strategydance.firebaseapp.com',

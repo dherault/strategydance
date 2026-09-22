@@ -118,6 +118,12 @@ beside it. The App Check debug token prints to the console on first run and has 
 registered in the Firebase console before a browser can reach the real project; the emulators
 do not enforce App Check, so the usual loop never needs it.
 
+**App Check enforcement is a console setting, not a code one.** Initializing it here attaches
+a token; nothing rejects a request without one until enforcement is switched on per service.
+That matters most for the sign-in screen's `@auth(level: PUBLIC)` email lookup, which
+enumerates registered addresses to any direct caller until it is. Switch it on for Data
+Connect and Storage before the project is reachable from the internet.
+
 ### The database
 
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the

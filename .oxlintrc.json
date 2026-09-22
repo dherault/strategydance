@@ -4,5 +4,5 @@
   "categories": {
     "correctness": "error"
   },
-  "ignorePatterns": ["**/routeTree.gen.ts"]
+  "ignorePatterns": ["**/routeTree.gen.ts", "packages/strategydance-database/generated/**"]
 }

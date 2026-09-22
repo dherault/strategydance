@@ -1,5 +1,11 @@
 const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs } = require('firebase/data-connect');
 
+const AuthenticationProvider = {
+  PASSWORD: "PASSWORD",
+  GOOGLE: "GOOGLE",
+}
+exports.AuthenticationProvider = AuthenticationProvider;
+
 const connectorConfig = {
   connector: 'strategydance-web-connector',
   service: 'strategydance',

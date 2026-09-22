@@ -8,6 +8,11 @@ export type Int64String = string;
 export type DateString = string;
 
 
+export enum AuthenticationProvider {
+  PASSWORD = "PASSWORD",
+  GOOGLE = "GOOGLE",
+};
+
 
 
 export interface CreateCurrentUserData {
@@ -15,23 +20,23 @@ export interface CreateCurrentUserData {
 }
 
 export interface CreateCurrentUserVariables {
-  email?: string | null;
+  email: string;
   displayName?: string | null;
   imageUrl?: string | null;
   locale: string;
   timezone?: string | null;
-  authenticationProviders: string[];
+  authenticationProviders: AuthenticationProvider[];
 }
 
 export interface GetCurrentUserData {
   user?: {
     id: string;
-    email?: string | null;
+    email: string;
     displayName?: string | null;
     imageUrl?: string | null;
     locale: string;
     timezone?: string | null;
-    authenticationProviders: string[];
+    authenticationProviders: AuthenticationProvider[];
     createdAt: TimestampString;
     updatedAt: TimestampString;
   } & User_Key;
@@ -42,11 +47,11 @@ export interface UpdateCurrentUserData {
 }
 
 export interface UpdateCurrentUserVariables {
-  email?: string | null;
+  email: string;
   displayName?: string | null;
   imageUrl?: string | null;
   timezone?: string | null;
-  authenticationProviders: string[];
+  authenticationProviders: AuthenticationProvider[];
 }
 
 export interface User_Key {

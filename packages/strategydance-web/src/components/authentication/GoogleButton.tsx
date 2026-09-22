@@ -17,6 +17,10 @@ function GoogleButton({ onErrorCode, ...props }: Props) {
   const [loading, setLoading] = useState(false)
 
   async function signInWithGoogle() {
+    // A popup takes a moment to appear, which is long enough for a second click. Without this
+    // the second one opens a second flow and Firebase cancels the first
+    if (loading) return
+
     setLoading(true)
 
     /*
@@ -51,6 +55,7 @@ function GoogleButton({ onErrorCode, ...props }: Props) {
     <Button
       {...props}
       variant="outline"
+      disabled={loading}
       onClick={signInWithGoogle}
     >
       {loading

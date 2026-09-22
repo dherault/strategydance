@@ -97,7 +97,10 @@ function AuthenticationPasswordReset() {
         </Button>
       </form>
       {!!errorCode && (
-        <div className="mt-2 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-2 text-sm text-destructive"
+        >
           {formatAuthenticationMessage(AUTHENTICATION_ERRORS[errorCode] ?? DEFAULT_AUTHENTICATION_ERROR)}
         </div>
       )}

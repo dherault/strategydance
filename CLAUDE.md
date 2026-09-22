@@ -197,24 +197,20 @@ gh pr create --base dev
 
 ### Copilot review loop
 
-1. Request the first review, if pushing the branch has not already done it. `gh pr edit
-   <number> --add-reviewer @copilot` **silently does nothing
-   here**: resolving `@copilot` needs a `read:project` scope the token does not have, and gh
-   swallows the partial GraphQL error and then sends `requestReviews` with no reviewer at all.
-   It exits 0 and prints the PR URL, so it looks like it worked. Go through GraphQL instead:
+1. **Never request a review.** The repository requests one automatically, on the pull request
+   and on every push to it. Requesting by hand races that: `gh pr edit <number>
+   --add-reviewer @copilot` exits 0 and requests nothing anyway, because resolving `@copilot`
+   needs a `read:project` scope this token lacks and gh swallows the partial GraphQL error,
+   and the `requestReviews` mutation that does work only adds a duplicate.
+
+   Wait for the review to land instead. Count reviews *by Copilot with a non-empty body*:
+   every reply posted to a thread creates a review record with an empty one, so a bare count
+   climbs without a review having happened.
 
    ```sh
-   BOT=$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){suggestedActors(capabilities:[CAN_BE_ASSIGNED],first:50){nodes{__typename ... on Bot{id login}}}}}'      -f owner=dherault -f name=strategydance      --jq '.data.repository.suggestedActors.nodes[] | select(.login=="copilot-swe-agent") | .id')
-
-   gh api graphql -f query='mutation($pr:ID!,$bot:ID!){requestReviews(input:{pullRequestId:$pr,botIds:[$bot],union:true}){clientMutationId}}'      -f pr=<pull request node id> -f bot="$BOT"
+   gh api repos/dherault/strategydance/pulls/<number>/reviews \
+     --jq '[.[] | select(.user.login | test("copilot")) | select(.body | length > 0)] | length'
    ```
-
-   `union: true` adds to the existing reviewers rather than replacing them. There is no
-   `removeRequestedReviewers` mutation: to clear the reviewers, call `requestReviews` with
-   empty lists and `union: false`.
-
-   Confirm it landed. `gh pr view <number> --json reviewRequests` has to come back non-empty,
-   otherwise nothing was requested.
 2. Wait for CI and fix whatever fails.
 3. Answer every Copilot comment, either with an edit that addresses it or a reply explaining
    why it does not apply. Never ignore one, and never resolve one without replying first.
@@ -231,19 +227,15 @@ gh pr create --base dev
 
    Reply first, resolve second: resolving hides the thread, and a reviewer who cannot see the
    answer reads it as the comment having been waved away.
-4. Push the fixes as their own granular commits.
-5. **Do not re-request.** The repository is configured to request a fresh Copilot review on
-   every new commit, so pushing is the re-request. Calling `requestReviews` again returns an
-   empty `reviewRequests` and looks like a failure when it is really a duplicate.
 
-   Wait for the new review instead. It is a new review by Copilot with a non-empty body, and
-   counting reviews alone will mislead you: every reply you post creates a review record with
-   an empty body.
-
-   ```sh
-   gh api repos/dherault/strategydance/pulls/<number>/reviews \
-     --jq '[.[] | select(.user.login | test("copilot")) | select(.body | length > 0)] | length'
-   ```
+   All of this happens **before the push**, so the next automatic review reads the replies
+   along with the diff rather than re-raising what has already been answered. Citing a commit
+   that exists only locally is fine: it will be pushed before anybody follows it.
+4. Commit the fixes, granularly, without pushing yet.
+5. Push, which is what asks for the next round. Do not push while a review is in flight:
+   land the round you have, answer it, then push its fixes as one batch. Pushing mid-round
+   gets you overlapping reviews of different heads, and findings against code you have
+   already replaced.
 6. Repeat from step 2 until a round comes back with nothing but nitpicks or praise.
 
 ### Hand the pull request to a human

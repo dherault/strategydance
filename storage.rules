@@ -3,8 +3,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Raster only, and deliberately not `image/.*`: that admits `image/svg+xml`, which is an
+    // active document rather than a picture. An SVG carrying a script, stored under a public
+    // read and served inline from the storage host, is somebody else's code on that origin
     function isLightImage() {
-      return request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('^image/(png|jpeg|gif|webp)$');
     }
 
     /*

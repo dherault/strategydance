@@ -10,33 +10,92 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as Char91Char93RouteImport } from './routes/[-]'
+import { Route as AuthenticationRouteImport } from './routes/authentication'
+import { Route as Char91Char93IndexRouteImport } from './routes/[-]/index'
+import { Route as AuthenticationIndexRouteImport } from './routes/authentication/index'
+import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91Char93Route = Char91Char93RouteImport.update({
+  id: '/-',
+  path: '/-',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticationRoute = AuthenticationRouteImport.update({
+  id: '/authentication',
+  path: '/authentication',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91Char93IndexRoute = Char91Char93IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => Char91Char93Route,
+} as any)
+const AuthenticationIndexRoute = AuthenticationIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticationRoute,
+} as any)
+const AuthenticationPasswordResetRoute =
+  AuthenticationPasswordResetRouteImport.update({
+    id: '/password-reset',
+    path: '/password-reset',
+    getParentRoute: () => AuthenticationRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/-': typeof Char91Char93RouteWithChildren
+  '/authentication': typeof AuthenticationRouteWithChildren
+  '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
+  '/-/': typeof Char91Char93IndexRoute
+  '/authentication/': typeof AuthenticationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
+  '/-': typeof Char91Char93IndexRoute
+  '/authentication': typeof AuthenticationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/-': typeof Char91Char93RouteWithChildren
+  '/authentication': typeof AuthenticationRouteWithChildren
+  '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
+  '/-/': typeof Char91Char93IndexRoute
+  '/authentication/': typeof AuthenticationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/-'
+    | '/authentication'
+    | '/authentication/password-reset'
+    | '/-/'
+    | '/authentication/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/authentication/password-reset' | '/-' | '/authentication'
+  id:
+    | '__root__'
+    | '/'
+    | '/-'
+    | '/authentication'
+    | '/authentication/password-reset'
+    | '/-/'
+    | '/authentication/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  Char91Char93Route: typeof Char91Char93RouteWithChildren
+  AuthenticationRoute: typeof AuthenticationRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +107,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/-': {
+      id: '/-'
+      path: '/-'
+      fullPath: '/-'
+      preLoaderRoute: typeof Char91Char93RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/authentication': {
+      id: '/authentication'
+      path: '/authentication'
+      fullPath: '/authentication'
+      preLoaderRoute: typeof AuthenticationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/-/': {
+      id: '/-/'
+      path: '/'
+      fullPath: '/-/'
+      preLoaderRoute: typeof Char91Char93IndexRouteImport
+      parentRoute: typeof Char91Char93Route
+    }
+    '/authentication/': {
+      id: '/authentication/'
+      path: '/'
+      fullPath: '/authentication/'
+      preLoaderRoute: typeof AuthenticationIndexRouteImport
+      parentRoute: typeof AuthenticationRoute
+    }
+    '/authentication/password-reset': {
+      id: '/authentication/password-reset'
+      path: '/password-reset'
+      fullPath: '/authentication/password-reset'
+      preLoaderRoute: typeof AuthenticationPasswordResetRouteImport
+      parentRoute: typeof AuthenticationRoute
+    }
   }
 }
 
+interface Char91Char93RouteChildren {
+  Char91Char93IndexRoute: typeof Char91Char93IndexRoute
+}
+
+const Char91Char93RouteChildren: Char91Char93RouteChildren = {
+  Char91Char93IndexRoute: Char91Char93IndexRoute,
+}
+
+const Char91Char93RouteWithChildren = Char91Char93Route._addFileChildren(
+  Char91Char93RouteChildren,
+)
+
+interface AuthenticationRouteChildren {
+  AuthenticationPasswordResetRoute: typeof AuthenticationPasswordResetRoute
+  AuthenticationIndexRoute: typeof AuthenticationIndexRoute
+}
+
+const AuthenticationRouteChildren: AuthenticationRouteChildren = {
+  AuthenticationPasswordResetRoute: AuthenticationPasswordResetRoute,
+  AuthenticationIndexRoute: AuthenticationIndexRoute,
+}
+
+const AuthenticationRouteWithChildren = AuthenticationRoute._addFileChildren(
+  AuthenticationRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  Char91Char93Route: Char91Char93RouteWithChildren,
+  AuthenticationRoute: AuthenticationRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

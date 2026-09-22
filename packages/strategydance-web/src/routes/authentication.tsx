@@ -15,9 +15,16 @@ type AuthenticationSearch = {
 }
 
 export const Route = createFileRoute('/authentication')({
-  validateSearch: (search: Record<string, unknown>): AuthenticationSearch => ({
-    passwordResetSent: search.passwordResetSent === true || search.passwordResetSent === 'true',
-  }),
+  /*
+    The key is omitted rather than set to false when it is absent. TanStack rewrites the URL to
+    whatever this returns, so emitting the key unconditionally turns a plain `/authentication`
+    into a redirect to `/authentication?passwordResetSent=false`
+  */
+  validateSearch: (search: Record<string, unknown>): AuthenticationSearch => {
+    if (search.passwordResetSent === true || search.passwordResetSent === 'true') return { passwordResetSent: true }
+
+    return {}
+  },
   component: AuthenticationRoute,
 })
 

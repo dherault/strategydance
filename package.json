@@ -16,6 +16,7 @@
     "deploy:hosting": "bun run build && firebase deploy --only hosting",
     "deploy:storage": "firebase deploy --only storage",
     "deploy:database": "firebase deploy --only dataconnect",
+    "ship": "bash scripts/ship.sh",
     "generate:database": "cd packages/strategydance-database && bun run generate",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

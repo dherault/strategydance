@@ -3,7 +3,16 @@ import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanst
 import type { QueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
+import type { MessageType } from '~types'
+
+import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
+
 import appCss from '../styles.css?url'
+
+// The catalogues every route needs. A route that needs more of its own mounts a second
+// IntlMessagesRegistration in its component, rather than widening this one.
+// At module scope so the reference is stable across renders
+const ROOT_MESSAGE_TYPES: MessageType[] = ['global']
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -17,7 +26,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
   }),
   shellComponent: RootDocument,
-  component: Outlet,
+  component: RootComponent,
 })
 
 // Renders the document that wraps the app. In SPA mode this is what gets
@@ -33,5 +42,14 @@ function RootDocument({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+// Inside the document, so holding the tree back for a catalogue leaves <Scripts /> in place
+function RootComponent() {
+  return (
+    <IntlMessagesRegistration messageTypes={ROOT_MESSAGE_TYPES}>
+      <Outlet />
+    </IntlMessagesRegistration>
   )
 }

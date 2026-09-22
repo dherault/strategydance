@@ -200,10 +200,10 @@ gh pr create --base dev
    gh api graphql -f query='mutation($pr:ID!,$bot:ID!){requestReviews(input:{pullRequestId:$pr,botIds:[$bot],union:true}){clientMutationId}}'      -f pr=<pull request node id> -f bot="$BOT"
    ```
 
-   `union: true` adds to the existing reviewers rather than replacing them. The same mutation
-   is how you **re-request** after pushing fixes, but only once Copilot has actually reviewed:
-   while a request is still outstanding it is a no-op, so to force one, remove the reviewer
-   with `removeRequestedReviewers` and request again.
+   `union: true` adds to the existing reviewers rather than replacing them, and the same
+   mutation is how you **re-request** after pushing fixes. There is no
+   `removeRequestedReviewers` mutation: to clear the reviewers first, call `requestReviews`
+   with empty lists and `union: false`.
 
    Confirm it landed. `gh pr view <number> --json reviewRequests` has to come back non-empty,
    otherwise nothing was requested.

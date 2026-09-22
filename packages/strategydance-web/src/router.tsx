@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 
+import AuthenticationProvider from '~components/authentication/_AuthenticationProvider'
 import IntlProvider from '~components/intl/_IntlProvider'
 
 import { routeTree } from './routeTree.gen'
@@ -27,7 +28,9 @@ export function getRouter() {
     Wrap: ({ children }) => (
       <QueryClientProvider client={queryClient}>
         <IntlProvider>
-          {children}
+          <AuthenticationProvider>
+            {children}
+          </AuthenticationProvider>
         </IntlProvider>
       </QueryClientProvider>
     ),

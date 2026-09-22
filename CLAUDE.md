@@ -37,6 +37,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run test` | `bun test` across the packages |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
+| `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
 | `bun run kill` / `kill:emulators` | Frees the dev server port, or the four emulator ports |
 
 Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
@@ -251,3 +252,21 @@ approval. Once CI is green and review is clean, say so, link the pull request an
 
 Humans merge with a merge commit, not a squash: the granular commits are the point, and
 squashing collapses them into one.
+
+### Ship `dev` to `main`
+
+`bun run ship` opens the release pull request, the one that takes everything sitting on `dev`
+to `main`. It is the only pull request nobody writes by hand: its title never varies and its
+body is the list of commits `main` has not seen yet, merges dropped, since a merge names the
+branch work arrived on and the commits under it say what the release does. A range holding
+nothing but merges lists those instead, rather than nothing.
+
+Running it twice is safe. `dev` is long lived, so the release pull request stays open while
+further work merges into it, and a second run prints its URL instead of failing.
+
+It compares `origin/dev` to `origin/main` rather than the local branches, since those are what
+GitHub will compare, and it refuses outright when the local `dev` is ahead of its remote: a
+commit that has not been pushed is a commit the pull request would leave behind. Pushing it is
+your call, not the script's.
+
+Merging it is a human decision like any other.

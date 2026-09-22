@@ -1,0 +1,176 @@
+{
+  "messages": {
+    "authentication": {
+      "authentication.action.back": {
+        "hash": "bec7784f62bdddd7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.action.continue": {
+        "hash": "e472c1faf534ad64",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.action.hidePassword": {
+        "hash": "87e2c5f174eb5bd0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.action.logIn": {
+        "hash": "6ca9038bcc3f8503",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.action.showPassword": {
+        "hash": "b29241b90a6a5455",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.action.signUp": {
+        "hash": "23d67a6162acabbf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.credentialAlreadyInUse": {
+        "hash": "9a7f32c95735333f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.default": {
+        "hash": "a1deef3b46ea510d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.emailAlreadyInUse": {
+        "hash": "ddf7c6d0540c2827",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.invalidCredential": {
+        "hash": "17718d8df766c651",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.invalidEmail": {
+        "hash": "548c8eefd21625cd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.networkRequestFailed": {
+        "hash": "9055e19ce0be1b03",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.popupClosedByUser": {
+        "hash": "4e74d43886dc655f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.tooManyRequests": {
+        "hash": "4c48c8a8bb9ac547",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.userDisabled": {
+        "hash": "76ac0056464aa28a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.error.weakPassword": {
+        "hash": "5347cd5aa3500bfa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.field.email": {
+        "hash": "b49281aa07bbe252",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.field.password": {
+        "hash": "e9af757b014e41e7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.field.passwordConfirmation": {
+        "hash": "1c4f92e40848ec75",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.googleButton.continue": {
+        "hash": "9483a2c20f3f8481",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.layout.passwordResetSuccess": {
+        "hash": "39a80690e2264a3e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.login.bothPrompt": {
+        "hash": "04ec63cd1c292fa7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.login.googlePrompt": {
+        "hash": "1450642524cd020f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.login.greeting": {
+        "hash": "d44b1eb2b967327e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.login.noSupportedProvider": {
+        "hash": "2171786702a74527",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.login.title": {
+        "hash": "8075681034a0c126",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.signup.title": {
+        "hash": "5d8e5e42be0d40b8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.mode.start.or": {
+        "hash": "c95f51ecee6b27a8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.password.forgotQuestion": {
+        "hash": "e38d1fc4294c70e9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.passwordReset.action": {
+        "hash": "b6a8ae22a6365340",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.passwordReset.description": {
+        "hash": "9d436b02da39a9a1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.passwordReset.title": {
+        "hash": "2dc14af2fa220eec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.placeholder.email": {
+        "hash": "757b8b3fbf292640",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.validation.emailInvalid": {
+        "hash": "b6211a7383d20488",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.validation.passwordConfirmationMismatch": {
+        "hash": "a4a6fac863d7c548",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.validation.passwordMax": {
+        "hash": "ff0585c4fff4e77c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "authentication.validation.passwordMin": {
+        "hash": "2f6b792c591c9a15",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
+    "global": {
+      "global.language": {
+        "hash": "0bc2f1053fcf6d40",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.loading": {
+        "hash": "4369fb27292c2256",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.signIn": {
+        "hash": "a928ba1e11eed6a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.tagline": {
+        "hash": "21bb96225df2333d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.welcome": {
+        "hash": "7f77c31801e7f451",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    }
+  }
+}

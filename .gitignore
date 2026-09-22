@@ -145,3 +145,19 @@ vite.config.ts.timestamp-*
 # TanStack Start
 .tanstack/
 .nitro/
+
+# Firebase emulators
+emulators-data/
+firebase-debug.log
+dataconnect-debug.log
+ui-debug.log
+
+# The Data Connect SDK, generated from the schema and the connector by `bun install`
+packages/strategydance-database/generated/
+
+# The schema Data Connect derives from ours, written by the CLI and the emulator
+packages/strategydance-database/.dataconnect/
+
+# Where the emulators dump their data when `--export-on-exit` cannot use `--import`'s path
+firebase-export-*/
+.claude/worktrees

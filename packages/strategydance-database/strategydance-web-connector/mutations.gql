@@ -1,0 +1,67 @@
+# Insert and update are separate rather than one upsert, and `locale` is why: it is written at
+# creation and never again, so an upsert carrying it would quietly reset the account's language
+# every time an unrelated field changed.
+#
+# Neither takes an email. `email_expr` reads it off the verified token, so a signed-in caller
+# cannot put somebody else's address on their own row: `email` is unique, and a client that
+# chose its own could squat the address a real person is about to sign up with
+
+mutation CreateCurrentUser(
+  $displayName: String
+  $imageUrl: String
+  $locale: Locale!
+  $timezone: String
+  $authenticationProviders: [AuthenticationProvider!]!
+) @auth(level: USER) {
+  user_insert(
+    data: {
+      id_expr: "auth.uid"
+      email_expr: "auth.token.email"
+      displayName: $displayName
+      imageUrl: $imageUrl
+      locale: $locale
+      timezone: $timezone
+      authenticationProviders: $authenticationProviders
+    }
+  )
+}
+
+# The fields that mirror the Firebase profile, plus the observed time zone. The caller sends
+# this only when one of them has actually drifted, so `updatedAt` keeps meaning something
+mutation UpdateCurrentUser(
+  $displayName: String
+  $imageUrl: String
+  $timezone: String
+  $authenticationProviders: [AuthenticationProvider!]!
+) @auth(level: USER) {
+  user_update(
+    key: { id_expr: "auth.uid" }
+    data: {
+      email_expr: "auth.token.email"
+      displayName: $displayName
+      imageUrl: $imageUrl
+      timezone: $timezone
+      authenticationProviders: $authenticationProviders
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# An organization and its first administrator, which are one act: an organization nobody can
+# administer is unreachable, and a membership without its organization is a foreign key
+# violation. `@transaction` rolls the first insert back if the second fails.
+#
+# `userId_expr` reads the uid off the token, so nobody can be made an administrator of an
+# organization they never asked for. `response.organization.id` is the uuid the step above
+# generated, keyed by the alias
+mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+  organization: organization_insert(data: { name: $name })
+  userOrganization: userOrganization_insert(
+    data: {
+      organizationId_expr: "response.organization.id"
+      userId_expr: "auth.uid"
+      # Whoever creates it administers it
+      role: ADMINISTRATOR
+    }
+  )
+}

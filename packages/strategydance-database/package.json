@@ -1,0 +1,28 @@
+{
+  "private": true,
+  "name": "strategydance-database",
+  "type": "module",
+  "exports": {
+    "./web": {
+      "types": "./generated/strategydance-web-connector/index.d.ts",
+      "default": "./generated/strategydance-web-connector/esm/index.esm.js"
+    },
+    "./web/react": {
+      "types": "./generated/strategydance-web-connector/react/index.d.ts",
+      "default": "./generated/strategydance-web-connector/react/esm/index.esm.js"
+    }
+  },
+  "scripts": {
+    "generate": "firebase dataconnect:sdk:generate",
+    "typecheck": "tsc -b"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "strategydance-core": "workspace:*",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "@tanstack-query-firebase/react": "^2.1.1",
+    "firebase": "^12.19.0"
+  }
+}

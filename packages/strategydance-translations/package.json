@@ -1,0 +1,24 @@
+{
+  "private": true,
+  "name": "strategydance-translations",
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc -b",
+    "translate": "bun run translate:messages",
+    "translate:messages": "bun scripts/translateIntlMessages.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.22.0",
+    "dotenv": "^17.4.2",
+    "strategydance-core": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}

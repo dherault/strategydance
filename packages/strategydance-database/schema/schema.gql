@@ -1,0 +1,82 @@
+# The languages the product speaks. A second declaration of `Locale` in strategydance-core,
+# which is what the message catalogues and the language picker are built from, and the two have
+# to agree: `schema.test.ts` is what fails when they stop agreeing
+enum Locale {
+  EN
+  FR
+  ES
+  DE
+  PT
+  ZH
+  JA
+}
+
+# How somebody proves who they are. An enum rather than a string, so Postgres refuses a value
+# this app never defined and the generated SDK types it as a union rather than as `string[]`
+enum AuthenticationProvider {
+  PASSWORD
+  GOOGLE
+}
+
+# The reader's account, one row per Firebase Auth uid.
+#
+# Distinct from the Firebase account itself, which the SDK holds and this table only mirrors:
+# `email`, `displayName` and `imageUrl` are copies kept in step so a join can render somebody's
+# name without a round trip to the auth service, which has no bulk read anyway.
+type User @table {
+  # `@default(expr: "auth.uid")` fills this in from the caller's token on insert and upsert, so
+  # the key is never something a client chooses and nobody can write a row as somebody else
+  id: String! @default(expr: "auth.uid")
+  # Mandatory and unique, which is what lets the sign-in screen ask about an address before
+  # anybody has signed in. Firebase is configured one account per email address, so two rows
+  # sharing one would be a bug rather than a pair of accounts
+  email: String! @unique
+  displayName: String
+  imageUrl: String
+  # The language the account was created in, as a hint for anything sent to this reader rather
+  # than rendered for them. Written once: the interface language is a preference the browser
+  # holds, and an account page will own this one
+  locale: Locale!
+  # An IANA identifier, validated against `Intl` before it is sent. Unlike `locale` this is
+  # observed rather than chosen, so the newest answer overwrites the stored one
+  timezone: String
+  # Which buttons this account can sign in with, so a screen can say so without asking Firebase
+  # and getting an answer shaped by email enumeration protection
+  authenticationProviders: [AuthenticationProvider!]!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# What somebody can do inside an organization
+enum OrganizationRole {
+  MEMBER
+  ADMINISTRATOR
+}
+
+# A team. It names no members: `UserOrganization` owns those, so adding or removing somebody
+# does not touch this row
+type Organization @table {
+  # Written out rather than left implicit, so `response.organization.id` in `CreateOrganization`
+  # refers to something on the page
+  id: UUID! @default(expr: "uuidV4()")
+  name: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Which organizations somebody is in, and as what.
+#
+# Two reference fields as the primary key is what tells Data Connect this is a join table. The
+# pair is unique, so a repeated insert is an error rather than a second membership, and `user`
+# leads because a composite key indexes left to right: filtering on it is the read this table
+# exists for
+type UserOrganization @table(key: ["user", "organization"]) {
+  # Implies a `userId: String!` column, String because `User.id` is a Firebase uid
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # No default. An insert has to say which, so nobody becomes an administrator by omission
+  role: OrganizationRole!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

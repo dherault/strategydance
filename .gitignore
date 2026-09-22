@@ -160,3 +160,4 @@ packages/strategydance-database/.dataconnect/
 
 # Where the emulators dump their data when `--export-on-exit` cannot use `--import`'s path
 firebase-export-*/
+.claude/worktrees

@@ -33,3 +33,28 @@ query GetAuthenticationProvidersByEmail($email: String!)
     authenticationProviders
   }
 }
+
+# Every organization the caller belongs to, and what they are in it.
+#
+# Rooted at the join table because `role` lives there: the `_via_` relation is typed
+# `[Organization!]!` and has nowhere to put one.
+#
+# `eq_expr` keeps this as safe as `GetCurrentUser`, the uid coming off the token rather than
+# from a variable. The generated `limit` defaults to 100
+query GetCurrentUserOrganizations @auth(level: USER) {
+  userOrganizations(
+    where: { userId: { eq_expr: "auth.uid" } }
+    # Joined-at order, so the list does not reshuffle between reads. `organizationId` breaks the
+    # tie for two rows written in one transaction, which share `request.time`
+    orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
+  ) {
+    role
+    createdAt
+    organization {
+      id
+      name
+      createdAt
+      updatedAt
+    }
+  }
+}

@@ -46,3 +46,22 @@ mutation UpdateCurrentUser(
     }
   )
 }
+
+# An organization and its first administrator, which are one act: an organization nobody can
+# administer is unreachable, and a membership without its organization is a foreign key
+# violation. `@transaction` rolls the first insert back if the second fails.
+#
+# `userId_expr` reads the uid off the token, so nobody can be made an administrator of an
+# organization they never asked for. `response.organization.id` is the uuid the step above
+# generated, keyed by the alias
+mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+  organization: organization_insert(data: { name: $name })
+  userOrganization: userOrganization_insert(
+    data: {
+      organizationId_expr: "response.organization.id"
+      userId_expr: "auth.uid"
+      # Whoever creates it administers it
+      role: ADMINISTRATOR
+    }
+  )
+}

@@ -31,7 +31,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
 | `bun run build` | Typechecks and builds the web package to static files |
-| `bun run preview` | Builds, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
+| `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
 | `bun run lint` | oxlint across the repo |
 | `bun run typecheck` | `tsc` across the packages |
 | `bun run test` | `bun test` across the packages |
@@ -114,7 +114,10 @@ authorizing anything; the guards are App Check, `storage.rules`, and the `@auth`
 every Data Connect operation.
 
 Development always talks to the emulators, so `bun run dev` wants `bun run dev:emulators`
-beside it. The App Check debug token prints to the console on first run and has to be
+beside it. So does `bun run preview`, which starts its own: its bundle is a production build,
+so the `DEV` check cannot carry it, and `VITE_USE_FIREBASE_EMULATORS=true` is what does. A
+local preview that signs people into the real project and writes real rows would be a trap
+rather than a preview. The App Check debug token prints to the console on first run and has to be
 registered in the Firebase console before a browser can reach the real project; the emulators
 do not enforce App Check, so the usual loop never needs it.
 

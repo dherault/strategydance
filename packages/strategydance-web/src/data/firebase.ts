@@ -15,6 +15,19 @@ import { connectStorageEmulator, getStorage } from 'firebase/storage'
 */
 const isBrowser = typeof window !== 'undefined'
 
+/*
+  Development always talks to the emulators, and `bun run preview` does too even though its
+  bundle is a production build: it is served by the Hosting emulator from a machine that has
+  the others running, and a local preview that signs people into the real project and writes
+  real rows is a trap rather than a preview.
+
+  Both halves are inlined by Vite, so this folds to a literal at build time and a real
+  production build drops the emulator wiring rather than shipping it as unreachable code.
+  That is also why it is tested before `isBrowser` everywhere below: a runtime value first
+  would stop the bundler folding the branch away
+*/
+const EMULATORS_REQUESTED = import.meta.env.DEV || import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true'
+
 /* ---
   Firebase app
 --- */
@@ -47,7 +60,7 @@ const RECAPTCHA_SITE_KEY = '6Le_U8ktAAAAAKOb3jO0d3PRWVjCSXZnXwm7cn33'
   enforce App Check, so the usual dev loop never needs it.
   https://firebase.google.com/docs/app-check/web/debug-provider#localhost
 */
-if (isBrowser && import.meta.env.DEV) {
+if (EMULATORS_REQUESTED && isBrowser) {
   // @ts-expect-error `FIREBASE_APPCHECK_DEBUG_TOKEN` is read off the global object by the SDK
   self.FIREBASE_APPCHECK_DEBUG_TOKEN ??= true
 }
@@ -105,7 +118,7 @@ export const storage = getStorage(app)
   Performance
 --- */
 
-if (isBrowser && import.meta.env.PROD) {
+if (!EMULATORS_REQUESTED && isBrowser && import.meta.env.PROD) {
   getPerformance(app)
 }
 
@@ -113,8 +126,8 @@ if (isBrowser && import.meta.env.PROD) {
   Emulators
 --- */
 
-// Unconditional in development, so `bun run dev` wants `bun run dev:emulators` beside it
-if (isBrowser && import.meta.env.DEV) {
+// `bun run dev` wants `bun run dev:emulators` beside it; `bun run preview` starts its own
+if (EMULATORS_REQUESTED && isBrowser) {
   console.log('🔥 Using Firebase emulators')
 
   connectAuthEmulator(authentication, 'http://localhost:9099', { disableWarnings: true })

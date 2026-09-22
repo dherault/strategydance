@@ -12,7 +12,7 @@
     "dev:emulators": "mkdir -p emulators-data && firebase emulators:start --only auth,dataconnect,storage --import=./emulators-data --export-on-exit=./emulators-data",
     "build": "bun run build:web",
     "build:web": "cd packages/strategydance-web && bun run build",
-    "preview": "bun run build && firebase emulators:start --only hosting",
+    "preview": "VITE_USE_FIREBASE_EMULATORS=true bun run build && firebase emulators:start --only hosting,auth,dataconnect,storage",
     "deploy:hosting": "bun run build && firebase deploy --only hosting",
     "deploy:storage": "firebase deploy --only storage",
     "deploy:database": "firebase deploy --only dataconnect",

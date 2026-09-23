@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { ReCaptchaV3Provider, initializeAppCheck } from 'firebase/app-check'
+import { ReCaptchaEnterpriseProvider, initializeAppCheck } from 'firebase/app-check'
 import { GoogleAuthProvider, connectAuthEmulator, getAuth } from 'firebase/auth'
 import { connectDataConnectEmulator, getDataConnect, makeMemoryCacheProvider } from 'firebase/data-connect'
 import { connectorConfig } from 'strategydance-database/web'
@@ -53,6 +53,12 @@ const app = initializeApp(firebaseConfig)
   App check
 --- */
 
+/*
+  A reCAPTCHA Enterprise key, so it needs the Enterprise provider. `ReCaptchaV3Provider` would
+  exchange its token at `exchangeRecaptchaV3Token`, which checks it against the app's classic v3
+  registration, and there is none, so every exchange answers 400. It has to match the site key
+  registered for this app under App Check > reCAPTCHA Enterprise in the Firebase console
+*/
 const RECAPTCHA_SITE_KEY = '6Le_U8ktAAAAAKOb3jO0d3PRWVjCSXZnXwm7cn33'
 
 /*
@@ -69,7 +75,7 @@ if (EMULATORS_REQUESTED && isBrowser) {
 // Null in the build's Node pass, so anything reading a token has to cope with not having one
 export const appCheck = isBrowser
   ? initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+      provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
     })
   : null

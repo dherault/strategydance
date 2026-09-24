@@ -9,6 +9,7 @@ A [Bun](https://bun.com) monorepo. Packages live under `packages/`.
 - [`packages/strategydance-web`](packages/strategydance-web) — TanStack Start (SPA mode) + React + Tailwind CSS v4, built with Vite
 - [`packages/strategydance-database`](packages/strategydance-database) — the Firebase Data Connect service: the Postgres schema, its connectors, and the SDK generated from them
 - [`packages/strategydance-core`](packages/strategydance-core) — types, enums and constants shared by every package, with zero runtime dependencies
+- [`packages/strategydance-design-system`](packages/strategydance-design-system) — the component library: shadcn + Tailwind CSS v4, documented in Storybook
 - [`packages/strategydance-translations`](packages/strategydance-translations) — the Gemini-backed CLI that translates the message catalogues. Node-only
 
 ## Getting started
@@ -36,7 +37,8 @@ and it spends quota on every run, so it is run by hand rather than in CI.
 | Command | What it does |
 | --- | --- |
 | `bun run dev` | Runs the frontend dev server |
-| `bun run build` | Typechecks and builds the frontend |
+| `bun run build` | Typechecks and builds the design system's Storybook and the frontend |
+| `bun run storybook` | Runs the design system's Storybook |
 | `bun run preview` | Serves the production build |
 | `bun run lint` | Runs oxlint across the repo |
 | `bun run lint:fix` | Runs oxlint with `--fix` |

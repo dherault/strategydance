@@ -15,6 +15,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
   hooks. See below
+- `packages/strategydance-design-system` — the component library: shadcn on Radix, Tailwind
+  CSS v4, documented in Storybook. It imports itself by its package name,
+  `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
+  component resolves the same when another package reads it as source
 - `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
   catalogues. Node-only: never import it from the frontend
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
@@ -30,7 +34,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | --- | --- |
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
-| `bun run build` | Typechecks and builds the web package to static files |
+| `bun run storybook` | The design system's Storybook on http://localhost:6006 |
+| `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
 | `bun run lint` | oxlint across the repo |
 | `bun run typecheck` | `tsc` across the packages |

@@ -48,7 +48,10 @@ function Tooltip({
   className,
   ...props
 }: Props) {
-  if (disabled || !content) return children
+  // Whatever React renders is content, a 0 included, so falsiness is not the test
+  const hasContent = content !== undefined && content !== null && typeof content !== 'boolean' && content !== ''
+
+  if (disabled || !hasContent) return children
 
   // Text has nothing to focus, so its wrapper takes focus itself and the keyboard still reaches it
   const trigger = isValidElement(children)

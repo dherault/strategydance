@@ -74,7 +74,7 @@ function Tooltip({
             collisionPadding={8}
             className={cn(
               'z-200 box-border w-max max-w-[min(280px,calc(100vw-16px))] rounded-xs border border-border bg-popover px-3 py-1.5 font-sans text-xs leading-[1.4] font-normal text-pretty text-popover-foreground shadow-xs antialiased',
-              'animate-in duration-150 ease-out fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-0.5 data-[side=left]:slide-in-from-right-0.5 data-[side=right]:slide-in-from-left-0.5 data-[side=top]:slide-in-from-bottom-0.5',
+              'animate-in duration-150 ease-out fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-[2px] data-[side=left]:slide-in-from-right-[2px] data-[side=right]:slide-in-from-left-[2px] data-[side=top]:slide-in-from-bottom-[2px]',
               'data-[state=closed]:animate-out data-[state=closed]:duration-100 data-[state=closed]:ease-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
               className,
             )}

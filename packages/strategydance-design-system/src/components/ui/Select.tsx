@@ -125,7 +125,7 @@ function Select({
           position="popper"
           side={side}
           sideOffset={4}
-          className="z-50 max-h-[min(280px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-xs border border-border bg-popover font-sans shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-0.5 data-[side=top]:slide-in-from-bottom-0.5 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+          className="z-50 max-h-[min(280px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-xs border border-border bg-popover font-sans shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-[2px] data-[side=top]:slide-in-from-bottom-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0"
         >
           <SelectPrimitive.Viewport className="p-1">
             {options.map((option, index) => isGroup(option)

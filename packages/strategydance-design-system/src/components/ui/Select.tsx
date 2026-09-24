@@ -37,6 +37,8 @@ type Props = {
   defaultOpen?: boolean
   /** The side of the trigger the list opens on */
   side?: 'bottom' | 'top'
+  /** Names the select when it has no visible label */
+  'aria-label'?: string
   className?: string
 }
 
@@ -83,6 +85,7 @@ function Select({
   id,
   defaultOpen,
   side = 'bottom',
+  'aria-label': ariaLabel,
   className,
 }: Props) {
   const autoId = useId()
@@ -102,6 +105,7 @@ function Select({
       <SelectPrimitive.Trigger
         id={triggerId}
         data-slot="select-trigger"
+        aria-label={ariaLabel}
         aria-invalid={error ? true : undefined}
         aria-describedby={hint || error ? messageId : undefined}
         className={cn(

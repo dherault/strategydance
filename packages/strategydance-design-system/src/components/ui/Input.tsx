@@ -5,7 +5,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import { Field } from 'strategydance-design-system/components/ui/Field'
 
 // Shared with the Select trigger, which is dressed as an input
-const inputClassName = 'box-border h-10 w-full rounded-xs border border-border bg-neutral-50 px-3 font-sans text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 ease-in-out placeholder:text-neutral-400 focus:border-secondary focus:bg-white disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger aria-invalid:focus:border-danger'
+const inputClassName = 'box-border h-10 w-full rounded-xs border border-border bg-neutral-50 px-3 font-sans text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 ease-in-out placeholder:text-muted-foreground focus:border-secondary focus:bg-white disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger aria-invalid:focus:border-danger'
 
 type Props = ComponentProps<'input'> & {
   label?: ReactNode

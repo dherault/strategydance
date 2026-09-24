@@ -110,7 +110,7 @@ function Select({
         aria-describedby={hint || error ? messageId : undefined}
         className={cn(
           inputClassName,
-          'group flex cursor-pointer items-center justify-between gap-2 text-left data-placeholder:text-neutral-400 data-[state=open]:border-secondary data-[state=open]:bg-white [&>span]:truncate',
+          'group flex cursor-pointer items-center justify-between gap-2 text-left data-placeholder:text-muted-foreground data-[state=open]:border-secondary data-[state=open]:bg-white [&>span]:truncate',
           !hasField && className,
         )}
       >

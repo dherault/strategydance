@@ -3,5 +3,11 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    /* Read by the shadcn CLI, which does not follow references, to derive its import aliases */
+    "paths": {
+      "strategydance-design-system/*": ["./src/*"]
+    }
+  }
 }

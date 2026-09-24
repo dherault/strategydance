@@ -4,11 +4,13 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 type Props = Omit<ComponentProps<'div'>, 'title'> & {
   title?: ReactNode
+  // The title's heading level, which only the page knows. Defaults to h3
+  titleAs?: 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
   description?: ReactNode
 }
 
 // A white surface meant for a `neutral-50` page
-function Card({ title, description, className, children, ...props }: Props) {
+function Card({ title, titleAs: Title = 'h3', description, className, children, ...props }: Props) {
   return (
     <div
       data-slot="card"
@@ -17,12 +19,12 @@ function Card({ title, description, className, children, ...props }: Props) {
     >
       {title
         ? (
-            <h3
+            <Title
               data-slot="card-title"
               className="m-0 font-display text-xl leading-[1.2] font-normal tracking-[-0.01em] text-secondary"
             >
               {title}
-            </h3>
+            </Title>
           )
         : null}
       {description

@@ -1,6 +1,5 @@
 import type { HTMLAttributes } from 'react'
-
-import { cn } from '~utils/ui'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 function TextDivider({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (

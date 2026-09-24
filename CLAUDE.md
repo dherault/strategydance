@@ -107,6 +107,17 @@ replaces the whole document, `<Scripts />` included. The page then has no client
 from and keeps whatever the server rendered, forever. Anything that gates belongs inside the
 document, in `__root.tsx`'s `component` or below it.
 
+### UI comes from the design system
+
+The frontend has no shadcn setup of its own. Buttons, inputs, selects, alerts, the logo and the
+rest come from `strategydance-design-system`, and a primitive it lacks is added there, with a
+story, rather than to `src/components/ui/`. That folder holds only the frontend's glue around
+them: `FormField` for react-hook-form, `TextDivider`.
+
+Strings stay in the frontend's catalogues. A design-system component that names itself in
+English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
+it: `~components/common/Spinner` is the design system's spinner with that label.
+
 ### Firebase
 
 `src/data/firebase.ts` initializes everything: Auth, App Check, Data Connect, Storage and

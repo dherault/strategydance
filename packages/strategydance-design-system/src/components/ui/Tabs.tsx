@@ -8,10 +8,12 @@ import { pillVariants } from 'strategydance-design-system/components/ui/Pill'
 
 /*
   The underline grows from the centre on hover, and stays on the active tab. Leaving a tab, it
-  shrinks while still primary and only then turns grey, hence the delayed colour transition
+  shrinks while still primary and only then turns grey, hence the delayed colour transition.
+  It transitions `scale` rather than the design's `transform`, because that is the property
+  Tailwind's `scale-x-*` sets
 */
 const tabVariants = cva(
-  'group relative inline-flex flex-none cursor-pointer items-center justify-center gap-2 border-0 bg-transparent px-0.5 leading-none font-medium whitespace-nowrap text-muted-foreground transition-colors duration-150 ease-in-out after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:scale-x-0 after:bg-neutral-300 after:[transition:transform_200ms_var(--ease-out),background-color_0s_linear_200ms] enabled:hover:after:scale-x-100 enabled:hover:not-data-[state=active]:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:text-primary data-[state=active]:after:scale-x-100 data-[state=active]:after:bg-primary data-[state=active]:after:[transition:transform_200ms_var(--ease-out),background-color_150ms_var(--ease-in-out)] motion-reduce:after:transition-none [&_svg]:shrink-0',
+  'group relative inline-flex flex-none cursor-pointer items-center justify-center gap-2 border-0 bg-transparent px-0.5 leading-none font-medium whitespace-nowrap text-muted-foreground transition-colors duration-150 ease-in-out after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:scale-x-0 after:bg-neutral-300 after:[transition:scale_200ms_var(--ease-out),background-color_0s_linear_200ms] enabled:hover:after:scale-x-100 enabled:hover:not-data-[state=active]:text-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:text-primary data-[state=active]:after:scale-x-100 data-[state=active]:after:bg-primary data-[state=active]:after:[transition:scale_200ms_var(--ease-out),background-color_150ms_var(--ease-in-out)] motion-reduce:after:transition-none [&_svg]:shrink-0',
   {
     variants: {
       size: {
@@ -74,7 +76,7 @@ function Tabs({
     >
       <TabsPrimitive.List
         aria-label={ariaLabel}
-        className={cn('flex min-w-0 items-stretch gap-6 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', fullWidth && 'self-stretch')}
+        className={cn('flex min-w-0 items-stretch gap-6 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-border)] scrollbar-none [&::-webkit-scrollbar]:hidden', fullWidth && 'self-stretch')}
       >
         {items.map(item => (
           <TabsPrimitive.Trigger

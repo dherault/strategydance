@@ -303,6 +303,10 @@
         "hash": "3398142982cb3a04",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.closeSidebar": {
+        "hash": "b61110e79cd01b01",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.comingSoon": {
         "hash": "b805de6182aa12a0",
         "locales": "DE,ES,FR,JA,PT,ZH"

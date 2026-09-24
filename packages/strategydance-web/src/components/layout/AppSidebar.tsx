@@ -19,7 +19,10 @@ function AppSidebar() {
   const { formatMessage } = useIntl()
 
   return (
-    <Sidebar label={formatMessage(navigationMessages.sidebar)}>
+    <Sidebar
+      label={formatMessage(navigationMessages.sidebar)}
+      closeLabel={formatMessage(navigationMessages.closeSidebar)}
+    >
       <SidebarHeader>
         <SidebarOrganizationMenu />
       </SidebarHeader>

@@ -12,6 +12,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Toggle the sidebar',
     description: 'Accessible label of the button that shows or hides the sidebar.',
   },
+  closeSidebar: {
+    id: 'navigation.closeSidebar',
+    defaultMessage: 'Close the sidebar',
+    description: 'Accessible label of the button that closes the sidebar when it opens as a panel on a narrow screen.',
+  },
   today: {
     id: 'navigation.today',
     defaultMessage: 'Today',

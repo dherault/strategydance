@@ -24,6 +24,7 @@
     "react-intl": "^10.2.2",
     "strategydance-core": "workspace:*",
     "strategydance-database": "workspace:*",
+    "strategydance-design-system": "workspace:*",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5"
   },

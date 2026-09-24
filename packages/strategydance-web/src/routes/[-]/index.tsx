@@ -1,13 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { type FormEvent, useState } from 'react'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import { Input } from 'strategydance-design-system/components/ui/Input'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUser from '~hooks/user/useUser'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
-import { Button } from '~components/ui/Button'
-import { Input } from '~components/ui/Input'
+import Spinner from '~components/common/Spinner'
 
 export const Route = createFileRoute('/-/')({
   component: AuthenticatedIndexRoute,
@@ -70,8 +71,8 @@ function AuthenticatedIndexRoute() {
         />
         <Button
           type="submit"
-          loading={creating}
-          disabled={!trimmedName}
+          disabled={creating || !trimmedName}
+          icon={creating ? <Spinner tone="current" /> : undefined}
         >
           Create
         </Button>

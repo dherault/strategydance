@@ -1,8 +1,8 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { FormattedMessage } from 'react-intl'
+import { buttonVariants } from 'strategydance-design-system/components/ui/Button'
 
 import LanguageSelect from '~components/intl/LanguageSelect'
-import { Button } from '~components/ui/Button'
 
 import globalMessages from '~data/intl/messages/global'
 
@@ -19,14 +19,12 @@ function IndexRoute() {
       <p className="text-neutral-500">
         <FormattedMessage {...globalMessages.tagline} />
       </p>
-      <Button
-        asChild
-        size="lg"
+      <Link
+        to="/authentication"
+        className={buttonVariants({ size: 'lg' })}
       >
-        <Link to="/authentication">
-          <FormattedMessage {...globalMessages.signIn} />
-        </Link>
-      </Button>
+        <FormattedMessage {...globalMessages.signIn} />
+      </Link>
       <LanguageSelect />
     </main>
   )

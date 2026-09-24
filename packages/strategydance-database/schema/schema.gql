@@ -47,9 +47,9 @@ type User @table {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-# The aspects of a company the product guides it through, in the order it presents them. A second
-# declaration of `CompanyAspect` in strategydance-core, which the frontend lists them from, and
-# `schema.test.ts` fails when the two stop agreeing
+# The aspects of a company the product guides it through, in the order it presents them. This is
+# its only declaration: the generated SDK exports it in this order, and the frontend lists the
+# aspects from there
 enum CompanyAspect {
   STRATEGY
   PEOPLE

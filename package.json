@@ -10,6 +10,7 @@
     "dev": "bun run dev:web",
     "dev:web": "cd packages/strategydance-web && bun run dev",
     "dev:emulators": "mkdir -p emulators-data && firebase emulators:start --only auth,dataconnect,storage --import=./emulators-data --export-on-exit=./emulators-data",
+    "storybook": "cd packages/strategydance-design-system && bun run storybook",
     "build": "bun run build:web",
     "build:web": "cd packages/strategydance-web && bun run build",
     "preview": "VITE_USE_FIREBASE_EMULATORS=true bun run build && firebase emulators:start --only hosting,auth,dataconnect,storage",

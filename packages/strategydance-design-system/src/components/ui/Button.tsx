@@ -3,17 +3,19 @@ import type { ComponentProps, ReactNode } from 'react'
 
 import { cn } from 'strategydance-design-system/lib/utils'
 
+// Interaction colours are guarded by `:not(:disabled)` rather than `:enabled`, which an anchor
+// styled through `buttonVariants` never matches
 const buttonVariants = cva(
   'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xs border border-transparent font-sans leading-none font-medium whitespace-nowrap no-underline antialiased transition-colors duration-150 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-[1em] [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground enabled:hover:bg-primary-800 enabled:active:bg-primary-900',
-        secondary: 'bg-secondary text-secondary-foreground enabled:hover:bg-secondary-700 enabled:active:bg-secondary-950',
-        transparent: 'bg-transparent text-secondary enabled:hover:bg-neutral-100 enabled:active:bg-neutral-200',
-        outline: 'border-neutral-300 bg-white text-secondary enabled:hover:border-secondary enabled:hover:bg-neutral-50 enabled:active:bg-neutral-100',
+        primary: 'bg-primary text-primary-foreground not-disabled:hover:bg-primary-800 not-disabled:active:bg-primary-900',
+        secondary: 'bg-secondary text-secondary-foreground not-disabled:hover:bg-secondary-700 not-disabled:active:bg-secondary-950',
+        transparent: 'bg-transparent text-secondary not-disabled:hover:bg-neutral-100 not-disabled:active:bg-neutral-200',
+        outline: 'border-neutral-300 bg-white text-secondary not-disabled:hover:border-secondary not-disabled:hover:bg-neutral-50 not-disabled:active:bg-neutral-100',
         // Darker text than the design's red-500 and red-600, which fall short of 4.5:1 on these fills
-        danger: 'bg-red-200 text-red-800 focus-visible:outline-red-500 enabled:hover:bg-red-300 enabled:hover:text-red-900 enabled:active:bg-red-300 enabled:active:text-red-900',
+        danger: 'bg-red-200 text-red-800 focus-visible:outline-red-500 not-disabled:hover:bg-red-300 not-disabled:hover:text-red-900 not-disabled:active:bg-red-300 not-disabled:active:text-red-900',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

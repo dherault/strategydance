@@ -44,7 +44,8 @@ type TabItem = {
   content?: ReactNode
 }
 
-type Props = Omit<ComponentProps<typeof TabsPrimitive.Root>, 'value' | 'defaultValue' | 'onValueChange' | 'children'> & VariantProps<typeof tabVariants> & {
+// Horizontal only: the list lays out and scrolls in a row, so Radix's `orientation` is not offered
+type Props = Omit<ComponentProps<typeof TabsPrimitive.Root>, 'value' | 'defaultValue' | 'onValueChange' | 'children' | 'orientation'> & VariantProps<typeof tabVariants> & {
   items: TabItem[]
   value?: string
   /** Defaults to the first enabled item */

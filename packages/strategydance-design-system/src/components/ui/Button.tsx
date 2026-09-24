@@ -12,7 +12,8 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground enabled:hover:bg-secondary-700 enabled:active:bg-secondary-950',
         transparent: 'bg-transparent text-secondary enabled:hover:bg-neutral-100 enabled:active:bg-neutral-200',
         outline: 'border-neutral-300 bg-white text-secondary enabled:hover:border-secondary enabled:hover:bg-neutral-50 enabled:active:bg-neutral-100',
-        danger: 'bg-red-200 text-red-500 focus-visible:outline-red-500 enabled:hover:bg-red-300 enabled:hover:text-red-600 enabled:active:bg-red-300 enabled:active:text-red-600',
+        // Darker text than the design's red-500 and red-600, which fall short of 4.5:1 on these fills
+        danger: 'bg-red-200 text-red-800 focus-visible:outline-red-500 enabled:hover:bg-red-300 enabled:hover:text-red-900 enabled:active:bg-red-300 enabled:active:text-red-900',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

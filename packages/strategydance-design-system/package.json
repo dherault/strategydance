@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./index.css": "./src/index.css",
+    "./components/*": "./src/components/*.tsx",
+    "./lib/*": "./src/lib/*.ts"
+  },
   "scripts": {
     "storybook": "storybook dev -p 6006",
     "build": "tsc -b && storybook build",

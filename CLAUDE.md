@@ -18,7 +18,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, Tailwind
   CSS v4, documented in Storybook. It imports itself by its package name,
   `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
-  component resolves the same when another package reads it as source
+  component resolves the same when another package reads it as source. Its tokens and components
+  are ported from the Strategy Dance Design System project in Claude Design and keep that
+  project's props, so what a design uses maps onto code. Another package imports
+  `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`
 - `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
   catalogues. Node-only: never import it from the frontend
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`

@@ -55,7 +55,9 @@ function Button({
   children,
   ...props
 }: Props) {
-  const iconOnly = !children && !!icon
+  // Whatever React renders is a label, a 0 included, so falsiness is not the test
+  const hasLabel = children !== undefined && children !== null && typeof children !== 'boolean' && children !== ''
+  const iconOnly = !hasLabel && !!icon
 
   return (
     <button

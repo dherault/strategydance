@@ -4,6 +4,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarRail,
 } from 'strategydance-design-system/components/ui/Sidebar'
 
 import GitHubStarButton from '~components/layout/GitHubStarButton'
@@ -31,6 +32,8 @@ function AppSidebar() {
         </div>
         <SidebarUserMenu />
       </SidebarFooter>
+      {/* The sidebar's edge toggles it on click, which is how a pointer brings it back */}
+      <SidebarRail label={formatMessage(navigationMessages.toggleSidebar)} />
     </Sidebar>
   )
 }

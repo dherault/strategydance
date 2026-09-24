@@ -1,12 +1,10 @@
 import type { PropsWithChildren } from 'react'
-import { useIntl } from 'react-intl'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from 'strategydance-design-system/components/ui/Sidebar'
+import { SidebarInset, SidebarProvider } from 'strategydance-design-system/components/ui/Sidebar'
 
 import usePersistedState from '~hooks/common/usePersistedState'
 
 import AppSidebar from '~components/layout/AppSidebar'
-
-import navigationMessages from '~data/intl/messages/navigation'
+import SidebarToggleBar from '~components/layout/SidebarToggleBar'
 
 /*
   The authenticated area's frame: the sidebar, and the page beside it. A route-level layout
@@ -14,7 +12,6 @@ import navigationMessages from '~data/intl/messages/navigation'
   whether the sidebar is open outlives a reload
 */
 function AppLayout({ children }: PropsWithChildren) {
-  const { formatMessage } = useIntl()
   const [open, setOpen] = usePersistedState('sidebarOpen', true)
 
   return (
@@ -24,10 +21,7 @@ function AppLayout({ children }: PropsWithChildren) {
     >
       <AppSidebar />
       <SidebarInset>
-        {/* Below `md` the sidebar is a panel over the page, and this bar is how to open it */}
-        <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center border-b border-border bg-background px-2 md:hidden">
-          <SidebarTrigger label={formatMessage(navigationMessages.toggleSidebar)} />
-        </header>
+        <SidebarToggleBar />
         {children}
       </SidebarInset>
     </SidebarProvider>

@@ -14,6 +14,7 @@
 export const MESSAGE_TYPES = [
   'authentication',
   'global',
+  'navigation',
 ] as const
 
 /* ---

@@ -78,18 +78,38 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   }
 
   /*
-    The database replaces the list whole, so the new one is built here from the list last read.
-    An aspect already there is left as it is, and the refetch before answering means the caller
-    can navigate to the aspect knowing the sidebar lists it
+    The database replaces the list whole, so the new one is built here from the list last read,
+    and sent with it: the write is refused if the list changed in between, another tab or member
+    having added an aspect. A refusal reads the list again and tries once more. An aspect already
+    there is left as it is, and the refetch before answering means the caller can navigate to the
+    aspect knowing the sidebar lists it
   */
   async function exploreCompanyAspect(organizationId: string, aspect: CompanyAspect) {
-    const membership = userOrganizations.find(({ organization }) => organization.id === organizationId)
-    const exploredAspects = membership?.organization.exploredAspects ?? []
+    let memberships = userOrganizations
 
-    if (exploredAspects.includes(aspect)) return
+    for (let attempt = 1; ; attempt++) {
+      const readExploredAspects = memberships.find(({ organization }) => organization.id === organizationId)?.organization.exploredAspects ?? []
 
-    await updateExploredAspectsMutation({ organizationId, exploredAspects: [...exploredAspects, aspect] })
-    await refetchUserOrganizations()
+      if (readExploredAspects.includes(aspect)) return
+
+      try {
+        await updateExploredAspectsMutation({
+          organizationId,
+          readExploredAspects,
+          exploredAspects: [...readExploredAspects, aspect],
+        })
+        await refetchUserOrganizations()
+
+        return
+      }
+      catch (error) {
+        if (attempt > 1) throw error
+
+        const { data: refetched } = await refetchUserOrganizations()
+
+        memberships = refetched?.userOrganizations ?? []
+      }
+    }
   }
 
   const contextValue: UserOrganizationsContextType = {

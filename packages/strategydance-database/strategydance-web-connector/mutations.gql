@@ -67,20 +67,28 @@ mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
 }
 
 # The aspects an organization has started on, replaced whole: Data Connect offers no append on a
-# list of enums, so the caller sends the list it read with the new aspect added. Two members
-# exploring in the same moment could lose one of the two, which a team of one never meets.
+# list of enums, so the caller sends the list it read with the new aspect added.
+#
+# Replacing is only safe if nothing else replaced it in between, so the caller also sends the
+# list it read, and the transaction refuses to write over a list that has since changed. Two
+# tabs or two members adding aspects at once then cannot drop each other's: the one refused
+# reads the list again and retries.
 #
 # Only a member may change it. The first step reads the caller's own membership, keyed by the uid
 # off the token, and its `@check` fails the transaction when there is none, before the update
-# runs. `@redact` keeps the membership out of the response
+# runs. `@redact` keeps both reads out of the response
 mutation UpdateOrganizationExploredAspects(
   $organizationId: UUID!
+  $readExploredAspects: [CompanyAspect!]!
   $exploredAspects: [CompanyAspect!]!
 ) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change what it explores") {
       role
+    }
+    organization(id: $organizationId) {
+      exploredAspects @check(expr: "this == vars.readExploredAspects", message: "The explored aspects changed since they were read")
     }
   }
   organization_update(

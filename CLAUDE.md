@@ -170,6 +170,11 @@ only way the app talks to them.
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
+- Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
+  exports each as values in the schema's order, and the frontend imports them from
+  `strategydance-database/web`
+- A schema change reaches production only through `bun run deploy:database`. Merge it after,
+  not before, or the live frontend queries fields its database does not have yet
 
 ### Routing
 

@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as Char91Char93RouteImport } from './routes/[-]'
 import { Route as AuthenticationRouteImport } from './routes/authentication'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as Char91Char93IndexRouteImport } from './routes/[-]/index'
 import { Route as Char91Char93AspectRouteImport } from './routes/[-]/$aspect'
+import { Route as Char91Char93AccountRouteImport } from './routes/[-]/account'
 import { Route as Char91Char93AgentsRouteImport } from './routes/[-]/agents'
 import { Route as Char91Char93ExploreRouteImport } from './routes/[-]/explore'
 import { Route as Char91Char93SettingsRouteImport } from './routes/[-]/settings'
@@ -38,6 +40,11 @@ const AuthenticationRoute = AuthenticationRouteImport.update({
   path: '/authentication',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Char91Char93IndexRoute = Char91Char93IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -46,6 +53,11 @@ const Char91Char93IndexRoute = Char91Char93IndexRouteImport.update({
 const Char91Char93AspectRoute = Char91Char93AspectRouteImport.update({
   id: '/$aspect',
   path: '/$aspect',
+  getParentRoute: () => Char91Char93Route,
+} as any)
+const Char91Char93AccountRoute = Char91Char93AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => Char91Char93Route,
 } as any)
 const Char91Char93AgentsRoute = Char91Char93AgentsRouteImport.update({
@@ -94,7 +106,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/-': typeof Char91Char93RouteWithChildren
   '/authentication': typeof AuthenticationRouteWithChildren
+  '/support': typeof SupportRoute
   '/-/$aspect': typeof Char91Char93AspectRoute
+  '/-/account': typeof Char91Char93AccountRoute
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
@@ -107,7 +121,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/support': typeof SupportRoute
   '/-/$aspect': typeof Char91Char93AspectRoute
+  '/-/account': typeof Char91Char93AccountRoute
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
@@ -123,7 +139,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/-': typeof Char91Char93RouteWithChildren
   '/authentication': typeof AuthenticationRouteWithChildren
+  '/support': typeof SupportRoute
   '/-/$aspect': typeof Char91Char93AspectRoute
+  '/-/account': typeof Char91Char93AccountRoute
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
@@ -140,7 +158,9 @@ export interface FileRouteTypes {
     | '/'
     | '/-'
     | '/authentication'
+    | '/support'
     | '/-/$aspect'
+    | '/-/account'
     | '/-/agents'
     | '/-/explore'
     | '/-/settings'
@@ -153,7 +173,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/support'
     | '/-/$aspect'
+    | '/-/account'
     | '/-/agents'
     | '/-/explore'
     | '/-/settings'
@@ -168,7 +190,9 @@ export interface FileRouteTypes {
     | '/'
     | '/-'
     | '/authentication'
+    | '/support'
     | '/-/$aspect'
+    | '/-/account'
     | '/-/agents'
     | '/-/explore'
     | '/-/settings'
@@ -184,6 +208,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   Char91Char93Route: typeof Char91Char93RouteWithChildren
   AuthenticationRoute: typeof AuthenticationRouteWithChildren
+  SupportRoute: typeof SupportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -209,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/-/': {
       id: '/-/'
       path: '/'
@@ -221,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/$aspect'
       fullPath: '/-/$aspect'
       preLoaderRoute: typeof Char91Char93AspectRouteImport
+      parentRoute: typeof Char91Char93Route
+    }
+    '/-/account': {
+      id: '/-/account'
+      path: '/account'
+      fullPath: '/-/account'
+      preLoaderRoute: typeof Char91Char93AccountRouteImport
       parentRoute: typeof Char91Char93Route
     }
     '/-/agents': {
@@ -284,6 +323,7 @@ declare module '@tanstack/react-router' {
 
 interface Char91Char93RouteChildren {
   Char91Char93AspectRoute: typeof Char91Char93AspectRoute
+  Char91Char93AccountRoute: typeof Char91Char93AccountRoute
   Char91Char93AgentsRoute: typeof Char91Char93AgentsRoute
   Char91Char93ExploreRoute: typeof Char91Char93ExploreRoute
   Char91Char93SettingsRoute: typeof Char91Char93SettingsRoute
@@ -295,6 +335,7 @@ interface Char91Char93RouteChildren {
 
 const Char91Char93RouteChildren: Char91Char93RouteChildren = {
   Char91Char93AspectRoute: Char91Char93AspectRoute,
+  Char91Char93AccountRoute: Char91Char93AccountRoute,
   Char91Char93AgentsRoute: Char91Char93AgentsRoute,
   Char91Char93ExploreRoute: Char91Char93ExploreRoute,
   Char91Char93SettingsRoute: Char91Char93SettingsRoute,
@@ -326,6 +367,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   Char91Char93Route: Char91Char93RouteWithChildren,
   AuthenticationRoute: AuthenticationRouteWithChildren,
+  SupportRoute: SupportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

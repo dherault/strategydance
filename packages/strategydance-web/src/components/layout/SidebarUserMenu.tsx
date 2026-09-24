@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { ChevronsUpDownIcon, CircleHelpIcon, LogOutIcon, UserIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { Avatar } from 'strategydance-design-system/components/ui/Avatar'
@@ -9,20 +10,24 @@ import {
   DropdownMenuTrigger,
 } from 'strategydance-design-system/components/ui/DropdownMenu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from 'strategydance-design-system/components/ui/Sidebar'
+import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useUser from '~hooks/user/useUser'
 
 import navigationMessages from '~data/intl/messages/navigation'
 
-/*
-  The reader, and their menu. Account and Support have no page yet, so they show disabled rather
-  than doing nothing when chosen
-*/
+// The reader, and their menu: their account, help, and signing out
 function SidebarUserMenu() {
   const { formatMessage } = useIntl()
   const { data: user } = useUser()
   const { signOut } = useAuthentication()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  // On a narrow screen the sidebar is a panel over the page, which a page picked here should close
+  function closeMobileSidebar() {
+    if (isMobile) setOpenMobile(false)
+  }
 
   const name = user?.displayName || user?.email || ''
 
@@ -57,13 +62,23 @@ function SidebarUserMenu() {
             sideOffset={14}
             className="w-44"
           >
-            <DropdownMenuItem disabled>
-              <UserIcon />
-              {formatMessage(navigationMessages.account)}
+            <DropdownMenuItem
+              asChild
+              onSelect={closeMobileSidebar}
+            >
+              <Link to="/-/account">
+                <UserIcon />
+                {formatMessage(navigationMessages.account)}
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>
-              <CircleHelpIcon />
-              {formatMessage(navigationMessages.support)}
+            <DropdownMenuItem
+              asChild
+              onSelect={closeMobileSidebar}
+            >
+              <Link to="/support">
+                <CircleHelpIcon />
+                {formatMessage(navigationMessages.support)}
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

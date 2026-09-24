@@ -1,23 +1,24 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useIntl } from 'react-intl'
-import { type CompanyAspect, CompanyAspects } from 'strategydance-design-system/components/company/CompanyAspectIcon'
+
+import parseAspectSlug from '~utils/company/parseAspectSlug'
+import toAspectSlug from '~utils/company/toAspectSlug'
 
 import ComingSoon from '~components/layout/ComingSoon'
 
 import aspectMessages from '~data/intl/aspectMessages'
 
-function isCompanyAspect(value: string): value is CompanyAspect {
-  return CompanyAspects.some(({ id }) => id === value)
-}
-
-// One page per aspect of the company. Any other segment is a page that does not exist
+/*
+  One page per aspect of the company, explored or not, at its lowercase name. Any other segment
+  parses to null, which is a page that does not exist
+*/
 export const Route = createFileRoute('/-/$aspect')({
   params: {
-    parse: ({ aspect }) => ({ aspect: aspect as CompanyAspect }),
-    stringify: ({ aspect }) => ({ aspect }),
+    parse: ({ aspect }) => ({ aspect: parseAspectSlug(aspect) }),
+    stringify: ({ aspect }) => ({ aspect: aspect ? toAspectSlug(aspect) : '' }),
   },
   beforeLoad: ({ params }) => {
-    if (!isCompanyAspect(params.aspect)) throw notFound()
+    if (!params.aspect) throw notFound()
   },
   component: AspectRoute,
 })
@@ -25,6 +26,8 @@ export const Route = createFileRoute('/-/$aspect')({
 function AspectRoute() {
   const { aspect } = Route.useParams()
   const { formatMessage } = useIntl()
+
+  if (!aspect) return null
 
   return (
     <ComingSoon page={formatMessage(aspectMessages[aspect])} />

@@ -1,5 +1,10 @@
 import type { PropsWithChildren } from 'react'
-import { useCreateOrganization, useGetCurrentUserOrganizations } from 'strategydance-database/web/react'
+import type { CompanyAspect } from 'strategydance-database/web'
+import {
+  useCreateOrganization,
+  useGetCurrentUserOrganizations,
+  useUpdateOrganizationExploredAspects,
+} from 'strategydance-database/web/react'
 
 import type { UserOrganizationsContextType } from '~contexts/UserOrganizationsContext'
 
@@ -34,6 +39,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   })
 
   const { mutateAsync: createOrganizationMutation } = useCreateOrganization(dataConnect)
+  const { mutateAsync: updateExploredAspectsMutation } = useUpdateOrganizationExploredAspects(dataConnect)
 
   const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
 
@@ -71,12 +77,28 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     return organization.id
   }
 
+  /*
+    The database replaces the list whole, so the new one is built here from the list last read.
+    An aspect already there is left as it is, and the refetch before answering means the caller
+    can navigate to the aspect knowing the sidebar lists it
+  */
+  async function exploreCompanyAspect(organizationId: string, aspect: CompanyAspect) {
+    const membership = userOrganizations.find(({ organization }) => organization.id === organizationId)
+    const exploredAspects = membership?.organization.exploredAspects ?? []
+
+    if (exploredAspects.includes(aspect)) return
+
+    await updateExploredAspectsMutation({ organizationId, exploredAspects: [...exploredAspects, aspect] })
+    await refetchUserOrganizations()
+  }
+
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
     initialLoading,
     loading,
     refetch,
     createOrganization,
+    exploreCompanyAspect,
   }
 
   return (

@@ -1,8 +1,11 @@
 /*
   The design system's tokens, typefaces and base styles. Its components are read as source, so
-  Tailwind is pointed at them as well, stories aside, to generate the utilities they use
+  Tailwind is pointed at them as well, stories aside, to generate the utilities they use.
+
+  Through the workspace path rather than `node_modules`, which Vite does not watch: through the
+  link, a component edited while the dev server runs kept its old classes until a restart
 */
 @import "strategydance-design-system/index.css";
 
-@source "../node_modules/strategydance-design-system/src";
-@source not "../node_modules/strategydance-design-system/src/**/*.stories.tsx";
+@source "../../strategydance-design-system/src";
+@source not "../../strategydance-design-system/src/**/*.stories.tsx";

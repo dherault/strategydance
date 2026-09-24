@@ -83,7 +83,11 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     between, another tab or member having added an aspect, is refused: the list is read again and
     the write tried again, up to three times. An aspect already there is left as it is, and the
     refetch before answering means the caller can navigate to the aspect knowing the sidebar lists
-    it
+    it.
+
+    Both refetches throw on failure, which a refetch does not do by default. A write followed by a
+    failed read is then an attempt like any other, retried from a fresh read, rather than a success
+    claimed on a list that does not show it
   */
   async function exploreCompanyAspect(organizationId: string, aspect: CompanyAspect) {
     let memberships = userOrganizations
@@ -99,14 +103,14 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
           aspect,
           exploredAspects: [...exploredAspects, aspect],
         })
-        await refetchUserOrganizations()
+        await refetchUserOrganizations({ throwOnError: true })
 
         return
       }
       catch (error) {
         if (attempt >= 3) throw error
 
-        const { data: refetched } = await refetchUserOrganizations()
+        const { data: refetched } = await refetchUserOrganizations({ throwOnError: true })
 
         memberships = refetched?.userOrganizations ?? []
       }

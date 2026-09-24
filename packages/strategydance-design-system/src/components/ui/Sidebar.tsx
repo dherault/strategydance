@@ -134,6 +134,7 @@ function Sidebar({
   closeLabel = 'Close the sidebar',
   dir,
   className,
+  style,
   children,
   ...props
 }: SidebarProps) {
@@ -144,6 +145,7 @@ function Sidebar({
       <div
         data-slot="sidebar"
         className={cn('flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground', className)}
+        style={style}
         {...props}
       >
         {children}
@@ -165,8 +167,11 @@ function Sidebar({
           side={side}
           showCloseButton={false}
           aria-describedby={undefined}
-          className="w-(--sidebar-width) gap-0 border-0 bg-sidebar p-0 text-sidebar-foreground"
-          style={{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE } as CSSProperties}
+          // The caller's props reach the sheet as they reach the column on a wide screen, so the
+          // sidebar keeps its classes, attributes and handlers across the breakpoint
+          className={cn('w-(--sidebar-width) gap-0 border-0 bg-sidebar p-0 text-sidebar-foreground', className)}
+          style={{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE, ...style } as CSSProperties}
+          {...props}
         >
           <SheetHeader className="sr-only">
             <SheetTitle>
@@ -226,6 +231,7 @@ function Sidebar({
             : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
           className,
         )}
+        style={style}
         {...props}
       >
         <div

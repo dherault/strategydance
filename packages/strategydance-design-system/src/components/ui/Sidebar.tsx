@@ -39,7 +39,8 @@ const focusClassName = 'outline-none focus-visible:outline-2 focus-visible:-outl
 
 type SidebarProviderProps = ComponentProps<'div'> & {
   defaultOpen?: boolean
-  // Controlled when given, which is how the app keeps the state across visits
+  // Controlled when given, which is how the app keeps the state across visits. Given without
+  // `onOpenChange`, the sidebar is held: nothing closes it on a wide screen
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
@@ -72,9 +73,13 @@ function SidebarProvider({
     else setOpen(current => !current)
   }
 
-  // Cmd+B or Ctrl+B toggles it, from anywhere on the page
+  const isHeld = openProp !== undefined && !onOpenChange
+
+  // Cmd+B or Ctrl+B toggles it, from anywhere on the page. A held sidebar on a wide screen has
+  // nothing to toggle, so the key is left to the browser
   const handleShortcut = useEffectEvent((event: KeyboardEvent) => {
     if (event.key !== SIDEBAR_KEYBOARD_SHORTCUT || !(event.metaKey || event.ctrlKey)) return
+    if (isHeld && !isMobile) return
 
     event.preventDefault()
     toggleSidebar()

@@ -1,9 +1,9 @@
 import type { PropsWithChildren } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 import {
+  useAddOrganizationExploredAspect,
   useCreateOrganization,
   useGetCurrentUserOrganizations,
-  useUpdateOrganizationExploredAspects,
 } from 'strategydance-database/web/react'
 
 import type { UserOrganizationsContextType } from '~contexts/UserOrganizationsContext'
@@ -39,7 +39,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   })
 
   const { mutateAsync: createOrganizationMutation } = useCreateOrganization(dataConnect)
-  const { mutateAsync: updateExploredAspectsMutation } = useUpdateOrganizationExploredAspects(dataConnect)
+  const { mutateAsync: addExploredAspectMutation } = useAddOrganizationExploredAspect(dataConnect)
 
   const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
 
@@ -78,32 +78,33 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   }
 
   /*
-    The database replaces the list whole, so the new one is built here from the list last read,
-    and sent with it: the write is refused if the list changed in between, another tab or member
-    having added an aspect. A refusal reads the list again and tries once more. An aspect already
-    there is left as it is, and the refetch before answering means the caller can navigate to the
-    aspect knowing the sidebar lists it
+    The database writes the list whole, so the new one is built here from the list last read. The
+    server accepts it only as that list with the aspect appended, so a list that changed in
+    between, another tab or member having added an aspect, is refused: the list is read again and
+    the write tried again, up to three times. An aspect already there is left as it is, and the
+    refetch before answering means the caller can navigate to the aspect knowing the sidebar lists
+    it
   */
   async function exploreCompanyAspect(organizationId: string, aspect: CompanyAspect) {
     let memberships = userOrganizations
 
     for (let attempt = 1; ; attempt++) {
-      const readExploredAspects = memberships.find(({ organization }) => organization.id === organizationId)?.organization.exploredAspects ?? []
+      const exploredAspects = memberships.find(({ organization }) => organization.id === organizationId)?.organization.exploredAspects ?? []
 
-      if (readExploredAspects.includes(aspect)) return
+      if (exploredAspects.includes(aspect)) return
 
       try {
-        await updateExploredAspectsMutation({
+        await addExploredAspectMutation({
           organizationId,
-          readExploredAspects,
-          exploredAspects: [...readExploredAspects, aspect],
+          aspect,
+          exploredAspects: [...exploredAspects, aspect],
         })
         await refetchUserOrganizations()
 
         return
       }
       catch (error) {
-        if (attempt > 1) throw error
+        if (attempt >= 3) throw error
 
         const { data: refetched } = await refetchUserOrganizations()
 

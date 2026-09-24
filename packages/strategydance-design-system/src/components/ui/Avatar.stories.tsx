@@ -2,11 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
 
+const photo = 'https://randomuser.me/api/portraits/men/32.jpg'
+
 const meta = {
   title: 'Components/Avatar',
   component: Avatar,
   args: {
-    name: 'Ada Lovelace',
+    name: 'Tom Harris',
+    src: photo,
   },
 } satisfies Meta<typeof Avatar>
 
@@ -14,7 +17,13 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Initials: Story = {}
+export const Photo: Story = {}
+
+export const Initials: Story = {
+  args: {
+    src: undefined,
+  },
+}
 
 export const Sizes: Story = {
   render: args => (
@@ -49,7 +58,10 @@ export const BrokenImage: Story = {
 export const Group: Story = {
   render: () => (
     <AvatarGroup>
-      <Avatar name="Ada Lovelace" />
+      <Avatar
+        name="Tom Harris"
+        src={photo}
+      />
       <Avatar name="Grace Hopper" />
       <Avatar name="Alan Turing" />
       <Avatar name="Katherine Johnson" />

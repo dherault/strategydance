@@ -37,7 +37,7 @@ type Props = Omit<ComponentProps<typeof Button>, 'onClick'> & {
   onErrorCode: (errorCode: string) => void
 }
 
-function GoogleButton({ onErrorCode, ...props }: Props) {
+function GoogleButton({ onErrorCode, disabled, ...props }: Props) {
   const [loading, setLoading] = useState(false)
 
   async function signInWithGoogle() {
@@ -76,7 +76,7 @@ function GoogleButton({ onErrorCode, ...props }: Props) {
     <Button
       {...props}
       variant="outline"
-      disabled={loading}
+      disabled={disabled || loading}
       icon={loading ? <Spinner tone="current" /> : googleIcon}
       onClick={signInWithGoogle}
     >

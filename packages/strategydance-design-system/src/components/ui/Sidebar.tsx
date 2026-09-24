@@ -1,5 +1,5 @@
 import { type VariantProps, cva } from 'class-variance-authority'
-import { PanelLeftIcon } from 'lucide-react'
+import { PanelLeftIcon, XIcon } from 'lucide-react'
 import { Slot } from 'radix-ui'
 import {
   type CSSProperties,
@@ -19,7 +19,7 @@ import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Input } from 'strategydance-design-system/components/ui/Input'
 import { Separator } from 'strategydance-design-system/components/ui/Separator'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from 'strategydance-design-system/components/ui/Sheet'
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from 'strategydance-design-system/components/ui/Sheet'
 import { Skeleton } from 'strategydance-design-system/components/ui/Skeleton'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
@@ -122,6 +122,8 @@ type SidebarProps = ComponentProps<'div'> & {
   collapsible?: 'offcanvas' | 'icon' | 'none'
   // Names the sheet the sidebar becomes below `md`, which assistive technology sees as a dialog
   label?: string
+  // Names the button closing that sheet
+  closeLabel?: string
 }
 
 function Sidebar({
@@ -129,6 +131,7 @@ function Sidebar({
   variant = 'sidebar',
   collapsible = 'offcanvas',
   label = 'Sidebar',
+  closeLabel = 'Close the sidebar',
   dir,
   className,
   children,
@@ -170,6 +173,21 @@ function Sidebar({
               {label}
             </SheetTitle>
           </SheetHeader>
+          {/*
+            The sheet is modal, so whatever opened it is out of reach until it closes, and this is
+            the way to close it besides Escape and the backdrop. Hidden until the keyboard focuses
+            it, since shown it would sit on the sidebar's first row. First in the sheet, so opening
+            it from the keyboard lands on it
+          */}
+          <SheetClose asChild>
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<XIcon />}
+              aria-label={closeLabel}
+              className="absolute top-2 right-2 z-20 bg-sidebar not-focus-visible:sr-only"
+            />
+          </SheetClose>
           <div className="flex size-full flex-col">
             {children}
           </div>

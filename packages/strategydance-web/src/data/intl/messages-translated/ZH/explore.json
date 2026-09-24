@@ -1,0 +1,17 @@
+{
+  "explore.blurbDesign": "品牌、界面以及围绕产品的整体体验。",
+  "explore.blurbEngineering": "定义你的 MVP，并在此基础上持续迭代。",
+  "explore.blurbFinances": "资金跑道、定价、营收与每月支出。",
+  "explore.blurbLegal": "公司架构、合同、条款与合规。",
+  "explore.blurbMarketing": "受众、渠道以及持续稳定的发布节奏。",
+  "explore.blurbPeople": "招聘、协作者、日常规范以及工作的推进方式。",
+  "explore.blurbProduct": "打造什么产品、为谁而做，以及接下来要发布什么。",
+  "explore.blurbSales": "销售漏斗、外联拓展与首批客户成交。",
+  "explore.blurbStrategy": "需要应对的挑战与通往胜利的路径。",
+  "explore.explored": "已探索 {explored} / {total}",
+  "explore.lead": "每家公司的运转都依托于相同的九个方面。添加你需要指导的方面，准备开展工作。",
+  "explore.noOrganization": "添加一个组织以开始探索其各个方面。",
+  "explore.open": "打开",
+  "explore.start": "开始探索",
+  "explore.startError": "未能添加该方面，请重试。"
+}

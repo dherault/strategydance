@@ -13,6 +13,7 @@
 */
 export const MESSAGE_TYPES = [
   'authentication',
+  'explore',
   'global',
   'navigation',
 ] as const

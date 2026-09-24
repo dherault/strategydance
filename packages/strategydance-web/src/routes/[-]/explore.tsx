@@ -1,18 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useIntl } from 'react-intl'
 
-import ComingSoon from '~components/layout/ComingSoon'
+import type { MessageType } from '~types'
 
-import navigationMessages from '~data/intl/messages/navigation'
+import ExploreAspects from '~components/company/ExploreAspects'
+import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
+
+// At module scope so the reference is stable across renders
+const EXPLORE_MESSAGE_TYPES: MessageType[] = ['explore']
 
 export const Route = createFileRoute('/-/explore')({
   component: ExploreRoute,
 })
 
 function ExploreRoute() {
-  const { formatMessage } = useIntl()
-
   return (
-    <ComingSoon page={formatMessage(navigationMessages.exploreMore)} />
+    <IntlMessagesRegistration messageTypes={EXPLORE_MESSAGE_TYPES}>
+      <ExploreAspects />
+    </IntlMessagesRegistration>
   )
 }

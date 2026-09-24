@@ -150,6 +150,68 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "explore": {
+      "explore.blurbDesign": {
+        "hash": "732e8bf4219df317",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbEngineering": {
+        "hash": "2583db2e42f67411",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbFinances": {
+        "hash": "be5859bad984f113",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbLegal": {
+        "hash": "455c3dc7ea979a9c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbMarketing": {
+        "hash": "87a719b59cb281b9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbPeople": {
+        "hash": "c37eff4bc0e86c66",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbProduct": {
+        "hash": "09828d97a1ebe18d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbSales": {
+        "hash": "b3416e353cf8fcbc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbStrategy": {
+        "hash": "96cb089ae9d0400d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.explored": {
+        "hash": "c1633ce6e45ffb84",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.lead": {
+        "hash": "6fa3048dbe69570a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.noOrganization": {
+        "hash": "f7fb4a86724d7669",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.open": {
+        "hash": "c3536a62c0e46714",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.start": {
+        "hash": "b6e9b640e2a88c96",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.startError": {
+        "hash": "a36556a937bbe83d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "global": {
       "global.language": {
         "hash": "0bc2f1053fcf6d40",

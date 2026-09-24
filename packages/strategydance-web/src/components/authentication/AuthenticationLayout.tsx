@@ -1,8 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { PropsWithChildren } from 'react'
 import { FormattedMessage } from 'react-intl'
-
-import Logo from '~components/common/Logo'
+import { Logo } from 'strategydance-design-system/components/brand/Logo'
 
 import authenticationMessages from '~data/intl/messages/authentication'
 
@@ -17,8 +16,9 @@ function AuthenticationLayout({ passwordResetSent, children }: Props) {
         to="/"
         className="flex flex-col items-center gap-2"
       >
-        <Logo className="w-20" />
-        <h1 className="mt-2 text-4xl font-semibold">
+        <Logo className="w-20 text-secondary" />
+        {/* The name is the wordmark, so it is set as the brand sets it rather than as a title */}
+        <h1 className="mt-2 font-sans text-4xl font-bold tracking-[-0.02em]">
           Strategy Dance
         </h1>
       </Link>

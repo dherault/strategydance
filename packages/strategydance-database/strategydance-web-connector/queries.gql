@@ -9,7 +9,6 @@ query GetCurrentUser @auth(level: USER) {
     locale
     timezone
     authenticationProviders
-    createdAt
   }
 }
 
@@ -48,12 +47,10 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
   ) {
     role
-    createdAt
     organization {
       id
       name
       exploredAspects
-      createdAt
     }
   }
 }

@@ -53,6 +53,7 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     organization {
       id
       name
+      exploredAspects
       createdAt
       updatedAt
     }

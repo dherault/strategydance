@@ -56,7 +56,7 @@ function AuthenticatedIndexRoute() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-start gap-4 p-8">
+    <div className="flex flex-col items-start gap-4 p-8">
       <h1 className="text-2xl">
         Authenticated
       </h1>
@@ -105,6 +105,6 @@ function AuthenticatedIndexRoute() {
       >
         Sign out
       </button>
-    </main>
+    </div>
   )
 }

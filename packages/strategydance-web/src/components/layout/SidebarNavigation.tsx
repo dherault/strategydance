@@ -1,0 +1,123 @@
+import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
+import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, SettingsIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { useIntl } from 'react-intl'
+import { type CompanyAspect, CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from 'strategydance-design-system/components/ui/Sidebar'
+import useSidebar from 'strategydance-design-system/hooks/useSidebar'
+
+import aspectMessages from '~data/intl/aspectMessages'
+import navigationMessages from '~data/intl/messages/navigation'
+
+// The aspects a company starts with in the sidebar, as the prototype has it. The rest wait
+// behind "Explore more aspects"
+const EXPLORED_ASPECTS: CompanyAspect[] = ['strategy', 'finances', 'product', 'engineering', 'design']
+
+type NavigationLinkProps = {
+  // Matched against the current path to mark the row active
+  path: string
+  label: string
+  icon: ReactNode
+  link: LinkProps
+}
+
+function NavigationLink({ path, label, icon, link }: NavigationLinkProps) {
+  const { isMobile, setOpenMobile } = useSidebar()
+  const pathname = useRouterState({ select: state => state.location.pathname })
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={pathname === path}
+      >
+        <Link
+          {...link}
+          // On a narrow screen the sidebar is a panel over the page, which should get out of the way
+          onClick={() => {
+            if (isMobile) setOpenMobile(false)
+          }}
+        >
+          {icon}
+          <span>
+            {label}
+          </span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function SidebarNavigation() {
+  const { formatMessage } = useIntl()
+
+  return (
+    <>
+      <SidebarGroup>
+        <SidebarMenu>
+          <NavigationLink
+            path="/-/today"
+            label={formatMessage(navigationMessages.today)}
+            icon={<CalendarIcon />}
+            link={{ to: '/-/today' }}
+          />
+          <NavigationLink
+            path="/-/tasks"
+            label={formatMessage(navigationMessages.tasks)}
+            icon={<ListChecksIcon />}
+            link={{ to: '/-/tasks' }}
+          />
+          <NavigationLink
+            path="/-/agents"
+            label={formatMessage(navigationMessages.agents)}
+            icon={<BotIcon />}
+            link={{ to: '/-/agents' }}
+          />
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>
+          {formatMessage(navigationMessages.company)}
+        </SidebarGroupLabel>
+        <SidebarMenu>
+          {EXPLORED_ASPECTS.map(aspect => (
+            <NavigationLink
+              key={aspect}
+              path={`/-/${aspect}`}
+              label={formatMessage(aspectMessages[aspect])}
+              icon={<CompanyAspectIcon aspect={aspect} />}
+              link={{ to: '/-/$aspect', params: { aspect } }}
+            />
+          ))}
+          <NavigationLink
+            path="/-/explore"
+            label={formatMessage(navigationMessages.exploreMore)}
+            icon={<CompassIcon />}
+            link={{ to: '/-/explore' }}
+          />
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>
+          {formatMessage(navigationMessages.workspace)}
+        </SidebarGroupLabel>
+        <SidebarMenu>
+          <NavigationLink
+            path="/-/settings"
+            label={formatMessage(navigationMessages.settings)}
+            icon={<SettingsIcon />}
+            link={{ to: '/-/settings' }}
+          />
+        </SidebarMenu>
+      </SidebarGroup>
+    </>
+  )
+}
+
+export default SidebarNavigation

@@ -56,3 +56,10 @@ export const AUTHENTICATION_ERRORS: Record<string, string> = {
 }
 
 export const DEFAULT_AUTHENTICATION_ERROR = 'errorDefault'
+
+/* ---
+  GITHUB
+--- */
+
+// The project's public repository, which the sidebar invites the reader to star
+export const GITHUB_REPOSITORY = 'dherault/strategydance'

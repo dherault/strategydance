@@ -1,5 +1,5 @@
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
-import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, SettingsIcon } from 'lucide-react'
+import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, SettingsIcon, UsersRoundIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { CompanyAspect } from 'strategydance-database/web'
@@ -121,6 +121,12 @@ function SidebarNavigation() {
           {formatMessage(navigationMessages.workspace)}
         </SidebarGroupLabel>
         <SidebarMenu>
+          <NavigationLink
+            path="/-/team"
+            label={formatMessage(navigationMessages.team)}
+            icon={<UsersRoundIcon />}
+            link={{ to: '/-/team' }}
+          />
           <NavigationLink
             path="/-/settings"
             label={formatMessage(navigationMessages.settings)}

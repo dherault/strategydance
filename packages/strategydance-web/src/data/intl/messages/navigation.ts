@@ -47,6 +47,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Workspace',
     description: 'Sidebar heading above the links about the workspace itself, such as settings.',
   },
+  team: {
+    id: 'navigation.team',
+    defaultMessage: 'Team',
+    description: 'Sidebar link to the page about the people in the organization.',
+  },
   settings: {
     id: 'navigation.settings',
     defaultMessage: 'Settings',

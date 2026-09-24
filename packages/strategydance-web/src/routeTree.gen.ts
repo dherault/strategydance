@@ -18,6 +18,7 @@ import { Route as Char91Char93AgentsRouteImport } from './routes/[-]/agents'
 import { Route as Char91Char93ExploreRouteImport } from './routes/[-]/explore'
 import { Route as Char91Char93SettingsRouteImport } from './routes/[-]/settings'
 import { Route as Char91Char93TasksRouteImport } from './routes/[-]/tasks'
+import { Route as Char91Char93TeamRouteImport } from './routes/[-]/team'
 import { Route as Char91Char93TodayRouteImport } from './routes/[-]/today'
 import { Route as AuthenticationIndexRouteImport } from './routes/authentication/index'
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
@@ -67,6 +68,11 @@ const Char91Char93TasksRoute = Char91Char93TasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => Char91Char93Route,
 } as any)
+const Char91Char93TeamRoute = Char91Char93TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => Char91Char93Route,
+} as any)
 const Char91Char93TodayRoute = Char91Char93TodayRouteImport.update({
   id: '/today',
   path: '/today',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
   '/-/tasks': typeof Char91Char93TasksRoute
+  '/-/team': typeof Char91Char93TeamRoute
   '/-/today': typeof Char91Char93TodayRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-/': typeof Char91Char93IndexRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
   '/-/tasks': typeof Char91Char93TasksRoute
+  '/-/team': typeof Char91Char93TeamRoute
   '/-/today': typeof Char91Char93TodayRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-': typeof Char91Char93IndexRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
   '/-/tasks': typeof Char91Char93TasksRoute
+  '/-/team': typeof Char91Char93TeamRoute
   '/-/today': typeof Char91Char93TodayRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-/': typeof Char91Char93IndexRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/-/explore'
     | '/-/settings'
     | '/-/tasks'
+    | '/-/team'
     | '/-/today'
     | '/authentication/password-reset'
     | '/-/'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/-/explore'
     | '/-/settings'
     | '/-/tasks'
+    | '/-/team'
     | '/-/today'
     | '/authentication/password-reset'
     | '/-'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/-/explore'
     | '/-/settings'
     | '/-/tasks'
+    | '/-/team'
     | '/-/today'
     | '/authentication/password-reset'
     | '/-/'
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91Char93TasksRouteImport
       parentRoute: typeof Char91Char93Route
     }
+    '/-/team': {
+      id: '/-/team'
+      path: '/team'
+      fullPath: '/-/team'
+      preLoaderRoute: typeof Char91Char93TeamRouteImport
+      parentRoute: typeof Char91Char93Route
+    }
     '/-/today': {
       id: '/-/today'
       path: '/today'
@@ -269,6 +288,7 @@ interface Char91Char93RouteChildren {
   Char91Char93ExploreRoute: typeof Char91Char93ExploreRoute
   Char91Char93SettingsRoute: typeof Char91Char93SettingsRoute
   Char91Char93TasksRoute: typeof Char91Char93TasksRoute
+  Char91Char93TeamRoute: typeof Char91Char93TeamRoute
   Char91Char93TodayRoute: typeof Char91Char93TodayRoute
   Char91Char93IndexRoute: typeof Char91Char93IndexRoute
 }
@@ -279,6 +299,7 @@ const Char91Char93RouteChildren: Char91Char93RouteChildren = {
   Char91Char93ExploreRoute: Char91Char93ExploreRoute,
   Char91Char93SettingsRoute: Char91Char93SettingsRoute,
   Char91Char93TasksRoute: Char91Char93TasksRoute,
+  Char91Char93TeamRoute: Char91Char93TeamRoute,
   Char91Char93TodayRoute: Char91Char93TodayRoute,
   Char91Char93IndexRoute: Char91Char93IndexRoute,
 }

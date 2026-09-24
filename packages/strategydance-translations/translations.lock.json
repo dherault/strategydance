@@ -367,6 +367,10 @@
         "hash": "047370df795708bf",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.team": {
+        "hash": "03ad6ce6084d28da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.today": {
         "hash": "03e5a97c0a1c18dd",
         "locales": "DE,ES,FR,JA,PT,ZH"

@@ -40,6 +40,10 @@ type Props = Omit<ComponentProps<typeof AvatarPrimitive.Root>, 'asChild' | 'chil
 }
 
 function Avatar({ src, name = '', alt, size, className, ...props }: Props) {
+  // The initials take the image's name, so the avatar keeps one whether its image loads or not,
+  // and an empty `alt` keeps them decorative as it keeps the image
+  const label = alt ?? name
+
   return (
     <AvatarPrimitive.Root
       data-slot="avatar"
@@ -57,8 +61,9 @@ function Avatar({ src, name = '', alt, size, className, ...props }: Props) {
           )
         : null}
       <AvatarPrimitive.Fallback
-        role={name ? 'img' : undefined}
-        aria-label={name || undefined}
+        role={label ? 'img' : undefined}
+        aria-label={label || undefined}
+        aria-hidden={label ? undefined : true}
       >
         {initialsOf(name)}
       </AvatarPrimitive.Fallback>

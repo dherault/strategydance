@@ -30,7 +30,8 @@ function initialsOf(name: string) {
     .join('')
 }
 
-type Props = ComponentProps<typeof AvatarPrimitive.Root> & VariantProps<typeof avatarVariants> & {
+// The avatar renders its own image and initials, so it takes neither children nor `asChild`
+type Props = Omit<ComponentProps<typeof AvatarPrimitive.Root>, 'asChild' | 'children'> & VariantProps<typeof avatarVariants> & {
   /** Falls back to the initials while it loads, and for good if it fails */
   src?: string
   /** Used for the initials, the alt text and the title */

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { type FormEvent, useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Input } from 'strategydance-design-system/components/ui/Input'
+import { Select } from 'strategydance-design-system/components/ui/Select'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
@@ -79,30 +80,21 @@ function AuthenticatedIndexRoute() {
       </form>
       {/*
         Controlled in both states: with none of them `organization` is null and the empty value
-        matches the placeholder option, and with some the provider's derivation guarantees
-        `organization` is one of them
+        shows the placeholder, and with some the provider's derivation guarantees `organization`
+        is one of them
       */}
-      <select
+      <Select
         value={organization?.id ?? ''}
-        onChange={event => setOrganizationId(event.target.value)}
+        onValueChange={setOrganizationId}
         disabled={!userOrganizations.length}
+        placeholder="No organization yet"
         aria-label="Current organization"
-        className="h-9 w-full max-w-md cursor-pointer rounded-md bg-muted px-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {!userOrganizations.length && (
-          <option value="">
-            No organization yet
-          </option>
-        )}
-        {userOrganizations.map(({ organization: { id, name: organizationName } }) => (
-          <option
-            key={id}
-            value={id}
-          >
-            {organizationName}
-          </option>
-        ))}
-      </select>
+        options={userOrganizations.map(({ organization: { id, name: organizationName } }) => ({
+          value: id,
+          label: organizationName,
+        }))}
+        className="max-w-md"
+      />
       <pre className="w-full overflow-auto rounded-md bg-muted p-4 text-xs">
         {JSON.stringify({ user, organization, role, userOrganizations }, null, 2)}
       </pre>

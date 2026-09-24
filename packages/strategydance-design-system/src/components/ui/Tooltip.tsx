@@ -9,7 +9,11 @@ const ARROW_SIZE = 8
 type Props = Omit<ComponentProps<typeof TooltipPrimitive.Content>, 'content' | 'children' | 'side' | 'align' | 'sideOffset'> & {
   /** One short line of plain text. Anything interactive belongs in a popover */
   content: ReactNode
-  /** An element gets the tooltip directly, anything else is wrapped in an inline-flex span */
+  /**
+   * An element takes the tooltip's handlers, ref and `aria-describedby` itself, so a component
+   * must pass its props and ref on to the DOM, as the design system's all do. Anything else, such
+   * as text, is wrapped in a focusable span
+   */
   children: ReactNode
   /** Flips to the other side when there is no room. Defaults to top */
   side?: 'top' | 'bottom' | 'left' | 'right'
@@ -46,10 +50,14 @@ function Tooltip({
 }: Props) {
   if (disabled || !content) return children
 
-  const trigger = isValidElement(children) && typeof children.type === 'string'
+  // Text has nothing to focus, so its wrapper takes focus itself and the keyboard still reaches it
+  const trigger = isValidElement(children)
     ? children
     : (
-        <span className="inline-flex align-middle">
+        <span
+          tabIndex={0}
+          className="inline-flex rounded-xs align-middle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+        >
           {children}
         </span>
       )

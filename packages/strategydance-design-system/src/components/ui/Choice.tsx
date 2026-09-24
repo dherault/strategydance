@@ -34,6 +34,8 @@ function Choice({ label, hint, error, messageId, className, children, ...props }
           ? (
               <span
                 id={messageId}
+                // An error is announced as it appears, which `aria-describedby` alone does not do
+                role={error ? 'alert' : undefined}
                 className={cn('text-xs leading-[1.4] text-pretty', error ? 'text-danger' : 'text-muted-foreground')}
               >
                 {message}

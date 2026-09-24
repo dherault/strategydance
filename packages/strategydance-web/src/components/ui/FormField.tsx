@@ -64,9 +64,8 @@ function FormField<Values extends FieldValues, Name extends FieldPath<Values>>({
           <Field
             label={label}
             hint={description}
-            // `role="alert"` so a field that fails validation after submit is announced, rather
-            // than only being seen
-            error={error ? <span role="alert">{error}</span> : null}
+            // Field announces the error itself as it appears
+            error={error}
             htmlFor={id}
             messageId={messageId}
             className={className}

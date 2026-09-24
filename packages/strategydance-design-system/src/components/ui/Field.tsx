@@ -38,6 +38,8 @@ function Field({ label, hint, error, htmlFor, messageId, className, children, ..
         ? (
             <span
               id={messageId}
+              // An error is announced as it appears, which `aria-describedby` alone does not do
+              role={error ? 'alert' : undefined}
               className={cn('text-xs', error ? 'text-danger' : 'text-muted-foreground')}
             >
               {message}

@@ -39,10 +39,7 @@ function TeamMemberRow({ organizationId, member, isViewer, isAdministrator, isOn
   return (
     <TableRow className="group/row">
       <TableCell className="sticky left-0 z-1 bg-white shadow-[inset_-1px_0_0_var(--color-neutral-200)] transition-colors duration-150 ease-in-out group-hover/row:bg-neutral-50">
-        <TeamMemberName
-          member={member}
-          isViewer={isViewer}
-        />
+        <TeamMemberName member={member} />
       </TableCell>
       <TableCell className="whitespace-nowrap text-muted-foreground">
         {member.user.email}

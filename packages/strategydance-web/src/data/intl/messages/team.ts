@@ -152,11 +152,6 @@ const teamMessages = defineMessages({
     defaultMessage: 'Actions',
     description: 'Accessible heading of the team table column holding the buttons that act on a member. Not shown on screen.',
   },
-  you: {
-    id: 'team.you',
-    defaultMessage: '(you)',
-    description: 'Marker beside the reader\'s own name in the team table.',
-  },
   noJobTitle: {
     id: 'team.noJobTitle',
     defaultMessage: 'No role',

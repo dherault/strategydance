@@ -57,6 +57,5 @@
   "team.onlyAdministrator": "Eine Organisation benötigt mindestens einen Administrator. Ernenne zuerst jemand anderen zum Administrator.",
   "team.save": "Speichern",
   "team.sendInvitations": "{count, plural, =0 {Einladung senden} one {Einladung senden} other {# Einladungen senden}}",
-  "team.tooManyInvitations": "Maximal {max} Einladungen gleichzeitig.",
-  "team.you": "(du)"
+  "team.tooManyInvitations": "Maximal {max} Einladungen gleichzeitig."
 }

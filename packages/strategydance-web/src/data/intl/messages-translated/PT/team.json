@@ -57,6 +57,5 @@
   "team.onlyAdministrator": "Uma organização mantém pelo menos um administrador. Torne outra pessoa administradora primeiro.",
   "team.save": "Salvar",
   "team.sendInvitations": "{count, plural, =0 {Enviar convite} one {Enviar convite} other {Enviar # convites}}",
-  "team.tooManyInvitations": "No máximo {max} convites por vez.",
-  "team.you": "(você)"
+  "team.tooManyInvitations": "No máximo {max} convites por vez."
 }

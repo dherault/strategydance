@@ -57,6 +57,5 @@
   "team.onlyAdministrator": "组织中必须保留至少一位管理员。请先将其他人设为管理员。",
   "team.save": "保存",
   "team.sendInvitations": "{count, plural, =0 {发送邀请} one {发送邀请} other {发送 # 份邀请}}",
-  "team.tooManyInvitations": "一次最多发送 {max} 份邀请。",
-  "team.you": "（您）"
+  "team.tooManyInvitations": "一次最多发送 {max} 份邀请。"
 }

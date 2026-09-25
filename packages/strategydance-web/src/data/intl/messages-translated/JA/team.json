@@ -57,6 +57,5 @@
   "team.onlyAdministrator": "組織には最低1名の管理者が必要です。先に他のメンバーを管理者に指定してください。",
   "team.save": "保存",
   "team.sendInvitations": "{count, plural, =0 {招待を送信} one {招待を送信} other {#件の招待を送信}}",
-  "team.tooManyInvitations": "一度に招待できるのは最大{max}件です。",
-  "team.you": "(あなた)"
+  "team.tooManyInvitations": "一度に招待できるのは最大{max}件です。"
 }

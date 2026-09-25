@@ -628,10 +628,6 @@
       "team.tooManyInvitations": {
         "hash": "fcf24d6e3ac8923a",
         "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "team.you": {
-        "hash": "5934182e3424c06f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
       }
     }
   }

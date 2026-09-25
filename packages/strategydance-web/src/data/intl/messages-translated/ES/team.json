@@ -57,6 +57,5 @@
   "team.onlyAdministrator": "Una organización debe tener al menos un administrador. Primero asigna a otra persona como administrador.",
   "team.save": "Guardar",
   "team.sendInvitations": "{count, plural, =0 {Enviar invitación} one {Enviar invitación} other {Enviar # invitaciones}}",
-  "team.tooManyInvitations": "Como máximo {max} invitaciones a la vez.",
-  "team.you": "(tú)"
+  "team.tooManyInvitations": "Como máximo {max} invitaciones a la vez."
 }

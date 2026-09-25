@@ -118,6 +118,18 @@ Strings stay in the frontend's catalogues. A design-system component that names 
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
 it: `~components/common/Spinner` is the design system's spinner with that label.
 
+### Static files
+
+`packages/strategydance-web/public/` is served as-is from the site root, unhashed. Images go
+under `public/assets/images/`, so the logos are at `/assets/images/logo/logo-black.svg` and the
+like, for anything that needs a URL rather than a component, like an email. Inside the app the
+mark is still the design system's `Logo`.
+
+Vite writes its hashed bundles flat into `/assets/`, and `firebase.json` caches them for a year
+as immutable. That rule's source is `/assets/*`, one star, so it stops at that folder: an image
+under `/assets/images/` keeps its name when its content changes, and falls to the one-day image
+rule instead. Widening it to `/assets/**` would pin an edited logo in browsers for a year.
+
 ### Firebase
 
 `src/data/firebase.ts` initializes everything: Auth, App Check, Data Connect, Storage and

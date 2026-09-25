@@ -1,4 +1,4 @@
-import type { GetCurrentUserData, GetCurrentUserOrganizationsData } from 'strategydance-database/web'
+import type { GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationTeamData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
@@ -38,3 +38,12 @@ export type User = NonNullable<GetCurrentUserData['user']>
 export type UserOrganization = GetCurrentUserOrganizationsData['userOrganizations'][number]
 
 export type Organization = UserOrganization['organization']
+
+/*
+  An organization's people as the team page reads them: its members, and the invitations still
+  waiting for an answer. From the generated SDK, like the types above
+*/
+export type OrganizationTeam = GetOrganizationTeamData
+
+// One member: what they may do, what they do, and who they are
+export type OrganizationMember = OrganizationTeam['userOrganizations'][number]

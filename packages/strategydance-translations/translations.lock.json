@@ -599,6 +599,10 @@
         "hash": "04c8d5c52759e52e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "team.inviteEmailsExample": {
+        "hash": "f4a160a8f9eee98e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "team.inviteEmailsHint": {
         "hash": "62f1c20793d53538",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -607,8 +611,8 @@
         "hash": "ccdc2487c4f8265a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "team.inviteEmailsPlaceholder": {
-        "hash": "8100234bd441bccc",
+      "team.inviteEmailsOnePerLine": {
+        "hash": "272696c7b6437a3c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.inviteError": {

@@ -47,10 +47,15 @@ const teamMessages = defineMessages({
     defaultMessage: 'Emails',
     description: 'Label of the field where the reader types the email addresses to invite.',
   },
-  inviteEmailsPlaceholder: {
-    id: 'team.inviteEmailsPlaceholder',
-    defaultMessage: 'jane@company.com, sam@company.com\nor one per line',
-    description: 'Example shown in the empty invite field, over two lines. Keep the example addresses as they are.',
+  inviteEmailsExample: {
+    id: 'team.inviteEmailsExample',
+    defaultMessage: 'jane@company.com, sam@company.com',
+    description: 'First line of the example shown in the empty invite field. Keep the example addresses as they are.',
+  },
+  inviteEmailsOnePerLine: {
+    id: 'team.inviteEmailsOnePerLine',
+    defaultMessage: 'or one per line',
+    description: 'Second line of the example shown in the empty invite field, under two example addresses separated by a comma.',
   },
   inviteEmailsHint: {
     id: 'team.inviteEmailsHint',

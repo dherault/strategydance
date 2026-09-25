@@ -161,7 +161,9 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
             }}
             onBlur={() => setIsTouched(true)}
             onKeyDown={handleKeyDown}
-            placeholder={formatMessage(teamMessages.inviteEmailsPlaceholder)}
+            // Two messages joined here rather than one holding a newline, which a translation
+            // came back with as a literal backslash and n
+            placeholder={`${formatMessage(teamMessages.inviteEmailsExample)}\n${formatMessage(teamMessages.inviteEmailsOnePerLine)}`}
             hint={formatMessage(teamMessages.inviteEmailsHint)}
             error={error}
             rows={5}

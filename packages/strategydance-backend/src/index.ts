@@ -12,6 +12,8 @@ import loggerMiddleware from '~middleware/logger'
 import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
+import createOrganizationsRouter from '~routes/organizations'
+
 /*
   The backend: what the browser cannot do for itself, because it needs a secret or has to happen
   on the server's word. Everything else stays between the web app and Data Connect.
@@ -32,6 +34,8 @@ app.use(loggerMiddleware)
 app.get('/health', (_request: Request, response: Response<ApiResponse>) => {
   response.json({ status: 'success' })
 })
+
+app.use('/organizations', createOrganizationsRouter())
 
 app.use(errorMiddleware)
 app.use(notFoundMiddleware)

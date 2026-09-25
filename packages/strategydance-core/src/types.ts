@@ -15,3 +15,14 @@ export type ApiErrorResponse = {
 }
 
 export type ApiResponse<T = void> = ApiSuccessResponse<T> | ApiErrorResponse
+
+/* ---
+  ORGANIZATIONS
+--- */
+
+// What inviting people to an organization answers with: who was invited, and who could not be
+// because somebody invited them in the meantime
+export type InviteOrganizationMembersData = {
+  invitedEmails: string[]
+  failedEmails: string[]
+}

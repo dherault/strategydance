@@ -16,6 +16,9 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
   ARCHITECTURE
 --- */
 
+// Named rather than discovered, since a local run has no metadata server to ask
+export const FIREBASE_PROJECT_ID = 'strategydance'
+
 // Where the links this server writes into emails lead
 export const APP_URL = IS_PRODUCTION ? PRODUCTION_APP_URL : DEVELOPMENT_APP_URL
 

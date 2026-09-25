@@ -3,7 +3,7 @@
   "name": "strategydance-backend",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development bun --watch src/index.ts",
+    "dev": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun --watch src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
     "test": "bun test",
     "typecheck": "tsc -b",
@@ -13,7 +13,11 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "strategydance-core": "workspace:*"
+    "express-rate-limit": "^8.7.0",
+    "firebase-admin": "^14.4.0",
+    "strategydance-core": "workspace:*",
+    "strategydance-database": "workspace:*",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",

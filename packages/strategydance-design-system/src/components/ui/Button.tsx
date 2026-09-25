@@ -96,7 +96,9 @@ function Button({
     if (!isArmed) {
       // A submit button would otherwise send its form on the click that only asked
       event.preventDefault()
-      setArmedWidth(event.currentTarget.offsetWidth)
+      // The rendered width, fractions included. `offsetWidth` rounds, and a button 127.5px wide
+      // held at 128 grows by half a pixel the moment it asks
+      setArmedWidth(event.currentTarget.getBoundingClientRect().width)
       disarmTimeoutRef.current = setTimeout(() => setArmedWidth(null), confirmTimeout)
 
       return

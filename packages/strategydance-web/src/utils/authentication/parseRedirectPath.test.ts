@@ -15,15 +15,23 @@ describe('parseRedirectPath', () => {
     expect(parseRedirectPath('/authentication')).toBeNull()
   })
 
+  it('checks the path the browser would land on, dot segments resolved', () => {
+    expect(parseRedirectPath('/-/../authentication')).toBeNull()
+    expect(parseRedirectPath('/-/%2e%2e/authentication')).toBeNull()
+    expect(parseRedirectPath('/-/team/../explore')).toBe('/-/explore')
+  })
+
   it('drops what a browser could read as another host', () => {
     expect(parseRedirectPath('https://evil.example/-/team')).toBeNull()
     expect(parseRedirectPath('//evil.example/-/team')).toBeNull()
+    expect(parseRedirectPath('/\\evil.example/-/team')).toBeNull()
     expect(parseRedirectPath('/-//evil.example')).toBeNull()
     expect(parseRedirectPath('/-/\\evil.example')).toBeNull()
   })
 
-  it('drops what is not a string', () => {
+  it('drops what is not a path', () => {
     expect(parseRedirectPath(undefined)).toBeNull()
     expect(parseRedirectPath(['/-/team'])).toBeNull()
+    expect(parseRedirectPath('-/team')).toBeNull()
   })
 })

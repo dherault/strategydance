@@ -283,12 +283,20 @@
         "hash": "09fcf9016a1d2689",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "invitation.loadError": {
+        "hash": "f5427c1ee71619ca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "invitation.missingLead": {
         "hash": "7db2037bb0da0c82",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "invitation.missingTitle": {
         "hash": "8337c064d856694e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.retry": {
+        "hash": "f8fbe69705d9eda3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "invitation.title": {

@@ -3,6 +3,7 @@ import { useIntl } from 'react-intl'
 import useOrganizationInvitation from '~hooks/invitation/useOrganizationInvitation'
 
 import OrganizationInvitationCard from '~components/invitation/OrganizationInvitationCard'
+import OrganizationInvitationFailed from '~components/invitation/OrganizationInvitationFailed'
 import OrganizationInvitationMissing from '~components/invitation/OrganizationInvitationMissing'
 
 import invitationMessages from '~data/intl/messages/invitation'
@@ -11,24 +12,32 @@ type Props = {
   invitationId: string
 }
 
-// The page an invitation's link opens: the invitation to answer, or why there is none
+// The page an invitation's link opens: the invitation to answer, why there is none, or that it
+// could not be read
 function OrganizationInvitation({ invitationId }: Props) {
   const { formatMessage } = useIntl()
-  const { data: invitation } = useOrganizationInvitation(invitationId)
+  const { data: invitation, loading, refetch, hasFailed } = useOrganizationInvitation(invitationId)
 
   return (
     <div className="flex max-w-[1024px] flex-col gap-6 px-2 pt-5 pb-12">
       <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
         {formatMessage(invitationMessages.eyebrow)}
       </p>
-      {invitation
+      {hasFailed
         ? (
-            <OrganizationInvitationCard
-              invitationId={invitationId}
-              invitation={invitation}
+            <OrganizationInvitationFailed
+              isRetrying={loading}
+              onRetry={refetch}
             />
           )
-        : <OrganizationInvitationMissing />}
+        : invitation
+          ? (
+              <OrganizationInvitationCard
+                invitationId={invitationId}
+                invitation={invitation}
+              />
+            )
+          : <OrganizationInvitationMissing />}
     </div>
   )
 }

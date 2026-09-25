@@ -9,7 +9,9 @@
   "invitation.joinError": "Não foi possível concluir a entrada em {organizationName}. Recarregue a página para verificar o status.",
   "invitation.joined": "Você entrou em {organizationName}",
   "invitation.lead": "{inviterName} convidou você para entrar em {organizationName} como membro.",
+  "invitation.loadError": "Não foi possível carregar o convite. Verifique a sua conexão e tente novamente.",
   "invitation.missingLead": "O convite foi cancelado, já foi respondido ou foi enviado para um endereço diferente de {email}. Peça para quem convidou você enviar um novo convite ou entre com o endereço para o qual ele foi enviado.",
   "invitation.missingTitle": "Convite indisponível",
+  "invitation.retry": "Tentar novamente",
   "invitation.title": "Entrar em {organizationName}"
 }

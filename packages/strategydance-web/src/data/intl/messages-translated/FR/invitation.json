@@ -9,7 +9,9 @@
   "invitation.joinError": "L'adhésion à {organizationName} n'a pas abouti. Rechargez la page pour voir où cela en est.",
   "invitation.joined": "Vous avez rejoint {organizationName}",
   "invitation.lead": "{inviterName} vous a invité à rejoindre {organizationName} en tant que membre.",
+  "invitation.loadError": "Impossible de charger l'invitation. Vérifiez votre connexion et réessayez.",
   "invitation.missingLead": "Elle a déjà été annulée ou traitée, ou a été envoyée à une autre adresse que {email}. Demandez à la personne qui vous a invité d'en envoyer une nouvelle, ou connectez-vous avec l'adresse à laquelle elle a été envoyée.",
   "invitation.missingTitle": "Invitation indisponible",
+  "invitation.retry": "Réessayer",
   "invitation.title": "Rejoindre {organizationName}"
 }

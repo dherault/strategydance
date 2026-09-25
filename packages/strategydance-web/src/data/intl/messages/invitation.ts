@@ -62,6 +62,16 @@ const invitationMessages = defineMessages({
     defaultMessage: 'It was canceled or answered already, or it was sent to another address than {email}. Ask whoever invited you to send a new one, or sign in with the address it was sent to.',
     description: 'Explanation on the invitation page when the invitation cannot be found for the signed-in reader, naming the address they are signed in with.',
   },
+  loadError: {
+    id: 'invitation.loadError',
+    defaultMessage: 'The invitation could not be loaded. Check your connection and try again.',
+    description: 'Error on the invitation page when reading the invitation failed, as opposed to the invitation being gone.',
+  },
+  retry: {
+    id: 'invitation.retry',
+    defaultMessage: 'Try again',
+    description: 'Button that reads the invitation again after it failed to load.',
+  },
   continue: {
     id: 'invitation.continue',
     defaultMessage: 'Continue to Strategy Dance',

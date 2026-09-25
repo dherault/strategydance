@@ -66,6 +66,7 @@ function Button({
   confirmTimeout = 3000,
   onClick,
   style,
+  'aria-label': ariaLabel,
   children,
   ...props
 }: Props) {
@@ -108,8 +109,9 @@ function Button({
     onClick?.(event)
   }
 
+  const confirmText = typeof confirm === 'string' ? confirm : 'Confirm?'
   // A square button has no room for a sentence, so it asks with a question mark alone
-  const confirmLabel = iconOnly ? '?' : typeof confirm === 'string' ? confirm : 'Confirm?'
+  const confirmLabel = iconOnly ? '?' : confirmText
 
   return (
     <button
@@ -120,6 +122,10 @@ function Button({
       type={type}
       className={cn(buttonVariants({ variant, size, iconOnly }), className)}
       style={isArmed ? { ...style, minWidth: armedWidth } : style}
+      // Armed, the button is named by what it now asks. A caller's label, which an icon-only
+      // button always has, would otherwise keep naming the action, and a screen reader would
+      // never hear that the first press only asked
+      aria-label={isArmed ? confirmText : ariaLabel}
       onClick={handleClick}
       {...props}
     >

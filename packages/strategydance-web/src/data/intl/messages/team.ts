@@ -4,8 +4,123 @@ import { defineMessages } from 'react-intl'
 const teamMessages = defineMessages({
   lead: {
     id: 'team.lead',
-    defaultMessage: '{memberCount, plural, one {# member} other {# members}} in {organizationName}.',
-    description: 'Introduction under the title of the team page, counting the people in the organization, such as "5 members in Acme."',
+    defaultMessage: '{memberCount, plural, one {# member} other {# members}} in {organizationName}{invitationCount, plural, =0 {} one {, # pending invitation} other {, # pending invitations}}.',
+    description: 'Introduction under the title of the team page, counting the people in the organization and the invitations nobody has answered yet, such as "5 members in Acme, 2 pending invitations."',
+  },
+  invite: {
+    id: 'team.invite',
+    defaultMessage: 'Invite',
+    description: 'Button on the team page that opens the dialog for inviting people to the organization.',
+  },
+  invitationPending: {
+    id: 'team.invitationPending',
+    defaultMessage: 'Invitation pending',
+    description: 'Badge in the team table on the row of somebody who was invited and has not joined yet.',
+  },
+  cancelInvitationFor: {
+    id: 'team.cancelInvitationFor',
+    defaultMessage: 'Cancel invitation for {email}',
+    description: 'Accessible label of the button that withdraws a pending invitation.',
+  },
+  invitationCanceled: {
+    id: 'team.invitationCanceled',
+    defaultMessage: 'Invitation for {email} canceled',
+    description: 'Confirmation shown after a pending invitation was withdrawn.',
+  },
+  cancelInvitationError: {
+    id: 'team.cancelInvitationError',
+    defaultMessage: 'The invitation for {email} could not be canceled. Try again.',
+    description: 'Error shown when withdrawing a pending invitation failed.',
+  },
+  inviteTitle: {
+    id: 'team.inviteTitle',
+    defaultMessage: 'Invite members',
+    description: 'Title of the dialog for inviting people to the organization by email.',
+  },
+  inviteDescription: {
+    id: 'team.inviteDescription',
+    defaultMessage: 'They will get an email to join {organizationName} as members.',
+    description: 'Explanation under the title of the invite dialog.',
+  },
+  inviteEmailsLabel: {
+    id: 'team.inviteEmailsLabel',
+    defaultMessage: 'Emails',
+    description: 'Label of the field where the reader types the email addresses to invite.',
+  },
+  inviteEmailsPlaceholder: {
+    id: 'team.inviteEmailsPlaceholder',
+    defaultMessage: 'jane@company.com, sam@company.com\nor one per line',
+    description: 'Example shown in the empty invite field, over two lines. Keep the example addresses as they are.',
+  },
+  inviteEmailsHint: {
+    id: 'team.inviteEmailsHint',
+    defaultMessage: 'Separate emails with commas or new lines.',
+    description: 'Hint under the invite field.',
+  },
+  emailListMore: {
+    id: 'team.emailListMore',
+    defaultMessage: '{count} more',
+    description: 'Last item of a shortened list of email addresses, standing for the ones left out, as in "a@x.com, b@x.com and 3 more".',
+  },
+  invalidEmails: {
+    id: 'team.invalidEmails',
+    defaultMessage: '{count, plural, one {Invalid email: {emails}.} other {# invalid emails: {emails}.}}',
+    description: 'Error under the invite field listing what is not an email address.',
+  },
+  alreadyMembers: {
+    id: 'team.alreadyMembers',
+    defaultMessage: '{count, plural, one {Already a member: {emails}.} other {Already members: {emails}.}}',
+    description: 'Error under the invite field listing addresses that belong to members of the organization already.',
+  },
+  alreadyInvited: {
+    id: 'team.alreadyInvited',
+    defaultMessage: 'Already invited: {emails}.',
+    description: 'Error under the invite field listing addresses that have a pending invitation already.',
+  },
+  tooManyInvitations: {
+    id: 'team.tooManyInvitations',
+    defaultMessage: 'At most {max} invitations at a time.',
+    description: 'Error under the invite field when it holds more addresses than one request may carry.',
+  },
+  invitationsReady: {
+    id: 'team.invitationsReady',
+    defaultMessage: '{count, plural, one {<b>#</b> invitation ready} other {<b>#</b> invitations ready}}',
+    description: 'Summary at the bottom of the invite dialog counting the valid addresses typed so far. The number is shown in bold.',
+  },
+  noEmailsYet: {
+    id: 'team.noEmailsYet',
+    defaultMessage: 'No emails yet',
+    description: 'Summary at the bottom of the invite dialog while no valid address has been typed.',
+  },
+  sendInvitations: {
+    id: 'team.sendInvitations',
+    defaultMessage: '{count, plural, =0 {Send invitation} one {Send invitation} other {Send # invitations}}',
+    description: 'Button that sends the invitations typed in the invite dialog.',
+  },
+  invitationsSent: {
+    id: 'team.invitationsSent',
+    defaultMessage: '{count, plural, one {Invitation sent to {email}} other {# invitations sent}}',
+    description: 'Confirmation shown after invitations were sent.',
+  },
+  invitationsFailed: {
+    id: 'team.invitationsFailed',
+    defaultMessage: 'Could not invite {emails}. Somebody may have invited them in the meantime.',
+    description: 'Error shown when some of the invitations sent together could not be created.',
+  },
+  inviteConflictError: {
+    id: 'team.inviteConflictError',
+    defaultMessage: 'Some of these addresses joined or were invited in the meantime. Check the list and try again.',
+    description: 'Error in the invite dialog when the server found addresses that belong to members or were invited since the page last updated.',
+  },
+  inviteRateLimitError: {
+    id: 'team.inviteRateLimitError',
+    defaultMessage: 'Too many invitations in a short time. Try again in a few minutes.',
+    description: 'Error in the invite dialog when the reader sent too many invitations recently.',
+  },
+  inviteError: {
+    id: 'team.inviteError',
+    defaultMessage: 'The invitations could not be sent. Try again.',
+    description: 'Error in the invite dialog when sending the invitations failed for another reason.',
   },
   noOrganization: {
     id: 'team.noOrganization',

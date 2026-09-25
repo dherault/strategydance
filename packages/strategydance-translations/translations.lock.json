@@ -405,6 +405,14 @@
         "hash": "df091819c2c67d78",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "team.alreadyInvited": {
+        "hash": "e3bac6300e5878d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.alreadyMembers": {
+        "hash": "a0cafa9bc2922509",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "team.ban": {
         "hash": "ba46ca1d9b514cfd",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -435,6 +443,14 @@
       },
       "team.cancel": {
         "hash": "3d8474700911d313",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.cancelInvitationError": {
+        "hash": "b8fab71931a67d7d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.cancelInvitationFor": {
+        "hash": "87d94da8a275353c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.close": {
@@ -481,6 +497,70 @@
         "hash": "d6c8d0772e28a934",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "team.emailListMore": {
+        "hash": "86ad28370fc57b07",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invalidEmails": {
+        "hash": "29873a10e50be8df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationCanceled": {
+        "hash": "28f9edbf6a7f1c60",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationPending": {
+        "hash": "820fbe23a777470c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationsFailed": {
+        "hash": "9d62a0524f016bfa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationsReady": {
+        "hash": "492f7c16c953671e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationsSent": {
+        "hash": "4edbf27f78a5517b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invite": {
+        "hash": "3b076e815725057c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteConflictError": {
+        "hash": "fecbba4b08b51e4b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteDescription": {
+        "hash": "04c8d5c52759e52e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteEmailsHint": {
+        "hash": "62f1c20793d53538",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteEmailsLabel": {
+        "hash": "ccdc2487c4f8265a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteEmailsPlaceholder": {
+        "hash": "8100234bd441bccc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteError": {
+        "hash": "1f83ca9bf706da55",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteRateLimitError": {
+        "hash": "1b253ea44ad997de",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.inviteTitle": {
+        "hash": "27a7dc63c0af461e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "team.jobTitleError": {
         "hash": "9b935eb8fbea3faa",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -498,11 +578,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.lead": {
-        "hash": "8c8dd384e21952c5",
+        "hash": "4730611c52e3d654",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.member": {
         "hash": "30e4132495cc1401",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.noEmailsYet": {
+        "hash": "dc8eeb8f3cefb683",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.noJobTitle": {
@@ -535,6 +619,14 @@
       },
       "team.save": {
         "hash": "f0b9a8748b0f52e2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.sendInvitations": {
+        "hash": "da8ab686d4fc6484",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.tooManyInvitations": {
+        "hash": "fcf24d6e3ac8923a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.you": {

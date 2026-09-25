@@ -9,6 +9,7 @@ import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import BanMemberDialog from '~components/team/BanMemberDialog'
 import EditJobTitleDialog from '~components/team/EditJobTitleDialog'
+import InviteMembersDialog from '~components/team/InviteMembersDialog'
 import TeamHeader from '~components/team/TeamHeader'
 import TeamNoOrganization from '~components/team/TeamNoOrganization'
 import TeamTable from '~components/team/TeamTable'
@@ -27,6 +28,7 @@ function Team() {
   const { organization } = useCurrentOrganization()
   const { data: team } = useOrganizationTeam()
 
+  const [isInviting, setIsInviting] = useState(false)
   const [editingMember, setEditingMember] = useState<OrganizationMember | null>(null)
   const [banningMember, setBanningMember] = useState<OrganizationMember | null>(null)
 
@@ -39,6 +41,8 @@ function Team() {
       <TeamHeader
         organizationName={organization?.name ?? null}
         memberCount={team.userOrganizations.length}
+        invitationCount={team.organizationInvitations.length}
+        onInvite={organization && isAdministrator ? () => setIsInviting(true) : null}
       />
       {organization
         ? (
@@ -52,6 +56,17 @@ function Team() {
             />
           )
         : <TeamNoOrganization />}
+      {organization && isInviting
+        ? (
+            <InviteMembersDialog
+              organizationId={organization.id}
+              organizationName={organization.name}
+              memberEmails={team.userOrganizations.map(({ user }) => user.email)}
+              invitedEmails={team.organizationInvitations.map(({ email }) => email)}
+              onClose={() => setIsInviting(false)}
+            />
+          )
+        : null}
       {organization && editingMember
         ? (
             <EditJobTitleDialog

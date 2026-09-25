@@ -10,6 +10,7 @@ import {
 
 import type { OrganizationMember, OrganizationTeam } from '~types'
 
+import TeamInvitationRow from '~components/team/TeamInvitationRow'
 import TeamMemberRow from '~components/team/TeamMemberRow'
 
 import teamMessages from '~data/intl/messages/team'
@@ -23,7 +24,8 @@ type Props = {
   onBan: (member: OrganizationMember) => void
 }
 
-// The organization's members, one row each, in the order they joined
+// The organization's members, one row each in the order they joined, then the invitations
+// nobody has answered yet
 function TeamTable({ organizationId, team, viewerId, isAdministrator, onEditJobTitle, onBan }: Props) {
   const { formatMessage } = useIntl()
 
@@ -67,6 +69,14 @@ function TeamTable({ organizationId, team, viewerId, isAdministrator, onEditJobT
             isOnlyAdministrator={member.role === OrganizationRole.ADMINISTRATOR && administratorCount === 1}
             onEditJobTitle={() => onEditJobTitle(member)}
             onBan={() => onBan(member)}
+          />
+        ))}
+        {team.organizationInvitations.map(({ email }) => (
+          <TeamInvitationRow
+            key={email}
+            organizationId={organizationId}
+            email={email}
+            isAdministrator={isAdministrator}
           />
         ))}
       </TableBody>

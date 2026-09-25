@@ -1,4 +1,4 @@
-import { MAX_TEAM_SIZE } from 'strategydance-core'
+import { type InviteOrganizationMembersData, MAX_TEAM_SIZE } from 'strategydance-core'
 import { createOrganizationInvitation, getOrganizationInvitationContext, OrganizationRole } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
@@ -19,7 +19,7 @@ type CreateOrganizationInvitationsResult =
   | { outcome: 'forbidden' }
   | { outcome: 'conflict', memberEmails: string[], invitedEmails: string[] }
   | { outcome: 'full', room: number }
-  | { outcome: 'created', invitedEmails: string[], failedEmails: string[] }
+  | ({ outcome: 'created' } & InviteOrganizationMembersData)
 
 /*
   Invites a list of addresses to an organization and emails each one its link.
@@ -29,14 +29,13 @@ type CreateOrganizationInvitationsResult =
   whole list, since the form that sent it checks the same things and a list that fails here is
   one the reader has not seen yet.
 
-  Then one insert per address, in parallel, each checking again in its own transaction. One can
-  still fail on its own, when somebody else invited the address or it joined in between, so the
-  answer says which went out rather than failing them all. Only the ones that were created are
-  emailed, whatever happened to the others.
-
-  Any other refusal is not the address's doing and is not reported as if it were: a team that
-  filled up in between answers full, an inviter who stopped being an administrator in between
-  answers forbidden, and an outage fails the request
+  Then one insert per address, in parallel, each checking again in its own transaction, so each can
+  fail on its own: the address taken in between, the team filled up, the inviter no longer an
+  administrator, or an outage. The ones that were created are emailed whatever happened to the
+  others. When any went out, the answer lists them and every address that did not with its
+  reason, so the reader knows what exists and a retry does not trip over it. When none did, the
+  worst reason answers for the whole request: an outage fails it, then forbidden, then full, and
+  addresses that were only taken are listed as such
 */
 async function createOrganizationInvitations({ organizationId, inviterId, emails }: CreateOrganizationInvitationsInput): Promise<CreateOrganizationInvitationsResult> {
   const { data: context } = await getOrganizationInvitationContext(dataConnect, {
@@ -72,10 +71,8 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
   })))
 
   const invitations: { id: string, email: string }[] = []
-  const failedEmails: string[] = []
+  const failedEmails: InviteOrganizationMembersData['failedEmails'] = []
   const errors: unknown[] = []
-  let isFull = false
-  let isForbidden = false
 
   results.forEach((result, index) => {
     const email = emails[index]
@@ -86,21 +83,12 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
       return
     }
 
-    const failure = classifyInvitationFailure(result.reason)
+    const reason = classifyInvitationFailure(result.reason)
 
-    if (failure === 'conflict') {
-      logger.warn(`Invitations: ${email} was invited to ${organizationId} or joined it in the meantime`, result.reason)
-      failedEmails.push(email)
-    }
-    else if (failure === 'full') {
-      isFull = true
-    }
-    else if (failure === 'forbidden') {
-      isForbidden = true
-    }
-    else {
-      errors.push(result.reason)
-    }
+    failedEmails.push({ email, reason })
+
+    if (reason === 'error') errors.push(result.reason)
+    else logger.warn(`Invitations: could not invite ${email} to ${organizationId} (${reason})`, result.reason)
   })
 
   const emailResults = await Promise.allSettled(invitations.map(({ id, email }) => sendOrganizationInvitationEmail({
@@ -118,9 +106,15 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
     if (result.status === 'rejected') logger.error(`Invitations: could not email ${invitations[index].email}`, result.reason)
   })
 
-  if (errors.length) throw new AggregateError(errors, `Could not create ${errors.length} of ${emails.length} invitations to ${organizationId}`)
-  if (isForbidden) return { outcome: 'forbidden' }
-  if (isFull) return { outcome: 'full', room: 0 }
+  errors.forEach(error => logger.error(`Invitations: could not create an invitation to ${organizationId}`, error))
+
+  if (!invitations.length) {
+    const reasons = new Set(failedEmails.map(({ reason }) => reason))
+
+    if (reasons.has('error')) throw new AggregateError(errors, `Could not create ${errors.length} of ${emails.length} invitations to ${organizationId}`)
+    if (reasons.has('forbidden')) return { outcome: 'forbidden' }
+    if (reasons.has('full')) return { outcome: 'full', room: 0 }
+  }
 
   return {
     outcome: 'created',

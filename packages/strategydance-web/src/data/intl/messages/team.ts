@@ -117,10 +117,25 @@ const teamMessages = defineMessages({
     defaultMessage: '{count, plural, one {Invitation sent to {email}} other {# invitations sent}}',
     description: 'Confirmation shown after invitations were sent.',
   },
-  invitationsFailed: {
-    id: 'team.invitationsFailed',
-    defaultMessage: 'Could not invite {emails}. Somebody may have invited them in the meantime.',
-    description: 'Error shown when some of the invitations sent together could not be created.',
+  invitationsTaken: {
+    id: 'team.invitationsTaken',
+    defaultMessage: 'Could not invite {emails}: they joined or were invited in the meantime.',
+    description: 'Error shown after sending invitations, listing the addresses that were taken by a membership or another invitation while the reader was sending.',
+  },
+  invitationsNoRoom: {
+    id: 'team.invitationsNoRoom',
+    defaultMessage: 'Could not invite {emails}: the team filled up in the meantime.',
+    description: 'Error shown after sending invitations, listing the addresses left out because the team reached its size limit while the reader was sending.',
+  },
+  invitationsForbidden: {
+    id: 'team.invitationsForbidden',
+    defaultMessage: 'Could not invite {emails}: you no longer administer this team.',
+    description: 'Error shown after sending invitations, listing the addresses left out because the reader lost administrator access while sending.',
+  },
+  invitationsNotSent: {
+    id: 'team.invitationsNotSent',
+    defaultMessage: 'Could not invite {emails}. Try again.',
+    description: 'Error shown after sending invitations, listing the addresses that failed for a technical reason.',
   },
   inviteConflictError: {
     id: 'team.inviteConflictError',

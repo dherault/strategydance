@@ -575,8 +575,16 @@
         "hash": "820fbe23a777470c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "team.invitationsFailed": {
-        "hash": "9d62a0524f016bfa",
+      "team.invitationsForbidden": {
+        "hash": "bb5f4b3d9f31c462",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationsNoRoom": {
+        "hash": "08fdbd0e14731f03",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationsNotSent": {
+        "hash": "07b57fea2b2a5c44",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.invitationsReady": {
@@ -585,6 +593,10 @@
       },
       "team.invitationsSent": {
         "hash": "4edbf27f78a5517b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.invitationsTaken": {
+        "hash": "36776d424fee4c0f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.invite": {

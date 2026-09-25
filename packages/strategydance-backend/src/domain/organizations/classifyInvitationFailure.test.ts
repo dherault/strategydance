@@ -8,12 +8,12 @@ const DUPLICATE = 'violates SQL unique constraint: organization_invitation_organ
 const NOT_ADMINISTRATOR = 'Only an administrator can invite people (aborted)\n(rolled back) (aborted)'
 
 describe('classifyInvitationFailure', () => {
-  it('reads a second invitation for the address as a conflict, whatever follows the cause', () => {
-    expect(classifyInvitationFailure(new Error(DUPLICATE))).toBe('conflict')
+  it('reads a second invitation for the address as taken, whatever follows the cause', () => {
+    expect(classifyInvitationFailure(new Error(DUPLICATE))).toBe('taken')
   })
 
-  it('reads an address that joined in the meantime as a conflict', () => {
-    expect(classifyInvitationFailure(new Error('The address belongs to a member already (aborted)\nOnly an administrator can invite people (aborted)'))).toBe('conflict')
+  it('reads an address that joined in the meantime as taken', () => {
+    expect(classifyInvitationFailure(new Error('The address belongs to a member already (aborted)\nOnly an administrator can invite people (aborted)'))).toBe('taken')
   })
 
   it('reads a team that filled up in the meantime as full', () => {

@@ -1,6 +1,6 @@
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
-import { ERROR_CODE_TEAM_FULL, type InviteOrganizationMembersData, MAX_INVITATIONS_PER_REQUEST, MAX_TEAM_SIZE } from 'strategydance-core'
+import { ERROR_CODE_TEAM_FULL, type InvitationFailureReason, type InviteOrganizationMembersData, MAX_INVITATIONS_PER_REQUEST, MAX_TEAM_SIZE } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -22,6 +22,9 @@ import teamMessages from '~data/intl/messages/team'
 
 // How many addresses an error lists before it says how many more there are
 const LISTED_EMAILS = 3
+
+// Each reason an address can come back not invited, in the order the toasts are raised
+const FAILURE_REASONS: InvitationFailureReason[] = ['taken', 'full', 'forbidden', 'error']
 
 type Failure = 'conflict' | 'full' | 'rateLimit' | 'error'
 
@@ -69,6 +72,13 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
     count > room ? formatMessage(teamMessages.teamFull, { room, max: MAX_TEAM_SIZE }) : null,
   ].filter(problem => problem !== null)
 
+  const failedEmailMessages = {
+    taken: teamMessages.invitationsTaken,
+    full: teamMessages.invitationsNoRoom,
+    forbidden: teamMessages.invitationsForbidden,
+    error: teamMessages.invitationsNotSent,
+  }
+
   const failureMessages: Record<Failure, string> = {
     conflict: formatMessage(teamMessages.inviteConflictError),
     full: formatMessage(teamMessages.inviteTeamFullError),
@@ -99,8 +109,17 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
         body: { emails: parsed.valid },
       })
 
+      /*
+        Some can go out while others do not, since each address is inserted on its own. The
+        reader hears about both: what went out, and every address that did not, grouped by why
+      */
       if (sentEmails.length) toast.success(formatMessage(teamMessages.invitationsSent, { count: sentEmails.length, email: sentEmails[0] }))
-      if (failedEmails.length) toast.error(formatMessage(teamMessages.invitationsFailed, { emails: listEmails(failedEmails) }))
+
+      FAILURE_REASONS.forEach(reason => {
+        const emails = failedEmails.filter(failed => failed.reason === reason).map(({ email }) => email)
+
+        if (emails.length) toast.error(formatMessage(failedEmailMessages[reason], { emails: listEmails(emails) }))
+      })
 
       onClose()
     }

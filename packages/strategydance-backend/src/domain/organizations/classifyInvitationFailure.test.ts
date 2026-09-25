@@ -16,6 +16,10 @@ describe('classifyInvitationFailure', () => {
     expect(classifyInvitationFailure(new Error('The address belongs to a member already (aborted)\nOnly an administrator can invite people (aborted)'))).toBe('conflict')
   })
 
+  it('reads a team that filled up in the meantime as full', () => {
+    expect(classifyInvitationFailure(new Error('The team is full (aborted)\nOnly an administrator can invite people (aborted)'))).toBe('full')
+  })
+
   it('reads an inviter who lost the right to invite as forbidden', () => {
     expect(classifyInvitationFailure(new Error(NOT_ADMINISTRATOR))).toBe('forbidden')
     expect(classifyInvitationFailure(new Error('Only a member of an organization can invite people to it (aborted)'))).toBe('forbidden')

@@ -40,6 +40,7 @@
   "team.inviteEmailsPlaceholder": "jane@company.com, sam@company.com\nou un par ligne",
   "team.inviteError": "Impossible d'envoyer les invitations. Réessayez.",
   "team.inviteRateLimitError": "Trop d'invitations en peu de temps. Réessayez dans quelques minutes.",
+  "team.inviteTeamFullError": "L'équipe s'est remplie entre-temps. Annulez des invitations en attente pour faire de la place.",
   "team.inviteTitle": "Inviter des membres",
   "team.jobTitleError": "Impossible d'enregistrer le rôle. Réessayez.",
   "team.jobTitleLabel": "Rôle",
@@ -57,5 +58,6 @@
   "team.onlyAdministrator": "Une organisation doit conserver au moins un administrateur. Désignez d'abord un autre administrateur.",
   "team.save": "Enregistrer",
   "team.sendInvitations": "{count, plural, =0 {Envoyer une invitation} one {Envoyer une invitation} other {Envoyer # invitations}}",
+  "team.teamFull": "{room, plural, =0 {Cette équipe est au complet : elle peut accueillir au maximum {max} membres et invitations en attente.} one {Cette équipe a encore de la place pour un membre ou une invitation, sur {max}.} other {Cette équipe a encore de la place pour # membres ou invitations, sur {max}.}}",
   "team.tooManyInvitations": "Au maximum {max} invitations à la fois."
 }

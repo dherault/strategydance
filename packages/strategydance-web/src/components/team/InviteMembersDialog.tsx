@@ -1,6 +1,6 @@
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
-import { type InviteOrganizationMembersData, MAX_INVITATIONS_PER_REQUEST } from 'strategydance-core'
+import { ERROR_CODE_TEAM_FULL, type InviteOrganizationMembersData, MAX_INVITATIONS_PER_REQUEST, MAX_TEAM_SIZE } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -23,7 +23,7 @@ import teamMessages from '~data/intl/messages/team'
 // How many addresses an error lists before it says how many more there are
 const LISTED_EMAILS = 3
 
-type Failure = 'conflict' | 'rateLimit' | 'error'
+type Failure = 'conflict' | 'full' | 'rateLimit' | 'error'
 
 type Props = {
   organizationId: string
@@ -38,7 +38,7 @@ type Props = {
   invitations and emails their links.
 
   The field checks what it holds against the team already on the page: what is not an address,
-  who is a member, who is invited. It says so once the reader leaves the field or tries to send,
+  who is a member, who is invited, and whether the team has room. It says so once the reader leaves the field or tries to send,
   not while they are still typing an address, and starts over as soon as they type again. The
   backend checks the same things, for whatever changed since the page last heard. Mounted only
   while open, so it starts empty every time
@@ -53,6 +53,7 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
 
   const parsed = parseInvitationEmails(text, new Set(memberEmails), new Set(invitedEmails))
   const count = parsed.valid.length
+  const room = Math.max(0, MAX_TEAM_SIZE - memberEmails.length - invitedEmails.length)
 
   function listEmails(emails: string[]) {
     if (emails.length <= LISTED_EMAILS) return formatList(emails, { type: 'conjunction' })
@@ -65,10 +66,12 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
     parsed.members.length ? formatMessage(teamMessages.alreadyMembers, { count: parsed.members.length, emails: listEmails(parsed.members) }) : null,
     parsed.invited.length ? formatMessage(teamMessages.alreadyInvited, { emails: listEmails(parsed.invited) }) : null,
     count > MAX_INVITATIONS_PER_REQUEST ? formatMessage(teamMessages.tooManyInvitations, { max: MAX_INVITATIONS_PER_REQUEST }) : null,
+    count > room ? formatMessage(teamMessages.teamFull, { room, max: MAX_TEAM_SIZE }) : null,
   ].filter(problem => problem !== null)
 
   const failureMessages: Record<Failure, string> = {
     conflict: formatMessage(teamMessages.inviteConflictError),
+    full: formatMessage(teamMessages.inviteTeamFullError),
     rateLimit: formatMessage(teamMessages.inviteRateLimitError),
     error: formatMessage(teamMessages.inviteError),
   }
@@ -104,7 +107,8 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
     catch (sendError) {
       console.error('Failed to send the invitations', sendError)
 
-      if (sendError instanceof ApiError && sendError.status === 409) setFailure('conflict')
+      if (sendError instanceof ApiError && sendError.code === ERROR_CODE_TEAM_FULL) setFailure('full')
+      else if (sendError instanceof ApiError && sendError.status === 409) setFailure('conflict')
       else if (sendError instanceof ApiError && sendError.status === 429) setFailure('rateLimit')
       else setFailure('error')
     }

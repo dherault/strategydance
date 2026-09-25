@@ -82,6 +82,16 @@ const teamMessages = defineMessages({
     defaultMessage: 'At most {max} invitations at a time.',
     description: 'Error under the invite field when it holds more addresses than one request may carry.',
   },
+  teamFull: {
+    id: 'team.teamFull',
+    defaultMessage: '{room, plural, =0 {This team is full: it holds at most {max} members and pending invitations.} one {This team has room for one more member or invitation, out of {max}.} other {This team has room for # more members or invitations, out of {max}.}}',
+    description: 'Error under the invite field when the team cannot hold every address typed, saying how many more it can take.',
+  },
+  inviteTeamFullError: {
+    id: 'team.inviteTeamFullError',
+    defaultMessage: 'The team filled up in the meantime. Cancel some pending invitations to make room.',
+    description: 'Error in the invite dialog when the team reached its size limit since the page last updated.',
+  },
   invitationsReady: {
     id: 'team.invitationsReady',
     defaultMessage: '{count, plural, one {<b>#</b> invitation ready} other {<b>#</b> invitations ready}}',

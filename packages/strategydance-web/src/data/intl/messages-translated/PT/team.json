@@ -40,6 +40,7 @@
   "team.inviteEmailsPlaceholder": "jane@company.com, sam@company.com\nou um por linha",
   "team.inviteError": "Não foi possível enviar os convites. Tente novamente.",
   "team.inviteRateLimitError": "Muitos convites em pouco tempo. Tente novamente em alguns minutos.",
+  "team.inviteTeamFullError": "A equipe ficou cheia nesse meio-tempo. Cancele alguns convites pendentes para liberar espaço.",
   "team.inviteTitle": "Convidar membros",
   "team.jobTitleError": "Não foi possível salvar o cargo. Tente novamente.",
   "team.jobTitleLabel": "Cargo",
@@ -57,5 +58,6 @@
   "team.onlyAdministrator": "Uma organização mantém pelo menos um administrador. Torne outra pessoa administradora primeiro.",
   "team.save": "Salvar",
   "team.sendInvitations": "{count, plural, =0 {Enviar convite} one {Enviar convite} other {Enviar # convites}}",
+  "team.teamFull": "{room, plural, =0 {Esta equipe está cheia: ela comporta no máximo {max} membros e convites pendentes.} one {Esta equipe tem espaço para mais um membro ou convite, de {max}.} other {Esta equipe tem espaço para mais # membros ou convites, de {max}.}}",
   "team.tooManyInvitations": "No máximo {max} convites por vez."
 }

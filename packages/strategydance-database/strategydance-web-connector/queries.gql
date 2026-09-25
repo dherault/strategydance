@@ -68,7 +68,9 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # every `UpdateCurrentUser` would wake every team page for anybody's change of name, so a new name
 # shows on the next load instead.
 #
-# The generated `limit` defaults to 100 for each list, well past any team this serves yet
+# Each list is read up to 100 rows, named rather than left to the generated default. The database
+# keeps a team at 100 members and pending invitations together (`MAX_TEAM_SIZE` in
+# strategydance-core), so neither list is ever cut short
 query GetOrganizationTeam($organizationId: UUID!)
 @auth(level: USER)
 @refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberRole", condition: "mutation.variables.organizationId == request.variables.organizationId" })
@@ -86,6 +88,7 @@ query GetOrganizationTeam($organizationId: UUID!)
     # Joined-at order, as the sidebar lists organizations. `userId` breaks the tie between two
     # rows written in one transaction
     orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
   ) {
     role
     jobTitle
@@ -102,6 +105,7 @@ query GetOrganizationTeam($organizationId: UUID!)
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
     orderBy: [{ createdAt: ASC }, { email: ASC }]
+    limit: 100
   ) {
     email
   }

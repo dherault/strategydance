@@ -3,6 +3,7 @@ import {
   type ApiResponse,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_FORBIDDEN,
+  ERROR_CODE_TEAM_FULL,
   type InviteOrganizationMembersData,
   MAX_INVITATIONS_PER_REQUEST,
   isEmailAddress,
@@ -66,6 +67,12 @@ function createOrganizationsRouter() {
 
       if (result.outcome === 'forbidden') {
         respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only an administrator of the organization can invite people to it')
+
+        return
+      }
+
+      if (result.outcome === 'full') {
+        respondError(response, 409, ERROR_CODE_TEAM_FULL, `The team has room for ${result.room} more members or invitations`)
 
         return
       }

@@ -40,6 +40,7 @@
   "team.inviteEmailsPlaceholder": "jane@company.com, sam@company.com\noder eine pro Zeile",
   "team.inviteError": "Die Einladungen konnten nicht gesendet werden. Versuche es erneut.",
   "team.inviteRateLimitError": "Zu viele Einladungen in kurzer Zeit. Versuche es in wenigen Minuten erneut.",
+  "team.inviteTeamFullError": "Das Team ist in der Zwischenzeit voll geworden. Ziehe einige ausstehende Einladungen zurück, um Platz zu schaffen.",
   "team.inviteTitle": "Mitglieder einladen",
   "team.jobTitleError": "Die Rolle konnte nicht gespeichert werden. Versuche es erneut.",
   "team.jobTitleLabel": "Rolle",
@@ -57,5 +58,6 @@
   "team.onlyAdministrator": "Eine Organisation benötigt mindestens einen Administrator. Ernenne zuerst jemand anderen zum Administrator.",
   "team.save": "Speichern",
   "team.sendInvitations": "{count, plural, =0 {Einladung senden} one {Einladung senden} other {# Einladungen senden}}",
+  "team.teamFull": "{room, plural, =0 {Dieses Team ist voll: Es fasst maximal {max} Mitglieder und ausstehende Einladungen.} one {Dieses Team hat noch Platz für ein weiteres Mitglied oder eine Einladung (von {max}).} other {Dieses Team hat noch Platz für # weitere Mitglieder oder Einladungen (von {max}).}}",
   "team.tooManyInvitations": "Maximal {max} Einladungen gleichzeitig."
 }

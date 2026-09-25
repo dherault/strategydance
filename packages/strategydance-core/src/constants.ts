@@ -71,6 +71,10 @@ export const ERROR_CODE_NOT_FOUND = 'NOT_FOUND' // 404
 
 export const ERROR_CODE_CONFLICT = 'CONFLICT' // 409
 
+// A 409 as well, set apart because the reader can do something about it that a conflict does not
+// ask of them: make room
+export const ERROR_CODE_TEAM_FULL = 'TEAM_FULL' // 409
+
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
@@ -85,6 +89,14 @@ export const ERROR_CODE_UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 // How many addresses one invite request may carry. The invite field and the endpoint both hold
 // to it, so a paste the endpoint would refuse is refused before it is sent
 export const MAX_INVITATIONS_PER_REQUEST = 50
+
+/*
+  How many members and pending invitations one organization holds, together. The database
+  enforces it on every invitation, and the team query reads exactly this many of each, so the
+  page never shows a team cut short. Written out again in `CreateOrganizationInvitation`'s check
+  and `GetOrganizationTeam`'s limits, which cannot import it: change the three together
+*/
+export const MAX_TEAM_SIZE = 100
 
 // What somebody does in an organization, as the team page shows it beside their name
 export const MAX_JOB_TITLE_LENGTH = 60

@@ -40,6 +40,7 @@
   "team.inviteEmailsPlaceholder": "jane@company.com, sam@company.com\\n或每行一个",
   "team.inviteError": "无法发送邀请。请重试。",
   "team.inviteRateLimitError": "短时间内发送的邀请过多。请几分钟后重试。",
+  "team.inviteTeamFullError": "团队在此期间已满。请取消部分待处理邀请以腾出名额。",
   "team.inviteTitle": "邀请成员",
   "team.jobTitleError": "无法保存职位。请重试。",
   "team.jobTitleLabel": "职位",
@@ -57,5 +58,6 @@
   "team.onlyAdministrator": "组织中必须保留至少一位管理员。请先将其他人设为管理员。",
   "team.save": "保存",
   "team.sendInvitations": "{count, plural, =0 {发送邀请} one {发送邀请} other {发送 # 份邀请}}",
+  "team.teamFull": "{room, plural, =0 {该团队已满：最多容纳 {max} 位成员及待处理邀请。} one {该团队最多容纳 {max} 人，目前还可容纳 1 位成员或邀请。} other {该团队最多容纳 {max} 人，目前还可容纳 # 位成员或邀请。}}",
   "team.tooManyInvitations": "一次最多发送 {max} 份邀请。"
 }

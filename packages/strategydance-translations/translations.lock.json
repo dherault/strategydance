@@ -611,6 +611,10 @@
         "hash": "1b253ea44ad997de",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "team.inviteTeamFullError": {
+        "hash": "0b1a752f1557bdf5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "team.inviteTitle": {
         "hash": "27a7dc63c0af461e",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -677,6 +681,10 @@
       },
       "team.sendInvitations": {
         "hash": "da8ab686d4fc6484",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.teamFull": {
+        "hash": "05a747bace76d722",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.tooManyInvitations": {

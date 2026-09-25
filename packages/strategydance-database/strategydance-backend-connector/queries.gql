@@ -2,11 +2,12 @@
 #
 # - the caller's membership, which says whether they may invite, and names them and the
 #   organization for the email
-# - which of the addresses already belong to a member
-# - which of them already have a pending invitation
+# - the team as it stands, members and pending invitations, which says whether any of the
+#   addresses is taken and whether the team has room
 #
-# `$userId` is the uid the backend verified, never one a client sent
-query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!, $emails: [String!]!)
+# The two lists are read whole: the database keeps a team at 100 of both together, so a limit of
+# 100 each is never a cut. `$userId` is the uid the backend verified, never one a client sent
+query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!)
 @auth(level: NO_ACCESS) {
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     role
@@ -18,12 +19,12 @@ query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!,
       name
     }
   }
-  userOrganizations(where: { organizationId: { eq: $organizationId }, user: { email: { in: $emails } } }) {
+  userOrganizations(where: { organizationId: { eq: $organizationId } }, limit: 100) {
     user {
       email
     }
   }
-  organizationInvitations(where: { organizationId: { eq: $organizationId }, email: { in: $emails } }) {
+  organizationInvitations(where: { organizationId: { eq: $organizationId } }, limit: 100) {
     email
   }
 }

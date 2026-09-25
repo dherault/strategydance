@@ -1,5 +1,5 @@
 import { type VariantProps, cva } from 'class-variance-authority'
-import type { ComponentProps, ReactNode } from 'react'
+import { type ComponentProps, type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -45,6 +45,14 @@ type Props = ComponentProps<'button'> & Omit<VariantProps<typeof buttonVariants>
   /** A Lucide icon, sized to the text. With no children the button becomes a square icon button: give it an `aria-label` */
   icon?: ReactNode
   iconPosition?: 'start' | 'end'
+  /**
+    Asks twice. The first click swaps the label for this string, or for `'Confirm?'` when `true`,
+    and only the second calls `onClick`. The default is English: a caller with a catalogue passes
+    its own
+  */
+  confirm?: boolean | string
+  /** How long an armed button waits for its second click before it reverts, in milliseconds */
+  confirmTimeout?: number
 }
 
 function Button({
@@ -54,25 +62,74 @@ function Button({
   icon,
   iconPosition = 'start',
   type = 'button',
+  confirm = false,
+  confirmTimeout = 3000,
+  onClick,
+  style,
   children,
   ...props
 }: Props) {
+  /*
+    The width the button had when it was armed, or null while it is not. Holding it is what keeps
+    a short confirmation from shrinking the button under the pointer that is about to click it
+    again
+  */
+  const [armedWidth, setArmedWidth] = useState<number | null>(null)
+  const disarmTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => () => clearTimeout(disarmTimeoutRef.current), [])
+
   // Whatever React renders is a label, a 0 included, so falsiness is not the test
   const hasLabel = children !== undefined && children !== null && typeof children !== 'boolean' && children !== ''
   const iconOnly = !hasLabel && !!icon
+  const isArmed = armedWidth !== null
+
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    if (!confirm) {
+      onClick?.(event)
+
+      return
+    }
+
+    clearTimeout(disarmTimeoutRef.current)
+
+    if (!isArmed) {
+      // A submit button would otherwise send its form on the click that only asked
+      event.preventDefault()
+      setArmedWidth(event.currentTarget.offsetWidth)
+      disarmTimeoutRef.current = setTimeout(() => setArmedWidth(null), confirmTimeout)
+
+      return
+    }
+
+    setArmedWidth(null)
+    onClick?.(event)
+  }
+
+  // A square button has no room for a sentence, so it asks with a question mark alone
+  const confirmLabel = iconOnly ? '?' : typeof confirm === 'string' ? confirm : 'Confirm?'
 
   return (
     <button
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-state={isArmed ? 'confirm' : undefined}
       type={type}
       className={cn(buttonVariants({ variant, size, iconOnly }), className)}
+      style={isArmed ? { ...style, minWidth: armedWidth } : style}
+      onClick={handleClick}
       {...props}
     >
-      {iconPosition === 'start' || iconOnly ? icon : null}
-      {children}
-      {iconPosition === 'end' && !iconOnly ? icon : null}
+      {isArmed
+        ? confirmLabel
+        : (
+            <>
+              {iconPosition === 'start' || iconOnly ? icon : null}
+              {children}
+              {iconPosition === 'end' && !iconOnly ? icon : null}
+            </>
+          )}
     </button>
   )
 }

@@ -139,3 +139,32 @@ export const Disabled: Story = {
     disabled: true,
   },
 }
+
+// The first click asks, the second acts. Left alone, an armed button reverts after three seconds
+export const Confirm: Story = {
+  render: args => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button
+        {...args}
+        variant="danger"
+        confirm
+      >
+        Delete project
+      </Button>
+      <Button
+        {...args}
+        variant="danger"
+        icon={<Trash2Icon />}
+        confirm="Delete it?"
+      >
+        Delete
+      </Button>
+      <Button
+        variant="danger"
+        icon={<Trash2Icon />}
+        aria-label="Delete"
+        confirm
+      />
+    </div>
+  ),
+}

@@ -71,9 +71,10 @@ function Button({
   ...props
 }: Props) {
   /*
-    The width the button had when it was armed, or null while it is not. Holding it is what keeps
-    a short confirmation from shrinking the button under the pointer that is about to click it
-    again
+    The width the button had when it was armed, or null while it is not. Held as a minimum, so a
+    short confirmation cannot shrink the button under the pointer that is about to click it
+    again. A longer one widens it rather than being clipped, and a button that only grows still
+    covers the spot the first click landed on, whichever edge or centre it is aligned by
   */
   const [armedWidth, setArmedWidth] = useState<number | null>(null)
   const disarmTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)

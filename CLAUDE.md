@@ -214,6 +214,11 @@ Read a query that takes variables through `useQuery` and `executeQuery` rather t
 generated hook. The generated wrapper keeps its query ref in state and updates it in an effect,
 so on the render where the variables change it reads the old ones' data into the new key.
 
+A query that a waiter and the page under it both read sets `retryOnMount: false`, and tells a
+failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With nothing cached,
+a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
+the read fails, and its mount retries it, forever.
+
 ### Routing
 
 The authenticated area is `src/routes/[-].tsx`, not `-.tsx`. The router generator skips any

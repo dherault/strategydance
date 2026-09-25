@@ -1,0 +1,29 @@
+# What inviting people to an organization has to know first, in one read:
+#
+# - the caller's membership, which says whether they may invite, and names them and the
+#   organization for the email
+# - which of the addresses already belong to a member
+# - which of them already have a pending invitation
+#
+# `$userId` is the uid the backend verified, never one a client sent
+query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!, $emails: [String!]!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    user {
+      displayName
+      email
+    }
+    organization {
+      name
+    }
+  }
+  userOrganizations(where: { organizationId: { eq: $organizationId }, user: { email: { in: $emails } } }) {
+    user {
+      email
+    }
+  }
+  organizationInvitations(where: { organizationId: { eq: $organizationId }, email: { in: $emails } }) {
+    email
+  }
+}

@@ -1,0 +1,22 @@
+# Invites somebody to an organization, from one of its administrators, and answers with the id
+# the invitation's email carries.
+#
+# One address per call, which the backend makes once for each address in parallel: the generated
+# Admin SDK cannot pass the `_Data` list `_insertMany` would need. Each call checks for itself
+# that the inviter is an administrator and that the address belongs to no member. The pair of
+# organization and address is unique, so an address invited in the meantime fails its own call
+# rather than being invited twice
+mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, $email: String!)
+@auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can invite people to it") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can invite people")
+    }
+    userOrganizations(where: { organizationId: { eq: $organizationId }, user: { email: { eq: $email } } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The address belongs to a member already", optional: true) {
+      userId
+    }
+  }
+  organizationInvitation_insert(data: { organizationId: $organizationId, email: $email, invitedById: $userId })
+}

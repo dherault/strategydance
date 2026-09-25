@@ -1,0 +1,15 @@
+{
+  "invitation.continue": "Continuar para o Strategy Dance",
+  "invitation.decline": "Recusar",
+  "invitation.declineConfirm": "Confirmar?",
+  "invitation.declineError": "Não foi possível recusar o convite. Tente novamente.",
+  "invitation.declined": "Convite recusado",
+  "invitation.eyebrow": "Convite",
+  "invitation.join": "Entrar",
+  "invitation.joinError": "Não foi possível entrar em {organizationName}. Tente novamente.",
+  "invitation.joined": "Você entrou em {organizationName}",
+  "invitation.lead": "{inviterName} convidou você para entrar em {organizationName} como membro.",
+  "invitation.missingLead": "O convite foi cancelado, já foi respondido ou foi enviado para um endereço diferente de {email}. Peça para quem convidou você enviar um novo convite ou entre com o endereço para o qual ele foi enviado.",
+  "invitation.missingTitle": "Convite indisponível",
+  "invitation.title": "Entrar em {organizationName}"
+}

@@ -1,0 +1,15 @@
+{
+  "invitation.continue": "Weiter zu Strategy Dance",
+  "invitation.decline": "Ablehnen",
+  "invitation.declineConfirm": "Bestätigen?",
+  "invitation.declineError": "Die Einladung konnte nicht abgelehnt werden. Versuche es erneut.",
+  "invitation.declined": "Einladung abgelehnt",
+  "invitation.eyebrow": "Einladung",
+  "invitation.join": "Beitreten",
+  "invitation.joinError": "Konnte {organizationName} nicht beitreten. Versuche es erneut.",
+  "invitation.joined": "Du bist {organizationName} beigetreten",
+  "invitation.lead": "{inviterName} hat dich eingeladen, {organizationName} als Mitglied beizutreten.",
+  "invitation.missingLead": "Sie wurde bereits zurückgezogen oder beantwortet, oder sie wurde an eine andere Adresse als {email} gesendet. Bitte die Person, die dich eingeladen hat, eine neue Einladung zu senden, oder melde dich mit der Adresse an, an die sie gesendet wurde.",
+  "invitation.missingTitle": "Einladung nicht verfügbar",
+  "invitation.title": "{organizationName} beitreten"
+}

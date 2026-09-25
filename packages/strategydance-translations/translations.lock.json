@@ -242,6 +242,60 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "invitation": {
+      "invitation.continue": {
+        "hash": "732013b981696da6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.decline": {
+        "hash": "c1df5bd4c4dd841b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.declineConfirm": {
+        "hash": "ef63f086545cbd5d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.declineError": {
+        "hash": "246e7af8ba7e564a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.declined": {
+        "hash": "66475165089e62d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.eyebrow": {
+        "hash": "3ddebf83a3deb9b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.join": {
+        "hash": "148298f54d847976",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.joinError": {
+        "hash": "c9f9877de99eea8d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.joined": {
+        "hash": "506f520583aa0143",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.lead": {
+        "hash": "09fcf9016a1d2689",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.missingLead": {
+        "hash": "7db2037bb0da0c82",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.missingTitle": {
+        "hash": "8337c064d856694e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.title": {
+        "hash": "046a78315689632c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "navigation": {
       "navigation.account": {
         "hash": "9b64157b2b31d2ec",

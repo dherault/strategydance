@@ -110,11 +110,16 @@ mutation AddOrganizationExploredAspect(
 #
 # The organization keeps at least one: making somebody a member is refused unless another
 # administrator remains. Since the caller is one, that only ever refuses the last administrator
-# demoting themselves. Two administrators demoting each other in the same instant could each see
-# the other and both succeed; the window is two concurrent transactions wide, and the page offers
-# no way to aim for it
+# demoting themselves.
+#
+# The first step touches the organization's row, which takes its lock until the transaction
+# ends, so every change to who administers an organization runs one after the other. Without it
+# two administrators demoting each other at once would each read the other as an administrator
+# and both succeed, leaving none. The one that waited reads after the other commits, since
+# Postgres starts each statement on what is committed by then
 mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, $role: OrganizationRole!)
 @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change a role in it") {
@@ -158,8 +163,10 @@ mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: Strin
 # and never on themselves, which is also what keeps this from removing the last administrator.
 #
 # It deletes the membership and nothing else, so they can be invited again later, as the page
-# promises
+# promises. It takes the organization's row lock first, as `UpdateOrganizationMemberRole` does,
+# so two administrators removing each other at once cannot both succeed and leave none
 mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can remove somebody from it") {

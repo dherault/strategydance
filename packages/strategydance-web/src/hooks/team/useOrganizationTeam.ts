@@ -28,9 +28,14 @@ const EMPTY_TEAM: OrganizationTeam = {
   wrapper keeps its query ref in state and updates it in an effect, so on the render where the
   organization changes it would read the previous organization's team into the new one's key.
 
-  Every caller subscribes, and the SDK shares one stream between subscriptions to the same query
+  Every caller subscribes, and the SDK shares one stream between subscriptions to the same query.
+
+  A first read that fails is not an empty team: `hasFailed` says so, and the page offers to try
+  again rather than show nobody. It does not retry on mount, since with nothing cached a retry
+  resets the query to pending, `TeamWait` unmounts the page, and the page's return would retry
+  again, forever
 */
-function useOrganizationTeam(): DataSource<OrganizationTeam> {
+function useOrganizationTeam(): DataSource<OrganizationTeam> & { hasFailed: boolean } {
   const queryClient = useQueryClient()
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
@@ -46,6 +51,7 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> {
       return team
     },
     enabled: Boolean(organizationId),
+    retryOnMount: false,
   })
 
   useEffect(() => {
@@ -96,6 +102,7 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> {
     refetch: async () => {
       await refetch()
     },
+    hasFailed: Boolean(organizationId) && isError && data === undefined,
   }
 }
 

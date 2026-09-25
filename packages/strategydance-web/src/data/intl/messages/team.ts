@@ -137,6 +137,16 @@ const teamMessages = defineMessages({
     defaultMessage: 'Create an organization from the menu at the top of the sidebar, then invite your team here.',
     description: 'Notice on the team page when the reader belongs to no organization yet.',
   },
+  loadError: {
+    id: 'team.loadError',
+    defaultMessage: 'The team could not be loaded. Check your connection and try again.',
+    description: 'Error on the team page when reading the members and invitations failed.',
+  },
+  retry: {
+    id: 'team.retry',
+    defaultMessage: 'Try again',
+    description: 'Button that reads the team again after it failed to load.',
+  },
   columnName: {
     id: 'team.columnName',
     defaultMessage: 'Name',

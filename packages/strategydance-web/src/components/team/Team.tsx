@@ -11,6 +11,7 @@ import BanMemberDialog from '~components/team/BanMemberDialog'
 import EditJobTitleDialog from '~components/team/EditJobTitleDialog'
 import InviteMembersDialog from '~components/team/InviteMembersDialog'
 import TeamHeader from '~components/team/TeamHeader'
+import TeamLoadFailed from '~components/team/TeamLoadFailed'
 import TeamNoOrganization from '~components/team/TeamNoOrganization'
 import TeamTable from '~components/team/TeamTable'
 
@@ -26,7 +27,7 @@ import TeamTable from '~components/team/TeamTable'
 function Team() {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
-  const { data: team } = useOrganizationTeam()
+  const { data: team, loading, refetch, hasFailed } = useOrganizationTeam()
 
   const [isInviting, setIsInviting] = useState(false)
   const [editingMember, setEditingMember] = useState<OrganizationMember | null>(null)
@@ -34,17 +35,26 @@ function Team() {
 
   const viewerId = viewer?.uid ?? null
   const viewerRole = team.userOrganizations.find(({ user }) => user.id === viewerId)?.role ?? null
+  // Nobody administers a team that could not be read, which keeps the Invite button hidden too
   const isAdministrator = viewerRole === OrganizationRole.ADMINISTRATOR
 
   return (
     <div className="flex max-w-[1024px] flex-col gap-8 px-2 pt-5 pb-12">
       <TeamHeader
-        organizationName={organization?.name ?? null}
+        organizationName={hasFailed ? null : organization?.name ?? null}
         memberCount={team.userOrganizations.length}
         invitationCount={team.organizationInvitations.length}
         onInvite={organization && isAdministrator ? () => setIsInviting(true) : null}
       />
-      {organization
+      {organization && hasFailed
+        ? (
+            <TeamLoadFailed
+              isRetrying={loading}
+              onRetry={refetch}
+            />
+          )
+        : null}
+      {organization && !hasFailed
         ? (
             <TeamTable
               organizationId={organization.id}
@@ -55,7 +65,8 @@ function Team() {
               onBan={setBanningMember}
             />
           )
-        : <TeamNoOrganization />}
+        : null}
+      {organization ? null : <TeamNoOrganization />}
       {organization && isInviting
         ? (
             <InviteMembersDialog

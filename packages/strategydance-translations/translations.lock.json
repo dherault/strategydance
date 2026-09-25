@@ -647,6 +647,10 @@
         "hash": "4730611c52e3d654",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "team.loadError": {
+        "hash": "fdcf57790b70ab42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "team.member": {
         "hash": "30e4132495cc1401",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -681,6 +685,10 @@
       },
       "team.onlyAdministrator": {
         "hash": "3997b5d908446760",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.retry": {
+        "hash": "bbb4d5c374e8cd77",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.save": {

@@ -1,6 +1,8 @@
 {
+  "global.closeNotification": "Fechar notificação",
   "global.language": "Idioma",
   "global.loading": "Carregando",
+  "global.notifications": "Notificações",
   "global.signIn": "Entrar",
   "global.tagline": "Um experimento de IA.",
   "global.welcome": "Strategy Dance"

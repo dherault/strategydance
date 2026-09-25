@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 
 import type { MessageType } from '~types'
 
+import Toaster from '~components/common/Toaster'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
 import appCss from '../styles.css?url'
@@ -52,11 +53,17 @@ function RootDocument({ children }: { children: ReactNode }) {
   )
 }
 
-// Inside the document, so holding the tree back for a catalogue leaves <Scripts /> in place
+/*
+  Inside the document, so holding the tree back for a catalogue leaves <Scripts /> in place.
+
+  The toaster is mounted once, here, so a toast raised by a page survives the navigation that
+  often follows it. It sits inside the catalogue's waiter because its labels come from `global`
+*/
 function RootComponent() {
   return (
     <IntlMessagesRegistration messageTypes={ROOT_MESSAGE_TYPES}>
       <Outlet />
+      <Toaster />
     </IntlMessagesRegistration>
   )
 }

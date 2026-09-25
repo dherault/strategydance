@@ -213,12 +213,20 @@
       }
     },
     "global": {
+      "global.closeNotification": {
+        "hash": "89a465a24fac1347",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "global.language": {
         "hash": "0bc2f1053fcf6d40",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "global.loading": {
         "hash": "4369fb27292c2256",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.notifications": {
+        "hash": "54cd7524efca1ce5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "global.signIn": {

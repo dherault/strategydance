@@ -1,6 +1,8 @@
 {
+  "global.closeNotification": "通知を閉じる",
   "global.language": "言語",
   "global.loading": "読み込み中",
+  "global.notifications": "通知",
   "global.signIn": "サインイン",
   "global.tagline": "AIの実験プロジェクト。",
   "global.welcome": "Strategy Dance"

@@ -14,7 +14,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
-  hooks. See below
+  hooks, and the backend as `strategydance-database/backend`. See below
+- `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
+  browser cannot do for itself because it needs a secret or the server's word. Today that is
+  inviting people, which emails them. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, Tailwind
   CSS v4, documented in Storybook. It imports itself by its package name,
   `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
@@ -27,7 +30,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
-  `tsconfig.json` and mirrored in `vite.config.ts`. Cross-package imports use the package name
+  `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, in its
+  `tsconfig.json`, which Bun reads at runtime. Cross-package imports use the package name
 - `bunfig.toml` sets a 7-day install cooldown: a version must have been published for a week
   before it can be installed
 
@@ -35,8 +39,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 
 | Command | What it does |
 | --- | --- |
-| `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it |
+| `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
+| `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -46,7 +51,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
-| `bun run kill` / `kill:emulators` | Frees the dev server port, or the four emulator ports |
+| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend` |
+| `bun run kill` / `kill:backend` / `kill:emulators` | Frees the dev server port, the backend's, or the four emulator ports |
 
 Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
 
@@ -170,9 +176,18 @@ Connect and Storage before the project is reachable from the internet.
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the
 only way the app talks to them.
 
-- One connector per caller. `strategydance-web-connector` is the browser's; a backend one will
-  sit beside it rather than widening this one, because `@auth` levels differ by who is asking
-  and the web bundle should not carry operations only a server may call
+- One connector per caller. `strategydance-web-connector` is the browser's, and
+  `strategydance-backend-connector` the backend's, beside it rather than widening it, because
+  `@auth` levels differ by who is asking and the web bundle should not carry operations only a
+  server may call
+- The backend connector is generated as an Admin SDK, and every one of its operations is
+  `NO_ACCESS`, which only the Admin SDK gets past. The backend verifies the caller's ID token
+  and passes the uid it verified as a variable, never one a client sent, and each operation
+  still checks that uid against the rows it touches
+- The generated SDKs cannot pass a `_Data` list variable, so no connector can batch insert:
+  the backend calls a single-row mutation once per row instead
+- An operation takes no `@check` of its own. A check that reads only variables sits on a field
+  of the first, redacted step, where `@check` is repeatable
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs
@@ -188,12 +203,32 @@ only way the app talks to them.
 - A schema change reaches production only through `bun run deploy:database`. Merge it after,
   not before, or the live frontend queries fields its database does not have yet
 
+A list a page keeps current, like a team, is a live query. `@refresh(onMutationExecuted: ...)`
+on the query names each mutation that changes it, with a condition on the variable they share,
+so every mutation such a query listens to takes that variable, even one that could do without
+it. A mutation the backend runs through the Admin SDK fires the refresh too. The frontend
+subscribes beside its first read and writes each pushed result into the TanStack cache:
+`useOrganizationTeam` is the example to copy.
+
+Read a query that takes variables through `useQuery` and `executeQuery` rather than the
+generated hook. The generated wrapper keeps its query ref in state and updates it in an effect,
+so on the render where the variables change it reads the old ones' data into the new key.
+
 ### Routing
 
 The authenticated area is `src/routes/[-].tsx`, not `-.tsx`. The router generator skips any
 file whose name starts with `routeFileIgnorePrefix`, which defaults to `-`; brackets are its
 own escape syntax and unwrap to a literal. Do not change that prefix to work around this: it
 would re-enable every `-`-prefixed excluded file in the tree.
+
+A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
+the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be
+overwritten with `undefined`. The sign-in screen's `redirect` is the case that matters, since
+following an unchecked one is how a link sends somebody elsewhere.
+
+`<Navigate>` navigates again whenever its props change. Fed anything that follows the location,
+it redirects to its own redirect: navigate from an effect on the verdict instead, reading the
+location off the router inside it, as `AuthenticationBouncer` does.
 
 ### Internationalization
 
@@ -211,6 +246,24 @@ would re-enable every `-`-prefixed excluded file in the tree.
   retranslation
 - **Never write an em dash in a `defaultMessage` or a `description`.** Use a full stop, a comma
   or a colon. It reads as machine-written, and all six translated locales inherit it
+
+## Backend conventions
+
+`packages/strategydance-backend` follows sunshine's backend, trimmed: one router per resource
+in `routes/`, the Express middleware in `middleware/`, what a route does in `domain/`, helpers
+in `utils/`, one concern per file.
+
+- Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
+  through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
+  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`
+- No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
+  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`
+- Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
+  service's own account needs a Data Connect role. In development `dev:backend` points Auth and
+  Data Connect at the emulators, and App Check is skipped, as the emulators skip it
+- Emails are a placeholder until Resend and react-email are wired:
+  `sendOrganizationInvitationEmail` logs what it would send. In development that includes the
+  invitation's link, which is how an invitation gets accepted locally
 
 ## Workflow
 

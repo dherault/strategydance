@@ -25,9 +25,11 @@ const isBrowser = typeof window !== 'undefined'
   Both halves are inlined by Vite, so this folds to a literal at build time and a real
   production build drops the emulator wiring rather than shipping it as unreachable code.
   That is also why it is tested before `isBrowser` everywhere below: a runtime value first
-  would stop the bundler folding the branch away
+  would stop the bundler folding the branch away.
+
+  Exported for `~data/api`, which calls the local backend under the same condition
 */
-const EMULATORS_REQUESTED = import.meta.env.DEV || import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true'
+export const EMULATORS_REQUESTED = import.meta.env.DEV || import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true'
 
 /* ---
   Firebase app

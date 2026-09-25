@@ -15,7 +15,7 @@ function AppLayout({ children }: PropsWithChildren) {
   return (
     <SidebarProvider open>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="bg-white">
         <SidebarToggleBar />
         {children}
       </SidebarInset>

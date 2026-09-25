@@ -15,7 +15,7 @@ function SidebarToggleBar() {
   if (!isMobile) return null
 
   return (
-    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center border-b border-border bg-background px-2">
+    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center border-b border-border bg-white px-2">
       <SidebarTrigger label={formatMessage(navigationMessages.toggleSidebar)} />
     </header>
   )

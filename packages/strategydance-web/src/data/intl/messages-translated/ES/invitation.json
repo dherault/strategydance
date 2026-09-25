@@ -6,7 +6,7 @@
   "invitation.declined": "Invitación rechazada",
   "invitation.eyebrow": "Invitación",
   "invitation.join": "Unirse",
-  "invitation.joinError": "No se pudo unir a {organizationName}. Inténtalo de nuevo.",
+  "invitation.joinError": "No se pudo completar la unión a {organizationName}. Recarga la página para ver en qué estado se encuentra.",
   "invitation.joined": "Te has unido a {organizationName}",
   "invitation.lead": "{inviterName} te invitó a unirte a {organizationName} como miembro.",
   "invitation.missingLead": "Ya se canceló o se respondió, o se envió a una dirección distinta a {email}. Pídele a quien te invitó que envíe una nueva o inicia sesión con la dirección a la que se envió.",

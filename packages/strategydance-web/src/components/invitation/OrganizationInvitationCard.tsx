@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
-import { useAcceptOrganizationInvitation, useDeclineOrganizationInvitation } from 'strategydance-database/web/react'
+import { useDeclineOrganizationInvitation } from 'strategydance-database/web/react'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
@@ -24,18 +24,19 @@ type Props = {
 /*
   An invitation the reader can answer.
 
-  Joining reads the memberships again before switching to the organization, so the switch lands
-  on a row the sidebar already has, then opens its team. Declining deletes the invitation, and
-  asks twice first, since only a new invitation undoes it
+  Joining goes through the memberships, which resolve only once the new one is read back, so the
+  switch lands on a row the sidebar already has, then opens its team. Should the read back fail,
+  the membership may exist all the same, so the error says to reload rather than to join again.
+  Declining deletes the invitation, and asks twice first, since only a new invitation undoes it
 */
 function OrganizationInvitationCard({ invitationId, invitation }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
-  const { refetch: refetchUserOrganizations } = useUserOrganizations()
+  const { joinOrganization } = useUserOrganizations()
   const { setOrganizationId } = useCurrentOrganization()
-  const { mutateAsync: acceptInvitation, isPending: isAccepting } = useAcceptOrganizationInvitation(dataConnect)
   const { mutateAsync: declineInvitation, isPending: isDeclining } = useDeclineOrganizationInvitation(dataConnect)
 
+  const [isAccepting, setIsAccepting] = useState(false)
   const [hasFailed, setHasFailed] = useState(false)
 
   const { organization, invitedBy } = invitation
@@ -43,11 +44,11 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
   const isAnswering = isAccepting || isDeclining
 
   async function join() {
+    setIsAccepting(true)
     setHasFailed(false)
 
     try {
-      await acceptInvitation({ id: invitationId, organizationId: organization.id })
-      await refetchUserOrganizations()
+      await joinOrganization(invitationId, organization.id)
 
       setOrganizationId(organization.id)
       toast.success(formatMessage(invitationMessages.joined, { organizationName }))
@@ -58,6 +59,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
       console.error('Failed to accept the invitation', error)
 
       setHasFailed(true)
+      setIsAccepting(false)
     }
   }
 

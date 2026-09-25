@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 import {
+  useAcceptOrganizationInvitation,
   useAddOrganizationExploredAspect,
   useCreateOrganization,
   useGetCurrentUserOrganizations,
@@ -40,6 +41,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
 
   const { mutateAsync: createOrganizationMutation } = useCreateOrganization(dataConnect)
   const { mutateAsync: addExploredAspectMutation } = useAddOrganizationExploredAspect(dataConnect)
+  const { mutateAsync: acceptInvitationMutation } = useAcceptOrganizationInvitation(dataConnect)
 
   const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
 
@@ -75,6 +77,19 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     await refetchUserOrganizations()
 
     return organization.id
+  }
+
+  /*
+    Accepts an invitation, and resolves once the list holds the new membership, so the caller can
+    select the organization knowing the sidebar has it.
+
+    The read after the write throws on failure, which a refetch does not do by default: a caller
+    told the membership is there when the list does not show it would switch to an organization
+    the sidebar cannot find
+  */
+  async function joinOrganization(invitationId: string, organizationId: string) {
+    await acceptInvitationMutation({ id: invitationId, organizationId })
+    await refetchUserOrganizations({ throwOnError: true })
   }
 
   /*
@@ -123,6 +138,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     loading,
     refetch,
     createOrganization,
+    joinOrganization,
     exploreCompanyAspect,
   }
 

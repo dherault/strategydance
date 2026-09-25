@@ -6,7 +6,7 @@
   "invitation.declined": "Convite recusado",
   "invitation.eyebrow": "Convite",
   "invitation.join": "Entrar",
-  "invitation.joinError": "Não foi possível entrar em {organizationName}. Tente novamente.",
+  "invitation.joinError": "Não foi possível concluir a entrada em {organizationName}. Recarregue a página para verificar o status.",
   "invitation.joined": "Você entrou em {organizationName}",
   "invitation.lead": "{inviterName} convidou você para entrar em {organizationName} como membro.",
   "invitation.missingLead": "O convite foi cancelado, já foi respondido ou foi enviado para um endereço diferente de {email}. Peça para quem convidou você enviar um novo convite ou entre com o endereço para o qual ele foi enviado.",

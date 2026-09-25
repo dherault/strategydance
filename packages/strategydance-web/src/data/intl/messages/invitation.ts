@@ -44,8 +44,8 @@ const invitationMessages = defineMessages({
   },
   joinError: {
     id: 'invitation.joinError',
-    defaultMessage: 'Could not join {organizationName}. Try again.',
-    description: 'Error shown when accepting an invitation failed.',
+    defaultMessage: 'Joining {organizationName} did not go through. Reload the page to see where it stands.',
+    description: 'Error shown when accepting an invitation failed, or succeeded but could not be confirmed. Reloading shows either the invitation again or the organization joined.',
   },
   declineError: {
     id: 'invitation.declineError',

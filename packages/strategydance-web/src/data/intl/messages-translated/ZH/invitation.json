@@ -6,7 +6,7 @@
   "invitation.declined": "已拒绝邀请",
   "invitation.eyebrow": "邀请",
   "invitation.join": "加入",
-  "invitation.joinError": "无法加入 {organizationName}。请重试。",
+  "invitation.joinError": "加入 {organizationName} 未成功。请刷新页面查看当前状态。",
   "invitation.joined": "您已加入 {organizationName}",
   "invitation.lead": "{inviterName} 邀请您作为成员加入 {organizationName}。",
   "invitation.missingLead": "该邀请已被取消或已处理，或者发送到了 {email} 以外的其他地址。请让邀请人重新发送邀请，或使用接收邀请的邮箱地址登录。",

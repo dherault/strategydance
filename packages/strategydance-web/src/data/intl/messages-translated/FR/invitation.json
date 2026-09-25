@@ -6,7 +6,7 @@
   "invitation.declined": "Invitation refusée",
   "invitation.eyebrow": "Invitation",
   "invitation.join": "Rejoindre",
-  "invitation.joinError": "Impossible de rejoindre {organizationName}. Réessayez.",
+  "invitation.joinError": "L'adhésion à {organizationName} n'a pas abouti. Rechargez la page pour voir où cela en est.",
   "invitation.joined": "Vous avez rejoint {organizationName}",
   "invitation.lead": "{inviterName} vous a invité à rejoindre {organizationName} en tant que membre.",
   "invitation.missingLead": "Elle a déjà été annulée ou traitée, ou a été envoyée à une autre adresse que {email}. Demandez à la personne qui vous a invité d'en envoyer une nouvelle, ou connectez-vous avec l'adresse à laquelle elle a été envoyée.",

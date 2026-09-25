@@ -4,9 +4,9 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import respondError from '~utils/respondError'
 
 /*
-  Every address in an invite request is an email this server sends, so the route is metered: 20
-  requests per caller in 10 minutes, which a person inviting their team never reaches and a
-  script mailing strangers does.
+  The invite route's requests, metered: 20 per caller in 10 minutes, which a person inviting their
+  team never reaches and a script does. The addresses they carry are metered on their own, by
+  `invitationRecipientQuotaMiddleware`.
 
   Keyed by the verified caller rather than the address, since one office shares an address and
   one caller can hold many. It runs after `authenticationMiddleware`, and falls back to the

@@ -17,6 +17,7 @@ import respondError from '~utils/respondError'
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
 import invitationRateLimitMiddleware from '~middleware/invitationRateLimit'
+import invitationRecipientQuotaMiddleware from '~middleware/invitationRecipientQuota'
 import validateMiddleware from '~middleware/validate'
 
 import createOrganizationInvitations from '~domain/organizations/createOrganizationInvitations'
@@ -58,6 +59,7 @@ function createOrganizationsRouter() {
     authenticationMiddleware,
     invitationRateLimitMiddleware,
     validateMiddleware({ params: invitationsParamsSchema, body: invitationsBodySchema }),
+    invitationRecipientQuotaMiddleware,
     async (request: InvitationsRequest, response: Response<ApiResponse<InviteOrganizationMembersData>>) => {
       const result = await createOrganizationInvitations({
         organizationId: request.params.organizationId,

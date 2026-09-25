@@ -15,6 +15,7 @@
   "navigation.aspectProduct": "产品",
   "navigation.aspectSales": "销售",
   "navigation.aspectStrategy": "战略",
+  "navigation.aspects": "维度",
   "navigation.close": "关闭",
   "navigation.closeSidebar": "关闭侧边栏",
   "navigation.comingSoon": "即将推出",
@@ -34,6 +35,5 @@
   "navigation.tasks": "任务",
   "navigation.team": "团队",
   "navigation.today": "今日",
-  "navigation.toggleSidebar": "切换侧边栏",
-  "navigation.workspace": "工作区"
+  "navigation.toggleSidebar": "切换侧边栏"
 }

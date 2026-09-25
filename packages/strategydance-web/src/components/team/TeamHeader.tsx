@@ -23,7 +23,7 @@ function TeamHeader({ organizationName, memberCount, invitationCount, onInvite }
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-3">
         <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          {formatMessage(navigationMessages.workspace)}
+          {formatMessage(navigationMessages.company)}
         </p>
         <h1 className="m-0 text-5xl leading-[1.05]">
           {formatMessage(navigationMessages.team)}

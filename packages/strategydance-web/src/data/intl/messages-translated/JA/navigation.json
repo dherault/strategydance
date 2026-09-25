@@ -15,6 +15,7 @@
   "navigation.aspectProduct": "プロダクト",
   "navigation.aspectSales": "セールス",
   "navigation.aspectStrategy": "戦略",
+  "navigation.aspects": "側面",
   "navigation.close": "閉じる",
   "navigation.closeSidebar": "サイドバーを閉じる",
   "navigation.comingSoon": "近日公開",
@@ -34,6 +35,5 @@
   "navigation.tasks": "タスク",
   "navigation.team": "チーム",
   "navigation.today": "今日",
-  "navigation.toggleSidebar": "サイドバーを切り替える",
-  "navigation.workspace": "ワークスペース"
+  "navigation.toggleSidebar": "サイドバーを切り替える"
 }

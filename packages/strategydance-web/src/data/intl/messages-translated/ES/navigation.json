@@ -15,6 +15,7 @@
   "navigation.aspectProduct": "Producto",
   "navigation.aspectSales": "Ventas",
   "navigation.aspectStrategy": "Estrategia",
+  "navigation.aspects": "Aspectos",
   "navigation.close": "Cerrar",
   "navigation.closeSidebar": "Cerrar la barra lateral",
   "navigation.comingSoon": "Próximamente",
@@ -34,6 +35,5 @@
   "navigation.tasks": "Tareas",
   "navigation.team": "Equipo",
   "navigation.today": "Hoy",
-  "navigation.toggleSidebar": "Alternar la barra lateral",
-  "navigation.workspace": "Espacio de trabajo"
+  "navigation.toggleSidebar": "Alternar la barra lateral"
 }

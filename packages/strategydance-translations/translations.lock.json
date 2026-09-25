@@ -307,6 +307,10 @@
         "hash": "674f77f8ee5b92ea",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.aspects": {
+        "hash": "ce221a37f6b30b70",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.close": {
         "hash": "3398142982cb3a04",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -324,7 +328,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.company": {
-        "hash": "271ef988c25ad13c",
+        "hash": "4b48a18fa17c34e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.exploreMore": {
@@ -385,10 +389,6 @@
       },
       "navigation.toggleSidebar": {
         "hash": "e88e4deab594496a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "navigation.workspace": {
-        "hash": "4be21caecda0708e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },

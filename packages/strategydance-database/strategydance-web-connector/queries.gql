@@ -10,7 +10,6 @@ query GetCurrentUser @auth(level: USER) {
     timezone
     authenticationProviders
     createdAt
-    updatedAt
   }
 }
 
@@ -53,8 +52,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     organization {
       id
       name
+      exploredAspects
       createdAt
-      updatedAt
     }
   }
 }

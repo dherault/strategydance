@@ -150,6 +150,68 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "explore": {
+      "explore.blurbDesign": {
+        "hash": "732e8bf4219df317",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbEngineering": {
+        "hash": "2583db2e42f67411",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbFinances": {
+        "hash": "be5859bad984f113",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbLegal": {
+        "hash": "455c3dc7ea979a9c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbMarketing": {
+        "hash": "87a719b59cb281b9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbPeople": {
+        "hash": "c37eff4bc0e86c66",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbProduct": {
+        "hash": "09828d97a1ebe18d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbSales": {
+        "hash": "b3416e353cf8fcbc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.blurbStrategy": {
+        "hash": "96cb089ae9d0400d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.explored": {
+        "hash": "c1633ce6e45ffb84",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.lead": {
+        "hash": "6fa3048dbe69570a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.noOrganization": {
+        "hash": "f7fb4a86724d7669",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.open": {
+        "hash": "c3536a62c0e46714",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.start": {
+        "hash": "b6e9b640e2a88c96",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "explore.startError": {
+        "hash": "a36556a937bbe83d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "global": {
       "global.language": {
         "hash": "0bc2f1053fcf6d40",
@@ -169,6 +231,156 @@
       },
       "global.welcome": {
         "hash": "7f77c31801e7f451",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
+    "navigation": {
+      "navigation.account": {
+        "hash": "9b64157b2b31d2ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.addOrganization": {
+        "hash": "aad22e5e785131ad",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.addOrganizationDescription": {
+        "hash": "bcc74bb5c4ffa9f9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.addOrganizationError": {
+        "hash": "1fc0533738771698",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.addOrganizationSubmit": {
+        "hash": "7d3dd81d892e3572",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.addOrganizationTitle": {
+        "hash": "8501e5b3dba1799b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.agents": {
+        "hash": "c0e2c51f569d7274",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectDesign": {
+        "hash": "54e688324381acc8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectEngineering": {
+        "hash": "a071a6a81ab4a03d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectFinances": {
+        "hash": "83a57e50ff2f5b40",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectLegal": {
+        "hash": "5789c64ea1dd0083",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectMarketing": {
+        "hash": "51882039ea877055",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectPeople": {
+        "hash": "56866e8618e981a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectProduct": {
+        "hash": "bd70e4cb452d6b7d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectSales": {
+        "hash": "e090851e3e30191f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.aspectStrategy": {
+        "hash": "674f77f8ee5b92ea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.close": {
+        "hash": "3398142982cb3a04",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.closeSidebar": {
+        "hash": "b61110e79cd01b01",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.comingSoon": {
+        "hash": "b805de6182aa12a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.comingSoonDescription": {
+        "hash": "945191f4deba5a04",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.company": {
+        "hash": "271ef988c25ad13c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.exploreMore": {
+        "hash": "c06a5db77d6a5de1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.githubStar": {
+        "hash": "270079f547559a3a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.githubStarLabel": {
+        "hash": "d76078b93efd57b7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.githubStargazers": {
+        "hash": "43a1d9ec8d9513c4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.logOut": {
+        "hash": "5612834898b9751d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.noOrganization": {
+        "hash": "6b7f5ca4282a9d35",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationName": {
+        "hash": "b689838dc779576f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizations": {
+        "hash": "3064d4491394ac6c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.settings": {
+        "hash": "521344c15a5eb61f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.sidebar": {
+        "hash": "eeb3f7bbc6d9ea2b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.support": {
+        "hash": "688e6fd634c62b96",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.tasks": {
+        "hash": "047370df795708bf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.team": {
+        "hash": "03ad6ce6084d28da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.today": {
+        "hash": "03e5a97c0a1c18dd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.toggleSidebar": {
+        "hash": "e88e4deab594496a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.workspace": {
+        "hash": "4be21caecda0708e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     }

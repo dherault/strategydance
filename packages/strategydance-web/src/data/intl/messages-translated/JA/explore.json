@@ -1,0 +1,17 @@
+{
+  "explore.blurbDesign": "ブランド、UI、プロダクトを取り巻くユーザー体験。",
+  "explore.blurbEngineering": "MVPを定義し、そこから反復して改善を重ねる。",
+  "explore.blurbFinances": "ランウェイ、価格設定、売上、月々の支出。",
+  "explore.blurbLegal": "会社構造、契約書、規約、コンプライアンス。",
+  "explore.blurbMarketing": "オーディエンス、チャネル、継続的な発信リズム。",
+  "explore.blurbPeople": "採用、メンバー、日常業務、仕事の進め方。",
+  "explore.blurbProduct": "誰のために何を作り、次に何を届けるか。",
+  "explore.blurbSales": "パイプライン、アウトリーチ、最初の顧客の成約。",
+  "explore.blurbStrategy": "取り組むべき課題と、勝利への道筋。",
+  "explore.explored": "{total} 件中 {explored} 件を探索済み",
+  "explore.lead": "すべての企業は共通する9つの側面で成り立っています。ガイダンスを受けたい項目を追加して、作業を始めましょう。",
+  "explore.noOrganization": "組織を追加して、探索を始めましょう。",
+  "explore.open": "開く",
+  "explore.start": "探索を開始",
+  "explore.startError": "項目を追加できませんでした。もう一度お試しください。"
+}

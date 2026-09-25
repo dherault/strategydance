@@ -6,6 +6,8 @@
   "exports": {
     "./index.css": "./src/index.css",
     "./components/*": "./src/components/*.tsx",
+    "./contexts/*": "./src/contexts/*.ts",
+    "./hooks/*": "./src/hooks/*.ts",
     "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {

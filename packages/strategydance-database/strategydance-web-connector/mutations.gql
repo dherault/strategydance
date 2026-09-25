@@ -65,3 +65,43 @@ mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
     }
   )
 }
+
+# Adds one aspect to those an organization has started on. The list is written whole, because
+# Data Connect has no `add` for a list of enums as it has for scalar lists, so the caller sends
+# the list it expects: the one it read, with the aspect added.
+#
+# The server trusts none of it. Its `@check` accepts the list only when it is exactly the stored
+# one with the aspect appended, and the aspect not already in it: no removal, no duplicate, no
+# list longer than the aspects there are. It also refuses a write over a list that changed since
+# the caller read it, so two tabs or two members adding aspects at once cannot drop each other's;
+# the one refused reads the list again and retries.
+#
+# Only a member may add one. The first step reads the caller's own membership, keyed by the uid
+# off the token, and its `@check` fails the transaction when there is none, before the update
+# runs. `@redact` keeps both reads out of the response
+mutation AddOrganizationExploredAspect(
+  $organizationId: UUID!
+  $aspect: CompanyAspect!
+  $exploredAspects: [CompanyAspect!]!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change what it explores") {
+      role
+    }
+    organization(id: $organizationId) {
+      exploredAspects
+        @check(
+          expr: "!(vars.aspect in this) && vars.exploredAspects == this + [vars.aspect]"
+          message: "The aspect is explored already, or the explored aspects changed since they were read"
+        )
+    }
+  }
+  organization_update(
+    id: $organizationId
+    data: {
+      exploredAspects: $exploredAspects
+      updatedAt_expr: "request.time"
+    }
+  )
+}

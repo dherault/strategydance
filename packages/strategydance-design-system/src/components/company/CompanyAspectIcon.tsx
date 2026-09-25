@@ -19,7 +19,7 @@ const CompanyAspects = [
   { id: 'product', label: 'Product', lucide: 'box' },
   { id: 'engineering', label: 'Engineering', lucide: 'code-xml' },
   { id: 'design', label: 'Design', lucide: 'palette' },
-  { id: 'marketing', label: 'Marketing, growth and distribution', lucide: 'megaphone' },
+  { id: 'marketing', label: 'Marketing', lucide: 'megaphone' },
   { id: 'sales', label: 'Sales', lucide: 'handshake' },
   { id: 'legal', label: 'Legal', lucide: 'scale' },
 ] as const

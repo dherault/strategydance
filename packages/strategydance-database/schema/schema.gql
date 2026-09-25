@@ -47,6 +47,21 @@ type User @table {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+# The aspects of a company the product guides it through, in the order it presents them. This is
+# its only declaration: the generated SDK exports it in this order, and the frontend lists the
+# aspects from there
+enum CompanyAspect {
+  STRATEGY
+  PEOPLE
+  FINANCES
+  PRODUCT
+  ENGINEERING
+  DESIGN
+  MARKETING
+  SALES
+  LEGAL
+}
+
 # What somebody can do inside an organization
 enum OrganizationRole {
   MEMBER
@@ -60,6 +75,9 @@ type Organization @table {
   # refers to something on the page
   id: UUID! @default(expr: "uuidV4()")
   name: String!
+  # The aspects the organization has started working on, each once. None to begin with: the
+  # sidebar lists these, and the rest wait behind the explore page
+  exploredAspects: [CompanyAspect!]! @default(sql: "'{}'")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

@@ -39,10 +39,9 @@ function createOrganizationsRouter() {
   const invitationsBodySchema = z.object({
     emails: z
       .array(z.string().transform(normalizeEmailAddress).refine(isEmailAddress, 'Not an email address'))
-      .min(1)
-      .max(MAX_INVITATIONS_PER_REQUEST)
-      // The same address twice is one invitation
-      .transform(emails => [...new Set(emails)]),
+      // The same address twice is one invitation, so the limit counts addresses once deduplicated
+      .transform(emails => [...new Set(emails)])
+      .pipe(z.array(z.string()).min(1).max(MAX_INVITATIONS_PER_REQUEST)),
   })
 
   type InvitationsRequest = Request<z.infer<typeof invitationsParamsSchema>, ApiResponse<InviteOrganizationMembersData>, z.infer<typeof invitationsBodySchema>>

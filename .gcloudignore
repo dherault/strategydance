@@ -1,0 +1,25 @@
+# What `bun run deploy:backend` leaves out of the upload. The image installs and generates for
+# itself, so dependencies and generated code stay behind, along with whatever only the web app,
+# the design system or a local machine needs
+
+.git
+.gitignore
+.gcloudignore
+.husky/
+.claude/
+.agents/
+.firebase/
+.DS_Store
+
+node_modules/
+*.log
+*.tsbuildinfo
+
+emulators-data/
+firebase-export-*/
+temp-do-not-commit-or-delete/
+
+packages/strategydance-database/generated/
+packages/strategydance-database/.dataconnect/
+packages/strategydance-web/dist/
+packages/strategydance-design-system/storybook-static/

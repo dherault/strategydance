@@ -5,6 +5,7 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import sendOrganizationInvitationEmail from '~domain/email/sendOrganizationInvitationEmail'
+import classifyInvitationFailure from '~domain/organizations/classifyInvitationFailure'
 
 type CreateOrganizationInvitationsInput = {
   organizationId: string
@@ -26,8 +27,12 @@ type CreateOrganizationInvitationsResult =
   sent it checks the same things and a list that fails here is one the reader has not seen yet.
 
   Then one insert per address, in parallel, each checking again in its own transaction. One can
-  still fail on its own, when somebody else invited the address in between, so the answer says
-  which went out rather than failing them all. Only the ones that were created are emailed
+  still fail on its own, when somebody else invited the address or it joined in between, so the
+  answer says which went out rather than failing them all. Only the ones that were created are
+  emailed, whatever happened to the others.
+
+  Any other refusal is not the address's doing and is not reported as if it were: an inviter who
+  stopped being an administrator in between answers forbidden, and an outage fails the request
 */
 async function createOrganizationInvitations({ organizationId, inviterId, emails }: CreateOrganizationInvitationsInput): Promise<CreateOrganizationInvitationsResult> {
   const { data: context } = await getOrganizationInvitationContext(dataConnect, {
@@ -59,6 +64,8 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
 
   const invitations: { id: string, email: string }[] = []
   const failedEmails: string[] = []
+  const errors: unknown[] = []
+  let isForbidden = false
 
   results.forEach((result, index) => {
     const email = emails[index]
@@ -69,8 +76,18 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
       return
     }
 
-    logger.warn(`Invitations: could not invite ${email} to ${organizationId}`, result.reason)
-    failedEmails.push(email)
+    const failure = classifyInvitationFailure(result.reason)
+
+    if (failure === 'conflict') {
+      logger.warn(`Invitations: ${email} was invited to ${organizationId} or joined it in the meantime`, result.reason)
+      failedEmails.push(email)
+    }
+    else if (failure === 'forbidden') {
+      isForbidden = true
+    }
+    else {
+      errors.push(result.reason)
+    }
   })
 
   const emailResults = await Promise.allSettled(invitations.map(({ id, email }) => sendOrganizationInvitationEmail({
@@ -87,6 +104,9 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
   emailResults.forEach((result, index) => {
     if (result.status === 'rejected') logger.error(`Invitations: could not email ${invitations[index].email}`, result.reason)
   })
+
+  if (errors.length) throw new AggregateError(errors, `Could not create ${errors.length} of ${emails.length} invitations to ${organizationId}`)
+  if (isForbidden) return { outcome: 'forbidden' }
 
   return {
     outcome: 'created',

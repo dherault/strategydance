@@ -27,6 +27,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`
 - `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
   catalogues. Node-only: never import it from the frontend
+- `packages/strategydance-emails` — the transactional emails, as
+  [React Email](https://react.email) templates. Node-only: the backend renders them. See below
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
@@ -42,12 +44,13 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
+| `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
 | `bun run lint` | oxlint across the repo |
 | `bun run typecheck` | `tsc` across the packages |
-| `bun run test` | `bun test` across the packages |
+| `bun run test` | `bun test` across the packages, each file in a fresh global so a `mock.module` stays in the file that made it |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
@@ -264,7 +267,8 @@ in `utils/`, one concern per file.
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
-  service's own account needs a Data Connect role. In development `dev:backend` points Auth and
+  service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
+  but cannot change the schema. In development `dev:backend` points Auth and
   Data Connect at the emulators, and App Check is skipped, as the emulators skip it
 - The service is public, and `deploy` makes it so with `--no-invoker-iam-check`, never
   `--allow-unauthenticated`. The project sits in the strategydance.com organization, whose
@@ -274,10 +278,44 @@ in `utils/`, one concern per file.
 - The organization also withholds the Editor role Google used to hand default service
   accounts. `deploy` builds on Cloud Build as the Compute Engine default service account, which
   is also the account the service runs as, so it starts with no roles: grant it
-  `roles/run.builder` before the first deploy, beside the Data Connect role it needs to run
-- Emails are a placeholder until Resend and react-email are wired:
-  `sendOrganizationInvitationEmail` logs what it would send. In development that includes the
-  invitation's link, which is how an invitation gets accepted locally
+  `roles/run.builder` before the first deploy, beside the Data Connect role it needs to run and
+  Secret Manager's accessor role on each secret it reads
+- Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
+  `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
+  receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
+  from Secret Manager through `retrieveSecret` in `utils/`, which caches it for the life of the
+  process: the service's account needs Secret Manager's accessor role on it, and a rotated key
+  takes effect with the next revision
+- Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
+  logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
+  is how an invitation gets accepted locally
+
+## Email conventions
+
+`packages/strategydance-emails` holds the transactional emails as React Email templates. It
+renders and nothing else: each `renderXEmail` takes props and answers `{ senderName, subject,
+html, text }`. It owns no key and opens no socket, so the delivery provider and its secret stay
+on the backend's side.
+
+- Everything comes from the one `react-email` package, components and `render` alike. Version 6
+  deprecated `@react-email/components` and the per-component packages
+- `src/emails/` holds templates and nothing else, because the preview server treats every file
+  there as one. Shared pieces go in `src/components/`. A template sets `PreviewProps`, which is
+  what the preview renders it with
+- Styles are inline style objects only. Gmail and Outlook strip `<style>` blocks and know no CSS
+  variable, so the design system's tokens are copied into `src/constants.ts` as literals. The
+  one `<style>` block is `EmailLayout`'s font face, which a client may drop at no cost.
+  react-email's `Font` is not used: it also sets every element's family to the face
+- The mark is the design system's `Logo`, inline, so the emails draw the same one as the app.
+  Gmail and Outlook drop inline SVG, and the name beside it is what they show. Any other image is
+  a hotlinked PNG at an absolute production URL, from
+  `packages/strategydance-web/public/assets/images/`, since neither renders a `data:` URI either
+- The backend's `tsc` follows its import into these `.tsx` files, so both tsconfigs carry
+  `"jsx": "react-jsx"`, and their other options agree. Keep them agreeing
+- English only for now. The copy follows the catalogues' rule anyway: no em dashes
+- `bun run dev:emails` opens the preview server through `scripts/devEmails.sh`, which runs the
+  CLI from a scratch directory outside the tree. Read its header before changing how it is
+  invoked. The preview is indicative: check a real client before trusting a layout change
 
 ## Workflow
 

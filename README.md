@@ -11,6 +11,7 @@ A [Bun](https://bun.com) monorepo. Packages live under `packages/`.
 - [`packages/strategydance-core`](packages/strategydance-core) — types, enums and constants shared by every package, with zero runtime dependencies
 - [`packages/strategydance-design-system`](packages/strategydance-design-system) — the component library: shadcn + Tailwind CSS v4, documented in Storybook
 - [`packages/strategydance-translations`](packages/strategydance-translations) — the Gemini-backed CLI that translates the message catalogues. Node-only
+- [`packages/strategydance-emails`](packages/strategydance-emails) — the transactional emails, as React Email templates the backend renders. Node-only
 - [`packages/strategydance-backend`](packages/strategydance-backend) — a Bun and Express server on Cloud Run, for what needs a secret or the server's word, like inviting people
 
 ## Getting started
@@ -43,6 +44,7 @@ and it spends quota on every run, so it is run by hand rather than in CI.
 | `bun run dev` | Runs the frontend dev server |
 | `bun run dev:emulators` | Runs the Firebase emulators |
 | `bun run dev:backend` | Runs the backend against the emulators |
+| `bun run dev:emails` | Runs React Email's preview server on the email templates |
 | `bun run build` | Typechecks and builds the design system's Storybook and the frontend |
 | `bun run storybook` | Runs the design system's Storybook |
 | `bun run preview` | Serves the production build |

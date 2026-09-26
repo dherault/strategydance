@@ -23,19 +23,8 @@
     "esModuleInterop": true,
     "types": ["bun"],
 
-    /* `tsc` follows the import into strategydance-emails' templates, which are `.tsx` */
-    "jsx": "react-jsx",
-
-    /* Path aliases, resolved relative to this file. Bun reads them at runtime as well */
-    "paths": {
-      "~constants": ["./src/constants.ts"],
-      "~firebase": ["./src/firebase.ts"],
-      "~types": ["./src/types.ts"],
-      "~domain/*": ["./src/domain/*"],
-      "~middleware/*": ["./src/middleware/*"],
-      "~routes/*": ["./src/routes/*"],
-      "~utils/*": ["./src/utils/*"]
-    }
+    /* The backend's tsconfig says the same, since its `tsc` follows the import into these files */
+    "jsx": "react-jsx"
   },
   "include": ["src"]
 }

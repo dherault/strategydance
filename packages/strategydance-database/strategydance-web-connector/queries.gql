@@ -9,6 +9,9 @@ query GetCurrentUser @auth(level: USER) {
     locale
     timezone
     authenticationProviders
+    # Whether to ask the backend for the welcome email, and whether it is too late to
+    welcomeEmailSentAt
+    createdAt
   }
 }
 
@@ -63,8 +66,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # cannot answer for them.
 #
 # A live query. The page subscribes to it, and each `@refresh` names a mutation that changes one
-# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation` is the
-# backend connector's, run through the Admin SDK. A profile edit is not among them: refreshing on
+# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation` and
+# `DeleteUnsentOrganizationInvitation` are the backend connector's, run through the Admin SDK. A profile edit is not among them: refreshing on
 # every `UpdateCurrentUser` would wake every team page for anybody's change of name, so a new name
 # shows on the next load instead.
 #
@@ -79,7 +82,8 @@ query GetOrganizationTeam($organizationId: UUID!)
 @refresh(onMutationExecuted: { operation: "DeleteOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "DeclineOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "CreateOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+@refresh(onMutationExecuted: { operation: "CreateOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteUnsentOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
   userOrganizations(
     where: {
       organizationId: { eq: $organizationId }

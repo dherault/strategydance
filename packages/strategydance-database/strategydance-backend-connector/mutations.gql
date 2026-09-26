@@ -37,4 +37,54 @@ mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, 
     }
   }
   organizationInvitation_insert(data: { organizationId: $organizationId, email: $email, invitedById: $userId })
+  # Counted against the inviter's hourly allowance, `MAX_INVITATIONS_PER_HOUR` in the backend's
+  # `createOrganizationInvitations`. Every sender's rows from before the hour it counts are pruned,
+  # not the inviter's alone, so somebody who stops sending does not leave theirs behind
+  sentInvitation_insert(data: { invitedById: $userId }) @redact
+  sentInvitation_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { hours: 1 } } } }) @redact
+}
+
+# Claims the account's welcome email for the request that makes it, and answers how many rows it
+# claimed: 1 when this request may send it, 0 when it went out already, another request holds it,
+# the account is more than a week old, or it has no row.
+#
+# A claim is a ten-minute lease rather than a flag. A request that sends completes it; one that
+# fails, or dies with its process, leaves it to lapse, and the next request after that sends
+# again. Ten minutes outlasts any request Cloud Run lets run, so a live claim never lapses under
+# the request holding it.
+#
+# One conditional update rather than a read and a write, so two requests landing together cannot
+# both find it free: Postgres re-checks the condition on the row the first one locked, and the
+# second claims nothing. `$userId` is the uid the backend verified
+mutation ClaimWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
+  user_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $userId } }
+        { welcomeEmailSentAt: { isNull: true } }
+        # `WELCOME_EMAIL_WINDOW_DAYS` in strategydance-core: an older account is never welcomed
+        { createdAt: { ge_time: { now: true, sub: { days: 7 } } } }
+        {
+          _or: [
+            { welcomeEmailClaimedAt: { isNull: true } }
+            { welcomeEmailClaimedAt: { lt_time: { now: true, sub: { minutes: 10 } } } }
+          ]
+        }
+      ]
+    }
+    data: { welcomeEmailClaimedAt_expr: "request.time" }
+  )
+}
+
+# Records that the welcome email went out, which ends the claim for good
+mutation CompleteWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
+  user_update(key: { id: $userId }, data: { welcomeEmailSentAt_expr: "request.time" })
+}
+
+# Takes back an invitation whose email could not be sent, so the team page does not list an
+# invitation nobody received and the address is free to invite again. `$organizationId` scopes the
+# delete, and is what the team's live query refreshes on
+mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: NO_ACCESS) {
+  organizationInvitation_deleteMany(where: { id: { eq: $id }, organizationId: { eq: $organizationId } })
 }

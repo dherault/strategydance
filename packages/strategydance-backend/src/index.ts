@@ -13,6 +13,7 @@ import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
 import createOrganizationsRouter from '~routes/organizations'
+import createUsersRouter from '~routes/users'
 
 /*
   The backend: what the browser cannot do for itself, because it needs a secret or has to happen
@@ -36,6 +37,7 @@ app.get('/health', (_request: Request, response: Response<ApiResponse>) => {
 })
 
 app.use('/organizations', createOrganizationsRouter())
+app.use('/users', createUsersRouter())
 
 app.use(errorMiddleware)
 app.use(notFoundMiddleware)

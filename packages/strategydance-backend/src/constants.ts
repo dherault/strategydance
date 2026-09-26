@@ -39,3 +39,22 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
       /^https:\/\/strategydance--[a-z0-9-]+\.web\.app$/,
     ]
   : true
+
+/* ---
+  SECRETS
+
+  Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`
+--- */
+
+// Read only in production, which is the only environment that sends email
+export const SECRET_RESEND_API_KEY = 'resend-api-key'
+
+/* ---
+  EMAIL
+--- */
+
+/*
+  Where every email comes from. Its domain has to stay verified in Resend, DKIM and SPF, or every
+  send is refused, and the mailbox has to receive: the welcome email asks for a reply
+*/
+export const EMAIL_SENDER_ADDRESS = 'david@strategydance.com'

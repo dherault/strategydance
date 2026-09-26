@@ -69,10 +69,12 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # cannot answer for them.
 #
 # A live query. The page subscribes to it, and each `@refresh` names a mutation that changes one
-# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation` and
-# `DeleteUnsentOrganizationInvitation` are the backend connector's, run through the Admin SDK. A profile edit is not among them: refreshing on
-# every `UpdateCurrentUser` would wake every team page for anybody's change of name, so a new name
-# shows on the next load instead.
+# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation`,
+# `DeleteUnsentOrganizationInvitation` and `DeleteOrganization` are the backend connector's, run
+# through the Admin SDK; the last empties both lists, which the page reads as the reader having
+# left. A profile edit is not among them: refreshing on every `UpdateCurrentUser` would wake every
+# team page for anybody's change of name, so a new name shows on the next load instead. Nor is a
+# change to the organization's settings, since this query reads none of them.
 #
 # Each list is read up to 100 rows, named rather than left to the generated default. The database
 # keeps a team at 100 members and pending invitations together (`MAX_TEAM_SIZE` in
@@ -86,7 +88,8 @@ query GetOrganizationTeam($organizationId: UUID!)
 @refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "DeclineOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "CreateOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "DeleteUnsentOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+@refresh(onMutationExecuted: { operation: "DeleteUnsentOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteOrganization", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
   userOrganizations(
     where: {
       organizationId: { eq: $organizationId }

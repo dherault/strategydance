@@ -54,7 +54,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
-| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend` |
+| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`. Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
 Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
@@ -208,7 +208,8 @@ only way the app talks to them.
   exports each as values in the schema's order, and the frontend imports them from
   `strategydance-database/web`
 - A schema change reaches production only through `bun run deploy:database`. Merge it after,
-  not before, or the live frontend queries fields its database does not have yet
+  not before, or the live frontend and backend, which a push to `main` deploys, query fields
+  their database does not have yet
 
 A list a page keeps current, like a team, is a live query. `@refresh(onMutationExecuted: ...)`
 on the query names each mutation that changes it, with a condition on the variable they share,
@@ -287,6 +288,13 @@ in `utils/`, one concern per file.
   is also the account the service runs as, so it starts with no roles: grant it
   `roles/run.builder` before the first deploy, beside the Data Connect and Storage roles it needs
   to run and Secret Manager's accessor role on each secret it reads
+- A push to `main` deploys the backend through `.github/workflows/deploy-backend-merge.yml`,
+  which runs `bun run deploy:backend` as `backend-deployer@strategydance.iam.gserviceaccount.com`.
+  That account has no key, since the organization forbids creating one: GitHub's OIDC token is
+  traded for it through Workload Identity Federation, and only a run on `main` in this
+  repository may. The workflow's header lists what it is granted. `.gcloudignore` leaves out
+  `gha-creds-*.json`, the credentials file the job writes into the workspace, which the upload
+  would otherwise carry into the image
 - Organizations' logos and banners are the backend's to write, since only an administrator may
   and a Storage rule cannot read who administers what. It stores each under a fresh name with
   its own download token, writes that URL to the row, and deletes the file the row pointed at

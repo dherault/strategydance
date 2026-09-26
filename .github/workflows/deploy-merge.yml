@@ -83,6 +83,13 @@ jobs:
           workload_identity_provider: projects/995028545701/locations/global/workloadIdentityPools/github/providers/strategydance
           service_account: deployer@strategydance.iam.gserviceaccount.com
       - uses: google-github-actions/setup-gcloud@v3
+      # firebase-tools 15.30.1 turns its `fdcapimigration` experiment on by default, which hands a
+      # migration's SQL to a Data Connect endpoint, `schemas/main:migrate`, that answers this
+      # service with a 404, "Method not found". Off, the CLI runs the SQL itself, over a Cloud SQL
+      # connection as the deploy account. `FIREBASE_CLI_EXPERIMENTS` can only turn experiments on,
+      # so this writes the preference instead, which a runner starts without
+      - name: Migrate through Cloud SQL rather than the Data Connect API
+        run: bunx firebase experiments:disable fdcapimigration
       # Never `--force`. Without a terminal, `firebase deploy` refuses any schema change that
       # needs SQL and says to migrate first, so the migration is its own step. It runs additive SQL
       # and stops on anything destructive, like the drop and create a renamed table becomes. When

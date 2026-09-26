@@ -449,5 +449,10 @@ log printed, run `bun run deploy:database` by hand if it is what the release mea
 the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
 moved past refuses to deploy rather than put an older release over a newer one.
 
+A machine that migrates the database by hand needs `firebase experiments:disable
+fdcapimigration` run on it once. firebase-tools turns that experiment on by default, and it
+sends the SQL to a Data Connect endpoint that answers this service with a 404. The workflow
+turns it off on every run.
+
 Pull requests still deploy a Hosting preview, with the one key the repository holds, which
 `firebase-hosting-pull-request.yml` explains.

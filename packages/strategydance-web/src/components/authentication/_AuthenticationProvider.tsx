@@ -31,6 +31,11 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
     // and a restored session reports whatever was true at sign-in until it is asked again
     await currentViewer.reload()
 
+    // `reload()` updates the account but not the ID token, and the token is what Data Connect
+    // reads `email_verified` from: until it is minted again, a `USER_EMAIL_VERIFIED` operation
+    // still refuses somebody who just confirmed their address
+    if (currentViewer.emailVerified) await currentViewer.getIdToken(true)
+
     setEmailVerified(currentViewer.emailVerified)
   }
 
@@ -41,13 +46,30 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
   /*
     `onIdTokenChanged` rather than `onAuthStateChanged`: it fires on both, so a token minted
     after `reload()` reaches this listener too, and there is one place that decides what the
-    viewer is
+    viewer is.
+
+    `emailVerified` is the token's claim rather than the account's flag, because the token is
+    what Data Connect checks. `reload()` fires this listener with an account that already says
+    verified while the token in hand still says otherwise, and reading the flag there sent a
+    `USER_EMAIL_VERIFIED` query out on the old token, to be refused
   */
-  useEffect(() => onIdTokenChanged(authentication, nextViewer => {
+  useEffect(() => onIdTokenChanged(authentication, async nextViewer => {
     if (import.meta.env.DEV && nextViewer) console.log(`🙋 ${nextViewer.email}`)
 
+    let nextEmailVerified = false
+
+    if (nextViewer) {
+      try {
+        nextEmailVerified = (await nextViewer.getIdTokenResult()).claims.email_verified === true
+      }
+      // A token that cannot be refreshed, offline say, still leaves the account's own word
+      catch {
+        nextEmailVerified = nextViewer.emailVerified
+      }
+    }
+
     setViewer(nextViewer)
-    setEmailVerified(nextViewer?.emailVerified ?? false)
+    setEmailVerified(nextEmailVerified)
     setLoading(false)
   }), [])
 

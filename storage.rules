@@ -27,5 +27,19 @@ service firebase.storage {
         && request.auth.uid == userId
         && isLightImage();
     }
+
+    /*
+      An organization's logo and banner. No client gets anything here, on purpose: only an
+      administrator may change them, and a rule cannot tell who administers what, since that
+      lives in Data Connect rather than in Firestore or on the token. So the backend writes them,
+      through the Admin SDK, which rules do not bind, after asking the database.
+
+      Readers need no rule either. The URL the backend stores carries the object's download
+      token, which Storage serves without consulting these rules, and it is handed only to
+      somebody who can already see the organization
+    */
+    match /organizations/{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }

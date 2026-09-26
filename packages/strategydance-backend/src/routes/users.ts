@@ -6,6 +6,7 @@ import readViewer from '~utils/readViewer'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
+import welcomeEmailRateLimitMiddleware from '~middleware/welcomeEmailRateLimit'
 
 import sendWelcomeEmail from '~domain/email/sendWelcomeEmail'
 
@@ -17,16 +18,18 @@ function createUsersRouter() {
   --- */
 
   /*
-    Sends the caller's account its welcome email, which the web app asks for once it has created
-    the account's row: the browser writes that row itself, so this is how the server hears of it.
+    Sends the caller's account its welcome email, which the web app asks for on each visit while
+    the account is new and has not had it: the browser writes the account's row itself, so this is
+    how the server hears of it.
 
-    Answers the same whether this call sent it or an earlier one had. No body, and no rate limit:
-    the latch makes every call after the first one conditional update that changes nothing
+    Answers the same whether this call sent it, an earlier one had, or another holds the claim. No
+    body. The lease keeps a repeat from mailing, and the rate limit keeps repeats from costing much
   */
   router.post(
     '/welcome-email',
     appCheckMiddleware,
     authenticationMiddleware,
+    welcomeEmailRateLimitMiddleware,
     async (request: Request, response: Response<ApiResponse>) => {
       await sendWelcomeEmail(readViewer(request).id)
 

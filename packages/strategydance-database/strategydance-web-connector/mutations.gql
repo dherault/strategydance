@@ -142,9 +142,14 @@ mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, 
 # own, and an administrator anybody's.
 #
 # The length is checked here as well as by the form, since the form is not the only possible
-# caller. It sits on the first step's field because an operation takes no `@check` of its own
+# caller. It sits on the first step's field because an operation takes no `@check` of its own.
+#
+# The organization's row lock comes first, as in `UpdateOrganizationMemberRole`, so an
+# administrator demoted in the same instant cannot still write somebody else's title: whichever
+# runs second reads what the first committed
 mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: String!, $jobTitle: String)
 @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change a job title in it") {
@@ -183,9 +188,11 @@ mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @aut
 #
 # Keyed by the address rather than the id, which the team page never reads. Canceling one that
 # was accepted or canceled a moment ago deletes nothing and succeeds, since the outcome is the
-# one asked for
+# one asked for. The organization's row lock comes first, so an administrator demoted in the
+# same instant cannot still cancel
 mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!)
 @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can cancel an invitation to it") {

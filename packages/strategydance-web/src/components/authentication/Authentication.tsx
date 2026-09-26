@@ -390,6 +390,9 @@ function Authentication() {
         {mode === MODES.LOGIN && hasPassword && (
           <Link
             to="/authentication/password-reset"
+            // The page asked for rides along, so an invitee who resets their password still
+            // lands on their invitation once they sign in
+            search={({ redirect }) => ({ redirect })}
             className="text-sm text-muted-foreground hover:underline"
           >
             <FormattedMessage {...authenticationMessages.passwordForgotQuestion} />

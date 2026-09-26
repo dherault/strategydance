@@ -88,3 +88,66 @@ mutation CompleteWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
 mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: NO_ACCESS) {
   organizationInvitation_deleteMany(where: { id: { eq: $id }, organizationId: { eq: $organizationId } })
 }
+
+# Points an organization's logo at a file the backend has just put in Storage, or clears it with
+# null, for one of its administrators. Answers with the URL it replaced, whose file the backend
+# then deletes.
+#
+# Data Connect runs one write per row in a mutation, a second one silently changing nothing, so
+# there is no separate row lock here as elsewhere: the URL is read, then written, which takes the
+# lock, then the administrator is checked, a failure rolling the write back. The read comes before
+# the lock, so two uploads in the same instant can both read the URL the first replaces: the file
+# the second wrote over is then named by neither answer and stays behind. That costs a file, never
+# a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
+# Only the membership is redacted, since the URL is the answer
+mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String)
+@auth(level: NO_ACCESS) @transaction {
+  previous: query {
+    organization(id: $organizationId) {
+      logoUrl
+    }
+  }
+  organization_update(id: $organizationId, data: { logoUrl: $logoUrl, updatedAt_expr: "request.time" })
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its logo") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's logo")
+    }
+  }
+}
+
+# The banner's twin of `UpdateOrganizationLogo`, on the same terms
+mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $bannerUrl: String)
+@auth(level: NO_ACCESS) @transaction {
+  previous: query {
+    organization(id: $organizationId) {
+      bannerUrl
+    }
+  }
+  organization_update(id: $organizationId, data: { bannerUrl: $bannerUrl, updatedAt_expr: "request.time" })
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its banner") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's banner")
+    }
+  }
+}
+
+# Deletes an organization, for one of its administrators. Its memberships and pending invitations
+# go with it: both reference it as required, which Data Connect cascades. Its files are the
+# backend's to delete after.
+#
+# No row lock first, as elsewhere an administrator acts: Data Connect runs one write per row in a
+# mutation, so the delete after a lock would find nothing. The check reads before the delete
+# takes the lock, which leaves an administrator demoted in the same instant able to delete, as
+# they could have a moment before. `$organizationId` is also what `GetOrganizationTeam` refreshes
+# on, so a member watching the team page sees it go
+mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can delete it") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can delete an organization")
+    }
+  }
+  organization_delete(id: $organizationId) @check(expr: "this != null", message: "The organization is gone")
+}

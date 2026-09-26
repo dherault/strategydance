@@ -29,6 +29,7 @@ import organizationImageRateLimitMiddleware from '~middleware/organizationImageR
 import validateMiddleware from '~middleware/validate'
 
 import createOrganizationInvitations from '~domain/organizations/createOrganizationInvitations'
+import deleteOrganization from '~domain/organizations/deleteOrganization'
 import removeOrganizationImage from '~domain/organizations/removeOrganizationImage'
 import replaceOrganizationImage from '~domain/organizations/replaceOrganizationImage'
 
@@ -117,13 +118,45 @@ function createOrganizationsRouter() {
     },
   )
 
-  /* ---
-    IMAGES
-  --- */
-
   const organizationParamsSchema = z.object({
     organizationId: z.string().regex(UUID_PATTERN),
   })
+
+  /* ---
+    ORGANIZATION
+  --- */
+
+  type OrganizationRequest = Request<z.infer<typeof organizationParamsSchema>, ApiResponse, unknown>
+
+  /*
+    Deletes an organization, its memberships, invitations and files, for one of its
+    administrators. Takes no body
+  */
+  router.delete(
+    '/:organizationId',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: organizationParamsSchema }),
+    organizationAdministratorMiddleware,
+    async (request: OrganizationRequest, response: Response<ApiResponse>) => {
+      const result = await deleteOrganization({
+        organizationId: request.params.organizationId,
+        userId: readViewer(request).id,
+      })
+
+      if (result.outcome === 'forbidden') {
+        respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only an administrator of the organization can delete it')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /* ---
+    IMAGES
+  --- */
 
   type ImageRequest = Request<z.infer<typeof organizationParamsSchema>, ApiResponse<ChangeOrganizationImageData>, unknown>
 

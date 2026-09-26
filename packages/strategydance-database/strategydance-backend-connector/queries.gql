@@ -28,3 +28,11 @@ query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!)
     email
   }
 }
+
+# Who the welcome email goes to and what it calls them, once the backend has claimed it
+query GetWelcomeEmailRecipient($userId: String!) @auth(level: NO_ACCESS) {
+  user(key: { id: $userId }) {
+    email
+    displayName
+  }
+}

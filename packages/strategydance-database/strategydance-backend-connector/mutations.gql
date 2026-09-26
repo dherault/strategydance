@@ -38,3 +38,22 @@ mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, 
   }
   organizationInvitation_insert(data: { organizationId: $organizationId, email: $email, invitedById: $userId })
 }
+
+# Claims the account's one welcome email for the call that makes it, and answers how many rows it
+# claimed: 1 for the first call, 0 for every one after, and 0 for an account with no row.
+#
+# One conditional update rather than a read and a write, so two requests landing together cannot
+# both see the column empty: Postgres re-checks the condition on the row the first one locked, and
+# the second claims nothing. `$userId` is the uid the backend verified
+mutation ClaimWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
+  user_updateMany(
+    where: { id: { eq: $userId }, welcomeEmailSentAt: { isNull: true } }
+    data: { welcomeEmailSentAt_expr: "request.time" }
+  )
+}
+
+# Hands a claimed welcome email back when sending it failed, so the column keeps meaning that one
+# went out
+mutation ReleaseWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
+  user_update(key: { id: $userId }, data: { welcomeEmailSentAt: null })
+}

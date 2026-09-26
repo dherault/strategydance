@@ -28,7 +28,7 @@ export const DEVELOPMENT_APP_PORT = 5173
 
 export const DEVELOPMENT_APP_URL = `http://localhost:${DEVELOPMENT_APP_PORT}`
 
-export const PRODUCTION_APP_HOSTNAME = 'sunshineteams.com'
+export const PRODUCTION_APP_HOSTNAME = 'strategydance.com'
 
 export const PRODUCTION_APP_URL = `https://${PRODUCTION_APP_HOSTNAME}`
 

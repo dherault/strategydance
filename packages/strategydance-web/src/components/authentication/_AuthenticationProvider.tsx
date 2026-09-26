@@ -36,7 +36,8 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
     // still refuses somebody who just confirmed their address
     if (currentViewer.emailVerified) await currentViewer.getIdToken(true)
 
-    setEmailVerified(currentViewer.emailVerified)
+    // Not for an account signed out or replaced meanwhile, whose state the listener owns now
+    if (authentication.currentUser === currentViewer) setEmailVerified(currentViewer.emailVerified)
   }
 
   async function signOut() {
@@ -53,25 +54,43 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
     verified while the token in hand still says otherwise, and reading the flag there sent a
     `USER_EMAIL_VERIFIED` query out on the old token, to be refused
   */
-  useEffect(() => onIdTokenChanged(authentication, async nextViewer => {
-    if (import.meta.env.DEV && nextViewer) console.log(`🙋 ${nextViewer.email}`)
+  useEffect(() => {
+    /*
+      Firebase calls the listener without waiting on it, so a call still reading its token can
+      finish after a later one, a sign-out say, and put the previous account back. Only the
+      latest call commits, and unsubscribing retires any call still in flight
+    */
+    let latestCall = 0
 
-    let nextEmailVerified = false
+    const unsubscribe = onIdTokenChanged(authentication, async nextViewer => {
+      const call = ++latestCall
 
-    if (nextViewer) {
-      try {
-        nextEmailVerified = (await nextViewer.getIdTokenResult()).claims.email_verified === true
+      if (import.meta.env.DEV && nextViewer) console.log(`🙋 ${nextViewer.email}`)
+
+      let nextEmailVerified = false
+
+      if (nextViewer) {
+        try {
+          nextEmailVerified = (await nextViewer.getIdTokenResult()).claims.email_verified === true
+        }
+        // A token that cannot be refreshed, offline say, still leaves the account's own word
+        catch {
+          nextEmailVerified = nextViewer.emailVerified
+        }
       }
-      // A token that cannot be refreshed, offline say, still leaves the account's own word
-      catch {
-        nextEmailVerified = nextViewer.emailVerified
-      }
+
+      if (call !== latestCall) return
+
+      setViewer(nextViewer)
+      setEmailVerified(nextEmailVerified)
+      setLoading(false)
+    })
+
+    return () => {
+      latestCall += 1
+      unsubscribe()
     }
-
-    setViewer(nextViewer)
-    setEmailVerified(nextEmailVerified)
-    setLoading(false)
-  }), [])
+  }, [])
 
   const contextValue: AuthenticationContextType = {
     data: viewer,

@@ -101,7 +101,7 @@ function OrganizationInvitationUnverified() {
       <div className="flex flex-wrap gap-3">
         {hasSent && (
           <Button
-            disabled={status === 'checking'}
+            disabled={status === 'checking' || status === 'sending'}
             icon={status === 'checking' ? <Spinner tone="current" /> : undefined}
             onClick={handleCheck}
           >

@@ -3,7 +3,6 @@ import { deleteOrganization as deleteOrganizationMutation } from 'strategydance-
 import { bucket, dataConnect } from '~firebase'
 
 import buildOrganizationStoragePrefix from '~utils/buildOrganizationStoragePrefix'
-import logger from '~utils/logger'
 
 import isAdministratorRefusal from '~domain/organizations/isAdministratorRefusal'
 
@@ -17,14 +16,22 @@ type DeleteOrganizationResult =
   | { outcome: 'deleted' }
 
 /*
-  Deletes an organization, for one of its administrators: the row, which takes its memberships and
-  invitations with it, then every file under its prefix.
+  Deletes an organization, for one of its administrators: every file under its prefix, then the
+  row, which takes its memberships and invitations with it.
 
-  The row goes first. Were the files first, a row write that failed would leave an organization
-  whose pictures are gone; this way a sweep that fails leaves files nothing points at, which cost
-  storage rather than correctness and are logged
+  The files go first, because a download URL outlives any rule: a file left behind after the row
+  would stay readable by whoever held its URL, and nobody could ask again, the route being for
+  administrators of an organization that no longer exists. So a sweep that fails fails the whole
+  request, with the organization still there to delete again.
+
+  The price is a row write that fails after the sweep, which leaves the organization without its
+  pictures. That takes an outage, or its administrator being demoted in the instant between the
+  route's check and the mutation's, and the mark and the banner fall back to their empty looks
 */
 async function deleteOrganization({ organizationId, userId }: DeleteOrganizationInput): Promise<DeleteOrganizationResult> {
+  // `force` carries on past a file that fails, so one cannot keep the rest, and throws after
+  await bucket.deleteFiles({ prefix: buildOrganizationStoragePrefix(organizationId), force: true })
+
   try {
     await deleteOrganizationMutation(dataConnect, { organizationId, userId })
   }
@@ -32,16 +39,6 @@ async function deleteOrganization({ organizationId, userId }: DeleteOrganization
     if (isAdministratorRefusal(error)) return { outcome: 'forbidden' }
 
     throw error
-  }
-
-  const prefix = buildOrganizationStoragePrefix(organizationId)
-
-  try {
-    // `force` carries on past a file that fails, so one cannot keep the rest
-    await bucket.deleteFiles({ prefix, force: true })
-  }
-  catch (error) {
-    logger.error(`Organizations: deleted ${organizationId}, but not all of its files under ${prefix}`, error)
   }
 
   return { outcome: 'deleted' }

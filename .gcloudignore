@@ -16,6 +16,10 @@
 .firebase/
 .DS_Store
 
+# The credentials file google-github-actions/auth writes into the workspace when the deploy
+# workflow runs. It would otherwise be uploaded, and `COPY . .` would bake it into the image
+gha-creds-*.json
+
 node_modules/
 *.log
 *.tsbuildinfo

@@ -1,0 +1,58 @@
+# Deploys the backend to Cloud Run whenever main moves. It runs `bun run deploy:backend`, the
+# same command a human runs, so the deploy's flags stay in one place: the backend's package.json
+#
+# It holds no key. The organization forbids creating service account keys, and a key in the
+# repository's secrets is one a pull request's workflow could print, as
+# firebase-hosting-pull-request.yml explains. Instead the job trades GitHub's OIDC token for a
+# short-lived one of `backend-deployer@strategydance.iam.gserviceaccount.com`, through Workload
+# Identity Federation:
+#
+# - The pool `github` and its provider `strategydance` accept tokens from this repository alone,
+#   matched by its numeric id, which survives a rename and cannot be squatted
+# - The service account grants `roles/iam.workloadIdentityUser` to one subject,
+#   `repo:dherault/strategydance:ref:refs/heads/main`. A pull request's run carries its merge
+#   ref instead, so no branch but main can deploy
+# - It holds `roles/run.sourceDeveloper` to upload and build, `roles/run.admin` because
+#   `--no-invoker-iam-check` needs `run.services.setIamPolicy`, and
+#   `roles/iam.serviceAccountUser` on the Compute Engine default service account, which the build
+#   and the service both run as
+#
+# None of these names is a secret, like the Firebase config
+name: Deploy the backend to Cloud Run on merge
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+  # What lets the job ask GitHub for the OIDC token it trades
+  id-token: write
+# Merges in quick succession deploy one at a time rather than racing. A run still waiting is
+# replaced by a newer one, which deploys the same commits and more
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # Writes a credentials file into the workspace, which `--source ../..` uploads:
+      # `.gcloudignore` leaves it out, or it would ship in the image
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/995028545701/locations/global/workloadIdentityPools/github/providers/strategydance
+          service_account: backend-deployer@strategydance.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v3
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Pins CI to the packageManager version in package.json, as check-pull-request does
+          bun-version-file: package.json
+      # No `bun install`: the script only calls gcloud, and the image installs for itself
+      - run: bun run deploy:backend
+        # Answers every prompt with its default, so the first deploy creates the
+        # `cloud-run-source-deploy` repository instead of waiting on a question nobody reads.
+        # setup-gcloud sets this for its own step only. Set here rather than as `--quiet` in the
+        # script, so a deploy by hand still asks
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: 1

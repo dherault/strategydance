@@ -259,11 +259,13 @@ mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!)
 # Joins the organization an invitation is for, as a member.
 #
 # The caller has to hold the invitation's id, which only its email carried, and be signed in with
-# the address it was sent to. The two together are the proof: the id that the email arrived, the
-# address that it arrived to this account. `$organizationId` is asked for rather than read off
-# the invitation so the first step can check the pair, and so the team page's live query can
-# tell which organization changed
-mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: USER) @transaction {
+# the address it was sent to, verified. The two together are the proof: the id that the email
+# arrived, the verified address that it arrived to this account. Unverified, the address would
+# prove nothing, since a password sign-up can name any address its owner has not claimed yet.
+# `$organizationId` is asked for rather than read off the invitation so the first step can check
+# the pair, and so the team page's live query can tell which organization changed
+mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!)
+@auth(level: USER_EMAIL_VERIFIED) @transaction {
   query @redact {
     organizationInvitations(
       where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
@@ -280,8 +282,10 @@ mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(
     @check(expr: "this != null", message: "The invitation is gone, or was sent to another address")
 }
 
-# Declines an invitation, which deletes it. Only its addressee may, on the same terms as accepting
-mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: USER) {
+# Declines an invitation, which deletes it. Only its addressee may, on the same terms as accepting,
+# verified address included
+mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!)
+@auth(level: USER_EMAIL_VERIFIED) {
   organizationInvitation_deleteMany(
     where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
   )

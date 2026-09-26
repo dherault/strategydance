@@ -125,8 +125,12 @@ query GetOrganizationTeam($organizationId: UUID!)
 #
 # The address has to be the one on the caller's token, so somebody holding a link meant for
 # another address reads nothing. Nothing here tells an invitation addressed elsewhere from one
-# that is gone, and the page says as much
-query GetOrganizationInvitation($id: UUID!) @auth(level: USER) {
+# that is gone, and the page says as much.
+#
+# `USER_EMAIL_VERIFIED`, because the token's address is only the addressee's once it is verified.
+# A password sign-up proves nothing about the address it names, so without this, whoever held a
+# link could register the invited address before its owner did and read the invitation as them
+query GetOrganizationInvitation($id: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
   organizationInvitations(where: { id: { eq: $id }, email: { eq_expr: "auth.token.email" } }, limit: 1) {
     organization {
       id

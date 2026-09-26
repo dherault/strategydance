@@ -198,6 +198,12 @@ only way the app talks to them.
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs
+- An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
+  invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
+  has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
+  token, so a tab that just saw the address confirmed mints a new one, as `refetch` on
+  `AuthenticationContext` does. Locally the Auth emulator prints the confirmation link in its
+  log rather than sending it
 - Server values over variables wherever the server knows better: `id_expr: "auth.uid"`,
   `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`. A client that fills these
   in can write a row as somebody else

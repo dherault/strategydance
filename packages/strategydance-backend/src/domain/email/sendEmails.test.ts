@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
 type BatchCall = {
   payload: { to: string }[]
@@ -7,7 +7,7 @@ type BatchCall = {
 
 type BatchResponse = {
   data: { data: { id: string }[], errors: { index: number, message: string }[] } | null
-  error: { name: string, message: string, statusCode: number } | null
+  error: { name: string, message: string, statusCode: number | null } | null
   headers: Record<string, string> | null
 }
 
@@ -40,7 +40,12 @@ mock.module('resend', () => ({
   },
 }))
 
+// The waits between retries, skipped
+spyOn(Bun, 'sleep').mockResolvedValue(undefined)
+
 const { default: sendEmails } = await import('./sendEmails')
+
+const { default: UnknownDeliveryError } = await import('./UnknownDeliveryError')
 
 function makeEmails(count: number) {
   return Array.from({ length: count }, (_, index) => ({
@@ -116,6 +121,35 @@ describe('sendEmails', () => {
     await expect(sendEmails(makeEmails(1), 'key')).rejects.toThrow('rate_limit_exceeded')
     // The first request and its three retries
     expect(calls).toHaveLength(4)
+  })
+
+  test('sends again under the same key when Resend did not answer, since it may have taken the request', async () => {
+    let lost = 1
+
+    respond = call => {
+      if (lost-- > 0) return { data: null, error: { name: 'application_error', message: 'Unable to fetch data', statusCode: null }, headers: null }
+
+      return accept(call)
+    }
+
+    expect(await sendEmails(makeEmails(1), 'key')).toEqual([])
+    expect(calls.map(({ options }) => options.idempotencyKey)).toEqual(['key/0', 'key/0'])
+  })
+
+  test('throws an unknown delivery, not a refusal, when Resend never answers', async () => {
+    respond = () => ({ data: null, error: { name: 'internal_server_error', message: 'Internal server error', statusCode: 500 }, headers: null })
+
+    await expect(sendEmails(makeEmails(1), 'key')).rejects.toBeInstanceOf(UnknownDeliveryError)
+    expect(calls).toHaveLength(4)
+  })
+
+  test('does not take a refusal for an unknown delivery', async () => {
+    respond = () => ({ data: null, error: { name: 'validation_error', message: 'Invalid `from` field', statusCode: 422 }, headers: null })
+
+    const refusal = await sendEmails(makeEmails(1), 'key').catch(error => error)
+
+    expect(refusal).not.toBeInstanceOf(UnknownDeliveryError)
+    expect(calls).toHaveLength(1)
   })
 
   test('makes no request for no emails', async () => {

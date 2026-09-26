@@ -30,14 +30,16 @@ mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
-// The invitations whose email Resend refuses, or `throw` for a batch it refuses whole
-let emailOutcome: string[] | 'throw' = []
+// The invitations whose email Resend refuses, `throw` for a batch it refuses whole, or `unknown`
+// for one it never answers
+let emailOutcome: string[] | 'throw' | 'unknown' = []
 
 const deleteUnsentOrganizationInvitation = mock(async () => ({ data: { organizationInvitation_deleteMany: 1 } }))
 
 mock.module('~domain/email/sendOrganizationInvitationEmails', () => ({
   default: async ({ invitations }: { invitations: { id: string, email: string }[] }) => {
-    if (emailOutcome === 'throw') throw new Error('Resend is unavailable')
+    if (emailOutcome === 'throw') throw new Error('Resend refused them')
+    if (emailOutcome === 'unknown') throw new UnknownDeliveryError('Resend never answered')
 
     const refused = emailOutcome
 
@@ -55,6 +57,8 @@ mock.module('strategydance-database/backend', () => ({
 spyOn(Date, 'now').mockReturnValue(NOW)
 
 const { default: createOrganizationInvitations } = await import('./createOrganizationInvitations')
+
+const { default: UnknownDeliveryError } = await import('~domain/email/UnknownDeliveryError')
 
 beforeEach(() => {
   context = {
@@ -103,6 +107,19 @@ describe('createOrganizationInvitations', () => {
 
     await expect(createOrganizationInvitations({ organizationId: 'org', inviterId: 'user', emails: addresses(2) })).rejects.toThrow('Could not invite 2 of 2')
     expect(deleteUnsentOrganizationInvitation).toHaveBeenCalledTimes(2)
+  })
+
+  test('keeps the invitations, as invited, when Resend never said whether it sent them', async () => {
+    emailOutcome = 'unknown'
+
+    const result = await createOrganizationInvitations({ organizationId: 'org', inviterId: 'user', emails: addresses(2) })
+
+    expect(result).toEqual({
+      outcome: 'created',
+      invitedEmails: addresses(2),
+      failedEmails: [],
+    })
+    expect(deleteUnsentOrganizationInvitation).not.toHaveBeenCalled()
   })
 
   test('refuses past the allowance until enough of the hour has aged out for the whole request', async () => {

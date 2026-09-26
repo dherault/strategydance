@@ -6,6 +6,7 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import sendOrganizationInvitationEmails from '~domain/email/sendOrganizationInvitationEmails'
+import UnknownDeliveryError from '~domain/email/UnknownDeliveryError'
 import classifyInvitationFailure from '~domain/organizations/classifyInvitationFailure'
 
 type CreateOrganizationInvitationsInput = {
@@ -144,11 +145,23 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
     unsentInvitations = emailFailures.map(({ id, email, message }) => ({ id, email, error: new Error(message) }))
   }
   catch (error) {
-    unsentInvitations = invitations.map(({ id, email }) => ({ id, email, error }))
+    /*
+      Resend may have sent them, and taking them back would break links already delivered. They
+      stay, reported as invited, and the team page lists them for an administrator to cancel should
+      one never arrive
+    */
+    if (error instanceof UnknownDeliveryError) {
+      logger.error(`Invitations: could not tell whether ${invitations.length} invitations to ${organizationId} were emailed, so they stay`, error)
+
+      unsentInvitations = []
+    }
+    else {
+      unsentInvitations = invitations.map(({ id, email }) => ({ id, email, error }))
+    }
   }
 
   /*
-    An invitation whose email did not go out is taken back rather than left pending: nobody has its
+    An invitation Resend refused to email is taken back rather than left pending: nobody has its
     link, which no member can read, and a pending row would keep its address from being invited
     again. It is reported as an outage, which tells the reader to try again. When taking it back
     fails too, it stays, and the team page lists it for an administrator to cancel

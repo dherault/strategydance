@@ -9,6 +9,8 @@ import { EMAIL_SENDER_ADDRESS, IS_PRODUCTION, RESEND_API_KEY } from '~constants'
 
 import logger from '~utils/logger'
 
+import UnknownDeliveryError from '~domain/email/UnknownDeliveryError'
+
 type Email = {
   // The name the email goes out under, which the email chooses. The address is always this server's
   senderName: string
@@ -29,15 +31,16 @@ type EmailFailure = {
 // The most emails Resend's batch endpoint takes in one request
 const BATCH_SIZE = 100
 
-// How many times a request refused for its rate is sent again, and the longest wait before one
-const RATE_LIMIT_RETRIES = 3
+// How many times a request Resend limited or did not answer is sent again, and the longest wait
+// before one
+const RETRIES = 3
 
-const RATE_LIMIT_MAX_DELAY_MS = 10 * 1000
+const MAX_RETRY_DELAY_MS = 10 * 1000
 
 /*
   The one door every email goes through, so a new kind of email gets the development guard and the
-  failure contract by construction. Answers with the emails Resend refused, and throws when it
-  refused the request as a whole.
+  failure contract by construction. Answers with the emails Resend refused, throws when it refused
+  the request as a whole, and throws an `UnknownDeliveryError` when it never said either way.
 
   One request per hundred emails, through Resend's batch endpoint, rather than one per email: an
   invite request carries up to fifty addresses, and fifty requests at once run into Resend's rate
@@ -45,8 +48,10 @@ const RATE_LIMIT_MAX_DELAY_MS = 10 * 1000
   refusing all of them for one bad address. A request refused for its rate anyway, by a burst from
   several requests at once, is sent again after the wait Resend asks for.
 
-  `idempotencyKey` has Resend drop a second request carrying it for 24 hours, so a retry cannot
-  mail twice.
+  A request that got no answer, a server error, or word that the same key is still in flight may
+  have gone out, so it is sent again rather than reported as refused. `idempotencyKey` is what
+  makes that safe: Resend answers a second request carrying it, for 24 hours, with what it did for
+  the first, rather than mailing twice.
 
   Only production sends. Anywhere else the HTML is written to the OS temp directory and its path
   logged, to open in a browser: an emulator account carries whatever address somebody typed, and
@@ -100,17 +105,28 @@ async function sendBatch(resend: Resend, emails: Email[], idempotencyKey: string
 
     if (data) return data.errors
 
+    const description = `${emails.length} emails, the first "${emails[0].subject}": ${error.name}, ${error.message}`
+    const isRateLimited = error.name === 'rate_limit_exceeded'
+    // The SDK reports a request that never got an answer, a lost response included, as a
+    // statusless `application_error`
+    const isUndetermined = error.statusCode === null || error.statusCode >= 500 || error.name === 'concurrent_idempotent_requests'
+
     // The SDK resolves with a refusal rather than throwing it: an unverified domain, a spent quota,
     // a malformed request. Resolving quietly would report a delivery that never happened
-    if (error.name !== 'rate_limit_exceeded' || attempt === RATE_LIMIT_RETRIES) {
-      throw new Error(`Resend refused ${emails.length} emails, the first "${emails[0].subject}", with ${error.name}: ${error.message}`)
+    if (!isRateLimited && !isUndetermined) throw new Error(`Resend refused ${description}`)
+
+    if (attempt === RETRIES) {
+      throw isUndetermined
+        ? new UnknownDeliveryError(`Resend never said whether it sent ${description}`)
+        : new Error(`Resend kept limiting the rate of ${description}`)
     }
 
-    // A second when Resend does not say
-    const retryAfterSeconds = Number(headers?.['retry-after'] ?? 1)
-    const delayMs = Math.min(Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 1000, RATE_LIMIT_MAX_DELAY_MS)
+    // The wait Resend asks for after a limit, a second when it does not say, and a growing one
+    // after no answer
+    const retryAfterSeconds = isRateLimited ? Number(headers?.['retry-after'] ?? 1) : 2 ** attempt
+    const delayMs = Math.min(Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 1000, MAX_RETRY_DELAY_MS)
 
-    logger.warn(`Email: Resend limited the rate, trying again in ${delayMs}ms`)
+    logger.warn(`Email: ${isRateLimited ? 'Resend limited the rate' : 'Resend did not answer'}, trying again in ${delayMs}ms`)
 
     await Bun.sleep(delayMs)
   }

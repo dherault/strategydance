@@ -32,9 +32,19 @@ export class ApiError extends Error {
 }
 
 type RequestApiOptions = {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   path: string
+  // Sent as JSON, except a `Blob`, like a `File`, which is sent as its own bytes and type
   body?: unknown
+}
+
+// What goes over the wire for a body, and the type it goes as
+function encodeBody(body: unknown) {
+  if (body === undefined) return { requestBody: undefined, contentType: null }
+
+  if (body instanceof Blob) return { requestBody: body, contentType: body.type || 'application/octet-stream' }
+
+  return { requestBody: JSON.stringify(body), contentType: 'application/json' }
 }
 
 /*
@@ -50,11 +60,13 @@ export async function requestApi<T = void>({ method, path, body }: RequestApiOpt
 
   if (!user) throw new ApiError(401, ERROR_CODE_UNAUTHORIZED_AUTHENTICATION, 'Nobody is signed in')
 
+  const { requestBody, contentType } = encodeBody(body)
+
   const headers: Record<string, string> = {
     Authorization: `Bearer ${await user.getIdToken()}`,
   }
 
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (contentType) headers['Content-Type'] = contentType
 
   if (!EMULATORS_REQUESTED && appCheck) {
     const { token } = await getToken(appCheck)
@@ -65,7 +77,7 @@ export async function requestApi<T = void>({ method, path, body }: RequestApiOpt
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: requestBody,
   })
 
   let payload: ApiResponse<T>

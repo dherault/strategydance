@@ -10,7 +10,9 @@ import Spinner from '~components/common/Spinner'
 
 import invitationMessages from '~data/intl/messages/invitation'
 
-type Status = 'idle' | 'sending' | 'sent' | 'checking' | 'unconfirmed' | 'sendFailed' | 'checkFailed'
+// What the last action did. Whether a link went out at all is kept apart, so a resend that fails
+// still leaves the link already sent to check
+type Status = 'idle' | 'sending' | 'sent' | 'checking' | 'unconfirmed' | 'failed'
 
 /*
   What the invitation page shows a reader whose address is not verified, which a password sign-up
@@ -25,6 +27,7 @@ function OrganizationInvitationUnverified() {
   const { formatMessage } = useIntl()
   const { data: viewer, refetch } = useAuthentication()
   const [status, setStatus] = useState<Status>('idle')
+  const [hasSent, setHasSent] = useState(false)
 
   const email = viewer?.email ?? ''
 
@@ -41,10 +44,11 @@ function OrganizationInvitationUnverified() {
     try {
       await sendEmailVerification(viewer, { url: window.location.href })
 
+      setHasSent(true)
       setStatus('sent')
     }
     catch {
-      setStatus('sendFailed')
+      setStatus('failed')
     }
   }
 
@@ -58,11 +62,9 @@ function OrganizationInvitationUnverified() {
       setStatus('unconfirmed')
     }
     catch {
-      setStatus('checkFailed')
+      setStatus('failed')
     }
   }
-
-  const hasSent = status !== 'idle' && status !== 'sending' && status !== 'sendFailed'
 
   return (
     <>
@@ -88,7 +90,7 @@ function OrganizationInvitationUnverified() {
           {formatMessage(invitationMessages.notConfirmed, { email })}
         </Alert>
       )}
-      {(status === 'sendFailed' || status === 'checkFailed') && (
+      {status === 'failed' && (
         <Alert
           variant="danger"
           className="max-w-xl"

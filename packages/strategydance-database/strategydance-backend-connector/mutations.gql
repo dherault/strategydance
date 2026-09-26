@@ -135,7 +135,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 
 # Deletes an organization, for one of its administrators. Its memberships and pending invitations
 # go with it: both reference it as required, which Data Connect cascades. Its files are the
-# backend's to delete after.
+# backend's, which sweeps them before running this, so a failed sweep leaves the organization to
+# delete again, and once more after, for an upload that raced it (`deleteOrganization`).
 #
 # The lock is the caller's own membership rather than the organization's row, as elsewhere an
 # administrator acts: Data Connect runs one write per row in a mutation, so a delete after an

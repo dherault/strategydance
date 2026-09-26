@@ -1,0 +1,30 @@
+# What inviting people to an organization has to know first, in one read:
+#
+# - the caller's membership, which says whether they may invite, and names them and the
+#   organization for the email
+# - the team as it stands, members and pending invitations, which says whether any of the
+#   addresses is taken and whether the team has room
+#
+# The two lists are read whole: the database keeps a team at 100 of both together, so a limit of
+# 100 each is never a cut. `$userId` is the uid the backend verified, never one a client sent
+query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    user {
+      displayName
+      email
+    }
+    organization {
+      name
+    }
+  }
+  userOrganizations(where: { organizationId: { eq: $organizationId } }, limit: 100) {
+    user {
+      email
+    }
+  }
+  organizationInvitations(where: { organizationId: { eq: $organizationId } }, limit: 100) {
+    email
+  }
+}

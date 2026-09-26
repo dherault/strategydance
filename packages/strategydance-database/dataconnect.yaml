@@ -11,4 +11,4 @@ schemas:
           # COMPATIBLE lets Postgres carry columns Data Connect does not name, which is what
           # makes a migration that adds one deployable before the schema catches up
           schemaValidation: "COMPATIBLE"
-connectorDirs: ["./strategydance-web-connector"]
+connectorDirs: ["./strategydance-web-connector", "./strategydance-backend-connector"]

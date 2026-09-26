@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 import {
+  useAcceptOrganizationInvitation,
   useAddOrganizationExploredAspect,
   useCreateOrganization,
   useGetCurrentUserOrganizations,
@@ -40,6 +41,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
 
   const { mutateAsync: createOrganizationMutation } = useCreateOrganization(dataConnect)
   const { mutateAsync: addExploredAspectMutation } = useAddOrganizationExploredAspect(dataConnect)
+  const { mutateAsync: acceptInvitationMutation } = useAcceptOrganizationInvitation(dataConnect)
 
   const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
 
@@ -78,12 +80,29 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   }
 
   /*
+    Accepts an invitation, and resolves once the list holds the new membership, so the caller can
+    select the organization knowing the sidebar has it.
+
+    The read after the write throws on failure, which a refetch does not do by default: a caller
+    told the membership is there when the list does not show it would switch to an organization
+    the sidebar cannot find
+  */
+  async function joinOrganization(invitationId: string, organizationId: string) {
+    await acceptInvitationMutation({ id: invitationId, organizationId })
+    await refetchUserOrganizations({ throwOnError: true })
+  }
+
+  /*
     The database writes the list whole, so the new one is built here from the list last read. The
     server accepts it only as that list with the aspect appended, so a list that changed in
     between, another tab or member having added an aspect, is refused: the list is read again and
     the write tried again, up to three times. An aspect already there is left as it is, and the
     refetch before answering means the caller can navigate to the aspect knowing the sidebar lists
-    it
+    it.
+
+    Both refetches throw on failure, which a refetch does not do by default. A write followed by a
+    failed read is then an attempt like any other, retried from a fresh read, rather than a success
+    claimed on a list that does not show it
   */
   async function exploreCompanyAspect(organizationId: string, aspect: CompanyAspect) {
     let memberships = userOrganizations
@@ -99,14 +118,14 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
           aspect,
           exploredAspects: [...exploredAspects, aspect],
         })
-        await refetchUserOrganizations()
+        await refetchUserOrganizations({ throwOnError: true })
 
         return
       }
       catch (error) {
         if (attempt >= 3) throw error
 
-        const { data: refetched } = await refetchUserOrganizations()
+        const { data: refetched } = await refetchUserOrganizations({ throwOnError: true })
 
         memberships = refetched?.userOrganizations ?? []
       }
@@ -119,6 +138,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     loading,
     refetch,
     createOrganization,
+    joinOrganization,
     exploreCompanyAspect,
   }
 

@@ -67,8 +67,9 @@ function AuthenticationPasswordReset() {
       }
     }
 
-    // The banner says the same thing whether or not the address had an account
-    await navigate({ to: '/authentication', search: { passwordResetSent: true }, replace: true })
+    // The banner says the same thing whether or not the address had an account. The page asked
+    // for before signing in comes back along with it
+    await navigate({ to: '/authentication', search: ({ redirect }) => ({ passwordResetSent: true, redirect }), replace: true })
   }
 
   return (
@@ -113,7 +114,7 @@ function AuthenticationPasswordReset() {
       <div className="mt-4">
         <button
           type="button"
-          onClick={() => navigate({ to: '/authentication' })}
+          onClick={() => navigate({ to: '/authentication', search: ({ redirect }) => ({ redirect }) })}
           className="cursor-pointer text-sm text-muted-foreground hover:underline"
         >
           <FormattedMessage {...authenticationMessages.actionBack} />

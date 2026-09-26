@@ -9,3 +9,12 @@
 
 @source "../../strategydance-design-system/src";
 @source not "../../strategydance-design-system/src/**/*.stories.tsx";
+
+/*
+  The app sits on white, the sidebar included, as the prototype has it. The design system's
+  sidebar is a neutral-50 column by default, and every part of it, the column, the mobile sheet
+  and its close button, paints this one token, so overriding it here whitens all of them at once
+*/
+:root {
+  --sidebar: var(--color-white);
+}

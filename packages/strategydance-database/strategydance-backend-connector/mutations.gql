@@ -1,0 +1,40 @@
+# Invites somebody to an organization, from one of its administrators, and answers with the id
+# the invitation's email carries.
+#
+# One address per call, which the backend makes once for each address in parallel: the generated
+# Admin SDK cannot pass the `_Data` list `_insertMany` would need. Each call checks for itself
+# that the inviter is an administrator, that the address belongs to no member, and that the team
+# has room. The pair of organization and address is unique, so an address invited in the
+# meantime fails its own call rather than being invited twice.
+#
+# A team holds at most 100 members and pending invitations together, `MAX_TEAM_SIZE` in
+# strategydance-core. The first step takes the organization's row lock, so the calls for one
+# organization run one after the other and each counts what the one before it committed: a
+# batch, or two administrators inviting at once, cannot slip past the limit together
+mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, $email: String!)
+@auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can invite people to it") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can invite people")
+    }
+    userOrganizations(where: { organizationId: { eq: $organizationId }, user: { email: { eq: $email } } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The address belongs to a member already", optional: true) {
+      userId
+    }
+    organization(id: $organizationId)
+      @check(
+        expr: "size(this.userOrganizations_on_organization) + size(this.organizationInvitations_on_organization) < 100"
+        message: "The team is full"
+      ) {
+      userOrganizations_on_organization(limit: 100) {
+        userId
+      }
+      organizationInvitations_on_organization(limit: 100) {
+        id
+      }
+    }
+  }
+  organizationInvitation_insert(data: { organizationId: $organizationId, email: $email, invitedById: $userId })
+}

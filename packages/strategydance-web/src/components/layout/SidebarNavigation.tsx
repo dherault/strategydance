@@ -92,7 +92,7 @@ function SidebarNavigation() {
       </SidebarGroup>
       <SidebarGroup>
         <SidebarGroupLabel>
-          {formatMessage(navigationMessages.company)}
+          {formatMessage(navigationMessages.aspects)}
         </SidebarGroupLabel>
         <SidebarMenu>
           {exploredAspects.map(aspect => (
@@ -118,7 +118,7 @@ function SidebarNavigation() {
       </SidebarGroup>
       <SidebarGroup>
         <SidebarGroupLabel>
-          {formatMessage(navigationMessages.workspace)}
+          {formatMessage(navigationMessages.company)}
         </SidebarGroupLabel>
         <SidebarMenu>
           <NavigationLink

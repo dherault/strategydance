@@ -95,6 +95,34 @@ type UserOrganization @table(key: ["user", "organization"]) {
   organization: Organization!
   # No default. An insert has to say which, so nobody becomes an administrator by omission
   role: OrganizationRole!
+  # What they do there, like "Product designer", written by them or by an administrator. On the
+  # membership rather than on `User`, since one person does different things in different
+  # organizations. Null until somebody writes one. Named apart from the design's "Role" column
+  # it fills, because `role` above is already something else
+  jobTitle: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Somebody asked to join an organization, by email, who has not answered yet.
+#
+# Every row is pending: accepting inserts the `UserOrganization` and deletes this row, and
+# declining or canceling deletes it alone. The pair of organization and address is unique, so
+# nobody is invited to the same organization twice.
+#
+# `id` doubles as the secret in the invitation's link. Holding it is what proves the email
+# reached its reader, which the address on a token cannot: password accounts are never verified.
+# So no operation a member can call selects it, and only the backend reads it, to put it in the
+# email
+type OrganizationInvitation @table @unique(fields: ["organization", "email"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # Lowercased before it is written, because Firebase Auth lowercases the address on a token and
+  # accepting compares the two
+  email: String!
+  # Who sent it, for the page the link opens to name
+  invitedBy: User!
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

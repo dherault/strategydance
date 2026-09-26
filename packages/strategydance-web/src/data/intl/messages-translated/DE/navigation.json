@@ -15,6 +15,7 @@
   "navigation.aspectProduct": "Produkt",
   "navigation.aspectSales": "Vertrieb",
   "navigation.aspectStrategy": "Strategie",
+  "navigation.aspects": "Aspekte",
   "navigation.close": "Schließen",
   "navigation.closeSidebar": "Seitenleiste schließen",
   "navigation.comingSoon": "Demnächst",
@@ -34,6 +35,5 @@
   "navigation.tasks": "Aufgaben",
   "navigation.team": "Team",
   "navigation.today": "Heute",
-  "navigation.toggleSidebar": "Seitenleiste ein-/ausblenden",
-  "navigation.workspace": "Arbeitsbereich"
+  "navigation.toggleSidebar": "Seitenleiste ein-/ausblenden"
 }

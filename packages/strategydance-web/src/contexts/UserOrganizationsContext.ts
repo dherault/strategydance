@@ -16,6 +16,8 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   // Resolves once the new row is readable, and answers with its id so the caller can select it.
   // Selecting is deliberately not done here: this context does not know what is selected
   createOrganization: (name: string) => Promise<string>
+  // Accepts an invitation to the organization, and resolves once the list shows the membership
+  joinOrganization: (invitationId: string, organizationId: string) => Promise<void>
   // Adds an aspect to the organization's explored ones, and resolves once the list shows it
   exploreCompanyAspect: (organizationId: string, aspect: CompanyAspect) => Promise<void>
 }
@@ -26,5 +28,6 @@ export default createContext<UserOrganizationsContextType>({
   loading: false,
   refetch: async () => {},
   createOrganization: async () => '',
+  joinOrganization: async () => {},
   exploreCompanyAspect: async () => {},
 })

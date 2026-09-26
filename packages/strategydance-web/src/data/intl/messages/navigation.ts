@@ -32,9 +32,9 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Agents',
     description: 'Sidebar link to the page about the AI agents working for the company.',
   },
-  company: {
-    id: 'navigation.company',
-    defaultMessage: 'Company',
+  aspects: {
+    id: 'navigation.aspects',
+    defaultMessage: 'Aspects',
     description: 'Sidebar heading above the aspects of the company, such as strategy or finances.',
   },
   exploreMore: {
@@ -42,10 +42,10 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Explore more aspects',
     description: 'Sidebar link to the page where the reader adds more aspects of their company to work on.',
   },
-  workspace: {
-    id: 'navigation.workspace',
-    defaultMessage: 'Workspace',
-    description: 'Sidebar heading above the links about the workspace itself, such as settings.',
+  company: {
+    id: 'navigation.company',
+    defaultMessage: 'Company',
+    description: 'Sidebar heading above the links about the company itself, such as its team and its settings. Also the small label above the title of those pages.',
   },
   team: {
     id: 'navigation.team',

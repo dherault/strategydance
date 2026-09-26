@@ -24,6 +24,7 @@ import { Route as Char91Char93TeamRouteImport } from './routes/[-]/team'
 import { Route as Char91Char93TodayRouteImport } from './routes/[-]/today'
 import { Route as AuthenticationIndexRouteImport } from './routes/authentication/index'
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
+import { Route as Char91Char93InvitationInvitationIdRouteImport } from './routes/[-]/invitation.$invitationId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -101,6 +102,12 @@ const AuthenticationPasswordResetRoute =
     path: '/password-reset',
     getParentRoute: () => AuthenticationRoute,
   } as any)
+const Char91Char93InvitationInvitationIdRoute =
+  Char91Char93InvitationInvitationIdRouteImport.update({
+    id: '/invitation/$invitationId',
+    path: '/invitation/$invitationId',
+    getParentRoute: () => Char91Char93Route,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-/': typeof Char91Char93IndexRoute
   '/authentication/': typeof AuthenticationIndexRoute
+  '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -133,6 +141,7 @@ export interface FileRoutesByTo {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-': typeof Char91Char93IndexRoute
   '/authentication': typeof AuthenticationIndexRoute
+  '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,6 +160,7 @@ export interface FileRoutesById {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-/': typeof Char91Char93IndexRoute
   '/authentication/': typeof AuthenticationIndexRoute
+  '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/-/'
     | '/authentication/'
+    | '/-/invitation/$invitationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/-'
     | '/authentication'
+    | '/-/invitation/$invitationId'
   id:
     | '__root__'
     | '/'
@@ -202,6 +214,7 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/-/'
     | '/authentication/'
+    | '/-/invitation/$invitationId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticationPasswordResetRouteImport
       parentRoute: typeof AuthenticationRoute
     }
+    '/-/invitation/$invitationId': {
+      id: '/-/invitation/$invitationId'
+      path: '/invitation/$invitationId'
+      fullPath: '/-/invitation/$invitationId'
+      preLoaderRoute: typeof Char91Char93InvitationInvitationIdRouteImport
+      parentRoute: typeof Char91Char93Route
+    }
   }
 }
 
@@ -331,6 +351,7 @@ interface Char91Char93RouteChildren {
   Char91Char93TeamRoute: typeof Char91Char93TeamRoute
   Char91Char93TodayRoute: typeof Char91Char93TodayRoute
   Char91Char93IndexRoute: typeof Char91Char93IndexRoute
+  Char91Char93InvitationInvitationIdRoute: typeof Char91Char93InvitationInvitationIdRoute
 }
 
 const Char91Char93RouteChildren: Char91Char93RouteChildren = {
@@ -343,6 +364,8 @@ const Char91Char93RouteChildren: Char91Char93RouteChildren = {
   Char91Char93TeamRoute: Char91Char93TeamRoute,
   Char91Char93TodayRoute: Char91Char93TodayRoute,
   Char91Char93IndexRoute: Char91Char93IndexRoute,
+  Char91Char93InvitationInvitationIdRoute:
+    Char91Char93InvitationInvitationIdRoute,
 }
 
 const Char91Char93RouteWithChildren = Char91Char93Route._addFileChildren(

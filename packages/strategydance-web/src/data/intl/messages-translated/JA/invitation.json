@@ -1,0 +1,17 @@
+{
+  "invitation.continue": "Strategy Danceへ進む",
+  "invitation.decline": "辞退する",
+  "invitation.declineConfirm": "本当に辞退しますか？",
+  "invitation.declineError": "招待を辞退できませんでした。もう一度お試しください。",
+  "invitation.declined": "招待を辞退しました",
+  "invitation.eyebrow": "招待",
+  "invitation.join": "参加する",
+  "invitation.joinError": "{organizationName}への参加が完了しませんでした。ページを再読み込みして状況を確認してください。",
+  "invitation.joined": "{organizationName}に参加しました",
+  "invitation.lead": "{inviterName}があなたをメンバーとして{organizationName}に招待しました。",
+  "invitation.loadError": "招待を読み込めませんでした。接続を確認して、もう一度お試しください。",
+  "invitation.missingLead": "この招待はすでにキャンセルまたは回答済みであるか、{email}とは別のアドレスに送信された可能性があります。招待者に再送信を依頼するか、招待を受信したアドレスでサインインしてください。",
+  "invitation.missingTitle": "招待を利用できません",
+  "invitation.retry": "再試行",
+  "invitation.title": "{organizationName}に参加"
+}

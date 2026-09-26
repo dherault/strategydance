@@ -15,7 +15,9 @@ export const MESSAGE_TYPES = [
   'authentication',
   'explore',
   'global',
+  'invitation',
   'navigation',
+  'team',
 ] as const
 
 /* ---

@@ -137,12 +137,18 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # go with it: both reference it as required, which Data Connect cascades. Its files are the
 # backend's to delete after.
 #
-# No row lock first, as elsewhere an administrator acts: Data Connect runs one write per row in a
-# mutation, so the delete after a lock would find nothing. The check reads before the delete
-# takes the lock, which leaves an administrator demoted in the same instant able to delete, as
-# they could have a moment before. `$organizationId` is also what `GetOrganizationTeam` refreshes
-# on, so a member watching the team page sees it go
+# The lock is the caller's own membership rather than the organization's row, as elsewhere an
+# administrator acts: Data Connect runs one write per row in a mutation, so a delete after an
+# `organization_update` would find nothing. It serializes all the same, since demoting or
+# removing somebody writes their membership: one in flight holds the row until it commits, and
+# the check below then reads the member it left; one that starts after waits for this delete.
+# The membership goes with the organization anyway, so touching it costs nothing.
+#
+# `$organizationId` is also what `GetOrganizationTeam` refreshes on, so a member watching the
+# team page sees it go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(key: { userId: $userId, organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+    @redact
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can delete it") {

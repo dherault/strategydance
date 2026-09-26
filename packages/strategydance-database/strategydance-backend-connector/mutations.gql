@@ -41,7 +41,7 @@ mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, 
 
 # Claims the account's welcome email for the request that makes it, and answers how many rows it
 # claimed: 1 when this request may send it, 0 when it went out already, another request holds it,
-# or the account has no row.
+# the account is more than a week old, or it has no row.
 #
 # A claim is a ten-minute lease rather than a flag. A request that sends completes it; one that
 # fails, or dies with its process, leaves it to lapse, and the next request after that sends
@@ -58,6 +58,8 @@ mutation ClaimWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
       _and: [
         { id: { eq: $userId } }
         { welcomeEmailSentAt: { isNull: true } }
+        # `WELCOME_EMAIL_WINDOW_DAYS` in strategydance-core: an older account is never welcomed
+        { createdAt: { ge_time: { now: true, sub: { days: 7 } } } }
         {
           _or: [
             { welcomeEmailClaimedAt: { isNull: true } }

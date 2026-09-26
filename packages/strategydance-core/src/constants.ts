@@ -100,3 +100,16 @@ export const MAX_TEAM_SIZE = 100
 
 // What somebody does in an organization, as the team page shows it beside their name
 export const MAX_JOB_TITLE_LENGTH = 60
+
+/* ---
+  USERS
+--- */
+
+/*
+  How long a new account keeps being offered its welcome email, in days. The web app asks for it on
+  each visit until it has gone out, so a request lost to a closed tab or a backend that was down is
+  made again; past this, an account predates the email or its welcome has failed for a week, and a
+  late one would read oddly. Written out again in `ClaimWelcomeEmail`, which cannot import it:
+  change the two together
+*/
+export const WELCOME_EMAIL_WINDOW_DAYS = 7

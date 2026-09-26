@@ -1,4 +1,5 @@
 import { type PropsWithChildren, useEffect, useRef, useState } from 'react'
+import { WELCOME_EMAIL_WINDOW_DAYS } from 'strategydance-core'
 import type { UpdateCurrentUserVariables } from 'strategydance-database/web'
 import { useCreateCurrentUser, useGetCurrentUser, useUpdateCurrentUser } from 'strategydance-database/web/react'
 
@@ -53,6 +54,10 @@ function UserProvider({ children }: PropsWithChildren) {
   // Whose insert failed, rather than a bare boolean, so signing into another account on the
   // same tab starts from a clean slate instead of inheriting the last one's failure
   const [insertFailedForViewerId, setInsertFailedForViewerId] = useState<string | null>(null)
+
+  // Whose welcome email this page has asked for, so it asks once a visit rather than on every
+  // read of the row
+  const welcomeRequestedForViewerIdRef = useRef<string | null>(null)
 
   const user = viewerId ? data?.user ?? null : null
 
@@ -116,18 +121,7 @@ function UserProvider({ children }: PropsWithChildren) {
       timezone,
       authenticationProviders: getAuthenticationProviders(viewer),
     })
-      .then(() => {
-        /*
-          The row is new, so the account is: ask the backend to welcome it, which is how the
-          server hears of an account the browser created. Not awaited, and failing on its own:
-          nobody waits on an email, and a backend that is down does not get to fail a sign-up
-        */
-        requestApi({ method: 'POST', path: '/users/welcome-email' }).catch(error => {
-          console.error('Failed to request the welcome email', error)
-        })
-
-        return refetchUser()
-      })
+      .then(() => refetchUser())
       .catch(error => {
         insertingForViewerIdRef.current = null
 
@@ -194,6 +188,27 @@ function UserProvider({ children }: PropsWithChildren) {
     updateCurrentUser,
     refetchUser,
   ])
+
+  /*
+    Ask the backend to welcome a new account that has not been. The browser creates the row, so
+    this is how the server hears of the account. Asking on each visit rather than once after the
+    insert means a request lost to a closed tab or a backend that was down is made again, and the
+    backend's lease makes a repeat harmless.
+
+    Not awaited, and failing on its own: nobody waits on an email, and a backend that is down does
+    not get to fail a page
+  */
+  useEffect(() => {
+    if (!user || user.welcomeEmailSentAt) return
+    if (welcomeRequestedForViewerIdRef.current === user.id) return
+    if (Date.now() - new Date(user.createdAt).getTime() > WELCOME_EMAIL_WINDOW_DAYS * 24 * 60 * 60 * 1000) return
+
+    welcomeRequestedForViewerIdRef.current = user.id
+
+    requestApi({ method: 'POST', path: '/users/welcome-email' }).catch(error => {
+      console.error('Failed to request the welcome email', error)
+    })
+  }, [user])
 
   const contextValue: UserContextType = {
     data: user,

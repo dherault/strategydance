@@ -76,13 +76,13 @@ export const DEFAULT_AUTHENTICATION_ERROR = 'errorDefault'
 */
 export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
   CompanyAspect.STRATEGY,
-  CompanyAspect.PEOPLE,
-  CompanyAspect.FINANCES,
+  CompanyAspect.MARKETING,
+  CompanyAspect.SALES,
   CompanyAspect.PRODUCT,
   CompanyAspect.ENGINEERING,
   CompanyAspect.DESIGN,
-  CompanyAspect.MARKETING,
-  CompanyAspect.SALES,
+  CompanyAspect.PEOPLE,
+  CompanyAspect.FINANCES,
   CompanyAspect.LEGAL,
 ]
 

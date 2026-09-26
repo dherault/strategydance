@@ -37,6 +37,12 @@ mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, 
     }
   }
   organizationInvitation_insert(data: { organizationId: $organizationId, email: $email, invitedById: $userId })
+  # Counted against the inviter's hourly allowance, `MAX_INVITATIONS_PER_HOUR` in the backend's
+  # `createOrganizationInvitations`, and their rows from before the hour it counts pruned
+  sentInvitation_insert(data: { invitedById: $userId }) @redact
+  sentInvitation_deleteMany(
+    where: { invitedById: { eq: $userId }, createdAt: { lt_time: { now: true, sub: { hours: 1 } } } }
+  ) @redact
 }
 
 # Claims the account's welcome email for the request that makes it, and answers how many rows it

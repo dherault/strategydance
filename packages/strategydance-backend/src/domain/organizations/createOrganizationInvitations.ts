@@ -15,8 +15,22 @@ type CreateOrganizationInvitationsInput = {
   emails: string[]
 }
 
+/*
+  How many invitations one person may send in an hour, whichever organizations they go to. Twice
+  what fills a team, which only somebody sending to strangers needs more of. Every invitation is
+  an email, so this is what bounds the mail one account can cause.
+
+  Counted from the database rather than in this server's memory, which Cloud Run would multiply by
+  its instances. Written out again in `GetOrganizationInvitationContext`'s limit and
+  `CreateOrganizationInvitation`'s pruning, which cannot import it: change the three together
+*/
+const MAX_INVITATIONS_PER_HOUR = 200
+
+const HOUR_MS = 60 * 60 * 1000
+
 type CreateOrganizationInvitationsResult =
   | { outcome: 'forbidden' }
+  | { outcome: 'quota', retryAfterMs: number }
   | { outcome: 'conflict', memberEmails: string[], invitedEmails: string[] }
   | { outcome: 'full', room: number }
   | ({ outcome: 'created' } & InviteOrganizationMembersData)
@@ -24,10 +38,15 @@ type CreateOrganizationInvitationsResult =
 /*
   Invites a list of addresses to an organization and emails each one its link.
 
-  One read first says whether the inviter may, whether any address already belongs to a member or
-  has a pending invitation, and whether the team has room for them all; any of those refuses the
-  whole list, since the form that sent it checks the same things and a list that fails here is
-  one the reader has not seen yet.
+  One read first says whether the inviter may, whether they have sent too many invitations this
+  hour, whether any address already belongs to a member or has a pending invitation, and whether
+  the team has room for them all; any of those refuses the whole list, since the form that sent it
+  checks the same things and a list that fails here is one the reader has not seen yet.
+
+  The hourly count is read before the inserts rather than checked by each, so two requests from
+  one person landing together can both fit under it and pass it by one request's worth. The
+  per-instance request limit keeps that small, and the database still holds every team to its
+  size.
 
   Then one insert per address, in parallel, each checking again in its own transaction, so each can
   fail on its own: the address taken in between, the team filled up, the inviter no longer an
@@ -46,6 +65,17 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
   const inviter = context.userOrganization
 
   if (inviter?.role !== OrganizationRole.ADMINISTRATOR) return { outcome: 'forbidden' }
+
+  // The sender's invitations from the last hour, oldest first: past the allowance, room comes back
+  // as the oldest of them age out, so the wait is until enough have
+  const excess = context.sentInvitations.length + emails.length - MAX_INVITATIONS_PER_HOUR
+
+  if (excess > 0) {
+    return {
+      outcome: 'quota',
+      retryAfterMs: new Date(context.sentInvitations[excess - 1].createdAt).getTime() + HOUR_MS - Date.now(),
+    }
+  }
 
   const teamMemberEmails = new Set(context.userOrganizations.map(({ user }) => user.email))
   const teamInvitedEmails = new Set(context.organizationInvitations.map(({ email }) => email))

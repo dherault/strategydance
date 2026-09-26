@@ -4,6 +4,7 @@ import {
   ERROR_CODE_CONFLICT,
   ERROR_CODE_FORBIDDEN,
   ERROR_CODE_TEAM_FULL,
+  ERROR_CODE_TOO_MANY_REQUESTS,
   type InviteOrganizationMembersData,
   MAX_INVITATIONS_PER_REQUEST,
   isEmailAddress,
@@ -17,7 +18,6 @@ import respondError from '~utils/respondError'
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
 import invitationRateLimitMiddleware from '~middleware/invitationRateLimit'
-import invitationRecipientQuotaMiddleware from '~middleware/invitationRecipientQuota'
 import validateMiddleware from '~middleware/validate'
 
 import createOrganizationInvitations from '~domain/organizations/createOrganizationInvitations'
@@ -58,7 +58,6 @@ function createOrganizationsRouter() {
     authenticationMiddleware,
     invitationRateLimitMiddleware,
     validateMiddleware({ params: invitationsParamsSchema, body: invitationsBodySchema }),
-    invitationRecipientQuotaMiddleware,
     async (request: InvitationsRequest, response: Response<ApiResponse<InviteOrganizationMembersData>>) => {
       const result = await createOrganizationInvitations({
         organizationId: request.params.organizationId,
@@ -68,6 +67,15 @@ function createOrganizationsRouter() {
 
       if (result.outcome === 'forbidden') {
         respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only an administrator of the organization can invite people to it')
+
+        return
+      }
+
+      if (result.outcome === 'quota') {
+        // At least a second: the oldest invitation may have aged out between the read and now
+        response.setHeader('Retry-After', Math.max(1, Math.ceil(result.retryAfterMs / 1000)))
+
+        respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many invitations sent, try again later')
 
         return
       }

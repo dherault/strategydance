@@ -207,9 +207,10 @@ only way the app talks to them.
 - Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
   exports each as values in the schema's order, and the frontend imports them from
   `strategydance-database/web`
-- A schema change reaches production only through `bun run deploy:database`. Merge it after,
-  not before, or the live frontend and backend, which a push to `main` deploys, query fields
-  their database does not have yet
+- A schema change reaches production with its release: a push to `main` migrates the database
+  and deploys Data Connect before the backend and the frontend that query it. A migration that
+  drops anything stops the release for a human instead, as
+  [What a merge into `main` deploys](#what-a-merge-into-main-deploys) says
 
 A list a page keeps current, like a team, is a live query. `@refresh(onMutationExecuted: ...)`
 on the query names each mutation that changes it, with a condition on the variable they share,
@@ -288,13 +289,10 @@ in `utils/`, one concern per file.
   is also the account the service runs as, so it starts with no roles: grant it
   `roles/run.builder` before the first deploy, beside the Data Connect and Storage roles it needs
   to run and Secret Manager's accessor role on each secret it reads
-- A push to `main` deploys the backend through `.github/workflows/deploy-backend-merge.yml`,
-  which runs `bun run deploy:backend` as `backend-deployer@strategydance.iam.gserviceaccount.com`.
-  That account has no key, since the organization forbids creating one: GitHub's OIDC token is
-  traded for it through Workload Identity Federation, and only a run on `main` in this
-  repository may. The workflow's header lists what it is granted. `.gcloudignore` leaves out
-  `gha-creds-*.json`, the credentials file the job writes into the workspace, which the upload
-  would otherwise carry into the image
+- A push to `main` deploys the backend with the rest of the release, by running
+  `bun run deploy:backend`, as [What a merge into `main` deploys](#what-a-merge-into-main-deploys)
+  says. `.gcloudignore` leaves out `gha-creds-*.json`, the credentials file the job writes into
+  the workspace, which the upload would otherwise carry into the image
 - Organizations' logos and banners are the backend's to write, since only an administrator may
   and a Storage rule cannot read who administers what. It stores each under a fresh name with
   its own download token, writes that URL to the row, and deletes the file the row pointed at
@@ -429,4 +427,27 @@ GitHub will compare, and it refuses outright when the local `dev` is ahead of it
 commit that has not been pushed is a commit the pull request would leave behind. Pushing it is
 your call, not the script's.
 
-Merging it is a human decision like any other.
+Merging it is a human decision like any other, and it deploys: see below.
+
+### What a merge into `main` deploys
+
+Every push to `main` runs `.github/workflows/deploy-merge.yml`, which deploys the release in the
+order it needs: Data Connect, the backend, the Storage rules, then the frontend. Each step waits
+on the one before it, so a release that stops partway stops before anything that relies on what
+failed.
+
+It runs as `deployer@strategydance.iam.gserviceaccount.com`, which has no key, since the
+organization forbids creating one: GitHub's OIDC token is traded for it through Workload
+Identity Federation, and only a run on `main` in this repository may. The workflow's header
+lists what it is granted, which includes rewriting the production database, so pushing to
+`main` is as good as holding it.
+
+It never passes `--force`. A migration that only adds runs by itself. One that drops anything,
+a renamed table included, stops the release before the backend and the frontend move, and so do
+a connector change Data Connect calls breaking and a new insecure operation. Read the SQL the
+log printed, run `bun run deploy:database` by hand if it is what the release means, then re-run
+the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
+moved past refuses to deploy rather than put an older release over a newer one.
+
+Pull requests still deploy a Hosting preview, with the one key the repository holds, which
+`firebase-hosting-pull-request.yml` explains.

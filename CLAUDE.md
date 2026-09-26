@@ -55,7 +55,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
 | `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend` |
-| `bun run kill` / `kill:backend` / `kill:emulators` | Frees the dev server port, the backend's, or the four emulator ports |
+| `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
 Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
 

@@ -3,6 +3,7 @@ import { useIntl } from 'react-intl'
 import useOrganizationInvitation from '~hooks/invitation/useOrganizationInvitation'
 
 import OrganizationInvitationCard from '~components/invitation/OrganizationInvitationCard'
+import ContainerLayout from '~components/layout/ContainerLayout'
 import OrganizationInvitationFailed from '~components/invitation/OrganizationInvitationFailed'
 import OrganizationInvitationMissing from '~components/invitation/OrganizationInvitationMissing'
 
@@ -19,7 +20,7 @@ function OrganizationInvitation({ invitationId }: Props) {
   const { data: invitation, loading, refetch, hasFailed } = useOrganizationInvitation(invitationId)
 
   return (
-    <div className="flex max-w-[1024px] flex-col gap-6 px-2 pt-5 pb-12">
+    <ContainerLayout className="gap-6">
       <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
         {formatMessage(invitationMessages.eyebrow)}
       </p>
@@ -38,7 +39,7 @@ function OrganizationInvitation({ invitationId }: Props) {
               />
             )
           : <OrganizationInvitationMissing />}
-    </div>
+    </ContainerLayout>
   )
 }
 

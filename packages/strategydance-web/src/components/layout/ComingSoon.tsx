@@ -1,6 +1,8 @@
 import { useIntl } from 'react-intl'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 
+import ContainerLayout from '~components/layout/ContainerLayout'
+
 import navigationMessages from '~data/intl/messages/navigation'
 
 type Props = {
@@ -13,7 +15,7 @@ function ComingSoon({ page }: Props) {
   const { formatMessage } = useIntl()
 
   return (
-    <div className="p-6">
+    <ContainerLayout>
       <Alert
         variant="info"
         title={formatMessage(navigationMessages.comingSoon)}
@@ -21,7 +23,7 @@ function ComingSoon({ page }: Props) {
       >
         {formatMessage(navigationMessages.comingSoonDescription, { page })}
       </Alert>
-    </div>
+    </ContainerLayout>
   )
 }
 

@@ -7,6 +7,7 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
+import ContainerLayout from '~components/layout/ContainerLayout'
 import BanMemberDialog from '~components/team/BanMemberDialog'
 import EditJobTitleDialog from '~components/team/EditJobTitleDialog'
 import InviteMembersDialog from '~components/team/InviteMembersDialog'
@@ -39,7 +40,7 @@ function Team() {
   const isAdministrator = viewerRole === OrganizationRole.ADMINISTRATOR
 
   return (
-    <div className="flex max-w-[1024px] flex-col gap-8 px-2 pt-5 pb-12">
+    <ContainerLayout className="gap-8">
       <TeamHeader
         organizationName={hasFailed ? null : organization?.name ?? null}
         memberCount={team.userOrganizations.length}
@@ -99,7 +100,7 @@ function Team() {
             />
           )
         : null}
-    </div>
+    </ContainerLayout>
   )
 }
 

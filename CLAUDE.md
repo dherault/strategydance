@@ -446,7 +446,8 @@ It never passes `--force`. A migration that only adds runs by itself. One that d
 a renamed table included, stops the release before the backend and the frontend move, and so do
 a connector change Data Connect calls breaking and a new insecure operation. Read the SQL the
 log printed, run `bun run deploy:database` by hand if it is what the release means, then re-run
-the failed job.
+the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
+moved past refuses to deploy rather than put an older release over a newer one.
 
 Pull requests still deploy a Hosting preview, with the one key the repository holds, which
 `firebase-hosting-pull-request.yml` explains.

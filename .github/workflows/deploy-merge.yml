@@ -52,6 +52,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      # A re-run keeps the commit its run started on. Once main has moved past it, re-running an
+      # old failed run would deploy that commit over the newer release, connectors and frontend
+      # included, so it stops here instead. The tip's own run is the one to re-run: it deploys
+      # the same commits and more
+      - name: Refuse anything but the tip of main
+        run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::error::main is at $tip, past this run's $GITHUB_SHA. Re-run the deploy of $tip instead"
+            exit 1
+          fi
       - uses: oven-sh/setup-bun@v2
         with:
           # Pins CI to the packageManager version in package.json, as check-pull-request does
@@ -71,7 +82,7 @@ jobs:
       # needs SQL and says to migrate first, so the migration is its own step. It runs additive SQL
       # and stops on anything destructive, like the drop and create a renamed table becomes. When
       # it stops, read the SQL it printed, run `bun run deploy:database` by hand if that SQL is
-      # what the release means, then re-run the failed job
+      # what the release means, then re-run the deploy of main's tip
       - name: Migrate the database
         run: bunx firebase dataconnect:sql:migrate --non-interactive
       # Stops, the same way, on connector changes Data Connect calls breaking and on new insecure

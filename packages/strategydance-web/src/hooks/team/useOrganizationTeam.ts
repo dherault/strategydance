@@ -10,6 +10,10 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import { dataConnect } from '~data/firebase'
 
+// How long a subscription that failed waits before it opens again, doubling up to the maximum
+const REOPEN_INITIAL_DELAY_MS = 1000
+const REOPEN_MAX_DELAY_MS = 60 * 1000
+
 const EMPTY_TEAM: OrganizationTeam = {
   userOrganizations: [],
   organizationInvitations: [],
@@ -74,20 +78,58 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> & { hasFailed: bool
     }
 
     /*
-      A failure to open the stream throws rather than reaching `onErr`, and it must not take the
-      page down with it: the team stays as last read, and refetches when the window regains focus
+      The SDK reconnects a dropped stream by itself and resends the subscription, but when it
+      gives up it reports the error and unsubscribes every callback, and nothing would ever open
+      the subscription again: the page would stop being live without a sign. So any error, and a
+      failure to open the stream at all, which throws rather than reaching `onErr`, closes this
+      subscription and opens a new one after a delay that doubles each time, up to a minute, and
+      starts over once a result arrives. The team stays as last read meanwhile
     */
-    try {
-      return subscribe(getOrganizationTeamRef(dataConnect, { organizationId }), {
-        onNext: ({ data: team }) => {
-          queryClient.setQueryData(queryKey, team)
-          syncMemberships(team)
-        },
-        onErr: error => console.error('The live team query failed', error),
-      })
+    let unsubscribe: (() => void) | null = null
+    let reopenTimeout: ReturnType<typeof setTimeout> | undefined
+    let reopenDelay = REOPEN_INITIAL_DELAY_MS
+    let isClosed = false
+
+    function reopen() {
+      if (isClosed || reopenTimeout) return
+
+      unsubscribe?.()
+      unsubscribe = null
+
+      reopenTimeout = setTimeout(() => {
+        reopenTimeout = undefined
+        open()
+      }, reopenDelay)
+
+      reopenDelay = Math.min(reopenDelay * 2, REOPEN_MAX_DELAY_MS)
     }
-    catch (error) {
-      console.error('Could not subscribe to the team', error)
+
+    function open() {
+      try {
+        unsubscribe = subscribe(getOrganizationTeamRef(dataConnect, { organizationId: organizationId! }), {
+          onNext: ({ data: team }) => {
+            reopenDelay = REOPEN_INITIAL_DELAY_MS
+            queryClient.setQueryData(queryKey, team)
+            syncMemberships(team)
+          },
+          onErr: error => {
+            console.error('The live team query failed, reopening it', error)
+            reopen()
+          },
+        })
+      }
+      catch (error) {
+        console.error('Could not subscribe to the team, retrying', error)
+        reopen()
+      }
+    }
+
+    open()
+
+    return () => {
+      isClosed = true
+      clearTimeout(reopenTimeout)
+      unsubscribe?.()
     }
   }, [
     organizationId,

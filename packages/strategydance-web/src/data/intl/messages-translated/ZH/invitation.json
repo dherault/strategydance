@@ -1,4 +1,7 @@
 {
+  "invitation.checkConfirmation": "我已确认",
+  "invitation.confirmationError": "操作未能成功。请检查您的网络连接，稍后再试。",
+  "invitation.confirmationSent": "链接已发送至 {email}。请打开该链接，或在完成后返回此标签页。",
   "invitation.continue": "继续前往 Strategy Dance",
   "invitation.decline": "拒绝",
   "invitation.declineConfirm": "确认？",
@@ -12,6 +15,11 @@
   "invitation.loadError": "无法加载邀请。请检查网络连接并重试。",
   "invitation.missingLead": "该邀请已被取消或已处理，或者发送到了 {email} 以外的其他地址。请让邀请人重新发送邀请，或使用接收邀请的邮箱地址登录。",
   "invitation.missingTitle": "邀请不可用",
+  "invitation.notConfirmed": "{email} 尚未确认。请打开我们发送的邮件中的链接，或重新发送。",
+  "invitation.resendConfirmation": "重新发送",
   "invitation.retry": "重试",
-  "invitation.title": "加入 {organizationName}"
+  "invitation.sendConfirmation": "发送链接",
+  "invitation.title": "加入 {organizationName}",
+  "invitation.unverifiedLead": "邀请仅对已确认的邮箱地址开放。我们将向 {email} 发送确认链接。打开链接即可返回此处。",
+  "invitation.unverifiedTitle": "确认您的邮箱地址"
 }

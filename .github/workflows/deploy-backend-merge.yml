@@ -50,3 +50,9 @@ jobs:
           bun-version-file: package.json
       # No `bun install`: the script only calls gcloud, and the image installs for itself
       - run: bun run deploy:backend
+        # Answers every prompt with its default, so the first deploy creates the
+        # `cloud-run-source-deploy` repository instead of waiting on a question nobody reads.
+        # setup-gcloud sets this for its own step only. Set here rather than as `--quiet` in the
+        # script, so a deploy by hand still asks
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: 1

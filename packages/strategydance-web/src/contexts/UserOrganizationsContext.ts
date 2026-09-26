@@ -27,6 +27,8 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   // Makes a picture the organization's logo or banner, or removes it with null, and resolves once
   // the list shows the change
   changeOrganizationImage: (organizationId: string, kind: OrganizationImageKind, image: Blob | null) => Promise<void>
+  // Takes an organization that was just deleted out of the list at once, then reads it again
+  forgetOrganization: (organizationId: string) => Promise<void>
 }
 
 export default createContext<UserOrganizationsContextType>({
@@ -39,4 +41,5 @@ export default createContext<UserOrganizationsContextType>({
   exploreCompanyAspect: async () => {},
   updateOrganization: async () => {},
   changeOrganizationImage: async () => {},
+  forgetOrganization: async () => {},
 })

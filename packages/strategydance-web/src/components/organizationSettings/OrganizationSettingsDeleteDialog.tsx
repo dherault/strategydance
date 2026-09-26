@@ -27,17 +27,17 @@ type Props = {
 
 /*
   Deletes the organization, after a second click on the button that says so. The backend deletes
-  the row, which takes the memberships and invitations with it, then the organization's files.
+  the organization's files, then the row, which takes the memberships and invitations with it.
 
-  Then away from a page about an organization that is gone, before the memberships are read
-  again: read first, the current organization would move on to the next one while this page is
+  Then away from a page about an organization that is gone, before the memberships drop it: the
+  other way round, the current organization would move on to the next one while this page is
   still up, and show that one's settings for a moment. The persisted choice needs no clearing,
   since an id that matches no membership falls through to the first one
 */
 function OrganizationSettingsDeleteDialog({ organizationId, organizationName, onClose }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
-  const { refetch } = useUserOrganizations()
+  const { forgetOrganization } = useUserOrganizations()
 
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -64,7 +64,7 @@ function OrganizationSettingsDeleteDialog({ organizationId, organizationName, on
     toast.success(formatMessage(organizationSettingsMessages.deleted))
 
     await navigate({ to: '/-', replace: true })
-    await refetch()
+    await forgetOrganization(organizationId)
   }
 
   return (

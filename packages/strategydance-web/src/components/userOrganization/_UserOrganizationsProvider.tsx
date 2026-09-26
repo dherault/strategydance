@@ -1,6 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query'
 import type { PropsWithChildren } from 'react'
 import type { ChangeOrganizationImageData, OrganizationImageKind } from 'strategydance-core'
-import type { CompanyAspect } from 'strategydance-database/web'
+import type { CompanyAspect, GetCurrentUserOrganizationsData } from 'strategydance-database/web'
 import {
   useAcceptOrganizationInvitation,
   useAddOrganizationExploredAspect,
@@ -26,6 +27,7 @@ import { dataConnect } from '~data/firebase'
   unconditionally. `UserOrganizationsWait` is the half that gates
 */
 function UserOrganizationsProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient()
   const { data: viewer } = useAuthentication()
 
   const viewerId = viewer?.uid ?? null
@@ -163,6 +165,22 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     await refetchUserOrganizations({ throwOnError: true })
   }
 
+  /*
+    Takes an organization that was just deleted out of the list, then reads the list again.
+
+    Out of the cached list first, so the current organization moves on at once and for sure: the
+    read after it may fail, as a refetch does without a word, and the list must not keep offering
+    an organization that is gone meanwhile. The read is what catches anything else that changed
+  */
+  async function forgetOrganization(organizationId: string) {
+    queryClient.setQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId], cached => cached && {
+      ...cached,
+      userOrganizations: cached.userOrganizations.filter(({ organization }) => organization.id !== organizationId),
+    })
+
+    await refetchUserOrganizations()
+  }
+
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
     initialLoading,
@@ -173,6 +191,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     exploreCompanyAspect,
     updateOrganization,
     changeOrganizationImage,
+    forgetOrganization,
   }
 
   return (

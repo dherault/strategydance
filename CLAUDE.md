@@ -27,6 +27,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`
 - `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
   catalogues. Node-only: never import it from the frontend
+- `packages/strategydance-emails` — the transactional emails, as
+  [React Email](https://react.email) templates. Node-only: the backend renders them. See below
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
@@ -42,6 +44,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
+| `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -269,6 +272,30 @@ in `utils/`, one concern per file.
 - Emails are a placeholder until Resend and react-email are wired:
   `sendOrganizationInvitationEmail` logs what it would send. In development that includes the
   invitation's link, which is how an invitation gets accepted locally
+
+## Email conventions
+
+`packages/strategydance-emails` holds the transactional emails as React Email templates. It
+renders and nothing else: each `renderXEmail` takes props and answers `{ senderName, subject,
+html, text }`. It owns no key and opens no socket, so the delivery provider and its secret stay
+on the backend's side.
+
+- Everything comes from the one `react-email` package, components and `render` alike. Version 6
+  deprecated `@react-email/components` and the per-component packages
+- `src/emails/` holds templates and nothing else, because the preview server treats every file
+  there as one. Shared pieces go in `src/components/`. A template sets `PreviewProps`, which is
+  what the preview renders it with
+- Styles are inline style objects only. Gmail and Outlook strip `<style>` blocks and know no CSS
+  variable, so the design system's tokens are copied into `src/constants.ts` as literals. The
+  one `<style>` block is `EmailLayout`'s font face, which a client may drop at no cost.
+  react-email's `Font` is not used: it also sets every element's family to the face
+- Images are hotlinked PNGs at an absolute production URL, from
+  `packages/strategydance-web/public/assets/images/`. Gmail and Outlook render neither inline
+  SVG nor a `data:` URI
+- English only for now. The copy follows the catalogues' rule anyway: no em dashes
+- `bun run dev:emails` opens the preview server through `scripts/devEmails.sh`, which runs the
+  CLI from a scratch directory outside the tree. Read its header before changing how it is
+  invoked. The preview is indicative: check a real client before trusting a layout change
 
 ## Workflow
 

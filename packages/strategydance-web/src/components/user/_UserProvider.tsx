@@ -13,6 +13,7 @@ import useSystemTimezone from '~hooks/user/useSystemTimezone'
 import getAuthenticationProviders from '~utils/user/getAuthenticationProviders'
 import toDatabaseLocale from '~utils/user/toDatabaseLocale'
 
+import { requestApi } from '~data/api'
 import { dataConnect } from '~data/firebase'
 
 /*
@@ -115,7 +116,18 @@ function UserProvider({ children }: PropsWithChildren) {
       timezone,
       authenticationProviders: getAuthenticationProviders(viewer),
     })
-      .then(() => refetchUser())
+      .then(() => {
+        /*
+          The row is new, so the account is: ask the backend to welcome it, which is how the
+          server hears of an account the browser created. Not awaited, and failing on its own:
+          nobody waits on an email, and a backend that is down does not get to fail a sign-up
+        */
+        requestApi({ method: 'POST', path: '/users/welcome-email' }).catch(error => {
+          console.error('Failed to request the welcome email', error)
+        })
+
+        return refetchUser()
+      })
       .catch(error => {
         insertingForViewerIdRef.current = null
 

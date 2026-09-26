@@ -1,3 +1,5 @@
+import { CompanyAspect } from 'strategydance-database/web'
+
 /* ---
   INTL
 --- */
@@ -60,6 +62,29 @@ export const AUTHENTICATION_ERRORS: Record<string, string> = {
 }
 
 export const DEFAULT_AUTHENTICATION_ERROR = 'errorDefault'
+
+/* ---
+  COMPANY
+--- */
+
+/*
+  Every aspect of a company, in the order the sidebar and the explore page present them.
+
+  Not the schema's order, which is the Postgres enum's: reordering its values is a breaking
+  migration, so the order a reader sees is kept here instead. `constants.test.ts` fails when this
+  stops listing each of the schema's aspects exactly once
+*/
+export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
+  CompanyAspect.STRATEGY,
+  CompanyAspect.PEOPLE,
+  CompanyAspect.FINANCES,
+  CompanyAspect.PRODUCT,
+  CompanyAspect.ENGINEERING,
+  CompanyAspect.DESIGN,
+  CompanyAspect.MARKETING,
+  CompanyAspect.SALES,
+  CompanyAspect.LEGAL,
+]
 
 /* ---
   GITHUB

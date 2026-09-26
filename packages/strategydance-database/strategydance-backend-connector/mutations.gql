@@ -140,10 +140,13 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 #
 # The lock is the caller's own membership rather than the organization's row, as elsewhere an
 # administrator acts: Data Connect runs one write per row in a mutation, so a delete after an
-# `organization_update` would find nothing. It serializes all the same, since demoting or
-# removing somebody writes their membership: one in flight holds the row until it commits, and
-# the check below then reads the member it left; one that starts after waits for this delete.
-# The membership goes with the organization anyway, so touching it costs nothing.
+# `organization_update` would find nothing. Demoting or removing the caller writes their
+# membership too: one that has written it commits before the check below reads the member it
+# left, and one that comes after this delete finds nothing. Those take the organization's row
+# first, though, the opposite order, so the two landing in the same instant deadlock, and
+# Postgres fails one of the two requests, leaving the other's outcome whole. A consistent order
+# would take a second write to one row, which Data Connect skips. The membership goes with the
+# organization anyway, so touching it costs nothing.
 #
 # `$organizationId` is also what `GetOrganizationTeam` refreshes on, so a member watching the
 # team page sees it go

@@ -5,7 +5,7 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
-import sendOrganizationInvitationEmail from '~domain/email/sendOrganizationInvitationEmail'
+import sendOrganizationInvitationEmails from '~domain/email/sendOrganizationInvitationEmails'
 import classifyInvitationFailure from '~domain/organizations/classifyInvitationFailure'
 
 type CreateOrganizationInvitationsInput = {
@@ -91,20 +91,22 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
     else logger.warn(`Invitations: could not invite ${email} to ${organizationId} (${reason})`, result.reason)
   })
 
-  const emailResults = await Promise.allSettled(invitations.map(({ id, email }) => sendOrganizationInvitationEmail({
-    to: email,
-    invitationId: id,
-    organizationName: inviter.organization.name,
-    inviterName: inviter.user.displayName || inviter.user.email,
-  })))
-
   /*
     An invitation whose email failed still exists, and the team page lists it, so an administrator
     can cancel it and invite again. The failure is logged rather than reported as a failed invite
   */
-  emailResults.forEach((result, index) => {
-    if (result.status === 'rejected') logger.error(`Invitations: could not email ${invitations[index].email}`, result.reason)
-  })
+  try {
+    const emailFailures = await sendOrganizationInvitationEmails({
+      invitations,
+      organizationName: inviter.organization.name,
+      inviterName: inviter.user.displayName || inviter.user.email,
+    })
+
+    emailFailures.forEach(({ email, message }) => logger.error(`Invitations: could not email ${email}`, message))
+  }
+  catch (error) {
+    logger.error(`Invitations: could not email ${invitations.length} invitations to ${organizationId}`, error)
+  }
 
   errors.forEach(error => logger.error(`Invitations: could not create an invitation to ${organizationId}`, error))
 

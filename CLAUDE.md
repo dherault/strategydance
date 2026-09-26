@@ -269,14 +269,14 @@ in `utils/`, one concern per file.
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs a Data Connect role. In development `dev:backend` points Auth and
   Data Connect at the emulators, and App Check is skipped, as the emulators skip it
-- Every email goes out through `sendEmail` in `domain/email/`, over Resend, from
+- Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret,
   which the `deploy` script mounts as `RESEND_API_KEY`: the service's account needs Secret
   Manager's accessor role on it
-- Only production sends. Anywhere else `sendEmail` writes the HTML to the OS temp directory and
-  logs its path, and `sendOrganizationInvitationEmail` also logs the invitation's link, which is
-  how an invitation gets accepted locally
+- Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
+  logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
+  is how an invitation gets accepted locally
 
 ## Email conventions
 

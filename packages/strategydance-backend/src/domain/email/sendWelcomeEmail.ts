@@ -7,7 +7,7 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
-import sendEmail from '~domain/email/sendEmail'
+import sendEmails from '~domain/email/sendEmails'
 
 /*
   Sends an account its one welcome email, and does nothing for an account that already had it.
@@ -33,11 +33,9 @@ async function sendWelcomeEmail(userId: string) {
       appUrl: APP_URL,
     })
 
-    await sendEmail({
-      ...email,
-      to: user.email,
-      idempotencyKey: `welcome/${userId}`,
-    })
+    const [failure] = await sendEmails([{ ...email, to: user.email }], `welcome/${userId}`)
+
+    if (failure) throw new Error(`Resend refused ${userId}'s welcome email: ${failure.message}`)
   }
   catch (error) {
     // Logged rather than thrown if it fails in turn, so the caller hears about the send, which is

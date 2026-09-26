@@ -162,6 +162,31 @@ const organizationSettingsMessages = defineMessages({
     defaultMessage: 'Apply',
     description: 'Button in the banner or logo dialog that puts the chosen picture on the settings card, to be saved with the rest.',
   },
+  deleteOrganization: {
+    id: 'organizationSettings.deleteOrganization',
+    defaultMessage: 'Delete organization',
+    description: 'Button at the bottom of the organization settings card that opens the dialog for deleting the organization, and that dialog\'s title and button.',
+  },
+  deleteDescription: {
+    id: 'organizationSettings.deleteDescription',
+    defaultMessage: 'This permanently deletes {organizationName}, its members, content, tasks and agents. This cannot be undone.',
+    description: 'Warning in the dialog for deleting the organization, such as "This permanently deletes Acme, its members, content, tasks and agents."',
+  },
+  deleteConfirm: {
+    id: 'organizationSettings.deleteConfirm',
+    defaultMessage: 'Confirm?',
+    description: 'What the delete button in the dialog for deleting the organization says after its first click, asking to be clicked again to go ahead.',
+  },
+  deleted: {
+    id: 'organizationSettings.deleted',
+    defaultMessage: 'Organization deleted',
+    description: 'Confirmation shown after the organization was deleted.',
+  },
+  deleteError: {
+    id: 'organizationSettings.deleteError',
+    defaultMessage: 'The organization could not be deleted. Try again.',
+    description: 'Error shown when deleting the organization failed.',
+  },
   close: {
     id: 'organizationSettings.close',
     defaultMessage: 'Close',

@@ -15,6 +15,7 @@ import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 import Spinner from '~components/common/Spinner'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import OrganizationSettingsBanner from '~components/organizationSettings/OrganizationSettingsBanner'
+import OrganizationSettingsDeleteDialog from '~components/organizationSettings/OrganizationSettingsDeleteDialog'
 import OrganizationSettingsHeader from '~components/organizationSettings/OrganizationSettingsHeader'
 import OrganizationSettingsImageDialog from '~components/organizationSettings/OrganizationSettingsImageDialog'
 import OrganizationSettingsLogo from '~components/organizationSettings/OrganizationSettingsLogo'
@@ -48,6 +49,7 @@ function OrganizationSettings({ organization }: Props) {
   const [name, setName] = useState(organization.name)
   const [color, setColor] = useState(savedColor)
   const [editingImage, setEditingImage] = useState<OrganizationImageKind | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   const trimmedName = name.trim()
@@ -173,6 +175,14 @@ function OrganizationSettings({ organization }: Props) {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-6 md:px-8 md:pb-8">
           <Button
+            variant="danger"
+            disabled={isSaving}
+            onClick={() => setIsDeleting(true)}
+            className="mr-auto"
+          >
+            {formatMessage(organizationSettingsMessages.deleteOrganization)}
+          </Button>
+          <Button
             variant="transparent"
             disabled={!isDirty || isSaving}
             onClick={discardChanges}
@@ -195,6 +205,15 @@ function OrganizationSettings({ organization }: Props) {
               currentSrc={editingImage === 'logo' ? logoSrc : bannerSrc}
               onApply={image => applyImage(editingImage, image)}
               onClose={() => setEditingImage(null)}
+            />
+          )
+        : null}
+      {isDeleting
+        ? (
+            <OrganizationSettingsDeleteDialog
+              organizationId={organization.id}
+              organizationName={organization.name}
+              onClose={() => setIsDeleting(false)}
             />
           )
         : null}

@@ -82,3 +82,10 @@ mutation ClaimWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
 mutation CompleteWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
   user_update(key: { id: $userId }, data: { welcomeEmailSentAt_expr: "request.time" })
 }
+
+# Takes back an invitation whose email could not be sent, so the team page does not list an
+# invitation nobody received and the address is free to invite again. `$organizationId` scopes the
+# delete, and is what the team's live query refreshes on
+mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: NO_ACCESS) {
+  organizationInvitation_deleteMany(where: { id: { eq: $id }, organizationId: { eq: $organizationId } })
+}

@@ -30,12 +30,26 @@ mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
-mock.module('~domain/email/sendOrganizationInvitationEmails', () => ({ default: async () => [] }))
+// The invitations whose email Resend refuses, or `throw` for a batch it refuses whole
+let emailOutcome: string[] | 'throw' = []
+
+const deleteUnsentOrganizationInvitation = mock(async () => ({ data: { organizationInvitation_deleteMany: 1 } }))
+
+mock.module('~domain/email/sendOrganizationInvitationEmails', () => ({
+  default: async ({ invitations }: { invitations: { id: string, email: string }[] }) => {
+    if (emailOutcome === 'throw') throw new Error('Resend is unavailable')
+
+    const refused = emailOutcome
+
+    return invitations.filter(({ email }) => refused.includes(email)).map(invitation => ({ ...invitation, message: 'Invalid `to` field' }))
+  },
+}))
 
 mock.module('strategydance-database/backend', () => ({
   OrganizationRole: { MEMBER: 'MEMBER', ADMINISTRATOR: 'ADMINISTRATOR' },
   getOrganizationInvitationContext: async () => ({ data: context }),
   createOrganizationInvitation,
+  deleteUnsentOrganizationInvitation,
 }))
 
 spyOn(Date, 'now').mockReturnValue(NOW)
@@ -50,6 +64,8 @@ beforeEach(() => {
     sentInvitations: [],
   }
   createOrganizationInvitation.mockClear()
+  deleteUnsentOrganizationInvitation.mockClear()
+  emailOutcome = []
 })
 
 describe('createOrganizationInvitations', () => {
@@ -66,6 +82,27 @@ describe('createOrganizationInvitations', () => {
 
     expect(result.outcome).toBe('created')
     expect(createOrganizationInvitation).toHaveBeenCalledTimes(1)
+  })
+
+  test('takes back an invitation whose email Resend refused, and reports it as failed', async () => {
+    emailOutcome = ['person1@example.com']
+
+    const result = await createOrganizationInvitations({ organizationId: 'org', inviterId: 'user', emails: addresses(2) })
+
+    expect(result).toEqual({
+      outcome: 'created',
+      invitedEmails: ['person0@example.com'],
+      failedEmails: [{ email: 'person1@example.com', reason: 'error' }],
+    })
+    expect(deleteUnsentOrganizationInvitation).toHaveBeenCalledTimes(1)
+    expect(deleteUnsentOrganizationInvitation.mock.calls[0]).toEqual([{}, { id: 'invitation-person1@example.com', organizationId: 'org' }] as never)
+  })
+
+  test('takes back every invitation and fails the request when no email went out', async () => {
+    emailOutcome = 'throw'
+
+    await expect(createOrganizationInvitations({ organizationId: 'org', inviterId: 'user', emails: addresses(2) })).rejects.toThrow('Could not invite 2 of 2')
+    expect(deleteUnsentOrganizationInvitation).toHaveBeenCalledTimes(2)
   })
 
   test('refuses past the allowance until enough of the hour has aged out for the whole request', async () => {

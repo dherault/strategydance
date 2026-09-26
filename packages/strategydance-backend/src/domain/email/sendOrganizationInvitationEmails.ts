@@ -19,7 +19,7 @@ type OrganizationInvitationEmails = {
 
 /*
   Emails each invitation its link, in one request however many there are, and answers with the
-  addresses whose email Resend refused.
+  invitations whose email Resend refused.
 
   Outside production `sendEmails` writes the emails to files rather than sending them, and each link
   is logged as well, which is how an invitation gets accepted locally: open it from the backend's
@@ -52,7 +52,7 @@ async function sendOrganizationInvitationEmails({ invitations, organizationName,
   }
 
   return failures.map(({ index, message }) => ({
-    email: invitations[index].email,
+    ...invitations[index],
     message,
   }))
 }

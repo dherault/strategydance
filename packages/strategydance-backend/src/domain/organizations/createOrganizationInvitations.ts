@@ -1,5 +1,5 @@
 import { type InviteOrganizationMembersData, MAX_TEAM_SIZE } from 'strategydance-core'
-import { createOrganizationInvitation, getOrganizationInvitationContext, OrganizationRole } from 'strategydance-database/backend'
+import { createOrganizationInvitation, deleteUnsentOrganizationInvitation, getOrganizationInvitationContext, OrganizationRole } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
 
@@ -51,10 +51,11 @@ type CreateOrganizationInvitationsResult =
   Then one insert per address, in parallel, each checking again in its own transaction, so each can
   fail on its own: the address taken in between, the team filled up, the inviter no longer an
   administrator, or an outage. The ones that were created are emailed whatever happened to the
-  others. When any went out, the answer lists them and every address that did not with its
-  reason, so the reader knows what exists and a retry does not trip over it. When none did, the
-  worst reason answers for the whole request: an outage fails it, then forbidden, then full, and
-  addresses that were only taken are listed as such
+  others, and one whose email did not go out is taken back and counts as an outage. When any went
+  out, the answer lists them and every address that did not with its reason, so the reader knows
+  what exists and a retry does not trip over it. When none did, the worst reason answers for the
+  whole request: an outage fails it, then forbidden, then full, and addresses that were only
+  taken are listed as such
 */
 async function createOrganizationInvitations({ organizationId, inviterId, emails }: CreateOrganizationInvitationsInput): Promise<CreateOrganizationInvitationsResult> {
   const { data: context } = await getOrganizationInvitationContext(dataConnect, {
@@ -121,14 +122,18 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
 
     failedEmails.push({ email, reason })
 
-    if (reason === 'error') errors.push(result.reason)
-    else logger.warn(`Invitations: could not invite ${email} to ${organizationId} (${reason})`, result.reason)
+    if (reason === 'error') {
+      errors.push(result.reason)
+
+      logger.error(`Invitations: could not create an invitation to ${organizationId}`, result.reason)
+    }
+    else {
+      logger.warn(`Invitations: could not invite ${email} to ${organizationId} (${reason})`, result.reason)
+    }
   })
 
-  /*
-    An invitation whose email failed still exists, and the team page lists it, so an administrator
-    can cancel it and invite again. The failure is logged rather than reported as a failed invite
-  */
+  let unsentInvitations: { id: string, email: string, error: unknown }[]
+
   try {
     const emailFailures = await sendOrganizationInvitationEmails({
       invitations,
@@ -136,25 +141,43 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
       inviterName: inviter.user.displayName || inviter.user.email,
     })
 
-    emailFailures.forEach(({ email, message }) => logger.error(`Invitations: could not email ${email}`, message))
+    unsentInvitations = emailFailures.map(({ id, email, message }) => ({ id, email, error: new Error(message) }))
   }
   catch (error) {
-    logger.error(`Invitations: could not email ${invitations.length} invitations to ${organizationId}`, error)
+    unsentInvitations = invitations.map(({ id, email }) => ({ id, email, error }))
   }
 
-  errors.forEach(error => logger.error(`Invitations: could not create an invitation to ${organizationId}`, error))
+  /*
+    An invitation whose email did not go out is taken back rather than left pending: nobody has its
+    link, which no member can read, and a pending row would keep its address from being invited
+    again. It is reported as an outage, which tells the reader to try again. When taking it back
+    fails too, it stays, and the team page lists it for an administrator to cancel
+  */
+  await Promise.all(unsentInvitations.map(async ({ id, email, error }) => {
+    failedEmails.push({ email, reason: 'error' })
+    errors.push(error)
 
-  if (!invitations.length) {
+    logger.error(`Invitations: could not email ${email}, so its invitation to ${organizationId} is taken back`, error)
+
+    await deleteUnsentOrganizationInvitation(dataConnect, { id, organizationId }).catch(deleteError => {
+      logger.error(`Invitations: could not take back the unsent invitation of ${email} to ${organizationId}, which stays pending`, deleteError)
+    })
+  }))
+
+  const unsentIds = new Set(unsentInvitations.map(({ id }) => id))
+  const deliveredInvitations = invitations.filter(({ id }) => !unsentIds.has(id))
+
+  if (!deliveredInvitations.length) {
     const reasons = new Set(failedEmails.map(({ reason }) => reason))
 
-    if (reasons.has('error')) throw new AggregateError(errors, `Could not create ${errors.length} of ${emails.length} invitations to ${organizationId}`)
+    if (reasons.has('error')) throw new AggregateError(errors, `Could not invite ${errors.length} of ${emails.length} addresses to ${organizationId}`)
     if (reasons.has('forbidden')) return { outcome: 'forbidden' }
     if (reasons.has('full')) return { outcome: 'full', room: 0 }
   }
 
   return {
     outcome: 'created',
-    invitedEmails: invitations.map(({ email }) => email),
+    invitedEmails: deliveredInvitations.map(({ email }) => email),
     failedEmails,
   }
 }

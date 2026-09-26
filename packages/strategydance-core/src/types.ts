@@ -36,3 +36,6 @@ export type InviteOrganizationMembersData = {
     reason: InvitationFailureReason
   }[]
 }
+
+// Which of an organization's pictures a request is about
+export type OrganizationImageKind = 'logo' | 'banner'

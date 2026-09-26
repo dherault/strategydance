@@ -294,9 +294,10 @@ on the backend's side.
   variable, so the design system's tokens are copied into `src/constants.ts` as literals. The
   one `<style>` block is `EmailLayout`'s font face, which a client may drop at no cost.
   react-email's `Font` is not used: it also sets every element's family to the face
-- Images are hotlinked PNGs at an absolute production URL, from
-  `packages/strategydance-web/public/assets/images/`. Gmail and Outlook render neither inline
-  SVG nor a `data:` URI
+- The mark is the design system's `Logo`, inline, so the emails draw the same one as the app.
+  Gmail and Outlook drop inline SVG, and the name beside it is what they show. Any other image is
+  a hotlinked PNG at an absolute production URL, from
+  `packages/strategydance-web/public/assets/images/`, since neither renders a `data:` URI either
 - The backend's `tsc` follows its import into these `.tsx` files, so both tsconfigs carry
   `"jsx": "react-jsx"`, and their other options agree. Keep them agreeing
 - English only for now. The copy follows the catalogues' rule anyway: no em dashes

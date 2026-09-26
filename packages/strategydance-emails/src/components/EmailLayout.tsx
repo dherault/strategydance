@@ -1,5 +1,6 @@
 import type { CSSProperties, PropsWithChildren } from 'react'
-import { Body, Column, Container, Head, Html, Img, Link, Preview, Row, Section, Text } from 'react-email'
+import { Body, Column, Container, Head, Html, Link, Preview, Row, Section, Text } from 'react-email'
+import { Logo } from 'strategydance-design-system/components/brand/Logo'
 
 import {
   BACKGROUND_COLOR,
@@ -10,7 +11,6 @@ import {
   HEADING_FONT_FAMILY,
   HEADING_FONT_URL,
   LOGO_SIZE,
-  LOGO_URL,
   MUTED_COLOR,
   PRODUCT_NAME,
   SITE_LABEL,
@@ -93,7 +93,11 @@ const footerLink: CSSProperties = {
 /*
   What every email shares: the mark and the name above a white card on the app's neutral page,
   and a footer saying why the reader got it. Tables underneath, through react-email's `Section`,
-  `Row` and `Column`, since Outlook lays out nothing else reliably
+  `Row` and `Column`, since Outlook lays out nothing else reliably.
+
+  The mark is the design system's own `Logo`, inline, in the secondary it takes on a light surface
+  in the app. Apple Mail and iOS draw it; Gmail and Outlook drop inline SVG, and the name beside it
+  is what they show
 */
 function EmailLayout({ preview, footer, children }: EmailLayoutProps) {
   return (
@@ -110,11 +114,10 @@ function EmailLayout({ preview, footer, children }: EmailLayoutProps) {
           <Section style={header}>
             <Row>
               <Column style={logoColumn}>
-                {/* Decorative: the name beside it says the same when images are blocked */}
-                <Img
-                  alt=""
+                {/* Decorative: the name beside it says the same */}
+                <Logo
+                  fill={HEADING_COLOR}
                   height={LOGO_SIZE}
-                  src={LOGO_URL}
                   style={logo}
                   width={LOGO_SIZE}
                 />

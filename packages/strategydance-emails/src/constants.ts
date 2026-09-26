@@ -6,15 +6,7 @@ import { PRODUCTION_APP_HOSTNAME, PRODUCTION_APP_URL } from 'strategydance-core'
 
 export const PRODUCT_NAME = 'Strategy Dance'
 
-/*
-  Hotlinked rather than inlined: Gmail and Outlook render neither an inline SVG nor a `data:` URI,
-  so the only mark that survives every client is a PNG at an absolute URL. This one is
-  `packages/strategydance-web/public/assets/images/logo/logo-primary-512.png`, which Hosting serves
-  from the production domain whatever environment sent the email, since a recipient cannot reach
-  localhost
-*/
-export const LOGO_URL = `${PRODUCTION_APP_URL}/assets/images/logo/logo-primary-512.png`
-
+// The mark's width and height in the header, which its viewBox keeps close to square
 export const LOGO_SIZE = 32
 
 // Where the footer leads, written as a reader would type it

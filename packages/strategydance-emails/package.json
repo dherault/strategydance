@@ -13,7 +13,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-email": "6.9.5",
-    "strategydance-core": "workspace:*"
+    "strategydance-core": "workspace:*",
+    "strategydance-design-system": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",

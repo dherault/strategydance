@@ -5,9 +5,10 @@ import path from 'node:path'
 
 import { Resend } from 'resend'
 
-import { EMAIL_SENDER_ADDRESS, IS_PRODUCTION, RESEND_API_KEY } from '~constants'
+import { EMAIL_SENDER_ADDRESS, IS_PRODUCTION, SECRET_RESEND_API_KEY } from '~constants'
 
 import logger from '~utils/logger'
+import retrieveSecret from '~utils/retrieveSecret'
 
 import UnknownDeliveryError from '~domain/email/UnknownDeliveryError'
 
@@ -70,10 +71,9 @@ async function sendEmails(emails: Email[], idempotencyKey: string): Promise<Emai
     return []
   }
 
-  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set, so no email can be sent')
-
-  // Built per call rather than at module scope, where it would throw in development for want of a key
-  const resend = new Resend(RESEND_API_KEY)
+  // Built per call rather than at module scope, which would read the key in every environment and
+  // on import. `retrieveSecret` caches it, so this is one Secret Manager access per process
+  const resend = new Resend(await retrieveSecret(SECRET_RESEND_API_KEY))
 
   const failures: EmailFailure[] = []
 

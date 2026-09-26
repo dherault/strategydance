@@ -8,9 +8,10 @@
     "test": "bun test --isolate",
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src",
-    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --allow-unauthenticated --update-secrets RESEND_API_KEY=resend-api-key:latest"
+    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --allow-unauthenticated"
   },
   "dependencies": {
+    "@google-cloud/secret-manager": "^7.1.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",

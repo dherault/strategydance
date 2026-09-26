@@ -271,9 +271,10 @@ in `utils/`, one concern per file.
   Data Connect at the emulators, and App Check is skipped, as the emulators skip it
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
-  receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret,
-  which the `deploy` script mounts as `RESEND_API_KEY`: the service's account needs Secret
-  Manager's accessor role on it
+  receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
+  from Secret Manager through `retrieveSecret` in `utils/`, which caches it for the life of the
+  process: the service's account needs Secret Manager's accessor role on it, and a rotated key
+  takes effect with the next revision
 - Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
   logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
   is how an invitation gets accepted locally

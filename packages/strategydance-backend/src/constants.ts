@@ -41,6 +41,15 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
   : true
 
 /* ---
+  SECRETS
+
+  Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`
+--- */
+
+// Read only in production, which is the only environment that sends email
+export const SECRET_RESEND_API_KEY = 'resend-api-key'
+
+/* ---
   EMAIL
 --- */
 
@@ -49,7 +58,3 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
   send is refused, and the mailbox has to receive: the welcome email asks for a reply
 */
 export const EMAIL_SENDER_ADDRESS = 'david@strategydance.com'
-
-// Mounted from Secret Manager's `resend-api-key` by the `deploy` script. Unset in development,
-// where nothing is sent
-export const RESEND_API_KEY = process.env.RESEND_API_KEY

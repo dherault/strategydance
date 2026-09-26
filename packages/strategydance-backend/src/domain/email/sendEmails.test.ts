@@ -19,8 +19,10 @@ let respond: (call: BatchCall) => BatchResponse
 mock.module('~constants', () => ({
   EMAIL_SENDER_ADDRESS: 'david@strategydance.com',
   IS_PRODUCTION: true,
-  RESEND_API_KEY: 're_test',
+  SECRET_RESEND_API_KEY: 'resend-api-key',
 }))
+
+mock.module('~utils/retrieveSecret', () => ({ default: async () => 're_test' }))
 
 mock.module('~utils/logger', () => ({
   default: { info: () => {}, warn: () => {}, error: () => {} },

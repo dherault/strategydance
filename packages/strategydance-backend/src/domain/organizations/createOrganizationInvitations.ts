@@ -66,14 +66,18 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
 
   if (inviter?.role !== OrganizationRole.ADMINISTRATOR) return { outcome: 'forbidden' }
 
-  // The sender's invitations from the last hour, oldest first: past the allowance, room comes back
-  // as the oldest of them age out, so the wait is until enough have
-  const excess = context.sentInvitations.length + emails.length - MAX_INVITATIONS_PER_HOUR
+  /*
+    The sender's newest invitations from the last hour, read to the allowance. A request of n
+    addresses fits once at most `MAX_INVITATIONS_PER_HOUR - n` of them are left in the hour, which
+    is when the one after those, newest first, ages out. That holds however many there are past
+    the allowance, which the race above can leave
+  */
+  const { sentInvitations } = context
 
-  if (excess > 0) {
+  if (sentInvitations.length + emails.length > MAX_INVITATIONS_PER_HOUR) {
     return {
       outcome: 'quota',
-      retryAfterMs: new Date(context.sentInvitations[excess - 1].createdAt).getTime() + HOUR_MS - Date.now(),
+      retryAfterMs: new Date(sentInvitations[MAX_INVITATIONS_PER_HOUR - emails.length].createdAt).getTime() + HOUR_MS - Date.now(),
     }
   }
 

@@ -4,9 +4,10 @@
 #   organization for the email
 # - the team as it stands, members and pending invitations, which says whether any of the
 #   addresses is taken and whether the team has room
-# - the invitations the caller sent in the last hour, oldest first, which says whether they have
-#   room for more. Read to 200, `MAX_INVITATIONS_PER_HOUR` in the backend: a caller who has sent
-#   that many is refused however many more there are
+# - the invitations the caller sent in the last hour, newest first, which says whether they have
+#   room for more and when they will. Read to 200, `MAX_INVITATIONS_PER_HOUR` in the backend:
+#   past that, a request is refused whatever the rest are, and when it fits depends only on the
+#   newest 200
 #
 # The two lists are read whole: the database keeps a team at 100 of both together, so a limit of
 # 100 each is never a cut. `$userId` is the uid the backend verified, never one a client sent
@@ -32,7 +33,7 @@ query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!)
   }
   sentInvitations(
     where: { invitedById: { eq: $userId }, createdAt: { ge_time: { now: true, sub: { hours: 1 } } } }
-    orderBy: [{ createdAt: ASC }]
+    orderBy: [{ createdAt: DESC }]
     limit: 200
   ) {
     createdAt

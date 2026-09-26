@@ -2,7 +2,7 @@ import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
 import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, SettingsIcon, UsersRoundIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
-import { CompanyAspect, OrganizationRole } from 'strategydance-database/web'
+import { OrganizationRole } from 'strategydance-database/web'
 import { CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
 import {
   SidebarGroup,
@@ -12,6 +12,8 @@ import {
   SidebarMenuItem,
 } from 'strategydance-design-system/components/ui/Sidebar'
 import useSidebar from 'strategydance-design-system/hooks/useSidebar'
+
+import { COMPANY_ASPECTS } from '~constants'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
@@ -60,11 +62,11 @@ function SidebarNavigation() {
   const { organization, role } = useCurrentOrganization()
 
   /*
-    The organization's explored aspects, in the product's order rather than the order they were
-    explored in. None to begin with, and "Explore more aspects" stays until all nine are there
+    The organization's explored aspects, in `COMPANY_ASPECTS`'s order rather than the order they
+    were explored in. None to begin with, and "Explore more aspects" stays until all nine are there
   */
   const explored = organization?.exploredAspects ?? []
-  const exploredAspects = Object.values(CompanyAspect).filter(aspect => explored.includes(aspect))
+  const exploredAspects = COMPANY_ASPECTS.filter(aspect => explored.includes(aspect))
 
   // Only an administrator can change anything there, so nobody else is shown the way in. The page
   // says as much to somebody who arrives by its address
@@ -108,7 +110,7 @@ function SidebarNavigation() {
               link={{ to: '/-/$aspect', params: { aspect } }}
             />
           ))}
-          {exploredAspects.length < Object.values(CompanyAspect).length
+          {exploredAspects.length < COMPANY_ASPECTS.length
             ? (
                 <NavigationLink
                   path="/-/explore"

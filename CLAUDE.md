@@ -198,6 +198,12 @@ only way the app talks to them.
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs
+- An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
+  invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
+  has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
+  token, so a tab that just saw the address confirmed mints a new one, as `refetch` on
+  `AuthenticationContext` does. Locally the Auth emulator prints the confirmation link in its
+  log rather than sending it
 - Server values over variables wherever the server knows better: `id_expr: "auth.uid"`,
   `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`. A client that fills these
   in can write a row as somebody else
@@ -207,6 +213,9 @@ only way the app talks to them.
 - Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
   exports each as values in the schema's order, and the frontend imports them from
   `strategydance-database/web`
+- That order is the Postgres enum's, and reordering an enum's values is a breaking migration.
+  Append a value; never reorder. The order the aspects are shown in is `COMPANY_ASPECTS` in the
+  web package's `constants.ts`, and `constants.test.ts` fails when it stops matching the enum
 - A schema change reaches production with its release: a push to `main` migrates the database
   and deploys Data Connect before the backend and the frontend that query it. A migration that
   drops anything stops the release for a human instead, as
@@ -448,6 +457,11 @@ a connector change Data Connect calls breaking and a new insecure operation. Rea
 log printed, run `bun run deploy:database` by hand if it is what the release means, then re-run
 the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
 moved past refuses to deploy rather than put an older release over a newer one.
+
+A machine that migrates the database by hand needs `firebase experiments:disable
+fdcapimigration` run on it once. firebase-tools turns that experiment on by default, and it
+sends the SQL to a Data Connect endpoint that answers this service with a 404. The workflow
+turns it off on every run.
 
 Pull requests still deploy a Hosting preview, with the one key the repository holds, which
 `firebase-hosting-pull-request.yml` explains.

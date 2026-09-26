@@ -12,9 +12,13 @@
 
 /*
   The app sits on white, the sidebar included, as the prototype has it. The design system's
-  sidebar is a neutral-50 column by default, and every part of it, the column, the mobile sheet
-  and its close button, paints this one token, so overriding it here whitens all of them at once
+  page and sidebar are neutral-50 by default, and each is one token.
+
+  `background` is the body's, which is what an overscroll shows past the page's edge, and the
+  page beside the sidebar and the loading screen paint it too. The sidebar's every part, the
+  column, the mobile sheet and its close button, paints `sidebar`
 */
 :root {
+  --background: var(--color-white);
   --sidebar: var(--color-white);
 }

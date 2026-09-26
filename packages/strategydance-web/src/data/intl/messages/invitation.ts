@@ -77,6 +77,46 @@ const invitationMessages = defineMessages({
     defaultMessage: 'Continue to Strategy Dance',
     description: 'Button on the unavailable invitation page that leads into the app. Strategy Dance is the product name and stays untranslated.',
   },
+  unverifiedTitle: {
+    id: 'invitation.unverifiedTitle',
+    defaultMessage: 'Confirm your email address',
+    description: 'Title of the invitation page when the signed-in reader has not confirmed their email address yet, which opening an invitation requires.',
+  },
+  unverifiedLead: {
+    id: 'invitation.unverifiedLead',
+    defaultMessage: 'Invitations open only for a confirmed address. We will send a confirmation link to {email}. Open it, and it brings you back here.',
+    description: 'Explanation on the invitation page for a reader whose email address is not confirmed yet, naming the address the link is sent to.',
+  },
+  sendConfirmation: {
+    id: 'invitation.sendConfirmation',
+    defaultMessage: 'Send the link',
+    description: 'Button that emails the reader a link confirming their email address.',
+  },
+  resendConfirmation: {
+    id: 'invitation.resendConfirmation',
+    defaultMessage: 'Send it again',
+    description: 'Button that emails the confirmation link once more, after it was sent already.',
+  },
+  confirmationSent: {
+    id: 'invitation.confirmationSent',
+    defaultMessage: 'Link sent to {email}. Open it, or come back to this tab once you have.',
+    description: 'Notice shown after the confirmation link was emailed, naming the address it went to.',
+  },
+  checkConfirmation: {
+    id: 'invitation.checkConfirmation',
+    defaultMessage: 'I confirmed it',
+    description: 'Button the reader presses after opening the confirmation link, which checks that their address is now confirmed.',
+  },
+  notConfirmed: {
+    id: 'invitation.notConfirmed',
+    defaultMessage: '{email} is not confirmed yet. Open the link in the email we sent, or send it again.',
+    description: 'Notice shown when the reader said they confirmed their address but it is still unconfirmed, naming the address.',
+  },
+  confirmationError: {
+    id: 'invitation.confirmationError',
+    defaultMessage: 'That did not go through. Check your connection and try again in a moment.',
+    description: 'Error shown when sending the confirmation link, or checking whether the address is confirmed, failed.',
+  },
 })
 
 export default invitationMessages

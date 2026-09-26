@@ -243,6 +243,18 @@
       }
     },
     "invitation": {
+      "invitation.checkConfirmation": {
+        "hash": "297e982ae8b3467d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.confirmationError": {
+        "hash": "f9d0cf93a79cee19",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.confirmationSent": {
+        "hash": "a3dbbbe0fd130efa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "invitation.continue": {
         "hash": "732013b981696da6",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -295,12 +307,32 @@
         "hash": "8337c064d856694e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "invitation.notConfirmed": {
+        "hash": "0a23f43ab67e11de",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.resendConfirmation": {
+        "hash": "808008ceecffbd02",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "invitation.retry": {
         "hash": "f8fbe69705d9eda3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "invitation.sendConfirmation": {
+        "hash": "952dccbbbbcbe83f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "invitation.title": {
         "hash": "046a78315689632c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.unverifiedLead": {
+        "hash": "bfa52ef1898237d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "invitation.unverifiedTitle": {
+        "hash": "f4c0f74e45d07d0f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },

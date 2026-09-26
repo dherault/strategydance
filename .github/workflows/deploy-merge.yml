@@ -14,8 +14,12 @@
 # - The pool `github` and its provider `strategydance` accept tokens from this repository alone,
 #   matched by its numeric id, which survives a rename and cannot be squatted
 # - The service account grants `roles/iam.workloadIdentityUser` to one subject,
-#   `repo:dherault/strategydance:ref:refs/heads/main`. A pull request's run carries its merge
-#   ref instead, so no branch but main can deploy
+#   `repo:dherault@4154003/strategydance@1378732738:ref:refs/heads/main`. A pull request's run
+#   carries its merge ref instead, so no branch but main can deploy. The owner's and the
+#   repository's ids are in it because the repository has GitHub's immutable subjects on, which
+#   `gh api repos/dherault/strategydance/actions/oidc/customization/sub` reports: a binding to
+#   the plain `repo:dherault/strategydance:...` form matches no token, and the CLI's first call
+#   fails with "Failed to authenticate"
 # - The job impersonates the account rather than holding roles itself, because a migration logs
 #   into Postgres as whoever the Firebase CLI runs as, and the CLI only learns that name from the
 #   impersonation
@@ -79,6 +83,13 @@ jobs:
           workload_identity_provider: projects/995028545701/locations/global/workloadIdentityPools/github/providers/strategydance
           service_account: deployer@strategydance.iam.gserviceaccount.com
       - uses: google-github-actions/setup-gcloud@v3
+      # firebase-tools 15.30.1 turns its `fdcapimigration` experiment on by default, which hands a
+      # migration's SQL to a Data Connect endpoint, `schemas/main:migrate`, that answers this
+      # service with a 404, "Method not found". Off, the CLI runs the SQL itself, over a Cloud SQL
+      # connection as the deploy account. `FIREBASE_CLI_EXPERIMENTS` can only turn experiments on,
+      # so this writes the preference instead, which a runner starts without
+      - name: Migrate through Cloud SQL rather than the Data Connect API
+        run: bunx firebase experiments:disable fdcapimigration
       # Never `--force`. Without a terminal, `firebase deploy` refuses any schema change that
       # needs SQL and says to migrate first, so the migration is its own step. It runs additive SQL
       # and stops on anything destructive, like the drop and create a renamed table becomes. When

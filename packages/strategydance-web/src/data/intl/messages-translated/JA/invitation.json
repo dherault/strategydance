@@ -1,4 +1,7 @@
 {
+  "invitation.checkConfirmation": "確認しました",
+  "invitation.confirmationError": "処理を完了できませんでした。接続状況を確認し、しばらくしてからもう一度お試しください。",
+  "invitation.confirmationSent": "{email} にリンクを送信しました。リンクを開くか、確認後にこのタブに戻ってください。",
   "invitation.continue": "Strategy Danceへ進む",
   "invitation.decline": "辞退する",
   "invitation.declineConfirm": "本当に辞退しますか？",
@@ -12,6 +15,11 @@
   "invitation.loadError": "招待を読み込めませんでした。接続を確認して、もう一度お試しください。",
   "invitation.missingLead": "この招待はすでにキャンセルまたは回答済みであるか、{email}とは別のアドレスに送信された可能性があります。招待者に再送信を依頼するか、招待を受信したアドレスでサインインしてください。",
   "invitation.missingTitle": "招待を利用できません",
+  "invitation.notConfirmed": "{email} はまだ確認されていません。送信されたメール内のリンクを開くか、もう一度送信してください。",
+  "invitation.resendConfirmation": "もう一度送信",
   "invitation.retry": "再試行",
-  "invitation.title": "{organizationName}に参加"
+  "invitation.sendConfirmation": "リンクを送信",
+  "invitation.title": "{organizationName}に参加",
+  "invitation.unverifiedLead": "招待を開くには確認済みのメールアドレスが必要です。{email} に確認リンクを送信します。リンクを開くと、このページに戻ります。",
+  "invitation.unverifiedTitle": "メールアドレスの確認"
 }

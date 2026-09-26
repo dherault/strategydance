@@ -1,5 +1,5 @@
 import type { CSSProperties, PropsWithChildren } from 'react'
-import { Body, Column, Container, Head, Html, Link, Preview, Row, Section, Text } from 'react-email'
+import { Body, Column, Container, Head, Html, Preview, Row, Section, Text } from 'react-email'
 import { Logo } from 'strategydance-design-system/components/brand/Logo'
 
 import {
@@ -11,17 +11,12 @@ import {
   HEADING_FONT_FAMILY,
   HEADING_FONT_URL,
   LOGO_SIZE,
-  MUTED_COLOR,
   PRODUCT_NAME,
-  SITE_LABEL,
-  SITE_URL,
 } from '../constants'
 
 type EmailLayoutProps = PropsWithChildren<{
   // What an inbox shows after the subject, before the email is opened
   preview: string
-  // Why the reader got this email, under the card
-  footer: string
 }>
 
 // The one `<style>` block, and only a font face: a client that strips it falls back to the
@@ -74,32 +69,16 @@ const card: CSSProperties = {
   padding: '40px 36px',
 }
 
-const footerSection: CSSProperties = {
-  padding: '24px 36px 0',
-}
-
-const footerText: CSSProperties = {
-  color: MUTED_COLOR,
-  fontSize: '12px',
-  lineHeight: '18px',
-  margin: '0 0 4px',
-}
-
-const footerLink: CSSProperties = {
-  color: MUTED_COLOR,
-  textDecorationLine: 'underline',
-}
-
 /*
-  What every email shares: the mark and the name above a white card on the app's neutral page,
-  and a footer saying why the reader got it. Tables underneath, through react-email's `Section`,
-  `Row` and `Column`, since Outlook lays out nothing else reliably.
+  What every email shares: the mark and the name above a white card on the app's neutral page.
+  Tables underneath, through react-email's `Section`, `Row` and `Column`, since Outlook lays out
+  nothing else reliably.
 
   The mark is the design system's own `Logo`, inline, in the secondary it takes on a light surface
   in the app. Apple Mail and iOS draw it; Gmail and Outlook drop inline SVG, and the name beside it
   is what they show
 */
-function EmailLayout({ preview, footer, children }: EmailLayoutProps) {
+function EmailLayout({ preview, children }: EmailLayoutProps) {
   return (
     <Html lang="en">
       <Head>
@@ -131,19 +110,6 @@ function EmailLayout({ preview, footer, children }: EmailLayoutProps) {
           </Section>
           <Section style={card}>
             {children}
-          </Section>
-          <Section style={footerSection}>
-            <Text style={footerText}>
-              {footer}
-            </Text>
-            <Text style={footerText}>
-              <Link
-                href={SITE_URL}
-                style={footerLink}
-              >
-                {SITE_LABEL}
-              </Link>
-            </Text>
           </Section>
         </Container>
       </Body>

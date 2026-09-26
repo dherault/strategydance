@@ -1,5 +1,3 @@
-import { PRODUCTION_APP_HOSTNAME, PRODUCTION_APP_URL } from 'strategydance-core'
-
 /* ---
   BRAND
 --- */
@@ -8,11 +6,6 @@ export const PRODUCT_NAME = 'Strategy Dance'
 
 // The mark's width and height in the header, which its viewBox keeps close to square
 export const LOGO_SIZE = 32
-
-// Where the footer leads, written as a reader would type it
-export const SITE_URL = PRODUCTION_APP_URL
-
-export const SITE_LABEL = PRODUCTION_APP_HOSTNAME
 
 /* ---
   PALETTE

@@ -27,7 +27,6 @@ const signature: CSSProperties = {
 function WelcomeEmail({ firstName, appUrl }: WelcomeEmailProps) {
   return (
     <EmailLayout
-      footer={`You received this email because you signed up for ${PRODUCT_NAME}.`}
       preview="Thank you for signing up. Here is where to start, and how to reach me."
     >
       <Heading

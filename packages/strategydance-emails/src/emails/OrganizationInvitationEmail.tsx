@@ -21,7 +21,6 @@ export type OrganizationInvitationEmailProps = {
 function OrganizationInvitationEmail({ organizationName, inviterName, invitationUrl }: OrganizationInvitationEmailProps) {
   return (
     <EmailLayout
-      footer={`${inviterName} sent you this invitation from ${PRODUCT_NAME}.`}
       preview={`${inviterName} invited you to join ${organizationName} on ${PRODUCT_NAME}.`}
     >
       <Heading

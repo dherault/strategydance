@@ -20,6 +20,9 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   joinOrganization: (invitationId: string, organizationId: string) => Promise<void>
   // Adds an aspect to the organization's explored ones, and resolves once the list shows it
   exploreCompanyAspect: (organizationId: string, aspect: CompanyAspect) => Promise<void>
+  // Renames the organization and sets its color, null for the default, and resolves once the
+  // list shows both
+  updateOrganization: (organizationId: string, name: string, color: string | null) => Promise<void>
 }
 
 export default createContext<UserOrganizationsContextType>({
@@ -30,4 +33,5 @@ export default createContext<UserOrganizationsContextType>({
   createOrganization: async () => '',
   joinOrganization: async () => {},
   exploreCompanyAspect: async () => {},
+  updateOrganization: async () => {},
 })

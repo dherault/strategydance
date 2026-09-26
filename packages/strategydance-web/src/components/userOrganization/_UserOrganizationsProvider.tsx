@@ -5,6 +5,7 @@ import {
   useAddOrganizationExploredAspect,
   useCreateOrganization,
   useGetCurrentUserOrganizations,
+  useUpdateOrganization,
 } from 'strategydance-database/web/react'
 
 import type { UserOrganizationsContextType } from '~contexts/UserOrganizationsContext'
@@ -42,6 +43,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   const { mutateAsync: createOrganizationMutation } = useCreateOrganization(dataConnect)
   const { mutateAsync: addExploredAspectMutation } = useAddOrganizationExploredAspect(dataConnect)
   const { mutateAsync: acceptInvitationMutation } = useAcceptOrganizationInvitation(dataConnect)
+  const { mutateAsync: updateOrganizationMutation } = useUpdateOrganization(dataConnect)
 
   const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
 
@@ -132,6 +134,19 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     }
   }
 
+  /*
+    Renames an organization and sets its color, and resolves once the list shows both: the
+    settings page compares its form to the list, so it reads as saved the moment this resolves,
+    with no instant of the old values in between.
+
+    The read after the write throws on failure, as `joinOrganization`'s does, and the write throws
+    as `createOrganization`'s does, since the page keeps what was typed when either fails
+  */
+  async function updateOrganization(organizationId: string, name: string, color: string | null) {
+    await updateOrganizationMutation({ organizationId, name, color })
+    await refetchUserOrganizations({ throwOnError: true })
+  }
+
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
     initialLoading,
@@ -140,6 +155,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     createOrganization,
     joinOrganization,
     exploreCompanyAspect,
+    updateOrganization,
   }
 
   return (

@@ -43,9 +43,13 @@ type User @table {
   # Which buttons this account can sign in with, so a screen can say so without asking Firebase
   # and getting an answer shaped by email enumeration protection
   authenticationProviders: [AuthenticationProvider!]!
-  # When the account's one welcome email went out, and null until it has. The backend claims it
-  # before sending and hands it back when the send fails, so two requests cannot both mail. Only
-  # the backend's connector reads or writes it
+  # When a request last claimed the account's welcome email, which it holds for ten minutes while
+  # it sends, so two requests cannot both mail. Left to lapse rather than handed back when the
+  # send fails or the process dies, so a later request retries it, never sooner. Only the
+  # backend's connector reads or writes it
+  welcomeEmailClaimedAt: Timestamp
+  # When the account's one welcome email went out, and null until it has. Only the backend's
+  # connector writes it
   welcomeEmailSentAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")

@@ -39,21 +39,38 @@ mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, 
   organizationInvitation_insert(data: { organizationId: $organizationId, email: $email, invitedById: $userId })
 }
 
-# Claims the account's one welcome email for the call that makes it, and answers how many rows it
-# claimed: 1 for the first call, 0 for every one after, and 0 for an account with no row.
+# Claims the account's welcome email for the request that makes it, and answers how many rows it
+# claimed: 1 when this request may send it, 0 when it went out already, another request holds it,
+# or the account has no row.
+#
+# A claim is a ten-minute lease rather than a flag. A request that sends completes it; one that
+# fails, or dies with its process, leaves it to lapse, and the next request after that sends
+# again. Ten minutes outlasts any request Cloud Run lets run, so a live claim never lapses under
+# the request holding it.
 #
 # One conditional update rather than a read and a write, so two requests landing together cannot
-# both see the column empty: Postgres re-checks the condition on the row the first one locked, and
-# the second claims nothing. `$userId` is the uid the backend verified
+# both find it free: Postgres re-checks the condition on the row the first one locked, and the
+# second claims nothing. `$userId` is the uid the backend verified
 mutation ClaimWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
   user_updateMany(
-    where: { id: { eq: $userId }, welcomeEmailSentAt: { isNull: true } }
-    data: { welcomeEmailSentAt_expr: "request.time" }
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $userId } }
+        { welcomeEmailSentAt: { isNull: true } }
+        {
+          _or: [
+            { welcomeEmailClaimedAt: { isNull: true } }
+            { welcomeEmailClaimedAt: { lt_time: { now: true, sub: { minutes: 10 } } } }
+          ]
+        }
+      ]
+    }
+    data: { welcomeEmailClaimedAt_expr: "request.time" }
   )
 }
 
-# Hands a claimed welcome email back when sending it failed, so the column keeps meaning that one
-# went out
-mutation ReleaseWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
-  user_update(key: { id: $userId }, data: { welcomeEmailSentAt: null })
+# Records that the welcome email went out, which ends the claim for good
+mutation CompleteWelcomeEmail($userId: String!) @auth(level: NO_ACCESS) {
+  user_update(key: { id: $userId }, data: { welcomeEmailSentAt_expr: "request.time" })
 }

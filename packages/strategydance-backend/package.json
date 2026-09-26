@@ -8,7 +8,7 @@
     "test": "bun test",
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src",
-    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --allow-unauthenticated"
+    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
   },
   "dependencies": {
     "cors": "^2.8.6",

@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react'
+import type { ChangeOrganizationImageData, OrganizationImageKind } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
 import {
   useAcceptOrganizationInvitation,
@@ -14,6 +15,7 @@ import UserOrganizationsContext from '~contexts/UserOrganizationsContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 
+import { requestApi } from '~data/api'
 import { dataConnect } from '~data/firebase'
 
 /*
@@ -147,6 +149,20 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     await refetchUserOrganizations({ throwOnError: true })
   }
 
+  /*
+    Makes a picture an organization's logo or banner, or removes it, through the backend: only an
+    administrator may, which a Storage rule cannot check. Resolves once the list shows the new URL,
+    so the settings page can drop its preview without the old picture flashing back in between
+  */
+  async function changeOrganizationImage(organizationId: string, kind: OrganizationImageKind, image: Blob | null) {
+    await requestApi<ChangeOrganizationImageData>({
+      method: image ? 'PUT' : 'DELETE',
+      path: `/organizations/${organizationId}/${kind}`,
+      body: image ?? undefined,
+    })
+    await refetchUserOrganizations({ throwOnError: true })
+  }
+
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
     initialLoading,
@@ -156,6 +172,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     joinOrganization,
     exploreCompanyAspect,
     updateOrganization,
+    changeOrganizationImage,
   }
 
   return (

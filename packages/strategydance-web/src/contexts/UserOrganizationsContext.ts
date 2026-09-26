@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import type { OrganizationImageKind } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import type { DataSource, UserOrganization } from '~types'
@@ -23,6 +24,9 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   // Renames the organization and sets its color, null for the default, and resolves once the
   // list shows both
   updateOrganization: (organizationId: string, name: string, color: string | null) => Promise<void>
+  // Makes a picture the organization's logo or banner, or removes it with null, and resolves once
+  // the list shows the change
+  changeOrganizationImage: (organizationId: string, kind: OrganizationImageKind, image: Blob | null) => Promise<void>
 }
 
 export default createContext<UserOrganizationsContextType>({
@@ -34,4 +38,5 @@ export default createContext<UserOrganizationsContextType>({
   joinOrganization: async () => {},
   exploreCompanyAspect: async () => {},
   updateOrganization: async () => {},
+  changeOrganizationImage: async () => {},
 })

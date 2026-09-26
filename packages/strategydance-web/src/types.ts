@@ -50,3 +50,12 @@ export type OrganizationMember = OrganizationTeam['userOrganizations'][number]
 
 // An invitation as its addressee reads it: the organization, and who sent it
 export type OrganizationInvitation = GetOrganizationInvitationData['organizationInvitations'][number]
+
+/*
+  A picture chosen but not saved yet: undefined while nothing was chosen, null once the one there
+  is to be removed, or the file with an object URL that previews it
+*/
+export type StagedImage = {
+  blob: Blob
+  url: string
+} | null | undefined

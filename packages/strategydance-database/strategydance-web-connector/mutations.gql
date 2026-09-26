@@ -53,8 +53,21 @@ mutation UpdateCurrentUser(
 #
 # `userId_expr` reads the uid off the token, so nobody can be made an administrator of an
 # organization they never asked for. `response.organization.id` is the uuid the step above
-# generated, keyed by the alias
+# generated, keyed by the alias.
+#
+# The name is held to what `UpdateOrganization` holds it to, so an organization never starts with
+# a name its settings page would refuse to save. The check sits on the caller's own row, read
+# first and redacted, because an operation takes no `@check` of its own
 mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+  query @redact {
+    user(key: { id_expr: "auth.uid" }) {
+      id
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A name is 1 to 80 characters on one line, with no space at either end"
+        )
+    }
+  }
   organization: organization_insert(data: { name: $name })
   userOrganization: userOrganization_insert(
     data: {
@@ -104,6 +117,47 @@ mutation AddOrganizationExploredAspect(
       updatedAt_expr: "request.time"
     }
   )
+}
+
+# Renames an organization and sets the color of its mark. Only an administrator may.
+#
+# Both are written whole: the settings page sends the name and the color it shows, the color as
+# stored, null for the default, whenever either changed. The logo and the banner are not here.
+# Only the backend writes those, since each is a file in Storage first.
+#
+# The checks on the variables are here as well as in the page, since the page is not the only
+# possible caller, and sit on the redacted read's field because an operation takes no `@check` of
+# its own. A name is refused empty, over 80 characters (`MAX_ORGANIZATION_NAME_LENGTH` in
+# strategydance-core), across lines, or with whitespace at either end, which the page trims away:
+# CEL has no standard `trim()`, so the pattern says it instead. A color is six uppercase hex digits.
+#
+# The write comes first rather than a separate row lock, because Data Connect runs one write per
+# row in a mutation: a second `organization_update`, aliased or not, silently changes nothing. The
+# write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
+# does, so the checks after it read what a demotion in the same instant committed, and a check
+# that fails rolls the write back
+mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String)
+@auth(level: USER) @transaction {
+  organization_update(
+    id: $organizationId
+    data: {
+      name: $name
+      color: $color
+      updatedAt_expr: "request.time"
+    }
+  )
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its settings") {
+      role
+        @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's settings")
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A name is 1 to 80 characters on one line, with no space at either end"
+        )
+        @check(expr: "vars.color == null || vars.color.matches('^#[0-9A-F]{6}$')", message: "A color is six uppercase hex digits after a #")
+    }
+  }
 }
 
 # Makes a member an administrator, or an administrator a member. Only an administrator may.

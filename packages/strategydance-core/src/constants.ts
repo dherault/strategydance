@@ -1,4 +1,5 @@
 import { Locale } from './enums'
+import type { OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -75,6 +76,9 @@ export const ERROR_CODE_CONFLICT = 'CONFLICT' // 409
 // ask of them: make room
 export const ERROR_CODE_TEAM_FULL = 'TEAM_FULL' // 409
 
+// A file that is not one of the pictures a route accepts, whatever its request called it
+export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
+
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
@@ -100,6 +104,36 @@ export const MAX_TEAM_SIZE = 100
 
 // What somebody does in an organization, as the team page shows it beside their name
 export const MAX_JOB_TITLE_LENGTH = 60
+
+/*
+  How long an organization's name may be. Written out again in `CreateOrganization`'s and
+  `UpdateOrganization`'s checks, which cannot import it: change the three together
+*/
+export const MAX_ORGANIZATION_NAME_LENGTH = 80
+
+/*
+  The color an organization's mark takes until somebody picks one: the brand's primary, the design
+  system's `--color-primary-700`. A null `Organization.color` means this one, so an organization
+  that never chose follows the brand if it changes
+*/
+export const DEFAULT_ORGANIZATION_COLOR = '#0051A3'
+
+// The pictures an organization can carry, each stored under `organizations/{id}/{kind}/`
+export const ORGANIZATION_IMAGE_KINDS: OrganizationImageKind[] = ['logo', 'banner']
+
+/*
+  Raster only, and deliberately not `image/*`: that admits `image/svg+xml`, which is an active
+  document rather than a picture. The backend reads the type off the file's first bytes rather
+  than off the request, so a script named `logo.png` is refused too
+*/
+export const ORGANIZATION_IMAGE_CONTENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+
+// In bytes. The settings page refuses a larger file before sending it, and the backend refuses it
+// again before reading it
+export const MAX_ORGANIZATION_IMAGE_SIZES: Record<OrganizationImageKind, number> = {
+  logo: 2 * 1024 * 1024,
+  banner: 5 * 1024 * 1024,
+}
 
 /* ---
   USERS

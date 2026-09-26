@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import type { OrganizationImageKind } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import type { DataSource, UserOrganization } from '~types'
@@ -20,6 +21,14 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   joinOrganization: (invitationId: string, organizationId: string) => Promise<void>
   // Adds an aspect to the organization's explored ones, and resolves once the list shows it
   exploreCompanyAspect: (organizationId: string, aspect: CompanyAspect) => Promise<void>
+  // Renames the organization and sets its color, null for the default, and resolves once the
+  // list shows both
+  updateOrganization: (organizationId: string, name: string, color: string | null) => Promise<void>
+  // Makes a picture the organization's logo or banner, or removes it with null, and resolves once
+  // the list shows the change
+  changeOrganizationImage: (organizationId: string, kind: OrganizationImageKind, image: Blob | null) => Promise<void>
+  // Takes an organization that was just deleted out of the list at once, then reads it again
+  forgetOrganization: (organizationId: string) => Promise<void>
 }
 
 export default createContext<UserOrganizationsContextType>({
@@ -30,4 +39,7 @@ export default createContext<UserOrganizationsContextType>({
   createOrganization: async () => '',
   joinOrganization: async () => {},
   exploreCompanyAspect: async () => {},
+  updateOrganization: async () => {},
+  changeOrganizationImage: async () => {},
+  forgetOrganization: async () => {},
 })

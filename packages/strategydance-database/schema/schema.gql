@@ -86,6 +86,15 @@ type Organization @table {
   # The aspects the organization has started working on, each once. None to begin with: the
   # sidebar lists these, and the rest wait behind the explore page
   exploredAspects: [CompanyAspect!]! @default(sql: "'{}'")
+  # How it appears to its team, others and agents, as its administrators set it on the settings
+  # page. The two pictures are Storage download URLs, and only the backend writes them: putting a
+  # file in Storage on an administrator's word is something a Storage rule cannot check, since it
+  # cannot read who administers what. Null until somebody uploads one
+  logoUrl: String
+  bannerUrl: String
+  # Six uppercase hex digits behind a `#`, filling the mark where there is no logo. Null until an
+  # administrator picks one, which means strategydance-core's `DEFAULT_ORGANIZATION_COLOR`
+  color: String
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

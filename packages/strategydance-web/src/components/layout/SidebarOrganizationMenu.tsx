@@ -16,28 +16,9 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import AddOrganizationDialog from '~components/layout/AddOrganizationDialog'
+import OrganizationMark from '~components/organization/OrganizationMark'
 
 import navigationMessages from '~data/intl/messages/navigation'
-
-type OrganizationMarkProps = {
-  name: string | undefined
-  small?: boolean
-}
-
-// A primary square with the organization's initial, or a plus while there is none
-function OrganizationMark({ name, small = false }: OrganizationMarkProps) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'grid shrink-0 place-items-center rounded-xs bg-primary font-semibold text-primary-foreground [&_svg]:text-primary-foreground!',
-        small ? 'size-6 text-xs' : 'size-8 text-sm',
-      )}
-    >
-      {name ? name.trim().charAt(0).toUpperCase() : <PlusIcon />}
-    </span>
-  )
-}
 
 // The current organization, and the menu that switches it or adds another
 function SidebarOrganizationMenu() {
@@ -55,7 +36,11 @@ function SidebarOrganizationMenu() {
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton size="lg">
-                <OrganizationMark name={organization?.name} />
+                <OrganizationMark
+                  name={organization?.name}
+                  logoUrl={organization?.logoUrl}
+                  color={organization?.color}
+                />
                 <span className={cn('min-w-0 flex-1 truncate text-sm', organization ? 'font-semibold text-secondary' : 'text-muted-foreground')}>
                   {organization?.name ?? formatMessage(navigationMessages.noOrganization)}
                 </span>
@@ -74,14 +59,16 @@ function SidebarOrganizationMenu() {
                       <DropdownMenuLabel>
                         {formatMessage(navigationMessages.organizations)}
                       </DropdownMenuLabel>
-                      {userOrganizations.map(({ organization: { id, name } }) => (
+                      {userOrganizations.map(({ organization: { id, name, logoUrl, color } }) => (
                         <DropdownMenuItem
                           key={id}
                           onSelect={() => setOrganizationId(id)}
                         >
                           <OrganizationMark
-                            small
                             name={name}
+                            logoUrl={logoUrl}
+                            color={color}
+                            className="size-6 text-xs"
                           />
                           <span className="min-w-0 flex-1 truncate">
                             {name}

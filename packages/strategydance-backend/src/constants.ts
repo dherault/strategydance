@@ -19,6 +19,18 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
 // Named rather than discovered, since a local run has no metadata server to ask
 export const FIREBASE_PROJECT_ID = 'strategydance'
 
+// The project's default bucket, the one the web app's config names too
+export const FIREBASE_STORAGE_BUCKET = 'strategydance.firebasestorage.app'
+
+/*
+  Where a Storage download URL points: the emulator when `dev:backend` set its host, as the Admin
+  SDK itself decides, and Firebase's download host otherwise. The URLs this server writes into the
+  database start here, so a development row points at a development file
+*/
+export const STORAGE_DOWNLOAD_ORIGIN = process.env.FIREBASE_STORAGE_EMULATOR_HOST
+  ? `http://${process.env.FIREBASE_STORAGE_EMULATOR_HOST}`
+  : 'https://firebasestorage.googleapis.com'
+
 // Where the links this server writes into emails lead
 export const APP_URL = IS_PRODUCTION ? PRODUCTION_APP_URL : DEVELOPMENT_APP_URL
 

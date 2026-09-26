@@ -27,5 +27,19 @@ service firebase.storage {
         && request.auth.uid == userId
         && isLightImage();
     }
+
+    /*
+      Nothing matches `organizations/`, where an organization's logo and banner live, and that is
+      the rule: Storage refuses whatever no rule allows. Only an administrator may change them,
+      and a rule cannot tell who administers what, since that lives in Data Connect rather than in
+      Firestore or on the token. So the backend writes them, through the Admin SDK, which rules do
+      not bind, after asking the database.
+
+      They are public all the same. The URL the backend stores carries the object's download
+      token, which Storage serves to whoever holds it without consulting these rules. A read rule
+      would add a way in by path, which the URL already gives, and `list`, which enumerates every
+      organization in the bucket. An `if false` would guard nothing, since a request is let in
+      when any rule allows it
+    */
   }
 }

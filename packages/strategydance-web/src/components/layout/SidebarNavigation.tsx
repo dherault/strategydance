@@ -2,7 +2,7 @@ import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
 import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, SettingsIcon, UsersRoundIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
-import { CompanyAspect } from 'strategydance-database/web'
+import { CompanyAspect, OrganizationRole } from 'strategydance-database/web'
 import { CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
 import {
   SidebarGroup,
@@ -57,7 +57,7 @@ function NavigationLink({ path, label, icon, link }: NavigationLinkProps) {
 
 function SidebarNavigation() {
   const { formatMessage } = useIntl()
-  const { organization } = useCurrentOrganization()
+  const { organization, role } = useCurrentOrganization()
 
   /*
     The organization's explored aspects, in the product's order rather than the order they were
@@ -65,6 +65,10 @@ function SidebarNavigation() {
   */
   const explored = organization?.exploredAspects ?? []
   const exploredAspects = Object.values(CompanyAspect).filter(aspect => explored.includes(aspect))
+
+  // Only an administrator can change anything there, so nobody else is shown the way in. The page
+  // says as much to somebody who arrives by its address
+  const isAdministrator = role === OrganizationRole.ADMINISTRATOR
 
   return (
     <>
@@ -127,12 +131,16 @@ function SidebarNavigation() {
             icon={<UsersRoundIcon />}
             link={{ to: '/-/team' }}
           />
-          <NavigationLink
-            path="/-/settings"
-            label={formatMessage(navigationMessages.settings)}
-            icon={<SettingsIcon />}
-            link={{ to: '/-/settings' }}
-          />
+          {isAdministrator
+            ? (
+                <NavigationLink
+                  path="/-/settings"
+                  label={formatMessage(navigationMessages.settings)}
+                  icon={<SettingsIcon />}
+                  link={{ to: '/-/settings' }}
+                />
+              )
+            : null}
         </SidebarMenu>
       </SidebarGroup>
     </>

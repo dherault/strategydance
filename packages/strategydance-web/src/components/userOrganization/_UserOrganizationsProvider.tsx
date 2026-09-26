@@ -1,10 +1,13 @@
+import { useQueryClient } from '@tanstack/react-query'
 import type { PropsWithChildren } from 'react'
-import type { CompanyAspect } from 'strategydance-database/web'
+import type { ChangeOrganizationImageData, OrganizationImageKind } from 'strategydance-core'
+import type { CompanyAspect, GetCurrentUserOrganizationsData } from 'strategydance-database/web'
 import {
   useAcceptOrganizationInvitation,
   useAddOrganizationExploredAspect,
   useCreateOrganization,
   useGetCurrentUserOrganizations,
+  useUpdateOrganization,
 } from 'strategydance-database/web/react'
 
 import type { UserOrganizationsContextType } from '~contexts/UserOrganizationsContext'
@@ -13,6 +16,7 @@ import UserOrganizationsContext from '~contexts/UserOrganizationsContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 
+import { requestApi } from '~data/api'
 import { dataConnect } from '~data/firebase'
 
 /*
@@ -23,6 +27,7 @@ import { dataConnect } from '~data/firebase'
   unconditionally. `UserOrganizationsWait` is the half that gates
 */
 function UserOrganizationsProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient()
   const { data: viewer } = useAuthentication()
 
   const viewerId = viewer?.uid ?? null
@@ -42,6 +47,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   const { mutateAsync: createOrganizationMutation } = useCreateOrganization(dataConnect)
   const { mutateAsync: addExploredAspectMutation } = useAddOrganizationExploredAspect(dataConnect)
   const { mutateAsync: acceptInvitationMutation } = useAcceptOrganizationInvitation(dataConnect)
+  const { mutateAsync: updateOrganizationMutation } = useUpdateOrganization(dataConnect)
 
   const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
 
@@ -132,6 +138,49 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     }
   }
 
+  /*
+    Renames an organization and sets its color, and resolves once the list shows both: the
+    settings page compares its form to the list, so it reads as saved the moment this resolves,
+    with no instant of the old values in between.
+
+    The read after the write throws on failure, as `joinOrganization`'s does, and the write throws
+    as `createOrganization`'s does, since the page keeps what was typed when either fails
+  */
+  async function updateOrganization(organizationId: string, name: string, color: string | null) {
+    await updateOrganizationMutation({ organizationId, name, color })
+    await refetchUserOrganizations({ throwOnError: true })
+  }
+
+  /*
+    Makes a picture an organization's logo or banner, or removes it, through the backend: only an
+    administrator may, which a Storage rule cannot check. Resolves once the list shows the new URL,
+    so the settings page can drop its preview without the old picture flashing back in between
+  */
+  async function changeOrganizationImage(organizationId: string, kind: OrganizationImageKind, image: Blob | null) {
+    await requestApi<ChangeOrganizationImageData>({
+      method: image ? 'PUT' : 'DELETE',
+      path: `/organizations/${organizationId}/${kind}`,
+      body: image ?? undefined,
+    })
+    await refetchUserOrganizations({ throwOnError: true })
+  }
+
+  /*
+    Takes an organization that was just deleted out of the list, then reads the list again.
+
+    Out of the cached list first, so the current organization moves on at once and for sure: the
+    read after it may fail, as a refetch does without a word, and the list must not keep offering
+    an organization that is gone meanwhile. The read is what catches anything else that changed
+  */
+  async function forgetOrganization(organizationId: string) {
+    queryClient.setQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId], cached => cached && {
+      ...cached,
+      userOrganizations: cached.userOrganizations.filter(({ organization }) => organization.id !== organizationId),
+    })
+
+    await refetchUserOrganizations()
+  }
+
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
     initialLoading,
@@ -140,6 +189,9 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     createOrganization,
     joinOrganization,
     exploreCompanyAspect,
+    updateOrganization,
+    changeOrganizationImage,
+    forgetOrganization,
   }
 
   return (

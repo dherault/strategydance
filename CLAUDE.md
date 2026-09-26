@@ -191,6 +191,10 @@ only way the app talks to them.
   the backend calls a single-row mutation once per row instead
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
+- A mutation writes each row once. Data Connect runs the first write to a row and silently skips
+  any later one in the same mutation, aliased or not: an `organization_update` row lock followed
+  by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
+  mutation locks is the row it writes, the write itself is the lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs
@@ -265,11 +269,14 @@ in `utils/`, one concern per file.
   through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
   calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
-  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`
+  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
+  A route taking a file parses last instead, after `organizationAdministratorMiddleware` or
+  whatever says the caller may send it, so nobody else gets megabytes buffered
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
-  but cannot change the schema. In development `dev:backend` points Auth and
-  Data Connect at the emulators, and App Check is skipped, as the emulators skip it
+  but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. In development
+  `dev:backend` points Auth, Data Connect and Storage at the emulators, and App Check is skipped,
+  as the emulators skip it
 - The service is public, and `deploy` makes it so with `--no-invoker-iam-check`, never
   `--allow-unauthenticated`. The project sits in the strategydance.com organization, whose
   domain restricted sharing refuses the `allUsers` member that flag grants. Turning the invoker
@@ -278,8 +285,12 @@ in `utils/`, one concern per file.
 - The organization also withholds the Editor role Google used to hand default service
   accounts. `deploy` builds on Cloud Build as the Compute Engine default service account, which
   is also the account the service runs as, so it starts with no roles: grant it
-  `roles/run.builder` before the first deploy, beside the Data Connect role it needs to run and
-  Secret Manager's accessor role on each secret it reads
+  `roles/run.builder` before the first deploy, beside the Data Connect and Storage roles it needs
+  to run and Secret Manager's accessor role on each secret it reads
+- Organizations' logos and banners are the backend's to write, since only an administrator may
+  and a Storage rule cannot read who administers what. It stores each under a fresh name with
+  its own download token, writes that URL to the row, and deletes the file the row pointed at
+  before. `storage.rules` grants clients nothing under `organizations/`
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read

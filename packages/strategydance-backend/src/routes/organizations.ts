@@ -1,12 +1,17 @@
 import express, { type Request, type Response, Router } from 'express'
 import {
   type ApiResponse,
+  type ChangeOrganizationImageData,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_FORBIDDEN,
   ERROR_CODE_TEAM_FULL,
   ERROR_CODE_TOO_MANY_REQUESTS,
+  ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
   type InviteOrganizationMembersData,
   MAX_INVITATIONS_PER_REQUEST,
+  MAX_ORGANIZATION_IMAGE_SIZES,
+  ORGANIZATION_IMAGE_CONTENT_TYPES,
+  ORGANIZATION_IMAGE_KINDS,
   isEmailAddress,
   normalizeEmailAddress,
 } from 'strategydance-core'
@@ -14,13 +19,19 @@ import { z } from 'zod'
 
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
+import sniffImageContentType from '~utils/sniffImageContentType'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
 import invitationRateLimitMiddleware from '~middleware/invitationRateLimit'
+import organizationAdministratorMiddleware from '~middleware/organizationAdministrator'
+import organizationImageRateLimitMiddleware from '~middleware/organizationImageRateLimit'
 import validateMiddleware from '~middleware/validate'
 
 import createOrganizationInvitations from '~domain/organizations/createOrganizationInvitations'
+import deleteOrganization from '~domain/organizations/deleteOrganization'
+import removeOrganizationImage from '~domain/organizations/removeOrganizationImage'
+import replaceOrganizationImage from '~domain/organizations/replaceOrganizationImage'
 
 // Data Connect writes a UUID as 32 hex digits and reads it with or without hyphens
 const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
@@ -106,6 +117,131 @@ function createOrganizationsRouter() {
       })
     },
   )
+
+  const organizationParamsSchema = z.object({
+    organizationId: z.string().regex(UUID_PATTERN),
+  })
+
+  /* ---
+    ORGANIZATION
+  --- */
+
+  type OrganizationRequest = Request<z.infer<typeof organizationParamsSchema>, ApiResponse, unknown>
+
+  /*
+    Deletes an organization, its memberships, invitations and files, for one of its
+    administrators. Takes no body
+  */
+  router.delete(
+    '/:organizationId',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: organizationParamsSchema }),
+    organizationAdministratorMiddleware,
+    async (request: OrganizationRequest, response: Response<ApiResponse>) => {
+      const result = await deleteOrganization({
+        organizationId: request.params.organizationId,
+        userId: readViewer(request).id,
+      })
+
+      if (result.outcome === 'forbidden') {
+        respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only an administrator of the organization can delete it')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /* ---
+    IMAGES
+  --- */
+
+  type ImageRequest = Request<z.infer<typeof organizationParamsSchema>, ApiResponse<ChangeOrganizationImageData>, unknown>
+
+  /*
+    One pair of routes per picture rather than a `:kind` parameter, since Express 5 takes no
+    pattern in a parameter and each picture has its own size limit.
+
+    The body is parsed last, after the administrator check, rather than first as elsewhere: a
+    picture is megabytes, and nobody who may not change it should get it buffered. The parser
+    takes only the declared picture types, leaving the body unread otherwise, and refuses anything
+    over the limit with a 413 before reading it
+  */
+  ORGANIZATION_IMAGE_KINDS.forEach(kind => {
+    // Makes the body the organization's logo or banner, answering with its URL
+    router.put(
+      `/:organizationId/${kind}`,
+      appCheckMiddleware,
+      authenticationMiddleware,
+      organizationImageRateLimitMiddleware,
+      validateMiddleware({ params: organizationParamsSchema }),
+      organizationAdministratorMiddleware,
+      express.raw({ type: ORGANIZATION_IMAGE_CONTENT_TYPES, limit: MAX_ORGANIZATION_IMAGE_SIZES[kind] }),
+      async (request: ImageRequest, response: Response<ApiResponse<ChangeOrganizationImageData>>) => {
+        const bytes = Buffer.isBuffer(request.body) ? request.body : null
+        const contentType = bytes ? sniffImageContentType(bytes) : null
+
+        if (!bytes || !contentType) {
+          respondError(response, 415, ERROR_CODE_UNSUPPORTED_MEDIA_TYPE, `An organization's ${kind} is a PNG, JPEG, GIF or WebP picture`)
+
+          return
+        }
+
+        const result = await replaceOrganizationImage({
+          organizationId: request.params.organizationId,
+          userId: readViewer(request).id,
+          kind,
+          bytes,
+          contentType,
+        })
+
+        if (result.outcome === 'forbidden') {
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, `Only an administrator of the organization can change its ${kind}`)
+
+          return
+        }
+
+        response.json({
+          status: 'success',
+          data: {
+            url: result.url,
+          },
+        })
+      },
+    )
+
+    // Takes the organization's logo or banner away
+    router.delete(
+      `/:organizationId/${kind}`,
+      appCheckMiddleware,
+      authenticationMiddleware,
+      organizationImageRateLimitMiddleware,
+      validateMiddleware({ params: organizationParamsSchema }),
+      organizationAdministratorMiddleware,
+      async (request: ImageRequest, response: Response<ApiResponse<ChangeOrganizationImageData>>) => {
+        const result = await removeOrganizationImage({
+          organizationId: request.params.organizationId,
+          userId: readViewer(request).id,
+          kind,
+        })
+
+        if (result.outcome === 'forbidden') {
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, `Only an administrator of the organization can remove its ${kind}`)
+
+          return
+        }
+
+        response.json({
+          status: 'success',
+          data: {
+            url: null,
+          },
+        })
+      },
+    )
+  })
 
   return router
 }

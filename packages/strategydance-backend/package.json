@@ -3,7 +3,7 @@
   "name": "strategydance-backend",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun --watch src/index.ts",
+    "dev": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199 bun --watch src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
     "test": "bun test --isolate",
     "typecheck": "tsc -b",

@@ -47,3 +47,12 @@ query GetWelcomeEmailRecipient($userId: String!) @auth(level: NO_ACCESS) {
     displayName
   }
 }
+
+# What somebody is in an organization, so a route only an administrator may call can refuse
+# everybody else before it reads a body or touches Storage. The mutation behind the route checks
+# again in its own transaction: this is the early answer, not the guard
+query GetOrganizationMembership($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+  }
+}

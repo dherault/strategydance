@@ -454,6 +454,160 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "organizationSettings": {
+      "organizationSettings.administratorsOnly": {
+        "hash": "113317691467bf3b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.apply": {
+        "hash": "3a7e06fbbfcb2c28",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.bannerAlt": {
+        "hash": "3b6396b65f7abc91",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.bannerDescription": {
+        "hash": "b8238af16497baed",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.bannerPreviewAlt": {
+        "hash": "8b5bc3054e60d621",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.cancel": {
+        "hash": "05ba4e0ecb372cb4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.changeBanner": {
+        "hash": "60fae81419bc3607",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.changeLogo": {
+        "hash": "5c03c854c4e0d9a3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.chooseBanner": {
+        "hash": "44593838b5a8fca9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.chooseLogo": {
+        "hash": "bfc134d1832be034",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.close": {
+        "hash": "3c7c0a630939bd39",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.colorHexLabel": {
+        "hash": "9424ffd168c0b634",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.colorLabel": {
+        "hash": "65beaa03572b9b42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.deleteConfirm": {
+        "hash": "78a77107bd1c2a82",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.deleteDescription": {
+        "hash": "80617673356cf8d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.deleteError": {
+        "hash": "00da56bb462cef78",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.deleteOrganization": {
+        "hash": "7dec7ed35d8965ee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.deleted": {
+        "hash": "e10315c9dce55acb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.dropPrompt": {
+        "hash": "f85f9cac87bfe5a1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.imageSizeError": {
+        "hash": "1c5caa27b603f078",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.imageTypeError": {
+        "hash": "d32ecaa841f12005",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.lead": {
+        "hash": "aac63edad7781d77",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.logoDescription": {
+        "hash": "09fbb98bce840de5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.logoPreviewAlt": {
+        "hash": "fd0b0e8705ba94db",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.maximumSize": {
+        "hash": "9ee27568c5620082",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.minimumSize": {
+        "hash": "d7de9f943fd69a61",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.nameLabel": {
+        "hash": "2c486fc23beb4261",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.namePlaceholder": {
+        "hash": "5e8f4280e79dbbd2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.noOrganization": {
+        "hash": "49fa67e679568950",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.remove": {
+        "hash": "0e18eebd50b28628",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.removeConfirm": {
+        "hash": "11019ba6add5adaa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.save": {
+        "hash": "24662f463831c984",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.saveError": {
+        "hash": "93d52e971e973d46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.saved": {
+        "hash": "4e9c10f6c621142b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.squareRatio": {
+        "hash": "53f47896c09d0206",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.uploadBanner": {
+        "hash": "101f8e7b8eed1db4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.uploadLogo": {
+        "hash": "ca2b474abcfcfd27",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationSettings.wideRatio": {
+        "hash": "a69c745b433b807c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "team": {
       "team.accessError": {
         "hash": "1b983beaaa0de953",

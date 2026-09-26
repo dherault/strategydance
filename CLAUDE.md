@@ -267,7 +267,8 @@ in `utils/`, one concern per file.
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
-  service's own account needs a Data Connect role. In development `dev:backend` points Auth and
+  service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
+  but cannot change the schema. In development `dev:backend` points Auth and
   Data Connect at the emulators, and App Check is skipped, as the emulators skip it
 - The service is public, and `deploy` makes it so with `--no-invoker-iam-check`, never
   `--allow-unauthenticated`. The project sits in the strategydance.com organization, whose
@@ -277,7 +278,8 @@ in `utils/`, one concern per file.
 - The organization also withholds the Editor role Google used to hand default service
   accounts. `deploy` builds on Cloud Build as the Compute Engine default service account, which
   is also the account the service runs as, so it starts with no roles: grant it
-  `roles/run.builder` before the first deploy, beside the Data Connect role it needs to run
+  `roles/run.builder` before the first deploy, beside the Data Connect role it needs to run and
+  Secret Manager's accessor role on each secret it reads
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read

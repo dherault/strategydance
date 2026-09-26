@@ -212,7 +212,11 @@ mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(
     }
   }
   userOrganization_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, role: MEMBER })
+  # Has to find the row: an invitation canceled or declined after the first step read it, which
+  # nothing locked, would otherwise be accepted all the same. A delete that finds nothing fails,
+  # and the transaction takes the membership back with it
   organizationInvitation_delete(id: $id)
+    @check(expr: "this != null", message: "The invitation is gone, or was sent to another address")
 }
 
 # Declines an invitation, which deletes it. Only its addressee may, on the same terms as accepting

@@ -50,7 +50,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
 | `bun run lint` | oxlint across the repo |
 | `bun run typecheck` | `tsc` across the packages |
-| `bun run test` | `bun test` across the packages |
+| `bun run test` | `bun test` across the packages, each file in a fresh global so a `mock.module` stays in the file that made it |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |

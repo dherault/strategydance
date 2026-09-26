@@ -27,7 +27,7 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "lint:backend": "cd packages/strategydance-backend && bun run lint",
-    "test": "bun test",
+    "test": "bun test --isolate",
     "translate": "cd packages/strategydance-translations && bun run translate",
     "typecheck": "bun run typecheck:core && bun run typecheck:database && bun run typecheck:design-system && bun run typecheck:translations && bun run typecheck:emails && bun run typecheck:backend && bun run typecheck:web",
     "typecheck:core": "cd packages/strategydance-core && bun run typecheck",

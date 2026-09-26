@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun --watch src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
-    "test": "bun test",
+    "test": "bun test --isolate",
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src",
     "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --allow-unauthenticated --update-secrets RESEND_API_KEY=resend-api-key:latest"

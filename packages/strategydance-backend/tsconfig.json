@@ -23,6 +23,9 @@
     "esModuleInterop": true,
     "types": ["bun"],
 
+    /* `tsc` follows the import into strategydance-emails' templates, which are `.tsx` */
+    "jsx": "react-jsx",
+
     /* Path aliases, resolved relative to this file. Bun reads them at runtime as well */
     "paths": {
       "~constants": ["./src/constants.ts"],

@@ -39,3 +39,17 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
       /^https:\/\/strategydance--[a-z0-9-]+\.web\.app$/,
     ]
   : true
+
+/* ---
+  EMAIL
+--- */
+
+/*
+  Where every email comes from. Its domain has to stay verified in Resend, DKIM and SPF, or every
+  send is refused, and the mailbox has to receive: the welcome email asks for a reply
+*/
+export const EMAIL_SENDER_ADDRESS = 'david@strategydance.com'
+
+// Mounted from Secret Manager's `resend-api-key` by the `deploy` script. Unset in development,
+// where nothing is sent
+export const RESEND_API_KEY = process.env.RESEND_API_KEY

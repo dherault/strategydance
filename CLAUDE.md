@@ -269,9 +269,14 @@ in `utils/`, one concern per file.
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs a Data Connect role. In development `dev:backend` points Auth and
   Data Connect at the emulators, and App Check is skipped, as the emulators skip it
-- Emails are a placeholder until Resend and react-email are wired:
-  `sendOrganizationInvitationEmail` logs what it would send. In development that includes the
-  invitation's link, which is how an invitation gets accepted locally
+- Every email goes out through `sendEmail` in `domain/email/`, over Resend, from
+  `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
+  receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret,
+  which the `deploy` script mounts as `RESEND_API_KEY`: the service's account needs Secret
+  Manager's accessor role on it
+- Only production sends. Anywhere else `sendEmail` writes the HTML to the OS temp directory and
+  logs its path, and `sendOrganizationInvitationEmail` also logs the invitation's link, which is
+  how an invitation gets accepted locally
 
 ## Email conventions
 
@@ -292,6 +297,8 @@ on the backend's side.
 - Images are hotlinked PNGs at an absolute production URL, from
   `packages/strategydance-web/public/assets/images/`. Gmail and Outlook render neither inline
   SVG nor a `data:` URI
+- The backend's `tsc` follows its import into these `.tsx` files, so both tsconfigs carry
+  `"jsx": "react-jsx"`, and their other options agree. Keep them agreeing
 - English only for now. The copy follows the catalogues' rule anyway: no em dashes
 - `bun run dev:emails` opens the preview server through `scripts/devEmails.sh`, which runs the
   CLI from a scratch directory outside the tree. Read its header before changing how it is

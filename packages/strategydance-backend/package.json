@@ -8,15 +8,17 @@
     "test": "bun test",
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src",
-    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --allow-unauthenticated"
+    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --allow-unauthenticated --update-secrets RESEND_API_KEY=resend-api-key:latest"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "firebase-admin": "^14.4.0",
+    "resend": "^6.28.1",
     "strategydance-core": "workspace:*",
     "strategydance-database": "workspace:*",
+    "strategydance-emails": "workspace:*",
     "zod": "^4.6.5"
   },
   "devDependencies": {

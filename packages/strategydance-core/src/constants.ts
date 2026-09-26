@@ -41,11 +41,11 @@ export const DEVELOPMENT_API_PORT = 3003
 export const DEVELOPMENT_API_URL = `http://localhost:${DEVELOPMENT_API_PORT}`
 
 /*
-  Cloud Run's deterministic URL for the `strategydance-backend` service: its name, the project
-  number and the region. Known before the first deploy, so no build has to wait on one. A custom
-  domain mapped onto the service later replaces it here
+  A Cloud Run domain mapping onto the `strategydance-backend` service, under the app's own
+  hostname. The service still answers on its `run.app` URL, but this one outlives a move to
+  another region or project, which changes that URL
 */
-export const PRODUCTION_API_URL = 'https://strategydance-backend-995028545701.us-central1.run.app'
+export const PRODUCTION_API_URL = `https://api.${PRODUCTION_APP_HOSTNAME}`
 
 // Where the web app puts its App Check token on a call to the backend
 export const HEADER_APP_CHECK_TOKEN = 'X-Firebase-AppCheck'

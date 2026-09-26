@@ -271,6 +271,10 @@ in `utils/`, one concern per file.
   domain restricted sharing refuses the `allUsers` member that flag grants. Turning the invoker
   check off lets anybody call the service without widening its IAM policy; what guards a route
   is its own middleware, App Check and the caller's ID token
+- The organization also withholds the Editor role Google used to hand default service
+  accounts. `deploy` builds on Cloud Build as the Compute Engine default service account, which
+  is also the account the service runs as, so it starts with no roles: grant it
+  `roles/run.builder` before the first deploy, beside the Data Connect role it needs to run
 - Emails are a placeholder until Resend and react-email are wired:
   `sendOrganizationInvitationEmail` logs what it would send. In development that includes the
   invitation's link, which is how an invitation gets accepted locally

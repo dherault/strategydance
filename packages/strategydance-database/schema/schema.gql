@@ -140,9 +140,9 @@ type OrganizationInvitation @table @unique(fields: ["organization", "email"]) {
 # in the database rather than in a server's memory, because Cloud Run spreads one caller's
 # requests over several instances, and each would keep its own count.
 #
-# Written in the same transaction as the invitation, and read only by the backend. A sender's
-# rows older than the window are pruned as they send more, so the table holds about an hour of
-# each sender's invitations
+# Written in the same transaction as the invitation, and read only by the backend. Every invitation
+# prunes the rows older than the window, whoever sent them, so the table holds about the last hour
+# of everybody's invitations
 type SentInvitation @table @index(fields: ["invitedById", "createdAt"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Implies an `invitedById: String!` column, cascade deleting

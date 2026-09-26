@@ -53,8 +53,21 @@ mutation UpdateCurrentUser(
 #
 # `userId_expr` reads the uid off the token, so nobody can be made an administrator of an
 # organization they never asked for. `response.organization.id` is the uuid the step above
-# generated, keyed by the alias
+# generated, keyed by the alias.
+#
+# The name is held to what `UpdateOrganization` holds it to, so an organization never starts with
+# a name its settings page would refuse to save. The check sits on the caller's own row, read
+# first and redacted, because an operation takes no `@check` of its own
 mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+  query @redact {
+    user(key: { id_expr: "auth.uid" }) {
+      id
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A name is 1 to 80 characters on one line, with no space at either end"
+        )
+    }
+  }
   organization: organization_insert(data: { name: $name })
   userOrganization: userOrganization_insert(
     data: {

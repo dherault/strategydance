@@ -106,8 +106,8 @@ export const MAX_TEAM_SIZE = 100
 export const MAX_JOB_TITLE_LENGTH = 60
 
 /*
-  How long an organization's name may be. Written out again in `UpdateOrganization`'s check,
-  which cannot import it: change the two together
+  How long an organization's name may be. Written out again in `CreateOrganization`'s and
+  `UpdateOrganization`'s checks, which cannot import it: change the three together
 */
 export const MAX_ORGANIZATION_NAME_LENGTH = 80
 

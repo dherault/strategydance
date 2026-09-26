@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
+import { MAX_ORGANIZATION_NAME_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -89,6 +90,7 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
             value={name}
             onChange={event => setName(event.target.value)}
             error={hasFailed ? formatMessage(navigationMessages.addOrganizationError) : undefined}
+            maxLength={MAX_ORGANIZATION_NAME_LENGTH}
             autoComplete="organization"
             autoFocus
           />

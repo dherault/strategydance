@@ -1,4 +1,7 @@
 {
+  "invitation.checkConfirmation": "J'ai confirmé",
+  "invitation.confirmationError": "Une erreur s'est produite. Vérifiez votre connexion et réessayez dans un instant.",
+  "invitation.confirmationSent": "Lien envoyé à {email}. Ouvrez-le, ou revenez sur cet onglet une fois que c'est fait.",
   "invitation.continue": "Continuer vers Strategy Dance",
   "invitation.decline": "Refuser",
   "invitation.declineConfirm": "Confirmer ?",
@@ -12,6 +15,11 @@
   "invitation.loadError": "Impossible de charger l'invitation. Vérifiez votre connexion et réessayez.",
   "invitation.missingLead": "Elle a déjà été annulée ou traitée, ou a été envoyée à une autre adresse que {email}. Demandez à la personne qui vous a invité d'en envoyer une nouvelle, ou connectez-vous avec l'adresse à laquelle elle a été envoyée.",
   "invitation.missingTitle": "Invitation indisponible",
+  "invitation.notConfirmed": "{email} n'est pas encore confirmée. Ouvrez le lien dans l'e-mail que nous avons envoyé, ou renvoyez-le.",
+  "invitation.resendConfirmation": "Renvoyer",
   "invitation.retry": "Réessayer",
-  "invitation.title": "Rejoindre {organizationName}"
+  "invitation.sendConfirmation": "Envoyer le lien",
+  "invitation.title": "Rejoindre {organizationName}",
+  "invitation.unverifiedLead": "Les invitations ne s'ouvrent qu'avec une adresse confirmée. Nous allons envoyer un lien de confirmation à {email}. Ouvrez-le pour revenir ici.",
+  "invitation.unverifiedTitle": "Confirmez votre adresse e-mail"
 }

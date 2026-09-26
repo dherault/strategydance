@@ -31,7 +31,13 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
     // and a restored session reports whatever was true at sign-in until it is asked again
     await currentViewer.reload()
 
-    setEmailVerified(currentViewer.emailVerified)
+    // `reload()` updates the account but not the ID token, and the token is what Data Connect
+    // reads `email_verified` from: until it is minted again, a `USER_EMAIL_VERIFIED` operation
+    // still refuses somebody who just confirmed their address
+    if (currentViewer.emailVerified) await currentViewer.getIdToken(true)
+
+    // Not for an account signed out or replaced meanwhile, whose state the listener owns now
+    if (authentication.currentUser === currentViewer) setEmailVerified(currentViewer.emailVerified)
   }
 
   async function signOut() {
@@ -41,15 +47,50 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
   /*
     `onIdTokenChanged` rather than `onAuthStateChanged`: it fires on both, so a token minted
     after `reload()` reaches this listener too, and there is one place that decides what the
-    viewer is
-  */
-  useEffect(() => onIdTokenChanged(authentication, nextViewer => {
-    if (import.meta.env.DEV && nextViewer) console.log(`🙋 ${nextViewer.email}`)
+    viewer is.
 
-    setViewer(nextViewer)
-    setEmailVerified(nextViewer?.emailVerified ?? false)
-    setLoading(false)
-  }), [])
+    `emailVerified` is the token's claim rather than the account's flag, because the token is
+    what Data Connect checks. `reload()` fires this listener with an account that already says
+    verified while the token in hand still says otherwise, and reading the flag there sent a
+    `USER_EMAIL_VERIFIED` query out on the old token, to be refused
+  */
+  useEffect(() => {
+    /*
+      Firebase calls the listener without waiting on it, so a call still reading its token can
+      finish after a later one, a sign-out say, and put the previous account back. Only the
+      latest call commits, and unsubscribing retires any call still in flight
+    */
+    let latestCall = 0
+
+    const unsubscribe = onIdTokenChanged(authentication, async nextViewer => {
+      const call = ++latestCall
+
+      if (import.meta.env.DEV && nextViewer) console.log(`🙋 ${nextViewer.email}`)
+
+      let nextEmailVerified = false
+
+      if (nextViewer) {
+        try {
+          nextEmailVerified = (await nextViewer.getIdTokenResult()).claims.email_verified === true
+        }
+        // A token that cannot be refreshed, offline say, still leaves the account's own word
+        catch {
+          nextEmailVerified = nextViewer.emailVerified
+        }
+      }
+
+      if (call !== latestCall) return
+
+      setViewer(nextViewer)
+      setEmailVerified(nextEmailVerified)
+      setLoading(false)
+    })
+
+    return () => {
+      latestCall += 1
+      unsubscribe()
+    }
+  }, [])
 
   const contextValue: AuthenticationContextType = {
     data: viewer,

@@ -24,15 +24,20 @@ const INVITATION_ID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{
   invitation is gone because the network was.
 
   The key carries the uid, so signing into another account on the same tab reads the invitation
-  again as that account
+  again as that account.
+
+  Nothing is read until the reader's address is verified, which the query requires: asked
+  before, it would fail, and the page would offer to try again something that cannot succeed.
+  The page asks them to confirm their address instead
 */
 function useOrganizationInvitation(invitationId: string): DataSource<OrganizationInvitation | null> & { hasFailed: boolean } {
-  const { data: viewer } = useAuthentication()
+  const { data: viewer, emailVerified } = useAuthentication()
 
-  const viewerId = viewer?.uid ?? null
+  // Null until somebody may read: signed in, with a verified address
+  const readerId = viewer && emailVerified ? viewer.uid : null
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
-    queryKey: ['GetOrganizationInvitation', invitationId, viewerId],
+    queryKey: ['GetOrganizationInvitation', invitationId, readerId],
     queryFn: async () => {
       if (!INVITATION_ID_PATTERN.test(invitationId)) return null
 
@@ -40,7 +45,7 @@ function useOrganizationInvitation(invitationId: string): DataSource<Organizatio
 
       return result.organizationInvitations[0] ?? null
     },
-    enabled: Boolean(viewerId),
+    enabled: Boolean(readerId),
     /*
       A read that failed with nothing cached must not start again because another component
       subscribed. Retrying resets it to pending, the waiter puts the spinner back and unmounts the
@@ -52,8 +57,8 @@ function useOrganizationInvitation(invitationId: string): DataSource<Organizatio
 
   return {
     data: data ?? null,
-    initialLoading: Boolean(viewerId) && isPending && !isError,
-    loading: Boolean(viewerId) && isFetching,
+    initialLoading: Boolean(readerId) && isPending && !isError,
+    loading: Boolean(readerId) && isFetching,
     refetch: async () => {
       await refetch()
     },

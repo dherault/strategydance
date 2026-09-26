@@ -1,4 +1,7 @@
 {
+  "invitation.checkConfirmation": "Ich habe es bestätigt",
+  "invitation.confirmationError": "Das hat nicht geklappt. Prüfe deine Verbindung und versuche es gleich noch einmal.",
+  "invitation.confirmationSent": "Link an {email} gesendet. Öffne ihn oder kehre danach zu diesem Tab zurück.",
   "invitation.continue": "Weiter zu Strategy Dance",
   "invitation.decline": "Ablehnen",
   "invitation.declineConfirm": "Bestätigen?",
@@ -12,6 +15,11 @@
   "invitation.loadError": "Die Einladung konnte nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
   "invitation.missingLead": "Sie wurde bereits zurückgezogen oder beantwortet, oder sie wurde an eine andere Adresse als {email} gesendet. Bitte die Person, die dich eingeladen hat, eine neue Einladung zu senden, oder melde dich mit der Adresse an, an die sie gesendet wurde.",
   "invitation.missingTitle": "Einladung nicht verfügbar",
+  "invitation.notConfirmed": "{email} ist noch nicht bestätigt. Öffne den Link in der E-Mail, die wir gesendet haben, oder sende ihn erneut.",
+  "invitation.resendConfirmation": "Erneut senden",
   "invitation.retry": "Erneut versuchen",
-  "invitation.title": "{organizationName} beitreten"
+  "invitation.sendConfirmation": "Link senden",
+  "invitation.title": "{organizationName} beitreten",
+  "invitation.unverifiedLead": "Einladungen können nur mit einer bestätigten Adresse geöffnet werden. Wir senden einen Bestätigungslink an {email}. Öffne ihn, um hierher zurückzukehren.",
+  "invitation.unverifiedTitle": "Bestätige deine E-Mail-Adresse"
 }

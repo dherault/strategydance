@@ -1,4 +1,7 @@
 {
+  "invitation.checkConfirmation": "Já confirmei",
+  "invitation.confirmationError": "Não foi possível concluir. Verifique sua conexão e tente novamente em instantes.",
+  "invitation.confirmationSent": "Link enviado para {email}. Abra-o ou volte para esta aba assim que o fizer.",
   "invitation.continue": "Continuar para o Strategy Dance",
   "invitation.decline": "Recusar",
   "invitation.declineConfirm": "Confirmar?",
@@ -12,6 +15,11 @@
   "invitation.loadError": "Não foi possível carregar o convite. Verifique a sua conexão e tente novamente.",
   "invitation.missingLead": "O convite foi cancelado, já foi respondido ou foi enviado para um endereço diferente de {email}. Peça para quem convidou você enviar um novo convite ou entre com o endereço para o qual ele foi enviado.",
   "invitation.missingTitle": "Convite indisponível",
+  "invitation.notConfirmed": "{email} ainda não foi confirmado. Abra o link no e-mail que enviamos ou envie novamente.",
+  "invitation.resendConfirmation": "Enviar novamente",
   "invitation.retry": "Tentar novamente",
-  "invitation.title": "Entrar em {organizationName}"
+  "invitation.sendConfirmation": "Enviar o link",
+  "invitation.title": "Entrar em {organizationName}",
+  "invitation.unverifiedLead": "Os convites só podem ser abertos com um endereço confirmado. Enviaremos um link de confirmação para {email}. Abra-o para voltar aqui.",
+  "invitation.unverifiedTitle": "Confirme seu endereço de e-mail"
 }

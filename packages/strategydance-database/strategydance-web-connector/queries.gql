@@ -54,6 +54,9 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       id
       name
       exploredAspects
+      logoUrl
+      bannerUrl
+      color
     }
   }
 }

@@ -191,6 +191,10 @@ only way the app talks to them.
   the backend calls a single-row mutation once per row instead
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
+- A mutation writes each row once. Data Connect runs the first write to a row and silently skips
+  any later one in the same mutation, aliased or not: an `organization_update` row lock followed
+  by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
+  mutation locks is the row it writes, the write itself is the lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs

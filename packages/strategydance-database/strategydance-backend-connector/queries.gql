@@ -1,0 +1,58 @@
+# What inviting people to an organization has to know first, in one read:
+#
+# - the caller's membership, which says whether they may invite, and names them and the
+#   organization for the email
+# - the team as it stands, members and pending invitations, which says whether any of the
+#   addresses is taken and whether the team has room
+# - the invitations the caller sent in the last hour, newest first, which says whether they have
+#   room for more and when they will. Read to 200, `MAX_INVITATIONS_PER_HOUR` in the backend:
+#   past that, a request is refused whatever the rest are, and when it fits depends only on the
+#   newest 200
+#
+# The two lists are read whole: the database keeps a team at 100 of both together, so a limit of
+# 100 each is never a cut. `$userId` is the uid the backend verified, never one a client sent
+query GetOrganizationInvitationContext($organizationId: UUID!, $userId: String!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    user {
+      displayName
+      email
+    }
+    organization {
+      name
+    }
+  }
+  userOrganizations(where: { organizationId: { eq: $organizationId } }, limit: 100) {
+    user {
+      email
+    }
+  }
+  organizationInvitations(where: { organizationId: { eq: $organizationId } }, limit: 100) {
+    email
+  }
+  sentInvitations(
+    where: { invitedById: { eq: $userId }, createdAt: { ge_time: { now: true, sub: { hours: 1 } } } }
+    orderBy: [{ createdAt: DESC }]
+    limit: 200
+  ) {
+    createdAt
+  }
+}
+
+# Who the welcome email goes to and what it calls them, once the backend has claimed it
+query GetWelcomeEmailRecipient($userId: String!) @auth(level: NO_ACCESS) {
+  user(key: { id: $userId }) {
+    email
+    displayName
+  }
+}
+
+# What somebody is in an organization, so a route only an administrator may call can refuse
+# everybody else before it reads a body or touches Storage. The mutation behind the route checks
+# again in its own transaction: this is the early answer, not the guard
+query GetOrganizationMembership($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+  }
+}

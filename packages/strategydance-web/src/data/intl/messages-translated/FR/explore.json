@@ -1,0 +1,17 @@
+{
+  "explore.blurbDesign": "Marque, interface et expérience autour de votre produit.",
+  "explore.blurbEngineering": "Définissez votre MVP et continuez d'itérer à partir de là.",
+  "explore.blurbFinances": "Trésorerie, tarification, revenus et dépenses mensuelles.",
+  "explore.blurbLegal": "Structure juridique, contrats, conditions et conformité.",
+  "explore.blurbMarketing": "Audience, canaux et rythme de publication régulier.",
+  "explore.blurbPeople": "Recrutement, collaborateurs, routines et organisation du travail.",
+  "explore.blurbProduct": "Ce que vous concevez, pour qui, et les prochains lancements.",
+  "explore.blurbSales": "Pipeline, prospection et signature de vos premiers clients.",
+  "explore.blurbStrategy": "Le défi à relever et la voie vers la victoire.",
+  "explore.explored": "{explored} sur {total} explorés",
+  "explore.lead": "Toute entreprise repose sur les mêmes neuf aspects. Ajoutez ceux pour lesquels vous souhaitez un accompagnement, et préparez-vous à travailler.",
+  "explore.noOrganization": "Ajoutez une organisation pour commencer à explorer ses aspects.",
+  "explore.open": "Ouvrir",
+  "explore.start": "Commencer l'exploration",
+  "explore.startError": "Impossible d'ajouter cet aspect. Réessayez."
+}

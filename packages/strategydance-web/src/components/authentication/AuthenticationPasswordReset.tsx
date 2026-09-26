@@ -4,6 +4,8 @@ import { sendPasswordResetEmail } from 'firebase/auth'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FormattedMessage, useIntl } from 'react-intl'
+import { Alert } from 'strategydance-design-system/components/ui/Alert'
+import { Button } from 'strategydance-design-system/components/ui/Button'
 import * as z from 'zod'
 
 import { AUTHENTICATION_ERRORS, DEFAULT_AUTHENTICATION_ERROR } from '~constants'
@@ -12,10 +14,8 @@ import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMes
 
 import formatEmail from '~utils/user/formatEmail'
 
-import { Button } from '~components/ui/Button'
-import { FieldGroup, FieldSet } from '~components/ui/Field'
+import Spinner from '~components/common/Spinner'
 import { FormInputField } from '~components/ui/FormField'
-import { Label } from '~components/ui/Label'
 
 import { authentication } from '~data/firebase'
 
@@ -67,56 +67,54 @@ function AuthenticationPasswordReset() {
       }
     }
 
-    // The banner says the same thing whether or not the address had an account
-    await navigate({ to: '/authentication', search: { passwordResetSent: true }, replace: true })
+    // The banner says the same thing whether or not the address had an account. The page asked
+    // for before signing in comes back along with it
+    await navigate({ to: '/authentication', search: ({ redirect }) => ({ passwordResetSent: true, redirect }), replace: true })
   }
 
   return (
     <>
-      <Label className="block text-center">
+      <p className="text-center text-sm font-medium">
         <FormattedMessage {...authenticationMessages.passwordResetTitle} />
-      </Label>
-      <Label className="mt-1.5 mb-4 block text-center text-muted-foreground">
+      </p>
+      <p className="mt-1.5 mb-4 text-center text-sm font-medium text-muted-foreground">
         <FormattedMessage {...authenticationMessages.passwordResetDescription} />
-      </Label>
+      </p>
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
         className="space-y-4"
       >
-        <FieldSet>
-          <FieldGroup>
-            <FormInputField
-              control={form.control}
-              name="email"
-              id="AuthenticationPasswordReset-email"
-              label={<FormattedMessage {...authenticationMessages.fieldEmail} />}
-              formatError={formatAuthenticationMessage}
-              placeholder={intl.formatMessage(authenticationMessages.placeholderEmail)}
-              autoComplete="email"
-              autoFocus
-            />
-          </FieldGroup>
-        </FieldSet>
+        <FormInputField
+          control={form.control}
+          name="email"
+          id="AuthenticationPasswordReset-email"
+          label={<FormattedMessage {...authenticationMessages.fieldEmail} />}
+          formatError={formatAuthenticationMessage}
+          placeholder={intl.formatMessage(authenticationMessages.placeholderEmail)}
+          autoComplete="email"
+          autoFocus
+        />
         <Button
           type="submit"
-          loading={loading}
+          disabled={loading}
+          icon={loading ? <Spinner tone="current" /> : undefined}
           className="w-full"
         >
           <FormattedMessage {...authenticationMessages.passwordResetAction} />
         </Button>
       </form>
       {!!errorCode && (
-        <div
-          role="alert"
-          className="mt-2 text-sm text-destructive"
+        <Alert
+          variant="danger"
+          className="mt-4"
         >
           {formatAuthenticationMessage(AUTHENTICATION_ERRORS[errorCode] ?? DEFAULT_AUTHENTICATION_ERROR)}
-        </div>
+        </Alert>
       )}
       <div className="mt-4">
         <button
           type="button"
-          onClick={() => navigate({ to: '/authentication' })}
+          onClick={() => navigate({ to: '/authentication', search: ({ redirect }) => ({ redirect }) })}
           className="cursor-pointer text-sm text-muted-foreground hover:underline"
         >
           <FormattedMessage {...authenticationMessages.actionBack} />

@@ -43,8 +43,31 @@ type User @table {
   # Which buttons this account can sign in with, so a screen can say so without asking Firebase
   # and getting an answer shaped by email enumeration protection
   authenticationProviders: [AuthenticationProvider!]!
+  # When a request last claimed the account's welcome email, which it holds for ten minutes while
+  # it sends, so two requests cannot both mail. Left to lapse rather than handed back when the
+  # send fails or the process dies, so a later request retries it, never sooner. Only the
+  # backend's connector reads or writes it
+  welcomeEmailClaimedAt: Timestamp
+  # When the account's one welcome email went out, and null until it has. Only the backend's
+  # connector writes it. The reader's own row carries it, so the web app knows to ask for it
+  welcomeEmailSentAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# The aspects of a company the product guides it through, in the order it presents them. This is
+# its only declaration: the generated SDK exports it in this order, and the frontend lists the
+# aspects from there
+enum CompanyAspect {
+  STRATEGY
+  PEOPLE
+  FINANCES
+  PRODUCT
+  ENGINEERING
+  DESIGN
+  MARKETING
+  SALES
+  LEGAL
 }
 
 # What somebody can do inside an organization
@@ -60,6 +83,18 @@ type Organization @table {
   # refers to something on the page
   id: UUID! @default(expr: "uuidV4()")
   name: String!
+  # The aspects the organization has started working on, each once. None to begin with: the
+  # sidebar lists these, and the rest wait behind the explore page
+  exploredAspects: [CompanyAspect!]! @default(sql: "'{}'")
+  # How it appears to its team, others and agents, as its administrators set it on the settings
+  # page. The two pictures are Storage download URLs, and only the backend writes them: putting a
+  # file in Storage on an administrator's word is something a Storage rule cannot check, since it
+  # cannot read who administers what. Null until somebody uploads one
+  logoUrl: String
+  bannerUrl: String
+  # Six uppercase hex digits behind a `#`, filling the mark where there is no logo. Null until an
+  # administrator picks one, which means strategydance-core's `DEFAULT_ORGANIZATION_COLOR`
+  color: String
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -77,6 +112,49 @@ type UserOrganization @table(key: ["user", "organization"]) {
   organization: Organization!
   # No default. An insert has to say which, so nobody becomes an administrator by omission
   role: OrganizationRole!
+  # What they do there, like "Product designer", written by them or by an administrator. On the
+  # membership rather than on `User`, since one person does different things in different
+  # organizations. Null until somebody writes one. Named apart from the design's "Role" column
+  # it fills, because `role` above is already something else
+  jobTitle: String
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Somebody asked to join an organization, by email, who has not answered yet.
+#
+# Every row is pending: accepting inserts the `UserOrganization` and deletes this row, and
+# declining or canceling deletes it alone. The pair of organization and address is unique, so
+# nobody is invited to the same organization twice.
+#
+# `id` doubles as the secret in the invitation's link. Holding it is what proves the email
+# reached its reader, which the address on a token cannot: password accounts are never verified.
+# So no operation a member can call selects it, and only the backend reads it, to put it in the
+# email
+type OrganizationInvitation @table @unique(fields: ["organization", "email"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # Lowercased before it is written, because Firebase Auth lowercases the address on a token and
+  # accepting compares the two
+  email: String!
+  # Who sent it, for the page the link opens to name
+  invitedBy: User!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# An invitation somebody sent, kept after the invitation itself is accepted, declined or
+# canceled, so the backend can hold everybody to an hourly number of invitation emails. Counted
+# in the database rather than in a server's memory, because Cloud Run spreads one caller's
+# requests over several instances, and each would keep its own count.
+#
+# Written in the same transaction as the invitation, and read only by the backend. Every invitation
+# prunes the rows older than the window, whoever sent them, so the table holds about the last hour
+# of everybody's invitations
+type SentInvitation @table @index(fields: ["invitedById", "createdAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `invitedById: String!` column, cascade deleting
+  invitedBy: User!
+  createdAt: Timestamp! @default(expr: "request.time")
 }

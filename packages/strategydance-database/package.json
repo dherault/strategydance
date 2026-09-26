@@ -10,6 +10,10 @@
     "./web/react": {
       "types": "./generated/strategydance-web-connector/react/index.d.ts",
       "default": "./generated/strategydance-web-connector/react/esm/index.esm.js"
+    },
+    "./backend": {
+      "types": "./generated/strategydance-backend-connector/index.d.ts",
+      "default": "./generated/strategydance-backend-connector/esm/index.esm.js"
     }
   },
   "scripts": {
@@ -23,6 +27,7 @@
   },
   "peerDependencies": {
     "@tanstack-query-firebase/react": "^2.1.1",
-    "firebase": "^12.19.0"
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.4.0"
   }
 }

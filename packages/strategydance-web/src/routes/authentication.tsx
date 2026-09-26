@@ -7,23 +7,36 @@ import AuthenticationRedirect from '~components/authentication/AuthenticationRed
 import AuthenticationWait from '~components/authentication/AuthenticationWait'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
+import parseRedirectPath from '~utils/authentication/parseRedirectPath'
+
 // At module scope so the reference is stable across renders
 const AUTHENTICATION_MESSAGE_TYPES: MessageType[] = ['authentication']
 
 type AuthenticationSearch = {
   passwordResetSent?: boolean
+  // The page the reader was sent here from, to return to once signed in
+  redirect?: string
 }
 
 export const Route = createFileRoute('/authentication')({
   /*
-    The key is omitted rather than set to false when it is absent. TanStack rewrites the URL to
-    whatever this returns, so emitting the key unconditionally turns a plain `/authentication`
-    into a redirect to `/authentication?passwordResetSent=false`
+    `passwordResetSent` is omitted rather than set to false when it is absent. TanStack rewrites
+    the URL to whatever this returns, so emitting it unconditionally turns a plain
+    `/authentication` into a redirect to `/authentication?passwordResetSent=false`.
+
+    `redirect` is the opposite case, and is always set, to undefined when it does not check out.
+    TanStack lays what this returns over the raw query rather than replacing it, so a key merely
+    left out keeps its raw value in `useSearch()`, and a hostile path would be followed after
+    all. Undefined overwrites it, and drops it from the URL
   */
   validateSearch: (search: Record<string, unknown>): AuthenticationSearch => {
-    if (search.passwordResetSent === true || search.passwordResetSent === 'true') return { passwordResetSent: true }
+    const validated: AuthenticationSearch = {
+      redirect: parseRedirectPath(search.redirect) ?? undefined,
+    }
 
-    return {}
+    if (search.passwordResetSent === true || search.passwordResetSent === 'true') validated.passwordResetSent = true
+
+    return validated
   },
   component: AuthenticationRoute,
 })
@@ -35,12 +48,12 @@ export const Route = createFileRoute('/authentication')({
   before being sent on
 */
 function AuthenticationRoute() {
-  const { passwordResetSent } = Route.useSearch()
+  const { passwordResetSent, redirect } = Route.useSearch()
 
   return (
     <IntlMessagesRegistration messageTypes={AUTHENTICATION_MESSAGE_TYPES}>
       <AuthenticationWait>
-        <AuthenticationRedirect>
+        <AuthenticationRedirect redirect={redirect ?? null}>
           <AuthenticationLayout passwordResetSent={passwordResetSent}>
             <Outlet />
           </AuthenticationLayout>

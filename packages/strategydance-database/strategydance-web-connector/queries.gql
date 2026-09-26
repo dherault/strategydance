@@ -9,8 +9,9 @@ query GetCurrentUser @auth(level: USER) {
     locale
     timezone
     authenticationProviders
+    # Whether to ask the backend for the welcome email, and whether it is too late to
+    welcomeEmailSentAt
     createdAt
-    updatedAt
   }
 }
 
@@ -49,12 +50,91 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
   ) {
     role
-    createdAt
     organization {
       id
       name
-      createdAt
-      updatedAt
+      exploredAspects
+      logoUrl
+      bannerUrl
+      color
+    }
+  }
+}
+
+# An organization's members and its pending invitations, as the team page lists them.
+#
+# Both lists are filtered on the caller's own membership, keyed by the uid off the token, so
+# somebody outside the organization reads two empty lists rather than its people. Invitations
+# come without their `id`, which is the secret in their link: a member sees who was invited, and
+# cannot answer for them.
+#
+# A live query. The page subscribes to it, and each `@refresh` names a mutation that changes one
+# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation`,
+# `DeleteUnsentOrganizationInvitation` and `DeleteOrganization` are the backend connector's, run
+# through the Admin SDK; the last empties both lists, which the page reads as the reader having
+# left. A profile edit is not among them: refreshing on every `UpdateCurrentUser` would wake every
+# team page for anybody's change of name, so a new name shows on the next load instead. Nor is a
+# change to the organization's settings, since this query reads none of them.
+#
+# Each list is read up to 100 rows, named rather than left to the generated default. The database
+# keeps a team at 100 members and pending invitations together (`MAX_TEAM_SIZE` in
+# strategydance-core), so neither list is ever cut short
+query GetOrganizationTeam($organizationId: UUID!)
+@auth(level: USER)
+@refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberRole", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberJobTitle", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeclineOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "CreateOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteUnsentOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteOrganization", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+  userOrganizations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # Joined-at order, as the sidebar lists organizations. `userId` breaks the tie between two
+    # rows written in one transaction
+    orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
+  ) {
+    role
+    jobTitle
+    user {
+      id
+      email
+      displayName
+      imageUrl
+    }
+  }
+  organizationInvitations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { email: ASC }]
+    limit: 100
+  ) {
+    email
+  }
+}
+
+# The invitation a link opens, for its addressee alone.
+#
+# The address has to be the one on the caller's token, so somebody holding a link meant for
+# another address reads nothing. Nothing here tells an invitation addressed elsewhere from one
+# that is gone, and the page says as much
+query GetOrganizationInvitation($id: UUID!) @auth(level: USER) {
+  organizationInvitations(where: { id: { eq: $id }, email: { eq_expr: "auth.token.email" } }, limit: 1) {
+    organization {
+      id
+      name
+    }
+    invitedBy {
+      displayName
+      email
     }
   }
 }

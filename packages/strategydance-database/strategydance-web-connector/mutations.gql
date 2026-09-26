@@ -53,8 +53,21 @@ mutation UpdateCurrentUser(
 #
 # `userId_expr` reads the uid off the token, so nobody can be made an administrator of an
 # organization they never asked for. `response.organization.id` is the uuid the step above
-# generated, keyed by the alias
+# generated, keyed by the alias.
+#
+# The name is held to what `UpdateOrganization` holds it to, so an organization never starts with
+# a name its settings page would refuse to save. The check sits on the caller's own row, read
+# first and redacted, because an operation takes no `@check` of its own
 mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+  query @redact {
+    user(key: { id_expr: "auth.uid" }) {
+      id
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A name is 1 to 80 characters on one line, with no space at either end"
+        )
+    }
+  }
   organization: organization_insert(data: { name: $name })
   userOrganization: userOrganization_insert(
     data: {
@@ -63,5 +76,213 @@ mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
       # Whoever creates it administers it
       role: ADMINISTRATOR
     }
+  )
+}
+
+# Adds one aspect to those an organization has started on. The list is written whole, because
+# Data Connect has no `add` for a list of enums as it has for scalar lists, so the caller sends
+# the list it expects: the one it read, with the aspect added.
+#
+# The server trusts none of it. Its `@check` accepts the list only when it is exactly the stored
+# one with the aspect appended, and the aspect not already in it: no removal, no duplicate, no
+# list longer than the aspects there are. It also refuses a write over a list that changed since
+# the caller read it, so two tabs or two members adding aspects at once cannot drop each other's;
+# the one refused reads the list again and retries.
+#
+# Only a member may add one. The first step reads the caller's own membership, keyed by the uid
+# off the token, and its `@check` fails the transaction when there is none, before the update
+# runs. `@redact` keeps both reads out of the response
+mutation AddOrganizationExploredAspect(
+  $organizationId: UUID!
+  $aspect: CompanyAspect!
+  $exploredAspects: [CompanyAspect!]!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change what it explores") {
+      role
+    }
+    organization(id: $organizationId) {
+      exploredAspects
+        @check(
+          expr: "!(vars.aspect in this) && vars.exploredAspects == this + [vars.aspect]"
+          message: "The aspect is explored already, or the explored aspects changed since they were read"
+        )
+    }
+  }
+  organization_update(
+    id: $organizationId
+    data: {
+      exploredAspects: $exploredAspects
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# Renames an organization and sets the color of its mark. Only an administrator may.
+#
+# Both are written whole: the settings page sends the name and the color it shows, the color as
+# stored, null for the default, whenever either changed. The logo and the banner are not here.
+# Only the backend writes those, since each is a file in Storage first.
+#
+# The checks on the variables are here as well as in the page, since the page is not the only
+# possible caller, and sit on the redacted read's field because an operation takes no `@check` of
+# its own. A name is refused empty, over 80 characters (`MAX_ORGANIZATION_NAME_LENGTH` in
+# strategydance-core), across lines, or with whitespace at either end, which the page trims away:
+# CEL has no standard `trim()`, so the pattern says it instead. A color is six uppercase hex digits.
+#
+# The write comes first rather than a separate row lock, because Data Connect runs one write per
+# row in a mutation: a second `organization_update`, aliased or not, silently changes nothing. The
+# write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
+# does, so the checks after it read what a demotion in the same instant committed, and a check
+# that fails rolls the write back
+mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String)
+@auth(level: USER) @transaction {
+  organization_update(
+    id: $organizationId
+    data: {
+      name: $name
+      color: $color
+      updatedAt_expr: "request.time"
+    }
+  )
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its settings") {
+      role
+        @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's settings")
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A name is 1 to 80 characters on one line, with no space at either end"
+        )
+        @check(expr: "vars.color == null || vars.color.matches('^#[0-9A-F]{6}$')", message: "A color is six uppercase hex digits after a #")
+    }
+  }
+}
+
+# Makes a member an administrator, or an administrator a member. Only an administrator may.
+#
+# The organization keeps at least one: making somebody a member is refused unless another
+# administrator remains. Since the caller is one, that only ever refuses the last administrator
+# demoting themselves.
+#
+# The first step touches the organization's row, which takes its lock until the transaction
+# ends, so every change to who administers an organization runs one after the other. Without it
+# two administrators demoting each other at once would each read the other as an administrator
+# and both succeed, leaving none. The one that waited reads after the other commits, since
+# Postgres starts each statement on what is committed by then
+mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, $role: OrganizationRole!)
+@auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change a role in it") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a role")
+    }
+    userOrganizations(
+      where: { organizationId: { eq: $organizationId }, role: { eq: ADMINISTRATOR }, userId: { ne: $userId } }
+      limit: 1
+    ) @check(expr: "vars.role == 'ADMINISTRATOR' || size(this) > 0", message: "An organization keeps at least one administrator") {
+      userId
+    }
+  }
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { role: $role, updatedAt_expr: "request.time" }
+  ) @check(expr: "this != null", message: "Nobody by that id belongs to the organization")
+}
+
+# Sets what somebody does in an organization, or clears it with null. A member may write their
+# own, and an administrator anybody's.
+#
+# The length is checked here as well as by the form, since the form is not the only possible
+# caller. It sits on the first step's field because an operation takes no `@check` of its own.
+#
+# The organization's row lock comes first, as in `UpdateOrganizationMemberRole`, so an
+# administrator demoted in the same instant cannot still write somebody else's title: whichever
+# runs second reads what the first committed
+mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: String!, $jobTitle: String)
+@auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change a job title in it") {
+      role
+        @check(expr: "this == 'ADMINISTRATOR' || vars.userId == auth.uid", message: "Only an administrator can change somebody else's job title")
+        @check(expr: "vars.jobTitle == null || size(vars.jobTitle) <= 60", message: "A job title is at most 60 characters")
+    }
+  }
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { jobTitle: $jobTitle, updatedAt_expr: "request.time" }
+  ) @check(expr: "this != null", message: "Nobody by that id belongs to the organization")
+}
+
+# Takes somebody out of an organization: the page calls it banning. Only an administrator may,
+# and never on themselves, which is also what keeps this from removing the last administrator.
+#
+# It deletes the membership and nothing else, so they can be invited again later, as the page
+# promises. It takes the organization's row lock first, as `UpdateOrganizationMemberRole` does,
+# so two administrators removing each other at once cannot both succeed and leave none
+mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can remove somebody from it") {
+      role
+        @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can remove somebody")
+        @check(expr: "vars.userId != auth.uid", message: "Nobody can remove themselves from an organization")
+    }
+  }
+  userOrganization_delete(key: { userId: $userId, organizationId: $organizationId })
+    @check(expr: "this != null", message: "Nobody by that id belongs to the organization")
+}
+
+# Cancels a pending invitation. Only an administrator may.
+#
+# Keyed by the address rather than the id, which the team page never reads. Canceling one that
+# was accepted or canceled a moment ago deletes nothing and succeeds, since the outcome is the
+# one asked for. The organization's row lock comes first, so an administrator demoted in the
+# same instant cannot still cancel
+mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!)
+@auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can cancel an invitation to it") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can cancel an invitation")
+    }
+  }
+  organizationInvitation_deleteMany(where: { organizationId: { eq: $organizationId }, email: { eq: $email } })
+}
+
+# Joins the organization an invitation is for, as a member.
+#
+# The caller has to hold the invitation's id, which only its email carried, and be signed in with
+# the address it was sent to. The two together are the proof: the id that the email arrived, the
+# address that it arrived to this account. `$organizationId` is asked for rather than read off
+# the invitation so the first step can check the pair, and so the team page's live query can
+# tell which organization changed
+mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    organizationInvitations(
+      where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
+      limit: 1
+    ) @check(message: "The invitation is gone, or was sent to another address") {
+      id
+    }
+  }
+  userOrganization_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, role: MEMBER })
+  # Has to find the row: an invitation canceled or declined after the first step read it, which
+  # nothing locked, would otherwise be accepted all the same. A delete that finds nothing fails,
+  # and the transaction takes the membership back with it
+  organizationInvitation_delete(id: $id)
+    @check(expr: "this != null", message: "The invitation is gone, or was sent to another address")
+}
+
+# Declines an invitation, which deletes it. Only its addressee may, on the same terms as accepting
+mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: USER) {
+  organizationInvitation_deleteMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
   )
 }

@@ -14,13 +14,26 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
-  hooks. See below
+  hooks, and the backend as `strategydance-database/backend`. See below
+- `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
+  browser cannot do for itself because it needs a secret or the server's word. Today that is
+  inviting people, which emails them. See below
+- `packages/strategydance-design-system` — the component library: shadcn on Radix, Tailwind
+  CSS v4, documented in Storybook. It imports itself by its package name,
+  `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
+  component resolves the same when another package reads it as source. Its tokens and components
+  are ported from the Strategy Dance Design System project in Claude Design and keep that
+  project's props, so what a design uses maps onto code. Another package imports
+  `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`
 - `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
   catalogues. Node-only: never import it from the frontend
+- `packages/strategydance-emails` — the transactional emails, as
+  [React Email](https://react.email) templates. Node-only: the backend renders them. See below
 - [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
-  `tsconfig.json` and mirrored in `vite.config.ts`. Cross-package imports use the package name
+  `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, in its
+  `tsconfig.json`, which Bun reads at runtime. Cross-package imports use the package name
 - `bunfig.toml` sets a 7-day install cooldown: a version must have been published for a week
   before it can be installed
 
@@ -28,17 +41,21 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 
 | Command | What it does |
 | --- | --- |
-| `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it |
+| `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
-| `bun run build` | Typechecks and builds the web package to static files |
+| `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
+| `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
+| `bun run storybook` | The design system's Storybook on http://localhost:6006 |
+| `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
 | `bun run lint` | oxlint across the repo |
 | `bun run typecheck` | `tsc` across the packages |
-| `bun run test` | `bun test` across the packages |
+| `bun run test` | `bun test` across the packages, each file in a fresh global so a `mock.module` stays in the file that made it |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
-| `bun run kill` / `kill:emulators` | Frees the dev server port, or the four emulator ports |
+| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`. Every push to `main` runs it too |
+| `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
 Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
 
@@ -99,6 +116,29 @@ replaces the whole document, `<Scripts />` included. The page then has no client
 from and keeps whatever the server rendered, forever. Anything that gates belongs inside the
 document, in `__root.tsx`'s `component` or below it.
 
+### UI comes from the design system
+
+The frontend has no shadcn setup of its own. Buttons, inputs, selects, alerts, the logo and the
+rest come from `strategydance-design-system`, and a primitive it lacks is added there, with a
+story, rather than to `src/components/ui/`. That folder holds only the frontend's glue around
+them: `FormField` for react-hook-form, `TextDivider`.
+
+Strings stay in the frontend's catalogues. A design-system component that names itself in
+English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
+it: `~components/common/Spinner` is the design system's spinner with that label.
+
+### Static files
+
+`packages/strategydance-web/public/` is served as-is from the site root, unhashed. Images go
+under `public/assets/images/`, so the logos are at `/assets/images/logo/logo-black.svg` and the
+like, for anything that needs a URL rather than a component, like an email. Inside the app the
+mark is still the design system's `Logo`.
+
+Vite writes its hashed bundles flat into `/assets/`, and `firebase.json` caches them for a year
+as immutable. That rule's source is `/assets/*`, one star, so it stops at that folder: an image
+under `/assets/images/` keeps its name when its content changes, and falls to the one-day image
+rule instead. Widening it to `/assets/**` would pin an edited logo in browsers for a year.
+
 ### Firebase
 
 `src/data/firebase.ts` initializes everything: Auth, App Check, Data Connect, Storage and
@@ -139,9 +179,22 @@ Connect and Storage before the project is reachable from the internet.
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the
 only way the app talks to them.
 
-- One connector per caller. `strategydance-web-connector` is the browser's; a backend one will
-  sit beside it rather than widening this one, because `@auth` levels differ by who is asking
-  and the web bundle should not carry operations only a server may call
+- One connector per caller. `strategydance-web-connector` is the browser's, and
+  `strategydance-backend-connector` the backend's, beside it rather than widening it, because
+  `@auth` levels differ by who is asking and the web bundle should not carry operations only a
+  server may call
+- The backend connector is generated as an Admin SDK, and every one of its operations is
+  `NO_ACCESS`, which only the Admin SDK gets past. The backend verifies the caller's ID token
+  and passes the uid it verified as a variable, never one a client sent, and each operation
+  still checks that uid against the rows it touches
+- The generated SDKs cannot pass a `_Data` list variable, so no connector can batch insert:
+  the backend calls a single-row mutation once per row instead
+- An operation takes no `@check` of its own. A check that reads only variables sits on a field
+  of the first, redacted step, where `@check` is repeatable
+- A mutation writes each row once. Data Connect runs the first write to a row and silently skips
+  any later one in the same mutation, aliased or not: an `organization_update` row lock followed
+  by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
+  mutation locks is the row it writes, the write itself is the lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs
@@ -151,6 +204,29 @@ only way the app talks to them.
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
+- Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
+  exports each as values in the schema's order, and the frontend imports them from
+  `strategydance-database/web`
+- A schema change reaches production with its release: a push to `main` migrates the database
+  and deploys Data Connect before the backend and the frontend that query it. A migration that
+  drops anything stops the release for a human instead, as
+  [What a merge into `main` deploys](#what-a-merge-into-main-deploys) says
+
+A list a page keeps current, like a team, is a live query. `@refresh(onMutationExecuted: ...)`
+on the query names each mutation that changes it, with a condition on the variable they share,
+so every mutation such a query listens to takes that variable, even one that could do without
+it. A mutation the backend runs through the Admin SDK fires the refresh too. The frontend
+subscribes beside its first read and writes each pushed result into the TanStack cache:
+`useOrganizationTeam` is the example to copy.
+
+Read a query that takes variables through `useQuery` and `executeQuery` rather than the
+generated hook. The generated wrapper keeps its query ref in state and updates it in an effect,
+so on the render where the variables change it reads the old ones' data into the new key.
+
+A query that a waiter and the page under it both read sets `retryOnMount: false`, and tells a
+failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With nothing cached,
+a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
+the read fails, and its mount retries it, forever.
 
 ### Routing
 
@@ -158,6 +234,15 @@ The authenticated area is `src/routes/[-].tsx`, not `-.tsx`. The router generato
 file whose name starts with `routeFileIgnorePrefix`, which defaults to `-`; brackets are its
 own escape syntax and unwrap to a literal. Do not change that prefix to work around this: it
 would re-enable every `-`-prefixed excluded file in the tree.
+
+A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
+the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be
+overwritten with `undefined`. The sign-in screen's `redirect` is the case that matters, since
+following an unchecked one is how a link sends somebody elsewhere.
+
+`<Navigate>` navigates again whenever its props change. Fed anything that follows the location,
+it redirects to its own redirect: navigate from an effect on the verdict instead, reading the
+location off the router inside it, as `AuthenticationBouncer` does.
 
 ### Internationalization
 
@@ -175,6 +260,79 @@ would re-enable every `-`-prefixed excluded file in the tree.
   retranslation
 - **Never write an em dash in a `defaultMessage` or a `description`.** Use a full stop, a comma
   or a colon. It reads as machine-written, and all six translated locales inherit it
+
+## Backend conventions
+
+`packages/strategydance-backend` follows sunshine's backend, trimmed: one router per resource
+in `routes/`, the Express middleware in `middleware/`, what a route does in `domain/`, helpers
+in `utils/`, one concern per file.
+
+- Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
+  through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
+  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`
+- No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
+  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
+  A route taking a file parses last instead, after `organizationAdministratorMiddleware` or
+  whatever says the caller may send it, so nobody else gets megabytes buffered
+- Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
+  service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
+  but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. In development
+  `dev:backend` points Auth, Data Connect and Storage at the emulators, and App Check is skipped,
+  as the emulators skip it
+- The service is public, and `deploy` makes it so with `--no-invoker-iam-check`, never
+  `--allow-unauthenticated`. The project sits in the strategydance.com organization, whose
+  domain restricted sharing refuses the `allUsers` member that flag grants. Turning the invoker
+  check off lets anybody call the service without widening its IAM policy; what guards a route
+  is its own middleware, App Check and the caller's ID token
+- The organization also withholds the Editor role Google used to hand default service
+  accounts. `deploy` builds on Cloud Build as the Compute Engine default service account, which
+  is also the account the service runs as, so it starts with no roles: grant it
+  `roles/run.builder` before the first deploy, beside the Data Connect and Storage roles it needs
+  to run and Secret Manager's accessor role on each secret it reads
+- A push to `main` deploys the backend with the rest of the release, by running
+  `bun run deploy:backend`, as [What a merge into `main` deploys](#what-a-merge-into-main-deploys)
+  says. `.gcloudignore` leaves out `gha-creds-*.json`, the credentials file the job writes into
+  the workspace, which the upload would otherwise carry into the image
+- Organizations' logos and banners are the backend's to write, since only an administrator may
+  and a Storage rule cannot read who administers what. It stores each under a fresh name with
+  its own download token, writes that URL to the row, and deletes the file the row pointed at
+  before. `storage.rules` grants clients nothing under `organizations/`
+- Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
+  `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
+  receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
+  from Secret Manager through `retrieveSecret` in `utils/`, which caches it for the life of the
+  process: the service's account needs Secret Manager's accessor role on it, and a rotated key
+  takes effect with the next revision
+- Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
+  logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
+  is how an invitation gets accepted locally
+
+## Email conventions
+
+`packages/strategydance-emails` holds the transactional emails as React Email templates. It
+renders and nothing else: each `renderXEmail` takes props and answers `{ senderName, subject,
+html, text }`. It owns no key and opens no socket, so the delivery provider and its secret stay
+on the backend's side.
+
+- Everything comes from the one `react-email` package, components and `render` alike. Version 6
+  deprecated `@react-email/components` and the per-component packages
+- `src/emails/` holds templates and nothing else, because the preview server treats every file
+  there as one. Shared pieces go in `src/components/`. A template sets `PreviewProps`, which is
+  what the preview renders it with
+- Styles are inline style objects only. Gmail and Outlook strip `<style>` blocks and know no CSS
+  variable, so the design system's tokens are copied into `src/constants.ts` as literals. The
+  one `<style>` block is `EmailLayout`'s font face, which a client may drop at no cost.
+  react-email's `Font` is not used: it also sets every element's family to the face
+- The mark is the design system's `Logo`, inline, so the emails draw the same one as the app.
+  Gmail and Outlook drop inline SVG, and the name beside it is what they show. Any other image is
+  a hotlinked PNG at an absolute production URL, from
+  `packages/strategydance-web/public/assets/images/`, since neither renders a `data:` URI either
+- The backend's `tsc` follows its import into these `.tsx` files, so both tsconfigs carry
+  `"jsx": "react-jsx"`, and their other options agree. Keep them agreeing
+- English only for now. The copy follows the catalogues' rule anyway: no em dashes
+- `bun run dev:emails` opens the preview server through `scripts/devEmails.sh`, which runs the
+  CLI from a scratch directory outside the tree. Read its header before changing how it is
+  invoked. The preview is indicative: check a real client before trusting a layout change
 
 ## Workflow
 
@@ -269,4 +427,27 @@ GitHub will compare, and it refuses outright when the local `dev` is ahead of it
 commit that has not been pushed is a commit the pull request would leave behind. Pushing it is
 your call, not the script's.
 
-Merging it is a human decision like any other.
+Merging it is a human decision like any other, and it deploys: see below.
+
+### What a merge into `main` deploys
+
+Every push to `main` runs `.github/workflows/deploy-merge.yml`, which deploys the release in the
+order it needs: Data Connect, the backend, the Storage rules, then the frontend. Each step waits
+on the one before it, so a release that stops partway stops before anything that relies on what
+failed.
+
+It runs as `deployer@strategydance.iam.gserviceaccount.com`, which has no key, since the
+organization forbids creating one: GitHub's OIDC token is traded for it through Workload
+Identity Federation, and only a run on `main` in this repository may. The workflow's header
+lists what it is granted, which includes rewriting the production database, so pushing to
+`main` is as good as holding it.
+
+It never passes `--force`. A migration that only adds runs by itself. One that drops anything,
+a renamed table included, stops the release before the backend and the frontend move, and so do
+a connector change Data Connect calls breaking and a new insecure operation. Read the SQL the
+log printed, run `bun run deploy:database` by hand if it is what the release means, then re-run
+the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
+moved past refuses to deploy rather than put an older release over a newer one.
+
+Pull requests still deploy a Hosting preview, with the one key the repository holds, which
+`firebase-hosting-pull-request.yml` explains.

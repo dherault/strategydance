@@ -1,0 +1,43 @@
+import { Meta, Typeset } from '@storybook/addon-docs/blocks'
+
+<Meta title="Foundations/Typography" />
+
+# Typography
+
+Oswald, at 400 only, sets the titles `h1` to `h3` in secondary, tracked tight: `font-display`,
+also reachable as `font-heading`. Inter sets everything else: 400 for body, 500 for labels, 600
+for emphasis, through `font-sans`. Sizes are Tailwind's `text-*` scale.
+
+## Display
+
+<Typeset
+  fontFamily="'Oswald Variable', 'Arial Narrow', sans-serif"
+  fontWeight={400}
+  fontSizes={['1.25rem', '1.5rem', '1.875rem', '2.25rem', '3rem', '3.75rem']}
+  sampleText="Build the company, not the busywork"
+/>
+
+## Body
+
+<Typeset
+  fontFamily="'Inter Variable', sans-serif"
+  fontWeight={400}
+  fontSizes={['0.75rem', '0.875rem', '1rem', '1.125rem', '1.25rem']}
+  sampleText="Set pricing for the beta before Friday. 4 posts, 2 calls."
+/>
+
+## Weights
+
+<Typeset
+  fontFamily="'Inter Variable', sans-serif"
+  fontWeight={500}
+  fontSizes={['0.875rem']}
+  sampleText="Medium 500, for labels"
+/>
+
+<Typeset
+  fontFamily="'Inter Variable', sans-serif"
+  fontWeight={600}
+  fontSizes={['0.875rem']}
+  sampleText="Semibold 600, for emphasis"
+/>

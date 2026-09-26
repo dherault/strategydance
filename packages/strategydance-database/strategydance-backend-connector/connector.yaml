@@ -1,0 +1,14 @@
+# The backend's connector, beside the browser's rather than inside it: `@auth` levels differ by
+# who is asking, and the web bundle should not carry operations only a server may call.
+#
+# Every operation here is `NO_ACCESS`, which only the Admin SDK gets past. The backend verifies
+# the caller's ID token before it calls one, and passes the uid it verified as a variable; the
+# operations still check that uid against the rows they touch, so a bug in a route cannot grant
+# more than the database would
+connectorId: strategydance-backend-connector
+generate:
+  adminNodeSdk:
+    # Not committed, like the web SDK: `postinstall` generates it on every clone. Never edited by
+    # hand
+    - outputDir: ../generated/strategydance-backend-connector
+      package: "@strategydance/backend-connector"

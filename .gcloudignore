@@ -1,0 +1,34 @@
+# What `bun run deploy:backend` leaves out of the upload. The image installs and generates for
+# itself, so dependencies and generated code stay behind, along with whatever only the web app,
+# the design system or a local machine needs.
+#
+# Everything git ignores is left out first, which is what keeps a checkout's dotenv files, the
+# Gemini key in `packages/strategydance-translations/.env` among them, out of the build context
+# and the image. The lines after it are what git keeps but the image does not need
+#!include:.gitignore
+
+.git
+.gitignore
+.gcloudignore
+.husky/
+.claude/
+.agents/
+.firebase/
+.DS_Store
+
+# The credentials file google-github-actions/auth writes into the workspace when the deploy
+# workflow runs. It would otherwise be uploaded, and `COPY . .` would bake it into the image
+gha-creds-*.json
+
+node_modules/
+*.log
+*.tsbuildinfo
+
+emulators-data/
+firebase-export-*/
+temp-do-not-commit-or-delete/
+
+packages/strategydance-database/generated/
+packages/strategydance-database/.dataconnect/
+packages/strategydance-web/dist/
+packages/strategydance-design-system/storybook-static/

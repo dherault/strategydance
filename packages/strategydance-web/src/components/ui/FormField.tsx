@@ -1,16 +1,15 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { type Control, Controller, type ControllerFieldState, type ControllerRenderProps, type FieldPath, type FieldValues } from 'react-hook-form'
-
-import { Field, FieldDescription, FieldError, FieldLabel } from '~components/ui/Field'
-import { Input } from '~components/ui/Input'
+import { Field } from 'strategydance-design-system/components/ui/Field'
+import { Input } from 'strategydance-design-system/components/ui/Input'
 
 /*
-  One react-hook-form field: the Controller, the Field wrapper, its label, the control, and the
-  error that shows only while the field is invalid.
+  One react-hook-form field: the Controller, the design system's Field around the control, its
+  label, and the description or the error, which shows only while the field is invalid.
 
   The control is a render prop rather than a prop of its own because it is the half that
   genuinely varies, while the error half is the one that drifts when the skeleton is written out
-  per field: `aria-invalid` and `data-invalid` are easy to remember separately and easy to
+  per field: `aria-invalid` and `aria-describedby` are easy to remember separately and easy to
   forget separately
 */
 
@@ -19,6 +18,9 @@ type FormFieldRenderProps<Values extends FieldValues, Name extends FieldPath<Val
   fieldState: ControllerFieldState
   // The id the label points at, so the control does not have to repeat the string
   id: string
+  // The id of the description or error under the control, when there is one, for its
+  // `aria-describedby`
+  describedBy: string | undefined
 }
 
 type FormFieldProps<Values extends FieldValues, Name extends FieldPath<Values>> = {
@@ -27,7 +29,6 @@ type FormFieldProps<Values extends FieldValues, Name extends FieldPath<Values>> 
   id: string
   label?: ReactNode
   description?: ReactNode
-  orientation?: ComponentProps<typeof Field>['orientation']
   className?: string
   /*
     Renders what the field failed with. Its argument is the zod message, which for every form
@@ -44,46 +45,42 @@ function FormField<Values extends FieldValues, Name extends FieldPath<Values>>({
   id,
   label,
   description,
-  orientation,
   className,
   formatError,
   children,
 }: FormFieldProps<Values, Name>) {
+  const messageId = `${id}-message`
+
   return (
     <Controller
       name={name}
       control={control}
-      render={({ field, fieldState }) => (
-        <Field
-          data-invalid={fieldState.invalid}
-          orientation={orientation}
-          className={className}
-        >
-          {!!label && (
-            <FieldLabel htmlFor={id}>
-              {label}
-            </FieldLabel>
-          )}
-          {children({ field, fieldState, id })}
-          {!!description && (
-            <FieldDescription>
-              {description}
-            </FieldDescription>
-          )}
-          {fieldState.invalid && !!formatError && (
-            <FieldError>
-              {fieldState.error?.message ? formatError(fieldState.error.message) : null}
-            </FieldError>
-          )}
-        </Field>
-      )}
+      render={({ field, fieldState }) => {
+        const error = fieldState.invalid && !!formatError && fieldState.error?.message
+          ? formatError(fieldState.error.message)
+          : null
+
+        return (
+          <Field
+            label={label}
+            hint={description}
+            // Field announces the error itself as it appears
+            error={error}
+            htmlFor={id}
+            messageId={messageId}
+            className={className}
+          >
+            {children({ field, fieldState, id, describedBy: error || description ? messageId : undefined })}
+          </Field>
+        )
+      }}
     />
   )
 }
 
 type FormInputFieldProps<Values extends FieldValues, Name extends FieldPath<Values>> =
   Omit<FormFieldProps<Values, Name>, 'children'>
-  & Omit<ComponentProps<typeof Input>, 'id' | 'name' | 'defaultValue'>
+  & Omit<ComponentProps<typeof Input>, 'id' | 'name' | 'defaultValue' | 'label' | 'hint' | 'error'>
 
 // The overwhelmingly common case: a text input. Everything else goes through `FormField` and
 // its render prop
@@ -93,7 +90,6 @@ function FormInputField<Values extends FieldValues, Name extends FieldPath<Value
   id,
   label,
   description,
-  orientation,
   className,
   formatError,
   ...inputProps
@@ -105,16 +101,16 @@ function FormInputField<Values extends FieldValues, Name extends FieldPath<Value
       id={id}
       label={label}
       description={description}
-      orientation={orientation}
       className={className}
       formatError={formatError}
     >
-      {({ field, fieldState, id: fieldId }) => (
+      {({ field, fieldState, id: fieldId, describedBy }) => (
         <Input
           {...field}
           {...inputProps}
           id={fieldId}
           aria-invalid={fieldState.invalid}
+          aria-describedby={describedBy}
         />
       )}
     </FormField>

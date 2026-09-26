@@ -1,0 +1,31 @@
+{
+  "private": true,
+  "name": "strategydance-backend",
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199 bun --watch src/index.ts",
+    "start": "NODE_ENV=production bun src/index.ts",
+    "test": "bun test --isolate",
+    "typecheck": "tsc -b",
+    "lint": "oxlint -c ../../.oxlintrc.json src",
+    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^7.1.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "firebase-admin": "^14.4.0",
+    "resend": "^6.28.1",
+    "strategydance-core": "workspace:*",
+    "strategydance-database": "workspace:*",
+    "strategydance-emails": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "typescript": "^7.0.2"
+  }
+}

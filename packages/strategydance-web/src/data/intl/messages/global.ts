@@ -34,6 +34,16 @@ const globalMessages = defineMessages({
     defaultMessage: 'Loading',
     description: 'Accessible label announced while the page waits for content.',
   },
+  notifications: {
+    id: 'global.notifications',
+    defaultMessage: 'Notifications',
+    description: 'Accessible label of the screen region where short confirmation messages pop up, like "Invitation sent".',
+  },
+  closeNotification: {
+    id: 'global.closeNotification',
+    defaultMessage: 'Close notification',
+    description: 'Accessible label of the button that dismisses one of those short confirmation messages.',
+  },
 })
 
 export default globalMessages

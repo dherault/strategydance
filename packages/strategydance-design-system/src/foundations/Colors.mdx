@@ -1,0 +1,112 @@
+import { ColorItem, ColorPalette, Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Foundations/Colors" />
+
+# Colors
+
+Mostly neutral, with primary for actions. Primary `#0051A3` is the action and brand color.
+Focus is secondary: a 2px outline around controls, and the border of a field. Secondary
+`#142A41` is for headings, dark surfaces and inverse areas. Both scales were derived around
+those two anchors. Neutrals and the status colors are Tailwind's own.
+
+<ColorPalette>
+  <ColorItem
+    title="Primary"
+    subtitle="primary, anchored at 700"
+    colors={{
+      50: '#eef5fc',
+      100: '#d6e6f7',
+      200: '#adcdef',
+      300: '#7aade3',
+      400: '#4287d1',
+      500: '#2272c3',
+      600: '#0a61b5',
+      700: '#0051a3',
+      800: '#004285',
+      900: '#033668',
+      950: '#04223f',
+    }}
+  />
+  <ColorItem
+    title="Secondary"
+    subtitle="secondary, anchored at 900"
+    colors={{
+      50: '#f2f5f8',
+      100: '#e1e7ee',
+      200: '#c3cfdc',
+      300: '#99aec3',
+      400: '#6a87a4',
+      500: '#4b6988',
+      600: '#3a536d',
+      700: '#2d4259',
+      800: '#20354c',
+      900: '#142a41',
+      950: '#0b1827',
+    }}
+  />
+  <ColorItem
+    title="Neutral"
+    subtitle="Tailwind neutral"
+    colors={{
+      50: 'var(--color-neutral-50)',
+      100: 'var(--color-neutral-100)',
+      200: 'var(--color-neutral-200)',
+      300: 'var(--color-neutral-300)',
+      400: 'var(--color-neutral-400)',
+      500: 'var(--color-neutral-500)',
+      600: 'var(--color-neutral-600)',
+      700: 'var(--color-neutral-700)',
+      800: 'var(--color-neutral-800)',
+      900: 'var(--color-neutral-900)',
+      950: 'var(--color-neutral-950)',
+    }}
+  />
+  <ColorItem
+    title="Status"
+    subtitle="success, warning, danger, each on its -bg tint"
+    colors={{
+      success: 'var(--color-success)',
+      'success-bg': 'var(--color-success-bg)',
+      warning: 'var(--color-warning)',
+      'warning-bg': 'var(--color-warning-bg)',
+      danger: 'var(--color-danger)',
+      'danger-bg': 'var(--color-danger-bg)',
+    }}
+  />
+</ColorPalette>
+
+## Roles
+
+The semantic roles shadcn components read, and what they point at.
+
+<ColorPalette>
+  <ColorItem
+    title="Surfaces"
+    subtitle="background is the page, card and popover sit on it"
+    colors={{
+      background: 'var(--background)',
+      card: 'var(--card)',
+      popover: 'var(--popover)',
+      muted: 'var(--muted)',
+    }}
+  />
+  <ColorItem
+    title="Text"
+    subtitle="foreground is body text, secondary is for headings"
+    colors={{
+      foreground: 'var(--foreground)',
+      'muted-foreground': 'var(--muted-foreground)',
+      secondary: 'var(--secondary)',
+      primary: 'var(--primary)',
+    }}
+  />
+  <ColorItem
+    title="Lines"
+    subtitle="border and input are neutral-200, ring is the secondary focus color"
+    colors={{
+      border: 'var(--border)',
+      input: 'var(--input)',
+      ring: 'var(--ring)',
+    }}
+  />
+</ColorPalette>

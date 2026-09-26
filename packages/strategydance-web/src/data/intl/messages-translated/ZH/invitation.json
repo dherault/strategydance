@@ -1,0 +1,17 @@
+{
+  "invitation.continue": "继续前往 Strategy Dance",
+  "invitation.decline": "拒绝",
+  "invitation.declineConfirm": "确认？",
+  "invitation.declineError": "无法拒绝此邀请。请重试。",
+  "invitation.declined": "已拒绝邀请",
+  "invitation.eyebrow": "邀请",
+  "invitation.join": "加入",
+  "invitation.joinError": "加入 {organizationName} 未成功。请刷新页面查看当前状态。",
+  "invitation.joined": "您已加入 {organizationName}",
+  "invitation.lead": "{inviterName} 邀请您作为成员加入 {organizationName}。",
+  "invitation.loadError": "无法加载邀请。请检查网络连接并重试。",
+  "invitation.missingLead": "该邀请已被取消或已处理，或者发送到了 {email} 以外的其他地址。请让邀请人重新发送邀请，或使用接收邀请的邮箱地址登录。",
+  "invitation.missingTitle": "邀请不可用",
+  "invitation.retry": "重试",
+  "invitation.title": "加入 {organizationName}"
+}

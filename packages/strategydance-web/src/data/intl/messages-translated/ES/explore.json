@@ -1,0 +1,17 @@
+{
+  "explore.blurbDesign": "Marca, interfaz y la experiencia en torno a tu producto.",
+  "explore.blurbEngineering": "Define tu MVP y sigue iterando a partir de ahí.",
+  "explore.blurbFinances": "Runway, precios, ingresos y gastos mensuales.",
+  "explore.blurbLegal": "Estructura de la empresa, contratos, términos y cumplimiento normativo.",
+  "explore.blurbMarketing": "Audiencia, canales y un ritmo de publicación constante.",
+  "explore.blurbPeople": "Contratación, colaboradores, rutinas y cómo se lleva a cabo el trabajo.",
+  "explore.blurbProduct": "Qué construyes, para quién y qué se lanza a continuación.",
+  "explore.blurbSales": "Pipeline, prospección y cierre de tus primeros clientes.",
+  "explore.blurbStrategy": "El desafío a abordar y el camino hacia la victoria.",
+  "explore.explored": "{explored} de {total} explorados",
+  "explore.lead": "Toda empresa funciona con los mismos nueve aspectos. Añade aquellos en los que quieras orientación y prepárate para trabajar.",
+  "explore.noOrganization": "Añade una organización para empezar a explorar sus aspectos.",
+  "explore.open": "Abrir",
+  "explore.start": "Comenzar exploración",
+  "explore.startError": "No se pudo añadir el aspecto. Inténtalo de nuevo."
+}

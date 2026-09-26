@@ -207,6 +207,9 @@ only way the app talks to them.
 - Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
   exports each as values in the schema's order, and the frontend imports them from
   `strategydance-database/web`
+- That order is the Postgres enum's, and reordering an enum's values is a breaking migration.
+  Append a value; never reorder. The order the aspects are shown in is `COMPANY_ASPECTS` in the
+  web package's `constants.ts`, and `constants.test.ts` fails when it stops matching the enum
 - A schema change reaches production with its release: a push to `main` migrates the database
   and deploys Data Connect before the backend and the frontend that query it. A migration that
   drops anything stops the release for a human instead, as

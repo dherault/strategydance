@@ -14,13 +14,13 @@ import {
 // The aspects of a company, in order, each with its canonical Lucide icon
 const CompanyAspects = [
   { id: 'strategy', label: 'Strategy', lucide: 'chess-knight' },
-  { id: 'people', label: 'People and operations', lucide: 'users' },
-  { id: 'finances', label: 'Finances', lucide: 'wallet' },
+  { id: 'marketing', label: 'Marketing', lucide: 'megaphone' },
+  { id: 'sales', label: 'Sales', lucide: 'handshake' },
   { id: 'product', label: 'Product', lucide: 'box' },
   { id: 'engineering', label: 'Engineering', lucide: 'code-xml' },
   { id: 'design', label: 'Design', lucide: 'palette' },
-  { id: 'marketing', label: 'Marketing', lucide: 'megaphone' },
-  { id: 'sales', label: 'Sales', lucide: 'handshake' },
+  { id: 'people', label: 'People and operations', lucide: 'users' },
+  { id: 'finances', label: 'Finances', lucide: 'wallet' },
   { id: 'legal', label: 'Legal', lucide: 'scale' },
 ] as const
 
@@ -28,13 +28,13 @@ type CompanyAspect = typeof CompanyAspects[number]['id']
 
 const icons = {
   strategy: ChessKnightIcon,
-  people: UsersIcon,
-  finances: WalletIcon,
+  marketing: MegaphoneIcon,
+  sales: HandshakeIcon,
   product: BoxIcon,
   engineering: CodeXmlIcon,
   design: PaletteIcon,
-  marketing: MegaphoneIcon,
-  sales: HandshakeIcon,
+  people: UsersIcon,
+  finances: WalletIcon,
   legal: ScaleIcon,
 }
 

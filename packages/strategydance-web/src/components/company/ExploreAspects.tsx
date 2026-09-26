@@ -1,8 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
-import { CompanyAspect } from 'strategydance-database/web'
+import type { CompanyAspect } from 'strategydance-database/web'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
+
+import { COMPANY_ASPECTS } from '~constants'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
@@ -26,7 +28,7 @@ function ExploreAspects() {
   const [startingAspect, setStartingAspect] = useState<CompanyAspect | null>(null)
   const [hasFailed, setHasFailed] = useState(false)
 
-  const aspects = Object.values(CompanyAspect)
+  const aspects = COMPANY_ASPECTS
   const exploredAspects = organization?.exploredAspects ?? []
 
   async function startExploration(aspect: CompanyAspect) {

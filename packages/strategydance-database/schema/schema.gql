@@ -55,9 +55,9 @@ type User @table {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-# The aspects of a company the product guides it through, in the order it presents them. This is
-# its only declaration: the generated SDK exports it in this order, and the frontend lists the
-# aspects from there
+# The aspects of a company the product guides it through. This order is the Postgres enum's, and
+# reordering its values is a breaking migration, so the order a reader sees is the frontend's
+# `COMPANY_ASPECTS` instead. Add a value here and there both
 enum CompanyAspect {
   STRATEGY
   PEOPLE

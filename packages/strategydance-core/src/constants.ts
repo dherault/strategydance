@@ -76,6 +76,9 @@ export const ERROR_CODE_CONFLICT = 'CONFLICT' // 409
 // ask of them: make room
 export const ERROR_CODE_TEAM_FULL = 'TEAM_FULL' // 409
 
+// A file that is not one of the pictures a route accepts, whatever its request called it
+export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
+
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500

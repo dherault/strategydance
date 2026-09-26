@@ -39,3 +39,9 @@ export type InviteOrganizationMembersData = {
 
 // Which of an organization's pictures a request is about
 export type OrganizationImageKind = 'logo' | 'banner'
+
+// What uploading or removing one of an organization's pictures answers with: its URL now, null
+// once removed
+export type ChangeOrganizationImageData = {
+  url: string | null
+}

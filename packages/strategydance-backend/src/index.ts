@@ -20,7 +20,8 @@ import createUsersRouter from '~routes/users'
   on the server's word. Everything else stays between the web app and Data Connect.
 
   No body parser is applied app wide. Each route parses its own, so a route that needs the raw
-  bytes, like a webhook checking a signature, can have them
+  bytes, like a webhook checking a signature, can have them, and one taking a file can read it
+  only once the caller is known to be allowed to send it
 */
 const app = express()
 

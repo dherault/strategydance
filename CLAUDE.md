@@ -269,7 +269,9 @@ in `utils/`, one concern per file.
   through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
   calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
-  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`
+  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
+  A route taking a file parses last instead, after `organizationAdministratorMiddleware` or
+  whatever says the caller may send it, so nobody else gets megabytes buffered
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
   but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. In development

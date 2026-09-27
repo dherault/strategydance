@@ -20,6 +20,7 @@
   "account.nameLabel": "姓名",
   "account.namePlaceholder": "你的全名",
   "account.nameRequired": "姓名为必填项",
+  "account.nameTooLong": "请将姓名控制在 {maxNameLength} 个字符以内。",
   "account.newPasswordHint": "至少 {minPasswordLength} 个字符。",
   "account.newPasswordLabel": "新密码",
   "account.newPasswordUnchanged": "请选择与当前密码不同的新密码。",

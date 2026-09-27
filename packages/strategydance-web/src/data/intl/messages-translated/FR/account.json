@@ -20,6 +20,7 @@
   "account.nameLabel": "Nom",
   "account.namePlaceholder": "Votre nom complet",
   "account.nameRequired": "Le nom est obligatoire",
+  "account.nameTooLong": "Limitez votre nom à {maxNameLength} caractères.",
   "account.newPasswordHint": "Au moins {minPasswordLength} caractères.",
   "account.newPasswordLabel": "Nouveau mot de passe",
   "account.newPasswordUnchanged": "Choisissez un mot de passe différent de votre mot de passe actuel.",

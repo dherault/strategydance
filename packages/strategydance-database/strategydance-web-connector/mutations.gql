@@ -55,16 +55,20 @@ mutation UpdateCurrentUser(
 #
 # The checks are here as well as in the page, since the page is not the only possible caller, and
 # sit on the caller's own row, read first and redacted, because an operation takes no `@check` of
-# its own. A name is held to what an organization's is, at most 80 characters
+# its own. A new name is held to what an organization's is, at most 80 characters
 # (`MAX_USER_NAME_LENGTH` in strategydance-core), and a bio to 200 (`MAX_USER_BIO_LENGTH`), over
-# as many lines as it likes
+# as many lines as it likes.
+#
+# The name stored is let through as it is, since the page sends it back untouched when only the
+# picture or the bio changed. One mirrored from Google can be longer than the page allows, or carry
+# spaces at an end, and refusing it would refuse the picture and the bio with it
 mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio: String)
 @auth(level: USER) @transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {
-      id
+      displayName
         @check(
-          expr: "size(vars.displayName) <= 80 && vars.displayName.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          expr: "this == vars.displayName || (size(vars.displayName) <= 80 && vars.displayName.matches('^[[:^space:]](.*[[:^space:]])?$'))"
           message: "A name is 1 to 80 characters on one line, with no space at either end"
         )
         @check(expr: "vars.bio == null || size(vars.bio) <= 200", message: "A bio is at most 200 characters")

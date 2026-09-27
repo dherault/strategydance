@@ -20,6 +20,7 @@
   "account.nameLabel": "名前",
   "account.namePlaceholder": "氏名",
   "account.nameRequired": "名前は必須です",
+  "account.nameTooLong": "名前は{maxNameLength}文字以内にしてください。",
   "account.newPasswordHint": "{minPasswordLength}文字以上。",
   "account.newPasswordLabel": "新しいパスワード",
   "account.newPasswordUnchanged": "現在のパスワードとは異なるパスワードを設定してください。",

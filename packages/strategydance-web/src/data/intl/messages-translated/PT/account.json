@@ -20,6 +20,7 @@
   "account.nameLabel": "Nome",
   "account.namePlaceholder": "Seu nome completo",
   "account.nameRequired": "O nome é obrigatório",
+  "account.nameTooLong": "Mantenha o seu nome em até {maxNameLength} caracteres.",
   "account.newPasswordHint": "No mínimo {minPasswordLength} caracteres.",
   "account.newPasswordLabel": "Nova senha",
   "account.newPasswordUnchanged": "Escolha uma senha diferente da atual.",

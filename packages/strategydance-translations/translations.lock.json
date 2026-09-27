@@ -85,6 +85,10 @@
         "hash": "385f4f845581824a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.nameTooLong": {
+        "hash": "191d383f978a3d56",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.newPasswordHint": {
         "hash": "27335657544e820a",
         "locales": "DE,ES,FR,JA,PT,ZH"

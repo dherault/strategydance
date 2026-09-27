@@ -14,8 +14,8 @@ type Props = {
   onInvite: (() => void) | null
 }
 
-// The page's title, under the sidebar group it sits in, how many people the team counts, and the
-// way to invite more
+// The page's title, under a friendly label, how many people the team counts, and the way to invite
+// more
 function TeamHeader({ organizationName, memberCount, invitationCount, onInvite }: Props) {
   const { formatMessage } = useIntl()
 
@@ -23,7 +23,7 @@ function TeamHeader({ organizationName, memberCount, invitationCount, onInvite }
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-3">
         <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          {formatMessage(navigationMessages.company)}
+          {formatMessage(teamMessages.eyebrow)}
         </p>
         <h1 className="m-0 text-5xl leading-[1.05]">
           {formatMessage(navigationMessages.team)}

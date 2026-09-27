@@ -10,6 +10,8 @@ import {
   useUpdateOrganization,
 } from 'strategydance-database/web/react'
 
+import type { OrganizationDetails } from '~types'
+
 import type { UserOrganizationsContextType } from '~contexts/UserOrganizationsContext'
 
 import UserOrganizationsContext from '~contexts/UserOrganizationsContext'
@@ -139,22 +141,22 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   }
 
   /*
-    Renames an organization and sets its color, and resolves once the list shows both: the
-    settings page compares its form to the list, so it reads as saved the moment this resolves,
-    with no instant of the old values in between.
+    Sets an organization's name, color, brief and visibility, and resolves once the list shows
+    them: the profile page compares its form to the list, so it reads as saved the moment this
+    resolves, with no instant of the old values in between.
 
     The read after the write throws on failure, as `joinOrganization`'s does, and the write throws
     as `createOrganization`'s does, since the page keeps what was typed when either fails
   */
-  async function updateOrganization(organizationId: string, name: string, color: string | null) {
-    await updateOrganizationMutation({ organizationId, name, color })
+  async function updateOrganization(organizationId: string, details: OrganizationDetails) {
+    await updateOrganizationMutation({ organizationId, ...details })
     await refetchUserOrganizations({ throwOnError: true })
   }
 
   /*
     Makes a picture an organization's logo or banner, or removes it, through the backend: only an
     administrator may, which a Storage rule cannot check. Resolves once the list shows the new URL,
-    so the settings page can drop its preview without the old picture flashing back in between
+    so the profile page can drop its preview without the old picture flashing back in between
   */
   async function changeOrganizationImage(organizationId: string, kind: OrganizationImageKind, image: Blob | null) {
     await requestApi<ChangeOrganizationImageData>({

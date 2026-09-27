@@ -29,12 +29,13 @@ type Props = {
 
 /*
   The reader's name, picture and bio, beside a preview of how their team sees them: one card, one
-  form, saved or discarded together.
+  form, saved or discarded together. Its buttons sit under the fields rather than across the card,
+  so the preview runs the card's full height.
 
   The form starts from the row and is compared to it on every render, so it reads as changed or
   not without an effect, and as saved the moment the row shows what was sent. A picture chosen in
   its dialog waits on the card, previewed, until the form is saved, as an organization's logo does
-  on its settings page
+  on its company profile
 */
 function AccountProfile({ user }: Props) {
   const { formatMessage } = useIntl()
@@ -135,70 +136,72 @@ function AccountProfile({ user }: Props) {
             // An emptied field keeps the saved name's initials, or the address's, rather than none
             initialsName={trimmedName || savedName || user.email}
           />
-          <div className="flex flex-col gap-7 p-5 md:p-8">
-            <Field label={formatMessage(accountMessages.pictureLabel)}>
+          <div className="flex min-w-0 flex-col">
+            <div className="flex flex-col gap-7 p-5 md:p-8">
+              <Field label={formatMessage(accountMessages.pictureLabel)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={pictureSrc ? <PencilIcon /> : <UploadIcon />}
+                  disabled={isSaving}
+                  onClick={() => setIsEditingPicture(true)}
+                  className="self-start"
+                >
+                  {formatMessage(pictureSrc ? accountMessages.changePicture : accountMessages.uploadPicture)}
+                </Button>
+              </Field>
+              <Input
+                label={formatMessage(accountMessages.nameLabel)}
+                value={name}
+                onChange={event => setName(event.target.value)}
+                placeholder={formatMessage(accountMessages.namePlaceholder)}
+                maxLength={MAX_USER_NAME_LENGTH}
+                autoComplete="name"
+                required
+                readOnly={isSaving}
+                error={isNameMissing
+                ? formatMessage(accountMessages.nameRequired)
+                : isNameTooLong
+                  ? formatMessage(accountMessages.nameTooLong, { maxNameLength: MAX_USER_NAME_LENGTH })
+                  : undefined}
+              />
+              <Textarea
+                label={formatMessage(accountMessages.bioLabel)}
+                value={bio}
+                onChange={event => setBio(event.target.value)}
+                placeholder={formatMessage(accountMessages.bioPlaceholder)}
+                maxLength={MAX_USER_BIO_LENGTH}
+                rows={4}
+                readOnly={isSaving}
+                hint={(
+                  <span className="flex justify-between gap-3">
+                    <span>
+                      {formatMessage(accountMessages.bioHint)}
+                    </span>
+                    <span className={cn('flex-none tabular-nums', MAX_USER_BIO_LENGTH - bio.length <= BIO_COUNT_WARNING && 'text-warning')}>
+                      {formatMessage(accountMessages.bioCount, { count: bio.length, max: MAX_USER_BIO_LENGTH })}
+                    </span>
+                  </span>
+                )}
+              />
+            </div>
+            <div className="mt-auto flex flex-wrap justify-end gap-2 px-5 pb-5 md:px-8 md:pb-8">
               <Button
-                variant="secondary"
-                size="sm"
-                icon={pictureSrc ? <PencilIcon /> : <UploadIcon />}
-                disabled={isSaving}
-                onClick={() => setIsEditingPicture(true)}
-                className="self-start"
+                variant="transparent"
+                disabled={!isDirty || isSaving}
+                onClick={discardChanges}
               >
-                {formatMessage(pictureSrc ? accountMessages.changePicture : accountMessages.uploadPicture)}
+                {formatMessage(accountMessages.cancel)}
               </Button>
-            </Field>
-            <Input
-              label={formatMessage(accountMessages.nameLabel)}
-              value={name}
-              onChange={event => setName(event.target.value)}
-              placeholder={formatMessage(accountMessages.namePlaceholder)}
-              maxLength={MAX_USER_NAME_LENGTH}
-              autoComplete="name"
-              required
-              readOnly={isSaving}
-              error={isNameMissing
-              ? formatMessage(accountMessages.nameRequired)
-              : isNameTooLong
-                ? formatMessage(accountMessages.nameTooLong, { maxNameLength: MAX_USER_NAME_LENGTH })
-                : undefined}
-            />
-            <Textarea
-              label={formatMessage(accountMessages.bioLabel)}
-              value={bio}
-              onChange={event => setBio(event.target.value)}
-              placeholder={formatMessage(accountMessages.bioPlaceholder)}
-              maxLength={MAX_USER_BIO_LENGTH}
-              rows={4}
-              readOnly={isSaving}
-              hint={(
-                <span className="flex justify-between gap-3">
-                  <span>
-                    {formatMessage(accountMessages.bioHint)}
-                  </span>
-                  <span className={cn('flex-none tabular-nums', MAX_USER_BIO_LENGTH - bio.length <= BIO_COUNT_WARNING && 'text-warning')}>
-                    {formatMessage(accountMessages.bioCount, { count: bio.length, max: MAX_USER_BIO_LENGTH })}
-                  </span>
-                </span>
-              )}
-            />
+              <Button
+                type="submit"
+                disabled={!canSave}
+                icon={isSaving ? <Spinner tone="current" /> : undefined}
+              >
+                {formatMessage(accountMessages.save)}
+              </Button>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-4 md:px-8">
-          <Button
-            variant="transparent"
-            disabled={!isDirty || isSaving}
-            onClick={discardChanges}
-          >
-            {formatMessage(accountMessages.cancel)}
-          </Button>
-          <Button
-            type="submit"
-            disabled={!canSave}
-            icon={isSaving ? <Spinner tone="current" /> : undefined}
-          >
-            {formatMessage(accountMessages.save)}
-          </Button>
         </div>
       </form>
       {isEditingPicture

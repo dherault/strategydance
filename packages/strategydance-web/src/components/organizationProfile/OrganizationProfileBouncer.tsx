@@ -5,12 +5,12 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import ContainerLayout from '~components/layout/ContainerLayout'
-import OrganizationSettingsAdministratorsOnly from '~components/organizationSettings/OrganizationSettingsAdministratorsOnly'
-import OrganizationSettingsHeader from '~components/organizationSettings/OrganizationSettingsHeader'
-import OrganizationSettingsNoOrganization from '~components/organizationSettings/OrganizationSettingsNoOrganization'
+import OrganizationProfileAdministratorsOnly from '~components/organizationProfile/OrganizationProfileAdministratorsOnly'
+import OrganizationProfileHeader from '~components/organizationProfile/OrganizationProfileHeader'
+import OrganizationProfileNoOrganization from '~components/organizationProfile/OrganizationProfileNoOrganization'
 
 /*
-  Lets an administrator of the current organization through to its settings, and tells anybody
+  Lets an administrator of the current organization through to its profile, and tells anybody
   else why there is nothing here for them, under the page's own header.
 
   Nothing to wait for: `UserOrganizationsWait` holds the whole authenticated area until the
@@ -21,7 +21,7 @@ import OrganizationSettingsNoOrganization from '~components/organizationSettings
   An administrator demoted while on this page is then turned away, and a member promoted is let
   in, without a reload. The team itself is never read
 */
-function OrganizationSettingsBouncer({ children }: PropsWithChildren) {
+function OrganizationProfileBouncer({ children }: PropsWithChildren) {
   const { organization, role } = useCurrentOrganization()
 
   useOrganizationTeam()
@@ -30,12 +30,12 @@ function OrganizationSettingsBouncer({ children }: PropsWithChildren) {
 
   return (
     <ContainerLayout className="gap-8">
-      <OrganizationSettingsHeader />
+      <OrganizationProfileHeader />
       {organization
-        ? <OrganizationSettingsAdministratorsOnly organizationName={organization.name} />
-        : <OrganizationSettingsNoOrganization />}
+        ? <OrganizationProfileAdministratorsOnly organizationName={organization.name} />
+        : <OrganizationProfileNoOrganization />}
     </ContainerLayout>
   )
 }
 
-export default OrganizationSettingsBouncer
+export default OrganizationProfileBouncer

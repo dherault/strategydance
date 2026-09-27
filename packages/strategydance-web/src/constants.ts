@@ -20,7 +20,7 @@ export const MESSAGE_TYPES = [
   'global',
   'invitation',
   'navigation',
-  'organizationSettings',
+  'organizationProfile',
   'team',
 ] as const
 

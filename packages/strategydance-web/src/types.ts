@@ -50,6 +50,18 @@ export type UserOrganization = GetCurrentUserOrganizationsData['userOrganization
 export type Organization = UserOrganization['organization']
 
 /*
+  What the profile page saves about an organization, all of it at once: the color null for the
+  default, and the brief null for none. The pictures are not here, since each is a file sent on
+  its own
+*/
+export type OrganizationDetails = {
+  name: string
+  color: string | null
+  brief: string | null
+  isPublic: boolean
+}
+
+/*
   An organization's people as the team page reads them: its members, and the invitations still
   waiting for an answer. From the generated SDK, like the types above
 */

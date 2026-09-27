@@ -7,11 +7,11 @@ type Props = PropsWithChildren<{
 }>
 
 /*
-  The band across the top of the settings card: the organization's banner at 4:1, cropped to fill
+  The band across the top of the profile card: the organization's banner at 4:1, cropped to fill
   it, over a neutral band when there is none or it fails to load. `children` sit in its top right
   corner, where the button that changes it goes
 */
-function OrganizationSettingsBanner({ src, alt, children }: Props) {
+function OrganizationProfileBanner({ src, alt, children }: Props) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
 
   return (
@@ -37,4 +37,4 @@ function OrganizationSettingsBanner({ src, alt, children }: Props) {
   )
 }
 
-export default OrganizationSettingsBanner
+export default OrganizationProfileBanner

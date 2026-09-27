@@ -112,6 +112,12 @@ export const MAX_JOB_TITLE_LENGTH = 60
 export const MAX_ORGANIZATION_NAME_LENGTH = 80
 
 /*
+  How long an organization's brief may be, which its team, the community and agents read. Written
+  out again in `UpdateOrganization`'s check, which cannot import it: change the two together
+*/
+export const MAX_ORGANIZATION_BRIEF_LENGTH = 500
+
+/*
   The color an organization's mark takes until somebody picks one: the brand's primary, the design
   system's `--color-primary-700`. A null `Organization.color` means this one, so an organization
   that never chose follows the brand if it changes
@@ -128,7 +134,7 @@ export const ORGANIZATION_IMAGE_KINDS: OrganizationImageKind[] = ['logo', 'banne
 */
 export const ORGANIZATION_IMAGE_CONTENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
-// In bytes. The settings page refuses a larger file before sending it, and the backend refuses it
+// In bytes. The profile page refuses a larger file before sending it, and the backend refuses it
 // again before reading it
 export const MAX_ORGANIZATION_IMAGE_SIZES: Record<OrganizationImageKind, number> = {
   logo: 2 * 1024 * 1024,

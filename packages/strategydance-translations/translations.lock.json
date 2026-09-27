@@ -620,7 +620,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.company": {
-        "hash": "4b48a18fa17c34e9",
+        "hash": "9a38a14f5506e5ea",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.exploreMore": {
@@ -655,8 +655,8 @@
         "hash": "3064d4491394ac6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "navigation.settings": {
-        "hash": "521344c15a5eb61f",
+      "navigation.profile": {
+        "hash": "7daadd2d0e2e55df",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.sidebar": {
@@ -684,156 +684,188 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
-    "organizationSettings": {
-      "organizationSettings.administratorsOnly": {
-        "hash": "113317691467bf3b",
+    "organizationProfile": {
+      "organizationProfile.administratorsOnly": {
+        "hash": "6658b7c5cb84a52a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.apply": {
-        "hash": "3a7e06fbbfcb2c28",
+      "organizationProfile.apply": {
+        "hash": "0f5401501915c638",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.bannerAlt": {
-        "hash": "3b6396b65f7abc91",
+      "organizationProfile.bannerAlt": {
+        "hash": "6dad18936015119b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.bannerDescription": {
+      "organizationProfile.bannerDescription": {
         "hash": "b8238af16497baed",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.bannerPreviewAlt": {
+      "organizationProfile.bannerPreviewAlt": {
         "hash": "8b5bc3054e60d621",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.cancel": {
-        "hash": "05ba4e0ecb372cb4",
+      "organizationProfile.briefCount": {
+        "hash": "3cb13cce62ad70ac",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.changeBanner": {
-        "hash": "60fae81419bc3607",
+      "organizationProfile.briefLabel": {
+        "hash": "2b3a57b20492a3db",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.changeLogo": {
-        "hash": "5c03c854c4e0d9a3",
+      "organizationProfile.briefPlaceholder": {
+        "hash": "bb056520fef9d58e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.chooseBanner": {
+      "organizationProfile.cancel": {
+        "hash": "29c5fcbb47ed7e4b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.changeBanner": {
+        "hash": "d1a99fbaca0381f0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.changeLogo": {
+        "hash": "8708ee7aa9745b17",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.chooseBanner": {
         "hash": "44593838b5a8fca9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.chooseLogo": {
+      "organizationProfile.chooseLogo": {
         "hash": "bfc134d1832be034",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.close": {
-        "hash": "3c7c0a630939bd39",
+      "organizationProfile.close": {
+        "hash": "9182ac4cd6d5340b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.colorHexLabel": {
+      "organizationProfile.colorHexLabel": {
         "hash": "9424ffd168c0b634",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.colorLabel": {
+      "organizationProfile.colorLabel": {
         "hash": "65beaa03572b9b42",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.deleteConfirm": {
+      "organizationProfile.deleteConfirm": {
         "hash": "78a77107bd1c2a82",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.deleteDescription": {
+      "organizationProfile.deleteDescription": {
         "hash": "80617673356cf8d6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.deleteError": {
+      "organizationProfile.deleteError": {
         "hash": "00da56bb462cef78",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.deleteOrganization": {
-        "hash": "7dec7ed35d8965ee",
+      "organizationProfile.deleteOrganization": {
+        "hash": "a2e3c49ba56b64ec",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.deleted": {
+      "organizationProfile.deleted": {
         "hash": "e10315c9dce55acb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.dropPrompt": {
+      "organizationProfile.dropPrompt": {
         "hash": "f85f9cac87bfe5a1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.imageSizeError": {
+      "organizationProfile.eyebrow": {
+        "hash": "3808fd1072edf4f5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.imageSizeError": {
         "hash": "1c5caa27b603f078",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.imageTypeError": {
+      "organizationProfile.imageTypeError": {
         "hash": "d32ecaa841f12005",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.lead": {
-        "hash": "aac63edad7781d77",
+      "organizationProfile.lead": {
+        "hash": "6bb87f6a1e7f5457",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.logoDescription": {
+      "organizationProfile.logoDescription": {
         "hash": "09fbb98bce840de5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.logoPreviewAlt": {
+      "organizationProfile.logoPreviewAlt": {
         "hash": "fd0b0e8705ba94db",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.maximumSize": {
+      "organizationProfile.maximumSize": {
         "hash": "9ee27568c5620082",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.minimumSize": {
+      "organizationProfile.minimumSize": {
         "hash": "d7de9f943fd69a61",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.nameLabel": {
-        "hash": "2c486fc23beb4261",
+      "organizationProfile.nameLabel": {
+        "hash": "f80eea68894ec508",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.namePlaceholder": {
+      "organizationProfile.namePlaceholder": {
         "hash": "5e8f4280e79dbbd2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.noOrganization": {
-        "hash": "49fa67e679568950",
+      "organizationProfile.noOrganization": {
+        "hash": "78c22a3eaa69fe0c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.remove": {
+      "organizationProfile.publicHintPrivate": {
+        "hash": "257be41d4dc59d9f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.publicHintPublic": {
+        "hash": "2ee9ff4010c45f63",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.publicLabel": {
+        "hash": "d2256ebb1657518b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.remove": {
         "hash": "0e18eebd50b28628",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.removeConfirm": {
+      "organizationProfile.removeConfirm": {
         "hash": "11019ba6add5adaa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.save": {
-        "hash": "24662f463831c984",
+      "organizationProfile.save": {
+        "hash": "aef7175e79d0b5a2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.saveError": {
-        "hash": "93d52e971e973d46",
+      "organizationProfile.saveError": {
+        "hash": "985c5bdb54ee0e54",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.saved": {
-        "hash": "4e9c10f6c621142b",
+      "organizationProfile.saved": {
+        "hash": "64983184441c134a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.squareRatio": {
+      "organizationProfile.squareRatio": {
         "hash": "53f47896c09d0206",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.uploadBanner": {
-        "hash": "101f8e7b8eed1db4",
+      "organizationProfile.title": {
+        "hash": "92eef872eb82251b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.uploadLogo": {
-        "hash": "ca2b474abcfcfd27",
+      "organizationProfile.uploadBanner": {
+        "hash": "ddd615df4e0e9df5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationSettings.wideRatio": {
+      "organizationProfile.uploadLogo": {
+        "hash": "69fb033ab47872fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.wideRatio": {
         "hash": "a69c745b433b807c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
@@ -945,6 +977,10 @@
       },
       "team.emailListMore": {
         "hash": "86ad28370fc57b07",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "team.eyebrow": {
+        "hash": "5d37d7b48044bed1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "team.invalidEmails": {

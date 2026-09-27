@@ -26,6 +26,7 @@
   "team.editOwnJobTitle": "编辑您的职位",
   "team.editOwnJobTitleDescription": "您在 {organizationName} 担任的职位。",
   "team.emailListMore": "还有 {count} 个",
+  "team.eyebrow": "与优秀者同行",
   "team.invalidEmails": "{count, plural, one {无效邮箱：{emails}。} other {# 个无效邮箱：{emails}。}}",
   "team.invitationCanceled": "已取消对 {email} 的邀请",
   "team.invitationPending": "邀请待处理",

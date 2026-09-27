@@ -17,7 +17,7 @@ import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 import Spinner from '~components/common/Spinner'
 
 import { requestApi } from '~data/api'
-import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
+import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
 type Props = {
   organizationId: string
@@ -31,10 +31,10 @@ type Props = {
 
   Then away from a page about an organization that is gone, before the memberships drop it: the
   other way round, the current organization would move on to the next one while this page is
-  still up, and show that one's settings for a moment. The persisted choice needs no clearing,
+  still up, and show that one's profile for a moment. The persisted choice needs no clearing,
   since an id that matches no membership falls through to the first one
 */
-function OrganizationSettingsDeleteDialog({ organizationId, organizationName, onClose }: Props) {
+function OrganizationProfileDeleteDialog({ organizationId, organizationName, onClose }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
   const { forgetOrganization } = useUserOrganizations()
@@ -55,13 +55,13 @@ function OrganizationSettingsDeleteDialog({ organizationId, organizationName, on
     catch (error) {
       console.error('Failed to delete the organization', error)
 
-      toast.error(formatMessage(organizationSettingsMessages.deleteError))
+      toast.error(formatMessage(organizationProfileMessages.deleteError))
       setIsDeleting(false)
 
       return
     }
 
-    toast.success(formatMessage(organizationSettingsMessages.deleted))
+    toast.success(formatMessage(organizationProfileMessages.deleted))
 
     await navigate({ to: '/-', replace: true })
     await forgetOrganization(organizationId)
@@ -74,15 +74,15 @@ function OrganizationSettingsDeleteDialog({ organizationId, organizationName, on
     >
       <DialogContent
         role="alertdialog"
-        closeLabel={formatMessage(organizationSettingsMessages.close)}
+        closeLabel={formatMessage(organizationProfileMessages.close)}
         className="sm:max-w-[420px]"
       >
         <DialogHeader>
           <DialogTitle>
-            {formatMessage(organizationSettingsMessages.deleteOrganization)}
+            {formatMessage(organizationProfileMessages.deleteOrganization)}
           </DialogTitle>
           <DialogDescription>
-            {formatMessage(organizationSettingsMessages.deleteDescription, { organizationName })}
+            {formatMessage(organizationProfileMessages.deleteDescription, { organizationName })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="-mx-6 -mb-6 border-t border-border px-6 py-4">
@@ -91,16 +91,16 @@ function OrganizationSettingsDeleteDialog({ organizationId, organizationName, on
             disabled={isDeleting}
             onClick={onClose}
           >
-            {formatMessage(organizationSettingsMessages.cancel)}
+            {formatMessage(organizationProfileMessages.cancel)}
           </Button>
           <Button
             variant="danger"
-            confirm={formatMessage(organizationSettingsMessages.deleteConfirm)}
+            confirm={formatMessage(organizationProfileMessages.deleteConfirm)}
             disabled={isDeleting}
             icon={isDeleting ? <Spinner tone="current" /> : undefined}
             onClick={deleteOrganization}
           >
-            {formatMessage(organizationSettingsMessages.deleteOrganization)}
+            {formatMessage(organizationProfileMessages.deleteOrganization)}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -108,4 +108,4 @@ function OrganizationSettingsDeleteDialog({ organizationId, organizationName, on
   )
 }
 
-export default OrganizationSettingsDeleteDialog
+export default OrganizationProfileDeleteDialog

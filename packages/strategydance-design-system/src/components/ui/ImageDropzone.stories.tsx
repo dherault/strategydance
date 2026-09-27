@@ -9,7 +9,7 @@ const BANNER = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.
 const LOGO = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><circle cx="128" cy="128" r="96" fill="#0051a3"/></svg>')}`
 const PHOTO = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="480" height="320" fill="#d6e4f5"/><circle cx="240" cy="130" r="64" fill="#142a41"/><ellipse cx="240" cy="330" rx="120" ry="100" fill="#142a41"/></svg>')}`
 
-// Previews whatever is chosen, as the settings page does with an object URL
+// Previews whatever is chosen, as the company profile page does with an object URL
 function ImageDropzoneDemo({ src: initialSrc, ...props }: ComponentProps<typeof ImageDropzone>) {
   const [src, setSrc] = useState(initialSrc)
 

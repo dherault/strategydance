@@ -1,10 +1,11 @@
 import { PencilIcon, UploadIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { DEFAULT_ORGANIZATION_COLOR, MAX_ORGANIZATION_NAME_LENGTH, type OrganizationImageKind } from 'strategydance-core'
+import { DEFAULT_ORGANIZATION_COLOR, MAX_ORGANIZATION_BRIEF_LENGTH, MAX_ORGANIZATION_NAME_LENGTH, type OrganizationImageKind } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { ColorPicker } from 'strategydance-design-system/components/ui/ColorPicker'
 import { Input } from 'strategydance-design-system/components/ui/Input'
+import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { Organization } from '~types'
@@ -14,50 +15,59 @@ import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import Spinner from '~components/common/Spinner'
 import ContainerLayout from '~components/layout/ContainerLayout'
-import OrganizationSettingsBanner from '~components/organizationSettings/OrganizationSettingsBanner'
-import OrganizationSettingsDeleteDialog from '~components/organizationSettings/OrganizationSettingsDeleteDialog'
-import OrganizationSettingsHeader from '~components/organizationSettings/OrganizationSettingsHeader'
-import OrganizationSettingsImageDialog from '~components/organizationSettings/OrganizationSettingsImageDialog'
-import OrganizationSettingsLogo from '~components/organizationSettings/OrganizationSettingsLogo'
+import OrganizationProfileBanner from '~components/organizationProfile/OrganizationProfileBanner'
+import OrganizationProfileDeleteDialog from '~components/organizationProfile/OrganizationProfileDeleteDialog'
+import OrganizationProfileHeader from '~components/organizationProfile/OrganizationProfileHeader'
+import OrganizationProfileImageDialog from '~components/organizationProfile/OrganizationProfileImageDialog'
+import OrganizationProfileLogo from '~components/organizationProfile/OrganizationProfileLogo'
+import OrganizationProfileVisibility from '~components/organizationProfile/OrganizationProfileVisibility'
 
-import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
+import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
 type Props = {
   organization: Organization
 }
 
 /*
-  How the organization appears to its team, others and agents, for one of its administrators to
-  change: one card, one form, saved or discarded together.
+  How the organization appears to its team, the community and agents, for one of its
+  administrators to change: one card, one form, saved or discarded together.
 
   The form starts from the organization and is compared to it on every render, so it reads as
   changed or not without an effect, and as saved the moment the memberships show what was sent.
   The route keys it by the organization, so switching to another starts it over.
 
   A picture chosen in its dialog waits on the card, previewed, until the form is saved. Saving
-  sends each picture, then the name and color, one after the other, and each is cleared from the
-  form as soon as it lands: a failure halfway keeps only what did not, for the next try
+  sends each picture, then the name, color, brief and visibility, one after the other, and each is
+  cleared from the form as soon as it lands: a failure halfway keeps only what did not, for the
+  next try
 */
-function OrganizationSettings({ organization }: Props) {
+function OrganizationProfile({ organization }: Props) {
   const { formatMessage } = useIntl()
   const { updateOrganization, changeOrganizationImage } = useUserOrganizations()
   const { staged: stagedLogo, stage: stageLogo, unstage: unstageLogo } = useStagedImage()
   const { staged: stagedBanner, stage: stageBanner, unstage: unstageBanner } = useStagedImage()
 
   const savedColor = organization.color ?? DEFAULT_ORGANIZATION_COLOR
+  const savedBrief = organization.brief ?? ''
 
   const [name, setName] = useState(organization.name)
   const [color, setColor] = useState(savedColor)
+  const [brief, setBrief] = useState(savedBrief)
+  const [isPublic, setIsPublic] = useState(organization.isPublic)
   const [editingImage, setEditingImage] = useState<OrganizationImageKind | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  // Makes the name and the brief read-only while a save is in flight, since a success puts what
+  // was sent back in them: anything typed meanwhile would be lost
   const [isSaving, setIsSaving] = useState(false)
 
   const trimmedName = name.trim()
+  const trimmedBrief = brief.trim()
   const isColorChanged = color !== savedColor
-  const areDetailsChanged = trimmedName !== organization.name || isColorChanged
+  const isVisibilityChanged = isPublic !== organization.isPublic
+  const areDetailsChanged = trimmedName !== organization.name || isColorChanged || trimmedBrief !== savedBrief || isVisibilityChanged
   const areImagesChanged = stagedLogo !== undefined || stagedBanner !== undefined
-  // Anything to discard, spaces around the name included
-  const isDirty = name !== organization.name || isColorChanged || areImagesChanged
+  // Anything to discard, spaces around the name and the brief included
+  const isDirty = name !== organization.name || isColorChanged || brief !== savedBrief || isVisibilityChanged || areImagesChanged
   // Anything to save, which spaces alone are not
   const canSave = (areDetailsChanged || areImagesChanged) && !!trimmedName && !isSaving
 
@@ -68,6 +78,8 @@ function OrganizationSettings({ organization }: Props) {
   function discardChanges() {
     setName(organization.name)
     setColor(savedColor)
+    setBrief(savedBrief)
+    setIsPublic(organization.isPublic)
     unstageLogo()
     unstageBanner()
   }
@@ -105,19 +117,25 @@ function OrganizationSettings({ organization }: Props) {
 
       if (areDetailsChanged) {
         // An untouched color is sent as stored, so one never picked stays the default
-        await updateOrganization(organization.id, trimmedName, isColorChanged ? color : organization.color ?? null)
+        await updateOrganization(organization.id, {
+          name: trimmedName,
+          color: isColorChanged ? color : organization.color ?? null,
+          brief: trimmedBrief || null,
+          isPublic,
+        })
 
         // What was saved, without the spaces the server was never sent
         setName(trimmedName)
+        setBrief(trimmedBrief)
       }
 
-      toast.success(formatMessage(organizationSettingsMessages.saved))
+      toast.success(formatMessage(organizationProfileMessages.saved))
     }
     catch (error) {
-      console.error('Failed to save the organization\'s settings', error)
+      console.error('Failed to save the organization\'s profile', error)
 
       // What was not saved stays where it was chosen or typed
-      toast.error(formatMessage(organizationSettingsMessages.saveError))
+      toast.error(formatMessage(organizationProfileMessages.saveError))
     }
     finally {
       setIsSaving(false)
@@ -126,14 +144,14 @@ function OrganizationSettings({ organization }: Props) {
 
   return (
     <ContainerLayout className="gap-8">
-      <OrganizationSettingsHeader />
+      <OrganizationProfileHeader />
       <form
         onSubmit={handleSubmit}
         className="rounded-xs border border-border bg-white"
       >
-        <OrganizationSettingsBanner
+        <OrganizationProfileBanner
           src={bannerSrc}
-          alt={formatMessage(organizationSettingsMessages.bannerAlt, { organizationName: organization.name })}
+          alt={formatMessage(organizationProfileMessages.bannerAlt, { organizationName: organization.name })}
         >
           <Button
             variant="secondary"
@@ -142,35 +160,56 @@ function OrganizationSettings({ organization }: Props) {
             disabled={isSaving}
             onClick={() => setEditingImage('banner')}
           >
-            {formatMessage(bannerSrc ? organizationSettingsMessages.changeBanner : organizationSettingsMessages.uploadBanner)}
+            {formatMessage(bannerSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner)}
           </Button>
-        </OrganizationSettingsBanner>
+        </OrganizationProfileBanner>
         <div className="flex flex-col items-center gap-8 px-5 pb-6 md:px-8 md:pb-8">
-          <OrganizationSettingsLogo
+          <OrganizationProfileLogo
             // An emptied field keeps the saved name's initials rather than none
             name={trimmedName || organization.name}
             logoUrl={logoSrc}
             color={color}
-            label={formatMessage(logoSrc ? organizationSettingsMessages.changeLogo : organizationSettingsMessages.uploadLogo)}
+            label={formatMessage(logoSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo)}
             disabled={isSaving}
             onClick={() => setEditingImage('logo')}
           />
           <Input
-            label={formatMessage(organizationSettingsMessages.nameLabel)}
+            label={formatMessage(organizationProfileMessages.nameLabel)}
             value={name}
             onChange={event => setName(event.target.value)}
-            placeholder={formatMessage(organizationSettingsMessages.namePlaceholder)}
+            placeholder={formatMessage(organizationProfileMessages.namePlaceholder)}
             maxLength={MAX_ORGANIZATION_NAME_LENGTH}
             autoComplete="organization"
             required
+            readOnly={isSaving}
+            className="w-full max-w-100"
+          />
+          <Textarea
+            label={formatMessage(organizationProfileMessages.briefLabel)}
+            value={brief}
+            onChange={event => setBrief(event.target.value)}
+            placeholder={formatMessage(organizationProfileMessages.briefPlaceholder)}
+            maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
+            rows={4}
+            readOnly={isSaving}
+            hint={(
+              <span className="flex justify-end tabular-nums">
+                {formatMessage(organizationProfileMessages.briefCount, { count: brief.length, max: MAX_ORGANIZATION_BRIEF_LENGTH })}
+              </span>
+            )}
             className="w-full max-w-100"
           />
           <ColorPicker
-            label={formatMessage(organizationSettingsMessages.colorLabel)}
-            hexLabel={formatMessage(organizationSettingsMessages.colorHexLabel)}
+            label={formatMessage(organizationProfileMessages.colorLabel)}
+            hexLabel={formatMessage(organizationProfileMessages.colorHexLabel)}
             value={color}
             onChange={setColor}
             className="w-full max-w-100"
+          />
+          <OrganizationProfileVisibility
+            isPublic={isPublic}
+            disabled={isSaving}
+            onChange={setIsPublic}
           />
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-6 md:px-8 md:pb-8">
@@ -180,27 +219,27 @@ function OrganizationSettings({ organization }: Props) {
             onClick={() => setIsDeleting(true)}
             className="mr-auto"
           >
-            {formatMessage(organizationSettingsMessages.deleteOrganization)}
+            {formatMessage(organizationProfileMessages.deleteOrganization)}
           </Button>
           <Button
             variant="transparent"
             disabled={!isDirty || isSaving}
             onClick={discardChanges}
           >
-            {formatMessage(organizationSettingsMessages.cancel)}
+            {formatMessage(organizationProfileMessages.cancel)}
           </Button>
           <Button
             type="submit"
             disabled={!canSave}
             icon={isSaving ? <Spinner tone="current" /> : undefined}
           >
-            {formatMessage(organizationSettingsMessages.save)}
+            {formatMessage(organizationProfileMessages.save)}
           </Button>
         </div>
       </form>
       {editingImage
         ? (
-            <OrganizationSettingsImageDialog
+            <OrganizationProfileImageDialog
               kind={editingImage}
               currentSrc={editingImage === 'logo' ? logoSrc : bannerSrc}
               onApply={image => applyImage(editingImage, image)}
@@ -210,7 +249,7 @@ function OrganizationSettings({ organization }: Props) {
         : null}
       {isDeleting
         ? (
-            <OrganizationSettingsDeleteDialog
+            <OrganizationProfileDeleteDialog
               organizationId={organization.id}
               organizationName={organization.name}
               onClose={() => setIsDeleting(false)}
@@ -221,4 +260,4 @@ function OrganizationSettings({ organization }: Props) {
   )
 }
 
-export default OrganizationSettings
+export default OrganizationProfile

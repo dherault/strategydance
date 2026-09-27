@@ -33,7 +33,7 @@ type Props = {
 
 /*
   Chooses the reader's profile picture, or removes it, as an organization's logo is chosen on its
-  settings page. Mounted only while open, so it starts from what the card shows every time.
+  company profile. Mounted only while open, so it starts from what the card shows every time.
 
   Applying puts the choice on the card and nothing more: the card saves it with the rest of its
   changes. The type and size are checked here, before anything is sent, and the Storage rule

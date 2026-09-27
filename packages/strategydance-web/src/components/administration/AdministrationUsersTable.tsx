@@ -25,7 +25,7 @@ function AdministrationUsersTable({ users }: Props) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="sticky left-0 z-1 bg-neutral-50 shadow-[inset_-1px_0_0_var(--color-neutral-200)]">
+          <TableHead>
             {formatMessage(administrationMessages.usersColumnName)}
           </TableHead>
           <TableHead>

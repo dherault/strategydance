@@ -30,8 +30,8 @@ function AdministrationOrganizationRow({ organization }: Props) {
     .map(aspect => formatMessage(aspectMessages[aspect]))
 
   return (
-    <TableRow className="group/row">
-      <TableCell className="sticky left-0 z-1 bg-white shadow-[inset_-1px_0_0_var(--color-neutral-200)] transition-colors duration-150 ease-in-out group-hover/row:bg-neutral-50">
+    <TableRow>
+      <TableCell>
         <div className="flex min-w-0 items-center gap-3">
           <OrganizationMark
             name={organization.name}

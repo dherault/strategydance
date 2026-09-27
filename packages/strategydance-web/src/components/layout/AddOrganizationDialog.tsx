@@ -50,7 +50,7 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
         id is safe to choose the moment it arrives: the create refetched before answering, so the
         list already holds the row it names
       */
-      const organizationId = await createOrganization(trimmedName)
+      const organizationId = await createOrganization(trimmedName, null)
 
       setOrganizationId(organizationId)
       setName('')

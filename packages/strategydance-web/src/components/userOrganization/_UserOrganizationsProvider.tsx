@@ -79,8 +79,8 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     This one throws, because the caller has a form to keep: a create that failed must not clear
     the name somebody typed
   */
-  async function createOrganization(name: string) {
-    const { organization } = await createOrganizationMutation({ name })
+  async function createOrganization(name: string, brief: string | null) {
+    const { organization } = await createOrganizationMutation({ name, brief })
 
     await refetchUserOrganizations()
 

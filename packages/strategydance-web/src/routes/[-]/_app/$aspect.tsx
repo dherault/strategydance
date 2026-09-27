@@ -12,7 +12,7 @@ import aspectMessages from '~data/intl/aspectMessages'
   One page per aspect of the company, explored or not, at its lowercase name. Any other segment
   parses to null, which is a page that does not exist
 */
-export const Route = createFileRoute('/-/$aspect')({
+export const Route = createFileRoute('/-/_app/$aspect')({
   params: {
     parse: ({ aspect }) => ({ aspect: parseAspectSlug(aspect) }),
     stringify: ({ aspect }) => ({ aspect: aspect ? toAspectSlug(aspect) : '' }),

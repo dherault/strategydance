@@ -10,7 +10,7 @@ import ContainerLayout from '~components/layout/ContainerLayout'
 // At module scope so the reference is stable across renders
 const ACCOUNT_MESSAGE_TYPES: MessageType[] = ['account']
 
-export const Route = createFileRoute('/-/account')({
+export const Route = createFileRoute('/-/_app/account')({
   component: AccountRoute,
 })
 

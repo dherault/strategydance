@@ -11,7 +11,7 @@ import OrganizationProfileBouncer from '~components/organizationProfile/Organiza
 // At module scope so the reference is stable across renders
 const ORGANIZATION_PROFILE_MESSAGE_TYPES: MessageType[] = ['organizationProfile']
 
-export const Route = createFileRoute('/-/profile')({
+export const Route = createFileRoute('/-/_app/profile')({
   component: ProfileRoute,
 })
 

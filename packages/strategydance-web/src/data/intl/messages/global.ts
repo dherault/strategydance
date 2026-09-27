@@ -54,6 +54,11 @@ const globalMessages = defineMessages({
     defaultMessage: 'Hide password',
     description: 'Accessible label of the eye button at the end of a password field, which hides the password typed in it again.',
   },
+  logOut: {
+    id: 'global.logOut',
+    defaultMessage: 'Log out',
+    description: 'Button in the corner of a full-page screen, like the onboarding or an invitation, that signs the reader out.',
+  },
 })
 
 export default globalMessages

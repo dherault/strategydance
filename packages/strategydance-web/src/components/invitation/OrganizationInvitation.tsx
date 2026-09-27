@@ -23,7 +23,7 @@ function OrganizationInvitation({ invitationId }: Props) {
   const { data: invitation, loading, refetch, hasFailed } = useOrganizationInvitation(invitationId)
 
   return (
-    <ContainerLayout className="gap-6">
+    <ContainerLayout className="max-w-2xl gap-6 py-0">
       <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
         {formatMessage(invitationMessages.eyebrow)}
       </p>

@@ -8,7 +8,7 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 // At module scope so the reference is stable across renders
 const EXPLORE_MESSAGE_TYPES: MessageType[] = ['explore']
 
-export const Route = createFileRoute('/-/explore')({
+export const Route = createFileRoute('/-/_app/explore')({
   component: ExploreRoute,
 })
 

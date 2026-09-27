@@ -3,6 +3,7 @@
   "global.hidePassword": "Masquer le mot de passe",
   "global.language": "Langue",
   "global.loading": "Chargement",
+  "global.logOut": "Se déconnecter",
   "global.notifications": "Notifications",
   "global.showPassword": "Afficher le mot de passe",
   "global.signIn": "Se connecter",

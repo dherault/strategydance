@@ -419,6 +419,10 @@
         "hash": "4369fb27292c2256",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "global.logOut": {
+        "hash": "f261ac6cef941a65",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "global.notifications": {
         "hash": "54cd7524efca1ce5",
         "locales": "DE,ES,FR,JA,PT,ZH"

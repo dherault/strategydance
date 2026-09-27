@@ -1,10 +1,10 @@
 import { useIntl } from 'react-intl'
 
 import navigationMessages from '~data/intl/messages/navigation'
-import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
+import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
 // The page's title, under the sidebar group it sits in, and what the page is for
-function OrganizationSettingsHeader() {
+function OrganizationProfileHeader() {
   const { formatMessage } = useIntl()
 
   return (
@@ -16,10 +16,10 @@ function OrganizationSettingsHeader() {
         {formatMessage(navigationMessages.settings)}
       </h1>
       <p className="m-0 text-base leading-[1.6] text-muted-foreground">
-        {formatMessage(organizationSettingsMessages.lead)}
+        {formatMessage(organizationProfileMessages.lead)}
       </p>
     </header>
   )
 }
 
-export default OrganizationSettingsHeader
+export default OrganizationProfileHeader

@@ -18,7 +18,7 @@ import { Route as Char91Char93AspectRouteImport } from './routes/[-]/$aspect'
 import { Route as Char91Char93AccountRouteImport } from './routes/[-]/account'
 import { Route as Char91Char93AgentsRouteImport } from './routes/[-]/agents'
 import { Route as Char91Char93ExploreRouteImport } from './routes/[-]/explore'
-import { Route as Char91Char93SettingsRouteImport } from './routes/[-]/settings'
+import { Route as Char91Char93ProfileRouteImport } from './routes/[-]/profile'
 import { Route as Char91Char93TasksRouteImport } from './routes/[-]/tasks'
 import { Route as Char91Char93TeamRouteImport } from './routes/[-]/team'
 import { Route as Char91Char93TodayRouteImport } from './routes/[-]/today'
@@ -73,9 +73,9 @@ const Char91Char93ExploreRoute = Char91Char93ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => Char91Char93Route,
 } as any)
-const Char91Char93SettingsRoute = Char91Char93SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const Char91Char93ProfileRoute = Char91Char93ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => Char91Char93Route,
 } as any)
 const Char91Char93TasksRoute = Char91Char93TasksRouteImport.update({
@@ -132,7 +132,7 @@ export interface FileRoutesByFullPath {
   '/-/account': typeof Char91Char93AccountRouteWithChildren
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
-  '/-/settings': typeof Char91Char93SettingsRoute
+  '/-/profile': typeof Char91Char93ProfileRoute
   '/-/tasks': typeof Char91Char93TasksRoute
   '/-/team': typeof Char91Char93TeamRoute
   '/-/today': typeof Char91Char93TodayRoute
@@ -149,7 +149,7 @@ export interface FileRoutesByTo {
   '/-/$aspect': typeof Char91Char93AspectRoute
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
-  '/-/settings': typeof Char91Char93SettingsRoute
+  '/-/profile': typeof Char91Char93ProfileRoute
   '/-/tasks': typeof Char91Char93TasksRoute
   '/-/team': typeof Char91Char93TeamRoute
   '/-/today': typeof Char91Char93TodayRoute
@@ -170,7 +170,7 @@ export interface FileRoutesById {
   '/-/account': typeof Char91Char93AccountRouteWithChildren
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
-  '/-/settings': typeof Char91Char93SettingsRoute
+  '/-/profile': typeof Char91Char93ProfileRoute
   '/-/tasks': typeof Char91Char93TasksRoute
   '/-/team': typeof Char91Char93TeamRoute
   '/-/today': typeof Char91Char93TodayRoute
@@ -192,7 +192,7 @@ export interface FileRouteTypes {
     | '/-/account'
     | '/-/agents'
     | '/-/explore'
-    | '/-/settings'
+    | '/-/profile'
     | '/-/tasks'
     | '/-/team'
     | '/-/today'
@@ -209,7 +209,7 @@ export interface FileRouteTypes {
     | '/-/$aspect'
     | '/-/agents'
     | '/-/explore'
-    | '/-/settings'
+    | '/-/profile'
     | '/-/tasks'
     | '/-/team'
     | '/-/today'
@@ -229,7 +229,7 @@ export interface FileRouteTypes {
     | '/-/account'
     | '/-/agents'
     | '/-/explore'
-    | '/-/settings'
+    | '/-/profile'
     | '/-/tasks'
     | '/-/team'
     | '/-/today'
@@ -313,11 +313,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91Char93ExploreRouteImport
       parentRoute: typeof Char91Char93Route
     }
-    '/-/settings': {
-      id: '/-/settings'
-      path: '/settings'
-      fullPath: '/-/settings'
-      preLoaderRoute: typeof Char91Char93SettingsRouteImport
+    '/-/profile': {
+      id: '/-/profile'
+      path: '/profile'
+      fullPath: '/-/profile'
+      preLoaderRoute: typeof Char91Char93ProfileRouteImport
       parentRoute: typeof Char91Char93Route
     }
     '/-/tasks': {
@@ -397,7 +397,7 @@ interface Char91Char93RouteChildren {
   Char91Char93AccountRoute: typeof Char91Char93AccountRouteWithChildren
   Char91Char93AgentsRoute: typeof Char91Char93AgentsRoute
   Char91Char93ExploreRoute: typeof Char91Char93ExploreRoute
-  Char91Char93SettingsRoute: typeof Char91Char93SettingsRoute
+  Char91Char93ProfileRoute: typeof Char91Char93ProfileRoute
   Char91Char93TasksRoute: typeof Char91Char93TasksRoute
   Char91Char93TeamRoute: typeof Char91Char93TeamRoute
   Char91Char93TodayRoute: typeof Char91Char93TodayRoute
@@ -410,7 +410,7 @@ const Char91Char93RouteChildren: Char91Char93RouteChildren = {
   Char91Char93AccountRoute: Char91Char93AccountRouteWithChildren,
   Char91Char93AgentsRoute: Char91Char93AgentsRoute,
   Char91Char93ExploreRoute: Char91Char93ExploreRoute,
-  Char91Char93SettingsRoute: Char91Char93SettingsRoute,
+  Char91Char93ProfileRoute: Char91Char93ProfileRoute,
   Char91Char93TasksRoute: Char91Char93TasksRoute,
   Char91Char93TeamRoute: Char91Char93TeamRoute,
   Char91Char93TodayRoute: Char91Char93TodayRoute,

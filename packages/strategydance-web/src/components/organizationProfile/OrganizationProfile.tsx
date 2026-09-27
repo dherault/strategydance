@@ -14,13 +14,13 @@ import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import Spinner from '~components/common/Spinner'
 import ContainerLayout from '~components/layout/ContainerLayout'
-import OrganizationSettingsBanner from '~components/organizationSettings/OrganizationSettingsBanner'
-import OrganizationSettingsDeleteDialog from '~components/organizationSettings/OrganizationSettingsDeleteDialog'
-import OrganizationSettingsHeader from '~components/organizationSettings/OrganizationSettingsHeader'
-import OrganizationSettingsImageDialog from '~components/organizationSettings/OrganizationSettingsImageDialog'
-import OrganizationSettingsLogo from '~components/organizationSettings/OrganizationSettingsLogo'
+import OrganizationProfileBanner from '~components/organizationProfile/OrganizationProfileBanner'
+import OrganizationProfileDeleteDialog from '~components/organizationProfile/OrganizationProfileDeleteDialog'
+import OrganizationProfileHeader from '~components/organizationProfile/OrganizationProfileHeader'
+import OrganizationProfileImageDialog from '~components/organizationProfile/OrganizationProfileImageDialog'
+import OrganizationProfileLogo from '~components/organizationProfile/OrganizationProfileLogo'
 
-import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
+import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
 type Props = {
   organization: Organization
@@ -38,7 +38,7 @@ type Props = {
   sends each picture, then the name and color, one after the other, and each is cleared from the
   form as soon as it lands: a failure halfway keeps only what did not, for the next try
 */
-function OrganizationSettings({ organization }: Props) {
+function OrganizationProfile({ organization }: Props) {
   const { formatMessage } = useIntl()
   const { updateOrganization, changeOrganizationImage } = useUserOrganizations()
   const { staged: stagedLogo, stage: stageLogo, unstage: unstageLogo } = useStagedImage()
@@ -111,13 +111,13 @@ function OrganizationSettings({ organization }: Props) {
         setName(trimmedName)
       }
 
-      toast.success(formatMessage(organizationSettingsMessages.saved))
+      toast.success(formatMessage(organizationProfileMessages.saved))
     }
     catch (error) {
-      console.error('Failed to save the organization\'s settings', error)
+      console.error('Failed to save the organization\'s profile', error)
 
       // What was not saved stays where it was chosen or typed
-      toast.error(formatMessage(organizationSettingsMessages.saveError))
+      toast.error(formatMessage(organizationProfileMessages.saveError))
     }
     finally {
       setIsSaving(false)
@@ -126,14 +126,14 @@ function OrganizationSettings({ organization }: Props) {
 
   return (
     <ContainerLayout className="gap-8">
-      <OrganizationSettingsHeader />
+      <OrganizationProfileHeader />
       <form
         onSubmit={handleSubmit}
         className="rounded-xs border border-border bg-white"
       >
-        <OrganizationSettingsBanner
+        <OrganizationProfileBanner
           src={bannerSrc}
-          alt={formatMessage(organizationSettingsMessages.bannerAlt, { organizationName: organization.name })}
+          alt={formatMessage(organizationProfileMessages.bannerAlt, { organizationName: organization.name })}
         >
           <Button
             variant="secondary"
@@ -142,32 +142,32 @@ function OrganizationSettings({ organization }: Props) {
             disabled={isSaving}
             onClick={() => setEditingImage('banner')}
           >
-            {formatMessage(bannerSrc ? organizationSettingsMessages.changeBanner : organizationSettingsMessages.uploadBanner)}
+            {formatMessage(bannerSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner)}
           </Button>
-        </OrganizationSettingsBanner>
+        </OrganizationProfileBanner>
         <div className="flex flex-col items-center gap-8 px-5 pb-6 md:px-8 md:pb-8">
-          <OrganizationSettingsLogo
+          <OrganizationProfileLogo
             // An emptied field keeps the saved name's initials rather than none
             name={trimmedName || organization.name}
             logoUrl={logoSrc}
             color={color}
-            label={formatMessage(logoSrc ? organizationSettingsMessages.changeLogo : organizationSettingsMessages.uploadLogo)}
+            label={formatMessage(logoSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo)}
             disabled={isSaving}
             onClick={() => setEditingImage('logo')}
           />
           <Input
-            label={formatMessage(organizationSettingsMessages.nameLabel)}
+            label={formatMessage(organizationProfileMessages.nameLabel)}
             value={name}
             onChange={event => setName(event.target.value)}
-            placeholder={formatMessage(organizationSettingsMessages.namePlaceholder)}
+            placeholder={formatMessage(organizationProfileMessages.namePlaceholder)}
             maxLength={MAX_ORGANIZATION_NAME_LENGTH}
             autoComplete="organization"
             required
             className="w-full max-w-100"
           />
           <ColorPicker
-            label={formatMessage(organizationSettingsMessages.colorLabel)}
-            hexLabel={formatMessage(organizationSettingsMessages.colorHexLabel)}
+            label={formatMessage(organizationProfileMessages.colorLabel)}
+            hexLabel={formatMessage(organizationProfileMessages.colorHexLabel)}
             value={color}
             onChange={setColor}
             className="w-full max-w-100"
@@ -180,27 +180,27 @@ function OrganizationSettings({ organization }: Props) {
             onClick={() => setIsDeleting(true)}
             className="mr-auto"
           >
-            {formatMessage(organizationSettingsMessages.deleteOrganization)}
+            {formatMessage(organizationProfileMessages.deleteOrganization)}
           </Button>
           <Button
             variant="transparent"
             disabled={!isDirty || isSaving}
             onClick={discardChanges}
           >
-            {formatMessage(organizationSettingsMessages.cancel)}
+            {formatMessage(organizationProfileMessages.cancel)}
           </Button>
           <Button
             type="submit"
             disabled={!canSave}
             icon={isSaving ? <Spinner tone="current" /> : undefined}
           >
-            {formatMessage(organizationSettingsMessages.save)}
+            {formatMessage(organizationProfileMessages.save)}
           </Button>
         </div>
       </form>
       {editingImage
         ? (
-            <OrganizationSettingsImageDialog
+            <OrganizationProfileImageDialog
               kind={editingImage}
               currentSrc={editingImage === 'logo' ? logoSrc : bannerSrc}
               onApply={image => applyImage(editingImage, image)}
@@ -210,7 +210,7 @@ function OrganizationSettings({ organization }: Props) {
         : null}
       {isDeleting
         ? (
-            <OrganizationSettingsDeleteDialog
+            <OrganizationProfileDeleteDialog
               organizationId={organization.id}
               organizationName={organization.name}
               onClose={() => setIsDeleting(false)}
@@ -221,4 +221,4 @@ function OrganizationSettings({ organization }: Props) {
   )
 }
 
-export default OrganizationSettings
+export default OrganizationProfile

@@ -136,10 +136,10 @@ function SidebarNavigation() {
           {isAdministrator
             ? (
                 <NavigationLink
-                  path="/-/settings"
+                  path="/-/profile"
                   label={formatMessage(navigationMessages.settings)}
                   icon={<SettingsIcon />}
-                  link={{ to: '/-/settings' }}
+                  link={{ to: '/-/profile' }}
                 />
               )
             : null}

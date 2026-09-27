@@ -94,7 +94,7 @@ mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio
 # generated, keyed by the alias.
 #
 # The name is held to what `UpdateOrganization` holds it to, so an organization never starts with
-# a name its settings page would refuse to save. The check sits on the caller's own row, read
+# a name its profile page would refuse to save. The check sits on the caller's own row, read
 # first and redacted, because an operation takes no `@check` of its own
 mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
   query @redact {
@@ -159,7 +159,7 @@ mutation AddOrganizationExploredAspect(
 
 # Renames an organization and sets the color of its mark. Only an administrator may.
 #
-# Both are written whole: the settings page sends the name and the color it shows, the color as
+# Both are written whole: the profile page sends the name and the color it shows, the color as
 # stored, null for the default, whenever either changed. The logo and the banner are not here.
 # Only the backend writes those, since each is a file in Storage first.
 #

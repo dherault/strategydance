@@ -14,7 +14,7 @@ import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDr
 
 import useStagedImage from '~hooks/common/useStagedImage'
 
-import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
+import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
 // What each picture should measure, as the dialog advises. Advice only: nothing refuses a smaller
 // picture, since the banner is cropped to fill its band and the logo fitted inside its square
@@ -40,7 +40,7 @@ type Props = {
   changes. The type and size are checked here, before anything is sent, and the backend checks
   both again
 */
-function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }: Props) {
+function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: Props) {
   const { formatMessage } = useIntl()
   const { staged: choice, stage } = useStagedImage()
 
@@ -55,13 +55,13 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
 
   function selectFile(file: File) {
     if (!ORGANIZATION_IMAGE_CONTENT_TYPES.includes(file.type)) {
-      setError(formatMessage(organizationSettingsMessages.imageTypeError))
+      setError(formatMessage(organizationProfileMessages.imageTypeError))
 
       return
     }
 
     if (file.size > MAX_ORGANIZATION_IMAGE_SIZES[kind]) {
-      setError(formatMessage(organizationSettingsMessages.imageSizeError, { megabytes: maximumMegabytes }))
+      setError(formatMessage(organizationProfileMessages.imageSizeError, { megabytes: maximumMegabytes }))
 
       return
     }
@@ -82,9 +82,9 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
   }
 
   const specs = [
-    formatMessage(isBanner ? organizationSettingsMessages.wideRatio : organizationSettingsMessages.squareRatio),
-    formatMessage(organizationSettingsMessages.minimumSize, { width, height }),
-    formatMessage(organizationSettingsMessages.maximumSize, { megabytes: maximumMegabytes }),
+    formatMessage(isBanner ? organizationProfileMessages.wideRatio : organizationProfileMessages.squareRatio),
+    formatMessage(organizationProfileMessages.minimumSize, { width, height }),
+    formatMessage(organizationProfileMessages.maximumSize, { megabytes: maximumMegabytes }),
   ]
 
   return (
@@ -93,28 +93,28 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
       onOpenChange={open => !open && onClose()}
     >
       <DialogContent
-        closeLabel={formatMessage(organizationSettingsMessages.close)}
+        closeLabel={formatMessage(organizationProfileMessages.close)}
         className={isBanner ? 'sm:max-w-[560px]' : 'sm:max-w-[420px]'}
       >
         <DialogHeader>
           <DialogTitle>
             {isBanner
-              ? formatMessage(currentSrc ? organizationSettingsMessages.changeBanner : organizationSettingsMessages.uploadBanner)
-              : formatMessage(currentSrc ? organizationSettingsMessages.changeLogo : organizationSettingsMessages.uploadLogo)}
+              ? formatMessage(currentSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner)
+              : formatMessage(currentSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo)}
           </DialogTitle>
           <DialogDescription>
-            {formatMessage(isBanner ? organizationSettingsMessages.bannerDescription : organizationSettingsMessages.logoDescription)}
+            {formatMessage(isBanner ? organizationProfileMessages.bannerDescription : organizationProfileMessages.logoDescription)}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <ImageDropzone
             shape={isBanner ? 'wide' : 'square'}
             src={src}
-            alt={formatMessage(isBanner ? organizationSettingsMessages.bannerPreviewAlt : organizationSettingsMessages.logoPreviewAlt)}
-            label={formatMessage(isBanner ? organizationSettingsMessages.chooseBanner : organizationSettingsMessages.chooseLogo)}
+            alt={formatMessage(isBanner ? organizationProfileMessages.bannerPreviewAlt : organizationProfileMessages.logoPreviewAlt)}
+            label={formatMessage(isBanner ? organizationProfileMessages.chooseBanner : organizationProfileMessages.chooseLogo)}
             prompt={(
               <FormattedMessage
-                {...organizationSettingsMessages.dropPrompt}
+                {...organizationProfileMessages.dropPrompt}
                 values={{
                   strong: chunks => (
                     <strong>
@@ -154,11 +154,11 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
                 <Button
                   variant="danger"
                   size="sm"
-                  confirm={formatMessage(organizationSettingsMessages.removeConfirm)}
+                  confirm={formatMessage(organizationProfileMessages.removeConfirm)}
                   onClick={remove}
                   className="sm:mr-auto"
                 >
-                  {formatMessage(organizationSettingsMessages.remove)}
+                  {formatMessage(organizationProfileMessages.remove)}
                 </Button>
               )
             : null}
@@ -166,13 +166,13 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
             variant="transparent"
             onClick={onClose}
           >
-            {formatMessage(organizationSettingsMessages.cancel)}
+            {formatMessage(organizationProfileMessages.cancel)}
           </Button>
           <Button
             disabled={!isChanged}
             onClick={apply}
           >
-            {formatMessage(organizationSettingsMessages.apply)}
+            {formatMessage(organizationProfileMessages.apply)}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -180,4 +180,4 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
   )
 }
 
-export default OrganizationSettingsImageDialog
+export default OrganizationProfileImageDialog

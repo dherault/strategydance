@@ -20,7 +20,7 @@ type Props = {
   The whole frame is the button that changes the logo, with an upload or edit icon over it on
   hover and keyboard focus
 */
-function OrganizationSettingsLogo({ name, logoUrl, color, label, disabled = false, onClick }: Props) {
+function OrganizationProfileLogo({ name, logoUrl, color, label, disabled = false, onClick }: Props) {
   return (
     <button
       type="button"
@@ -45,4 +45,4 @@ function OrganizationSettingsLogo({ name, logoUrl, color, label, disabled = fals
   )
 }
 
-export default OrganizationSettingsLogo
+export default OrganizationProfileLogo

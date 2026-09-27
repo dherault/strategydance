@@ -35,7 +35,7 @@ type Props = {
   The form starts from the row and is compared to it on every render, so it reads as changed or
   not without an effect, and as saved the moment the row shows what was sent. A picture chosen in
   its dialog waits on the card, previewed, until the form is saved, as an organization's logo does
-  on its settings page
+  on its company profile
 */
 function AccountProfile({ user }: Props) {
   const { formatMessage } = useIntl()

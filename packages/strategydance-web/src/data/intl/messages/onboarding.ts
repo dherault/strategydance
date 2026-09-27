@@ -52,6 +52,16 @@ const onboardingMessages = defineMessages({
     defaultMessage: 'Years',
     description: 'The right answer to "How long does it take for a new company to take off?".',
   },
+  answerRight: {
+    id: 'onboarding.answerRight',
+    defaultMessage: 'That\'s right.',
+    description: 'Announced to screen readers when the reader picks the right answer to a quiz question, just before the next one appears.',
+  },
+  answerWrong: {
+    id: 'onboarding.answerWrong',
+    defaultMessage: 'Not quite. Try again.',
+    description: 'Announced to screen readers when the reader picks a wrong answer to a quiz question.',
+  },
   title: {
     id: 'onboarding.title',
     defaultMessage: 'With that covered, let\'s begin.',

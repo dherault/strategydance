@@ -1,3 +1,4 @@
+import { CheckIcon, XIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -25,6 +26,9 @@ type Props = {
   One question of the quiz. A wrong answer turns red and leaves the others to try, since the only
   way on is the right one, which turns green and moves on by itself. Once it is picked nothing
   else can be, so a second click cannot turn it red again on its way out.
+
+  The color is not the only sign: the picked answer carries a cross or a check, and a status
+  region tells a screen reader which it was
 
   The parent keys it by question, so each one starts with nothing picked
 */
@@ -73,6 +77,7 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
             key={answer.id}
             variant="outline"
             size="lg"
+            icon={picked === answerIndex ? answerIndex === correct ? <CheckIcon /> : <XIcon /> : undefined}
             onClick={() => pick(answerIndex)}
             className={cn(
               'min-w-50',
@@ -83,6 +88,12 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
           </Button>
         ))}
       </div>
+      <p
+        role="status"
+        className="sr-only"
+      >
+        {picked === null ? null : formatMessage(isAnswered ? onboardingMessages.answerRight : onboardingMessages.answerWrong)}
+      </p>
     </div>
   )
 }

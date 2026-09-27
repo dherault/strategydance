@@ -1,4 +1,6 @@
 {
+  "onboarding.answerRight": "Correcto.",
+  "onboarding.answerWrong": "No del todo. Inténtalo de nuevo.",
   "onboarding.briefHint": "Puedes editar esto más tarde en el perfil de tu empresa.",
   "onboarding.briefLabel": "Descripción breve",
   "onboarding.briefPlaceholder": "Qué hace tu empresa, para quién y hacia dónde se dirige.",

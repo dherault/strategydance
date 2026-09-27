@@ -1,4 +1,6 @@
 {
+  "onboarding.answerRight": "回答正确。",
+  "onboarding.answerWrong": "不太对，再试一次。",
   "onboarding.briefHint": "你可以稍后在公司资料中进行修改。",
   "onboarding.briefLabel": "简介",
   "onboarding.briefPlaceholder": "你的公司做什么、服务于谁，以及未来的发展方向。",

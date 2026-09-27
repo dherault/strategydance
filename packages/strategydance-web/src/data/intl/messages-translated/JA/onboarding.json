@@ -1,4 +1,6 @@
 {
+  "onboarding.answerRight": "正解です。",
+  "onboarding.answerWrong": "違います。もう一度お試しください。",
   "onboarding.briefHint": "これは後から会社プロフィールで編集できます。",
   "onboarding.briefLabel": "概要",
   "onboarding.briefPlaceholder": "誰のために何を行う会社で、どこを目指しているのか",

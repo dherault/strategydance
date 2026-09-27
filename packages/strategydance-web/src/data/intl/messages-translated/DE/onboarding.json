@@ -1,4 +1,6 @@
 {
+  "onboarding.answerRight": "Das ist richtig.",
+  "onboarding.answerWrong": "Nicht ganz. Versuch es noch einmal.",
   "onboarding.briefHint": "Du kannst dies später in deinem Unternehmensprofil bearbeiten.",
   "onboarding.briefLabel": "Kurzbeschreibung",
   "onboarding.briefPlaceholder": "Was dein Unternehmen macht, für wen und wohin die Reise geht.",

@@ -701,6 +701,14 @@
       }
     },
     "onboarding": {
+      "onboarding.answerRight": {
+        "hash": "c79d0eadfac705bd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.answerWrong": {
+        "hash": "696d26b56e0f3023",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "onboarding.briefHint": {
         "hash": "6072e6f0dea26203",
         "locales": "DE,ES,FR,JA,PT,ZH"

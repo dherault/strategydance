@@ -9,7 +9,7 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { Organization } from '~types'
 
-import useStagedImage from '~hooks/organizationSettings/useStagedImage'
+import useStagedImage from '~hooks/common/useStagedImage'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import Spinner from '~components/common/Spinner'

@@ -24,6 +24,8 @@ import { Route as Char91Char93TeamRouteImport } from './routes/[-]/team'
 import { Route as Char91Char93TodayRouteImport } from './routes/[-]/today'
 import { Route as AuthenticationIndexRouteImport } from './routes/authentication/index'
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
+import { Route as Char91Char93AccountIndexRouteImport } from './routes/[-]/account/index'
+import { Route as Char91Char93AccountSecurityRouteImport } from './routes/[-]/account/security'
 import { Route as Char91Char93InvitationInvitationIdRouteImport } from './routes/[-]/invitation.$invitationId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -102,6 +104,18 @@ const AuthenticationPasswordResetRoute =
     path: '/password-reset',
     getParentRoute: () => AuthenticationRoute,
   } as any)
+const Char91Char93AccountIndexRoute =
+  Char91Char93AccountIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char91Char93AccountRoute,
+  } as any)
+const Char91Char93AccountSecurityRoute =
+  Char91Char93AccountSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => Char91Char93AccountRoute,
+  } as any)
 const Char91Char93InvitationInvitationIdRoute =
   Char91Char93InvitationInvitationIdRouteImport.update({
     id: '/invitation/$invitationId',
@@ -115,7 +129,7 @@ export interface FileRoutesByFullPath {
   '/authentication': typeof AuthenticationRouteWithChildren
   '/support': typeof SupportRoute
   '/-/$aspect': typeof Char91Char93AspectRoute
-  '/-/account': typeof Char91Char93AccountRoute
+  '/-/account': typeof Char91Char93AccountRouteWithChildren
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
@@ -125,13 +139,14 @@ export interface FileRoutesByFullPath {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-/': typeof Char91Char93IndexRoute
   '/authentication/': typeof AuthenticationIndexRoute
+  '/-/account/security': typeof Char91Char93AccountSecurityRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
+  '/-/account/': typeof Char91Char93AccountIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/support': typeof SupportRoute
   '/-/$aspect': typeof Char91Char93AspectRoute
-  '/-/account': typeof Char91Char93AccountRoute
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
@@ -141,7 +156,9 @@ export interface FileRoutesByTo {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-': typeof Char91Char93IndexRoute
   '/authentication': typeof AuthenticationIndexRoute
+  '/-/account/security': typeof Char91Char93AccountSecurityRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
+  '/-/account': typeof Char91Char93AccountIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,7 +167,7 @@ export interface FileRoutesById {
   '/authentication': typeof AuthenticationRouteWithChildren
   '/support': typeof SupportRoute
   '/-/$aspect': typeof Char91Char93AspectRoute
-  '/-/account': typeof Char91Char93AccountRoute
+  '/-/account': typeof Char91Char93AccountRouteWithChildren
   '/-/agents': typeof Char91Char93AgentsRoute
   '/-/explore': typeof Char91Char93ExploreRoute
   '/-/settings': typeof Char91Char93SettingsRoute
@@ -160,7 +177,9 @@ export interface FileRoutesById {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/-/': typeof Char91Char93IndexRoute
   '/authentication/': typeof AuthenticationIndexRoute
+  '/-/account/security': typeof Char91Char93AccountSecurityRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
+  '/-/account/': typeof Char91Char93AccountIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,13 +199,14 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/-/'
     | '/authentication/'
+    | '/-/account/security'
     | '/-/invitation/$invitationId'
+    | '/-/account/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/support'
     | '/-/$aspect'
-    | '/-/account'
     | '/-/agents'
     | '/-/explore'
     | '/-/settings'
@@ -196,7 +216,9 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/-'
     | '/authentication'
+    | '/-/account/security'
     | '/-/invitation/$invitationId'
+    | '/-/account'
   id:
     | '__root__'
     | '/'
@@ -214,7 +236,9 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/-/'
     | '/authentication/'
+    | '/-/account/security'
     | '/-/invitation/$invitationId'
+    | '/-/account/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -331,6 +355,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticationPasswordResetRouteImport
       parentRoute: typeof AuthenticationRoute
     }
+    '/-/account/': {
+      id: '/-/account/'
+      path: '/'
+      fullPath: '/-/account/'
+      preLoaderRoute: typeof Char91Char93AccountIndexRouteImport
+      parentRoute: typeof Char91Char93AccountRoute
+    }
+    '/-/account/security': {
+      id: '/-/account/security'
+      path: '/security'
+      fullPath: '/-/account/security'
+      preLoaderRoute: typeof Char91Char93AccountSecurityRouteImport
+      parentRoute: typeof Char91Char93AccountRoute
+    }
     '/-/invitation/$invitationId': {
       id: '/-/invitation/$invitationId'
       path: '/invitation/$invitationId'
@@ -341,9 +379,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface Char91Char93AccountRouteChildren {
+  Char91Char93AccountSecurityRoute: typeof Char91Char93AccountSecurityRoute
+  Char91Char93AccountIndexRoute: typeof Char91Char93AccountIndexRoute
+}
+
+const Char91Char93AccountRouteChildren: Char91Char93AccountRouteChildren = {
+  Char91Char93AccountSecurityRoute: Char91Char93AccountSecurityRoute,
+  Char91Char93AccountIndexRoute: Char91Char93AccountIndexRoute,
+}
+
+const Char91Char93AccountRouteWithChildren =
+  Char91Char93AccountRoute._addFileChildren(Char91Char93AccountRouteChildren)
+
 interface Char91Char93RouteChildren {
   Char91Char93AspectRoute: typeof Char91Char93AspectRoute
-  Char91Char93AccountRoute: typeof Char91Char93AccountRoute
+  Char91Char93AccountRoute: typeof Char91Char93AccountRouteWithChildren
   Char91Char93AgentsRoute: typeof Char91Char93AgentsRoute
   Char91Char93ExploreRoute: typeof Char91Char93ExploreRoute
   Char91Char93SettingsRoute: typeof Char91Char93SettingsRoute
@@ -356,7 +407,7 @@ interface Char91Char93RouteChildren {
 
 const Char91Char93RouteChildren: Char91Char93RouteChildren = {
   Char91Char93AspectRoute: Char91Char93AspectRoute,
-  Char91Char93AccountRoute: Char91Char93AccountRoute,
+  Char91Char93AccountRoute: Char91Char93AccountRouteWithChildren,
   Char91Char93AgentsRoute: Char91Char93AgentsRoute,
   Char91Char93ExploreRoute: Char91Char93ExploreRoute,
   Char91Char93SettingsRoute: Char91Char93SettingsRoute,

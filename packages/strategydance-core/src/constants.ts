@@ -147,3 +147,16 @@ export const MAX_ORGANIZATION_IMAGE_SIZES: Record<OrganizationImageKind, number>
   change the two together
 */
 export const WELCOME_EMAIL_WINDOW_DAYS = 7
+
+/*
+  How long somebody's name may be, as the account page saves it. Written out again in
+  `UpdateCurrentUserProfile`'s check, which cannot import it: change the two together. A name that
+  arrives from Google instead is mirrored as it is
+*/
+export const MAX_USER_NAME_LENGTH = 80
+
+/*
+  How long somebody's bio may be, which their team and agents read. Written out again in
+  `UpdateCurrentUserProfile`'s check, which cannot import it: change the two together
+*/
+export const MAX_USER_BIO_LENGTH = 200

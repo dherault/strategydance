@@ -1,18 +1,31 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useIntl } from 'react-intl'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 
-import ComingSoon from '~components/layout/ComingSoon'
+import type { MessageType } from '~types'
 
-import navigationMessages from '~data/intl/messages/navigation'
+import AccountHeader from '~components/account/AccountHeader'
+import AccountTabs from '~components/account/AccountTabs'
+import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
+import ContainerLayout from '~components/layout/ContainerLayout'
+
+// At module scope so the reference is stable across renders
+const ACCOUNT_MESSAGE_TYPES: MessageType[] = ['account']
 
 export const Route = createFileRoute('/-/account')({
   component: AccountRoute,
 })
 
+// The reader's own account, whichever organization they are looking at: the header and the tabs,
+// over the tab the route names
 function AccountRoute() {
-  const { formatMessage } = useIntl()
-
   return (
-    <ComingSoon page={formatMessage(navigationMessages.account)} />
+    <IntlMessagesRegistration messageTypes={ACCOUNT_MESSAGE_TYPES}>
+      <ContainerLayout className="gap-8">
+        <AccountHeader />
+        <div className="flex flex-col gap-6">
+          <AccountTabs />
+          <Outlet />
+        </div>
+      </ContainerLayout>
+    </IntlMessagesRegistration>
   )
 }

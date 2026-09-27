@@ -27,6 +27,16 @@ export type DataSource<Data> = {
 export type User = NonNullable<GetCurrentUserData['user']>
 
 /*
+  What the account page saves about the reader. The picture is a file to upload, null to remove
+  the one there, or undefined to leave it as it is, since an unchanged picture is not sent again
+*/
+export type UserProfile = {
+  displayName: string
+  image: Blob | null | undefined
+  bio: string | null
+}
+
+/*
   One of the reader's memberships: an organization, and what they are in it. The role is why this
   is the join row rather than the organization on its own, the `_via_` relation Data Connect
   generates being typed `[Organization!]!` and so having nowhere to put it.

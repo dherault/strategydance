@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
-import { MAX_ORGANIZATION_IMAGE_SIZES, ORGANIZATION_IMAGE_CONTENT_TYPES, type OrganizationImageKind } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -12,19 +11,19 @@ import {
 } from 'strategydance-design-system/components/ui/Dialog'
 import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDropzone'
 
+import { MAX_PROFILE_PICTURE_SIZE, PROFILE_PICTURE_CONTENT_TYPES } from '~constants'
+
 import useStagedImage from '~hooks/common/useStagedImage'
 
-import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
+import accountMessages from '~data/intl/messages/account'
 
-// What each picture should measure, as the dialog advises. Advice only: nothing refuses a smaller
-// picture, since the banner is cropped to fill its band and the logo fitted inside its square
-const MINIMUM_SIZES: Record<OrganizationImageKind, { width: number, height: number }> = {
-  banner: { width: 2400, height: 600 },
-  logo: { width: 256, height: 256 },
-}
+// What the picture should measure, as the dialog advises. Advice only: nothing refuses a smaller
+// picture, since the avatar crops whatever it is given to a circle, as the dialog previews it
+const MINIMUM_SIZE = { width: 256, height: 256 }
+
+const MAXIMUM_MEGABYTES = MAX_PROFILE_PICTURE_SIZE / (1024 * 1024)
 
 type Props = {
-  kind: OrganizationImageKind
   // What the card shows now, whether saved or chosen earlier and not saved yet
   currentSrc: string | null
   // A picture to put on the card, or null to take the one there away. Saving is the card's
@@ -33,35 +32,38 @@ type Props = {
 }
 
 /*
-  Chooses the organization's banner or logo, or removes it. Mounted only while open, so it starts
-  from what the card shows every time.
+  Chooses the reader's profile picture, or removes it, as an organization's logo is chosen on its
+  settings page. Mounted only while open, so it starts from what the card shows every time.
 
   Applying puts the choice on the card and nothing more: the card saves it with the rest of its
-  changes. The type and size are checked here, before anything is sent, and the backend checks
-  both again
+  changes. The type and size are checked here, before anything is sent, and the Storage rule
+  checks both again
 */
-function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }: Props) {
+function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
   const { formatMessage } = useIntl()
   const { staged: choice, stage } = useStagedImage()
 
   const [error, setError] = useState<string | null>(null)
 
-  const isBanner = kind === 'banner'
-  const maximumMegabytes = MAX_ORGANIZATION_IMAGE_SIZES[kind] / (1024 * 1024)
-  const { width, height } = MINIMUM_SIZES[kind]
   const src = choice === undefined ? currentSrc : choice?.url ?? null
   // Removing a picture that was never there changes nothing
   const isChanged = choice !== undefined && (choice !== null || currentSrc !== null)
 
+  const specs = [
+    formatMessage(accountMessages.pictureSquare),
+    formatMessage(accountMessages.pictureMinimumSize, MINIMUM_SIZE),
+    formatMessage(accountMessages.pictureMaximumSize, { megabytes: MAXIMUM_MEGABYTES }),
+  ]
+
   function selectFile(file: File) {
-    if (!ORGANIZATION_IMAGE_CONTENT_TYPES.includes(file.type)) {
-      setError(formatMessage(organizationSettingsMessages.imageTypeError))
+    if (!PROFILE_PICTURE_CONTENT_TYPES.includes(file.type)) {
+      setError(formatMessage(accountMessages.pictureTypeError))
 
       return
     }
 
-    if (file.size > MAX_ORGANIZATION_IMAGE_SIZES[kind]) {
-      setError(formatMessage(organizationSettingsMessages.imageSizeError, { megabytes: maximumMegabytes }))
+    if (file.size > MAX_PROFILE_PICTURE_SIZE) {
+      setError(formatMessage(accountMessages.pictureSizeError, { megabytes: MAXIMUM_MEGABYTES }))
 
       return
     }
@@ -81,40 +83,32 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
     onClose()
   }
 
-  const specs = [
-    formatMessage(isBanner ? organizationSettingsMessages.wideRatio : organizationSettingsMessages.squareRatio),
-    formatMessage(organizationSettingsMessages.minimumSize, { width, height }),
-    formatMessage(organizationSettingsMessages.maximumSize, { megabytes: maximumMegabytes }),
-  ]
-
   return (
     <Dialog
       open
       onOpenChange={open => !open && onClose()}
     >
       <DialogContent
-        closeLabel={formatMessage(organizationSettingsMessages.close)}
-        className={isBanner ? 'sm:max-w-[560px]' : 'sm:max-w-[420px]'}
+        closeLabel={formatMessage(accountMessages.closeDialog)}
+        className="sm:max-w-[420px]"
       >
         <DialogHeader>
           <DialogTitle>
-            {isBanner
-              ? formatMessage(currentSrc ? organizationSettingsMessages.changeBanner : organizationSettingsMessages.uploadBanner)
-              : formatMessage(currentSrc ? organizationSettingsMessages.changeLogo : organizationSettingsMessages.uploadLogo)}
+            {formatMessage(currentSrc ? accountMessages.changePicture : accountMessages.uploadPicture)}
           </DialogTitle>
           <DialogDescription>
-            {formatMessage(isBanner ? organizationSettingsMessages.bannerDescription : organizationSettingsMessages.logoDescription)}
+            {formatMessage(accountMessages.pictureDialogDescription)}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <ImageDropzone
-            shape={isBanner ? 'wide' : 'square'}
+            shape="circle"
             src={src}
-            alt={formatMessage(isBanner ? organizationSettingsMessages.bannerPreviewAlt : organizationSettingsMessages.logoPreviewAlt)}
-            label={formatMessage(isBanner ? organizationSettingsMessages.chooseBanner : organizationSettingsMessages.chooseLogo)}
+            alt={formatMessage(accountMessages.picturePreviewAlt)}
+            label={formatMessage(accountMessages.choosePicture)}
             prompt={(
               <FormattedMessage
-                {...organizationSettingsMessages.dropPrompt}
+                {...accountMessages.pictureDropPrompt}
                 values={{
                   strong: chunks => (
                     <strong>
@@ -124,7 +118,7 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
                 }}
               />
             )}
-            accept={ORGANIZATION_IMAGE_CONTENT_TYPES.join(',')}
+            accept={PROFILE_PICTURE_CONTENT_TYPES.join(',')}
             onFileSelect={selectFile}
           />
           {error
@@ -154,11 +148,11 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
                 <Button
                   variant="danger"
                   size="sm"
-                  confirm={formatMessage(organizationSettingsMessages.removeConfirm)}
+                  confirm={formatMessage(accountMessages.removePictureConfirm)}
                   onClick={remove}
                   className="sm:mr-auto"
                 >
-                  {formatMessage(organizationSettingsMessages.remove)}
+                  {formatMessage(accountMessages.removePicture)}
                 </Button>
               )
             : null}
@@ -166,13 +160,13 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
             variant="transparent"
             onClick={onClose}
           >
-            {formatMessage(organizationSettingsMessages.cancel)}
+            {formatMessage(accountMessages.cancel)}
           </Button>
           <Button
             disabled={!isChanged}
             onClick={apply}
           >
-            {formatMessage(organizationSettingsMessages.apply)}
+            {formatMessage(accountMessages.applyPicture)}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -180,4 +174,4 @@ function OrganizationSettingsImageDialog({ kind, currentSrc, onApply, onClose }:
   )
 }
 
-export default OrganizationSettingsImageDialog
+export default AccountProfilePictureDialog

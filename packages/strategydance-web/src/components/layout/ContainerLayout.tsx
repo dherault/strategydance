@@ -9,7 +9,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 function ContainerLayout({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('flex w-full max-w-[1024px] flex-col px-2 pt-5 pb-12', className)}
+      className={cn('flex w-full max-w-[1024px] flex-col px-2 pt-6 pb-12', className)}
       {...props}
     />
   )

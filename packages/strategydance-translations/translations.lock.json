@@ -1,5 +1,203 @@
 {
   "messages": {
+    "account": {
+      "account.applyPicture": {
+        "hash": "31527fc74aef8374",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioCount": {
+        "hash": "a88b168aa6583372",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioHint": {
+        "hash": "dc0c0d7349dc7c68",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioLabel": {
+        "hash": "03eb249a12e3902c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioPlaceholder": {
+        "hash": "769a50b131b75385",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.cancel": {
+        "hash": "db96b8f63aee5689",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.changePasswordDescription": {
+        "hash": "3b83d4a65b94ddf1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.changePasswordTitle": {
+        "hash": "64597a1a7707eb4f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.changePicture": {
+        "hash": "2b50bab671175260",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.choosePicture": {
+        "hash": "7556832145e41a38",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.closeDialog": {
+        "hash": "7a0711b735ac2974",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.confirmNewPasswordLabel": {
+        "hash": "adb7f15725f9a4fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.currentPasswordLabel": {
+        "hash": "7f22972d99964746",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.currentPasswordRequired": {
+        "hash": "a0044b5f8fad921f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.eyebrow": {
+        "hash": "515a4dbb8873dc5d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.googleOnlyDescription": {
+        "hash": "3cf31c9e1ab27a46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.googleOnlyTitle": {
+        "hash": "f212a68897af78d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.lead": {
+        "hash": "d88f01cf9c4c0e26",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.nameLabel": {
+        "hash": "d243deba3cb17367",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.namePlaceholder": {
+        "hash": "b1da52672cbbc2e8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.nameRequired": {
+        "hash": "385f4f845581824a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.newPasswordHint": {
+        "hash": "27335657544e820a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.newPasswordLabel": {
+        "hash": "1d8b9c0510d475b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.newPasswordUnchanged": {
+        "hash": "b9f348aa1fd13bf2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.passwordResetSent": {
+        "hash": "2636f1b4f0369971",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.passwordUpdated": {
+        "hash": "50d2c46cc3229e46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureDialogDescription": {
+        "hash": "98a96134f92c9ebe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureDropPrompt": {
+        "hash": "facce11f792abc6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureLabel": {
+        "hash": "9f11ae8b34bcdb87",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureMaximumSize": {
+        "hash": "35f6fa9908b463ea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureMinimumSize": {
+        "hash": "cae1f42133272a57",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.picturePreviewAlt": {
+        "hash": "6b8b77add4fdb2f9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSizeError": {
+        "hash": "6bb8c39e76bb69e4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSquare": {
+        "hash": "4d073cdfa1d41600",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureTypeError": {
+        "hash": "b104367aebc6f27c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.previewBioEmpty": {
+        "hash": "0d679345c616b64b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.previewNameEmpty": {
+        "hash": "1f662e1507f6b125",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.profilePreview": {
+        "hash": "68f2c0698729f690",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.profileTab": {
+        "hash": "ec8382ad52a01265",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.removePicture": {
+        "hash": "d6473d642bd3895d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.removePictureConfirm": {
+        "hash": "b9c81e96de53f583",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.save": {
+        "hash": "41c8fc4443200bf9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.saveError": {
+        "hash": "0752e2a7af5a88c0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.saved": {
+        "hash": "0d6854850976930b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.securityTab": {
+        "hash": "ef1a87fc7623f8d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.showPasswords": {
+        "hash": "0c565e4cffdd7c18",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.tabsLabel": {
+        "hash": "3a40d2b4a16a548a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.updatePassword": {
+        "hash": "5624667fcc95650d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.uploadPicture": {
+        "hash": "600bed5cf8f5486e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "authentication": {
       "authentication.action.back": {
         "hash": "bec7784f62bdddd7",

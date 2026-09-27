@@ -19,13 +19,18 @@ service firebase.storage {
 
       Public read, because a profile picture is rendered next to its owner's name wherever that
       name appears, and an authenticated fetch for each one buys nothing: the URL is already
-      handed to anybody who can see the person
+      handed to anybody who can see the person.
+
+      Its owner may delete it, which is what removing the picture on the account page does, so a
+      picture somebody took down stops being served rather than staying public at its old URL
     */
     match /users/{userId}/profile-picture {
       allow read: if true;
       allow create, update: if request.auth != null
         && request.auth.uid == userId
         && isLightImage();
+      allow delete: if request.auth != null
+        && request.auth.uid == userId;
     }
 
     /*

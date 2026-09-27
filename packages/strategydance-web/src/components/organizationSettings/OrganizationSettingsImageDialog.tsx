@@ -12,7 +12,7 @@ import {
 } from 'strategydance-design-system/components/ui/Dialog'
 import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDropzone'
 
-import useStagedImage from '~hooks/organizationSettings/useStagedImage'
+import useStagedImage from '~hooks/common/useStagedImage'
 
 import organizationSettingsMessages from '~data/intl/messages/organizationSettings'
 

@@ -26,6 +26,7 @@
   "team.editOwnJobTitle": "Deine Rolle bearbeiten",
   "team.editOwnJobTitleDescription": "Was du bei {organizationName} machst.",
   "team.emailListMore": "{count} weitere",
+  "team.eyebrow": "In bester Gesellschaft",
   "team.invalidEmails": "{count, plural, one {Ungültige E-Mail: {emails}.} other {# ungültige E-Mails: {emails}.}}",
   "team.invitationCanceled": "Einladung für {email} zurückgezogen",
   "team.invitationPending": "Einladung ausstehend",

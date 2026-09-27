@@ -2,6 +2,11 @@ import { defineMessages } from 'react-intl'
 
 // The team page: the organization's members, what they do, and what they may do
 const teamMessages = defineMessages({
+  eyebrow: {
+    id: 'team.eyebrow',
+    defaultMessage: 'You\'re in good company',
+    description: 'Small uppercase label above the title of the team page, a friendly nod to the people listed under it.',
+  },
   lead: {
     id: 'team.lead',
     defaultMessage: '{memberCount, plural, one {# member} other {# members}} in {organizationName}{invitationCount, plural, =0 {} one {, # pending invitation} other {, # pending invitations}}.',

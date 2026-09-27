@@ -26,6 +26,7 @@
   "team.editOwnJobTitle": "自分の役職を編集",
   "team.editOwnJobTitleDescription": "{organizationName}でのあなたの役職。",
   "team.emailListMore": "他{count}件",
+  "team.eyebrow": "頼もしい仲間たち",
   "team.invalidEmails": "{count, plural, one {無効なメールアドレス: {emails}。} other {#件の無効なメールアドレス: {emails}。}}",
   "team.invitationCanceled": "{email}への招待をキャンセルしました",
   "team.invitationPending": "招待保留中",

@@ -947,6 +947,10 @@
         "hash": "86ad28370fc57b07",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "team.eyebrow": {
+        "hash": "5d37d7b48044bed1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "team.invalidEmails": {
         "hash": "29873a10e50be8df",
         "locales": "DE,ES,FR,JA,PT,ZH"

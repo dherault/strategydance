@@ -26,6 +26,7 @@
   "team.editOwnJobTitle": "Modifier votre rôle",
   "team.editOwnJobTitleDescription": "Ce que vous faites chez {organizationName}.",
   "team.emailListMore": "{count} de plus",
+  "team.eyebrow": "Vous êtes en bonne compagnie",
   "team.invalidEmails": "{count, plural, one {E-mail non valide : {emails}.} other {# e-mails non valides : {emails}.}}",
   "team.invitationCanceled": "Invitation pour {email} annulée",
   "team.invitationPending": "Invitation en attente",

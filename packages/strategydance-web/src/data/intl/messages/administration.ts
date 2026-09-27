@@ -1,0 +1,73 @@
+import { defineMessages } from 'react-intl'
+
+// The pages that administer Strategy Dance itself, which only its own administrators reach. The
+// sidebar's links to them, and their titles, are in `navigation`
+const administrationMessages = defineMessages({
+  usersLead: {
+    id: 'administration.users.lead',
+    defaultMessage: '{count, plural, one {# person has} other {# people have}} signed up to Strategy Dance, newest first.',
+    description: 'Line under the title of the administration page that lists every account on the product. "Strategy Dance" is the product name and stays untranslated.',
+  },
+  usersLoadError: {
+    id: 'administration.users.loadError',
+    defaultMessage: 'The accounts could not be loaded. Check your connection and try again.',
+    description: 'Error shown in place of the table of every account when it could not be read.',
+  },
+  columnName: {
+    id: 'administration.users.column.name',
+    defaultMessage: 'Name',
+    description: 'Column header, in the table of every account, above each person\'s picture and name.',
+  },
+  columnEmail: {
+    id: 'administration.users.column.email',
+    defaultMessage: 'Email',
+    description: 'Column header, in the table of every account, above each person\'s email address.',
+  },
+  columnOrganizations: {
+    id: 'administration.users.column.organizations',
+    defaultMessage: 'Organizations',
+    description: 'Column header, in the table of every account, above the organizations each person belongs to.',
+  },
+  columnSignIn: {
+    id: 'administration.users.column.signIn',
+    defaultMessage: 'Sign-in',
+    description: 'Column header, in the table of every account, above the ways each person can sign in, such as a password or Google.',
+  },
+  columnJoined: {
+    id: 'administration.users.column.joined',
+    defaultMessage: 'Joined',
+    description: 'Column header, in the table of every account, above the date each person signed up.',
+  },
+  administrator: {
+    id: 'administration.users.administrator',
+    defaultMessage: 'Administrator',
+    description: 'Small badge beside the name of somebody who administers the whole product, in the table of every account.',
+  },
+  copyEmail: {
+    id: 'administration.users.copyEmail',
+    defaultMessage: 'Copy the email address of {name}',
+    description: 'Tooltip and accessible label of the button, beside an email address in the table of every account, that copies that address. {name} is the person\'s name, or their address when they gave none.',
+  },
+  emailCopied: {
+    id: 'administration.users.emailCopied',
+    defaultMessage: 'Email address copied',
+    description: 'What that copy button says for a moment after it copied the address.',
+  },
+  noOrganization: {
+    id: 'administration.users.noOrganization',
+    defaultMessage: 'None',
+    description: 'Shown in the "Organizations" column of the table of every account, for somebody who belongs to no organization.',
+  },
+  providerPassword: {
+    id: 'administration.users.provider.password',
+    defaultMessage: 'Password',
+    description: 'Badge, in the "Sign-in" column of the table of every account, for somebody who can sign in with an email and a password.',
+  },
+  providerGoogle: {
+    id: 'administration.users.provider.google',
+    defaultMessage: 'Google',
+    description: 'Badge, in the "Sign-in" column of the table of every account, for somebody who can sign in with their Google account. A brand name, so it stays untranslated.',
+  },
+})
+
+export default administrationMessages

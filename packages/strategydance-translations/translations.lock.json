@@ -198,6 +198,60 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "administration": {
+      "administration.users.administrator": {
+        "hash": "dffed5329b832ad4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.column.email": {
+        "hash": "756a5b1e96b5e23e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.column.joined": {
+        "hash": "050b40fc4b68986c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.column.name": {
+        "hash": "357a7b85755616ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.column.organizations": {
+        "hash": "14cc08cd069703c6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.column.signIn": {
+        "hash": "0aed0c2136518650",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.copyEmail": {
+        "hash": "72e3de728df47ddb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.emailCopied": {
+        "hash": "c00c8991396305d1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.lead": {
+        "hash": "71638272e8cf355b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.loadError": {
+        "hash": "e837ea5c6899711d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.noOrganization": {
+        "hash": "87896fde2830090d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.provider.google": {
+        "hash": "c2e6e59c68fa1bac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.users.provider.password": {
+        "hash": "b48ee3bee35bb7ae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "authentication": {
       "authentication.action.back": {
         "hash": "bec7784f62bdddd7",
@@ -569,6 +623,14 @@
       },
       "navigation.addOrganizationUnread": {
         "hash": "6e01a1042338ebc9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.administration": {
+        "hash": "d210644b2d05a5dc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.administrationUsers": {
+        "hash": "bcb8a7093d663ea1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.agents": {

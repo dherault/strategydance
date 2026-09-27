@@ -6,6 +6,8 @@
   "navigation.addOrganizationSubmit": "Adicionar",
   "navigation.addOrganizationTitle": "Adicionar uma organização",
   "navigation.addOrganizationUnread": "{organizationName} foi criada, mas não foi possível carregá-la. Recarregue a página para vê-la.",
+  "navigation.administration": "Administração",
+  "navigation.administrationUsers": "Usuários",
   "navigation.agents": "Agentes",
   "navigation.aspectDesign": "Design",
   "navigation.aspectEngineering": "Engenharia",

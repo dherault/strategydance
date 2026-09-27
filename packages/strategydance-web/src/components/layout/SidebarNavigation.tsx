@@ -1,5 +1,5 @@
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
-import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, StoreIcon, UsersRoundIcon } from 'lucide-react'
+import { BotIcon, CalendarIcon, CompassIcon, ContactRoundIcon, ListChecksIcon, StoreIcon, UsersRoundIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
@@ -16,6 +16,7 @@ import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 import { COMPANY_ASPECTS } from '~constants'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useUser from '~hooks/user/useUser'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
 
@@ -60,6 +61,7 @@ function NavigationLink({ path, label, icon, link }: NavigationLinkProps) {
 function SidebarNavigation() {
   const { formatMessage } = useIntl()
   const { organization, role } = useCurrentOrganization()
+  const { data: user } = useUser()
 
   /*
     The organization's explored aspects, in `COMPANY_ASPECTS`'s order rather than the order they
@@ -145,6 +147,24 @@ function SidebarNavigation() {
             : null}
         </SidebarMenu>
       </SidebarGroup>
+      {/* Only for an administrator of Strategy Dance itself, whatever they are in the organization */}
+      {user?.isAdministrator
+        ? (
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                {formatMessage(navigationMessages.administration)}
+              </SidebarGroupLabel>
+              <SidebarMenu>
+                <NavigationLink
+                  path="/-/administration/users"
+                  label={formatMessage(navigationMessages.administrationUsers)}
+                  icon={<ContactRoundIcon />}
+                  link={{ to: '/-/administration/users' }}
+                />
+              </SidebarMenu>
+            </SidebarGroup>
+          )
+        : null}
     </>
   )
 }

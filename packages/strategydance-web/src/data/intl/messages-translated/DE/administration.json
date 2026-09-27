@@ -1,0 +1,15 @@
+{
+  "administration.users.administrator": "Administrator",
+  "administration.users.column.email": "E-Mail",
+  "administration.users.column.joined": "Beigetreten",
+  "administration.users.column.name": "Name",
+  "administration.users.column.organizations": "Organisationen",
+  "administration.users.column.signIn": "Anmeldung",
+  "administration.users.copyEmail": "E-Mail-Adresse von {name} kopieren",
+  "administration.users.emailCopied": "E-Mail-Adresse kopiert",
+  "administration.users.lead": "{count, plural, one {# Person hat} other {# Personen haben}} sich bei Strategy Dance registriert, neueste zuerst.",
+  "administration.users.loadError": "Die Konten konnten nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
+  "administration.users.noOrganization": "Keine",
+  "administration.users.provider.google": "Google",
+  "administration.users.provider.password": "Passwort"
+}

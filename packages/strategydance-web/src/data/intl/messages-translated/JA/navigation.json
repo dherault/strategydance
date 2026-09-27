@@ -6,6 +6,8 @@
   "navigation.addOrganizationSubmit": "追加",
   "navigation.addOrganizationTitle": "組織の追加",
   "navigation.addOrganizationUnread": "{organizationName} は作成されましたが、読み込めませんでした。ページを再読み込みして確認してください。",
+  "navigation.administration": "管理",
+  "navigation.administrationUsers": "ユーザー",
   "navigation.agents": "エージェント",
   "navigation.aspectDesign": "デザイン",
   "navigation.aspectEngineering": "エンジニアリング",

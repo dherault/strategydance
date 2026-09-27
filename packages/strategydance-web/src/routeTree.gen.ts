@@ -20,6 +20,7 @@ import { Route as AuthenticationIndexRouteImport } from './routes/authentication
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
 import { Route as Char91Char93AppAspectRouteImport } from './routes/[-]/_app/$aspect'
 import { Route as Char91Char93AppAccountRouteImport } from './routes/[-]/_app/account'
+import { Route as Char91Char93AppAdministrationRouteImport } from './routes/[-]/_app/administration'
 import { Route as Char91Char93AppAgentsRouteImport } from './routes/[-]/_app/agents'
 import { Route as Char91Char93AppExploreRouteImport } from './routes/[-]/_app/explore'
 import { Route as Char91Char93AppProfileRouteImport } from './routes/[-]/_app/profile'
@@ -29,6 +30,8 @@ import { Route as Char91Char93AppTodayRouteImport } from './routes/[-]/_app/toda
 import { Route as Char91Char93InvitationInvitationIdRouteImport } from './routes/[-]/invitation.$invitationId'
 import { Route as Char91Char93AppAccountIndexRouteImport } from './routes/[-]/_app/account/index'
 import { Route as Char91Char93AppAccountSecurityRouteImport } from './routes/[-]/_app/account/security'
+import { Route as Char91Char93AppAdministrationIndexRouteImport } from './routes/[-]/_app/administration/index'
+import { Route as Char91Char93AppAdministrationUsersRouteImport } from './routes/[-]/_app/administration/users'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -85,6 +88,12 @@ const Char91Char93AppAccountRoute = Char91Char93AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => Char91Char93AppRoute,
 } as any)
+const Char91Char93AppAdministrationRoute =
+  Char91Char93AppAdministrationRouteImport.update({
+    id: '/administration',
+    path: '/administration',
+    getParentRoute: () => Char91Char93AppRoute,
+  } as any)
 const Char91Char93AppAgentsRoute = Char91Char93AppAgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
@@ -133,6 +142,18 @@ const Char91Char93AppAccountSecurityRoute =
     path: '/security',
     getParentRoute: () => Char91Char93AppAccountRoute,
   } as any)
+const Char91Char93AppAdministrationIndexRoute =
+  Char91Char93AppAdministrationIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char91Char93AppAdministrationRoute,
+  } as any)
+const Char91Char93AppAdministrationUsersRoute =
+  Char91Char93AppAdministrationUsersRouteImport.update({
+    id: '/users',
+    path: '/users',
+    getParentRoute: () => Char91Char93AppAdministrationRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/authentication/': typeof AuthenticationIndexRoute
   '/-/$aspect': typeof Char91Char93AppAspectRoute
   '/-/account': typeof Char91Char93AppAccountRouteWithChildren
+  '/-/administration': typeof Char91Char93AppAdministrationRouteWithChildren
   '/-/agents': typeof Char91Char93AppAgentsRoute
   '/-/explore': typeof Char91Char93AppExploreRoute
   '/-/profile': typeof Char91Char93AppProfileRoute
@@ -153,7 +175,9 @@ export interface FileRoutesByFullPath {
   '/-/today': typeof Char91Char93AppTodayRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
   '/-/account/security': typeof Char91Char93AppAccountSecurityRoute
+  '/-/administration/users': typeof Char91Char93AppAdministrationUsersRoute
   '/-/account/': typeof Char91Char93AppAccountIndexRoute
+  '/-/administration/': typeof Char91Char93AppAdministrationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,7 +195,9 @@ export interface FileRoutesByTo {
   '/-/today': typeof Char91Char93AppTodayRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
   '/-/account/security': typeof Char91Char93AppAccountSecurityRoute
+  '/-/administration/users': typeof Char91Char93AppAdministrationUsersRoute
   '/-/account': typeof Char91Char93AppAccountIndexRoute
+  '/-/administration': typeof Char91Char93AppAdministrationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -186,6 +212,7 @@ export interface FileRoutesById {
   '/authentication/': typeof AuthenticationIndexRoute
   '/-/_app/$aspect': typeof Char91Char93AppAspectRoute
   '/-/_app/account': typeof Char91Char93AppAccountRouteWithChildren
+  '/-/_app/administration': typeof Char91Char93AppAdministrationRouteWithChildren
   '/-/_app/agents': typeof Char91Char93AppAgentsRoute
   '/-/_app/explore': typeof Char91Char93AppExploreRoute
   '/-/_app/profile': typeof Char91Char93AppProfileRoute
@@ -194,7 +221,9 @@ export interface FileRoutesById {
   '/-/_app/today': typeof Char91Char93AppTodayRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
   '/-/_app/account/security': typeof Char91Char93AppAccountSecurityRoute
+  '/-/_app/administration/users': typeof Char91Char93AppAdministrationUsersRoute
   '/-/_app/account/': typeof Char91Char93AppAccountIndexRoute
+  '/-/_app/administration/': typeof Char91Char93AppAdministrationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -209,6 +238,7 @@ export interface FileRouteTypes {
     | '/authentication/'
     | '/-/$aspect'
     | '/-/account'
+    | '/-/administration'
     | '/-/agents'
     | '/-/explore'
     | '/-/profile'
@@ -217,7 +247,9 @@ export interface FileRouteTypes {
     | '/-/today'
     | '/-/invitation/$invitationId'
     | '/-/account/security'
+    | '/-/administration/users'
     | '/-/account/'
+    | '/-/administration/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -235,7 +267,9 @@ export interface FileRouteTypes {
     | '/-/today'
     | '/-/invitation/$invitationId'
     | '/-/account/security'
+    | '/-/administration/users'
     | '/-/account'
+    | '/-/administration'
   id:
     | '__root__'
     | '/'
@@ -249,6 +283,7 @@ export interface FileRouteTypes {
     | '/authentication/'
     | '/-/_app/$aspect'
     | '/-/_app/account'
+    | '/-/_app/administration'
     | '/-/_app/agents'
     | '/-/_app/explore'
     | '/-/_app/profile'
@@ -257,7 +292,9 @@ export interface FileRouteTypes {
     | '/-/_app/today'
     | '/-/invitation/$invitationId'
     | '/-/_app/account/security'
+    | '/-/_app/administration/users'
     | '/-/_app/account/'
+    | '/-/_app/administration/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -347,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91Char93AppAccountRouteImport
       parentRoute: typeof Char91Char93AppRoute
     }
+    '/-/_app/administration': {
+      id: '/-/_app/administration'
+      path: '/administration'
+      fullPath: '/-/administration'
+      preLoaderRoute: typeof Char91Char93AppAdministrationRouteImport
+      parentRoute: typeof Char91Char93AppRoute
+    }
     '/-/_app/agents': {
       id: '/-/_app/agents'
       path: '/agents'
@@ -410,6 +454,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91Char93AppAccountSecurityRouteImport
       parentRoute: typeof Char91Char93AppAccountRoute
     }
+    '/-/_app/administration/': {
+      id: '/-/_app/administration/'
+      path: '/'
+      fullPath: '/-/administration/'
+      preLoaderRoute: typeof Char91Char93AppAdministrationIndexRouteImport
+      parentRoute: typeof Char91Char93AppAdministrationRoute
+    }
+    '/-/_app/administration/users': {
+      id: '/-/_app/administration/users'
+      path: '/users'
+      fullPath: '/-/administration/users'
+      preLoaderRoute: typeof Char91Char93AppAdministrationUsersRouteImport
+      parentRoute: typeof Char91Char93AppAdministrationRoute
+    }
   }
 }
 
@@ -429,9 +487,28 @@ const Char91Char93AppAccountRouteWithChildren =
     Char91Char93AppAccountRouteChildren,
   )
 
+interface Char91Char93AppAdministrationRouteChildren {
+  Char91Char93AppAdministrationUsersRoute: typeof Char91Char93AppAdministrationUsersRoute
+  Char91Char93AppAdministrationIndexRoute: typeof Char91Char93AppAdministrationIndexRoute
+}
+
+const Char91Char93AppAdministrationRouteChildren: Char91Char93AppAdministrationRouteChildren =
+  {
+    Char91Char93AppAdministrationUsersRoute:
+      Char91Char93AppAdministrationUsersRoute,
+    Char91Char93AppAdministrationIndexRoute:
+      Char91Char93AppAdministrationIndexRoute,
+  }
+
+const Char91Char93AppAdministrationRouteWithChildren =
+  Char91Char93AppAdministrationRoute._addFileChildren(
+    Char91Char93AppAdministrationRouteChildren,
+  )
+
 interface Char91Char93AppRouteChildren {
   Char91Char93AppAspectRoute: typeof Char91Char93AppAspectRoute
   Char91Char93AppAccountRoute: typeof Char91Char93AppAccountRouteWithChildren
+  Char91Char93AppAdministrationRoute: typeof Char91Char93AppAdministrationRouteWithChildren
   Char91Char93AppAgentsRoute: typeof Char91Char93AppAgentsRoute
   Char91Char93AppExploreRoute: typeof Char91Char93AppExploreRoute
   Char91Char93AppProfileRoute: typeof Char91Char93AppProfileRoute
@@ -443,6 +520,8 @@ interface Char91Char93AppRouteChildren {
 const Char91Char93AppRouteChildren: Char91Char93AppRouteChildren = {
   Char91Char93AppAspectRoute: Char91Char93AppAspectRoute,
   Char91Char93AppAccountRoute: Char91Char93AppAccountRouteWithChildren,
+  Char91Char93AppAdministrationRoute:
+    Char91Char93AppAdministrationRouteWithChildren,
   Char91Char93AppAgentsRoute: Char91Char93AppAgentsRoute,
   Char91Char93AppExploreRoute: Char91Char93AppExploreRoute,
   Char91Char93AppProfileRoute: Char91Char93AppProfileRoute,

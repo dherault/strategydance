@@ -149,3 +149,43 @@ query GetOrganizationInvitation($id: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
     }
   }
 }
+
+# Every account, newest first, as the administration's users page lists them.
+#
+# Only an administrator of Strategy Dance gets an answer. The first field reads the caller's own
+# row, keyed by the uid off the token and redacted from the result, and its checks fail the whole
+# query for anybody whose row does not carry the flag.
+#
+# Not live: every sign-up and every change of name would have to refresh it. The page reads it
+# again on mount and on focus instead.
+#
+# Read up to 1000 rows, named rather than left to the generated default of 100, which would cut
+# the list short without saying so. Past that the page needs pagination. Each account's
+# memberships stop at the relation's default of 100, far past what anybody belongs to
+query GetAdministrationUsers @auth(level: USER) {
+  viewer: user(key: { id_expr: "auth.uid" })
+    @redact
+    @check(expr: "this != null", message: "Only an administrator of Strategy Dance can list every account") {
+    isAdministrator @check(expr: "this == true", message: "Only an administrator of Strategy Dance can list every account")
+  }
+  users(
+    # `id` breaks the tie between two accounts created in the same instant
+    orderBy: [{ createdAt: DESC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    email
+    displayName
+    imageUrl
+    authenticationProviders
+    isAdministrator
+    createdAt
+    # Joined-at order, as the sidebar lists organizations
+    userOrganizations_on_user(orderBy: [{ createdAt: ASC }, { organizationId: ASC }]) {
+      organization {
+        id
+        name
+      }
+    }
+  }
+}

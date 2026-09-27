@@ -15,8 +15,8 @@ type Props = {
   The reader's picture, large, ringed in white: the photo, or their initials. It follows the form
   rather than what is saved, so a picture chosen shows here before it is saved.
 
-  The whole avatar is the button that picks a picture, with a camera over it on hover and keyboard
-  focus
+  The whole avatar is the button that opens the picture's dialog, with a camera over it on hover
+  and keyboard focus
 */
 function AccountProfilePhoto({ src, name, label, disabled = false, onClick }: Props) {
   return (

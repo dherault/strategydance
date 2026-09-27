@@ -57,25 +57,70 @@ const accountMessages = defineMessages({
     defaultMessage: 'Change photo',
     description: 'Button that picks another profile picture in place of the one the reader has.',
   },
+  pictureDialogDescription: {
+    id: 'account.pictureDialogDescription',
+    defaultMessage: 'Appears next to your name, for your team and agents.',
+    description: 'Description in the dialog for choosing the reader\'s profile picture. Agents are the product\'s AI assistants.',
+  },
+  choosePicture: {
+    id: 'account.choosePicture',
+    defaultMessage: 'Choose a profile picture',
+    description: 'Accessible label of the area in the profile picture dialog that opens the file picker, or takes a file dragged onto it.',
+  },
+  pictureDropPrompt: {
+    id: 'account.pictureDropPrompt',
+    defaultMessage: '<strong>Choose a file</strong> or drag it here',
+    description: 'Text inside the empty area of the profile picture dialog. The part in the strong tag is highlighted, since clicking the area opens the file picker.',
+  },
+  picturePreviewAlt: {
+    id: 'account.picturePreviewAlt',
+    defaultMessage: 'Profile picture preview',
+    description: 'Alternative text of the chosen profile picture as the dialog previews it before it is applied.',
+  },
+  pictureSquare: {
+    id: 'account.pictureSquare',
+    defaultMessage: 'Square image',
+    description: 'Hint under the picture in the profile picture dialog: it should be as wide as it is tall.',
+  },
+  pictureMinimumSize: {
+    id: 'account.pictureMinimumSize',
+    defaultMessage: 'At least {width}×{height}px',
+    description: 'Hint under the picture in the profile picture dialog, its smallest recommended size in pixels, such as "At least 256×256px".',
+  },
+  pictureMaximumSize: {
+    id: 'account.pictureMaximumSize',
+    defaultMessage: 'Up to {megabytes} MB',
+    description: 'Hint under the picture in the profile picture dialog, the largest file accepted, such as "Up to 2 MB".',
+  },
   removePicture: {
     id: 'account.removePicture',
     defaultMessage: 'Remove',
-    description: 'Button that takes the reader\'s profile picture away, leaving their initials.',
+    description: 'Button in the profile picture dialog that takes the reader\'s picture away, leaving their initials.',
   },
-  pictureHint: {
-    id: 'account.pictureHint',
-    defaultMessage: 'Square image, at least 256×256px, up to {megabytes} MB.',
-    description: 'Advice under the profile picture buttons on what picture to choose, such as "Square image, at least 256×256px, up to 2 MB."',
+  removePictureConfirm: {
+    id: 'account.removePictureConfirm',
+    defaultMessage: 'Confirm?',
+    description: 'What the remove button in the profile picture dialog says after its first click, asking to be clicked again to go ahead.',
+  },
+  applyPicture: {
+    id: 'account.applyPicture',
+    defaultMessage: 'Apply',
+    description: 'Button in the profile picture dialog that puts the chosen picture on the profile card, to be saved with the rest.',
+  },
+  closeDialog: {
+    id: 'account.closeDialog',
+    defaultMessage: 'Close',
+    description: 'Accessible label of the button in the corner of the profile picture dialog that closes it.',
   },
   pictureTypeError: {
     id: 'account.pictureTypeError',
     defaultMessage: 'Choose a PNG, JPEG, GIF or WebP picture.',
-    description: 'Error shown when the reader picks a file that is not a supported image as their profile picture.',
+    description: 'Error in the profile picture dialog when the chosen file is not one of the picture formats accepted.',
   },
   pictureSizeError: {
     id: 'account.pictureSizeError',
     defaultMessage: 'Choose a picture of {megabytes} MB or less.',
-    description: 'Error shown when the reader picks a profile picture that is too large, such as "Choose a picture of 2 MB or less."',
+    description: 'Error in the profile picture dialog when the chosen file is larger than accepted, such as "Choose a picture of 2 MB or less."',
   },
   nameLabel: {
     id: 'account.nameLabel',

@@ -1,6 +1,10 @@
 {
   "messages": {
     "account": {
+      "account.applyPicture": {
+        "hash": "31527fc74aef8374",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.bioCount": {
         "hash": "a88b168aa6583372",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -31,6 +35,14 @@
       },
       "account.changePicture": {
         "hash": "2b50bab671175260",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.choosePicture": {
+        "hash": "7556832145e41a38",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.closeDialog": {
+        "hash": "7a0711b735ac2974",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.confirmNewPasswordLabel": {
@@ -93,20 +105,40 @@
         "hash": "50d2c46cc3229e46",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "account.pictureHint": {
-        "hash": "cf576e7a3d069683",
+      "account.pictureDialogDescription": {
+        "hash": "98a96134f92c9ebe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureDropPrompt": {
+        "hash": "facce11f792abc6f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.pictureLabel": {
         "hash": "9f11ae8b34bcdb87",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.pictureMaximumSize": {
+        "hash": "35f6fa9908b463ea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureMinimumSize": {
+        "hash": "cae1f42133272a57",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.picturePreviewAlt": {
+        "hash": "6b8b77add4fdb2f9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.pictureSizeError": {
-        "hash": "9b2c4ceabcc07a2a",
+        "hash": "6bb8c39e76bb69e4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSquare": {
+        "hash": "4d073cdfa1d41600",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.pictureTypeError": {
-        "hash": "4ed8f77afff5f4d2",
+        "hash": "b104367aebc6f27c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.previewBioEmpty": {
@@ -126,7 +158,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.removePicture": {
-        "hash": "1ff8f77806526a3a",
+        "hash": "d6473d642bd3895d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.removePictureConfirm": {
+        "hash": "b9c81e96de53f583",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.save": {

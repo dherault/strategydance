@@ -700,6 +700,96 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "onboarding": {
+      "onboarding.briefHint": {
+        "hash": "6072e6f0dea26203",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.briefLabel": {
+        "hash": "643ee8c1a43b9c2f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.briefPlaceholder": {
+        "hash": "6a201ea089f411ef",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.briefRequired": {
+        "hash": "8f69d4b70cd7bc6d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.createError": {
+        "hash": "f47d12156f20b378",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.created": {
+        "hash": "4143bf14dd5009d5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.lead": {
+        "hash": "20637a8a8eba6ba0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.nameLabel": {
+        "hash": "d4e9575358124a46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.namePlaceholder": {
+        "hash": "f5128cfff1d6e95e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.nameRequired": {
+        "hash": "2a3d09fcc28981d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.prologueLead": {
+        "hash": "8cd3e362f4211fef",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.prologueQuestion": {
+        "hash": "2b889d097094df77",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.prologueTitle": {
+        "hash": "fe6305df4c7435a8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.questionCount": {
+        "hash": "1e704531e868ca87",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.submit": {
+        "hash": "7d4babc1421684d8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.timeAnswerWeeks": {
+        "hash": "57534e13d341a6e7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.timeAnswerYears": {
+        "hash": "7cfdf14b8f9a2427",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.timeQuestion": {
+        "hash": "5dff7685f662e9ee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.title": {
+        "hash": "4c111507396d522b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.workAnswerEnormous": {
+        "hash": "f34aa1a37cbee44d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.workAnswerSome": {
+        "hash": "656fdb8e243b720a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.workQuestion": {
+        "hash": "045b9da3510a9148",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "organizationProfile": {
       "organizationProfile.administratorsOnly": {
         "hash": "6658b7c5cb84a52a",

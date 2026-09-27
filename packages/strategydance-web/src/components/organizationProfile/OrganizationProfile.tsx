@@ -204,7 +204,7 @@ function OrganizationProfile({ organization }: Props) {
             hexLabel={formatMessage(organizationProfileMessages.colorHexLabel)}
             value={color}
             onChange={setColor}
-            className="w-full max-w-100"
+            className="-mt-5.5 mb-6.5 w-full max-w-100"
           />
           <OrganizationProfileVisibility
             isPublic={isPublic}

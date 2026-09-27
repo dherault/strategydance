@@ -191,6 +191,7 @@ function OrganizationProfile({ organization }: Props) {
             placeholder={formatMessage(organizationProfileMessages.briefPlaceholder)}
             maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
             rows={4}
+            autosize
             readOnly={isSaving}
             hint={(
               <span className="flex justify-end tabular-nums">

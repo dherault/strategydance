@@ -434,18 +434,6 @@
       "global.showPassword": {
         "hash": "5abc086d954813bd",
         "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "global.signIn": {
-        "hash": "a928ba1e11eed6a9",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "global.tagline": {
-        "hash": "21bb96225df2333d",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "global.welcome": {
-        "hash": "7f77c31801e7f451",
-        "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
     "invitation": {
@@ -539,6 +527,40 @@
       },
       "invitation.unverifiedTitle": {
         "hash": "f4c0f74e45d07d0f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
+    "landing": {
+      "landing.beta": {
+        "hash": "0ca35b69ab2c13a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.copyright": {
+        "hash": "022f1515907b7aa1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.github": {
+        "hash": "da5443bcdae6a83a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.logIn": {
+        "hash": "40be7915051751a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.signUp": {
+        "hash": "124d337ec05b4d84",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.start": {
+        "hash": "2b822a4ad2ede07f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.subtitle": {
+        "hash": "fd77a23777a57874",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.title": {
+        "hash": "a174d6082794f4b6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },

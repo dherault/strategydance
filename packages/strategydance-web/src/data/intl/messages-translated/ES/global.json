@@ -7,8 +7,5 @@
   "global.notifications": "Notificaciones",
   "global.organizationsLoadError": "No se pudieron cargar tus organizaciones. Comprueba tu conexión e inténtalo de nuevo.",
   "global.retry": "Reintentar",
-  "global.showPassword": "Mostrar contraseña",
-  "global.signIn": "Iniciar sesión",
-  "global.tagline": "Un experimento de IA.",
-  "global.welcome": "Strategy Dance"
+  "global.showPassword": "Mostrar contraseña"
 }

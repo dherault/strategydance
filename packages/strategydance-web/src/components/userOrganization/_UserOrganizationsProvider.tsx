@@ -83,12 +83,14 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     `data`. Selecting it is the caller's to do: this provider does not know what is selected.
 
     This one throws, because the caller has a form to keep: a create that failed must not clear
-    the name somebody typed
+    the name somebody typed. The read after the write throws too, as `joinOrganization`'s does: the
+    onboarding moves on only once the list shows the new membership, so a read back that failed
+    without a word would leave its form spinning for good
   */
   async function createOrganization(name: string, brief: string | null) {
     const { organization } = await createOrganizationMutation({ name, brief })
 
-    await refetchUserOrganizations()
+    await refetchUserOrganizations({ throwOnError: true })
 
     return organization.id
   }

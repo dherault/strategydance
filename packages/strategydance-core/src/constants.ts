@@ -112,6 +112,12 @@ export const MAX_JOB_TITLE_LENGTH = 60
 export const MAX_ORGANIZATION_NAME_LENGTH = 80
 
 /*
+  How long an organization's brief may be, which its team, the community and agents read. Written
+  out again in `UpdateOrganization`'s check, which cannot import it: change the two together
+*/
+export const MAX_ORGANIZATION_BRIEF_LENGTH = 500
+
+/*
   The color an organization's mark takes until somebody picks one: the brand's primary, the design
   system's `--color-primary-700`. A null `Organization.color` means this one, so an organization
   that never chose follows the brand if it changes

@@ -60,6 +60,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       logoUrl
       bannerUrl
       color
+      brief
+      isPublic
     }
   }
 }

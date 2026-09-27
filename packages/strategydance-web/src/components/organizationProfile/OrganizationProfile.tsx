@@ -105,7 +105,12 @@ function OrganizationProfile({ organization }: Props) {
 
       if (areDetailsChanged) {
         // An untouched color is sent as stored, so one never picked stays the default
-        await updateOrganization(organization.id, trimmedName, isColorChanged ? color : organization.color ?? null)
+        await updateOrganization(organization.id, {
+          name: trimmedName,
+          color: isColorChanged ? color : organization.color ?? null,
+          brief: organization.brief ?? null,
+          isPublic: organization.isPublic,
+        })
 
         // What was saved, without the spaces the server was never sent
         setName(trimmedName)

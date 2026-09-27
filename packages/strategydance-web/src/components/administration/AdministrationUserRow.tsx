@@ -15,11 +15,10 @@ type Props = {
 
 // One account: who they are, how to reach them, where they belong, how they sign in, and since when
 function AdministrationUserRow({ user }: Props) {
-  const { formatMessage, formatList, formatDate } = useIntl()
+  const { formatMessage, formatDate } = useIntl()
 
   // The name on the account, or the address when they never gave one, as the team page does
   const name = user.displayName || user.email
-  const organizationNames = user.userOrganizations_on_user.map(({ organization }) => organization.name)
 
   return (
     <TableRow className="group/row">
@@ -58,8 +57,17 @@ function AdministrationUserRow({ user }: Props) {
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground">
-        {organizationNames.length > 0
-          ? formatList(organizationNames)
+        {user.userOrganizations_on_user.length > 0
+          ? (
+              // One organization per line
+              <ul className="m-0 list-none p-0">
+                {user.userOrganizations_on_user.map(({ organization }) => (
+                  <li key={organization.id}>
+                    {organization.name}
+                  </li>
+                ))}
+              </ul>
+            )
           : formatMessage(administrationMessages.noOrganization)}
       </TableCell>
       <TableCell>

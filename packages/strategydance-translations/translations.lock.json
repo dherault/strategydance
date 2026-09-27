@@ -1,5 +1,27 @@
 {
   "messages": {
+    "account": {
+      "account.eyebrow": {
+        "hash": "515a4dbb8873dc5d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.lead": {
+        "hash": "d88f01cf9c4c0e26",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.profileTab": {
+        "hash": "ec8382ad52a01265",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.securityTab": {
+        "hash": "ef1a87fc7623f8d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.tabsLabel": {
+        "hash": "3a40d2b4a16a548a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "authentication": {
       "authentication.action.back": {
         "hash": "bec7784f62bdddd7",

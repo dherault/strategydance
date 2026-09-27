@@ -14,6 +14,7 @@ import { CompanyAspect } from 'strategydance-database/web'
   two can disagree: this one is what the frontend's types are built from
 */
 export const MESSAGE_TYPES = [
+  'account',
   'authentication',
   'explore',
   'global',

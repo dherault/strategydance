@@ -132,6 +132,21 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Name',
     description: 'Label of the field for the new organization\'s name.',
   },
+  organizationBrief: {
+    id: 'navigation.organizationBrief',
+    defaultMessage: 'Brief',
+    description: 'Label of the field for a short description of the new organization\'s company.',
+  },
+  organizationBriefPlaceholder: {
+    id: 'navigation.organizationBriefPlaceholder',
+    defaultMessage: 'What your company does, for whom, and where it is headed.',
+    description: 'Placeholder in the empty brief field of the window creating a new organization.',
+  },
+  organizationBriefHint: {
+    id: 'navigation.organizationBriefHint',
+    defaultMessage: 'You can edit this later in your company profile.',
+    description: 'Hint under the brief field of the window creating a new organization.',
+  },
   addOrganizationSubmit: {
     id: 'navigation.addOrganizationSubmit',
     defaultMessage: 'Add',

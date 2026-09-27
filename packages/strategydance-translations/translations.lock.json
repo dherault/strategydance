@@ -647,6 +647,18 @@
         "hash": "6b7f5ca4282a9d35",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.organizationBrief": {
+        "hash": "744a0c395c2c52bb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationBriefHint": {
+        "hash": "5a7c71c170c8fd71",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationBriefPlaceholder": {
+        "hash": "9cde6f7a7a22eea5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.organizationName": {
         "hash": "b689838dc779576f",
         "locales": "DE,ES,FR,JA,PT,ZH"

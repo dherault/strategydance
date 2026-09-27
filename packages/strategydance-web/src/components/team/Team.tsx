@@ -13,7 +13,6 @@ import EditJobTitleDialog from '~components/team/EditJobTitleDialog'
 import InviteMembersDialog from '~components/team/InviteMembersDialog'
 import TeamHeader from '~components/team/TeamHeader'
 import TeamLoadFailed from '~components/team/TeamLoadFailed'
-import TeamNoOrganization from '~components/team/TeamNoOrganization'
 import TeamTable from '~components/team/TeamTable'
 
 /*
@@ -67,7 +66,6 @@ function Team() {
             />
           )
         : null}
-      {organization ? null : <TeamNoOrganization />}
       {organization && isInviting
         ? (
             <InviteMembersDialog

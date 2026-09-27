@@ -26,7 +26,6 @@
   "navigation.githubStarLabel": "在 GitHub 上为 {repository} 标星",
   "navigation.githubStargazers": "{count, plural, other {GitHub 上的 # 位标星者}}",
   "navigation.logOut": "退出登录",
-  "navigation.noOrganization": "暂无组织",
   "navigation.organizationBrief": "简介",
   "navigation.organizationBriefHint": "您稍后可以在公司资料中修改。",
   "navigation.organizationBriefPlaceholder": "贵公司的业务、服务对象以及未来发展方向。",

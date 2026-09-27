@@ -17,11 +17,6 @@ const organizationProfileMessages = defineMessages({
     defaultMessage: 'How your organization appears to your team, the community and agents.',
     description: 'Introduction under the title of the organization profile page.',
   },
-  noOrganization: {
-    id: 'organizationProfile.noOrganization',
-    defaultMessage: 'Create an organization from the menu at the top of the sidebar, then set how it appears here.',
-    description: 'Notice on the organization profile page when the reader belongs to no organization yet.',
-  },
   administratorsOnly: {
     id: 'organizationProfile.administratorsOnly',
     defaultMessage: 'Only an administrator of {organizationName} can change its profile.',

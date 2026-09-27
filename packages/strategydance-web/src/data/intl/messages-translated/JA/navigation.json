@@ -26,7 +26,6 @@
   "navigation.githubStarLabel": "GitHubで{repository}にスターを付ける",
   "navigation.githubStargazers": "{count, plural, other {GitHubで # 件のスター}}",
   "navigation.logOut": "ログアウト",
-  "navigation.noOrganization": "組織がまだありません",
   "navigation.organizationBrief": "概要",
   "navigation.organizationBriefHint": "後から会社プロフィールで編集できます。",
   "navigation.organizationBriefPlaceholder": "誰のために何をしている会社なのか、どこを目指しているのか。",

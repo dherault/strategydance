@@ -157,11 +157,6 @@ const teamMessages = defineMessages({
     defaultMessage: 'The invitations could not be sent. Try again.',
     description: 'Error in the invite dialog when sending the invitations failed for another reason.',
   },
-  noOrganization: {
-    id: 'team.noOrganization',
-    defaultMessage: 'Create an organization from the menu at the top of the sidebar, then invite your team here.',
-    description: 'Notice on the team page when the reader belongs to no organization yet.',
-  },
   loadError: {
     id: 'team.loadError',
     defaultMessage: 'The team could not be loaded. Check your connection and try again.',

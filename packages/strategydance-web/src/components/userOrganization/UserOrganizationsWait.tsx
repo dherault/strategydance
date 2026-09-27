@@ -9,8 +9,8 @@ import Loading from '~components/common/Loading'
   the reader's row exists, so the only thing left to wait on is the list of memberships.
 
   It waits for the list to arrive, not for it to have anything in it. A fresh account belongs to
-  no organization and the page below is where they create their first one, so gating on an empty
-  list would be a spinner with nothing behind it.
+  no organization, and deciding where that sends them is the bouncer's below, so gating on an
+  empty list would be a spinner with nothing behind it.
 
   `initialLoading` rather than `loading`, unlike the two waiters above it: this one sits over data
   that is refetched while somebody is looking at it, and gating on `loading` would replace the

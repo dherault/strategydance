@@ -26,7 +26,6 @@
   "navigation.githubStarLabel": "{repository} auf GitHub einen Stern geben",
   "navigation.githubStargazers": "{count, plural, one {# Stargazer} other {# Stargazer}} auf GitHub",
   "navigation.logOut": "Abmelden",
-  "navigation.noOrganization": "Noch keine Organisation",
   "navigation.organizationBrief": "Kurzbeschreibung",
   "navigation.organizationBriefHint": "Du kannst dies später in deinem Unternehmensprofil bearbeiten.",
   "navigation.organizationBriefPlaceholder": "Was dein Unternehmen tut, für wen und wohin es sich entwickelt.",

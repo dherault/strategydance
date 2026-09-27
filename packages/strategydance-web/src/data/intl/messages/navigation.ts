@@ -107,11 +107,6 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Organizations',
     description: 'Heading of the menu listing the reader\'s organizations.',
   },
-  noOrganization: {
-    id: 'navigation.noOrganization',
-    defaultMessage: 'No organization yet',
-    description: 'Shown in place of the current organization\'s name when the reader belongs to none.',
-  },
   addOrganization: {
     id: 'navigation.addOrganization',
     defaultMessage: 'Add organization',

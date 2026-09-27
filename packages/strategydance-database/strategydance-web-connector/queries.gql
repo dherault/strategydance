@@ -161,7 +161,8 @@ query GetOrganizationInvitation($id: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
 #
 # Read up to 1000 rows, named rather than left to the generated default of 100, which would cut
 # the list short without saying so. Past that the page needs pagination. Each account's
-# memberships stop at the relation's default of 100, far past what anybody belongs to
+# memberships are read up to the same 1000, since nothing caps how many organizations one account
+# creates or joins
 query GetAdministrationUsers @auth(level: USER) {
   viewer: user(key: { id_expr: "auth.uid" })
     @redact
@@ -181,7 +182,7 @@ query GetAdministrationUsers @auth(level: USER) {
     isAdministrator
     createdAt
     # Joined-at order, as the sidebar lists organizations
-    userOrganizations_on_user(orderBy: [{ createdAt: ASC }, { organizationId: ASC }]) {
+    userOrganizations_on_user(orderBy: [{ createdAt: ASC }, { organizationId: ASC }], limit: 1000) {
       organization {
         id
         name

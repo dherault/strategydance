@@ -1,10 +1,20 @@
 import { defineMessages } from 'react-intl'
 
-// The organization's profile page: how it appears to its team, others and agents
+// The organization's profile page: how it appears to its team, the community and agents
 const organizationProfileMessages = defineMessages({
+  eyebrow: {
+    id: 'organizationProfile.eyebrow',
+    defaultMessage: 'Show and tell',
+    description: 'Small uppercase label above the title of the organization profile page, a playful nod to the page being about how the organization presents itself.',
+  },
+  title: {
+    id: 'organizationProfile.title',
+    defaultMessage: 'Company profile',
+    description: 'Title of the page where administrators set how their organization appears to others.',
+  },
   lead: {
     id: 'organizationProfile.lead',
-    defaultMessage: 'How your organization appears to your team, others and agents.',
+    defaultMessage: 'How your organization appears to your team, the community and agents.',
     description: 'Introduction under the title of the organization profile page.',
   },
   noOrganization: {
@@ -14,8 +24,8 @@ const organizationProfileMessages = defineMessages({
   },
   administratorsOnly: {
     id: 'organizationProfile.administratorsOnly',
-    defaultMessage: 'Only an administrator of {organizationName} can change its settings.',
-    description: 'Notice on the organization profile page for a member who is not an administrator, such as "Only an administrator of Acme can change its settings."',
+    defaultMessage: 'Only an administrator of {organizationName} can change its profile.',
+    description: 'Notice on the organization profile page for a member who is not an administrator, such as "Only an administrator of Acme can change its profile."',
   },
   bannerAlt: {
     id: 'organizationProfile.bannerAlt',
@@ -54,13 +64,13 @@ const organizationProfileMessages = defineMessages({
   },
   saved: {
     id: 'organizationProfile.saved',
-    defaultMessage: 'Settings saved',
-    description: 'Confirmation shown after the organization\'s settings were saved.',
+    defaultMessage: 'Organization saved',
+    description: 'Confirmation shown after the organization\'s profile was saved.',
   },
   saveError: {
     id: 'organizationProfile.saveError',
-    defaultMessage: 'The settings could not be saved. Try again.',
-    description: 'Error shown when saving the organization\'s settings failed.',
+    defaultMessage: 'The organization could not be saved. Try again.',
+    description: 'Error shown when saving the organization\'s profile failed.',
   },
   uploadBanner: {
     id: 'organizationProfile.uploadBanner',

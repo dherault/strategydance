@@ -45,17 +45,17 @@ const navigationMessages = defineMessages({
   company: {
     id: 'navigation.company',
     defaultMessage: 'Company',
-    description: 'Sidebar heading above the links about the company itself, such as its team and its settings. Also the small label above the title of those pages.',
+    description: 'Sidebar heading above the links about the company itself, such as its team and its profile.',
   },
   team: {
     id: 'navigation.team',
     defaultMessage: 'Team',
     description: 'Sidebar link to the page about the people in the organization.',
   },
-  settings: {
-    id: 'navigation.settings',
-    defaultMessage: 'Settings',
-    description: 'Sidebar link to the settings page.',
+  profile: {
+    id: 'navigation.profile',
+    defaultMessage: 'Profile',
+    description: 'Sidebar link, under the "Company" heading, to the page where administrators set how the organization appears to its team, the community and agents.',
   },
   aspectStrategy: {
     id: 'navigation.aspectStrategy',

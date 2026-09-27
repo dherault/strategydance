@@ -620,7 +620,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.company": {
-        "hash": "4b48a18fa17c34e9",
+        "hash": "9a38a14f5506e5ea",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.exploreMore": {
@@ -655,8 +655,8 @@
         "hash": "3064d4491394ac6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "navigation.settings": {
-        "hash": "521344c15a5eb61f",
+      "navigation.profile": {
+        "hash": "7daadd2d0e2e55df",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.sidebar": {
@@ -686,7 +686,7 @@
     },
     "organizationProfile": {
       "organizationProfile.administratorsOnly": {
-        "hash": "a080ddc64fd9ff01",
+        "hash": "6658b7c5cb84a52a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.apply": {
@@ -761,6 +761,10 @@
         "hash": "f85f9cac87bfe5a1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "organizationProfile.eyebrow": {
+        "hash": "3808fd1072edf4f5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "organizationProfile.imageSizeError": {
         "hash": "1c5caa27b603f078",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -770,7 +774,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.lead": {
-        "hash": "6200142a9cb2b5c9",
+        "hash": "6bb87f6a1e7f5457",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.logoDescription": {
@@ -814,15 +818,19 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.saveError": {
-        "hash": "93d52e971e973d46",
+        "hash": "985c5bdb54ee0e54",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.saved": {
-        "hash": "4e9c10f6c621142b",
+        "hash": "64983184441c134a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.squareRatio": {
         "hash": "53f47896c09d0206",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.title": {
+        "hash": "92eef872eb82251b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.uploadBanner": {

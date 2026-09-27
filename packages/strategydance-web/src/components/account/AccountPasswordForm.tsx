@@ -80,6 +80,11 @@ function AccountPasswordForm({ viewer, email }: Props) {
     defaultValues: DEFAULT_VALUES,
   })
 
+  /*
+    The fields are read-only while a change is in flight, since a success resets them and anything
+    typed meanwhile would be lost. Read-only rather than disabled, so a field the server refused
+    can still take the focus
+  */
   const { isDirty, isSubmitting } = form.formState
   const passwordType = isPasswordVisible ? 'text' : 'password'
 
@@ -172,10 +177,11 @@ function AccountPasswordForm({ viewer, email }: Props) {
           formatError={formatError}
           type={passwordType}
           autoComplete="current-password"
+          readOnly={isSubmitting}
         />
         <button
           type="button"
-          disabled={isSendingReset}
+          disabled={isSendingReset || isSubmitting}
           onClick={sendPasswordReset}
           className="-mt-3 cursor-pointer self-start border-0 bg-transparent p-0 font-sans text-xs leading-normal font-medium text-primary hover:text-primary-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -191,6 +197,7 @@ function AccountPasswordForm({ viewer, email }: Props) {
           formatError={formatError}
           type={passwordType}
           autoComplete="new-password"
+          readOnly={isSubmitting}
         />
         <FormInputField
           control={form.control}
@@ -200,10 +207,12 @@ function AccountPasswordForm({ viewer, email }: Props) {
           formatError={formatError}
           type={passwordType}
           autoComplete="new-password"
+          readOnly={isSubmitting}
         />
         <Checkbox
           label={formatMessage(accountMessages.showPasswords)}
           checked={isPasswordVisible}
+          disabled={isSubmitting}
           onChange={event => setIsPasswordVisible(event.target.checked)}
         />
         <div className="flex justify-end">

@@ -50,6 +50,8 @@ function AccountProfile({ user }: Props) {
 
   const [name, setName] = useState(savedName)
   const [bio, setBio] = useState(savedBio)
+  // Makes the fields read-only while a save is in flight, since a success puts what was sent back
+  // in them: anything typed meanwhile would be lost
   const [isSaving, setIsSaving] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -208,6 +210,7 @@ function AccountProfile({ user }: Props) {
             maxLength={MAX_USER_NAME_LENGTH}
             autoComplete="name"
             required
+            readOnly={isSaving}
             error={isNameMissing ? formatMessage(accountMessages.nameRequired) : undefined}
           />
           <Textarea
@@ -217,6 +220,7 @@ function AccountProfile({ user }: Props) {
             placeholder={formatMessage(accountMessages.bioPlaceholder)}
             maxLength={MAX_USER_BIO_LENGTH}
             rows={4}
+            readOnly={isSaving}
             hint={(
               <span className="flex justify-between gap-3">
                 <span>

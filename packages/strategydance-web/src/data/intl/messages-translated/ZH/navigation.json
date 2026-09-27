@@ -5,6 +5,7 @@
   "navigation.addOrganizationError": "无法创建组织，请重试。",
   "navigation.addOrganizationSubmit": "添加",
   "navigation.addOrganizationTitle": "添加组织",
+  "navigation.addOrganizationUnread": "{organizationName} 已创建，但无法加载。请刷新页面以查看。",
   "navigation.agents": "智能体",
   "navigation.aspectDesign": "设计",
   "navigation.aspectEngineering": "工程",

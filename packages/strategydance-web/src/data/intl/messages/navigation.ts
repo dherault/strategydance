@@ -152,6 +152,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'The organization could not be created. Try again.',
     description: 'Error shown under the name field when creating the organization failed.',
   },
+  addOrganizationUnread: {
+    id: 'navigation.addOrganizationUnread',
+    defaultMessage: '{organizationName} was created, but it could not be loaded. Reload the page to see it.',
+    description: 'Error shown once the window creating an organization closes, when the organization was created but the list of organizations could not be refreshed.',
+  },
   close: {
     id: 'navigation.close',
     defaultMessage: 'Close',

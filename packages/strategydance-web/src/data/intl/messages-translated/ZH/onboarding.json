@@ -7,6 +7,7 @@
   "onboarding.briefRequired": "请用几句话介绍你的公司",
   "onboarding.createError": "未能创建公司。请重试。",
   "onboarding.created": "{organizationName} 已创建",
+  "onboarding.createdUnread": "您的公司已创建，但无法加载。请检查网络连接并重试。",
   "onboarding.lead": "Strategy Dance 可以为你提供指引，但工作仍需由你完成。",
   "onboarding.nameLabel": "公司名称",
   "onboarding.namePlaceholder": "Acme",

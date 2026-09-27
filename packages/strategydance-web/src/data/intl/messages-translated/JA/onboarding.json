@@ -7,6 +7,7 @@
   "onboarding.briefRequired": "会社についての簡単な説明を入力してください",
   "onboarding.createError": "会社を作成できませんでした。もう一度お試しください。",
   "onboarding.created": "{organizationName} を作成しました",
+  "onboarding.createdUnread": "会社は作成されましたが、読み込めませんでした。接続状況を確認して、もう一度お試しください。",
   "onboarding.lead": "Strategy Dance はあなたを導きますが、実際に取り組むのはあなた自身です。",
   "onboarding.nameLabel": "会社名",
   "onboarding.namePlaceholder": "Acme",

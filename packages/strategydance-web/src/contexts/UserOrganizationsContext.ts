@@ -16,10 +16,12 @@ import type { DataSource, OrganizationDetails, UserOrganization } from '~types'
 export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   // The first read failed, so the empty list means nothing: not a reader who belongs to none
   hasFailed: boolean
-  // Creates an organization with its brief, or none with null. Resolves once the new row is
-  // readable, and answers with its id so the caller can select it. Selecting is deliberately not
-  // done here: this context does not know what is selected
-  createOrganization: (name: string, brief: string | null) => Promise<string>
+  // Creates an organization with its brief, or none with null, and answers with its id so the
+  // caller can select it, and whether the list shows it yet. Rejects only when the create failed:
+  // a list that could not be read back is `isRead: false`, to be read again with `refetch` rather
+  // than created again. Selecting is deliberately not done here: this context does not know what
+  // is selected
+  createOrganization: (name: string, brief: string | null) => Promise<{ organizationId: string, isRead: boolean }>
   // Accepts an invitation to the organization, and resolves once the list shows the membership
   joinOrganization: (invitationId: string, organizationId: string) => Promise<void>
   // Adds an aspect to the organization's explored ones, and resolves once the list shows it
@@ -40,7 +42,7 @@ export default createContext<UserOrganizationsContextType>({
   initialLoading: false,
   loading: false,
   refetch: async () => {},
-  createOrganization: async () => '',
+  createOrganization: async () => ({ organizationId: '', isRead: false }),
   joinOrganization: async () => {},
   exploreCompanyAspect: async () => {},
   updateOrganization: async () => {},

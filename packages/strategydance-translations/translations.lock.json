@@ -567,6 +567,10 @@
         "hash": "8501e5b3dba1799b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.addOrganizationUnread": {
+        "hash": "6e01a1042338ebc9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.agents": {
         "hash": "c0e2c51f569d7274",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -731,6 +735,10 @@
       },
       "onboarding.created": {
         "hash": "4143bf14dd5009d5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "onboarding.createdUnread": {
+        "hash": "f26135ee2d76ad56",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "onboarding.lead": {

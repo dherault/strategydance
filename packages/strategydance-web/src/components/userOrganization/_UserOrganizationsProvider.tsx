@@ -82,17 +82,25 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     Refetches before answering, so the id it returns names a row a caller can already find in
     `data`. Selecting it is the caller's to do: this provider does not know what is selected.
 
-    This one throws, because the caller has a form to keep: a create that failed must not clear
-    the name somebody typed. The read after the write throws too, as `joinOrganization`'s does: the
-    onboarding moves on only once the list shows the new membership, so a read back that failed
-    without a word would leave its form spinning for good
+    The write throws, because the caller has a form to keep: a create that failed must not clear
+    the name somebody typed. The read after it does not. Once the write commits the organization
+    exists, and a caller that took a failed read for a failed create would offer to create it
+    again, making a second one. So it answers whether the list shows the new row, and a caller
+    told it does not reads the list again rather than writing again
   */
   async function createOrganization(name: string, brief: string | null) {
     const { organization } = await createOrganizationMutation({ name, brief })
 
-    await refetchUserOrganizations({ throwOnError: true })
+    try {
+      await refetchUserOrganizations({ throwOnError: true })
 
-    return organization.id
+      return { organizationId: organization.id, isRead: true }
+    }
+    catch (error) {
+      console.error('Failed to read the memberships back after creating an organization', error)
+
+      return { organizationId: organization.id, isRead: false }
+    }
   }
 
   /*
@@ -153,8 +161,9 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     them: the profile page compares its form to the list, so it reads as saved the moment this
     resolves, with no instant of the old values in between.
 
-    The read after the write throws on failure, as `joinOrganization`'s does, and the write throws
-    as `createOrganization`'s does, since the page keeps what was typed when either fails
+    The read after the write throws on failure, as `joinOrganization`'s does, and so does the
+    write, since the page keeps what was typed when either fails. Saving again is harmless here,
+    unlike creating again
   */
   async function updateOrganization(organizationId: string, details: OrganizationDetails) {
     await updateOrganizationMutation({ organizationId, ...details })

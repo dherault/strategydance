@@ -117,6 +117,11 @@ const onboardingMessages = defineMessages({
     defaultMessage: 'The company could not be created. Try again.',
     description: 'Error shown above the button when creating the company failed.',
   },
+  createdUnread: {
+    id: 'onboarding.createdUnread',
+    defaultMessage: 'Your company was created, but it could not be loaded. Check your connection and try again.',
+    description: 'Error shown above the button when the company was created but could not be loaded afterwards. The button then tries loading it again.',
+  },
   created: {
     id: 'onboarding.created',
     defaultMessage: '{organizationName} created',

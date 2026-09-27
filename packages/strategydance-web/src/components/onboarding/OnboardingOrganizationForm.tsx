@@ -12,6 +12,7 @@ import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import Spinner from '~components/common/Spinner'
 
+import globalMessages from '~data/intl/messages/global'
 import onboardingMessages from '~data/intl/messages/onboarding'
 
 /*
@@ -22,11 +23,14 @@ import onboardingMessages from '~data/intl/messages/onboarding'
   Creating is what sends the reader on, and this form does not navigate: the create refetches the
   memberships before it answers, `OnboardingBouncer` sees the first one arrive and takes the reader
   to today. So the button keeps spinning after a success, until the page goes. A failure keeps
-  what was typed, for the next try
+  what was typed, for the next try.
+
+  A create whose list could not be read back afterwards did create the company, so the button
+  then reads the list again rather than create a second one, and the fields no longer matter
 */
 function OnboardingOrganizationForm() {
   const { formatMessage } = useIntl()
-  const { createOrganization } = useUserOrganizations()
+  const { createOrganization, refetch } = useUserOrganizations()
   const { setOrganizationId } = useCurrentOrganization()
 
   const [name, setName] = useState('')
@@ -35,11 +39,23 @@ function OnboardingOrganizationForm() {
   const [isBriefMissing, setIsBriefMissing] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [hasFailed, setHasFailed] = useState(false)
+  // Created, but the list did not show it: what is left to do is read it again
+  const [isUnread, setIsUnread] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (isCreating) return
+
+    // A read that works sends the reader on from `OnboardingBouncer`, and one that fails leaves
+    // the button to press again
+    if (isUnread) {
+      setIsCreating(true)
+      await refetch()
+      setIsCreating(false)
+
+      return
+    }
 
     const trimmedName = name.trim()
     const trimmedBrief = brief.trim()
@@ -53,10 +69,15 @@ function OnboardingOrganizationForm() {
     setHasFailed(false)
 
     try {
-      const organizationId = await createOrganization(trimmedName, trimmedBrief)
+      const { organizationId, isRead } = await createOrganization(trimmedName, trimmedBrief)
 
       setOrganizationId(organizationId)
       toast.success(formatMessage(onboardingMessages.created, { organizationName: trimmedName }))
+
+      if (!isRead) {
+        setIsUnread(true)
+        setIsCreating(false)
+      }
     }
     catch (error) {
       console.error('Failed to create the organization', error)
@@ -90,7 +111,7 @@ function OnboardingOrganizationForm() {
           error={isNameMissing ? formatMessage(onboardingMessages.nameRequired) : undefined}
           maxLength={MAX_ORGANIZATION_NAME_LENGTH}
           autoComplete="organization"
-          readOnly={isCreating}
+          readOnly={isCreating || isUnread}
           autoFocus
         />
         <Textarea
@@ -106,12 +127,12 @@ function OnboardingOrganizationForm() {
           maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
           rows={4}
           autosize
-          readOnly={isCreating}
+          readOnly={isCreating || isUnread}
         />
-        {hasFailed
+        {hasFailed || isUnread
           ? (
               <Alert variant="danger">
-                {formatMessage(onboardingMessages.createError)}
+                {formatMessage(isUnread ? onboardingMessages.createdUnread : onboardingMessages.createError)}
               </Alert>
             )
           : null}
@@ -122,7 +143,7 @@ function OnboardingOrganizationForm() {
           icon={isCreating ? <Spinner tone="current" /> : undefined}
           className="w-full"
         >
-          {formatMessage(onboardingMessages.submit)}
+          {formatMessage(isUnread ? globalMessages.retry : onboardingMessages.submit)}
         </Button>
       </form>
     </div>

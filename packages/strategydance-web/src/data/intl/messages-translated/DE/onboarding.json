@@ -7,6 +7,7 @@
   "onboarding.briefRequired": "Beschreibe dein Unternehmen in wenigen Sätzen",
   "onboarding.createError": "Das Unternehmen konnte nicht erstellt werden. Versuche es erneut.",
   "onboarding.created": "{organizationName} erstellt",
+  "onboarding.createdUnread": "Dein Unternehmen wurde erstellt, konnte aber nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
   "onboarding.lead": "Strategy Dance kann dich anleiten, aber die Arbeit liegt bei dir.",
   "onboarding.nameLabel": "Unternehmensname",
   "onboarding.namePlaceholder": "Acme",

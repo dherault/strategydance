@@ -5,6 +5,7 @@
   "navigation.addOrganizationError": "Die Organisation konnte nicht erstellt werden. Bitte erneut versuchen.",
   "navigation.addOrganizationSubmit": "Hinzufügen",
   "navigation.addOrganizationTitle": "Organisation hinzufügen",
+  "navigation.addOrganizationUnread": "{organizationName} wurde erstellt, konnte aber nicht geladen werden. Lade die Seite neu, um sie anzuzeigen.",
   "navigation.agents": "Agenten",
   "navigation.aspectDesign": "Design",
   "navigation.aspectEngineering": "Entwicklung",

@@ -1,10 +1,11 @@
 import { PencilIcon, UploadIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { DEFAULT_ORGANIZATION_COLOR, MAX_ORGANIZATION_NAME_LENGTH, type OrganizationImageKind } from 'strategydance-core'
+import { DEFAULT_ORGANIZATION_COLOR, MAX_ORGANIZATION_BRIEF_LENGTH, MAX_ORGANIZATION_NAME_LENGTH, type OrganizationImageKind } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { ColorPicker } from 'strategydance-design-system/components/ui/ColorPicker'
 import { Input } from 'strategydance-design-system/components/ui/Input'
+import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { Organization } from '~types'
@@ -19,6 +20,7 @@ import OrganizationProfileDeleteDialog from '~components/organizationProfile/Org
 import OrganizationProfileHeader from '~components/organizationProfile/OrganizationProfileHeader'
 import OrganizationProfileImageDialog from '~components/organizationProfile/OrganizationProfileImageDialog'
 import OrganizationProfileLogo from '~components/organizationProfile/OrganizationProfileLogo'
+import OrganizationProfileVisibility from '~components/organizationProfile/OrganizationProfileVisibility'
 
 import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
@@ -27,16 +29,17 @@ type Props = {
 }
 
 /*
-  How the organization appears to its team, others and agents, for one of its administrators to
-  change: one card, one form, saved or discarded together.
+  How the organization appears to its team, the community and agents, for one of its
+  administrators to change: one card, one form, saved or discarded together.
 
   The form starts from the organization and is compared to it on every render, so it reads as
   changed or not without an effect, and as saved the moment the memberships show what was sent.
   The route keys it by the organization, so switching to another starts it over.
 
   A picture chosen in its dialog waits on the card, previewed, until the form is saved. Saving
-  sends each picture, then the name and color, one after the other, and each is cleared from the
-  form as soon as it lands: a failure halfway keeps only what did not, for the next try
+  sends each picture, then the name, color, brief and visibility, one after the other, and each is
+  cleared from the form as soon as it lands: a failure halfway keeps only what did not, for the
+  next try
 */
 function OrganizationProfile({ organization }: Props) {
   const { formatMessage } = useIntl()
@@ -45,19 +48,24 @@ function OrganizationProfile({ organization }: Props) {
   const { staged: stagedBanner, stage: stageBanner, unstage: unstageBanner } = useStagedImage()
 
   const savedColor = organization.color ?? DEFAULT_ORGANIZATION_COLOR
+  const savedBrief = organization.brief ?? ''
 
   const [name, setName] = useState(organization.name)
   const [color, setColor] = useState(savedColor)
+  const [brief, setBrief] = useState(savedBrief)
+  const [isPublic, setIsPublic] = useState(organization.isPublic)
   const [editingImage, setEditingImage] = useState<OrganizationImageKind | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   const trimmedName = name.trim()
+  const trimmedBrief = brief.trim()
   const isColorChanged = color !== savedColor
-  const areDetailsChanged = trimmedName !== organization.name || isColorChanged
+  const isVisibilityChanged = isPublic !== organization.isPublic
+  const areDetailsChanged = trimmedName !== organization.name || isColorChanged || trimmedBrief !== savedBrief || isVisibilityChanged
   const areImagesChanged = stagedLogo !== undefined || stagedBanner !== undefined
-  // Anything to discard, spaces around the name included
-  const isDirty = name !== organization.name || isColorChanged || areImagesChanged
+  // Anything to discard, spaces around the name and the brief included
+  const isDirty = name !== organization.name || isColorChanged || brief !== savedBrief || isVisibilityChanged || areImagesChanged
   // Anything to save, which spaces alone are not
   const canSave = (areDetailsChanged || areImagesChanged) && !!trimmedName && !isSaving
 
@@ -68,6 +76,8 @@ function OrganizationProfile({ organization }: Props) {
   function discardChanges() {
     setName(organization.name)
     setColor(savedColor)
+    setBrief(savedBrief)
+    setIsPublic(organization.isPublic)
     unstageLogo()
     unstageBanner()
   }
@@ -108,12 +118,13 @@ function OrganizationProfile({ organization }: Props) {
         await updateOrganization(organization.id, {
           name: trimmedName,
           color: isColorChanged ? color : organization.color ?? null,
-          brief: organization.brief ?? null,
-          isPublic: organization.isPublic,
+          brief: trimmedBrief || null,
+          isPublic,
         })
 
         // What was saved, without the spaces the server was never sent
         setName(trimmedName)
+        setBrief(trimmedBrief)
       }
 
       toast.success(formatMessage(organizationProfileMessages.saved))
@@ -170,12 +181,31 @@ function OrganizationProfile({ organization }: Props) {
             required
             className="w-full max-w-100"
           />
+          <Textarea
+            label={formatMessage(organizationProfileMessages.briefLabel)}
+            value={brief}
+            onChange={event => setBrief(event.target.value)}
+            placeholder={formatMessage(organizationProfileMessages.briefPlaceholder)}
+            maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
+            rows={4}
+            hint={(
+              <span className="flex justify-end tabular-nums">
+                {formatMessage(organizationProfileMessages.briefCount, { count: brief.length, max: MAX_ORGANIZATION_BRIEF_LENGTH })}
+              </span>
+            )}
+            className="w-full max-w-100"
+          />
           <ColorPicker
             label={formatMessage(organizationProfileMessages.colorLabel)}
             hexLabel={formatMessage(organizationProfileMessages.colorHexLabel)}
             value={color}
             onChange={setColor}
             className="w-full max-w-100"
+          />
+          <OrganizationProfileVisibility
+            isPublic={isPublic}
+            disabled={isSaving}
+            onChange={setIsPublic}
           />
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-6 md:px-8 md:pb-8">

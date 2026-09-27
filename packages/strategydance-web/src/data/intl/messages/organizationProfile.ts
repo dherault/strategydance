@@ -42,6 +42,21 @@ const organizationProfileMessages = defineMessages({
     defaultMessage: 'Acme Inc.',
     description: 'Placeholder in the empty organization name field, an example company name.',
   },
+  briefLabel: {
+    id: 'organizationProfile.briefLabel',
+    defaultMessage: 'Brief',
+    description: 'Label of the field holding a short summary of the company on its profile page: what it does, for whom, and where it is headed. Worded apart from the page\'s "Show and tell" label above its title.',
+  },
+  briefPlaceholder: {
+    id: 'organizationProfile.briefPlaceholder',
+    defaultMessage: 'What your company does, for whom, and where it is headed.',
+    description: 'Placeholder in the empty brief field on the organization profile page.',
+  },
+  briefCount: {
+    id: 'organizationProfile.briefCount',
+    defaultMessage: '{count, number}/{max, number}',
+    description: 'Counter under the brief field, how many characters were typed out of how many are allowed, such as "42/500".',
+  },
   colorLabel: {
     id: 'organizationProfile.colorLabel',
     defaultMessage: 'Primary color',
@@ -51,6 +66,21 @@ const organizationProfileMessages = defineMessages({
     id: 'organizationProfile.colorHexLabel',
     defaultMessage: 'Hex color',
     description: 'Accessible label of the text field inside the color picker where a color is typed as six hexadecimal digits.',
+  },
+  publicLabel: {
+    id: 'organizationProfile.publicLabel',
+    defaultMessage: 'Public profile',
+    description: 'Label of the switch on the organization profile page that makes the profile visible to anybody, or only to the organization\'s members.',
+  },
+  publicHintPublic: {
+    id: 'organizationProfile.publicHintPublic',
+    defaultMessage: 'Anyone can see your name, logo, banner and brief.',
+    description: 'Hint under the public profile switch while it is on, saying what anybody outside the organization can see.',
+  },
+  publicHintPrivate: {
+    id: 'organizationProfile.publicHintPrivate',
+    defaultMessage: 'Only members of your organization can see this profile.',
+    description: 'Hint under the public profile switch while it is off.',
   },
   cancel: {
     id: 'organizationProfile.cancel',

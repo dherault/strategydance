@@ -63,10 +63,16 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     creates an organization, which is the case `initialLoading` exists for.
 
     `isError` releases the first one. A read this reader is not allowed to make is not going to
-    start working, and a hang says less than an empty page does
+    start working, and a hang says less than an empty page does.
+
+    `hasFailed` is what tells that empty list apart from belonging to no organization, which sends
+    the reader to the prologue: a member whose first read failed is offered to try again instead
+    of a second company. A refetch that fails over a list already read keeps that list, so it is
+    not a failure here
   */
   const initialLoading = Boolean(viewerId) && isPending && !isError
   const loading = Boolean(viewerId) && isFetching
+  const hasFailed = Boolean(viewerId) && isError && data === undefined
 
   async function refetch() {
     await refetchUserOrganizations()
@@ -185,6 +191,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
 
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
+    hasFailed,
     initialLoading,
     loading,
     refetch,

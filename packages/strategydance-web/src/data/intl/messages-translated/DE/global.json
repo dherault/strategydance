@@ -5,6 +5,8 @@
   "global.loading": "Wird geladen",
   "global.logOut": "Abmelden",
   "global.notifications": "Benachrichtigungen",
+  "global.organizationsLoadError": "Deine Organisationen konnten nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
+  "global.retry": "Erneut versuchen",
   "global.showPassword": "Passwort anzeigen",
   "global.signIn": "Anmelden",
   "global.tagline": "Ein KI-Experiment.",

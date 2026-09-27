@@ -14,6 +14,8 @@ import type { DataSource, OrganizationDetails, UserOrganization } from '~types'
   This context owns the list; that one owns the choice
 */
 export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
+  // The first read failed, so the empty list means nothing: not a reader who belongs to none
+  hasFailed: boolean
   // Creates an organization with its brief, or none with null. Resolves once the new row is
   // readable, and answers with its id so the caller can select it. Selecting is deliberately not
   // done here: this context does not know what is selected
@@ -34,6 +36,7 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
 
 export default createContext<UserOrganizationsContextType>({
   data: [],
+  hasFailed: false,
   initialLoading: false,
   loading: false,
   refetch: async () => {},

@@ -5,7 +5,7 @@ import ComingSoon from '~components/layout/ComingSoon'
 
 import navigationMessages from '~data/intl/messages/navigation'
 
-export const Route = createFileRoute('/-/today')({
+export const Route = createFileRoute('/-/_app/today')({
   component: TodayRoute,
 })
 

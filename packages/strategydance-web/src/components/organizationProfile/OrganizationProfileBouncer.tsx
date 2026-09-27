@@ -7,11 +7,12 @@ import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import OrganizationProfileAdministratorsOnly from '~components/organizationProfile/OrganizationProfileAdministratorsOnly'
 import OrganizationProfileHeader from '~components/organizationProfile/OrganizationProfileHeader'
-import OrganizationProfileNoOrganization from '~components/organizationProfile/OrganizationProfileNoOrganization'
 
 /*
-  Lets an administrator of the current organization through to its profile, and tells anybody
-  else why there is nothing here for them, under the page's own header.
+  Lets an administrator of the current organization through to its profile, and tells a member
+  that only an administrator may edit it, under the page's own header. There is always a current
+  organization here, since `_app`'s bouncer sends a reader with none to the prologue, so the check
+  on it only narrows the type.
 
   Nothing to wait for: `UserOrganizationsWait` holds the whole authenticated area until the
   memberships, and the role with them, have arrived.
@@ -31,9 +32,7 @@ function OrganizationProfileBouncer({ children }: PropsWithChildren) {
   return (
     <ContainerLayout className="gap-8">
       <OrganizationProfileHeader />
-      {organization
-        ? <OrganizationProfileAdministratorsOnly organizationName={organization.name} />
-        : <OrganizationProfileNoOrganization />}
+      {organization ? <OrganizationProfileAdministratorsOnly organizationName={organization.name} /> : null}
     </ContainerLayout>
   )
 }

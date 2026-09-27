@@ -63,10 +63,16 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     creates an organization, which is the case `initialLoading` exists for.
 
     `isError` releases the first one. A read this reader is not allowed to make is not going to
-    start working, and a hang says less than an empty page does
+    start working, and a hang says less than an empty page does.
+
+    `hasFailed` is what tells that empty list apart from belonging to no organization, which sends
+    the reader to the prologue: a member whose first read failed is offered to try again instead
+    of a second company. A refetch that fails over a list already read keeps that list, so it is
+    not a failure here
   */
   const initialLoading = Boolean(viewerId) && isPending && !isError
   const loading = Boolean(viewerId) && isFetching
+  const hasFailed = Boolean(viewerId) && isError && data === undefined
 
   async function refetch() {
     await refetchUserOrganizations()
@@ -76,15 +82,27 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     Refetches before answering, so the id it returns names a row a caller can already find in
     `data`. Selecting it is the caller's to do: this provider does not know what is selected.
 
-    This one throws, because the caller has a form to keep: a create that failed must not clear
-    the name somebody typed
+    The write throws, because the caller has a form to keep: a create that failed must not clear
+    the name somebody typed. The read after it does not. Once the write commits the organization
+    exists, and a caller that took a failed read for a failed create would offer to create it
+    again, making a second one. So it answers whether the list shows the new row, read off the
+    list itself rather than assumed from a read that worked, and a caller told it does not reads
+    the list again rather than writing again
   */
-  async function createOrganization(name: string) {
-    const { organization } = await createOrganizationMutation({ name })
+  async function createOrganization(name: string, brief: string | null) {
+    const { organization } = await createOrganizationMutation({ name, brief })
 
-    await refetchUserOrganizations()
+    try {
+      const { data: refetched } = await refetchUserOrganizations({ throwOnError: true })
+      const isRead = !!refetched?.userOrganizations.some(({ organization: { id } }) => id === organization.id)
 
-    return organization.id
+      return { organizationId: organization.id, isRead }
+    }
+    catch (error) {
+      console.error('Failed to read the memberships back after creating an organization', error)
+
+      return { organizationId: organization.id, isRead: false }
+    }
   }
 
   /*
@@ -145,8 +163,9 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     them: the profile page compares its form to the list, so it reads as saved the moment this
     resolves, with no instant of the old values in between.
 
-    The read after the write throws on failure, as `joinOrganization`'s does, and the write throws
-    as `createOrganization`'s does, since the page keeps what was typed when either fails
+    The read after the write throws on failure, as `joinOrganization`'s does, and so does the
+    write, since the page keeps what was typed when either fails. Saving again is harmless here,
+    unlike creating again
   */
   async function updateOrganization(organizationId: string, details: OrganizationDetails) {
     await updateOrganizationMutation({ organizationId, ...details })
@@ -185,6 +204,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
 
   const contextValue: UserOrganizationsContextType = {
     data: userOrganizations,
+    hasFailed,
     initialLoading,
     loading,
     refetch,

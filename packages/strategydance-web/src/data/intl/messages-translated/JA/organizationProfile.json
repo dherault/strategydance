@@ -31,7 +31,6 @@
   "organizationProfile.minimumSize": "最小 {width}×{height}px",
   "organizationProfile.nameLabel": "組織名",
   "organizationProfile.namePlaceholder": "Acme Inc.",
-  "organizationProfile.noOrganization": "サイドバー上部のメニューから組織を作成すると、ここで表示設定を行えます。",
   "organizationProfile.publicHintPrivate": "このプロフィールは組織のメンバーのみ閲覧できます。",
   "organizationProfile.publicHintPublic": "誰でも名前、ロゴ、バナー、概要を閲覧できます。",
   "organizationProfile.publicLabel": "公開プロフィール",

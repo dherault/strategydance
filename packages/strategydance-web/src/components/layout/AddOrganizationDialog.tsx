@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_ORGANIZATION_NAME_LENGTH } from 'strategydance-core'
+import { MAX_ORGANIZATION_BRIEF_LENGTH, MAX_ORGANIZATION_NAME_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from 'strategydance-design-system/components/ui/Dialog'
 import { Input } from 'strategydance-design-system/components/ui/Input'
+import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
+import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
@@ -24,22 +26,24 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
-// Creates an organization and switches to it
+// Creates an organization with its name and brief, both required, and switches to it
 function AddOrganizationDialog({ open, onOpenChange }: Props) {
   const { formatMessage } = useIntl()
   const { createOrganization } = useUserOrganizations()
   const { setOrganizationId } = useCurrentOrganization()
 
   const [name, setName] = useState('')
+  const [brief, setBrief] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [hasFailed, setHasFailed] = useState(false)
 
   const trimmedName = name.trim()
+  const trimmedBrief = brief.trim()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!trimmedName || isCreating) return
+    if (!trimmedName || !trimmedBrief || isCreating) return
 
     setIsCreating(true)
     setHasFailed(false)
@@ -48,12 +52,20 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
       /*
         Creating and choosing are two concerns and two providers, so this is what joins them. The
         id is safe to choose the moment it arrives: the create refetched before answering, so the
-        list already holds the row it names
+        list already holds the row it names.
+
+        Unless that read failed. The organization exists all the same, so the dialog closes rather
+        than offer to create it again, and says to reload: the choice is kept, and takes effect
+        once the list shows the row
       */
-      const organizationId = await createOrganization(trimmedName)
+      const { organizationId, isRead } = await createOrganization(trimmedName, trimmedBrief)
 
       setOrganizationId(organizationId)
+
+      if (!isRead) toast.error(formatMessage(navigationMessages.addOrganizationUnread, { organizationName: trimmedName }))
+
       setName('')
+      setBrief('')
       onOpenChange(false)
     }
     catch (error) {
@@ -92,12 +104,24 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
             error={hasFailed ? formatMessage(navigationMessages.addOrganizationError) : undefined}
             maxLength={MAX_ORGANIZATION_NAME_LENGTH}
             autoComplete="organization"
+            required
             autoFocus
+          />
+          <Textarea
+            label={formatMessage(navigationMessages.organizationBrief)}
+            value={brief}
+            onChange={event => setBrief(event.target.value)}
+            placeholder={formatMessage(navigationMessages.organizationBriefPlaceholder)}
+            hint={formatMessage(navigationMessages.organizationBriefHint)}
+            maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
+            rows={4}
+            autosize
+            required
           />
           <DialogFooter>
             <Button
               type="submit"
-              disabled={isCreating || !trimmedName}
+              disabled={isCreating || !trimmedName || !trimmedBrief}
               icon={isCreating ? <Spinner tone="current" /> : undefined}
             >
               {formatMessage(navigationMessages.addOrganizationSubmit)}

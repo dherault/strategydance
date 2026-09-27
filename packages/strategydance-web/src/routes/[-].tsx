@@ -1,16 +1,9 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 
-import type { MessageType } from '~types'
-
 import AuthenticationBouncer from '~components/authentication/AuthenticationBouncer'
 import AuthenticationWait from '~components/authentication/AuthenticationWait'
-import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
-import AppLayout from '~components/layout/AppLayout'
 import UserWait from '~components/user/UserWait'
 import UserOrganizationsWait from '~components/userOrganization/UserOrganizationsWait'
-
-// At module scope so the reference is stable across renders
-const AUTHENTICATED_MESSAGE_TYPES: MessageType[] = ['navigation']
 
 /*
   The authenticated area. `[-]` rather than `-`, because the router generator ignores any file
@@ -28,8 +21,8 @@ const AUTHENTICATED_MESSAGE_TYPES: MessageType[] = ['navigation']
   foreign key: creating an organization before the reader's row exists is a constraint
   violation, not a slow request.
 
-  The layout comes last, since its sidebar reads all three, and after the catalogue its words
-  come from
+  The sidebar is not here but in the pathless `_app` below, since the invitation page takes the
+  whole screen
 */
 export const Route = createFileRoute('/-')({
   component: AuthenticatedRoute,
@@ -41,11 +34,7 @@ function AuthenticatedRoute() {
       <AuthenticationBouncer>
         <UserWait>
           <UserOrganizationsWait>
-            <IntlMessagesRegistration messageTypes={AUTHENTICATED_MESSAGE_TYPES}>
-              <AppLayout>
-                <Outlet />
-              </AppLayout>
-            </IntlMessagesRegistration>
+            <Outlet />
           </UserOrganizationsWait>
         </UserWait>
       </AuthenticationBouncer>

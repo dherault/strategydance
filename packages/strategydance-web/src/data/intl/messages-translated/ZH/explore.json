@@ -10,7 +10,6 @@
   "explore.blurbStrategy": "需要应对的挑战与通往胜利的路径。",
   "explore.explored": "已探索 {explored} / {total}",
   "explore.lead": "每家公司的运转都依托于相同的九个方面。添加你需要指导的方面，准备开展工作。",
-  "explore.noOrganization": "添加一个组织以开始探索其各个方面。",
   "explore.open": "打开",
   "explore.start": "开始探索",
   "explore.startError": "未能添加该方面，请重试。"

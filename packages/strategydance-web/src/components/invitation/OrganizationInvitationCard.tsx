@@ -25,14 +25,15 @@ type Props = {
   An invitation the reader can answer.
 
   Joining goes through the memberships, which resolve only once the new one is read back, so the
-  switch lands on a row the sidebar already has, then opens its team. Should the read back fail,
-  the membership may exist all the same, so the error says to reload rather than to join again.
-  Declining deletes the invitation, and asks twice first, since only a new invitation undoes it
+  switch lands on a row the sidebar already has, then opens today. Should the read back fail, the
+  membership may exist all the same, so the error says to reload rather than to join again.
+  Declining deletes the invitation, and asks twice first, since only a new invitation undoes it.
+  It then opens today, or the prologue for somebody who belongs to no organization yet
 */
 function OrganizationInvitationCard({ invitationId, invitation }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
-  const { joinOrganization } = useUserOrganizations()
+  const { data: userOrganizations, joinOrganization } = useUserOrganizations()
   const { setOrganizationId } = useCurrentOrganization()
   const { mutateAsync: declineInvitation, isPending: isDeclining } = useDeclineOrganizationInvitation(dataConnect)
 
@@ -53,7 +54,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
       setOrganizationId(organization.id)
       toast.success(formatMessage(invitationMessages.joined, { organizationName }))
 
-      await navigate({ to: '/-/team', replace: true })
+      await navigate({ to: '/-/today', replace: true })
     }
     catch (error) {
       console.error('Failed to accept the invitation', error)
@@ -69,7 +70,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
 
       toast(formatMessage(invitationMessages.declined))
 
-      await navigate({ to: '/-', replace: true })
+      await navigate({ to: userOrganizations.length ? '/-/today' : '/prologue', replace: true })
     }
     catch (error) {
       console.error('Failed to decline the invitation', error)

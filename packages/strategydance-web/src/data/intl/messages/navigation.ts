@@ -107,11 +107,6 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Organizations',
     description: 'Heading of the menu listing the reader\'s organizations.',
   },
-  noOrganization: {
-    id: 'navigation.noOrganization',
-    defaultMessage: 'No organization yet',
-    description: 'Shown in place of the current organization\'s name when the reader belongs to none.',
-  },
   addOrganization: {
     id: 'navigation.addOrganization',
     defaultMessage: 'Add organization',
@@ -132,6 +127,21 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Name',
     description: 'Label of the field for the new organization\'s name.',
   },
+  organizationBrief: {
+    id: 'navigation.organizationBrief',
+    defaultMessage: 'Brief',
+    description: 'Label of the field for a short description of the new organization\'s company.',
+  },
+  organizationBriefPlaceholder: {
+    id: 'navigation.organizationBriefPlaceholder',
+    defaultMessage: 'What your company does, for whom, and where it is headed.',
+    description: 'Placeholder in the empty brief field of the window creating a new organization.',
+  },
+  organizationBriefHint: {
+    id: 'navigation.organizationBriefHint',
+    defaultMessage: 'You can edit this later in your company profile.',
+    description: 'Hint under the brief field of the window creating a new organization.',
+  },
   addOrganizationSubmit: {
     id: 'navigation.addOrganizationSubmit',
     defaultMessage: 'Add',
@@ -141,6 +151,11 @@ const navigationMessages = defineMessages({
     id: 'navigation.addOrganizationError',
     defaultMessage: 'The organization could not be created. Try again.',
     description: 'Error shown under the name field when creating the organization failed.',
+  },
+  addOrganizationUnread: {
+    id: 'navigation.addOrganizationUnread',
+    defaultMessage: '{organizationName} was created, but it could not be loaded. Reload the page to see it.',
+    description: 'Error shown once the window creating an organization closes, when the organization was created but the list of organizations could not be refreshed.',
   },
   close: {
     id: 'navigation.close',

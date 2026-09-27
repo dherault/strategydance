@@ -9,7 +9,7 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 // it. At module scope so the reference is stable across renders
 const SECURITY_MESSAGE_TYPES: MessageType[] = ['authentication']
 
-export const Route = createFileRoute('/-/account/security')({
+export const Route = createFileRoute('/-/_app/account/security')({
   component: AccountSecurityRoute,
 })
 

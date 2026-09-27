@@ -31,7 +31,6 @@
   "organizationProfile.minimumSize": "Mindestens {width}×{height} px",
   "organizationProfile.nameLabel": "Organisationsname",
   "organizationProfile.namePlaceholder": "Acme Inc.",
-  "organizationProfile.noOrganization": "Erstelle über das Menü oben in der Seitenleiste eine Organisation, um ihr Erscheinungsbild hier festzulegen.",
   "organizationProfile.publicHintPrivate": "Nur Mitglieder deiner Organisation können dieses Profil sehen.",
   "organizationProfile.publicHintPublic": "Jeder kann Name, Logo, Banner und Kurzbeschreibung sehen.",
   "organizationProfile.publicLabel": "Öffentliches Profil",

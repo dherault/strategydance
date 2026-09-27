@@ -56,6 +56,8 @@ function OrganizationProfile({ organization }: Props) {
   const [isPublic, setIsPublic] = useState(organization.isPublic)
   const [editingImage, setEditingImage] = useState<OrganizationImageKind | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  // Makes the name and the brief read-only while a save is in flight, since a success puts what
+  // was sent back in them: anything typed meanwhile would be lost
   const [isSaving, setIsSaving] = useState(false)
 
   const trimmedName = name.trim()
@@ -179,6 +181,7 @@ function OrganizationProfile({ organization }: Props) {
             maxLength={MAX_ORGANIZATION_NAME_LENGTH}
             autoComplete="organization"
             required
+            readOnly={isSaving}
             className="w-full max-w-100"
           />
           <Textarea
@@ -188,6 +191,7 @@ function OrganizationProfile({ organization }: Props) {
             placeholder={formatMessage(organizationProfileMessages.briefPlaceholder)}
             maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
             rows={4}
+            readOnly={isSaving}
             hint={(
               <span className="flex justify-end tabular-nums">
                 {formatMessage(organizationProfileMessages.briefCount, { count: brief.length, max: MAX_ORGANIZATION_BRIEF_LENGTH })}

@@ -59,8 +59,11 @@ function AccountProfile({ user }: Props) {
   const isPictureChanged = stagedPicture !== undefined
   // Anything to discard, spaces included
   const isDirty = name !== savedName || bio !== savedBio || isPictureChanged
-  // Anything to save, which spaces alone are not
-  const canSave = (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged) && !!trimmedName && !isSaving
+  /*
+    Anything to save, which spaces alone are not. Only once something was touched: a name mirrored
+    from Google as it came, spaces at an end included, differs from its trimmed self on arrival
+  */
+  const canSave = isDirty && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged) && !!trimmedName && !isSaving
   // Only once the reader has emptied it: an account that never had a name is not told off on arrival
   const isNameMissing = !trimmedName && name !== savedName
 

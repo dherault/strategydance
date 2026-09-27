@@ -51,6 +51,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
   ) {
     role
+    # What the reader does there, which their account page shows beside the organization's name
+    jobTitle
     organization {
       id
       name

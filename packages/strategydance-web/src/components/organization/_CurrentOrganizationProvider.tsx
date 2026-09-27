@@ -40,6 +40,7 @@ function CurrentOrganizationProvider({ children }: PropsWithChildren) {
   const contextValue: CurrentOrganizationContextType = {
     organization: userOrganization?.organization ?? null,
     role: userOrganization?.role ?? null,
+    jobTitle: userOrganization?.jobTitle ?? null,
     setOrganizationId,
   }
 

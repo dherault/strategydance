@@ -9,16 +9,19 @@ import type { Organization } from '~types'
   A choice rather than a data source, which is why this carries none of `DataSource`'s four
   names: the reading is `UserOrganizationsContext`'s, and this one only says which of its rows
   is the current one. `role` rides along because it is a fact about the pair, and a consumer
-  that has the organization would otherwise go back to the list to find it again
+  that has the organization would otherwise go back to the list to find it again, and `jobTitle`
+  for the same reason
 */
 export type CurrentOrganizationContextType = {
   organization: Organization | null
   role: OrganizationRole | null
+  jobTitle: string | null
   setOrganizationId: (organizationId: string) => void
 }
 
 export default createContext<CurrentOrganizationContextType>({
   organization: null,
   role: null,
+  jobTitle: null,
   setOrganizationId: () => {},
 })

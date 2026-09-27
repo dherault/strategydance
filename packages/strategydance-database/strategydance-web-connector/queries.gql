@@ -12,6 +12,8 @@ query GetCurrentUser @auth(level: USER) {
     authenticationProviders
     # Whether to ask the backend for the welcome email, and whether it is too late to
     welcomeEmailSentAt
+    # Whether to show the administration section. The pages' own queries check it again
+    isAdministrator
     createdAt
   }
 }

@@ -1,9 +1,7 @@
 {
   "authentication.action.back": "戻る",
   "authentication.action.continue": "続行",
-  "authentication.action.hidePassword": "パスワードを非表示",
   "authentication.action.logIn": "ログイン",
-  "authentication.action.showPassword": "パスワードを表示",
   "authentication.action.signUp": "アカウント登録",
   "authentication.error.credentialAlreadyInUse": "この認証情報は既に別のアカウントで使用されています。",
   "authentication.error.default": "問題が発生しました。もう一度お試しください。",

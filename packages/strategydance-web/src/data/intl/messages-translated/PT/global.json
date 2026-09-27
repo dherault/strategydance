@@ -1,8 +1,10 @@
 {
   "global.closeNotification": "Fechar notificação",
+  "global.hidePassword": "Ocultar senha",
   "global.language": "Idioma",
   "global.loading": "Carregando",
   "global.notifications": "Notificações",
+  "global.showPassword": "Mostrar senha",
   "global.signIn": "Entrar",
   "global.tagline": "Um experimento de IA.",
   "global.welcome": "Strategy Dance"

@@ -1,9 +1,7 @@
 {
   "authentication.action.back": "返回",
   "authentication.action.continue": "继续",
-  "authentication.action.hidePassword": "隐藏密码",
   "authentication.action.logIn": "登录",
-  "authentication.action.showPassword": "显示密码",
   "authentication.action.signUp": "注册",
   "authentication.error.credentialAlreadyInUse": "其他帐号已在使用该凭据。",
   "authentication.error.default": "出错了，请重试。",

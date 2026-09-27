@@ -185,10 +185,6 @@
         "hash": "ef1a87fc7623f8d4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "account.showPasswords": {
-        "hash": "0c565e4cffdd7c18",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "account.tabsLabel": {
         "hash": "3a40d2b4a16a548a",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -211,16 +207,8 @@
         "hash": "e472c1faf534ad64",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "authentication.action.hidePassword": {
-        "hash": "87e2c5f174eb5bd0",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "authentication.action.logIn": {
         "hash": "6ca9038bcc3f8503",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "authentication.action.showPassword": {
-        "hash": "b29241b90a6a5455",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "authentication.action.signUp": {
@@ -419,6 +407,10 @@
         "hash": "89a465a24fac1347",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "global.hidePassword": {
+        "hash": "11f337c9a019a481",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "global.language": {
         "hash": "0bc2f1053fcf6d40",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -429,6 +421,10 @@
       },
       "global.notifications": {
         "hash": "54cd7524efca1ce5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.showPassword": {
+        "hash": "5abc086d954813bd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "global.signIn": {

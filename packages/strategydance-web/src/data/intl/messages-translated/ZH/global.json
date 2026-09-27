@@ -1,8 +1,10 @@
 {
   "global.closeNotification": "关闭通知",
+  "global.hidePassword": "隐藏密码",
   "global.language": "语言",
   "global.loading": "加载中",
   "global.notifications": "通知",
+  "global.showPassword": "显示密码",
   "global.signIn": "登录",
   "global.tagline": "一个 AI 实验项目。",
   "global.welcome": "Strategy Dance"

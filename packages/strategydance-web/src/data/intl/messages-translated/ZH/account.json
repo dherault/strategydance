@@ -45,7 +45,6 @@
   "account.saveError": "无法保存个人资料，请重试。",
   "account.saved": "个人资料已保存",
   "account.securityTab": "安全",
-  "account.showPasswords": "显示密码",
   "account.tabsLabel": "账户分区",
   "account.updatePassword": "更新密码",
   "account.uploadPicture": "上传照片"

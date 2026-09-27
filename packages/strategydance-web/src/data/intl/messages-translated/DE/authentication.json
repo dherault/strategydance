@@ -1,9 +1,7 @@
 {
   "authentication.action.back": "Zurück",
   "authentication.action.continue": "Weiter",
-  "authentication.action.hidePassword": "Passwort ausblenden",
   "authentication.action.logIn": "Anmelden",
-  "authentication.action.showPassword": "Passwort anzeigen",
   "authentication.action.signUp": "Registrieren",
   "authentication.error.credentialAlreadyInUse": "Diese Anmeldedaten werden bereits von einem anderen Konto verwendet.",
   "authentication.error.default": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",

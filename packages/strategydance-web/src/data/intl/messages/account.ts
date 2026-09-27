@@ -232,11 +232,6 @@ const accountMessages = defineMessages({
     defaultMessage: 'Confirm new password',
     description: 'Label of the field where the reader types their new password a second time.',
   },
-  showPasswords: {
-    id: 'account.showPasswords',
-    defaultMessage: 'Show passwords',
-    description: 'Checkbox that reveals the three passwords typed in the change password card.',
-  },
   updatePassword: {
     id: 'account.updatePassword',
     defaultMessage: 'Update password',

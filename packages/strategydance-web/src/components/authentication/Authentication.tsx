@@ -1,14 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from '@tanstack/react-router'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
-import { EyeClosedIcon, EyeIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FormattedMessage, useIntl } from 'react-intl'
 import { AuthenticationProvider, getAuthenticationProvidersByEmail } from 'strategydance-database/web'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
-import { Input } from 'strategydance-design-system/components/ui/Input'
 import * as z from 'zod'
 
 import { AUTHENTICATION_ERRORS, DEFAULT_AUTHENTICATION_ERROR, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '~constants'
@@ -18,6 +16,7 @@ import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMes
 import formatEmail from '~utils/user/formatEmail'
 
 import GoogleButton from '~components/authentication/GoogleButton'
+import PasswordInput from '~components/common/PasswordInput'
 import Spinner from '~components/common/Spinner'
 import { FormField, FormInputField } from '~components/ui/FormField'
 import { TextDivider } from '~components/ui/TextDivider'
@@ -78,6 +77,8 @@ function Authentication() {
   const [loading, setLoading] = useState(false)
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [providers, setProviders] = useState<AuthenticationProvider[]>([])
+  // One for every password field, which reveal together: it is the reader's own password being
+  // shown, not one field's
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
   const emailForm = useForm<EmailFormValues>({
@@ -173,19 +174,6 @@ function Authentication() {
     setErrorCode(null)
   }
 
-  // One toggle for all three password fields, which reveal together: it is the reader's own
-  // password being shown, not one field's
-  const visibilityToggle = (
-    <button
-      type="button"
-      onClick={() => setIsPasswordVisible(x => !x)}
-      aria-label={intl.formatMessage(isPasswordVisible ? authenticationMessages.actionHidePassword : authenticationMessages.actionShowPassword)}
-      className="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-muted-foreground hover:text-secondary"
-    >
-      {isPasswordVisible ? <EyeIcon className="size-4" /> : <EyeClosedIcon className="size-4" />}
-    </button>
-  )
-
   return (
     <>
       {mode === MODES.LOGIN && hasGoogle && (
@@ -258,20 +246,17 @@ function Authentication() {
               formatError={formatAuthenticationMessage}
             >
               {({ field, fieldState, id, describedBy }) => (
-                <div className="relative">
-                  <Input
-                    {...field}
-                    id={id}
-                    aria-invalid={fieldState.invalid}
-                    aria-describedby={describedBy}
-                    autoFocus
-                    type={isPasswordVisible ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                    className="pr-10"
-                  />
-                  {visibilityToggle}
-                </div>
+                <PasswordInput
+                  {...field}
+                  id={id}
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={describedBy}
+                  autoFocus
+                  visible={isPasswordVisible}
+                  onVisibleChange={setIsPasswordVisible}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                />
               )}
             </FormField>
             <FormField
@@ -282,19 +267,16 @@ function Authentication() {
               formatError={formatAuthenticationMessage}
             >
               {({ field, fieldState, id, describedBy }) => (
-                <div className="relative">
-                  <Input
-                    {...field}
-                    id={id}
-                    aria-invalid={fieldState.invalid}
-                    aria-describedby={describedBy}
-                    type={isPasswordVisible ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                    className="pr-10"
-                  />
-                  {visibilityToggle}
-                </div>
+                <PasswordInput
+                  {...field}
+                  id={id}
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={describedBy}
+                  visible={isPasswordVisible}
+                  onVisibleChange={setIsPasswordVisible}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                />
               )}
             </FormField>
             <Button
@@ -342,20 +324,17 @@ function Authentication() {
               formatError={formatAuthenticationMessage}
             >
               {({ field, fieldState, id, describedBy }) => (
-                <div className="relative">
-                  <Input
-                    {...field}
-                    id={id}
-                    aria-invalid={fieldState.invalid}
-                    aria-describedby={describedBy}
-                    autoFocus
-                    type={isPasswordVisible ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    className="pr-10"
-                  />
-                  {visibilityToggle}
-                </div>
+                <PasswordInput
+                  {...field}
+                  id={id}
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={describedBy}
+                  autoFocus
+                  visible={isPasswordVisible}
+                  onVisibleChange={setIsPasswordVisible}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                />
               )}
             </FormField>
             <Button

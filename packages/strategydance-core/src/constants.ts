@@ -113,7 +113,8 @@ export const MAX_ORGANIZATION_NAME_LENGTH = 80
 
 /*
   How long an organization's brief may be, which its team, the community and agents read. Written
-  out again in `UpdateOrganization`'s check, which cannot import it: change the two together
+  out again in `CreateOrganization`'s and `UpdateOrganization`'s checks, which cannot import it:
+  change the three together
 */
 export const MAX_ORGANIZATION_BRIEF_LENGTH = 500
 

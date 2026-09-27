@@ -40,7 +40,7 @@ function AccountProfilePreview({ name, bio, pictureSrc, initialsName }: Props) {
         // The name is written out under it, so the picture is decoration
         alt=""
         size="2xl"
-        className="shadow-sm ring-4 ring-white"
+        className="shadow-sm"
       />
       <h2 className={cn('m-0 mt-2 text-3xl leading-[1.1] wrap-anywhere', !name && 'text-neutral-400')}>
         {name || formatMessage(accountMessages.previewNameEmpty)}

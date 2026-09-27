@@ -1,5 +1,5 @@
 import { CheckIcon, XIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
@@ -28,7 +28,10 @@ type Props = {
   else can be, so a second click cannot turn it red again on its way out.
 
   The color is not the only sign: the picked answer carries a cross or a check, and a status
-  region tells a screen reader which it was
+  region tells a screen reader which it was.
+
+  The question takes focus when it appears. Moving on unmounts the button that had it, and focus
+  would otherwise fall back to the document, with nothing to announce the next question.
 
   The parent keys it by question, so each one starts with nothing picked
 */
@@ -36,8 +39,13 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
   const { formatMessage } = useIntl()
   const [picked, setPicked] = useState<number | null>(null)
   const [isLeaving, setIsLeaving] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
 
   const isAnswered = picked === correct
+
+  useEffect(() => {
+    titleRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     if (!isAnswered) return
@@ -68,7 +76,11 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
       <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
         {formatMessage(onboardingMessages.questionCount, { index, count })}
       </p>
-      <h1 className="m-0 text-5xl leading-[1.1] text-balance">
+      <h1
+        ref={titleRef}
+        tabIndex={-1}
+        className="m-0 text-5xl leading-[1.1] text-balance outline-none"
+      >
         {formatMessage(question)}
       </h1>
       <div className="mt-4 flex flex-wrap justify-center gap-3">

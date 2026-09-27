@@ -5,7 +5,7 @@ import { defineMessages } from 'react-intl'
 const administrationMessages = defineMessages({
   usersLead: {
     id: 'administration.users.lead',
-    defaultMessage: '{count, plural, one {# person has} other {# people have}} signed up to Strategy Dance, newest first.',
+    defaultMessage: '{count, plural, one {# person has} other {# people have}} signed up to Strategy Dance.',
     description: 'Line under the title of the administration page that lists every account on the product. "Strategy Dance" is the product name and stays untranslated.',
   },
   usersLoadError: {
@@ -70,7 +70,7 @@ const administrationMessages = defineMessages({
   },
   organizationsLead: {
     id: 'administration.organizations.lead',
-    defaultMessage: '{count, plural, one {# organization has} other {# organizations have}} been created on Strategy Dance, newest first.',
+    defaultMessage: '{count, plural, one {# organization has} other {# organizations have}} been created on Strategy Dance.',
     description: 'Line under the title of the administration page that lists every organization on the product. "Strategy Dance" is the product name and stays untranslated.',
   },
   organizationsLoadError: {

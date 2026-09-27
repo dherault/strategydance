@@ -104,6 +104,7 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
             error={hasFailed ? formatMessage(navigationMessages.addOrganizationError) : undefined}
             maxLength={MAX_ORGANIZATION_NAME_LENGTH}
             autoComplete="organization"
+            required
             autoFocus
           />
           <Textarea
@@ -115,6 +116,7 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
             maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
             rows={4}
             autosize
+            required
           />
           <DialogFooter>
             <Button

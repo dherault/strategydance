@@ -111,6 +111,7 @@ function OnboardingOrganizationForm() {
           error={isNameMissing ? formatMessage(onboardingMessages.nameRequired) : undefined}
           maxLength={MAX_ORGANIZATION_NAME_LENGTH}
           autoComplete="organization"
+          required
           readOnly={isCreating || isUnread}
           autoFocus
         />
@@ -127,6 +128,7 @@ function OnboardingOrganizationForm() {
           maxLength={MAX_ORGANIZATION_BRIEF_LENGTH}
           rows={4}
           autosize
+          required
           readOnly={isCreating || isUnread}
         />
         {hasFailed || isUnread

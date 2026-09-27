@@ -151,7 +151,7 @@ export const WELCOME_EMAIL_WINDOW_DAYS = 7
 /*
   How long somebody's name may be, as the account page saves it. Written out again in
   `UpdateCurrentUserProfile`'s check, which cannot import it: change the two together. A name that
-  arrives from Google instead is mirrored as it is
+  arrives from Google instead is mirrored as it is, and kept so until somebody changes it
 */
 export const MAX_USER_NAME_LENGTH = 80
 

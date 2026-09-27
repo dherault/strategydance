@@ -14,7 +14,6 @@ import type { User } from '~types'
 import useStagedImage from '~hooks/common/useStagedImage'
 import useUser from '~hooks/user/useUser'
 
-import AccountProfilePhoto from '~components/account/AccountProfilePhoto'
 import AccountProfilePictureDialog from '~components/account/AccountProfilePictureDialog'
 import AccountProfilePreview from '~components/account/AccountProfilePreview'
 import Spinner from '~components/common/Spinner'
@@ -54,20 +53,22 @@ function AccountProfile({ user }: Props) {
 
   const trimmedName = name.trim()
   const trimmedBio = bio.trim()
+  const isNameChanged = name !== savedName
   const isPictureChanged = stagedPicture !== undefined
+  // Only once the reader has emptied it: an account that never had a name is not told off on arrival
+  const isNameMissing = !trimmedName && isNameChanged
+  // Only once the reader has changed it: a name mirrored from Google can be longer, and is kept
+  const isNameTooLong = trimmedName.length > MAX_USER_NAME_LENGTH && isNameChanged
   // Anything to discard, spaces included
-  const isDirty = name !== savedName || bio !== savedBio || isPictureChanged
+  const isDirty = isNameChanged || bio !== savedBio || isPictureChanged
   /*
     Anything to save, which spaces alone are not. Only once something was touched: a name mirrored
     from Google as it came, spaces at an end included, differs from its trimmed self on arrival
   */
-  const canSave = isDirty && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged) && !!trimmedName && !isSaving
-  // Only once the reader has emptied it: an account that never had a name is not told off on arrival
-  const isNameMissing = !trimmedName && name !== savedName
+  const canSave = isDirty && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged) && !!trimmedName && !isNameTooLong && !isSaving
 
   // What the card shows: a picture chosen and not saved yet, or else the saved one
   const pictureSrc = stagedPicture === undefined ? user.imageUrl ?? null : stagedPicture?.url ?? null
-  const pictureLabel = formatMessage(pictureSrc ? accountMessages.changePicture : accountMessages.uploadPicture)
 
   /*
     Stages what the dialog applied. Removing a picture that is not saved, only chosen, is going back
@@ -89,17 +90,21 @@ function AccountProfile({ user }: Props) {
 
     if (!canSave) return
 
+    // An untouched name goes back as it is, so one mirrored from Google that the page would not
+    // accept typed does not stand in the way of a new picture or bio
+    const displayName = isNameChanged ? trimmedName : savedName
+
     setIsSaving(true)
 
     try {
       await updateProfile({
-        displayName: trimmedName,
+        displayName,
         image: stagedPicture === undefined ? undefined : stagedPicture?.blob ?? null,
         bio: trimmedBio || null,
       })
 
       // What was saved, without the spaces the server was never sent
-      setName(trimmedName)
+      setName(displayName)
       setBio(trimmedBio)
       unstagePicture()
 
@@ -126,16 +131,10 @@ function AccountProfile({ user }: Props) {
           <AccountProfilePreview
             name={trimmedName}
             bio={trimmedBio}
-          >
-            <AccountProfilePhoto
-              src={pictureSrc}
-              // An emptied field keeps the saved name's initials, or the address's, rather than none
-              name={trimmedName || savedName || user.email}
-              label={pictureLabel}
-              disabled={isSaving}
-              onClick={() => setIsEditingPicture(true)}
-            />
-          </AccountProfilePreview>
+            pictureSrc={pictureSrc}
+            // An emptied field keeps the saved name's initials, or the address's, rather than none
+            initialsName={trimmedName || savedName || user.email}
+          />
           <div className="flex flex-col gap-7 p-5 md:p-8">
             <Field label={formatMessage(accountMessages.pictureLabel)}>
               <Button
@@ -146,7 +145,7 @@ function AccountProfile({ user }: Props) {
                 onClick={() => setIsEditingPicture(true)}
                 className="self-start"
               >
-                {pictureLabel}
+                {formatMessage(pictureSrc ? accountMessages.changePicture : accountMessages.uploadPicture)}
               </Button>
             </Field>
             <Input
@@ -158,7 +157,11 @@ function AccountProfile({ user }: Props) {
               autoComplete="name"
               required
               readOnly={isSaving}
-              error={isNameMissing ? formatMessage(accountMessages.nameRequired) : undefined}
+              error={isNameMissing
+              ? formatMessage(accountMessages.nameRequired)
+              : isNameTooLong
+                ? formatMessage(accountMessages.nameTooLong, { maxNameLength: MAX_USER_NAME_LENGTH })
+                : undefined}
             />
             <Textarea
               label={formatMessage(accountMessages.bioLabel)}

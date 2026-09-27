@@ -137,6 +137,11 @@ const accountMessages = defineMessages({
     defaultMessage: 'Name is required',
     description: 'Error under the name field on the profile tab when the reader has emptied it.',
   },
+  nameTooLong: {
+    id: 'account.nameTooLong',
+    defaultMessage: 'Keep your name to {maxNameLength} characters.',
+    description: 'Error under the name field on the profile tab when the reader has changed their name to one longer than allowed, such as "Keep your name to 80 characters."',
+  },
   bioLabel: {
     id: 'account.bioLabel',
     defaultMessage: 'Bio',

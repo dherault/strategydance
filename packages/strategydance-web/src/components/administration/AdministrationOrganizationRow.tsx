@@ -50,13 +50,13 @@ function AdministrationOrganizationRow({ organization }: Props) {
           {formatMessage(organization.isPublic ? administrationMessages.organizationPublic : administrationMessages.organizationPrivate)}
         </Badge>
       </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         {formatMessage(administrationMessages.organizationAspects, {
           explored: organization.exploredAspects.length,
           total: COMPANY_ASPECTS.length,
         })}
       </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         {formatDate(organization.createdAt, { dateStyle: 'medium' })}
       </TableCell>
     </TableRow>

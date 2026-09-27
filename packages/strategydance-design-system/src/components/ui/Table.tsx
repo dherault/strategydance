@@ -129,12 +129,16 @@ function TableHead({ align, className, ...props }: TableCellProps<'th'>) {
   )
 }
 
+/*
+  On one line, as the header is: every column is as wide as its widest content, and a table wider
+  than its container scrolls rather than wrapping or squeezing a column
+*/
 function TableCell({ align, className, ...props }: TableCellProps<'td'>) {
   return (
     <td
       data-slot="table-cell"
       className={cn(
-        'box-border h-12 px-4 py-2 align-middle',
+        'box-border h-12 px-4 py-2 align-middle whitespace-nowrap',
         'group-data-[density=sm]/table:h-10 group-data-[density=sm]/table:px-3 group-data-[density=sm]/table:py-1.5',
         checkboxCellClassName,
         align && alignClassNames[align],

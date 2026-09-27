@@ -44,7 +44,7 @@ function AdministrationUserRow({ user }: Props) {
             : null}
         </div>
       </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         <div className="flex items-center gap-1">
           <span>
             {user.email}
@@ -56,7 +56,7 @@ function AdministrationUserRow({ user }: Props) {
           />
         </div>
       </TableCell>
-      <TableCell className="max-w-64 text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         {organizationNames.length > 0
           ? formatList(organizationNames)
           : formatMessage(administrationMessages.noOrganization)}
@@ -75,7 +75,7 @@ function AdministrationUserRow({ user }: Props) {
           ))}
         </div>
       </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         {formatDate(user.createdAt, { dateStyle: 'medium' })}
       </TableCell>
     </TableRow>

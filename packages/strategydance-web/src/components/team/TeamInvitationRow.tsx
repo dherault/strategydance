@@ -51,7 +51,7 @@ function TeamInvitationRow({ organizationId, email, isAdministrator }: Props) {
           </Badge>
         </div>
       </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         {email}
       </TableCell>
       <TableCell />

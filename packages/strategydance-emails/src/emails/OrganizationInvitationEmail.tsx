@@ -46,7 +46,7 @@ function OrganizationInvitationEmail({ organizationName, inviterName, invitation
 OrganizationInvitationEmail.PreviewProps = {
   organizationName: 'Northwind',
   inviterName: 'Astrid Lindqvist',
-  invitationUrl: 'https://strategydance.com/-/invitation/2f1c9e4a8b7d4c3e9a1b6d5f0e8c7a92',
+  invitationUrl: 'https://strategydance.com/invitation/2f1c9e4a8b7d4c3e9a1b6d5f0e8c7a92',
 } satisfies OrganizationInvitationEmailProps
 
 export default OrganizationInvitationEmail

@@ -14,11 +14,13 @@ import UserOrganizationsWait from '~components/userOrganization/UserOrganization
 const ONBOARDING_MESSAGE_TYPES: MessageType[] = ['onboarding']
 
 /*
-  The onboarding, for somebody signed in who belongs to no organization yet. Outside `/-`, since it
-  takes the whole screen and is where the app sends those who cannot use it yet.
+  The onboarding, for somebody signed in who belongs to no organization yet. Outside the
+  authenticated area, since it takes the whole screen and is where the app sends those who cannot
+  use it yet.
 
-  The same waiters and bouncer as `/-`, in the same order and for the same reasons: creating the
-  company needs the reader's row, and the last bouncer reads memberships that have arrived
+  The same waiters and bouncer as the authenticated area, in the same order and for the same
+  reasons: creating the company needs the reader's row, and the last bouncer reads memberships
+  that have arrived
 */
 export const Route = createFileRoute('/prologue')({
   component: PrologueRoute,

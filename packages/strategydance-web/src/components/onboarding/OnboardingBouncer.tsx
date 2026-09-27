@@ -25,7 +25,7 @@ function OnboardingBouncer({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!hasOrganization) return
 
-    navigate({ to: '/-/today', replace: true })
+    navigate({ to: '/today', replace: true })
   }, [
     hasOrganization,
     navigate,

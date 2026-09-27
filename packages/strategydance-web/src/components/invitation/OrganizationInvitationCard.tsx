@@ -54,7 +54,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
       setOrganizationId(organization.id)
       toast.success(formatMessage(invitationMessages.joined, { organizationName }))
 
-      await navigate({ to: '/-/today', replace: true })
+      await navigate({ to: '/today', replace: true })
     }
     catch (error) {
       console.error('Failed to accept the invitation', error)
@@ -70,7 +70,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
 
       toast(formatMessage(invitationMessages.declined))
 
-      await navigate({ to: userOrganizations.length ? '/-/today' : '/prologue', replace: true })
+      await navigate({ to: userOrganizations.length ? '/today' : '/prologue', replace: true })
     }
     catch (error) {
       console.error('Failed to decline the invitation', error)

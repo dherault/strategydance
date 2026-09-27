@@ -28,7 +28,7 @@ function AuthenticationRedirect({ redirect, children }: Props) {
     return (
       <Navigate
         replace
-        to="/-"
+        to="/today"
         href={redirect ?? undefined}
       />
     )

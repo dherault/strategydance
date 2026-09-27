@@ -7,7 +7,8 @@
     "start": "NODE_ENV=production bun src/index.ts",
     "test": "bun test --isolate",
     "typecheck": "tsc -b",
-    "lint": "oxlint -c ../../.oxlintrc.json src",
+    "lint": "oxlint -c ../../.oxlintrc.json src scripts",
+    "grant:administrator": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/grantAdministrator.ts",
     "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
   },
   "dependencies": {

@@ -55,6 +55,11 @@ type User @table {
   # When the account's one welcome email went out, and null until it has. Only the backend's
   # connector writes it. The reader's own row carries it, so the web app knows to ask for it
   welcomeEmailSentAt: Timestamp
+  # Whether this account administers Strategy Dance itself, which opens the administration pages,
+  # as opposed to administering an organization, which is `UserOrganization.role`. No connector
+  # operation writes it, so no client can grant it to itself. Locally,
+  # `bun run grant:administrator <email>` sets it in the emulators
+  isAdministrator: Boolean! @default(value: false)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

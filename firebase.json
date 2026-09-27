@@ -6,6 +6,18 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/-",
+        "destination": "/today",
+        "type": 301
+      },
+      {
+        "regex": "^/-/(?P<path>[A-Za-z0-9].*)$",
+        "destination": "/:path",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

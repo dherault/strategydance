@@ -27,7 +27,7 @@ function OrganizationInvitationMissing() {
         {/* Through `cn`, as the Button does it: the outline border and the base's transparent one
             both come out of `buttonVariants`, and only merging keeps the right one */}
         <Link
-          to="/-"
+          to="/today"
           className={cn(buttonVariants({ variant: 'outline' }))}
         >
           {formatMessage(invitationMessages.continue)}

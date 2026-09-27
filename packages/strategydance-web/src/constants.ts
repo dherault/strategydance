@@ -15,10 +15,12 @@ import { CompanyAspect } from 'strategydance-database/web'
 */
 export const MESSAGE_TYPES = [
   'account',
+  'administration',
   'authentication',
   'explore',
   'global',
   'invitation',
+  'landing',
   'navigation',
   'onboarding',
   'organizationProfile',

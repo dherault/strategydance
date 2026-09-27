@@ -34,7 +34,7 @@ async function sendOrganizationInvitationEmails({ invitations, organizationName,
       organizationName,
       inviterName,
       // The page that accepts it
-      invitationUrl: `${APP_URL}/-/invitation/${id}`,
+      invitationUrl: `${APP_URL}/invitation/${id}`,
     }),
     to: email,
   })))
@@ -47,7 +47,7 @@ async function sendOrganizationInvitationEmails({ invitations, organizationName,
 
   if (!IS_PRODUCTION) {
     invitations.forEach(({ id, email }) => {
-      logger.info(`📨 ${inviterName}'s invitation to join ${organizationName}, for ${email}: ${APP_URL}/-/invitation/${id}`)
+      logger.info(`📨 ${inviterName}'s invitation to join ${organizationName}, for ${email}: ${APP_URL}/invitation/${id}`)
     })
   }
 

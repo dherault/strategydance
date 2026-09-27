@@ -57,6 +57,21 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Profile',
     description: 'Sidebar link, under the "Company" heading, to the page where administrators set how the organization appears to its team, the community and agents.',
   },
+  administration: {
+    id: 'navigation.administration',
+    defaultMessage: 'Administration',
+    description: 'Sidebar heading above the links to the pages that administer the whole product, shown only to its own administrators. Also the small label above those pages\' titles.',
+  },
+  administrationUsers: {
+    id: 'navigation.administrationUsers',
+    defaultMessage: 'Users',
+    description: 'Sidebar link, under the "Administration" heading, to the page listing every account on the product. Also that page\'s title.',
+  },
+  administrationOrganizations: {
+    id: 'navigation.administrationOrganizations',
+    defaultMessage: 'Organizations',
+    description: 'Sidebar link, under the "Administration" heading, to the page listing every organization on the product. Also that page\'s title.',
+  },
   aspectStrategy: {
     id: 'navigation.aspectStrategy',
     defaultMessage: 'Strategy',

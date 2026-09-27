@@ -49,6 +49,21 @@ const landingMessages = defineMessages({
     defaultMessage: 'GitHub',
     description: 'Link in the footer of the public pages to the project\'s source code on GitHub. A brand name, so it stays untranslated.',
   },
+  privacy: {
+    id: 'landing.privacy',
+    defaultMessage: 'Privacy',
+    description: 'Link in the footer of the public pages to the privacy policy.',
+  },
+  terms: {
+    id: 'landing.terms',
+    defaultMessage: 'Terms',
+    description: 'Link in the footer of the public pages to the terms of service.',
+  },
+  legal: {
+    id: 'landing.legal',
+    defaultMessage: 'Legal',
+    description: 'Name of the page holding the privacy policy and the terms of service, shown in the notice "Legal is on its way." Not the company aspect of the same name, which covers a startup\'s own legal matters.',
+  },
 })
 
 export default landingMessages

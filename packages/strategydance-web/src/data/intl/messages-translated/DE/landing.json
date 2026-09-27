@@ -2,9 +2,12 @@
   "landing.beta": "Jetzt in der Beta",
   "landing.copyright": "© {year} Strategy Dance",
   "landing.github": "GitHub",
+  "landing.legal": "Rechtliches",
   "landing.logIn": "Anmelden",
+  "landing.privacy": "Datenschutz",
   "landing.signUp": "Registrieren",
   "landing.start": "Reise beginnen",
   "landing.subtitle": "Strategy Dance hilft Unternehmern, ihre Projekte mit KI-Unterstützung und menschlicher Weisheit voranzubringen. Das MVP steht allen offen, während wir an der KI-gestützten Ausführung arbeiten.",
+  "landing.terms": "Nutzungsbedingungen",
   "landing.title": "Startup-Chaos in Harmonie"
 }

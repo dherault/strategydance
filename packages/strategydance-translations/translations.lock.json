@@ -543,8 +543,16 @@
         "hash": "da5443bcdae6a83a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "landing.legal": {
+        "hash": "c8f4146c85049fb3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "landing.logIn": {
         "hash": "40be7915051751a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.privacy": {
+        "hash": "572575cc32d6756e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "landing.signUp": {
@@ -557,6 +565,10 @@
       },
       "landing.subtitle": {
         "hash": "fd77a23777a57874",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.terms": {
+        "hash": "1da02cfaadf41aa1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "landing.title": {

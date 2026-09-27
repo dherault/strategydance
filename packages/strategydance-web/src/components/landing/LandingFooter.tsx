@@ -35,6 +35,18 @@ function LandingFooter() {
             <FormattedMessage {...landingMessages.github} />
           </a>
           <Link
+            to="/legal"
+            className={linkClassName}
+          >
+            <FormattedMessage {...landingMessages.privacy} />
+          </Link>
+          <Link
+            to="/legal"
+            className={linkClassName}
+          >
+            <FormattedMessage {...landingMessages.terms} />
+          </Link>
+          <Link
             to="/support"
             className={linkClassName}
           >

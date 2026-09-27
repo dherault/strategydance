@@ -19,7 +19,8 @@ type Props = Omit<ComponentProps<typeof Button>, 'icon' | 'iconPosition' | 'chil
 /*
   A square button that copies a string, then swaps its icon for a check and its tooltip for
   `copiedLabel` for a moment. The tooltip is held open meanwhile, since a press closes it
-  otherwise, and a hidden status region beside the button announces the copy.
+  otherwise, and a hidden status region beside the button announces the copy. Escape still
+  dismisses it, by ending the moment early.
 
   A write the browser refuses, outside a secure context or without permission, leaves the button
   as it was
@@ -59,6 +60,11 @@ function CopyButton({
         content={currentLabel}
         open={isCopied || isTooltipOpen}
         onOpenChange={setIsTooltipOpen}
+        // While the copy holds it open, closing it is not enough for Escape to dismiss it
+        onEscapeKeyDown={() => {
+          clearTimeout(resetTimeoutRef.current)
+          setIsCopied(false)
+        }}
       >
         <Button
           variant={variant}

@@ -6,10 +6,11 @@ import UserWait from '~components/user/UserWait'
 import UserOrganizationsWait from '~components/userOrganization/UserOrganizationsWait'
 
 /*
-  The authenticated area. `[-]` rather than `-`, because the router generator ignores any file
-  whose name starts with `routeFileIgnorePrefix`, which defaults to `-`. The brackets are its
-  own escape syntax and unwrap to a literal, so this is `/-` without changing that prefix
-  globally and re-enabling every excluded file in the tree.
+  The authenticated area. Pathless, so its pages sit at the root beside the public ones: `/today`,
+  `/team`, `/invitation/...`. Two routes cannot share a path, and the router generator fails the
+  build when a page here takes a public page's name, so a clash cannot hide either. A dynamic
+  segment is the exception, since a static route outranks it without a word: that is why the
+  aspects live under `aspects/`.
 
   The order is the whole of the guarantee: the waiter resolves the Firebase handshake, the
   bouncer then reads a verdict rather than a maybe, and the second waiter holds the tree until
@@ -24,7 +25,7 @@ import UserOrganizationsWait from '~components/userOrganization/UserOrganization
   The sidebar is not here but in the pathless `_app` below, since the invitation page takes the
   whole screen
 */
-export const Route = createFileRoute('/-')({
+export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedRoute,
 })
 

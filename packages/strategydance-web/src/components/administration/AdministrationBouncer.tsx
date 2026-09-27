@@ -22,7 +22,7 @@ function AdministrationBouncer({ children }: PropsWithChildren) {
     if (isAdministrator) return
 
     navigate({
-      to: '/-/today',
+      to: '/today',
       replace: true,
     })
   }, [

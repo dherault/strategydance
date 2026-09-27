@@ -240,10 +240,21 @@ the read fails, and its mount retries it, forever.
 
 ### Routing
 
-The authenticated area is `src/routes/[-].tsx`, not `-.tsx`. The router generator skips any
-file whose name starts with `routeFileIgnorePrefix`, which defaults to `-`; brackets are its
-own escape syntax and unwrap to a literal. Do not change that prefix to work around this: it
-would re-enable every `-`-prefixed excluded file in the tree.
+The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the
+root with the public ones: `/today` beside `/legal`. A page there takes a name no public page
+has. Two static routes at one path fail the build ("Conflicting configuration paths"), but a
+static route outranks a dynamic segment silently, so a `$param` never sits at the root: the
+aspects are under `/aspects/`, where the public `/legal` cannot hide the Legal aspect.
+
+No path prefix marks a page as authenticated, so code that needs to know asks the question it
+means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
+screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
+
+The area used to live under `/-/`, and invitation emails sent then still link there, so
+`firebase.json` redirects `/-/<path>` to `/<path>` with a 301. It is a `regex` rather than a
+`:path*` source because the Hosting emulator's `:path*` matches one segment only, and
+`/-/invitation/<id>` has two. Its capture has to start with a letter or a digit: `/-//evil.example`
+would otherwise answer `Location: //evil.example`, which a browser reads as another host.
 
 A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
 the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be

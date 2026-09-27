@@ -4,7 +4,7 @@ import useUser from '~hooks/user/useUser'
 
 import AccountProfile from '~components/account/AccountProfile'
 
-export const Route = createFileRoute('/-/_app/account/')({
+export const Route = createFileRoute('/_authenticated/_app/account/')({
   component: AccountProfileRoute,
 })
 

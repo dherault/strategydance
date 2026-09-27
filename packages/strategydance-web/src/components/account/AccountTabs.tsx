@@ -6,8 +6,8 @@ import { Tabs } from 'strategydance-design-system/components/ui/Tabs'
 import accountMessages from '~data/intl/messages/account'
 
 // Each tab is a route of its own, so a tab can be linked to and survives a reload
-const PROFILE_PATH = '/-/account'
-const SECURITY_PATH = '/-/account/security'
+const PROFILE_PATH = '/account'
+const SECURITY_PATH = '/account/security'
 
 /*
   The row of tabs over the account page, in the design system's routing mode: the items carry no

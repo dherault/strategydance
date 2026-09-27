@@ -19,7 +19,7 @@ const INVITATION_MESSAGE_TYPES: MessageType[] = ['invitation']
   sent to the prologue for belonging to none. With no user menu, it carries its own way to log
   out
 */
-export const Route = createFileRoute('/-/invitation/$invitationId')({
+export const Route = createFileRoute('/_authenticated/invitation/$invitationId')({
   component: InvitationRoute,
 })
 

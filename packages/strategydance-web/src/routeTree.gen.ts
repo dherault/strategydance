@@ -10,39 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as Char91Char93RouteImport } from './routes/[-]'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticationRouteImport } from './routes/authentication'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as PrologueRouteImport } from './routes/prologue'
 import { Route as SupportRouteImport } from './routes/support'
-import { Route as Char91Char93IndexRouteImport } from './routes/[-]/index'
-import { Route as Char91Char93AppRouteImport } from './routes/[-]/_app'
+import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/_app'
 import { Route as AuthenticationIndexRouteImport } from './routes/authentication/index'
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
-import { Route as Char91Char93AppAspectRouteImport } from './routes/[-]/_app/$aspect'
-import { Route as Char91Char93AppAccountRouteImport } from './routes/[-]/_app/account'
-import { Route as Char91Char93AppAdministrationRouteImport } from './routes/[-]/_app/administration'
-import { Route as Char91Char93AppAgentsRouteImport } from './routes/[-]/_app/agents'
-import { Route as Char91Char93AppExploreRouteImport } from './routes/[-]/_app/explore'
-import { Route as Char91Char93AppProfileRouteImport } from './routes/[-]/_app/profile'
-import { Route as Char91Char93AppTasksRouteImport } from './routes/[-]/_app/tasks'
-import { Route as Char91Char93AppTeamRouteImport } from './routes/[-]/_app/team'
-import { Route as Char91Char93AppTodayRouteImport } from './routes/[-]/_app/today'
-import { Route as Char91Char93InvitationInvitationIdRouteImport } from './routes/[-]/invitation.$invitationId'
-import { Route as Char91Char93AppAccountIndexRouteImport } from './routes/[-]/_app/account/index'
-import { Route as Char91Char93AppAccountSecurityRouteImport } from './routes/[-]/_app/account/security'
-import { Route as Char91Char93AppAdministrationIndexRouteImport } from './routes/[-]/_app/administration/index'
-import { Route as Char91Char93AppAdministrationOrganizationsRouteImport } from './routes/[-]/_app/administration/organizations'
-import { Route as Char91Char93AppAdministrationUsersRouteImport } from './routes/[-]/_app/administration/users'
+import { Route as AuthenticatedAppAccountRouteImport } from './routes/_authenticated/_app/account'
+import { Route as AuthenticatedAppAdministrationRouteImport } from './routes/_authenticated/_app/administration'
+import { Route as AuthenticatedAppAgentsRouteImport } from './routes/_authenticated/_app/agents'
+import { Route as AuthenticatedAppExploreRouteImport } from './routes/_authenticated/_app/explore'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/_app/profile'
+import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/_app/tasks'
+import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/_app/team'
+import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/_app/today'
+import { Route as AuthenticatedInvitationInvitationIdRouteImport } from './routes/_authenticated/invitation.$invitationId'
+import { Route as AuthenticatedAppAccountIndexRouteImport } from './routes/_authenticated/_app/account/index'
+import { Route as AuthenticatedAppAccountSecurityRouteImport } from './routes/_authenticated/_app/account/security'
+import { Route as AuthenticatedAppAdministrationIndexRouteImport } from './routes/_authenticated/_app/administration/index'
+import { Route as AuthenticatedAppAdministrationOrganizationsRouteImport } from './routes/_authenticated/_app/administration/organizations'
+import { Route as AuthenticatedAppAdministrationUsersRouteImport } from './routes/_authenticated/_app/administration/users'
+import { Route as AuthenticatedAppAspectsAspectRouteImport } from './routes/_authenticated/_app/aspects.$aspect'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91Char93Route = Char91Char93RouteImport.update({
-  id: '/-',
-  path: '/-',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticationRoute = AuthenticationRouteImport.update({
@@ -65,14 +63,9 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91Char93IndexRoute = Char91Char93IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => Char91Char93Route,
-} as any)
-const Char91Char93AppRoute = Char91Char93AppRouteImport.update({
+const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/_app',
-  getParentRoute: () => Char91Char93Route,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticationIndexRoute = AuthenticationIndexRouteImport.update({
   id: '/',
@@ -85,246 +78,239 @@ const AuthenticationPasswordResetRoute =
     path: '/password-reset',
     getParentRoute: () => AuthenticationRoute,
   } as any)
-const Char91Char93AppAspectRoute = Char91Char93AppAspectRouteImport.update({
-  id: '/$aspect',
-  path: '/$aspect',
-  getParentRoute: () => Char91Char93AppRoute,
-} as any)
-const Char91Char93AppAccountRoute = Char91Char93AppAccountRouteImport.update({
+const AuthenticatedAppAccountRoute = AuthenticatedAppAccountRouteImport.update({
   id: '/account',
   path: '/account',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93AppAdministrationRoute =
-  Char91Char93AppAdministrationRouteImport.update({
+const AuthenticatedAppAdministrationRoute =
+  AuthenticatedAppAdministrationRouteImport.update({
     id: '/administration',
     path: '/administration',
-    getParentRoute: () => Char91Char93AppRoute,
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
-const Char91Char93AppAgentsRoute = Char91Char93AppAgentsRouteImport.update({
+const AuthenticatedAppAgentsRoute = AuthenticatedAppAgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93AppExploreRoute = Char91Char93AppExploreRouteImport.update({
+const AuthenticatedAppExploreRoute = AuthenticatedAppExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93AppProfileRoute = Char91Char93AppProfileRouteImport.update({
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93AppTasksRoute = Char91Char93AppTasksRouteImport.update({
+const AuthenticatedAppTasksRoute = AuthenticatedAppTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93AppTeamRoute = Char91Char93AppTeamRouteImport.update({
+const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
   id: '/team',
   path: '/team',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93AppTodayRoute = Char91Char93AppTodayRouteImport.update({
+const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
   id: '/today',
   path: '/today',
-  getParentRoute: () => Char91Char93AppRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const Char91Char93InvitationInvitationIdRoute =
-  Char91Char93InvitationInvitationIdRouteImport.update({
+const AuthenticatedInvitationInvitationIdRoute =
+  AuthenticatedInvitationInvitationIdRouteImport.update({
     id: '/invitation/$invitationId',
     path: '/invitation/$invitationId',
-    getParentRoute: () => Char91Char93Route,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const Char91Char93AppAccountIndexRoute =
-  Char91Char93AppAccountIndexRouteImport.update({
+const AuthenticatedAppAccountIndexRoute =
+  AuthenticatedAppAccountIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => Char91Char93AppAccountRoute,
+    getParentRoute: () => AuthenticatedAppAccountRoute,
   } as any)
-const Char91Char93AppAccountSecurityRoute =
-  Char91Char93AppAccountSecurityRouteImport.update({
+const AuthenticatedAppAccountSecurityRoute =
+  AuthenticatedAppAccountSecurityRouteImport.update({
     id: '/security',
     path: '/security',
-    getParentRoute: () => Char91Char93AppAccountRoute,
+    getParentRoute: () => AuthenticatedAppAccountRoute,
   } as any)
-const Char91Char93AppAdministrationIndexRoute =
-  Char91Char93AppAdministrationIndexRouteImport.update({
+const AuthenticatedAppAdministrationIndexRoute =
+  AuthenticatedAppAdministrationIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => Char91Char93AppAdministrationRoute,
+    getParentRoute: () => AuthenticatedAppAdministrationRoute,
   } as any)
-const Char91Char93AppAdministrationOrganizationsRoute =
-  Char91Char93AppAdministrationOrganizationsRouteImport.update({
+const AuthenticatedAppAdministrationOrganizationsRoute =
+  AuthenticatedAppAdministrationOrganizationsRouteImport.update({
     id: '/organizations',
     path: '/organizations',
-    getParentRoute: () => Char91Char93AppAdministrationRoute,
+    getParentRoute: () => AuthenticatedAppAdministrationRoute,
   } as any)
-const Char91Char93AppAdministrationUsersRoute =
-  Char91Char93AppAdministrationUsersRouteImport.update({
+const AuthenticatedAppAdministrationUsersRoute =
+  AuthenticatedAppAdministrationUsersRouteImport.update({
     id: '/users',
     path: '/users',
-    getParentRoute: () => Char91Char93AppAdministrationRoute,
+    getParentRoute: () => AuthenticatedAppAdministrationRoute,
+  } as any)
+const AuthenticatedAppAspectsAspectRoute =
+  AuthenticatedAppAspectsAspectRouteImport.update({
+    id: '/aspects/$aspect',
+    path: '/aspects/$aspect',
+    getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/-': typeof Char91Char93RouteWithChildren
   '/authentication': typeof AuthenticationRouteWithChildren
   '/legal': typeof LegalRoute
   '/prologue': typeof PrologueRoute
   '/support': typeof SupportRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
-  '/-/': typeof Char91Char93IndexRoute
   '/authentication/': typeof AuthenticationIndexRoute
-  '/-/$aspect': typeof Char91Char93AppAspectRoute
-  '/-/account': typeof Char91Char93AppAccountRouteWithChildren
-  '/-/administration': typeof Char91Char93AppAdministrationRouteWithChildren
-  '/-/agents': typeof Char91Char93AppAgentsRoute
-  '/-/explore': typeof Char91Char93AppExploreRoute
-  '/-/profile': typeof Char91Char93AppProfileRoute
-  '/-/tasks': typeof Char91Char93AppTasksRoute
-  '/-/team': typeof Char91Char93AppTeamRoute
-  '/-/today': typeof Char91Char93AppTodayRoute
-  '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
-  '/-/account/security': typeof Char91Char93AppAccountSecurityRoute
-  '/-/administration/organizations': typeof Char91Char93AppAdministrationOrganizationsRoute
-  '/-/administration/users': typeof Char91Char93AppAdministrationUsersRoute
-  '/-/account/': typeof Char91Char93AppAccountIndexRoute
-  '/-/administration/': typeof Char91Char93AppAdministrationIndexRoute
+  '/account': typeof AuthenticatedAppAccountRouteWithChildren
+  '/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
+  '/agents': typeof AuthenticatedAppAgentsRoute
+  '/explore': typeof AuthenticatedAppExploreRoute
+  '/profile': typeof AuthenticatedAppProfileRoute
+  '/tasks': typeof AuthenticatedAppTasksRoute
+  '/team': typeof AuthenticatedAppTeamRoute
+  '/today': typeof AuthenticatedAppTodayRoute
+  '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
+  '/account/security': typeof AuthenticatedAppAccountSecurityRoute
+  '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
+  '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
+  '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/account/': typeof AuthenticatedAppAccountIndexRoute
+  '/administration/': typeof AuthenticatedAppAdministrationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/legal': typeof LegalRoute
   '/prologue': typeof PrologueRoute
   '/support': typeof SupportRoute
-  '/-': typeof Char91Char93IndexRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication': typeof AuthenticationIndexRoute
-  '/-/$aspect': typeof Char91Char93AppAspectRoute
-  '/-/agents': typeof Char91Char93AppAgentsRoute
-  '/-/explore': typeof Char91Char93AppExploreRoute
-  '/-/profile': typeof Char91Char93AppProfileRoute
-  '/-/tasks': typeof Char91Char93AppTasksRoute
-  '/-/team': typeof Char91Char93AppTeamRoute
-  '/-/today': typeof Char91Char93AppTodayRoute
-  '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
-  '/-/account/security': typeof Char91Char93AppAccountSecurityRoute
-  '/-/administration/organizations': typeof Char91Char93AppAdministrationOrganizationsRoute
-  '/-/administration/users': typeof Char91Char93AppAdministrationUsersRoute
-  '/-/account': typeof Char91Char93AppAccountIndexRoute
-  '/-/administration': typeof Char91Char93AppAdministrationIndexRoute
+  '/agents': typeof AuthenticatedAppAgentsRoute
+  '/explore': typeof AuthenticatedAppExploreRoute
+  '/profile': typeof AuthenticatedAppProfileRoute
+  '/tasks': typeof AuthenticatedAppTasksRoute
+  '/team': typeof AuthenticatedAppTeamRoute
+  '/today': typeof AuthenticatedAppTodayRoute
+  '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
+  '/account/security': typeof AuthenticatedAppAccountSecurityRoute
+  '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
+  '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
+  '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/account': typeof AuthenticatedAppAccountIndexRoute
+  '/administration': typeof AuthenticatedAppAdministrationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/-': typeof Char91Char93RouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/authentication': typeof AuthenticationRouteWithChildren
   '/legal': typeof LegalRoute
   '/prologue': typeof PrologueRoute
   '/support': typeof SupportRoute
-  '/-/_app': typeof Char91Char93AppRouteWithChildren
+  '/_authenticated/_app': typeof AuthenticatedAppRouteWithChildren
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
-  '/-/': typeof Char91Char93IndexRoute
   '/authentication/': typeof AuthenticationIndexRoute
-  '/-/_app/$aspect': typeof Char91Char93AppAspectRoute
-  '/-/_app/account': typeof Char91Char93AppAccountRouteWithChildren
-  '/-/_app/administration': typeof Char91Char93AppAdministrationRouteWithChildren
-  '/-/_app/agents': typeof Char91Char93AppAgentsRoute
-  '/-/_app/explore': typeof Char91Char93AppExploreRoute
-  '/-/_app/profile': typeof Char91Char93AppProfileRoute
-  '/-/_app/tasks': typeof Char91Char93AppTasksRoute
-  '/-/_app/team': typeof Char91Char93AppTeamRoute
-  '/-/_app/today': typeof Char91Char93AppTodayRoute
-  '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
-  '/-/_app/account/security': typeof Char91Char93AppAccountSecurityRoute
-  '/-/_app/administration/organizations': typeof Char91Char93AppAdministrationOrganizationsRoute
-  '/-/_app/administration/users': typeof Char91Char93AppAdministrationUsersRoute
-  '/-/_app/account/': typeof Char91Char93AppAccountIndexRoute
-  '/-/_app/administration/': typeof Char91Char93AppAdministrationIndexRoute
+  '/_authenticated/_app/account': typeof AuthenticatedAppAccountRouteWithChildren
+  '/_authenticated/_app/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
+  '/_authenticated/_app/agents': typeof AuthenticatedAppAgentsRoute
+  '/_authenticated/_app/explore': typeof AuthenticatedAppExploreRoute
+  '/_authenticated/_app/profile': typeof AuthenticatedAppProfileRoute
+  '/_authenticated/_app/tasks': typeof AuthenticatedAppTasksRoute
+  '/_authenticated/_app/team': typeof AuthenticatedAppTeamRoute
+  '/_authenticated/_app/today': typeof AuthenticatedAppTodayRoute
+  '/_authenticated/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
+  '/_authenticated/_app/account/security': typeof AuthenticatedAppAccountSecurityRoute
+  '/_authenticated/_app/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
+  '/_authenticated/_app/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
+  '/_authenticated/_app/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/_authenticated/_app/account/': typeof AuthenticatedAppAccountIndexRoute
+  '/_authenticated/_app/administration/': typeof AuthenticatedAppAdministrationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/-'
     | '/authentication'
     | '/legal'
     | '/prologue'
     | '/support'
     | '/authentication/password-reset'
-    | '/-/'
     | '/authentication/'
-    | '/-/$aspect'
-    | '/-/account'
-    | '/-/administration'
-    | '/-/agents'
-    | '/-/explore'
-    | '/-/profile'
-    | '/-/tasks'
-    | '/-/team'
-    | '/-/today'
-    | '/-/invitation/$invitationId'
-    | '/-/account/security'
-    | '/-/administration/organizations'
-    | '/-/administration/users'
-    | '/-/account/'
-    | '/-/administration/'
+    | '/account'
+    | '/administration'
+    | '/agents'
+    | '/explore'
+    | '/profile'
+    | '/tasks'
+    | '/team'
+    | '/today'
+    | '/invitation/$invitationId'
+    | '/account/security'
+    | '/administration/organizations'
+    | '/administration/users'
+    | '/aspects/$aspect'
+    | '/account/'
+    | '/administration/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/legal'
     | '/prologue'
     | '/support'
-    | '/-'
     | '/authentication/password-reset'
     | '/authentication'
-    | '/-/$aspect'
-    | '/-/agents'
-    | '/-/explore'
-    | '/-/profile'
-    | '/-/tasks'
-    | '/-/team'
-    | '/-/today'
-    | '/-/invitation/$invitationId'
-    | '/-/account/security'
-    | '/-/administration/organizations'
-    | '/-/administration/users'
-    | '/-/account'
-    | '/-/administration'
+    | '/agents'
+    | '/explore'
+    | '/profile'
+    | '/tasks'
+    | '/team'
+    | '/today'
+    | '/invitation/$invitationId'
+    | '/account/security'
+    | '/administration/organizations'
+    | '/administration/users'
+    | '/aspects/$aspect'
+    | '/account'
+    | '/administration'
   id:
     | '__root__'
     | '/'
-    | '/-'
+    | '/_authenticated'
     | '/authentication'
     | '/legal'
     | '/prologue'
     | '/support'
-    | '/-/_app'
+    | '/_authenticated/_app'
     | '/authentication/password-reset'
-    | '/-/'
     | '/authentication/'
-    | '/-/_app/$aspect'
-    | '/-/_app/account'
-    | '/-/_app/administration'
-    | '/-/_app/agents'
-    | '/-/_app/explore'
-    | '/-/_app/profile'
-    | '/-/_app/tasks'
-    | '/-/_app/team'
-    | '/-/_app/today'
-    | '/-/invitation/$invitationId'
-    | '/-/_app/account/security'
-    | '/-/_app/administration/organizations'
-    | '/-/_app/administration/users'
-    | '/-/_app/account/'
-    | '/-/_app/administration/'
+    | '/_authenticated/_app/account'
+    | '/_authenticated/_app/administration'
+    | '/_authenticated/_app/agents'
+    | '/_authenticated/_app/explore'
+    | '/_authenticated/_app/profile'
+    | '/_authenticated/_app/tasks'
+    | '/_authenticated/_app/team'
+    | '/_authenticated/_app/today'
+    | '/_authenticated/invitation/$invitationId'
+    | '/_authenticated/_app/account/security'
+    | '/_authenticated/_app/administration/organizations'
+    | '/_authenticated/_app/administration/users'
+    | '/_authenticated/_app/aspects/$aspect'
+    | '/_authenticated/_app/account/'
+    | '/_authenticated/_app/administration/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  Char91Char93Route: typeof Char91Char93RouteWithChildren
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthenticationRoute: typeof AuthenticationRouteWithChildren
   LegalRoute: typeof LegalRoute
   PrologueRoute: typeof PrologueRoute
@@ -340,11 +326,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/-': {
-      id: '/-'
-      path: '/-'
-      fullPath: '/-'
-      preLoaderRoute: typeof Char91Char93RouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/authentication': {
@@ -375,19 +361,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/-/': {
-      id: '/-/'
-      path: '/'
-      fullPath: '/-/'
-      preLoaderRoute: typeof Char91Char93IndexRouteImport
-      parentRoute: typeof Char91Char93Route
-    }
-    '/-/_app': {
-      id: '/-/_app'
+    '/_authenticated/_app': {
+      id: '/_authenticated/_app'
       path: ''
-      fullPath: '/-'
-      preLoaderRoute: typeof Char91Char93AppRouteImport
-      parentRoute: typeof Char91Char93Route
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAppRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/authentication/': {
       id: '/authentication/'
@@ -403,195 +382,192 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticationPasswordResetRouteImport
       parentRoute: typeof AuthenticationRoute
     }
-    '/-/_app/$aspect': {
-      id: '/-/_app/$aspect'
-      path: '/$aspect'
-      fullPath: '/-/$aspect'
-      preLoaderRoute: typeof Char91Char93AppAspectRouteImport
-      parentRoute: typeof Char91Char93AppRoute
-    }
-    '/-/_app/account': {
-      id: '/-/_app/account'
+    '/_authenticated/_app/account': {
+      id: '/_authenticated/_app/account'
       path: '/account'
-      fullPath: '/-/account'
-      preLoaderRoute: typeof Char91Char93AppAccountRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAppAccountRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/administration': {
-      id: '/-/_app/administration'
+    '/_authenticated/_app/administration': {
+      id: '/_authenticated/_app/administration'
       path: '/administration'
-      fullPath: '/-/administration'
-      preLoaderRoute: typeof Char91Char93AppAdministrationRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/administration'
+      preLoaderRoute: typeof AuthenticatedAppAdministrationRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/agents': {
-      id: '/-/_app/agents'
+    '/_authenticated/_app/agents': {
+      id: '/_authenticated/_app/agents'
       path: '/agents'
-      fullPath: '/-/agents'
-      preLoaderRoute: typeof Char91Char93AppAgentsRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/agents'
+      preLoaderRoute: typeof AuthenticatedAppAgentsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/explore': {
-      id: '/-/_app/explore'
+    '/_authenticated/_app/explore': {
+      id: '/_authenticated/_app/explore'
       path: '/explore'
-      fullPath: '/-/explore'
-      preLoaderRoute: typeof Char91Char93AppExploreRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/explore'
+      preLoaderRoute: typeof AuthenticatedAppExploreRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/profile': {
-      id: '/-/_app/profile'
+    '/_authenticated/_app/profile': {
+      id: '/_authenticated/_app/profile'
       path: '/profile'
-      fullPath: '/-/profile'
-      preLoaderRoute: typeof Char91Char93AppProfileRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/tasks': {
-      id: '/-/_app/tasks'
+    '/_authenticated/_app/tasks': {
+      id: '/_authenticated/_app/tasks'
       path: '/tasks'
-      fullPath: '/-/tasks'
-      preLoaderRoute: typeof Char91Char93AppTasksRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedAppTasksRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/team': {
-      id: '/-/_app/team'
+    '/_authenticated/_app/team': {
+      id: '/_authenticated/_app/team'
       path: '/team'
-      fullPath: '/-/team'
-      preLoaderRoute: typeof Char91Char93AppTeamRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/_app/today': {
-      id: '/-/_app/today'
+    '/_authenticated/_app/today': {
+      id: '/_authenticated/_app/today'
       path: '/today'
-      fullPath: '/-/today'
-      preLoaderRoute: typeof Char91Char93AppTodayRouteImport
-      parentRoute: typeof Char91Char93AppRoute
+      fullPath: '/today'
+      preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
-    '/-/invitation/$invitationId': {
-      id: '/-/invitation/$invitationId'
+    '/_authenticated/invitation/$invitationId': {
+      id: '/_authenticated/invitation/$invitationId'
       path: '/invitation/$invitationId'
-      fullPath: '/-/invitation/$invitationId'
-      preLoaderRoute: typeof Char91Char93InvitationInvitationIdRouteImport
-      parentRoute: typeof Char91Char93Route
+      fullPath: '/invitation/$invitationId'
+      preLoaderRoute: typeof AuthenticatedInvitationInvitationIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/-/_app/account/': {
-      id: '/-/_app/account/'
+    '/_authenticated/_app/account/': {
+      id: '/_authenticated/_app/account/'
       path: '/'
-      fullPath: '/-/account/'
-      preLoaderRoute: typeof Char91Char93AppAccountIndexRouteImport
-      parentRoute: typeof Char91Char93AppAccountRoute
+      fullPath: '/account/'
+      preLoaderRoute: typeof AuthenticatedAppAccountIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAccountRoute
     }
-    '/-/_app/account/security': {
-      id: '/-/_app/account/security'
+    '/_authenticated/_app/account/security': {
+      id: '/_authenticated/_app/account/security'
       path: '/security'
-      fullPath: '/-/account/security'
-      preLoaderRoute: typeof Char91Char93AppAccountSecurityRouteImport
-      parentRoute: typeof Char91Char93AppAccountRoute
+      fullPath: '/account/security'
+      preLoaderRoute: typeof AuthenticatedAppAccountSecurityRouteImport
+      parentRoute: typeof AuthenticatedAppAccountRoute
     }
-    '/-/_app/administration/': {
-      id: '/-/_app/administration/'
+    '/_authenticated/_app/administration/': {
+      id: '/_authenticated/_app/administration/'
       path: '/'
-      fullPath: '/-/administration/'
-      preLoaderRoute: typeof Char91Char93AppAdministrationIndexRouteImport
-      parentRoute: typeof Char91Char93AppAdministrationRoute
+      fullPath: '/administration/'
+      preLoaderRoute: typeof AuthenticatedAppAdministrationIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdministrationRoute
     }
-    '/-/_app/administration/organizations': {
-      id: '/-/_app/administration/organizations'
+    '/_authenticated/_app/administration/organizations': {
+      id: '/_authenticated/_app/administration/organizations'
       path: '/organizations'
-      fullPath: '/-/administration/organizations'
-      preLoaderRoute: typeof Char91Char93AppAdministrationOrganizationsRouteImport
-      parentRoute: typeof Char91Char93AppAdministrationRoute
+      fullPath: '/administration/organizations'
+      preLoaderRoute: typeof AuthenticatedAppAdministrationOrganizationsRouteImport
+      parentRoute: typeof AuthenticatedAppAdministrationRoute
     }
-    '/-/_app/administration/users': {
-      id: '/-/_app/administration/users'
+    '/_authenticated/_app/administration/users': {
+      id: '/_authenticated/_app/administration/users'
       path: '/users'
-      fullPath: '/-/administration/users'
-      preLoaderRoute: typeof Char91Char93AppAdministrationUsersRouteImport
-      parentRoute: typeof Char91Char93AppAdministrationRoute
+      fullPath: '/administration/users'
+      preLoaderRoute: typeof AuthenticatedAppAdministrationUsersRouteImport
+      parentRoute: typeof AuthenticatedAppAdministrationRoute
+    }
+    '/_authenticated/_app/aspects/$aspect': {
+      id: '/_authenticated/_app/aspects/$aspect'
+      path: '/aspects/$aspect'
+      fullPath: '/aspects/$aspect'
+      preLoaderRoute: typeof AuthenticatedAppAspectsAspectRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
   }
 }
 
-interface Char91Char93AppAccountRouteChildren {
-  Char91Char93AppAccountSecurityRoute: typeof Char91Char93AppAccountSecurityRoute
-  Char91Char93AppAccountIndexRoute: typeof Char91Char93AppAccountIndexRoute
+interface AuthenticatedAppAccountRouteChildren {
+  AuthenticatedAppAccountSecurityRoute: typeof AuthenticatedAppAccountSecurityRoute
+  AuthenticatedAppAccountIndexRoute: typeof AuthenticatedAppAccountIndexRoute
 }
 
-const Char91Char93AppAccountRouteChildren: Char91Char93AppAccountRouteChildren =
+const AuthenticatedAppAccountRouteChildren: AuthenticatedAppAccountRouteChildren =
   {
-    Char91Char93AppAccountSecurityRoute: Char91Char93AppAccountSecurityRoute,
-    Char91Char93AppAccountIndexRoute: Char91Char93AppAccountIndexRoute,
+    AuthenticatedAppAccountSecurityRoute: AuthenticatedAppAccountSecurityRoute,
+    AuthenticatedAppAccountIndexRoute: AuthenticatedAppAccountIndexRoute,
   }
 
-const Char91Char93AppAccountRouteWithChildren =
-  Char91Char93AppAccountRoute._addFileChildren(
-    Char91Char93AppAccountRouteChildren,
+const AuthenticatedAppAccountRouteWithChildren =
+  AuthenticatedAppAccountRoute._addFileChildren(
+    AuthenticatedAppAccountRouteChildren,
   )
 
-interface Char91Char93AppAdministrationRouteChildren {
-  Char91Char93AppAdministrationOrganizationsRoute: typeof Char91Char93AppAdministrationOrganizationsRoute
-  Char91Char93AppAdministrationUsersRoute: typeof Char91Char93AppAdministrationUsersRoute
-  Char91Char93AppAdministrationIndexRoute: typeof Char91Char93AppAdministrationIndexRoute
+interface AuthenticatedAppAdministrationRouteChildren {
+  AuthenticatedAppAdministrationOrganizationsRoute: typeof AuthenticatedAppAdministrationOrganizationsRoute
+  AuthenticatedAppAdministrationUsersRoute: typeof AuthenticatedAppAdministrationUsersRoute
+  AuthenticatedAppAdministrationIndexRoute: typeof AuthenticatedAppAdministrationIndexRoute
 }
 
-const Char91Char93AppAdministrationRouteChildren: Char91Char93AppAdministrationRouteChildren =
+const AuthenticatedAppAdministrationRouteChildren: AuthenticatedAppAdministrationRouteChildren =
   {
-    Char91Char93AppAdministrationOrganizationsRoute:
-      Char91Char93AppAdministrationOrganizationsRoute,
-    Char91Char93AppAdministrationUsersRoute:
-      Char91Char93AppAdministrationUsersRoute,
-    Char91Char93AppAdministrationIndexRoute:
-      Char91Char93AppAdministrationIndexRoute,
+    AuthenticatedAppAdministrationOrganizationsRoute:
+      AuthenticatedAppAdministrationOrganizationsRoute,
+    AuthenticatedAppAdministrationUsersRoute:
+      AuthenticatedAppAdministrationUsersRoute,
+    AuthenticatedAppAdministrationIndexRoute:
+      AuthenticatedAppAdministrationIndexRoute,
   }
 
-const Char91Char93AppAdministrationRouteWithChildren =
-  Char91Char93AppAdministrationRoute._addFileChildren(
-    Char91Char93AppAdministrationRouteChildren,
+const AuthenticatedAppAdministrationRouteWithChildren =
+  AuthenticatedAppAdministrationRoute._addFileChildren(
+    AuthenticatedAppAdministrationRouteChildren,
   )
 
-interface Char91Char93AppRouteChildren {
-  Char91Char93AppAspectRoute: typeof Char91Char93AppAspectRoute
-  Char91Char93AppAccountRoute: typeof Char91Char93AppAccountRouteWithChildren
-  Char91Char93AppAdministrationRoute: typeof Char91Char93AppAdministrationRouteWithChildren
-  Char91Char93AppAgentsRoute: typeof Char91Char93AppAgentsRoute
-  Char91Char93AppExploreRoute: typeof Char91Char93AppExploreRoute
-  Char91Char93AppProfileRoute: typeof Char91Char93AppProfileRoute
-  Char91Char93AppTasksRoute: typeof Char91Char93AppTasksRoute
-  Char91Char93AppTeamRoute: typeof Char91Char93AppTeamRoute
-  Char91Char93AppTodayRoute: typeof Char91Char93AppTodayRoute
+interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppAccountRoute: typeof AuthenticatedAppAccountRouteWithChildren
+  AuthenticatedAppAdministrationRoute: typeof AuthenticatedAppAdministrationRouteWithChildren
+  AuthenticatedAppAgentsRoute: typeof AuthenticatedAppAgentsRoute
+  AuthenticatedAppExploreRoute: typeof AuthenticatedAppExploreRoute
+  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
+  AuthenticatedAppTasksRoute: typeof AuthenticatedAppTasksRoute
+  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
+  AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
+  AuthenticatedAppAspectsAspectRoute: typeof AuthenticatedAppAspectsAspectRoute
 }
 
-const Char91Char93AppRouteChildren: Char91Char93AppRouteChildren = {
-  Char91Char93AppAspectRoute: Char91Char93AppAspectRoute,
-  Char91Char93AppAccountRoute: Char91Char93AppAccountRouteWithChildren,
-  Char91Char93AppAdministrationRoute:
-    Char91Char93AppAdministrationRouteWithChildren,
-  Char91Char93AppAgentsRoute: Char91Char93AppAgentsRoute,
-  Char91Char93AppExploreRoute: Char91Char93AppExploreRoute,
-  Char91Char93AppProfileRoute: Char91Char93AppProfileRoute,
-  Char91Char93AppTasksRoute: Char91Char93AppTasksRoute,
-  Char91Char93AppTeamRoute: Char91Char93AppTeamRoute,
-  Char91Char93AppTodayRoute: Char91Char93AppTodayRoute,
+const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppAccountRoute: AuthenticatedAppAccountRouteWithChildren,
+  AuthenticatedAppAdministrationRoute:
+    AuthenticatedAppAdministrationRouteWithChildren,
+  AuthenticatedAppAgentsRoute: AuthenticatedAppAgentsRoute,
+  AuthenticatedAppExploreRoute: AuthenticatedAppExploreRoute,
+  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
+  AuthenticatedAppTasksRoute: AuthenticatedAppTasksRoute,
+  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
+  AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
+  AuthenticatedAppAspectsAspectRoute: AuthenticatedAppAspectsAspectRoute,
 }
 
-const Char91Char93AppRouteWithChildren = Char91Char93AppRoute._addFileChildren(
-  Char91Char93AppRouteChildren,
-)
+const AuthenticatedAppRouteWithChildren =
+  AuthenticatedAppRoute._addFileChildren(AuthenticatedAppRouteChildren)
 
-interface Char91Char93RouteChildren {
-  Char91Char93AppRoute: typeof Char91Char93AppRouteWithChildren
-  Char91Char93IndexRoute: typeof Char91Char93IndexRoute
-  Char91Char93InvitationInvitationIdRoute: typeof Char91Char93InvitationInvitationIdRoute
+interface AuthenticatedRouteChildren {
+  AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
+  AuthenticatedInvitationInvitationIdRoute: typeof AuthenticatedInvitationInvitationIdRoute
 }
 
-const Char91Char93RouteChildren: Char91Char93RouteChildren = {
-  Char91Char93AppRoute: Char91Char93AppRouteWithChildren,
-  Char91Char93IndexRoute: Char91Char93IndexRoute,
-  Char91Char93InvitationInvitationIdRoute:
-    Char91Char93InvitationInvitationIdRoute,
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
+  AuthenticatedInvitationInvitationIdRoute:
+    AuthenticatedInvitationInvitationIdRoute,
 }
 
-const Char91Char93RouteWithChildren = Char91Char93Route._addFileChildren(
-  Char91Char93RouteChildren,
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
 )
 
 interface AuthenticationRouteChildren {
@@ -610,7 +586,7 @@ const AuthenticationRouteWithChildren = AuthenticationRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  Char91Char93Route: Char91Char93RouteWithChildren,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthenticationRoute: AuthenticationRouteWithChildren,
   LegalRoute: LegalRoute,
   PrologueRoute: PrologueRoute,

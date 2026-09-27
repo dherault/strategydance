@@ -8,7 +8,7 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 // At module scope so the reference is stable across renders
 const ADMINISTRATION_MESSAGE_TYPES: MessageType[] = ['administration']
 
-export const Route = createFileRoute('/-/_app/administration')({
+export const Route = createFileRoute('/_authenticated/_app/administration')({
   component: AdministrationRoute,
 })
 

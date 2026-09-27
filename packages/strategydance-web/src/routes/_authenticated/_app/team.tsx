@@ -11,7 +11,7 @@ import TeamWait from '~components/team/TeamWait'
 // At module scope so the reference is stable across renders
 const TEAM_MESSAGE_TYPES: MessageType[] = ['team']
 
-export const Route = createFileRoute('/-/_app/team')({
+export const Route = createFileRoute('/_authenticated/_app/team')({
   component: TeamRoute,
 })
 

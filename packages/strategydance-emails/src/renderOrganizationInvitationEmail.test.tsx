@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import renderOrganizationInvitationEmail from './renderOrganizationInvitationEmail'
 
-const INVITATION_URL = 'http://localhost:5173/-/invitation/2f1c9e4a8b7d4c3e9a1b6d5f0e8c7a92'
+const INVITATION_URL = 'http://localhost:5173/invitation/2f1c9e4a8b7d4c3e9a1b6d5f0e8c7a92'
 
 describe('renderOrganizationInvitationEmail', () => {
   test('names the inviter and the organization, and links to the invitation in both parts', async () => {

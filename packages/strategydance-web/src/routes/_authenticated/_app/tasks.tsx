@@ -5,14 +5,14 @@ import ComingSoon from '~components/layout/ComingSoon'
 
 import navigationMessages from '~data/intl/messages/navigation'
 
-export const Route = createFileRoute('/-/_app/agents')({
-  component: AgentsRoute,
+export const Route = createFileRoute('/_authenticated/_app/tasks')({
+  component: TasksRoute,
 })
 
-function AgentsRoute() {
+function TasksRoute() {
   const { formatMessage } = useIntl()
 
   return (
-    <ComingSoon page={formatMessage(navigationMessages.agents)} />
+    <ComingSoon page={formatMessage(navigationMessages.tasks)} />
   )
 }

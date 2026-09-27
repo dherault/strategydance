@@ -32,7 +32,7 @@ function AccountProfilePreview({ name, bio, pictureSrc, initialsName }: Props) {
   return (
     <aside
       aria-label={formatMessage(accountMessages.profilePreview)}
-      className="flex flex-col items-center gap-4 rounded-t-xs border-b border-border bg-neutral-50 px-8 py-10 text-center md:rounded-tr-none md:border-r md:border-b-0"
+      className="flex flex-col items-center gap-4 rounded-t-xs border-b border-border bg-neutral-50 px-8 py-10 text-center md:rounded-tr-none md:rounded-bl-xs md:border-r md:border-b-0"
     >
       <Avatar
         src={pictureSrc ?? undefined}

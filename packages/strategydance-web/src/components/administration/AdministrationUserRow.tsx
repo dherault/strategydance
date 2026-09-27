@@ -85,7 +85,7 @@ function AdministrationUserRow({ user }: Props) {
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground">
-        {formatDate(user.createdAt, { dateStyle: 'medium' })}
+        {formatDate(user.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}
       </TableCell>
     </TableRow>
   )

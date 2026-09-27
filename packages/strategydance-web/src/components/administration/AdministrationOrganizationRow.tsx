@@ -66,7 +66,7 @@ function AdministrationOrganizationRow({ organization }: Props) {
         </Tooltip>
       </TableCell>
       <TableCell className="text-muted-foreground">
-        {formatDate(organization.createdAt, { dateStyle: 'medium' })}
+        {formatDate(organization.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}
       </TableCell>
     </TableRow>
   )

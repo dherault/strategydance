@@ -9,25 +9,10 @@ import { defineMessages } from 'react-intl'
   every translated locale inherits whatever the English carries
 */
 const globalMessages = defineMessages({
-  welcome: {
-    id: 'global.welcome',
-    defaultMessage: 'Strategy Dance',
-    description: 'Main heading on the home page. The product name, so it stays untranslated.',
-  },
-  tagline: {
-    id: 'global.tagline',
-    defaultMessage: 'An AI experiment.',
-    description: 'One-line description of the product, shown under the heading on the home page.',
-  },
   language: {
     id: 'global.language',
     defaultMessage: 'Language',
     description: 'Accessible label of the control that switches the interface language.',
-  },
-  signIn: {
-    id: 'global.signIn',
-    defaultMessage: 'Sign in',
-    description: 'Button on the home page that leads to the sign-in page.',
   },
   loading: {
     id: 'global.loading',

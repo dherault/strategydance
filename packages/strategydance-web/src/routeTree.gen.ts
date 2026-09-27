@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as Char91Char93RouteImport } from './routes/[-]'
 import { Route as AuthenticationRouteImport } from './routes/authentication'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as PrologueRouteImport } from './routes/prologue'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as Char91Char93IndexRouteImport } from './routes/[-]/index'
@@ -43,6 +44,11 @@ const Char91Char93Route = Char91Char93RouteImport.update({
 const AuthenticationRoute = AuthenticationRouteImport.update({
   id: '/authentication',
   path: '/authentication',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrologueRoute = PrologueRouteImport.update({
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/-': typeof Char91Char93RouteWithChildren
   '/authentication': typeof AuthenticationRouteWithChildren
+  '/legal': typeof LegalRoute
   '/prologue': typeof PrologueRoute
   '/support': typeof SupportRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/legal': typeof LegalRoute
   '/prologue': typeof PrologueRoute
   '/support': typeof SupportRoute
   '/-': typeof Char91Char93IndexRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/-': typeof Char91Char93RouteWithChildren
   '/authentication': typeof AuthenticationRouteWithChildren
+  '/legal': typeof LegalRoute
   '/prologue': typeof PrologueRoute
   '/support': typeof SupportRoute
   '/-/_app': typeof Char91Char93AppRouteWithChildren
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/'
     | '/-'
     | '/authentication'
+    | '/legal'
     | '/prologue'
     | '/support'
     | '/authentication/password-reset'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/legal'
     | '/prologue'
     | '/support'
     | '/-'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/'
     | '/-'
     | '/authentication'
+    | '/legal'
     | '/prologue'
     | '/support'
     | '/-/_app'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   Char91Char93Route: typeof Char91Char93RouteWithChildren
   AuthenticationRoute: typeof AuthenticationRouteWithChildren
+  LegalRoute: typeof LegalRoute
   PrologueRoute: typeof PrologueRoute
   SupportRoute: typeof SupportRoute
 }
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/authentication'
       fullPath: '/authentication'
       preLoaderRoute: typeof AuthenticationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prologue': {
@@ -490,6 +510,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   Char91Char93Route: Char91Char93RouteWithChildren,
   AuthenticationRoute: AuthenticationRouteWithChildren,
+  LegalRoute: LegalRoute,
   PrologueRoute: PrologueRoute,
   SupportRoute: SupportRoute,
 }

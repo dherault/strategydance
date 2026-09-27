@@ -250,6 +250,11 @@ No path prefix marks a page as authenticated, so code that needs to know asks th
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
 screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
 
+The area used to live under `/-/`, and invitation emails sent then still link there, so
+`firebase.json` redirects `/-/<path>` to `/<path>` with a 301. It is a `regex` rather than a
+`:path*` source because the Hosting emulator's `:path*` matches one segment only, and
+`/-/invitation/<id>` has two.
+
 A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
 the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be
 overwritten with `undefined`. The sign-in screen's `redirect` is the case that matters, since

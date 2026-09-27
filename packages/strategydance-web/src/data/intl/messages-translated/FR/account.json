@@ -45,7 +45,6 @@
   "account.saveError": "Impossible d'enregistrer votre profil. Réessayez.",
   "account.saved": "Profil enregistré",
   "account.securityTab": "Sécurité",
-  "account.showPasswords": "Afficher les mots de passe",
   "account.tabsLabel": "Sections du compte",
   "account.updatePassword": "Mettre à jour le mot de passe",
   "account.uploadPicture": "Importer une photo"

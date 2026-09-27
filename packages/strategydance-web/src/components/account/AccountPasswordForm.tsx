@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
-import { Checkbox } from 'strategydance-design-system/components/ui/Checkbox'
 import { Separator } from 'strategydance-design-system/components/ui/Separator'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import * as z from 'zod'
@@ -14,8 +13,9 @@ import { AUTHENTICATION_ERRORS, DEFAULT_AUTHENTICATION_ERROR, MAX_PASSWORD_LENGT
 
 import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMessage'
 
+import PasswordInput from '~components/common/PasswordInput'
 import Spinner from '~components/common/Spinner'
-import { FormInputField } from '~components/ui/FormField'
+import { FormField } from '~components/ui/FormField'
 
 import { authentication } from '~data/firebase'
 
@@ -72,6 +72,8 @@ function AccountPasswordForm({ viewer, email }: Props) {
   const { formatMessage } = useIntl()
   const formatAuthenticationMessage = useAuthenticationMessage()
 
+  // One for the three fields, whose eyes reveal them together: it is the reader's own password being
+  // shown, not one field's
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isSendingReset, setIsSendingReset] = useState(false)
 
@@ -86,7 +88,6 @@ function AccountPasswordForm({ viewer, email }: Props) {
     can still take the focus
   */
   const { isDirty, isSubmitting } = form.formState
-  const passwordType = isPasswordVisible ? 'text' : 'password'
 
   function formatError(key: string) {
     const descriptor = accountMessages[key as keyof typeof accountMessages]
@@ -169,16 +170,26 @@ function AccountPasswordForm({ viewer, email }: Props) {
           readOnly
           hidden
         />
-        <FormInputField
+        <FormField
           control={form.control}
           name="currentPassword"
           id="AccountPasswordForm-current-password"
           label={formatMessage(accountMessages.currentPasswordLabel)}
           formatError={formatError}
-          type={passwordType}
-          autoComplete="current-password"
-          readOnly={isSubmitting}
-        />
+        >
+          {({ field, fieldState, id, describedBy }) => (
+            <PasswordInput
+              {...field}
+              id={id}
+              aria-invalid={fieldState.invalid}
+              aria-describedby={describedBy}
+              visible={isPasswordVisible}
+              onVisibleChange={setIsPasswordVisible}
+              autoComplete="current-password"
+              readOnly={isSubmitting}
+            />
+          )}
+        </FormField>
         <button
           type="button"
           disabled={isSendingReset || isSubmitting}
@@ -188,33 +199,47 @@ function AccountPasswordForm({ viewer, email }: Props) {
           {formatMessage(authenticationMessages.passwordForgotQuestion)}
         </button>
         <Separator />
-        <FormInputField
+        <FormField
           control={form.control}
           name="newPassword"
           id="AccountPasswordForm-new-password"
           label={formatMessage(accountMessages.newPasswordLabel)}
           description={formatMessage(accountMessages.newPasswordHint, { minPasswordLength: MIN_PASSWORD_LENGTH })}
           formatError={formatError}
-          type={passwordType}
-          autoComplete="new-password"
-          readOnly={isSubmitting}
-        />
-        <FormInputField
+        >
+          {({ field, fieldState, id, describedBy }) => (
+            <PasswordInput
+              {...field}
+              id={id}
+              aria-invalid={fieldState.invalid}
+              aria-describedby={describedBy}
+              visible={isPasswordVisible}
+              onVisibleChange={setIsPasswordVisible}
+              autoComplete="new-password"
+              readOnly={isSubmitting}
+            />
+          )}
+        </FormField>
+        <FormField
           control={form.control}
           name="newPasswordConfirmation"
           id="AccountPasswordForm-new-password-confirmation"
           label={formatMessage(accountMessages.confirmNewPasswordLabel)}
           formatError={formatError}
-          type={passwordType}
-          autoComplete="new-password"
-          readOnly={isSubmitting}
-        />
-        <Checkbox
-          label={formatMessage(accountMessages.showPasswords)}
-          checked={isPasswordVisible}
-          disabled={isSubmitting}
-          onChange={event => setIsPasswordVisible(event.target.checked)}
-        />
+        >
+          {({ field, fieldState, id, describedBy }) => (
+            <PasswordInput
+              {...field}
+              id={id}
+              aria-invalid={fieldState.invalid}
+              aria-describedby={describedBy}
+              visible={isPasswordVisible}
+              onVisibleChange={setIsPasswordVisible}
+              autoComplete="new-password"
+              readOnly={isSubmitting}
+            />
+          )}
+        </FormField>
         <div className="flex justify-end">
           <Button
             type="submit"

@@ -45,7 +45,6 @@
   "account.saveError": "プロフィールを保存できませんでした。もう一度お試しください。",
   "account.saved": "プロフィールを保存しました",
   "account.securityTab": "セキュリティ",
-  "account.showPasswords": "パスワードを表示",
   "account.tabsLabel": "アカウントセクション",
   "account.updatePassword": "パスワードを更新",
   "account.uploadPicture": "写真をアップロード"

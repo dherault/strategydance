@@ -85,16 +85,18 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     The write throws, because the caller has a form to keep: a create that failed must not clear
     the name somebody typed. The read after it does not. Once the write commits the organization
     exists, and a caller that took a failed read for a failed create would offer to create it
-    again, making a second one. So it answers whether the list shows the new row, and a caller
-    told it does not reads the list again rather than writing again
+    again, making a second one. So it answers whether the list shows the new row, read off the
+    list itself rather than assumed from a read that worked, and a caller told it does not reads
+    the list again rather than writing again
   */
   async function createOrganization(name: string, brief: string | null) {
     const { organization } = await createOrganizationMutation({ name, brief })
 
     try {
-      await refetchUserOrganizations({ throwOnError: true })
+      const { data: refetched } = await refetchUserOrganizations({ throwOnError: true })
+      const isRead = !!refetched?.userOrganizations.some(({ organization: { id } }) => id === organization.id)
 
-      return { organizationId: organization.id, isRead: true }
+      return { organizationId: organization.id, isRead }
     }
     catch (error) {
       console.error('Failed to read the memberships back after creating an organization', error)

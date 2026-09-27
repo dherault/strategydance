@@ -43,6 +43,10 @@ type User @table {
   # Which buttons this account can sign in with, so a screen can say so without asking Firebase
   # and getting an answer shaped by email enumeration protection
   authenticationProviders: [AuthenticationProvider!]!
+  # What they work on, in their own words, as the account page saves it for their team and agents
+  # to read. Unlike `displayName` it mirrors nothing: this row is where it lives. Null until
+  # somebody writes one
+  bio: String
   # When a request last claimed the account's welcome email, which it holds for ten minutes while
   # it sends, so two requests cannot both mail. Left to lapse rather than handed back when the
   # send fails or the process dies, so a later request retries it, never sooner. Only the

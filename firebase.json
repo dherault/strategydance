@@ -13,7 +13,7 @@
         "type": 301
       },
       {
-        "regex": "^/-/(?P<path>.+)$",
+        "regex": "^/-/(?P<path>[A-Za-z0-9].*)$",
         "destination": "/:path",
         "type": 301
       }

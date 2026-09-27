@@ -253,7 +253,8 @@ screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
 The area used to live under `/-/`, and invitation emails sent then still link there, so
 `firebase.json` redirects `/-/<path>` to `/<path>` with a 301. It is a `regex` rather than a
 `:path*` source because the Hosting emulator's `:path*` matches one segment only, and
-`/-/invitation/<id>` has two.
+`/-/invitation/<id>` has two. Its capture has to start with a letter or a digit: `/-//evil.example`
+would otherwise answer `Location: //evil.example`, which a browser reads as another host.
 
 A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
 the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be

@@ -106,10 +106,10 @@ function SidebarNavigation() {
           {exploredAspects.map(aspect => (
             <NavigationLink
               key={aspect}
-              path={`/-/${toAspectSlug(aspect)}`}
+              path={`/-/aspects/${toAspectSlug(aspect)}`}
               label={formatMessage(aspectMessages[aspect])}
               icon={<CompanyAspectIcon aspect={toAspectSlug(aspect)} />}
-              link={{ to: '/-/$aspect', params: { aspect } }}
+              link={{ to: '/-/aspects/$aspect', params: { aspect } }}
             />
           ))}
           {exploredAspects.length < COMPANY_ASPECTS.length

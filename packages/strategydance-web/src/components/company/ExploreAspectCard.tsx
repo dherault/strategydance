@@ -68,7 +68,7 @@ function ExploreAspectCard({ aspect, isExplored, isStarting, isDisabled, onStart
   if (isExplored) {
     return (
       <Link
-        to="/-/$aspect"
+        to="/-/aspects/$aspect"
         params={{ aspect }}
         className={cn(cardClassName, 'group border-neutral-200 text-inherit no-underline hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary')}
       >

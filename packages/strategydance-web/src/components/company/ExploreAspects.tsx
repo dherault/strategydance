@@ -39,7 +39,7 @@ function ExploreAspects() {
 
     try {
       await exploreCompanyAspect(organization.id, aspect)
-      await navigate({ to: '/-/$aspect', params: { aspect } })
+      await navigate({ to: '/-/aspects/$aspect', params: { aspect } })
     }
     catch (error) {
       console.error('Failed to explore the aspect', error)

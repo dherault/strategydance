@@ -3,9 +3,28 @@ import { type ComponentProps, type DragEvent, type KeyboardEvent, type ReactNode
 
 import { cn } from 'strategydance-design-system/lib/utils'
 
+type Shape = 'wide' | 'square' | 'circle'
+
+// The zone's proportions for each shape
+const ZONE_CLASS_NAMES: Record<Shape, string> = {
+  wide: 'aspect-[4/1]',
+  square: 'mx-auto aspect-square max-w-[200px]',
+  circle: 'mx-auto aspect-square max-w-[200px] rounded-full',
+}
+
+// How the preview fills the zone: a banner or an avatar is cropped to it, a logo is shown whole
+const PREVIEW_CLASS_NAMES: Record<Shape, string> = {
+  wide: 'object-cover',
+  square: 'bg-white object-contain',
+  circle: 'object-cover',
+}
+
 type Props = Omit<ComponentProps<'div'>, 'onChange' | 'children' | 'onDrop'> & {
-  /** Wide is 4:1 and covers the zone, as a banner; square is 1:1 and fits inside it, as a logo */
-  shape?: 'wide' | 'square'
+  /**
+   * Wide is 4:1 and covers the zone, as a banner; square is 1:1 and fits inside it, as a logo;
+   * circle is round and covers it, as an avatar crops a profile picture
+   */
+  shape?: Shape
   /** The image to preview, or nothing for the empty prompt */
   src?: string | null
   /** The preview's alternative text */
@@ -96,7 +115,7 @@ function ImageDropzone({
       onDrop={handleDrop}
       className={cn(
         'relative grid w-full cursor-pointer place-items-center overflow-hidden rounded-xs border border-dashed border-neutral-300 bg-neutral-50 font-sans transition-[border-color,background-color] duration-150 ease-in-out outline-none hover:border-primary hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary data-dragging:border-primary data-dragging:bg-primary-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
-        shape === 'wide' ? 'aspect-[4/1]' : 'mx-auto aspect-square max-w-[200px]',
+        ZONE_CLASS_NAMES[shape],
         className,
       )}
       {...props}
@@ -106,7 +125,7 @@ function ImageDropzone({
             <img
               src={src}
               alt={alt}
-              className={cn('absolute inset-0 size-full', shape === 'wide' ? 'object-cover' : 'bg-white object-contain')}
+              className={cn('absolute inset-0 size-full', PREVIEW_CLASS_NAMES[shape])}
             />
           )
         : (

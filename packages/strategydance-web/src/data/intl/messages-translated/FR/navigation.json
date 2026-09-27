@@ -7,6 +7,7 @@
   "navigation.addOrganizationTitle": "Ajouter une organisation",
   "navigation.addOrganizationUnread": "{organizationName} a été créée, mais n'a pas pu être chargée. Rechargez la page pour l'afficher.",
   "navigation.administration": "Administration",
+  "navigation.administrationOrganizations": "Organisations",
   "navigation.administrationUsers": "Utilisateurs",
   "navigation.agents": "Agents",
   "navigation.aspectDesign": "Design",

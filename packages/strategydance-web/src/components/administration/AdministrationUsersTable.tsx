@@ -26,19 +26,19 @@ function AdministrationUsersTable({ users }: Props) {
       <TableHeader>
         <TableRow>
           <TableHead className="sticky left-0 z-1 bg-neutral-50 shadow-[inset_-1px_0_0_var(--color-neutral-200)]">
-            {formatMessage(administrationMessages.columnName)}
+            {formatMessage(administrationMessages.usersColumnName)}
           </TableHead>
           <TableHead>
-            {formatMessage(administrationMessages.columnEmail)}
+            {formatMessage(administrationMessages.usersColumnEmail)}
           </TableHead>
           <TableHead>
-            {formatMessage(administrationMessages.columnOrganizations)}
+            {formatMessage(administrationMessages.usersColumnOrganizations)}
           </TableHead>
           <TableHead>
-            {formatMessage(administrationMessages.columnSignIn)}
+            {formatMessage(administrationMessages.usersColumnSignIn)}
           </TableHead>
           <TableHead>
-            {formatMessage(administrationMessages.columnJoined)}
+            {formatMessage(administrationMessages.usersColumnJoined)}
           </TableHead>
         </TableRow>
       </TableHeader>

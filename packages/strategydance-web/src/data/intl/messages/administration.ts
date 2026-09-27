@@ -13,27 +13,27 @@ const administrationMessages = defineMessages({
     defaultMessage: 'The accounts could not be loaded. Check your connection and try again.',
     description: 'Error shown in place of the table of every account when it could not be read.',
   },
-  columnName: {
+  usersColumnName: {
     id: 'administration.users.column.name',
     defaultMessage: 'Name',
     description: 'Column header, in the table of every account, above each person\'s picture and name.',
   },
-  columnEmail: {
+  usersColumnEmail: {
     id: 'administration.users.column.email',
     defaultMessage: 'Email',
     description: 'Column header, in the table of every account, above each person\'s email address.',
   },
-  columnOrganizations: {
+  usersColumnOrganizations: {
     id: 'administration.users.column.organizations',
     defaultMessage: 'Organizations',
     description: 'Column header, in the table of every account, above the organizations each person belongs to.',
   },
-  columnSignIn: {
+  usersColumnSignIn: {
     id: 'administration.users.column.signIn',
     defaultMessage: 'Sign-in',
     description: 'Column header, in the table of every account, above the ways each person can sign in, such as a password or Google.',
   },
-  columnJoined: {
+  usersColumnJoined: {
     id: 'administration.users.column.joined',
     defaultMessage: 'Joined',
     description: 'Column header, in the table of every account, above the date each person signed up.',
@@ -67,6 +67,61 @@ const administrationMessages = defineMessages({
     id: 'administration.users.provider.google',
     defaultMessage: 'Google',
     description: 'Badge, in the "Sign-in" column of the table of every account, for somebody who can sign in with their Google account. A brand name, so it stays untranslated.',
+  },
+  organizationsLead: {
+    id: 'administration.organizations.lead',
+    defaultMessage: '{count, plural, one {# organization has} other {# organizations have}} been created on Strategy Dance, newest first.',
+    description: 'Line under the title of the administration page that lists every organization on the product. "Strategy Dance" is the product name and stays untranslated.',
+  },
+  organizationsLoadError: {
+    id: 'administration.organizations.loadError',
+    defaultMessage: 'The organizations could not be loaded. Check your connection and try again.',
+    description: 'Error shown in place of the table of every organization when it could not be read.',
+  },
+  organizationsEmpty: {
+    id: 'administration.organizations.empty',
+    defaultMessage: 'Nobody has created an organization yet.',
+    description: 'The one row of the table of every organization when there are none.',
+  },
+  organizationsColumnName: {
+    id: 'administration.organizations.column.name',
+    defaultMessage: 'Name',
+    description: 'Column header, in the table of every organization, above each organization\'s logo and name.',
+  },
+  organizationsColumnMembers: {
+    id: 'administration.organizations.column.members',
+    defaultMessage: 'Members',
+    description: 'Column header, in the table of every organization, above how many people belong to each.',
+  },
+  organizationsColumnProfile: {
+    id: 'administration.organizations.column.profile',
+    defaultMessage: 'Profile',
+    description: 'Column header, in the table of every organization, above whether each one\'s profile is public or private.',
+  },
+  organizationsColumnAspects: {
+    id: 'administration.organizations.column.aspects',
+    defaultMessage: 'Aspects explored',
+    description: 'Column header, in the table of every organization, above how many of the aspects of a company, such as strategy or finances, each has explored.',
+  },
+  organizationsColumnCreated: {
+    id: 'administration.organizations.column.created',
+    defaultMessage: 'Created',
+    description: 'Column header, in the table of every organization, above the date each was created.',
+  },
+  organizationPublic: {
+    id: 'administration.organizations.public',
+    defaultMessage: 'Public',
+    description: 'Badge, in the "Profile" column of the table of every organization, for one whose profile anybody can see.',
+  },
+  organizationPrivate: {
+    id: 'administration.organizations.private',
+    defaultMessage: 'Private',
+    description: 'Badge, in the "Profile" column of the table of every organization, for one whose profile only its members can see.',
+  },
+  organizationAspects: {
+    id: 'administration.organizations.aspects',
+    defaultMessage: '{explored} of {total}',
+    description: 'How many aspects of a company an organization has explored, out of all of them, in the table of every organization. For example "3 of 9".',
   },
 })
 

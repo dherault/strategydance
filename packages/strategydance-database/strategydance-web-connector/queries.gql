@@ -189,3 +189,32 @@ query GetAdministrationUsers @auth(level: USER) {
     }
   }
 }
+
+# Every organization, newest first, as the administration's organizations page lists them.
+#
+# Guarded, read and bounded as `GetAdministrationUsers` is: the caller's own row checks the flag
+# first, the list is not live, and it stops at 1000 rows. Each organization's members are counted
+# rather than read, since the page only says how many there are
+query GetAdministrationOrganizations @auth(level: USER) {
+  viewer: user(key: { id_expr: "auth.uid" })
+    @redact
+    @check(expr: "this != null", message: "Only an administrator of Strategy Dance can list every organization") {
+    isAdministrator @check(expr: "this == true", message: "Only an administrator of Strategy Dance can list every organization")
+  }
+  organizations(
+    # `id` breaks the tie between two organizations created in the same instant
+    orderBy: [{ createdAt: DESC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    name
+    logoUrl
+    color
+    isPublic
+    exploredAspects
+    createdAt
+    members: userOrganizations_on_organization {
+      _count
+    }
+  }
+}

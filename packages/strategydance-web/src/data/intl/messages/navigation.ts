@@ -67,6 +67,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Users',
     description: 'Sidebar link, under the "Administration" heading, to the page listing every account on the product. Also that page\'s title.',
   },
+  administrationOrganizations: {
+    id: 'navigation.administrationOrganizations',
+    defaultMessage: 'Organizations',
+    description: 'Sidebar link, under the "Administration" heading, to the page listing every organization on the product. Also that page\'s title.',
+  },
   aspectStrategy: {
     id: 'navigation.aspectStrategy',
     defaultMessage: 'Strategy',

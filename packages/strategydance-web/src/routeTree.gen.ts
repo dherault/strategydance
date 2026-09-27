@@ -31,6 +31,7 @@ import { Route as Char91Char93InvitationInvitationIdRouteImport } from './routes
 import { Route as Char91Char93AppAccountIndexRouteImport } from './routes/[-]/_app/account/index'
 import { Route as Char91Char93AppAccountSecurityRouteImport } from './routes/[-]/_app/account/security'
 import { Route as Char91Char93AppAdministrationIndexRouteImport } from './routes/[-]/_app/administration/index'
+import { Route as Char91Char93AppAdministrationOrganizationsRouteImport } from './routes/[-]/_app/administration/organizations'
 import { Route as Char91Char93AppAdministrationUsersRouteImport } from './routes/[-]/_app/administration/users'
 
 const IndexRoute = IndexRouteImport.update({
@@ -148,6 +149,12 @@ const Char91Char93AppAdministrationIndexRoute =
     path: '/',
     getParentRoute: () => Char91Char93AppAdministrationRoute,
   } as any)
+const Char91Char93AppAdministrationOrganizationsRoute =
+  Char91Char93AppAdministrationOrganizationsRouteImport.update({
+    id: '/organizations',
+    path: '/organizations',
+    getParentRoute: () => Char91Char93AppAdministrationRoute,
+  } as any)
 const Char91Char93AppAdministrationUsersRoute =
   Char91Char93AppAdministrationUsersRouteImport.update({
     id: '/users',
@@ -175,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/-/today': typeof Char91Char93AppTodayRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
   '/-/account/security': typeof Char91Char93AppAccountSecurityRoute
+  '/-/administration/organizations': typeof Char91Char93AppAdministrationOrganizationsRoute
   '/-/administration/users': typeof Char91Char93AppAdministrationUsersRoute
   '/-/account/': typeof Char91Char93AppAccountIndexRoute
   '/-/administration/': typeof Char91Char93AppAdministrationIndexRoute
@@ -195,6 +203,7 @@ export interface FileRoutesByTo {
   '/-/today': typeof Char91Char93AppTodayRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
   '/-/account/security': typeof Char91Char93AppAccountSecurityRoute
+  '/-/administration/organizations': typeof Char91Char93AppAdministrationOrganizationsRoute
   '/-/administration/users': typeof Char91Char93AppAdministrationUsersRoute
   '/-/account': typeof Char91Char93AppAccountIndexRoute
   '/-/administration': typeof Char91Char93AppAdministrationIndexRoute
@@ -221,6 +230,7 @@ export interface FileRoutesById {
   '/-/_app/today': typeof Char91Char93AppTodayRoute
   '/-/invitation/$invitationId': typeof Char91Char93InvitationInvitationIdRoute
   '/-/_app/account/security': typeof Char91Char93AppAccountSecurityRoute
+  '/-/_app/administration/organizations': typeof Char91Char93AppAdministrationOrganizationsRoute
   '/-/_app/administration/users': typeof Char91Char93AppAdministrationUsersRoute
   '/-/_app/account/': typeof Char91Char93AppAccountIndexRoute
   '/-/_app/administration/': typeof Char91Char93AppAdministrationIndexRoute
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/-/today'
     | '/-/invitation/$invitationId'
     | '/-/account/security'
+    | '/-/administration/organizations'
     | '/-/administration/users'
     | '/-/account/'
     | '/-/administration/'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/-/today'
     | '/-/invitation/$invitationId'
     | '/-/account/security'
+    | '/-/administration/organizations'
     | '/-/administration/users'
     | '/-/account'
     | '/-/administration'
@@ -292,6 +304,7 @@ export interface FileRouteTypes {
     | '/-/_app/today'
     | '/-/invitation/$invitationId'
     | '/-/_app/account/security'
+    | '/-/_app/administration/organizations'
     | '/-/_app/administration/users'
     | '/-/_app/account/'
     | '/-/_app/administration/'
@@ -461,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91Char93AppAdministrationIndexRouteImport
       parentRoute: typeof Char91Char93AppAdministrationRoute
     }
+    '/-/_app/administration/organizations': {
+      id: '/-/_app/administration/organizations'
+      path: '/organizations'
+      fullPath: '/-/administration/organizations'
+      preLoaderRoute: typeof Char91Char93AppAdministrationOrganizationsRouteImport
+      parentRoute: typeof Char91Char93AppAdministrationRoute
+    }
     '/-/_app/administration/users': {
       id: '/-/_app/administration/users'
       path: '/users'
@@ -488,12 +508,15 @@ const Char91Char93AppAccountRouteWithChildren =
   )
 
 interface Char91Char93AppAdministrationRouteChildren {
+  Char91Char93AppAdministrationOrganizationsRoute: typeof Char91Char93AppAdministrationOrganizationsRoute
   Char91Char93AppAdministrationUsersRoute: typeof Char91Char93AppAdministrationUsersRoute
   Char91Char93AppAdministrationIndexRoute: typeof Char91Char93AppAdministrationIndexRoute
 }
 
 const Char91Char93AppAdministrationRouteChildren: Char91Char93AppAdministrationRouteChildren =
   {
+    Char91Char93AppAdministrationOrganizationsRoute:
+      Char91Char93AppAdministrationOrganizationsRoute,
     Char91Char93AppAdministrationUsersRoute:
       Char91Char93AppAdministrationUsersRoute,
     Char91Char93AppAdministrationIndexRoute:

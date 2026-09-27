@@ -199,6 +199,50 @@
       }
     },
     "administration": {
+      "administration.organizations.aspects": {
+        "hash": "d1d23bee5054c6cc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.column.aspects": {
+        "hash": "2f1b811639636601",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.column.created": {
+        "hash": "f5166f5237ae7f13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.column.members": {
+        "hash": "48044af886a28ead",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.column.name": {
+        "hash": "f0ca034f6d9d3f64",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.column.profile": {
+        "hash": "180ed7a97003aa4b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.empty": {
+        "hash": "c89aa54ebb6c61e2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.lead": {
+        "hash": "a1dd7787dae552d1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.loadError": {
+        "hash": "69c82d695b42a600",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.private": {
+        "hash": "73032800157b4faf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "administration.organizations.public": {
+        "hash": "b8b410f44fce436d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "administration.users.administrator": {
         "hash": "dffed5329b832ad4",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -627,6 +671,10 @@
       },
       "navigation.administration": {
         "hash": "d210644b2d05a5dc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.administrationOrganizations": {
+        "hash": "b2cc0480c4cc207d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.administrationUsers": {

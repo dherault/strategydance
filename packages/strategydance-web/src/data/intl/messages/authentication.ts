@@ -86,16 +86,6 @@ const authenticationMessages = defineMessages({
     defaultMessage: 'Back',
     description: 'Link that returns to the email step, or to the sign-in page from password reset.',
   },
-  actionShowPassword: {
-    id: 'authentication.action.showPassword',
-    defaultMessage: 'Show password',
-    description: 'Accessible label of the control that reveals the password being typed.',
-  },
-  actionHidePassword: {
-    id: 'authentication.action.hidePassword',
-    defaultMessage: 'Hide password',
-    description: 'Accessible label of the control that hides the password being typed.',
-  },
   passwordForgotQuestion: {
     id: 'authentication.password.forgotQuestion',
     defaultMessage: 'Forgot your password?',

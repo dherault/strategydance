@@ -1,9 +1,7 @@
 {
   "authentication.action.back": "Retour",
   "authentication.action.continue": "Continuer",
-  "authentication.action.hidePassword": "Masquer le mot de passe",
   "authentication.action.logIn": "Se connecter",
-  "authentication.action.showPassword": "Afficher le mot de passe",
   "authentication.action.signUp": "S'inscrire",
   "authentication.error.credentialAlreadyInUse": "Un autre compte utilise déjà ces identifiants.",
   "authentication.error.default": "Une erreur s'est produite. Veuillez réessayer.",

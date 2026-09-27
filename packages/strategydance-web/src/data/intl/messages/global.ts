@@ -44,6 +44,16 @@ const globalMessages = defineMessages({
     defaultMessage: 'Close notification',
     description: 'Accessible label of the button that dismisses one of those short confirmation messages.',
   },
+  showPassword: {
+    id: 'global.showPassword',
+    defaultMessage: 'Show password',
+    description: 'Accessible label of the eye button at the end of a password field, which reveals the password typed in it.',
+  },
+  hidePassword: {
+    id: 'global.hidePassword',
+    defaultMessage: 'Hide password',
+    description: 'Accessible label of the eye button at the end of a password field, which hides the password typed in it again.',
+  },
 })
 
 export default globalMessages

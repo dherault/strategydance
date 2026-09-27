@@ -1,6 +1,30 @@
 {
   "messages": {
     "account": {
+      "account.bioCount": {
+        "hash": "a88b168aa6583372",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioHint": {
+        "hash": "dc0c0d7349dc7c68",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioLabel": {
+        "hash": "03eb249a12e3902c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.bioPlaceholder": {
+        "hash": "769a50b131b75385",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.cancel": {
+        "hash": "db96b8f63aee5689",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.changePicture": {
+        "hash": "2b50bab671175260",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.eyebrow": {
         "hash": "515a4dbb8873dc5d",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -9,8 +33,64 @@
         "hash": "d88f01cf9c4c0e26",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.nameLabel": {
+        "hash": "d243deba3cb17367",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.namePlaceholder": {
+        "hash": "b1da52672cbbc2e8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.nameRequired": {
+        "hash": "385f4f845581824a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureHint": {
+        "hash": "cf576e7a3d069683",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureLabel": {
+        "hash": "9f11ae8b34bcdb87",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSizeError": {
+        "hash": "9b2c4ceabcc07a2a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureTypeError": {
+        "hash": "4ed8f77afff5f4d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.previewBioEmpty": {
+        "hash": "0d679345c616b64b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.previewNameEmpty": {
+        "hash": "1f662e1507f6b125",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.profilePreview": {
+        "hash": "68f2c0698729f690",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.profileTab": {
         "hash": "ec8382ad52a01265",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.removePicture": {
+        "hash": "1ff8f77806526a3a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.save": {
+        "hash": "41c8fc4443200bf9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.saveError": {
+        "hash": "0752e2a7af5a88c0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.saved": {
+        "hash": "0d6854850976930b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.securityTab": {
@@ -19,6 +99,10 @@
       },
       "account.tabsLabel": {
         "hash": "3a40d2b4a16a548a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.uploadPicture": {
+        "hash": "600bed5cf8f5486e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },

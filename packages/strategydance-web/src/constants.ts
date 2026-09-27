@@ -93,3 +93,18 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
 
 // The project's public repository, which the sidebar invites the reader to star
 export const GITHUB_REPOSITORY = 'dherault/strategydance'
+
+/* ---
+  USERS
+--- */
+
+/*
+  What the account page takes as a profile picture: raster only, as `storage.rules` accepts. An
+  SVG is a document that can carry a script rather than a picture, so it is refused here before
+  the rule refuses it
+*/
+export const PROFILE_PICTURE_CONTENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+
+// In bytes. The account page refuses a larger file before sending it; the rule's own ceiling is
+// higher, and is there for a caller that is not the page
+export const MAX_PROFILE_PICTURE_SIZE = 2 * 1024 * 1024

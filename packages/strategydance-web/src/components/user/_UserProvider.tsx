@@ -1,7 +1,14 @@
+import { updateProfile as updateFirebaseProfile } from 'firebase/auth'
 import { type PropsWithChildren, useEffect, useRef, useState } from 'react'
 import { WELCOME_EMAIL_WINDOW_DAYS } from 'strategydance-core'
-import type { UpdateCurrentUserVariables } from 'strategydance-database/web'
-import { useCreateCurrentUser, useGetCurrentUser, useUpdateCurrentUser } from 'strategydance-database/web/react'
+import {
+  useCreateCurrentUser,
+  useGetCurrentUser,
+  useUpdateCurrentUser,
+  useUpdateCurrentUserProfile,
+} from 'strategydance-database/web/react'
+
+import type { UserProfile } from '~types'
 
 import type { UserContextType } from '~contexts/UserContext'
 
@@ -11,8 +18,10 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useAppIntl from '~hooks/intl/useAppIntl'
 import useSystemTimezone from '~hooks/user/useSystemTimezone'
 
+import deleteProfilePicture from '~utils/user/deleteProfilePicture'
 import getAuthenticationProviders from '~utils/user/getAuthenticationProviders'
 import toDatabaseLocale from '~utils/user/toDatabaseLocale'
+import uploadProfilePicture from '~utils/user/uploadProfilePicture'
 
 import { requestApi } from '~data/api'
 import { dataConnect } from '~data/firebase'
@@ -45,6 +54,7 @@ function UserProvider({ children }: PropsWithChildren) {
 
   const { mutateAsync: createCurrentUser } = useCreateCurrentUser(dataConnect)
   const { mutateAsync: updateCurrentUser } = useUpdateCurrentUser(dataConnect)
+  const { mutateAsync: updateCurrentUserProfile } = useUpdateCurrentUserProfile(dataConnect)
 
   // Insert runs from an effect that also re-runs on `locale` and `timezone`, and the row it is
   // inserting does not exist until the write lands. Without this the second run fires a second
@@ -84,14 +94,38 @@ function UserProvider({ children }: PropsWithChildren) {
     await refetchUser()
   }
 
-  async function updateUser(variables: UpdateCurrentUserVariables) {
-    try {
-      await updateCurrentUser(variables)
-      await refetchUser()
-    }
-    catch (error) {
-      console.error('Failed to update the user', error)
-    }
+  /*
+    Saves what the account page edits, and resolves once the row shows it, so the page can drop
+    what it staged without the old values flashing back in between.
+
+    The name and the picture are the Firebase profile's, which the row mirrors, so they go there
+    first and the row follows. The row is written here rather than left to the mirror below, since
+    Firebase updates the account in place: `viewer` keeps its identity, and nothing would run the
+    effect that compares the two. A write that fails after Firebase took the change leaves them
+    apart until then, which the mirror mends the next time the row is read.
+
+    A removed picture is deleted from Storage last, once nothing points at it: failing before then
+    leaves the account showing a picture that is still there, rather than one that is gone, and
+    saving again deletes it.
+
+    It throws, because the caller has a form to keep: a save that failed must not clear what
+    somebody typed. The read after the write throws too, which a refetch does not by default
+  */
+  async function updateProfile({ displayName, image, bio }: UserProfile) {
+    if (!viewer) throw new Error('Cannot update the profile of nobody signed in')
+
+    let imageUrl = viewer.photoURL
+
+    if (image) imageUrl = await uploadProfilePicture(viewer.uid, image)
+    if (image === null) imageUrl = null
+
+    // An empty string rather than null takes the picture off the account, since the Auth emulator
+    // refuses a null. Firebase reads either back as null
+    await updateFirebaseProfile(viewer, { displayName, photoURL: imageUrl ?? '' })
+    await updateCurrentUserProfile({ displayName, imageUrl, bio })
+    await refetchUser({ throwOnError: true })
+
+    if (image === null) await deleteProfilePicture(viewer.uid)
   }
 
   // Insert the row the first time this account is seen
@@ -168,7 +202,7 @@ function UserProvider({ children }: PropsWithChildren) {
     // meaning anything
     if (!hasDrifted) return
 
-    // The mutation rather than `updateUser`, so nothing this component defines ends up in a
+    // The mutation rather than a function of this component's, so nothing it defines ends up in a
     // dependency array. The compiler would keep such a function stable, but the lint rule
     // reads the source rather than the compiler's output and cannot know that
     updateCurrentUser({
@@ -215,7 +249,7 @@ function UserProvider({ children }: PropsWithChildren) {
     initialLoading: loading,
     loading,
     refetch,
-    updateUser,
+    updateProfile,
   }
 
   return (

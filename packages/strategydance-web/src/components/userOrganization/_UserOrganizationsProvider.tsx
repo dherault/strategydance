@@ -74,8 +74,8 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     Refetches before answering, so the id it returns names a row a caller can already find in
     `data`. Selecting it is the caller's to do: this provider does not know what is selected.
 
-    This one throws where `updateUser` logs, because the caller has a form to keep: a create that
-    failed must not clear the name somebody typed
+    This one throws, because the caller has a form to keep: a create that failed must not clear
+    the name somebody typed
   */
   async function createOrganization(name: string) {
     const { organization } = await createOrganizationMutation({ name })

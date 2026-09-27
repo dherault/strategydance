@@ -132,6 +132,76 @@ const accountMessages = defineMessages({
     defaultMessage: 'Your profile could not be saved. Try again.',
     description: 'Notification shown when saving the reader\'s profile failed.',
   },
+  googleOnlyTitle: {
+    id: 'account.googleOnlyTitle',
+    defaultMessage: 'You sign in with Google',
+    description: 'Title of the notice on the security tab for a reader whose account has no password, only Google sign-in.',
+  },
+  googleOnlyDescription: {
+    id: 'account.googleOnlyDescription',
+    defaultMessage: 'Your account has no password, so there is nothing to change here. Manage sign-in from your Google account.',
+    description: 'Notice on the security tab for a reader whose account has no password, only Google sign-in.',
+  },
+  changePasswordTitle: {
+    id: 'account.changePasswordTitle',
+    defaultMessage: 'Change password',
+    description: 'Title of the card on the security tab where the reader changes their password.',
+  },
+  changePasswordDescription: {
+    id: 'account.changePasswordDescription',
+    defaultMessage: 'You will stay signed in on this device. Other sessions will be signed out.',
+    description: 'Explanation under the title of the change password card, saying what changing the password does to the reader\'s other signed in browsers and devices.',
+  },
+  currentPasswordLabel: {
+    id: 'account.currentPasswordLabel',
+    defaultMessage: 'Current password',
+    description: 'Label of the field where the reader types the password they sign in with today.',
+  },
+  currentPasswordRequired: {
+    id: 'account.currentPasswordRequired',
+    defaultMessage: 'Enter your current password.',
+    description: 'Error under the current password field when the reader tries to change their password without typing it.',
+  },
+  newPasswordLabel: {
+    id: 'account.newPasswordLabel',
+    defaultMessage: 'New password',
+    description: 'Label of the field where the reader types the password they want to sign in with from now on.',
+  },
+  newPasswordHint: {
+    id: 'account.newPasswordHint',
+    defaultMessage: 'At least {minPasswordLength} characters.',
+    description: 'Hint under the new password field, such as "At least 8 characters."',
+  },
+  newPasswordUnchanged: {
+    id: 'account.newPasswordUnchanged',
+    defaultMessage: 'Choose a password different from your current one.',
+    description: 'Error under the new password field when it is the same as the current password.',
+  },
+  confirmNewPasswordLabel: {
+    id: 'account.confirmNewPasswordLabel',
+    defaultMessage: 'Confirm new password',
+    description: 'Label of the field where the reader types their new password a second time.',
+  },
+  showPasswords: {
+    id: 'account.showPasswords',
+    defaultMessage: 'Show passwords',
+    description: 'Checkbox that reveals the three passwords typed in the change password card.',
+  },
+  updatePassword: {
+    id: 'account.updatePassword',
+    defaultMessage: 'Update password',
+    description: 'Button that changes the reader\'s password.',
+  },
+  passwordUpdated: {
+    id: 'account.passwordUpdated',
+    defaultMessage: 'Password updated',
+    description: 'Notification shown once the reader\'s password has been changed.',
+  },
+  passwordResetSent: {
+    id: 'account.passwordResetSent',
+    defaultMessage: 'We sent a link to reset your password to {email}.',
+    description: 'Notification shown after the reader asked for a password reset from the security tab, such as "We sent a link to reset your password to astrid@example.com."',
+  },
 })
 
 export default accountMessages

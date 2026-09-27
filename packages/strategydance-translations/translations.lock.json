@@ -21,12 +21,40 @@
         "hash": "db96b8f63aee5689",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.changePasswordDescription": {
+        "hash": "3b83d4a65b94ddf1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.changePasswordTitle": {
+        "hash": "64597a1a7707eb4f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.changePicture": {
         "hash": "2b50bab671175260",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.confirmNewPasswordLabel": {
+        "hash": "adb7f15725f9a4fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.currentPasswordLabel": {
+        "hash": "7f22972d99964746",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.currentPasswordRequired": {
+        "hash": "a0044b5f8fad921f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.eyebrow": {
         "hash": "515a4dbb8873dc5d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.googleOnlyDescription": {
+        "hash": "3cf31c9e1ab27a46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.googleOnlyTitle": {
+        "hash": "f212a68897af78d4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.lead": {
@@ -43,6 +71,26 @@
       },
       "account.nameRequired": {
         "hash": "385f4f845581824a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.newPasswordHint": {
+        "hash": "27335657544e820a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.newPasswordLabel": {
+        "hash": "1d8b9c0510d475b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.newPasswordUnchanged": {
+        "hash": "b9f348aa1fd13bf2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.passwordResetSent": {
+        "hash": "2636f1b4f0369971",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.passwordUpdated": {
+        "hash": "50d2c46cc3229e46",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.pictureHint": {
@@ -97,8 +145,16 @@
         "hash": "ef1a87fc7623f8d4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.showPasswords": {
+        "hash": "0c565e4cffdd7c18",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.tabsLabel": {
         "hash": "3a40d2b4a16a548a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.updatePassword": {
+        "hash": "5624667fcc95650d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.uploadPicture": {

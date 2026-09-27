@@ -41,10 +41,10 @@ function TeamMemberRow({ organizationId, member, isViewer, isAdministrator, isOn
       <TableCell className="sticky left-0 z-1 bg-white shadow-[inset_-1px_0_0_var(--color-neutral-200)] transition-colors duration-150 ease-in-out group-hover/row:bg-neutral-50">
         <TeamMemberName member={member} />
       </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         {member.user.email}
       </TableCell>
-      <TableCell className="max-w-64">
+      <TableCell>
         <TeamMemberJobTitle
           jobTitle={member.jobTitle ?? null}
           editLabel={canEditJobTitle ? formatMessage(isViewer ? teamMessages.editOwnJobTitle : teamMessages.editJobTitleFor, { name }) : null}
@@ -64,7 +64,7 @@ function TeamMemberRow({ organizationId, member, isViewer, isAdministrator, isOn
         ? (
             <TableCell
               align="right"
-              className="w-px whitespace-nowrap"
+              className="w-px"
             >
               {isViewer
                 ? null

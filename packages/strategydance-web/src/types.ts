@@ -1,4 +1,4 @@
-import type { GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData } from 'strategydance-database/web'
+import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
@@ -72,6 +72,12 @@ export type OrganizationMember = OrganizationTeam['userOrganizations'][number]
 
 // An invitation as its addressee reads it: the organization, and who sent it
 export type OrganizationInvitation = GetOrganizationInvitationData['organizationInvitations'][number]
+
+// An account as the administration's users page lists it, with the organizations it belongs to
+export type AdministrationUser = GetAdministrationUsersData['users'][number]
+
+// An organization as the administration's organizations page lists it, with its member count
+export type AdministrationOrganization = GetAdministrationOrganizationsData['organizations'][number]
 
 /*
   A picture chosen but not saved yet: undefined while nothing was chosen, null once the one there

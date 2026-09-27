@@ -21,8 +21,8 @@ function TeamMemberJobTitle({ jobTitle, editLabel, onEdit }: Props) {
   const { formatMessage } = useIntl()
 
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      <span className={cn('min-w-0 truncate', !jobTitle && 'text-neutral-400')}>
+    <div className="flex items-center gap-1">
+      <span className={cn(!jobTitle && 'text-neutral-400')}>
         {jobTitle || formatMessage(teamMessages.noJobTitle)}
       </span>
       {editLabel

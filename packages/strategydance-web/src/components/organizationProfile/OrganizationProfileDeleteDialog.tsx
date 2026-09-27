@@ -63,7 +63,7 @@ function OrganizationProfileDeleteDialog({ organizationId, organizationName, onC
 
     toast.success(formatMessage(organizationProfileMessages.deleted))
 
-    await navigate({ to: '/-', replace: true })
+    await navigate({ to: '/today', replace: true })
     await forgetOrganization(organizationId)
   }
 

@@ -66,7 +66,7 @@ function SidebarUserMenu() {
               asChild
               onSelect={closeMobileSidebar}
             >
-              <Link to="/-/account">
+              <Link to="/account">
                 <UserIcon />
                 {formatMessage(navigationMessages.account)}
               </Link>

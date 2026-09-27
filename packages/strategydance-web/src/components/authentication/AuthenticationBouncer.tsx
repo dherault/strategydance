@@ -3,10 +3,12 @@ import { type PropsWithChildren, useEffect } from 'react'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 
+import isAuthenticationPath from '~utils/authentication/isAuthenticationPath'
+
 /*
   Sits under `AuthenticationWait`, which is what makes the verdict readable: by the time this
-  renders, a viewer of `null` means signed out rather than not answered yet. It guards `/-` and
-  `/prologue`.
+  renders, a viewer of `null` means signed out rather than not answered yet. It guards the
+  authenticated area and `/prologue`.
 
   The page asked for rides along to the sign-in screen, which returns there once the reader is
   in, so a link into the app, an invitation's above all, survives having to sign in first. The
@@ -30,7 +32,7 @@ function AuthenticationBouncer({ children }: PropsWithChildren) {
 
     // Already on its way out: StrictMode runs this twice in development, and the second run
     // reads the location the first one moved to the sign-in screen
-    if (pathname !== '/prologue' && pathname !== '/-' && !pathname.startsWith('/-/')) return
+    if (isAuthenticationPath(pathname)) return
 
     navigate({
       to: '/authentication',

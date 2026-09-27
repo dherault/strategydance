@@ -79,22 +79,22 @@ function SidebarNavigation() {
       <SidebarGroup>
         <SidebarMenu>
           <NavigationLink
-            path="/-/today"
+            path="/today"
             label={formatMessage(navigationMessages.today)}
             icon={<CalendarIcon />}
-            link={{ to: '/-/today' }}
+            link={{ to: '/today' }}
           />
           <NavigationLink
-            path="/-/tasks"
+            path="/tasks"
             label={formatMessage(navigationMessages.tasks)}
             icon={<ListChecksIcon />}
-            link={{ to: '/-/tasks' }}
+            link={{ to: '/tasks' }}
           />
           <NavigationLink
-            path="/-/agents"
+            path="/agents"
             label={formatMessage(navigationMessages.agents)}
             icon={<BotIcon />}
-            link={{ to: '/-/agents' }}
+            link={{ to: '/agents' }}
           />
         </SidebarMenu>
       </SidebarGroup>
@@ -106,19 +106,19 @@ function SidebarNavigation() {
           {exploredAspects.map(aspect => (
             <NavigationLink
               key={aspect}
-              path={`/-/aspects/${toAspectSlug(aspect)}`}
+              path={`/aspects/${toAspectSlug(aspect)}`}
               label={formatMessage(aspectMessages[aspect])}
               icon={<CompanyAspectIcon aspect={toAspectSlug(aspect)} />}
-              link={{ to: '/-/aspects/$aspect', params: { aspect } }}
+              link={{ to: '/aspects/$aspect', params: { aspect } }}
             />
           ))}
           {exploredAspects.length < COMPANY_ASPECTS.length
             ? (
                 <NavigationLink
-                  path="/-/explore"
+                  path="/explore"
                   label={formatMessage(navigationMessages.exploreMore)}
                   icon={<CompassIcon />}
-                  link={{ to: '/-/explore' }}
+                  link={{ to: '/explore' }}
                 />
               )
             : null}
@@ -130,18 +130,18 @@ function SidebarNavigation() {
         </SidebarGroupLabel>
         <SidebarMenu>
           <NavigationLink
-            path="/-/team"
+            path="/team"
             label={formatMessage(navigationMessages.team)}
             icon={<UsersRoundIcon />}
-            link={{ to: '/-/team' }}
+            link={{ to: '/team' }}
           />
           {isAdministrator
             ? (
                 <NavigationLink
-                  path="/-/profile"
+                  path="/profile"
                   label={formatMessage(navigationMessages.profile)}
                   icon={<StoreIcon />}
-                  link={{ to: '/-/profile' }}
+                  link={{ to: '/profile' }}
                 />
               )
             : null}
@@ -156,16 +156,16 @@ function SidebarNavigation() {
               </SidebarGroupLabel>
               <SidebarMenu>
                 <NavigationLink
-                  path="/-/administration/users"
+                  path="/administration/users"
                   label={formatMessage(navigationMessages.administrationUsers)}
                   icon={<ContactRoundIcon />}
-                  link={{ to: '/-/administration/users' }}
+                  link={{ to: '/administration/users' }}
                 />
                 <NavigationLink
-                  path="/-/administration/organizations"
+                  path="/administration/organizations"
                   label={formatMessage(navigationMessages.administrationOrganizations)}
                   icon={<Building2Icon />}
-                  link={{ to: '/-/administration/organizations' }}
+                  link={{ to: '/administration/organizations' }}
                 />
               </SidebarMenu>
             </SidebarGroup>

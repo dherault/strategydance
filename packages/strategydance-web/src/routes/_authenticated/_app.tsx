@@ -11,17 +11,17 @@ const APP_MESSAGE_TYPES: MessageType[] = ['navigation']
 
 /*
   The app proper: every page of the authenticated area that sits beside the sidebar. Pathless, so
-  its pages keep their `/-/...` paths, and the invitation page, which takes the whole screen,
+  it adds nothing to its pages' paths, and the invitation page, which takes the whole screen,
   stays out of it.
 
-  `/-` above has already waited for the reader, their row and their memberships, so the bouncer
-  reads a list that has arrived: somebody who belongs to no organization is sent to the prologue,
-  and a page here always has a current organization. The invitation page is outside, since that
-  is how somebody with none joins one.
+  `_authenticated` above has already waited for the reader, their row and their memberships, so
+  the bouncer reads a list that has arrived: somebody who belongs to no organization is sent to
+  the prologue, and a page here always has a current organization. The invitation page is
+  outside, since that is how somebody with none joins one.
 
   The sidebar reads all three, and comes after the catalogue its words come from
 */
-export const Route = createFileRoute('/-/_app')({
+export const Route = createFileRoute('/_authenticated/_app')({
   component: AppRoute,
 })
 

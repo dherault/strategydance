@@ -55,9 +55,9 @@ describe('sendOrganizationInvitationEmails', () => {
     const [emails] = sendEmails.mock.calls[0]
 
     expect(emails.map(({ to, html }) => [to, html])).toEqual([
-      ['ada@example.com', 'http://localhost:5173/-/invitation/a1'],
-      ['grace@example.com', 'http://localhost:5173/-/invitation/b2'],
-      ['hedy@example.com', 'http://localhost:5173/-/invitation/c3'],
+      ['ada@example.com', 'http://localhost:5173/invitation/a1'],
+      ['grace@example.com', 'http://localhost:5173/invitation/b2'],
+      ['hedy@example.com', 'http://localhost:5173/invitation/c3'],
     ])
     expect(renderOrganizationInvitationEmail.mock.calls[0][0]).toMatchObject({ organizationName: 'Northwind', inviterName: 'Astrid' })
   })

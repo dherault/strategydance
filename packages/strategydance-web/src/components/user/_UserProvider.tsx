@@ -82,8 +82,8 @@ function UserProvider({ children }: PropsWithChildren) {
   /*
     True until the row actually exists, not merely until the read resolves. Between a first
     read that finds nothing and the insert landing there is no row and nothing pending, and
-    releasing the waiter there renders `/-` with `useUser().data` still null, which is the one
-    thing the route promises cannot happen.
+    releasing the waiter there renders the authenticated area with `useUser().data` still null,
+    which is the one thing the route promises cannot happen.
 
     `isError` releases it anyway. A read this reader is not allowed to make is not going to
     start working, and a hang says less than an empty screen does

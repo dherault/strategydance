@@ -64,17 +64,20 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> & { hasFailed: bool
     const queryKey = ['GetOrganizationTeam', organizationId]
 
     /*
-      The reader's own row in a pushed team says what they are in it now. When that differs from
-      what their memberships say, somebody changed their access or removed them, and the
-      memberships are read again: the sidebar follows, and a removed reader's current
-      organization moves on to another
+      The reader's own row in a pushed team says what they are in it now: their access, and what
+      they do there. When either differs from what their memberships say, somebody changed it or
+      removed them, and the memberships are read again: the sidebar follows, a removed reader's
+      current organization moves on to another, and their account page shows the new job title
     */
     function syncMemberships(team: OrganizationTeam) {
       const memberships = queryClient.getQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId])
-      const knownRole = memberships?.userOrganizations.find(membership => membership.organization.id === organizationId)?.role ?? null
-      const pushedRole = team.userOrganizations.find(member => member.user.id === viewerId)?.role ?? null
+      const known = memberships?.userOrganizations.find(membership => membership.organization.id === organizationId)
+      const pushed = team.userOrganizations.find(member => member.user.id === viewerId)
 
-      if (knownRole !== pushedRole) queryClient.invalidateQueries({ queryKey: ['GetCurrentUserOrganizations'] })
+      const isRoleChanged = (known?.role ?? null) !== (pushed?.role ?? null)
+      const isJobTitleChanged = (known?.jobTitle ?? null) !== (pushed?.jobTitle ?? null)
+
+      if (isRoleChanged || isJobTitleChanged) queryClient.invalidateQueries({ queryKey: ['GetCurrentUserOrganizations'] })
     }
 
     /*

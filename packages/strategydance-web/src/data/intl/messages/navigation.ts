@@ -45,17 +45,17 @@ const navigationMessages = defineMessages({
   company: {
     id: 'navigation.company',
     defaultMessage: 'Company',
-    description: 'Sidebar heading above the links about the company itself, such as its team and its settings. Also the small label above the title of those pages.',
+    description: 'Sidebar heading above the links about the company itself, such as its team and its profile.',
   },
   team: {
     id: 'navigation.team',
     defaultMessage: 'Team',
     description: 'Sidebar link to the page about the people in the organization.',
   },
-  settings: {
-    id: 'navigation.settings',
-    defaultMessage: 'Settings',
-    description: 'Sidebar link to the settings page.',
+  profile: {
+    id: 'navigation.profile',
+    defaultMessage: 'Profile',
+    description: 'Sidebar link, under the "Company" heading, to the page where administrators set how the organization appears to its team, the community and agents.',
   },
   aspectStrategy: {
     id: 'navigation.aspectStrategy',
@@ -107,11 +107,6 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Organizations',
     description: 'Heading of the menu listing the reader\'s organizations.',
   },
-  noOrganization: {
-    id: 'navigation.noOrganization',
-    defaultMessage: 'No organization yet',
-    description: 'Shown in place of the current organization\'s name when the reader belongs to none.',
-  },
   addOrganization: {
     id: 'navigation.addOrganization',
     defaultMessage: 'Add organization',
@@ -132,6 +127,21 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Name',
     description: 'Label of the field for the new organization\'s name.',
   },
+  organizationBrief: {
+    id: 'navigation.organizationBrief',
+    defaultMessage: 'Brief',
+    description: 'Label of the field for a short description of the new organization\'s company.',
+  },
+  organizationBriefPlaceholder: {
+    id: 'navigation.organizationBriefPlaceholder',
+    defaultMessage: 'What your company does, for whom, and where it is headed.',
+    description: 'Placeholder in the empty brief field of the window creating a new organization.',
+  },
+  organizationBriefHint: {
+    id: 'navigation.organizationBriefHint',
+    defaultMessage: 'You can edit this later in your company profile.',
+    description: 'Hint under the brief field of the window creating a new organization.',
+  },
   addOrganizationSubmit: {
     id: 'navigation.addOrganizationSubmit',
     defaultMessage: 'Add',
@@ -141,6 +151,11 @@ const navigationMessages = defineMessages({
     id: 'navigation.addOrganizationError',
     defaultMessage: 'The organization could not be created. Try again.',
     description: 'Error shown under the name field when creating the organization failed.',
+  },
+  addOrganizationUnread: {
+    id: 'navigation.addOrganizationUnread',
+    defaultMessage: '{organizationName} was created, but it could not be loaded. Reload the page to see it.',
+    description: 'Error shown once the window creating an organization closes, when the organization was created but the list of organizations could not be refreshed.',
   },
   close: {
     id: 'navigation.close',

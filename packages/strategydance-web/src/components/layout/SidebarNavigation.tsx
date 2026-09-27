@@ -1,5 +1,5 @@
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
-import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, SettingsIcon, UsersRoundIcon } from 'lucide-react'
+import { BotIcon, CalendarIcon, CompassIcon, ListChecksIcon, StoreIcon, UsersRoundIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
@@ -136,10 +136,10 @@ function SidebarNavigation() {
           {isAdministrator
             ? (
                 <NavigationLink
-                  path="/-/settings"
-                  label={formatMessage(navigationMessages.settings)}
-                  icon={<SettingsIcon />}
-                  link={{ to: '/-/settings' }}
+                  path="/-/profile"
+                  label={formatMessage(navigationMessages.profile)}
+                  icon={<StoreIcon />}
+                  link={{ to: '/-/profile' }}
                 />
               )
             : null}

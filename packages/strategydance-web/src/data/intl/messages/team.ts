@@ -2,6 +2,11 @@ import { defineMessages } from 'react-intl'
 
 // The team page: the organization's members, what they do, and what they may do
 const teamMessages = defineMessages({
+  eyebrow: {
+    id: 'team.eyebrow',
+    defaultMessage: 'You\'re in good company',
+    description: 'Small uppercase label above the title of the team page, a friendly nod to the people listed under it.',
+  },
   lead: {
     id: 'team.lead',
     defaultMessage: '{memberCount, plural, one {# member} other {# members}} in {organizationName}{invitationCount, plural, =0 {} one {, # pending invitation} other {, # pending invitations}}.',
@@ -151,11 +156,6 @@ const teamMessages = defineMessages({
     id: 'team.inviteError',
     defaultMessage: 'The invitations could not be sent. Try again.',
     description: 'Error in the invite dialog when sending the invitations failed for another reason.',
-  },
-  noOrganization: {
-    id: 'team.noOrganization',
-    defaultMessage: 'Create an organization from the menu at the top of the sidebar, then invite your team here.',
-    description: 'Notice on the team page when the reader belongs to no organization yet.',
   },
   loadError: {
     id: 'team.loadError',

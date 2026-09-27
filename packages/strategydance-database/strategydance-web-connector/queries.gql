@@ -6,6 +6,7 @@ query GetCurrentUser @auth(level: USER) {
     email
     displayName
     imageUrl
+    bio
     locale
     timezone
     authenticationProviders
@@ -50,6 +51,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
   ) {
     role
+    # What the reader does there, which their account page shows beside the organization's name
+    jobTitle
     organization {
       id
       name
@@ -57,6 +60,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       logoUrl
       bannerUrl
       color
+      brief
+      isPublic
     }
   }
 }
@@ -74,7 +79,7 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # through the Admin SDK; the last empties both lists, which the page reads as the reader having
 # left. A profile edit is not among them: refreshing on every `UpdateCurrentUser` would wake every
 # team page for anybody's change of name, so a new name shows on the next load instead. Nor is a
-# change to the organization's settings, since this query reads none of them.
+# change to the organization's profile, since this query reads none of them.
 #
 # Each list is read up to 100 rows, named rather than left to the generated default. The database
 # keeps a team at 100 members and pending invitations together (`MAX_TEAM_SIZE` in

@@ -64,16 +64,6 @@ function ExploreAspects() {
           {formatMessage(exploreMessages.lead)}
         </p>
       </header>
-      {organization
-        ? null
-        : (
-            <Alert
-              variant="info"
-              className="max-w-xl"
-            >
-              {formatMessage(exploreMessages.noOrganization)}
-            </Alert>
-          )}
       {hasFailed
         ? (
             <Alert

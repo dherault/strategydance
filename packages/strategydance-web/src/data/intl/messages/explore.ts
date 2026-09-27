@@ -72,11 +72,6 @@ const exploreMessages = defineMessages({
     defaultMessage: 'The aspect could not be added. Try again.',
     description: 'Error shown when adding an aspect to those the organization works on failed.',
   },
-  noOrganization: {
-    id: 'explore.noOrganization',
-    defaultMessage: 'Add an organization to start exploring its aspects.',
-    description: 'Notice on the aspects page while the reader belongs to no organization, which aspects are added to.',
-  },
 })
 
 export default exploreMessages

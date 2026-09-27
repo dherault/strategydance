@@ -40,3 +40,13 @@ export const Disabled: Story = {
     disabled: true,
   },
 }
+
+export const Autosize: Story = {
+  args: {
+    label: 'Brief',
+    placeholder: 'What your company does, for whom, and where it is headed.',
+    hint: 'Grows with what is typed, from its rows.',
+    rows: 3,
+    autosize: true,
+  },
+}

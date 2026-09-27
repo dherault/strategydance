@@ -47,6 +47,44 @@ mutation UpdateCurrentUser(
   )
 }
 
+# What the account page saves: the name, the picture and the bio, written whole.
+#
+# The name and the picture are the Firebase profile's, which the page updates first, so this
+# writes the same two values the mirror in `UpdateCurrentUser` would and nothing drifts. The bio
+# lives here alone.
+#
+# The checks are here as well as in the page, since the page is not the only possible caller, and
+# sit on the caller's own row, read first and redacted, because an operation takes no `@check` of
+# its own. A new name is held to what an organization's is, at most 80 characters
+# (`MAX_USER_NAME_LENGTH` in strategydance-core), and a bio to 200 (`MAX_USER_BIO_LENGTH`), over
+# as many lines as it likes.
+#
+# The name stored is let through as it is, since the page sends it back untouched when only the
+# picture or the bio changed. One mirrored from Google can be longer than the page allows, or carry
+# spaces at an end, and refusing it would refuse the picture and the bio with it
+mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio: String)
+@auth(level: USER) @transaction {
+  query @redact {
+    user(key: { id_expr: "auth.uid" }) {
+      displayName
+        @check(
+          expr: "this == vars.displayName || (size(vars.displayName) <= 80 && vars.displayName.matches('^[[:^space:]](.*[[:^space:]])?$'))"
+          message: "A name is 1 to 80 characters on one line, with no space at either end"
+        )
+        @check(expr: "vars.bio == null || size(vars.bio) <= 200", message: "A bio is at most 200 characters")
+    }
+  }
+  user_update(
+    key: { id_expr: "auth.uid" }
+    data: {
+      displayName: $displayName
+      imageUrl: $imageUrl
+      bio: $bio
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
 # An organization and its first administrator, which are one act: an organization nobody can
 # administer is unreachable, and a membership without its organization is a foreign key
 # violation. `@transaction` rolls the first insert back if the second fails.
@@ -55,10 +93,11 @@ mutation UpdateCurrentUser(
 # organization they never asked for. `response.organization.id` is the uuid the step above
 # generated, keyed by the alias.
 #
-# The name is held to what `UpdateOrganization` holds it to, so an organization never starts with
-# a name its settings page would refuse to save. The check sits on the caller's own row, read
-# first and redacted, because an operation takes no `@check` of its own
-mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
+# The name and the brief are held to what `UpdateOrganization` holds them to, so an organization
+# never starts with details its profile page would refuse to save. The brief is null when there
+# is none. The checks sit on the caller's own row, read first and redacted, because an operation
+# takes no `@check` of its own
+mutation CreateOrganization($name: String!, $brief: String) @auth(level: USER) @transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {
       id
@@ -66,9 +105,10 @@ mutation CreateOrganization($name: String!) @auth(level: USER) @transaction {
           expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
           message: "A name is 1 to 80 characters on one line, with no space at either end"
         )
+        @check(expr: "vars.brief == null || size(vars.brief) <= 500", message: "A brief is at most 500 characters")
     }
   }
-  organization: organization_insert(data: { name: $name })
+  organization: organization_insert(data: { name: $name, brief: $brief })
   userOrganization: userOrganization_insert(
     data: {
       organizationId_expr: "response.organization.id"
@@ -119,30 +159,39 @@ mutation AddOrganizationExploredAspect(
   )
 }
 
-# Renames an organization and sets the color of its mark. Only an administrator may.
+# Sets how an organization appears: its name, the color of its mark, its brief, and whether its
+# profile is public. Only an administrator may.
 #
-# Both are written whole: the settings page sends the name and the color it shows, the color as
-# stored, null for the default, whenever either changed. The logo and the banner are not here.
-# Only the backend writes those, since each is a file in Storage first.
+# All four are written whole: the profile page sends what it shows whenever any of them changed,
+# the color as stored, null for the default, and the brief null when there is none. The logo and
+# the banner are not here. Only the backend writes those, since each is a file in Storage first.
 #
 # The checks on the variables are here as well as in the page, since the page is not the only
 # possible caller, and sit on the redacted read's field because an operation takes no `@check` of
 # its own. A name is refused empty, over 80 characters (`MAX_ORGANIZATION_NAME_LENGTH` in
 # strategydance-core), across lines, or with whitespace at either end, which the page trims away:
 # CEL has no standard `trim()`, so the pattern says it instead. A color is six uppercase hex digits.
+# A brief is at most 500 characters (`MAX_ORGANIZATION_BRIEF_LENGTH`).
 #
 # The write comes first rather than a separate row lock, because Data Connect runs one write per
 # row in a mutation: a second `organization_update`, aliased or not, silently changes nothing. The
 # write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
 # does, so the checks after it read what a demotion in the same instant committed, and a check
 # that fails rolls the write back
-mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String)
-@auth(level: USER) @transaction {
+mutation UpdateOrganization(
+  $organizationId: UUID!
+  $name: String!
+  $color: String
+  $brief: String
+  $isPublic: Boolean!
+) @auth(level: USER) @transaction {
   organization_update(
     id: $organizationId
     data: {
       name: $name
       color: $color
+      brief: $brief
+      isPublic: $isPublic
       updatedAt_expr: "request.time"
     }
   )
@@ -156,6 +205,7 @@ mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: Stri
           message: "A name is 1 to 80 characters on one line, with no space at either end"
         )
         @check(expr: "vars.color == null || vars.color.matches('^#[0-9A-F]{6}$')", message: "A color is six uppercase hex digits after a #")
+        @check(expr: "vars.brief == null || size(vars.brief) <= 500", message: "A brief is at most 500 characters")
     }
   }
 }

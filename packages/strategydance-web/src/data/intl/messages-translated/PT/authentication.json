@@ -1,9 +1,7 @@
 {
   "authentication.action.back": "Voltar",
   "authentication.action.continue": "Continuar",
-  "authentication.action.hidePassword": "Ocultar senha",
   "authentication.action.logIn": "Entrar",
-  "authentication.action.showPassword": "Exibir senha",
   "authentication.action.signUp": "Cadastrar-se",
   "authentication.error.credentialAlreadyInUse": "Outra conta já usa estas credenciais.",
   "authentication.error.default": "Algo deu errado. Tente novamente.",

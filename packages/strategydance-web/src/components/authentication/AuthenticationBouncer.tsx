@@ -5,10 +5,13 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 
 /*
   Sits under `AuthenticationWait`, which is what makes the verdict readable: by the time this
-  renders, a viewer of `null` means signed out rather than not answered yet.
+  renders, a viewer of `null` means signed out rather than not answered yet. It guards `/-` and
+  `/prologue`.
 
   The page asked for rides along to the sign-in screen, which returns there once the reader is
-  in, so a link into the app, an invitation's above all, survives having to sign in first.
+  in, so a link into the app, an invitation's above all, survives having to sign in first. The
+  sign-in screen drops `/prologue` as a place to return to, and needs no other: the app sends
+  whoever belongs to no organization back there.
 
   An effect on the verdict rather than a `<Navigate>`, and the location read off the router
   inside it rather than subscribed to. The location moves to the sign-in screen while this is
@@ -27,7 +30,7 @@ function AuthenticationBouncer({ children }: PropsWithChildren) {
 
     // Already on its way out: StrictMode runs this twice in development, and the second run
     // reads the location the first one moved to the sign-in screen
-    if (pathname !== '/-' && !pathname.startsWith('/-/')) return
+    if (pathname !== '/prologue' && pathname !== '/-' && !pathname.startsWith('/-/')) return
 
     navigate({
       to: '/authentication',

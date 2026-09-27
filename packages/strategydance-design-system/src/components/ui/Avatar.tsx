@@ -13,6 +13,8 @@ const avatarVariants = cva(
         md: 'size-8 text-xs',
         lg: 'size-10 text-sm',
         xl: 'size-14 text-base',
+        // A profile's own picture, shown large at the head of it
+        '2xl': 'size-32 text-4xl',
       },
     },
     defaultVariants: {

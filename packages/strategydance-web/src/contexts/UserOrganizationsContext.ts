@@ -2,7 +2,7 @@ import { createContext } from 'react'
 import type { OrganizationImageKind } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
 
-import type { DataSource, UserOrganization } from '~types'
+import type { DataSource, OrganizationDetails, UserOrganization } from '~types'
 
 /*
   Every organization the reader belongs to, and what they are in each.
@@ -14,16 +14,21 @@ import type { DataSource, UserOrganization } from '~types'
   This context owns the list; that one owns the choice
 */
 export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
-  // Resolves once the new row is readable, and answers with its id so the caller can select it.
-  // Selecting is deliberately not done here: this context does not know what is selected
-  createOrganization: (name: string) => Promise<string>
+  // The first read failed, so the empty list means nothing: not a reader who belongs to none
+  hasFailed: boolean
+  // Creates an organization with its brief, or none with null, and answers with its id so the
+  // caller can select it, and whether the list shows it yet. Rejects only when the create failed:
+  // a list that could not be read back is `isRead: false`, to be read again with `refetch` rather
+  // than created again. Selecting is deliberately not done here: this context does not know what
+  // is selected
+  createOrganization: (name: string, brief: string | null) => Promise<{ organizationId: string, isRead: boolean }>
   // Accepts an invitation to the organization, and resolves once the list shows the membership
   joinOrganization: (invitationId: string, organizationId: string) => Promise<void>
   // Adds an aspect to the organization's explored ones, and resolves once the list shows it
   exploreCompanyAspect: (organizationId: string, aspect: CompanyAspect) => Promise<void>
-  // Renames the organization and sets its color, null for the default, and resolves once the
-  // list shows both
-  updateOrganization: (organizationId: string, name: string, color: string | null) => Promise<void>
+  // Sets the organization's name, color, brief and visibility, and resolves once the list shows
+  // them
+  updateOrganization: (organizationId: string, details: OrganizationDetails) => Promise<void>
   // Makes a picture the organization's logo or banner, or removes it with null, and resolves once
   // the list shows the change
   changeOrganizationImage: (organizationId: string, kind: OrganizationImageKind, image: Blob | null) => Promise<void>
@@ -33,10 +38,11 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
 
 export default createContext<UserOrganizationsContextType>({
   data: [],
+  hasFailed: false,
   initialLoading: false,
   loading: false,
   refetch: async () => {},
-  createOrganization: async () => '',
+  createOrganization: async () => ({ organizationId: '', isRead: false }),
   joinOrganization: async () => {},
   exploreCompanyAspect: async () => {},
   updateOrganization: async () => {},

@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
-// The authenticated area opens on the aspects of the company to explore
+// The authenticated area opens on today
 export const Route = createFileRoute('/-/')({
   beforeLoad: () => {
-    throw redirect({ to: '/-/explore', replace: true })
+    throw redirect({ to: '/-/today', replace: true })
   },
 })

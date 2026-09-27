@@ -44,6 +44,31 @@ const globalMessages = defineMessages({
     defaultMessage: 'Close notification',
     description: 'Accessible label of the button that dismisses one of those short confirmation messages.',
   },
+  showPassword: {
+    id: 'global.showPassword',
+    defaultMessage: 'Show password',
+    description: 'Accessible label of the eye button at the end of a password field, which reveals the password typed in it.',
+  },
+  hidePassword: {
+    id: 'global.hidePassword',
+    defaultMessage: 'Hide password',
+    description: 'Accessible label of the eye button at the end of a password field, which hides the password typed in it again.',
+  },
+  organizationsLoadError: {
+    id: 'global.organizationsLoadError',
+    defaultMessage: 'Your organizations could not be loaded. Check your connection and try again.',
+    description: 'Error on a full-page screen when the list of organizations the reader belongs to could not be read.',
+  },
+  retry: {
+    id: 'global.retry',
+    defaultMessage: 'Try again',
+    description: 'Button that reads something again after it failed to load.',
+  },
+  logOut: {
+    id: 'global.logOut',
+    defaultMessage: 'Log out',
+    description: 'Button in the corner of a full-page screen, like the onboarding or an invitation, that signs the reader out.',
+  },
 })
 
 export default globalMessages

@@ -1,8 +1,13 @@
 {
   "global.closeNotification": "Cerrar notificación",
+  "global.hidePassword": "Ocultar contraseña",
   "global.language": "Idioma",
   "global.loading": "Cargando",
+  "global.logOut": "Cerrar sesión",
   "global.notifications": "Notificaciones",
+  "global.organizationsLoadError": "No se pudieron cargar tus organizaciones. Comprueba tu conexión e inténtalo de nuevo.",
+  "global.retry": "Reintentar",
+  "global.showPassword": "Mostrar contraseña",
   "global.signIn": "Iniciar sesión",
   "global.tagline": "Un experimento de IA.",
   "global.welcome": "Strategy Dance"

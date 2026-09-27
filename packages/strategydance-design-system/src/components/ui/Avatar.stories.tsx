@@ -44,6 +44,10 @@ export const Sizes: Story = {
         {...args}
         size="xl"
       />
+      <Avatar
+        {...args}
+        size="2xl"
+      />
     </div>
   ),
 }

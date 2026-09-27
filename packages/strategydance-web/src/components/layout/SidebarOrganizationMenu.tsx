@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from 'strategydance-design-system/components/ui/DropdownMenu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from 'strategydance-design-system/components/ui/Sidebar'
-import { cn } from 'strategydance-design-system/lib/utils'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
@@ -41,8 +40,8 @@ function SidebarOrganizationMenu() {
                   logoUrl={organization?.logoUrl}
                   color={organization?.color}
                 />
-                <span className={cn('min-w-0 flex-1 truncate text-sm', organization ? 'font-semibold text-secondary' : 'text-muted-foreground')}>
-                  {organization?.name ?? formatMessage(navigationMessages.noOrganization)}
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-secondary">
+                  {organization?.name}
                 </span>
                 <ChevronsUpDownIcon />
               </SidebarMenuButton>

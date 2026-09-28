@@ -36,8 +36,12 @@ function Log() {
   const { data: team } = useOrganizationTeam()
   const today = useLocalDate()
 
-  const [olderWeeks, setOlderWeeks] = useState<Week[]>([])
+  // The weeks loaded before the newest, as of the day they were loaded on. The newest week moves at
+  // midnight, and a day would then fall between it and the older ones, shown in neither, so a new
+  // day starts over from the newest alone. The page is not remounted for it, so a draft stays
+  const [loaded, setLoaded] = useState<{ today: string, weeks: Week[] }>({ today: '', weeks: [] })
 
+  const olderWeeks = loaded.today === today ? loaded.weeks : []
   const viewerId = viewer?.uid ?? null
   const newestWeek: Week = { from: addDays(today, -(WEEK_DAYS - 1)), to: today }
   const { data: newest } = useOrganizationLogWeek({ ...newestWeek, isLive: true })
@@ -46,7 +50,7 @@ function Log() {
   const weeks = [newestWeek, ...olderWeeks]
 
   function loadPrevious(olderDate: string) {
-    setOlderWeeks(current => [...current, { from: addDays(olderDate, -(WEEK_DAYS - 1)), to: olderDate }])
+    setLoaded({ today, weeks: [...olderWeeks, { from: addDays(olderDate, -(WEEK_DAYS - 1)), to: olderDate }] })
   }
 
   if (!organization) return null

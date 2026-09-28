@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import renderWelcomeEmail from './renderWelcomeEmail'
 
-// Development's, so it stands apart from the production site the footer links to
+// Development's, so it stands apart from the production site the logo is served from
 const APP_URL = 'http://localhost:5173'
 
 describe('renderWelcomeEmail', () => {
@@ -28,6 +28,14 @@ describe('renderWelcomeEmail', () => {
 
     expect(html).not.toContain('<b>Astrid</b>')
     expect(html).toContain('&lt;b&gt;Astrid&lt;/b&gt;')
+  })
+
+  test('draws the mark as a PNG from the production site, whatever environment sent the email', async () => {
+    const { html } = await renderWelcomeEmail({ firstName: 'Astrid', appUrl: APP_URL })
+
+    expect(html).toContain('src="https://strategydance.com/assets/images/logo/logo-secondary-512.png"')
+    // Gmail and Outlook drop inline SVG
+    expect(html).not.toContain('<svg')
   })
 
   test('leaves the fallback link out of the plain-text part, where the button already carries it', async () => {

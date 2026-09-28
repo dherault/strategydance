@@ -1,5 +1,7 @@
 import type { PropsWithChildren } from 'react'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
+import useChecklist from '~hooks/checklist/useChecklist'
 import useActiveTaskListId from '~hooks/task/useActiveTaskListId'
 import useTaskLists from '~hooks/task/useTaskLists'
 import useTasks from '~hooks/task/useTasks'
@@ -14,8 +16,8 @@ import Loading from '~components/common/Loading'
   whole. The open list's tasks are read for the list the reader last opened, so they need not wait
   for the lists either.
 
-  Every key waited on here is fixed for as long as the page is mounted: the organization's, and
-  the remembered list as it was on arrival, since this component never changes it. A key that
+  Every key waited on here is fixed for as long as the page is mounted: the organization's, the
+  reader's own checklist, and the remembered list as it was on arrival, since this component never changes it. A key that
   moved as the reader worked, the first list once they add one, would be a query with nothing
   cached, and the page would be swapped for the spinner and mounted anew under their cursor. With
   no list remembered, the open list's tasks load inside the section instead.
@@ -29,8 +31,10 @@ function TodayWait({ children }: PropsWithChildren) {
   const { initialLoading: areTaskListsLoading } = useTaskLists()
   const [activeTaskListId] = useActiveTaskListId()
   const { initialLoading: areTasksLoading } = useTasks(activeTaskListId)
+  const { data: viewer } = useAuthentication()
+  const { initialLoading: isChecklistLoading } = useChecklist(viewer?.uid ?? null)
 
-  if (isTeamLoading || arePreferencesLoading || areTaskListsLoading || areTasksLoading) {
+  if (isTeamLoading || arePreferencesLoading || areTaskListsLoading || areTasksLoading || isChecklistLoading) {
     return (
       <Loading source="TodayWait" />
     )

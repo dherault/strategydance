@@ -4,6 +4,7 @@ import useLocalDate from '~hooks/common/useLocalDate'
 
 import toCalendarDate from '~utils/date/toCalendarDate'
 
+import Checklist from '~components/checklist/Checklist'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
 import Tasks from '~components/task/Tasks'
@@ -28,6 +29,7 @@ function Today() {
       <div className="flex flex-col gap-14">
         <TodayPriorities />
         <Tasks />
+        <Checklist />
       </div>
     </ContainerLayout>
   )

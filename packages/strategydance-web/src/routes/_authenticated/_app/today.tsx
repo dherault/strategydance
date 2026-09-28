@@ -9,7 +9,7 @@ import Today from '~components/today/Today'
 import TodayWait from '~components/today/TodayWait'
 
 // At module scope so the reference is stable across renders
-const TODAY_MESSAGE_TYPES: MessageType[] = ['today', 'task']
+const TODAY_MESSAGE_TYPES: MessageType[] = ['today', 'task', 'checklist']
 
 export const Route = createFileRoute('/_authenticated/_app/today')({
   component: TodayRoute,

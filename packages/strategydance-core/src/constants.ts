@@ -188,3 +188,11 @@ export const MAX_TASK_LISTS = 100
 export const MAX_TASKS_PER_LIST = 1000
 export const MAX_TASK_LIST_NAME_LENGTH = 120
 export const MAX_TASK_LENGTH = 120
+
+/*
+  How many live columns one person's checklist holds in an organization, and how long a column's
+  name may be, short enough to read slanted above it. Written out again in the checklist
+  mutations' checks and in `GetChecklist`'s limit, which cannot import them: change them together
+*/
+export const MAX_CHECKLIST_ITEMS = 100
+export const MAX_CHECKLIST_ITEM_NAME_LENGTH = 40

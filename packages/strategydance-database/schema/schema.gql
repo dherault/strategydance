@@ -227,3 +227,38 @@ type Task @table @index(fields: ["taskListId", "position"]) {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+
+# One of the habits on somebody's checklist in an organization, a column they tick on each day they
+# keep it, such as "Talk to users". Their team reads it, and only they write it.
+#
+# It references the account and the organization rather than the membership, as `TaskList` does,
+# so a member removed and invited again finds their checklist and its history where they left it.
+#
+# Deleted by setting `deletedAt`, so an Undo brings the column back with every day it was ticked,
+# which reaches further back than the page has read. `DeleteChecklistItem` prunes the ones deleted
+# over a day ago, their ticks cascading with them
+type ChecklistItem @table @index(fields: ["userId", "organizationId"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH` in strategydance-core), short
+  # enough to read slanted above its column
+  name: String!
+  # Where its column sits, ascending, moved one row at a time as a task is
+  position: Float!
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# A day somebody kept one of their habits. The row is the tick: unticking deletes it, so a day
+# nobody ticked costs nothing. Keyed by the item and the day, so a day is ticked at most once
+type ChecklistCompletion @table(key: ["checklistItem", "date"]) {
+  # Implies a `checklistItemId: UUID!` column, cascade deleting
+  checklistItem: ChecklistItem!
+  # The owner's day, in their time zone, as their page reads it rather than as the server does
+  date: Date!
+  createdAt: Timestamp! @default(expr: "request.time")
+}

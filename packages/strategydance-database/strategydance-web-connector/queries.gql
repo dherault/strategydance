@@ -284,3 +284,99 @@ query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
     position
   }
 }
+
+# Somebody's checklist in an organization, as the Today page opens it: any member may read any
+# member's, and an outsider, or a member reading somebody who left, reads nothing.
+#
+# - `owner` is when they joined and their time zone, which say which rows the table has and which
+#   of them is their today
+# - `checklistItems` are their live columns in order, each with the days ticked in the last eight,
+#   which covers the week the table shows folded in any time zone. The window is the server's
+#   today, so the query stays the same across the reader's midnight. Up to 100 columns,
+#   `MAX_CHECKLIST_ITEMS` in strategydance-core
+# - `earliest` is their oldest tick, so the table can say how many days it would unfold to
+# - `anyItem` says whether they ever had a column, deleted ones included, so their own page seeds
+#   the default habits once and never again
+query GetChecklist($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  owner: userOrganizations(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    createdAt
+    user {
+      timezone
+    }
+  }
+  checklistItems(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    position
+    completions: checklistCompletions_on_checklistItem(
+      where: { date: { ge_date: { today: true, sub: { days: 8 } } } }
+      orderBy: [{ date: DESC }]
+      limit: 10
+    ) {
+      date
+    }
+  }
+  earliest: checklistCompletions(
+    where: {
+      checklistItem: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+        user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+      }
+    }
+    orderBy: [{ date: ASC }]
+    limit: 1
+  ) {
+    date
+  }
+  anyItem: checklistItems(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+  }
+}
+
+# Every day somebody ticked each of their live checklist columns, for the table unfolded past the
+# week `GetChecklist` reads. Read only when it unfolds, and scoped as that query is. Up to 3660 days
+# a column, ten years: past that it needs pagination
+query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  checklistItems(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    limit: 100
+  ) {
+    id
+    completions: checklistCompletions_on_checklistItem(orderBy: [{ date: DESC }], limit: 3660) {
+      date
+    }
+  }
+}

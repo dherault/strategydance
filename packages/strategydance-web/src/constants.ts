@@ -17,6 +17,7 @@ export const MESSAGE_TYPES = [
   'account',
   'administration',
   'authentication',
+  'checklist',
   'explore',
   'global',
   'invitation',

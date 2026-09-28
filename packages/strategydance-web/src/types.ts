@@ -1,4 +1,4 @@
-import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData, GetTaskListsData, GetTasksData, GetTodayPreferencesData } from 'strategydance-database/web'
+import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetChecklistData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData, GetTaskListsData, GetTasksData, GetTodayPreferencesData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
@@ -97,3 +97,10 @@ export type TaskList = GetTaskListsData['taskLists'][number]
 
 // One task on a list, where it sits in it, and whether it is done
 export type Task = GetTasksData['tasks'][number]
+
+// Somebody's checklist as the Today page opens it: who they are, their columns with the last week
+// of ticks, and how far back their ticks go
+export type Checklist = GetChecklistData
+
+// One column of a checklist, a habit, with the days it was ticked that the page has read
+export type ChecklistItem = GetChecklistData['checklistItems'][number]

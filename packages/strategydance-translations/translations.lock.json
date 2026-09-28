@@ -438,6 +438,148 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "checklist": {
+      "checklist.addItem": {
+        "hash": "6c9e2335db74f496",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.cell": {
+        "hash": "e1937df7b09d4c5e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.cellDone": {
+        "hash": "b4c140c0471f7411",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.cellNotDone": {
+        "hash": "8dd98669c4d923b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.confirm": {
+        "hash": "54b4a7b68ed19425",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.day": {
+        "hash": "4bdfff7ed3b97f15",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.defaultBuilding": {
+        "hash": "bf88648319a6ffa9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.defaultDistribution": {
+        "hash": "2553cc3ee5d46cc0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.defaultReflexion": {
+        "hash": "48ddd89432d81698",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.defaultTalkToUsers": {
+        "hash": "c10d1b5b3d7c0900",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.description": {
+        "hash": "558cffeb87ee50fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.editItem": {
+        "hash": "20cea7763dcfcc61",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.historyError": {
+        "hash": "3c0ab1ba07567c93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.itemHint": {
+        "hash": "1e21acb7d2286c9a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.itemName": {
+        "hash": "53095e1882f687d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.loadError": {
+        "hash": "257e112faee78448",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.lockDay": {
+        "hash": "fe348b8db42e97cc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.lockHint": {
+        "hash": "a93b78194413ad99",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.moveLeft": {
+        "hash": "9fa79479383a7945",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.moveRight": {
+        "hash": "6548c980a26e5f86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.newItemName": {
+        "hash": "c3a15207cf777b53",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.noItems": {
+        "hash": "9210a4eee9ec9513",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.remove": {
+        "hash": "33aa641a1ba9fe34",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.removed": {
+        "hash": "d2ef7298678c4b70",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.save": {
+        "hash": "9fb3f501dfd42e31",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.saveError": {
+        "hash": "29605bd775d2a2a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.showAll": {
+        "hash": "1c7d86d5c8b0016c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.showFor": {
+        "hash": "ad1094c2917cdb77",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.showLess": {
+        "hash": "5b023f2a6be11587",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.title": {
+        "hash": "12ba819a499b943c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.today": {
+        "hash": "0b0aa0de2a37952d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.undo": {
+        "hash": "0a0e5b9c52c85d4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.unlockDay": {
+        "hash": "8a476ff62472fd26",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.unlockHint": {
+        "hash": "7c55e32a829799a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "checklist.viewOnly": {
+        "hash": "a0152b233f15b2db",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "explore": {
       "explore.blurbDesign": {
         "hash": "732e8bf4219df317",

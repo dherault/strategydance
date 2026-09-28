@@ -536,3 +536,150 @@ mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tran
   }
   task_deleteMany(where: { id: { eq: $id }, taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } } })
 }
+
+# Starts the caller's checklist in an organization with the four default habits, named by the page
+# in the caller's language, the first time they open it there.
+#
+# The first step writes the caller's own membership, which refuses anybody outside the
+# organization and is the lock the rest runs under: a second tab asking at the same time waits,
+# then finds the four the first made and is refused. Any column at all, a deleted one included,
+# refuses it too, so a member who removed the defaults does not get them back, and a member invited
+# again keeps the checklist they had. Each name is held to what `CreateChecklistItem` holds one to
+mutation CreateDefaultChecklistItems($organizationId: UUID!, $firstName: String!, $secondName: String!, $thirdName: String!, $fourthName: String!)
+@auth(level: USER) @transaction {
+  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
+    @check(
+      expr: "size(vars.firstName) <= 40 && vars.firstName.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.secondName) <= 40 && vars.secondName.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.thirdName) <= 40 && vars.thirdName.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.fourthName) <= 40 && vars.fourthName.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A checklist column's name is 1 to 40 characters on one line, with no space at either end"
+    )
+  query @redact {
+    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The checklist was started already") {
+      id
+    }
+  }
+  first: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $firstName, position: 1 })
+  second: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $secondName, position: 2 })
+  third: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $thirdName, position: 3 })
+  fourth: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $fourthName, position: 4 })
+}
+
+# Adds a column to the caller's checklist in an organization. The id is the page's, which shows the
+# column before the server answers.
+#
+# At most 100 live columns (`MAX_CHECKLIST_ITEMS` in strategydance-core), counted under a lock on
+# the caller's own membership, as `CreateTaskList` counts lists. A name is one line of at most 40
+# characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
+mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!) @auth(level: USER) @transaction {
+  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
+    @check(
+      expr: "size(vars.name) <= 40 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A checklist column's name is 1 to 40 characters on one line, with no space at either end"
+    )
+  query @redact {
+    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
+      @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
+      id
+    }
+  }
+  checklistItem_insert(data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name, position: $position })
+}
+
+# Renames or moves one of the caller's checklist columns, both written whole, held to what
+# `CreateChecklistItem` holds a name to
+mutation UpdateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
+      role
+        @check(
+          expr: "size(vars.name) <= 40 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A checklist column's name is 1 to 40 characters on one line, with no space at either end"
+        )
+    }
+  }
+  checklistItem_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { name: $name, position: $position, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No checklist column of yours by that id")
+}
+
+# Removes one of the caller's checklist columns by setting `deletedAt`, so `RestoreChecklistItem`
+# can take it back with its history, and prunes the caller's columns removed over a day ago, in
+# every organization, their ticks cascading with them. Removing one that is gone already succeeds
+mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
+      role
+    }
+  }
+  checklistItem_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time", updatedAt_expr: "request.time" }
+  )
+  checklistItem_deleteMany(where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }) @redact
+}
+
+# Takes back a removal, which the page offers for a few seconds after one. Fails once the column was
+# pruned, a day after it was removed
+mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
+      role
+    }
+  }
+  checklistItem_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    data: { deletedAt: null, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The checklist column is gone for good")
+}
+
+# Ticks a day on one of the caller's checklist columns. An upsert, so ticking a day that is ticked
+# already, from a second tab or a double click, changes nothing.
+#
+# Any past day may be ticked, since a day the reader unlocks is one they forgot. A day ahead is not.
+# In CEL a date is the instant it starts in UTC, so a day starting within 24 hours of now is at most
+# the server's tomorrow, which is already today in the zones ahead of UTC
+mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!) @auth(level: USER) @transaction {
+  query @redact {
+    checklistItems(
+      where: {
+        id: { eq: $checklistItemId }
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+      limit: 1
+    )
+      @check(expr: "size(this) == 1", message: "Only a column on your own checklist, in an organization you belong to, can be ticked")
+      @check(expr: "vars.date <= request.time + duration('24h')", message: "A day that has not come yet cannot be ticked") {
+      id
+    }
+  }
+  checklistCompletion_upsert(data: { checklistItemId: $checklistItemId, date: $date })
+}
+
+# Unticks a day on one of the caller's checklist columns. A day that is not ticked stays so, and
+# the call succeeds
+mutation UncheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
+      role
+    }
+  }
+  checklistCompletion_deleteMany(
+    where: {
+      checklistItemId: { eq: $checklistItemId }
+      date: { eq: $date }
+      checklistItem: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }
+    }
+  )
+}

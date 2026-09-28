@@ -12,7 +12,7 @@ describe('renderOrganizationInvitationEmail', () => {
       invitationUrl: INVITATION_URL,
     })
 
-    expect(senderName).toBe('Strategy Dance')
+    expect(senderName).toBe('David from Strategy Dance')
     expect(subject).toBe('Astrid Lindqvist invited you to join Northwind on Strategy Dance')
     expect(html).toContain('Join Northwind on Strategy Dance')
     expect(html).toContain(`href="${INVITATION_URL}"`)

@@ -4,6 +4,9 @@
 
 export const PRODUCT_NAME = 'Strategy Dance'
 
+// The name every email goes out under: a person, since the address is David's own and a reply lands there
+export const SENDER_NAME = `David from ${PRODUCT_NAME}`
+
 // The mark's width and height in the header, which its viewBox keeps close to square
 export const LOGO_SIZE = 32
 

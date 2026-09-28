@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from './constants'
+import { PRODUCT_NAME, SENDER_NAME } from './constants'
 import WelcomeEmail, { type WelcomeEmailProps } from './emails/WelcomeEmail'
 import renderEmail from './renderEmail'
 
@@ -11,7 +11,7 @@ import renderEmail from './renderEmail'
 */
 async function renderWelcomeEmail(props: WelcomeEmailProps) {
   return {
-    senderName: 'David Hérault',
+    senderName: SENDER_NAME,
     subject: `Welcome to ${PRODUCT_NAME}`,
     ...await renderEmail(<WelcomeEmail {...props} />),
   }

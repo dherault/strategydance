@@ -362,7 +362,8 @@ query GetChecklist($organizationId: UUID!, $userId: String!) @auth(level: USER) 
 
 # Every day somebody ticked each of their live checklist columns, for the table unfolded past the
 # week `GetChecklist` reads. Read only when it unfolds, and scoped as that query is. Up to 3660 days
-# a column, ten years: past that it needs pagination
+# a column, ten years, `MAX_CHECKLIST_HISTORY_DAYS` in strategydance-core, which is also as far back
+# as the table draws: past that it needs pagination
 query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level: USER) {
   checklistItems(
     where: {

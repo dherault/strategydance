@@ -198,6 +198,14 @@ export const MAX_CHECKLIST_ITEMS = 100
 export const MAX_CHECKLIST_ITEM_NAME_LENGTH = 40
 
 /*
+  How many days an unfolded checklist draws at most, today included, and how many ticks a column
+  reads back for it: ten years. A tick cannot be for a day before its owner joined, so only a
+  member of that long reaches it. Written out again in `GetChecklistHistory`'s limit, which cannot
+  import it: change the two together
+*/
+export const MAX_CHECKLIST_HISTORY_DAYS = 3660
+
+/*
   How long a log entry's serialized editor state may be, which is about a page of formatted text.
   Written out again in `CreateLogEntry`'s and `UpdateLogEntry`'s checks, which cannot import it:
   change the three together

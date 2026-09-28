@@ -665,7 +665,11 @@ mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: U
 # checked against the caller's own day: in CEL a date is the instant it starts in UTC, so its UTC
 # calendar day is compared with the one `request.time` falls on in the zone stored on their row,
 # which the app keeps in step with the browser's. With no zone stored, the latest day allowed is
-# the one it already is at UTC+14, the zone furthest ahead
+# the one it already is at UTC+14, the zone furthest ahead.
+#
+# Nor is a day before the caller joined the organization, give or take the zones behind UTC, so a
+# checklist's history is as long as its owner's time there and no longer: a tick sent for a day in
+# 1900 would otherwise make every teammate who unfolds it draw a century of rows
 mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!) @auth(level: USER) @transaction {
   query @redact {
     checklistItems(
@@ -679,6 +683,9 @@ mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $da
       limit: 1
     ) @check(expr: "size(this) == 1", message: "Only a column on your own checklist, in an organization you belong to, can be ticked") {
       id
+    }
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId }) {
+      createdAt @check(expr: "(vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) >= ((this - duration('12h')).getFullYear('UTC') * 10000 + (this - duration('12h')).getMonth('UTC') * 100 + (this - duration('12h')).getDate('UTC'))", message: "A day before you joined cannot be ticked")
     }
     user(key: { id_expr: "auth.uid" }) {
       timezone

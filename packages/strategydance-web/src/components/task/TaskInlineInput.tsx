@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { inputClassName } from 'strategydance-design-system/components/ui/Input'
 import { cn } from 'strategydance-design-system/lib/utils'
 
+import { EDITABLE_BOX_CLASS_NAME } from '~components/task/taskClassNames'
+
 type Props = {
   value: string
   maxLength: number
@@ -38,7 +40,7 @@ function TaskInlineInput({ value, maxLength, 'aria-label': ariaLabel, className,
       value={draft}
       maxLength={maxLength}
       aria-label={ariaLabel}
-      className={cn(inputClassName, '-ml-2.5 h-8 min-w-0 flex-1 bg-white px-2 focus:bg-white', className)}
+      className={cn(inputClassName, EDITABLE_BOX_CLASS_NAME, 'h-8 min-w-0 flex-1 bg-white focus:bg-white', className)}
       // A task is one line, so a pasted newline becomes a space
       onChange={event => setDraft(event.target.value.replace(/\s*[\r\n]+\s*/g, ' '))}
       onBlur={commit}

@@ -9,6 +9,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { Task } from '~types'
 
 import TaskInlineInput from '~components/task/TaskInlineInput'
+import { EDITABLE_BOX_CLASS_NAME } from '~components/task/taskClassNames'
 
 import taskMessages from '~data/intl/messages/task'
 
@@ -73,7 +74,8 @@ function TaskRow({ task, position, total, isEditing, isDragged, dropSide, itemPr
               type="button"
               title={formatMessage(taskMessages.editTask)}
               className={cn(
-                '-ml-2.5 flex min-h-8 min-w-0 flex-1 cursor-text items-center rounded-xs border-0 bg-transparent px-2.5 py-1 text-left font-sans text-sm wrap-anywhere transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary',
+                EDITABLE_BOX_CLASS_NAME,
+                'flex min-h-8 min-w-0 flex-1 cursor-text items-center border-transparent bg-transparent py-[5px] text-left font-sans text-sm wrap-anywhere transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary',
                 task.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
               )}
               onClick={onEdit}

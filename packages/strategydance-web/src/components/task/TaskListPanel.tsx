@@ -5,6 +5,7 @@ import { MAX_TASK_LENGTH, MAX_TASK_LIST_NAME_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Input } from 'strategydance-design-system/components/ui/Input'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Task, TaskList } from '~types'
 
@@ -13,6 +14,7 @@ import useTasks from '~hooks/task/useTasks'
 
 import Spinner from '~components/common/Spinner'
 import TaskInlineInput from '~components/task/TaskInlineInput'
+import { EDITABLE_BOX_CLASS_NAME } from '~components/task/taskClassNames'
 import TaskRow from '~components/task/TaskRow'
 import TodaySectionLoadFailed from '~components/today/TodaySectionLoadFailed'
 
@@ -99,7 +101,7 @@ function TaskListPanel({ taskList, isRenaming, onRenamingChange, onRename, onDel
                 <button
                   type="button"
                   title={formatMessage(taskMessages.renameList)}
-                  className="-ml-2.5 flex min-h-8 min-w-0 cursor-text items-center rounded-xs border-0 bg-transparent px-2.5 py-1 text-left font-sans text-base font-semibold wrap-anywhere text-secondary transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary"
+                  className={cn(EDITABLE_BOX_CLASS_NAME, 'flex min-h-8 min-w-0 cursor-text items-center border-transparent bg-transparent py-[3px] text-left font-sans text-base font-semibold wrap-anywhere text-secondary transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary')}
                   onClick={() => onRenamingChange(true)}
                 >
                   {taskList.name}

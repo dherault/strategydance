@@ -33,9 +33,10 @@ type User @table {
   email: String! @unique
   displayName: String
   imageUrl: String
-  # The language the account was created in, as a hint for anything sent to this reader rather
-  # than rendered for them. Written once: the interface language is a preference the browser
-  # holds, and an account page will own this one
+  # The reader's language, as a hint for anything sent to them rather than rendered for them.
+  # Written at creation in the language the account was created in, then by the account page
+  # whenever it saves. The interface language is a preference the browser holds, which that page
+  # sets along with this one
   locale: Locale!
   # An IANA identifier, validated against `Intl` before it is sent. Unlike `locale` this is
   # observed rather than chosen, so the newest answer overwrites the stored one

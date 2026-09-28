@@ -1,3 +1,5 @@
+import { PRODUCTION_APP_URL } from 'strategydance-core'
+
 /* ---
   BRAND
 --- */
@@ -7,7 +9,17 @@ export const PRODUCT_NAME = 'Strategy Dance'
 // The name every email goes out under: a person, since the address is David's own and a reply lands there
 export const SENDER_NAME = `David from ${PRODUCT_NAME}`
 
-// The mark's width and height in the header, which its viewBox keeps close to square
+/*
+  Hotlinked rather than inlined: Gmail and Outlook render neither an inline SVG nor a `data:` URI,
+  so the only mark that survives every client is a PNG at an absolute URL. This one is
+  `packages/strategydance-web/public/assets/images/logo/logo-secondary-512.png`, the secondary the
+  mark takes on a light surface in the app, which Hosting serves from the production domain
+  whatever environment sent the email, since a recipient cannot reach localhost
+*/
+export const LOGO_URL = `${PRODUCTION_APP_URL}/assets/images/logo/logo-secondary-512.png`
+
+// The mark's width and height in the header. The PNG is square, and 512 pixels so it stays sharp
+// on a high-density screen
 export const LOGO_SIZE = 32
 
 /* ---

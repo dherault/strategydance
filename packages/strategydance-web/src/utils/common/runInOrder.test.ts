@@ -48,4 +48,23 @@ describe('runInOrder', () => {
     expect(failed).rejects.toThrow('refused')
     expect(await next).toBe('written')
   })
+
+  it('waits for the rows a write depends on, without holding them up', async () => {
+    const order: string[] = []
+
+    await Promise.all([
+      runInOrder('list', async () => {
+        await wait(20)
+        order.push('create list')
+      }),
+      runInOrder('task', async () => {
+        order.push('add task')
+      }, ['list']),
+      runInOrder('list', async () => {
+        order.push('rename list')
+      }),
+    ])
+
+    expect(order).toEqual(['create list', 'add task', 'rename list'])
+  })
 })

@@ -82,8 +82,10 @@ function useTasks(taskListId: string | null): DataSource<Task[]> & {
     })
   }
 
+  // Behind whatever its list has queued, so a task added to a list just created, or edited on a
+  // list just brought back, reaches the server once the list is there
   function change(taskId: string, apply: () => void, write: () => Promise<unknown>) {
-    return writeOptimistically({ queryClient, queryKeys: [queryKey, taskListsQueryKey], rowKey: `task:${taskId}`, apply, write })
+    return writeOptimistically({ queryClient, queryKeys: [queryKey, taskListsQueryKey], rowKey: `task:${taskId}`, after: [`taskList:${taskListId}`], apply, write })
   }
 
   function write(task: Task) {

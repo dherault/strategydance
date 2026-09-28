@@ -14,6 +14,8 @@ type Options = {
   queryKeys: QueryKey[]
   // The row it changes, whose writes queue behind each other
   rowKey: string
+  // The rows it depends on, such as the list a task is on, whose queued writes it waits for
+  after?: string[]
   // Writes the change into the cache
   apply: () => void
   // Sends it
@@ -34,7 +36,7 @@ type Options = {
     later read overwrote and anything the server did differently. A write that fails reads it
     again at once, so the page drops what the server refused, and the error goes to the caller
 */
-async function writeOptimistically({ queryClient, queryKeys, rowKey, apply, write }: Options) {
+async function writeOptimistically({ queryClient, queryKeys, rowKey, after, apply, write }: Options) {
   const keys = queryKeys.map(queryKey => JSON.stringify(queryKey))
 
   for (const key of keys) pendingWrites.set(key, (pendingWrites.get(key) ?? 0) + 1)
@@ -55,7 +57,7 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, apply, writ
       await applied
 
       return write()
-    })
+    }, after)
   }
   catch (error) {
     hasFailed = true

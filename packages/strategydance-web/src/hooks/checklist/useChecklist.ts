@@ -74,8 +74,8 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
     queryClient.setQueryData<GetChecklistData>(queryKey, current => current && { ...current, checklistItems: update(current.checklistItems) })
   }
 
-  function change(rowKey: string, apply: () => void, write: () => Promise<unknown>, withHistory = false) {
-    return writeOptimistically({ queryClient, queryKeys: withHistory ? [queryKey, historyQueryKey] : [queryKey], rowKey, apply, write })
+  function change(rowKey: string, apply: () => void, write: () => Promise<unknown>, withHistory = false, after?: string[]) {
+    return writeOptimistically({ queryClient, queryKeys: withHistory ? [queryKey, historyQueryKey] : [queryKey], rowKey, after, apply, write })
   }
 
   function writeItem(item: ChecklistItem) {
@@ -164,6 +164,9 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
       },
       () => (isChecked ? checkChecklistItem : uncheckChecklistItem)(dataConnect, { organizationId: organizationId!, checklistItemId: itemId, date }),
       true,
+      // Behind whatever its column has queued, so a tick on a column just added or brought back
+      // reaches the server once the column is there
+      [`checklistItem:${itemId}`],
     )
   }
 

@@ -16,6 +16,7 @@
   "account.eyebrow": "个人",
   "account.googleOnlyDescription": "您的账户未设置密码，因此此处无需修改。请在您的 Google 账号中管理登录设置。",
   "account.googleOnlyTitle": "您使用 Google 登录",
+  "account.languageLabel": "语言",
   "account.lead": "您的个人资料与登录信息，在您所属的所有组织中通用。",
   "account.nameLabel": "姓名",
   "account.namePlaceholder": "你的全名",

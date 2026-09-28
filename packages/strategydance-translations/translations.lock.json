@@ -69,6 +69,10 @@
         "hash": "f212a68897af78d4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "account.languageLabel": {
+        "hash": "b9b6a445e66a7e13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "account.lead": {
         "hash": "d88f01cf9c4c0e26",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -158,7 +162,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.profileTab": {
-        "hash": "ec8382ad52a01265",
+        "hash": "9ff011dfa3239abd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.removePicture": {
@@ -170,7 +174,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.save": {
-        "hash": "41c8fc4443200bf9",
+        "hash": "10412bc5e1f2f03c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.saveError": {

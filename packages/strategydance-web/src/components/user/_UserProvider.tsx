@@ -35,7 +35,7 @@ import { dataConnect } from '~data/firebase'
 */
 function UserProvider({ children }: PropsWithChildren) {
   const { data: viewer } = useAuthentication()
-  const { locale } = useAppIntl()
+  const { locale, setLocale } = useAppIntl()
   const timezone = useSystemTimezone()
 
   const viewerId = viewer?.uid ?? null
@@ -104,6 +104,10 @@ function UserProvider({ children }: PropsWithChildren) {
     effect that compares the two. A write that fails after Firebase took the change leaves them
     apart until then, which the mirror mends the next time the row is read.
 
+    The language is the row's and the interface's, and the interface follows the row once it has
+    it, so a save that fails leaves the page in the language it was in rather than one that was
+    never saved.
+
     A removed picture is deleted from Storage last, once nothing points at it: failing before then
     leaves the account showing a picture that is still there, rather than one that is gone, and
     saving again deletes it.
@@ -111,7 +115,7 @@ function UserProvider({ children }: PropsWithChildren) {
     It throws, because the caller has a form to keep: a save that failed must not clear what
     somebody typed. The read after the write throws too, which a refetch does not by default
   */
-  async function updateProfile({ displayName, image, bio }: UserProfile) {
+  async function updateProfile({ displayName, image, bio, locale: chosenLocale }: UserProfile) {
     if (!viewer) throw new Error('Cannot update the profile of nobody signed in')
 
     let imageUrl = viewer.photoURL
@@ -122,8 +126,10 @@ function UserProvider({ children }: PropsWithChildren) {
     // An empty string rather than null takes the picture off the account, since the Auth emulator
     // refuses a null. Firebase reads either back as null
     await updateFirebaseProfile(viewer, { displayName, photoURL: imageUrl ?? '' })
-    await updateCurrentUserProfile({ displayName, imageUrl, bio })
+    await updateCurrentUserProfile({ displayName, imageUrl, bio, locale: toDatabaseLocale(chosenLocale) })
     await refetchUser({ throwOnError: true })
+
+    setLocale(chosenLocale)
 
     if (image === null) await deleteProfilePicture(viewer.uid)
   }

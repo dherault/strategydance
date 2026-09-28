@@ -186,3 +186,44 @@ type SentInvitation @table @index(fields: ["invitedById", "createdAt"]) {
   invitedBy: User!
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# One of somebody's lists of things to do in an organization, on their Today page. Private: every
+# operation on it is keyed by the uid off the token, so nobody reads or writes another's.
+#
+# It references the account and the organization rather than the membership, so removing somebody,
+# which deletes the membership and nothing else, keeps their lists should they be invited again.
+# Deleting the account or the organization cascades.
+#
+# Deleted by setting `deletedAt`, so an Undo is one update that brings the list back with its tasks
+# rather than a re-insert of every one of them. `DeleteTaskList` prunes the ones deleted over a day
+# ago, so a deleted list is only kept for as long as its Undo could matter
+type TaskList @table @index(fields: ["userId", "organizationId"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH` in strategydance-core)
+  name: String!
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# One thing to do, on a task list. Hard deleted, since nothing hangs from it: an Undo inserts the
+# same row again, id and all
+type Task @table @index(fields: ["taskListId", "position"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `taskListId: UUID!` column, cascade deleting
+  taskList: TaskList!
+  # One line of at most 120 characters (`MAX_TASK_LENGTH` in strategydance-core)
+  text: String!
+  isDone: Boolean! @default(value: false)
+  # Where it sits in its list, ascending. A move writes this one row, halfway between its new
+  # neighbours, since the SDK cannot batch a renumbering. Ties, as two tabs adding at once can
+  # make, fall back to `createdAt`
+  position: Float!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+

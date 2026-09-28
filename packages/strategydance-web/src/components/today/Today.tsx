@@ -6,6 +6,7 @@ import toCalendarDate from '~utils/date/toCalendarDate'
 
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
+import Tasks from '~components/task/Tasks'
 import TodayPriorities from '~components/today/TodayPriorities'
 
 import navigationMessages from '~data/intl/messages/navigation'
@@ -26,6 +27,7 @@ function Today() {
       />
       <div className="flex flex-col gap-14">
         <TodayPriorities />
+        <Tasks />
       </div>
     </ContainerLayout>
   )

@@ -390,3 +390,149 @@ mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!)
     where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
   )
 }
+
+# Adds a task list for the caller in an organization. The id is the page's, which writes the list
+# into its cache before the server answers.
+#
+# At most 100 lists a person in an organization (`MAX_TASK_LISTS` in strategydance-core), counted
+# under a lock: the first step writes the caller's own membership, which also refuses anybody
+# outside the organization, so two tabs adding at once count one after the other. A name is one
+# line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH`)
+mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @auth(level: USER) @transaction {
+  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
+    @check(
+      expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A task list's name is 1 to 120 characters on one line, with no space at either end"
+    )
+  query @redact {
+    taskLists(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
+      @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
+      id
+    }
+  }
+  taskList_insert(data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name })
+}
+
+# Renames one of the caller's task lists, held to what `CreateTaskList` holds a name to
+mutation RenameTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
+      role
+        @check(
+          expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A task list's name is 1 to 120 characters on one line, with no space at either end"
+        )
+    }
+  }
+  taskList_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { name: $name, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task list of yours by that id")
+}
+
+# Deletes one of the caller's task lists by setting `deletedAt`, so `RestoreTaskList` can take it
+# back with its tasks. Deleting one that is gone already changes nothing and succeeds, since the
+# outcome is the one asked for.
+#
+# It also prunes the caller's lists deleted more than a day ago, in every organization, their tasks
+# cascading with them: nothing undoes a delete that old, so they are kept no longer
+mutation DeleteTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
+      role
+    }
+  }
+  taskList_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time", updatedAt_expr: "request.time" }
+  )
+  taskList_deleteMany(where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }) @redact
+}
+
+# Takes back a delete, which the page offers for a few seconds after one. Fails once the list was
+# pruned, a day after it was deleted
+mutation RestoreTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
+      role
+    }
+  }
+  taskList_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    data: { deletedAt: null, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The task list is gone for good")
+}
+
+# Adds a task to one of the caller's task lists, or puts back one just deleted, which is why it
+# takes whether it is done. The id is the page's, as with a list.
+#
+# The first step writes the list, which is the lock the count below is taken under, and finds
+# nothing unless the list is the caller's, alive, and in an organization they belong to. At most
+# 1000 tasks a list (`MAX_TASKS_PER_LIST` in strategydance-core), each one line of at most 120
+# characters (`MAX_TASK_LENGTH`)
+mutation CreateTask($organizationId: UUID!, $id: UUID!, $taskListId: UUID!, $text: String!, $position: Float!, $isDone: Boolean!)
+@auth(level: USER) @transaction {
+  taskList_updateMany(
+    where: {
+      id: { eq: $taskListId }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "A task goes on a task list of yours, in an organization you belong to")
+    @check(
+      expr: "size(vars.text) <= 120 && vars.text.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A task is 1 to 120 characters on one line, with no space at either end"
+    )
+  query @redact {
+    tasks(where: { taskListId: { eq: $taskListId } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "A task list holds at most 1000 tasks") {
+      id
+    }
+  }
+  task_insert(data: { id: $id, taskListId: $taskListId, text: $text, position: $position, isDone: $isDone })
+}
+
+# Writes one of the caller's tasks whole: its text, whether it is done, and where it sits. The page
+# sends all three from what it shows, whichever changed, and queues its writes to one task so they
+# land in order
+mutation UpdateTask($organizationId: UUID!, $id: UUID!, $text: String!, $isDone: Boolean!, $position: Float!)
+@auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
+      role
+        @check(
+          expr: "size(vars.text) <= 120 && vars.text.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A task is 1 to 120 characters on one line, with no space at either end"
+        )
+    }
+  }
+  task_updateMany(
+    where: {
+      id: { eq: $id }
+      taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    }
+    data: { text: $text, isDone: $isDone, position: $position, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task of yours by that id")
+}
+
+# Deletes one of the caller's tasks. One that is gone already changes nothing and succeeds
+mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
+      role
+    }
+  }
+  task_deleteMany(where: { id: { eq: $id }, taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } } })
+}

@@ -24,6 +24,7 @@ export const MESSAGE_TYPES = [
   'navigation',
   'onboarding',
   'organizationProfile',
+  'task',
   'team',
   'today',
 ] as const

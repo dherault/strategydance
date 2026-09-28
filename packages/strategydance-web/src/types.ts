@@ -1,4 +1,4 @@
-import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData, GetTodayPreferencesData } from 'strategydance-database/web'
+import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData, GetTaskListsData, GetTasksData, GetTodayPreferencesData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
@@ -91,3 +91,9 @@ export type StagedImage = {
 // How the reader's own Today page lists the team's priorities: the order they chose, and whom they
 // hid, both as user ids
 export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
+
+// One of the reader's task lists, with how many of its tasks are still open
+export type TaskList = GetTaskListsData['taskLists'][number]
+
+// One task on a list, where it sits in it, and whether it is done
+export type Task = GetTasksData['tasks'][number]

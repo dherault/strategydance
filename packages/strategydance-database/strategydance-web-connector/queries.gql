@@ -233,3 +233,54 @@ query GetAdministrationOrganizations @auth(level: USER) {
     }
   }
 }
+
+# The caller's task lists in an organization, in the order they made them, each with how many of
+# its tasks are still open, for the pill beside its name. Their own alone: keyed by the uid off the
+# token, and read only while they belong to the organization. A deleted list is left out.
+#
+# Read up to 100, `MAX_TASK_LISTS` in strategydance-core, which `CreateTaskList` holds them to. The
+# tasks themselves are read one list at a time, by `GetTasks`, since a list holds up to 1000
+query GetTaskLists($organizationId: UUID!) @auth(level: USER) {
+  taskLists(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # `id` breaks the tie between two lists made in the same instant
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    openTasks: tasks_on_taskList(where: { isDone: { eq: false } }) {
+      _count
+    }
+  }
+}
+
+# One of the caller's task lists, its tasks in their order. Scoped as `GetTaskLists` is, through
+# the list, so an id that is somebody else's reads nothing. Up to 1000, `MAX_TASKS_PER_LIST` in
+# strategydance-core, which `CreateTask` holds a list to
+query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
+  tasks(
+    where: {
+      taskListId: { eq: $taskListId }
+      taskList: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    # Two tasks added at once can share a position, and then keep the order they were added in
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    text
+    isDone
+    position
+  }
+}

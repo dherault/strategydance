@@ -454,12 +454,19 @@ mutation DeleteTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @
 }
 
 # Takes back a delete, which the page offers for a few seconds after one. Fails once the list was
-# pruned, a day after it was deleted
+# pruned, a day after it was deleted.
+#
+# A list brought back counts against the 100 as a new one does, under the same lock on the caller's
+# membership: without it, deleting a list at the cap, adding another and taking the delete back
+# would keep 101
 mutation RestoreTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
-      role
+    taskLists(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
+      @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
+      id
     }
   }
   taskList_updateMany(
@@ -626,12 +633,18 @@ mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: US
 }
 
 # Takes back a removal, which the page offers for a few seconds after one. Fails once the column was
-# pruned, a day after it was removed
+# pruned, a day after it was removed.
+#
+# A column brought back counts against the 100 as a new one does, under the same lock on the
+# caller's membership, as `RestoreTaskList` counts lists
 mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
-      role
+    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
+      @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
+      id
     }
   }
   checklistItem_updateMany(

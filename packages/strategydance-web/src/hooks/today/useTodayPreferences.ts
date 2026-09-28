@@ -6,7 +6,7 @@ import type { DataSource, TodayPreferences } from '~types'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
-import runInOrder from '~utils/common/runInOrder'
+import writeOptimistically from '~utils/common/writeOptimistically'
 
 import { dataConnect } from '~data/firebase'
 
@@ -19,7 +19,7 @@ const EMPTY_PREFERENCES: TodayPreferences = {
   How the reader's Today page lists the team's priorities in the current organization: the order
   they chose, and whom they hid. Theirs alone, read off their own membership.
 
-  `update` writes to the cache first, so the page follows at once, and puts the old value back if
+  `update` writes to the cache first, so the page follows at once, and reads the view again if
   the server refuses. Saves for one organization are queued, so two quick ones land in order.
 
   It does not retry on mount, and a failed read is `hasFailed` rather than an empty view, as with
@@ -49,18 +49,13 @@ function useTodayPreferences(): DataSource<TodayPreferences> & {
   async function update(preferences: TodayPreferences) {
     if (!organizationId) return
 
-    const previous = queryClient.getQueryData<GetTodayPreferencesData>(queryKey)
-
-    queryClient.setQueryData<GetTodayPreferencesData>(queryKey, { userOrganization: preferences })
-
-    try {
-      await runInOrder(`todayPreferences:${organizationId}`, () => updateTodayPreferences(dataConnect, { organizationId, ...preferences }))
-    }
-    catch (error) {
-      queryClient.setQueryData(queryKey, previous)
-
-      throw error
-    }
+    await writeOptimistically({
+      queryClient,
+      queryKeys: [queryKey],
+      rowKey: `todayPreferences:${organizationId}`,
+      apply: () => queryClient.setQueryData<GetTodayPreferencesData>(queryKey, { userOrganization: preferences }),
+      write: () => updateTodayPreferences(dataConnect, { organizationId, ...preferences }),
+    })
   }
 
   return {

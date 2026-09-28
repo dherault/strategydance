@@ -9,7 +9,6 @@
   "navigation.administration": "管理",
   "navigation.administrationOrganizations": "組織",
   "navigation.administrationUsers": "ユーザー",
-  "navigation.agents": "エージェント",
   "navigation.aspectDesign": "デザイン",
   "navigation.aspectEngineering": "エンジニアリング",
   "navigation.aspectFinances": "財務",
@@ -38,7 +37,6 @@
   "navigation.profile": "プロフィール",
   "navigation.sidebar": "ナビゲーション",
   "navigation.support": "サポート",
-  "navigation.tasks": "タスク",
   "navigation.team": "チーム",
   "navigation.today": "今日",
   "navigation.toggleSidebar": "サイドバーを切り替える"

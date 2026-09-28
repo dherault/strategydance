@@ -20,10 +20,8 @@ import { Route as AuthenticationIndexRouteImport } from './routes/authentication
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
 import { Route as AuthenticatedAppAccountRouteImport } from './routes/_authenticated/_app/account'
 import { Route as AuthenticatedAppAdministrationRouteImport } from './routes/_authenticated/_app/administration'
-import { Route as AuthenticatedAppAgentsRouteImport } from './routes/_authenticated/_app/agents'
 import { Route as AuthenticatedAppExploreRouteImport } from './routes/_authenticated/_app/explore'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/_app/profile'
-import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/_app/tasks'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/_app/team'
 import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/_app/today'
 import { Route as AuthenticatedInvitationInvitationIdRouteImport } from './routes/_authenticated/invitation.$invitationId'
@@ -89,11 +87,6 @@ const AuthenticatedAppAdministrationRoute =
     path: '/administration',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
-const AuthenticatedAppAgentsRoute = AuthenticatedAppAgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
 const AuthenticatedAppExploreRoute = AuthenticatedAppExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
@@ -102,11 +95,6 @@ const AuthenticatedAppExploreRoute = AuthenticatedAppExploreRouteImport.update({
 const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
-const AuthenticatedAppTasksRoute = AuthenticatedAppTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
@@ -172,10 +160,8 @@ export interface FileRoutesByFullPath {
   '/authentication/': typeof AuthenticationIndexRoute
   '/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
-  '/agents': typeof AuthenticatedAppAgentsRoute
   '/explore': typeof AuthenticatedAppExploreRoute
   '/profile': typeof AuthenticatedAppProfileRoute
-  '/tasks': typeof AuthenticatedAppTasksRoute
   '/team': typeof AuthenticatedAppTeamRoute
   '/today': typeof AuthenticatedAppTodayRoute
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
@@ -193,10 +179,8 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication': typeof AuthenticationIndexRoute
-  '/agents': typeof AuthenticatedAppAgentsRoute
   '/explore': typeof AuthenticatedAppExploreRoute
   '/profile': typeof AuthenticatedAppProfileRoute
-  '/tasks': typeof AuthenticatedAppTasksRoute
   '/team': typeof AuthenticatedAppTeamRoute
   '/today': typeof AuthenticatedAppTodayRoute
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
@@ -220,10 +204,8 @@ export interface FileRoutesById {
   '/authentication/': typeof AuthenticationIndexRoute
   '/_authenticated/_app/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/_authenticated/_app/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
-  '/_authenticated/_app/agents': typeof AuthenticatedAppAgentsRoute
   '/_authenticated/_app/explore': typeof AuthenticatedAppExploreRoute
   '/_authenticated/_app/profile': typeof AuthenticatedAppProfileRoute
-  '/_authenticated/_app/tasks': typeof AuthenticatedAppTasksRoute
   '/_authenticated/_app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/_app/today': typeof AuthenticatedAppTodayRoute
   '/_authenticated/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
@@ -246,10 +228,8 @@ export interface FileRouteTypes {
     | '/authentication/'
     | '/account'
     | '/administration'
-    | '/agents'
     | '/explore'
     | '/profile'
-    | '/tasks'
     | '/team'
     | '/today'
     | '/invitation/$invitationId'
@@ -267,10 +247,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/authentication/password-reset'
     | '/authentication'
-    | '/agents'
     | '/explore'
     | '/profile'
-    | '/tasks'
     | '/team'
     | '/today'
     | '/invitation/$invitationId'
@@ -293,10 +271,8 @@ export interface FileRouteTypes {
     | '/authentication/'
     | '/_authenticated/_app/account'
     | '/_authenticated/_app/administration'
-    | '/_authenticated/_app/agents'
     | '/_authenticated/_app/explore'
     | '/_authenticated/_app/profile'
-    | '/_authenticated/_app/tasks'
     | '/_authenticated/_app/team'
     | '/_authenticated/_app/today'
     | '/_authenticated/invitation/$invitationId'
@@ -396,13 +372,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdministrationRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
-    '/_authenticated/_app/agents': {
-      id: '/_authenticated/_app/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AuthenticatedAppAgentsRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
     '/_authenticated/_app/explore': {
       id: '/_authenticated/_app/explore'
       path: '/explore'
@@ -415,13 +384,6 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
-    '/_authenticated/_app/tasks': {
-      id: '/_authenticated/_app/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof AuthenticatedAppTasksRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/_app/team': {
@@ -530,10 +492,8 @@ const AuthenticatedAppAdministrationRouteWithChildren =
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAccountRoute: typeof AuthenticatedAppAccountRouteWithChildren
   AuthenticatedAppAdministrationRoute: typeof AuthenticatedAppAdministrationRouteWithChildren
-  AuthenticatedAppAgentsRoute: typeof AuthenticatedAppAgentsRoute
   AuthenticatedAppExploreRoute: typeof AuthenticatedAppExploreRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
-  AuthenticatedAppTasksRoute: typeof AuthenticatedAppTasksRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
   AuthenticatedAppAspectsAspectRoute: typeof AuthenticatedAppAspectsAspectRoute
@@ -543,10 +503,8 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAccountRoute: AuthenticatedAppAccountRouteWithChildren,
   AuthenticatedAppAdministrationRoute:
     AuthenticatedAppAdministrationRouteWithChildren,
-  AuthenticatedAppAgentsRoute: AuthenticatedAppAgentsRoute,
   AuthenticatedAppExploreRoute: AuthenticatedAppExploreRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
-  AuthenticatedAppTasksRoute: AuthenticatedAppTasksRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
   AuthenticatedAppAspectsAspectRoute: AuthenticatedAppAspectsAspectRoute,

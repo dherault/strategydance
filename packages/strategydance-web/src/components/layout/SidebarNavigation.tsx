@@ -1,5 +1,5 @@
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
-import { BotIcon, Building2Icon, CalendarIcon, CompassIcon, ContactRoundIcon, ListChecksIcon, StoreIcon, UsersRoundIcon } from 'lucide-react'
+import { Building2Icon, CalendarIcon, CompassIcon, ContactRoundIcon, StoreIcon, UsersRoundIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
@@ -83,18 +83,6 @@ function SidebarNavigation() {
             label={formatMessage(navigationMessages.today)}
             icon={<CalendarIcon />}
             link={{ to: '/today' }}
-          />
-          <NavigationLink
-            path="/tasks"
-            label={formatMessage(navigationMessages.tasks)}
-            icon={<ListChecksIcon />}
-            link={{ to: '/tasks' }}
-          />
-          <NavigationLink
-            path="/agents"
-            label={formatMessage(navigationMessages.agents)}
-            icon={<BotIcon />}
-            link={{ to: '/agents' }}
           />
         </SidebarMenu>
       </SidebarGroup>

@@ -715,10 +715,6 @@
         "hash": "bcb8a7093d663ea1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "navigation.agents": {
-        "hash": "c0e2c51f569d7274",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "navigation.aspectDesign": {
         "hash": "54e688324381acc8",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -772,7 +768,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.comingSoonDescription": {
-        "hash": "945191f4deba5a04",
+        "hash": "3c196a1131273022",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.company": {
@@ -829,10 +825,6 @@
       },
       "navigation.support": {
         "hash": "688e6fd634c62b96",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "navigation.tasks": {
-        "hash": "047370df795708bf",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.team": {

@@ -9,7 +9,6 @@
   "navigation.administration": "Administration",
   "navigation.administrationOrganizations": "Organisations",
   "navigation.administrationUsers": "Utilisateurs",
-  "navigation.agents": "Agents",
   "navigation.aspectDesign": "Design",
   "navigation.aspectEngineering": "Ingénierie",
   "navigation.aspectFinances": "Finances",
@@ -38,7 +37,6 @@
   "navigation.profile": "Profil",
   "navigation.sidebar": "Navigation",
   "navigation.support": "Assistance",
-  "navigation.tasks": "Tâches",
   "navigation.team": "Équipe",
   "navigation.today": "Aujourd'hui",
   "navigation.toggleSidebar": "Afficher ou masquer la barre latérale"

@@ -9,7 +9,6 @@
   "navigation.administration": "管理",
   "navigation.administrationOrganizations": "组织",
   "navigation.administrationUsers": "用户",
-  "navigation.agents": "智能体",
   "navigation.aspectDesign": "设计",
   "navigation.aspectEngineering": "工程",
   "navigation.aspectFinances": "财务",
@@ -38,7 +37,6 @@
   "navigation.profile": "资料",
   "navigation.sidebar": "导航",
   "navigation.support": "支持",
-  "navigation.tasks": "任务",
   "navigation.team": "团队",
   "navigation.today": "今日",
   "navigation.toggleSidebar": "切换侧边栏"

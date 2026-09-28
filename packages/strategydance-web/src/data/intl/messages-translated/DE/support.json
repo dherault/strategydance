@@ -1,0 +1,18 @@
+{
+  "support.backToApp": "Zurück zur App",
+  "support.bookMeeting": "Termin buchen",
+  "support.copied": "Kopiert",
+  "support.copy": "Kopieren",
+  "support.copyError": "Konnte nicht kopiert werden. Markiere stattdessen die Adresse.",
+  "support.emailCopied": "E-Mail kopiert",
+  "support.eyebrow": "Support",
+  "support.hideEmail": "E-Mail ausblenden",
+  "support.lead": "Kommst du irgendwo nicht weiter, hast du einen Fehler gefunden oder möchtest du eine zweite Meinung zu deinem Plan? Melde dich direkt bei mir. Ich lese und beantworte jede Nachricht selbst.",
+  "support.messageOnX": "Nachricht auf X",
+  "support.role": "Gründer, Strategy Dance",
+  "support.showEmail": "E-Mail anzeigen",
+  "support.whatsApp": "WhatsApp",
+  "support.whatsAppQrCodeAlt": "QR-Code für einen WhatsApp-Chat mit {name}",
+  "support.whatsAppScan": "Scanne den Code mit deiner Handykamera, um einen WhatsApp-Chat mit mir zu öffnen.",
+  "support.write": "Schreiben"
+}

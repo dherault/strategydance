@@ -38,8 +38,8 @@ const authenticationMessages = defineMessages({
   },
   modeLoginNoSupportedProvider: {
     id: 'authentication.mode.login.noSupportedProvider',
-    defaultMessage: 'This account signs in a way this app does not offer. Please contact support.',
-    description: 'Shown when a recognized account has no sign-in method this app supports, so neither the Google button nor the password field would work.',
+    defaultMessage: 'This account signs in a way this app does not offer. Please <link>contact support</link>.',
+    description: 'Shown when a recognized account has no sign-in method this app supports, so neither the Google button nor the password field would work. The words between <link> and </link> become a link to the support page: keep the tags around their translation.',
   },
   modeSignupTitle: {
     id: 'authentication.mode.signup.title',

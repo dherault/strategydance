@@ -1,0 +1,18 @@
+{
+  "support.backToApp": "アプリに戻る",
+  "support.bookMeeting": "ミーティングを予約",
+  "support.copied": "コピー完了",
+  "support.copy": "コピー",
+  "support.copyError": "コピーできませんでした。アドレスを直接選択してください。",
+  "support.emailCopied": "メールアドレスをコピーしました",
+  "support.eyebrow": "サポート",
+  "support.hideEmail": "メールアドレスを非表示",
+  "support.lead": "お困りの点がある場合や、バグを見つけたとき、プランについて相談したいときは、いつでも直接ご連絡ください。すべてのメッセージに私自身が目を通し、返信いたします。",
+  "support.messageOnX": "Xでメッセージを送る",
+  "support.role": "Strategy Dance 創業者",
+  "support.showEmail": "メールアドレスを表示",
+  "support.whatsApp": "WhatsApp",
+  "support.whatsAppQrCodeAlt": "{name}とのWhatsAppチャット用QRコード",
+  "support.whatsAppScan": "スマートフォンのカメラでスキャンして、WhatsAppチャットを開始できます。",
+  "support.write": "メールを作成"
+}

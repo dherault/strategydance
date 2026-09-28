@@ -21,7 +21,7 @@
   "authentication.mode.login.bothPrompt": "Vous pouvez utiliser Google ou votre mot de passe pour continuer",
   "authentication.mode.login.googlePrompt": "Utilisez votre compte Google pour continuer",
   "authentication.mode.login.greeting": "Bonjour {email}",
-  "authentication.mode.login.noSupportedProvider": "Ce compte utilise un mode de connexion non pris en charge par cette application. Veuillez contacter l'assistance.",
+  "authentication.mode.login.noSupportedProvider": "Ce compte utilise un mode de connexion non pris en charge par cette application. Veuillez <link>contacter l'assistance</link>.",
   "authentication.mode.login.title": "Ravi de vous revoir",
   "authentication.mode.signup.title": "Créer votre compte",
   "authentication.mode.start.or": "ou",

@@ -21,7 +21,7 @@
   "authentication.mode.login.bothPrompt": "您可以使用 Google 或密码继续",
   "authentication.mode.login.googlePrompt": "使用您的 Google 帐号继续",
   "authentication.mode.login.greeting": "你好，{email}",
-  "authentication.mode.login.noSupportedProvider": "此帐号的登录方式不受当前应用支持。请联系技术支持。",
+  "authentication.mode.login.noSupportedProvider": "此账号的登录方式不受当前应用支持。请<link>联系技术支持</link>。",
   "authentication.mode.login.title": "欢迎回来",
   "authentication.mode.signup.title": "创建您的帐号",
   "authentication.mode.start.or": "或",

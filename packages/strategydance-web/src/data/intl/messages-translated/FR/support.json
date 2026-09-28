@@ -1,0 +1,18 @@
+{
+  "support.backToApp": "Retour à l'application",
+  "support.bookMeeting": "Prendre rendez-vous",
+  "support.copied": "Copié",
+  "support.copy": "Copier",
+  "support.copyError": "Impossible de copier. Sélectionnez plutôt l'adresse.",
+  "support.emailCopied": "E-mail copié",
+  "support.eyebrow": "Support",
+  "support.hideEmail": "Masquer l'e-mail",
+  "support.lead": "Un problème, un bug trouvé ou besoin d'un second avis sur votre plan ? Contactez-moi directement. Je lis et réponds moi-même à chaque message.",
+  "support.messageOnX": "Envoyer un message sur X",
+  "support.role": "Fondateur, Strategy Dance",
+  "support.showEmail": "Afficher l'e-mail",
+  "support.whatsApp": "WhatsApp",
+  "support.whatsAppQrCodeAlt": "QR code pour discuter sur WhatsApp avec {name}",
+  "support.whatsAppScan": "Scannez avec l'appareil photo de votre téléphone pour ouvrir une discussion WhatsApp avec moi.",
+  "support.write": "Écrire"
+}

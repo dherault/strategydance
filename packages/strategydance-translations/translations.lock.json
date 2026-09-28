@@ -1128,6 +1128,72 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "support": {
+      "support.backToApp": {
+        "hash": "cd0f58c9e792dfe9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.bookMeeting": {
+        "hash": "90c570084cbfefe5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.copied": {
+        "hash": "731ac0b4eaf13915",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.copy": {
+        "hash": "eff15956d56c44fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.copyError": {
+        "hash": "56cb00bb8c4ced4e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.emailCopied": {
+        "hash": "4582b3330e7b1906",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.eyebrow": {
+        "hash": "526fd1e69652e96b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.hideEmail": {
+        "hash": "8c2c17fed064793e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.lead": {
+        "hash": "4d629a6aa63c58c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.messageOnX": {
+        "hash": "1a30bfd6c92c0e2d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.role": {
+        "hash": "eae331c9b3deda08",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.showEmail": {
+        "hash": "6d2bb69ac5d9f2b6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.whatsApp": {
+        "hash": "039cb990623c165f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.whatsAppQrCodeAlt": {
+        "hash": "e615a636530e9331",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.whatsAppScan": {
+        "hash": "901b3989b6947628",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "support.write": {
+        "hash": "f2ed22f8a55ba286",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "team": {
       "team.accessError": {
         "hash": "1b983beaaa0de953",

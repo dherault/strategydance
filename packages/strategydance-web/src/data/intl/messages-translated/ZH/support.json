@@ -1,0 +1,18 @@
+{
+  "support.backToApp": "返回应用",
+  "support.bookMeeting": "预约会议",
+  "support.copied": "已复制",
+  "support.copy": "复制",
+  "support.copyError": "无法复制，请手动选择邮箱地址。",
+  "support.emailCopied": "邮箱已复制",
+  "support.eyebrow": "支持",
+  "support.hideEmail": "隐藏邮箱",
+  "support.lead": "遇到疑问、发现了问题，或者想就方案听听其他意见？欢迎直接联系我。每一条留言我都会亲自阅读并回复。",
+  "support.messageOnX": "在 X 上发消息",
+  "support.role": "Strategy Dance 创始人",
+  "support.showEmail": "显示邮箱",
+  "support.whatsApp": "WhatsApp",
+  "support.whatsAppQrCodeAlt": "与 {name} 发起 WhatsApp 对话的二维码",
+  "support.whatsAppScan": "使用手机摄像头扫描即可与我发起 WhatsApp 对话。",
+  "support.write": "写邮件"
+}

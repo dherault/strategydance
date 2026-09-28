@@ -656,9 +656,11 @@ mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: U
 # Ticks a day on one of the caller's checklist columns. An upsert, so ticking a day that is ticked
 # already, from a second tab or a double click, changes nothing.
 #
-# Any past day may be ticked, since a day the reader unlocks is one they forgot. A day ahead is not.
-# In CEL a date is the instant it starts in UTC, so a day starting within 24 hours of now is at most
-# the server's tomorrow, which is already today in the zones ahead of UTC
+# Any past day may be ticked, since a day the reader unlocks is one they forgot. A day ahead is not,
+# checked against the caller's own day: in CEL a date is the instant it starts in UTC, so its UTC
+# calendar day is compared with the one `request.time` falls on in the zone stored on their row,
+# which the app keeps in step with the browser's. With no zone stored, the latest day allowed is
+# the one it already is at UTC+14, the zone furthest ahead
 mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!) @auth(level: USER) @transaction {
   query @redact {
     checklistItems(
@@ -670,10 +672,15 @@ mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $da
         organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
       }
       limit: 1
-    )
-      @check(expr: "size(this) == 1", message: "Only a column on your own checklist, in an organization you belong to, can be ticked")
-      @check(expr: "vars.date <= request.time + duration('24h')", message: "A day that has not come yet cannot be ticked") {
+    ) @check(expr: "size(this) == 1", message: "Only a column on your own checklist, in an organization you belong to, can be ticked") {
       id
+    }
+    user(key: { id_expr: "auth.uid" }) {
+      timezone
+        @check(
+          expr: "this != null ? (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) <= (request.time.getFullYear(this) * 10000 + request.time.getMonth(this) * 100 + request.time.getDate(this)) : (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) <= ((request.time + duration('14h')).getFullYear('UTC') * 10000 + (request.time + duration('14h')).getMonth('UTC') * 100 + (request.time + duration('14h')).getDate('UTC'))"
+          message: "A day that has not come yet cannot be ticked"
+        )
     }
   }
   checklistCompletion_upsert(data: { checklistItemId: $checklistItemId, date: $date })
@@ -700,19 +707,22 @@ mutation UncheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $
 # Writes the caller's log entry for a day, which the unique key holds to one: a second for the same
 # day is refused, and the page offers to edit the first. The id is the page's.
 #
-# The day is the caller's, in their zone, so it can only be checked against the server's clock
-# loosely. In CEL a date is the instant it starts in UTC, and a day starting between 48 hours ago
-# and 24 hours ahead is today somewhere from UTC-12 to UTC+14: an entry cannot be backdated into
-# last week, or written ahead. At most 50000 characters of serialized state, `MAX_LOG_ENTRY_LENGTH`
-# in strategydance-core. `$organizationId` is also what the log's live query refreshes on
+# The day has to be the caller's today, so an entry is neither backdated nor written ahead. In CEL
+# a date is the instant it starts in UTC, so its UTC calendar day is compared with the one
+# `request.time` falls on in the zone stored on their row, which the app keeps in step with the
+# browser's. With no zone stored, it has to be today somewhere, from UTC-12 to UTC+14. At most
+# 50000 characters of serialized state, `MAX_LOG_ENTRY_LENGTH` in strategydance-core.
+# `$organizationId` is also what the log's live query refreshes on
 mutation CreateLogEntry($organizationId: UUID!, $id: UUID!, $date: Date!, $content: String!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can write in its log") {
-      role
-        @check(expr: "size(vars.content) > 0 && size(vars.content) <= 50000", message: "A log entry is at most 50000 characters")
+      role @check(expr: "size(vars.content) > 0 && size(vars.content) <= 50000", message: "A log entry is at most 50000 characters")
+    }
+    user(key: { id_expr: "auth.uid" }) {
+      timezone
         @check(
-          expr: "vars.date >= request.time - duration('48h') && vars.date <= request.time + duration('24h')"
+          expr: "this != null ? (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) == (request.time.getFullYear(this) * 10000 + request.time.getMonth(this) * 100 + request.time.getDate(this)) : (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) >= ((request.time - duration('12h')).getFullYear('UTC') * 10000 + (request.time - duration('12h')).getMonth('UTC') * 100 + (request.time - duration('12h')).getDate('UTC')) && (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) <= ((request.time + duration('14h')).getFullYear('UTC') * 10000 + (request.time + duration('14h')).getMonth('UTC') * 100 + (request.time + duration('14h')).getDate('UTC'))"
           message: "A log entry is for today"
         )
     }

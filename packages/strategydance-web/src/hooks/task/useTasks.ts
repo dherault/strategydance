@@ -11,6 +11,7 @@ import {
 
 import type { DataSource, Task } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import createId from '~utils/common/createId'
@@ -42,10 +43,14 @@ function useTasks(taskListId: string | null): DataSource<Task[]> & {
   moveTask: (from: number, to: number) => Promise<void>
 } {
   const queryClient = useQueryClient()
+  const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
+  const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
-  const queryKey = ['GetTasks', organizationId, taskListId]
+  // Keyed by the reader too, as the lists are, for the account that signs in next in this tab
+  const queryKey = ['GetTasks', organizationId, viewerId, taskListId]
+  const isEnabled = Boolean(organizationId && viewerId && taskListId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
@@ -54,12 +59,12 @@ function useTasks(taskListId: string | null): DataSource<Task[]> & {
 
       return tasks
     },
-    enabled: Boolean(organizationId && taskListId),
+    enabled: isEnabled,
     retryOnMount: false,
   })
 
   const tasks = data?.tasks ?? EMPTY_TASKS
-  const taskListsQueryKey = ['GetTaskLists', organizationId]
+  const taskListsQueryKey = ['GetTaskLists', organizationId, viewerId]
 
   function setTasks(update: (current: Task[]) => Task[]) {
     queryClient.setQueryData<GetTasksData>(queryKey, current => current && { ...current, tasks: update(current.tasks) })
@@ -181,12 +186,12 @@ function useTasks(taskListId: string | null): DataSource<Task[]> & {
 
   return {
     data: tasks,
-    initialLoading: Boolean(organizationId && taskListId) && isPending && !isError,
-    loading: Boolean(organizationId && taskListId) && isFetching,
+    initialLoading: isEnabled && isPending && !isError,
+    loading: isEnabled && isFetching,
     refetch: async () => {
       await refetch()
     },
-    hasFailed: Boolean(organizationId && taskListId) && isError && data === undefined,
+    hasFailed: isEnabled && isError && data === undefined,
     createTask,
     updateTask,
     deleteTask,

@@ -4,6 +4,7 @@ import { type GetTodayPreferencesData, getTodayPreferencesRef, updateTodayPrefer
 
 import type { DataSource, TodayPreferences } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import writeOptimistically from '~utils/common/writeOptimistically'
@@ -30,10 +31,15 @@ function useTodayPreferences(): DataSource<TodayPreferences> & {
   update: (preferences: TodayPreferences) => Promise<void>
 } {
   const queryClient = useQueryClient()
+  const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
+  const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
-  const queryKey = ['GetTodayPreferences', organizationId]
+  // The reader's own, so the key names them: the tab's cache outlives a sign-out, and the next
+  // account in the same organization must not open on this one's view
+  const queryKey = ['GetTodayPreferences', organizationId, viewerId]
+  const isEnabled = Boolean(organizationId && viewerId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
@@ -42,7 +48,7 @@ function useTodayPreferences(): DataSource<TodayPreferences> & {
 
       return preferences
     },
-    enabled: Boolean(organizationId),
+    enabled: isEnabled,
     retryOnMount: false,
   })
 
@@ -60,12 +66,12 @@ function useTodayPreferences(): DataSource<TodayPreferences> & {
 
   return {
     data: data?.userOrganization ?? EMPTY_PREFERENCES,
-    initialLoading: Boolean(organizationId) && isPending && !isError,
-    loading: Boolean(organizationId) && isFetching,
+    initialLoading: isEnabled && isPending && !isError,
+    loading: isEnabled && isFetching,
     refetch: async () => {
       await refetch()
     },
-    hasFailed: Boolean(organizationId) && isError && data === undefined,
+    hasFailed: isEnabled && isError && data === undefined,
     update,
   }
 }

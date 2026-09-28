@@ -12,6 +12,7 @@ import {
 
 import type { DataSource, TaskList } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import writeOptimistically from '~utils/common/writeOptimistically'
@@ -40,10 +41,15 @@ function useTaskLists(): DataSource<TaskList[]> & {
   restoreTaskList: (taskList: TaskList, index: number) => Promise<void>
 } {
   const queryClient = useQueryClient()
+  const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
+  const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
-  const queryKey = ['GetTaskLists', organizationId]
+  // The reader's own lists, so the key names them: the tab's cache outlives a sign-out, and the
+  // next account in the same organization must not open on this one's lists
+  const queryKey = ['GetTaskLists', organizationId, viewerId]
+  const isEnabled = Boolean(organizationId && viewerId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
@@ -52,7 +58,7 @@ function useTaskLists(): DataSource<TaskList[]> & {
 
       return taskLists
     },
-    enabled: Boolean(organizationId),
+    enabled: isEnabled,
     retryOnMount: false,
   })
 
@@ -71,7 +77,7 @@ function useTaskLists(): DataSource<TaskList[]> & {
       () => {
         setTaskLists(taskLists => [...taskLists, { id, name, openTasks: [{ _count: 0 }] }])
         // A new list has no tasks, so there is nothing to wait for when it opens
-        queryClient.setQueryData<GetTasksData>(['GetTasks', organizationId, id], { tasks: [] })
+        queryClient.setQueryData<GetTasksData>(['GetTasks', organizationId, viewerId, id], { tasks: [] })
       },
       () => createTaskListMutation(dataConnect, { organizationId: organizationId!, id, name }),
     )
@@ -104,12 +110,12 @@ function useTaskLists(): DataSource<TaskList[]> & {
 
   return {
     data: data?.taskLists ?? EMPTY_TASK_LISTS,
-    initialLoading: Boolean(organizationId) && isPending && !isError,
-    loading: Boolean(organizationId) && isFetching,
+    initialLoading: isEnabled && isPending && !isError,
+    loading: isEnabled && isFetching,
     refetch: async () => {
       await refetch()
     },
-    hasFailed: Boolean(organizationId) && isError && data === undefined,
+    hasFailed: isEnabled && isError && data === undefined,
     createTaskList,
     renameTaskList,
     deleteTaskList,

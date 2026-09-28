@@ -17,14 +17,19 @@ export const MESSAGE_TYPES = [
   'account',
   'administration',
   'authentication',
+  'checklist',
   'explore',
   'global',
   'invitation',
   'landing',
+  'log',
   'navigation',
   'onboarding',
   'organizationProfile',
+  'support',
+  'task',
   'team',
+  'today',
 ] as const
 
 /* ---
@@ -96,6 +101,24 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
 
 // The project's public repository, which the sidebar invites the reader to star
 export const GITHUB_REPOSITORY = 'dherault/strategydance'
+
+/* ---
+  SUPPORT
+--- */
+
+/*
+  Who the support page puts the reader in touch with, and every way it offers. The pictures are
+  under `public/`, served from the site root. WhatsApp is a QR code rather than a link, so the
+  number is in no page source
+*/
+export const SUPPORT_CONTACT = {
+  name: 'David Hérault',
+  pictureUrl: '/assets/images/team/david-herault-profile-picture.jpg',
+  email: 'david@strategydance.com',
+  calendarUrl: 'https://calendar.app.google/sPzxWTDKVUvG7koF9',
+  xUrl: 'https://x.com/dherault111',
+  whatsAppQrCodeUrl: '/assets/images/team/david-herault-whatsapp-qrcode.png',
+}
 
 /* ---
   USERS

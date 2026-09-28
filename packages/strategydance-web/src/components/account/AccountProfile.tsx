@@ -1,10 +1,11 @@
 import { PencilIcon, UploadIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_USER_BIO_LENGTH, MAX_USER_NAME_LENGTH } from 'strategydance-core'
+import { type Locale, MAX_USER_BIO_LENGTH, MAX_USER_NAME_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { Input } from 'strategydance-design-system/components/ui/Input'
+import { Select } from 'strategydance-design-system/components/ui/Select'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import { cn } from 'strategydance-design-system/lib/utils'
@@ -12,7 +13,10 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { User } from '~types'
 
 import useStagedImage from '~hooks/common/useStagedImage'
+import useAppIntl from '~hooks/intl/useAppIntl'
 import useUser from '~hooks/user/useUser'
+
+import getLocaleOptions from '~utils/intl/getLocaleOptions'
 
 import AccountProfilePictureDialog from '~components/account/AccountProfilePictureDialog'
 import AccountProfilePreview from '~components/account/AccountProfilePreview'
@@ -28,18 +32,23 @@ type Props = {
 }
 
 /*
-  The reader's name, picture and bio, beside a preview of how their team sees them: one card, one
-  form, saved or discarded together. Its buttons sit under the fields rather than across the card,
-  so the preview runs the card's full height.
+  The reader's name, picture, bio and language, beside a preview of how their team sees them: one
+  card, one form, saved or discarded together. Its buttons sit under the fields rather than across
+  the card, so the preview runs the card's full height.
 
   The form starts from the row and is compared to it on every render, so it reads as changed or
   not without an effect, and as saved the moment the row shows what was sent. A picture chosen in
   its dialog waits on the card, previewed, until the form is saved, as an organization's logo does
-  on its company profile
+  on its company profile.
+
+  The language is the one field that starts from the interface rather than the row: that is the
+  language the reader is looking at, and the browser holding it may never have saved it to the
+  account. Saving puts it in both, the interface once the row has it
 */
 function AccountProfile({ user }: Props) {
   const { formatMessage } = useIntl()
   const { updateProfile } = useUser()
+  const { locale: savedLocale } = useAppIntl()
   const { staged: stagedPicture, stage: stagePicture, unstage: unstagePicture } = useStagedImage()
 
   const savedName = user.displayName ?? ''
@@ -47,6 +56,7 @@ function AccountProfile({ user }: Props) {
 
   const [name, setName] = useState(savedName)
   const [bio, setBio] = useState(savedBio)
+  const [locale, setLocale] = useState(savedLocale)
   // Makes the fields read-only while a save is in flight, since a success puts what was sent back
   // in them: anything typed meanwhile would be lost
   const [isSaving, setIsSaving] = useState(false)
@@ -56,17 +66,18 @@ function AccountProfile({ user }: Props) {
   const trimmedBio = bio.trim()
   const isNameChanged = name !== savedName
   const isPictureChanged = stagedPicture !== undefined
+  const isLocaleChanged = locale !== savedLocale
   // Only once the reader has emptied it: an account that never had a name is not told off on arrival
   const isNameMissing = !trimmedName && isNameChanged
   // Only once the reader has changed it: a name mirrored from Google can be longer, and is kept
   const isNameTooLong = trimmedName.length > MAX_USER_NAME_LENGTH && isNameChanged
   // Anything to discard, spaces included
-  const isDirty = isNameChanged || bio !== savedBio || isPictureChanged
+  const isDirty = isNameChanged || bio !== savedBio || isPictureChanged || isLocaleChanged
   /*
     Anything to save, which spaces alone are not. Only once something was touched: a name mirrored
     from Google as it came, spaces at an end included, differs from its trimmed self on arrival
   */
-  const canSave = isDirty && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged) && !!trimmedName && !isNameTooLong && !isSaving
+  const canSave = isDirty && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged || isLocaleChanged) && !!trimmedName && !isNameTooLong && !isSaving
 
   // What the card shows: a picture chosen and not saved yet, or else the saved one
   const pictureSrc = stagedPicture === undefined ? user.imageUrl ?? null : stagedPicture?.url ?? null
@@ -83,6 +94,7 @@ function AccountProfile({ user }: Props) {
   function discardChanges() {
     setName(savedName)
     setBio(savedBio)
+    setLocale(savedLocale)
     unstagePicture()
   }
 
@@ -102,6 +114,7 @@ function AccountProfile({ user }: Props) {
         displayName,
         image: stagedPicture === undefined ? undefined : stagedPicture?.blob ?? null,
         bio: trimmedBio || null,
+        locale,
       })
 
       // What was saved, without the spaces the server was never sent
@@ -109,6 +122,7 @@ function AccountProfile({ user }: Props) {
       setBio(trimmedBio)
       unstagePicture()
 
+      // In the language the form was saved from, even when the save just switched it
       toast.success(formatMessage(accountMessages.saved))
     }
     catch (error) {
@@ -183,6 +197,13 @@ function AccountProfile({ user }: Props) {
                     </span>
                   </span>
                 )}
+              />
+              <Select
+                label={formatMessage(accountMessages.languageLabel)}
+                value={locale}
+                onValueChange={value => setLocale(value as Locale)}
+                options={getLocaleOptions()}
+                disabled={isSaving}
               />
             </div>
             <div className="mt-auto flex flex-wrap justify-end gap-2 px-5 pb-5 md:px-8 md:pb-8">

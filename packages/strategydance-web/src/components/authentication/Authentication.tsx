@@ -296,7 +296,16 @@ function Authentication() {
             {email}
           </p>
           <p className="mt-1.5 text-center text-sm font-medium text-muted-foreground">
-            <FormattedMessage {...authenticationMessages.modeLoginNoSupportedProvider} />
+            <FormattedMessage
+              {...authenticationMessages.modeLoginNoSupportedProvider}
+              values={{
+                link: chunks => (
+                  <Link to="/support">
+                    {chunks}
+                  </Link>
+                ),
+              }}
+            />
           </p>
         </>
       )}

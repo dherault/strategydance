@@ -1,15 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useIntl } from 'react-intl'
 
 import type { MessageType } from '~types'
 
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
-import ComingSoon from '~components/layout/ComingSoon'
+import Support from '~components/support/Support'
 
-import navigationMessages from '~data/intl/messages/navigation'
-
-// At module scope so the reference is stable across renders
-const SUPPORT_MESSAGE_TYPES: MessageType[] = ['navigation']
+// At module scope so the reference is stable across renders. `landing` is the header's and the
+// footer's, `navigation` the GitHub button's
+const SUPPORT_MESSAGE_TYPES: MessageType[] = ['landing', 'navigation', 'support']
 
 // Public, so help is reachable signed out as well as from the user menu
 export const Route = createFileRoute('/support')({
@@ -19,17 +17,7 @@ export const Route = createFileRoute('/support')({
 function SupportRoute() {
   return (
     <IntlMessagesRegistration messageTypes={SUPPORT_MESSAGE_TYPES}>
-      <SupportPage />
+      <Support />
     </IntlMessagesRegistration>
-  )
-}
-
-function SupportPage() {
-  const { formatMessage } = useIntl()
-
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center">
-      <ComingSoon page={formatMessage(navigationMessages.support)} />
-    </main>
   )
 }

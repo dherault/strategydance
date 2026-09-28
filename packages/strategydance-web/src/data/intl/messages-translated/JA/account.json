@@ -16,6 +16,7 @@
   "account.eyebrow": "個人",
   "account.googleOnlyDescription": "アカウントにパスワードが設定されていないため、ここで変更できる項目はありません。ログインの設定はGoogleアカウントから管理してください。",
   "account.googleOnlyTitle": "Googleでログインしています",
+  "account.languageLabel": "言語",
   "account.lead": "所属するすべての組織で共有される、個人のプロフィールとサインイン情報です。",
   "account.nameLabel": "名前",
   "account.namePlaceholder": "氏名",

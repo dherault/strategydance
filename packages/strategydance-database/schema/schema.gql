@@ -33,9 +33,10 @@ type User @table {
   email: String! @unique
   displayName: String
   imageUrl: String
-  # The language the account was created in, as a hint for anything sent to this reader rather
-  # than rendered for them. Written once: the interface language is a preference the browser
-  # holds, and an account page will own this one
+  # The reader's language, as a hint for anything sent to them rather than rendered for them.
+  # Written at creation in the language the account was created in, then by the account page
+  # whenever it saves. The interface language is a preference the browser holds, which that page
+  # sets along with this one
   locale: Locale!
   # An IANA identifier, validated against `Intl` before it is sent. Unlike `locale` this is
   # observed rather than chosen, so the newest answer overwrites the stored one
@@ -133,6 +134,18 @@ type UserOrganization @table(key: ["user", "organization"]) {
   # organizations. Null until somebody writes one. Named apart from the design's "Role" column
   # it fills, because `role` above is already something else
   jobTitle: String
+  # The one thing they are moving forward, in their words, which their team reads on its Today
+  # page. One line of at most 140 characters (`MAX_TOP_PRIORITY_LENGTH` in strategydance-core).
+  # Kept until they change it rather than cleared each day, and null until they first set one
+  topPriority: String
+  # When `topPriority` was last set, so a priority left for weeks can be told from today's
+  topPriorityUpdatedAt: Timestamp
+  # How their own Today page lists the team's priorities: user ids in the order they dragged
+  # them into, and the ones they hid. Theirs alone, since no operation reads another member's.
+  # Members missing from the order follow in joined-at order, and the page drops the ids of
+  # people who left on its next save, so neither list outgrows the team
+  priorityOrder: [String!]! @default(sql: "'{}'")
+  hiddenPriorities: [String!]! @default(sql: "'{}'")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -173,4 +186,107 @@ type SentInvitation @table @index(fields: ["invitedById", "createdAt"]) {
   # Implies an `invitedById: String!` column, cascade deleting
   invitedBy: User!
   createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# One of somebody's lists of things to do in an organization, on their Today page. Private: every
+# operation on it is keyed by the uid off the token, so nobody reads or writes another's.
+#
+# It references the account and the organization rather than the membership, so removing somebody,
+# which deletes the membership and nothing else, keeps their lists should they be invited again.
+# Deleting the account or the organization cascades.
+#
+# Deleted by setting `deletedAt`, so an Undo is one update that brings the list back with its tasks
+# rather than a re-insert of every one of them. `DeleteTaskList` prunes the caller's lists deleted
+# over a day ago, lazily: the ones deleted in the day before somebody's latest delete stay, read by
+# nothing but `RestoreTaskList`, until they delete another. So they are at most what one person
+# deletes in a day, and a guaranteed expiry would take a scheduled job
+type TaskList @table @index(fields: ["userId", "organizationId"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH` in strategydance-core)
+  name: String!
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# One thing to do, on a task list. Hard deleted, since nothing hangs from it: an Undo inserts the
+# same row again, id and all
+type Task @table @index(fields: ["taskListId", "position"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `taskListId: UUID!` column, cascade deleting
+  taskList: TaskList!
+  # One line of at most 120 characters (`MAX_TASK_LENGTH` in strategydance-core)
+  text: String!
+  isDone: Boolean! @default(value: false)
+  # Where it sits in its list, ascending. A move writes this one row, halfway between its new
+  # neighbours, since the SDK cannot batch a renumbering. Ties, as two tabs adding at once can
+  # make, fall back to `createdAt`
+  position: Float!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+
+# One of the habits on somebody's checklist in an organization, a column they tick on each day they
+# keep it, such as "Talk to users". Their team reads it, and only they write it.
+#
+# It references the account and the organization rather than the membership, as `TaskList` does,
+# so a member removed and invited again finds their checklist and its history where they left it.
+#
+# Deleted by setting `deletedAt`, so an Undo brings the column back with every day it was ticked,
+# which reaches further back than the page has read. `DeleteChecklistItem` prunes the ones deleted
+# over a day ago, their ticks cascading with them, as lazily as `DeleteTaskList` prunes lists
+type ChecklistItem @table @index(fields: ["userId", "organizationId"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH` in strategydance-core), short
+  # enough to read slanted above its column
+  name: String!
+  # Where its column sits, ascending, moved one row at a time as a task is
+  position: Float!
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# A day somebody kept one of their habits. The row is the tick: unticking deletes it, so a day
+# nobody ticked costs nothing. Keyed by the item and the day, so a day is ticked at most once
+type ChecklistCompletion @table(key: ["checklistItem", "date"]) {
+  # Implies a `checklistItemId: UUID!` column, cascade deleting
+  checklistItem: ChecklistItem!
+  # The owner's day, in their time zone, as their page reads it rather than as the server does
+  date: Date!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What a member moved forward on a day, in their words, which the whole team reads on its Today
+# page as a feed. One a day: the member, the organization and the day are unique together, so a
+# second entry for a day is refused and the page offers to edit the first instead.
+#
+# It references the account and the organization rather than the membership, as `TaskList` does:
+# the feed leaves out whoever is not a member any more, and shows their entries again should they
+# be invited back
+type LogEntry @table @unique(fields: ["user", "organization", "date"]) @index(fields: ["organizationId", "date"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The author's day, in their time zone, as their page reads it
+  date: Date!
+  # Lexical's editor state, serialized, at most 50000 characters (`MAX_LOG_ENTRY_LENGTH` in
+  # strategydance-core). It is somebody else's for every reader but its author, so the page never
+  # hands it to Lexical or to the DOM: it draws it through the design system's `RichText`, which
+  # reads an allowlist of nodes and nothing else
+  content: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+  # Later than `createdAt` once the author has edited it, which the feed says
+  updatedAt: Timestamp! @default(expr: "request.time")
 }

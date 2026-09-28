@@ -21,7 +21,7 @@
   "authentication.mode.login.bothPrompt": "Você pode usar o Google ou sua senha para continuar",
   "authentication.mode.login.googlePrompt": "Use sua conta do Google para continuar",
   "authentication.mode.login.greeting": "Olá, {email}",
-  "authentication.mode.login.noSupportedProvider": "Esta conta inicia sessão de uma forma que este aplicativo não oferece. Entre em contato com o suporte.",
+  "authentication.mode.login.noSupportedProvider": "Esta conta inicia sessão de uma forma que este aplicativo não oferece. Por favor, <link>entre em contato com o suporte</link>.",
   "authentication.mode.login.title": "Bem-vindo de volta",
   "authentication.mode.signup.title": "Crie sua conta",
   "authentication.mode.start.or": "ou",

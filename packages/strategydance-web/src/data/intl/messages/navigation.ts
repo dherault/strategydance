@@ -22,16 +22,6 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Today',
     description: 'Sidebar link to the page about what to do today.',
   },
-  tasks: {
-    id: 'navigation.tasks',
-    defaultMessage: 'Tasks',
-    description: 'Sidebar link to the list of tasks.',
-  },
-  agents: {
-    id: 'navigation.agents',
-    defaultMessage: 'Agents',
-    description: 'Sidebar link to the page about the AI agents working for the company.',
-  },
   aspects: {
     id: 'navigation.aspects',
     defaultMessage: 'Aspects',
@@ -215,7 +205,7 @@ const navigationMessages = defineMessages({
   comingSoonDescription: {
     id: 'navigation.comingSoonDescription',
     defaultMessage: '{page} is on its way.',
-    description: 'Text of the notice on a page that is not built yet. {page} is the page\'s name, such as Tasks.',
+    description: 'Text of the notice on a page that is not built yet. {page} is the page\'s name, such as Today.',
   },
 })
 

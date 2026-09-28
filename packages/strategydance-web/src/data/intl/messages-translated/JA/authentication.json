@@ -21,7 +21,7 @@
   "authentication.mode.login.bothPrompt": "Google またはパスワードを使用して続行できます",
   "authentication.mode.login.googlePrompt": "Google アカウントを使用して続行してください",
   "authentication.mode.login.greeting": "こんにちは、{email} さん",
-  "authentication.mode.login.noSupportedProvider": "このアカウントのログイン方法は本アプリでサポートされていません。サポートにお問い合わせください。",
+  "authentication.mode.login.noSupportedProvider": "このアカウントのログイン方法は本アプリでサポートされていません。<link>サポートにお問い合わせ</link>ください。",
   "authentication.mode.login.title": "おかえりなさい",
   "authentication.mode.signup.title": "アカウントを作成",
   "authentication.mode.start.or": "または",

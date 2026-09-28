@@ -2,6 +2,8 @@ import { UserPlusIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 
+import PageHeader from '~components/layout/PageHeader'
+
 import navigationMessages from '~data/intl/messages/navigation'
 import teamMessages from '~data/intl/messages/team'
 
@@ -20,23 +22,11 @@ function TeamHeader({ organizationName, memberCount, invitationCount, onInvite }
   const { formatMessage } = useIntl()
 
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div className="flex flex-col gap-3">
-        <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          {formatMessage(teamMessages.eyebrow)}
-        </p>
-        <h1 className="m-0 text-5xl leading-[1.05]">
-          {formatMessage(navigationMessages.team)}
-        </h1>
-        {organizationName
-          ? (
-              <p className="m-0 text-base leading-[1.6] text-muted-foreground">
-                {formatMessage(teamMessages.lead, { memberCount, invitationCount, organizationName })}
-              </p>
-            )
-          : null}
-      </div>
-      {onInvite
+    <PageHeader
+      eyebrow={formatMessage(teamMessages.eyebrow)}
+      title={formatMessage(navigationMessages.team)}
+      lead={organizationName ? formatMessage(teamMessages.lead, { memberCount, invitationCount, organizationName }) : null}
+      actions={onInvite
         ? (
             <Button
               icon={<UserPlusIcon />}
@@ -46,7 +36,7 @@ function TeamHeader({ organizationName, memberCount, invitationCount, onInvite }
             </Button>
           )
         : null}
-    </header>
+    />
   )
 }
 

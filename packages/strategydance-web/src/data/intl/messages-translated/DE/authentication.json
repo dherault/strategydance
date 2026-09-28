@@ -21,7 +21,7 @@
   "authentication.mode.login.bothPrompt": "Du kannst entweder Google oder dein Passwort verwenden, um fortzufahren",
   "authentication.mode.login.googlePrompt": "Nutze dein Google-Konto, um fortzufahren",
   "authentication.mode.login.greeting": "Hallo {email}",
-  "authentication.mode.login.noSupportedProvider": "Dieses Konto verwendet eine Anmeldemethode, die von dieser App nicht unterstützt wird. Bitte wende dich an den Support.",
+  "authentication.mode.login.noSupportedProvider": "Dieses Konto verwendet eine Anmeldemethode, die diese App nicht anbietet. Bitte <link>wende dich an den Support</link>.",
   "authentication.mode.login.title": "Willkommen zurück",
   "authentication.mode.signup.title": "Erstelle dein Konto",
   "authentication.mode.start.or": "oder",

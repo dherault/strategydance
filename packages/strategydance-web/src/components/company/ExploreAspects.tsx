@@ -11,6 +11,7 @@ import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import ExploreAspectCard from '~components/company/ExploreAspectCard'
 import ContainerLayout from '~components/layout/ContainerLayout'
+import PageHeader from '~components/layout/PageHeader'
 
 import exploreMessages from '~data/intl/messages/explore'
 import navigationMessages from '~data/intl/messages/navigation'
@@ -53,17 +54,11 @@ function ExploreAspects() {
 
   return (
     <ContainerLayout className="@container gap-10">
-      <header className="flex max-w-[640px] flex-col gap-3">
-        <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          {formatMessage(exploreMessages.explored, { explored: exploredAspects.length, total: aspects.length })}
-        </p>
-        <h1 className="m-0 text-5xl leading-[1.05]">
-          {formatMessage(navigationMessages.exploreMore)}
-        </h1>
-        <p className="m-0 text-base leading-[1.6] text-pretty text-muted-foreground">
-          {formatMessage(exploreMessages.lead)}
-        </p>
-      </header>
+      <PageHeader
+        eyebrow={formatMessage(exploreMessages.explored, { explored: exploredAspects.length, total: aspects.length })}
+        title={formatMessage(navigationMessages.exploreMore)}
+        lead={formatMessage(exploreMessages.lead)}
+      />
       {hasFailed
         ? (
             <Alert

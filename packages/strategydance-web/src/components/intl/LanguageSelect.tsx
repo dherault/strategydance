@@ -1,10 +1,10 @@
 import { useIntl } from 'react-intl'
-import { SUPPORTED_LOCALES } from 'strategydance-core'
 import { Select } from 'strategydance-design-system/components/ui/Select'
 
 import useAppIntl from '~hooks/intl/useAppIntl'
 
-import { LOCALE_DISPLAY } from '~data/intl/constants'
+import getLocaleOptions from '~utils/intl/getLocaleOptions'
+
 import globalMessages from '~data/intl/messages/global'
 
 function LanguageSelect() {
@@ -16,10 +16,7 @@ function LanguageSelect() {
       value={locale}
       onValueChange={value => setLocale(value as typeof locale)}
       aria-label={formatMessage(globalMessages.language)}
-      options={SUPPORTED_LOCALES.map(supportedLocale => ({
-        value: supportedLocale,
-        label: `${LOCALE_DISPLAY[supportedLocale].emoji} ${LOCALE_DISPLAY[supportedLocale].label}`,
-      }))}
+      options={getLocaleOptions()}
       className="w-48"
     />
   )

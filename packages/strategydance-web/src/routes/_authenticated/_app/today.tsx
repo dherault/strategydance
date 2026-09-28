@@ -16,17 +16,18 @@ export const Route = createFileRoute('/_authenticated/_app/today')({
 })
 
 /*
-  The page is keyed by the organization, so switching organizations mounts it anew: a dialog
-  open on one organization's priorities, a task being edited or a draft log entry must not
-  survive into another
+  The waiter and the page are keyed by the organization, so switching organizations mounts both
+  anew: a dialog open on one organization's priorities, a task being edited or a draft log entry
+  must not survive into another, and the waiter reads the list the reader last opened in the new
+  organization rather than keeping the one it read on arrival in the old
 */
 function TodayRoute() {
   const { organization } = useCurrentOrganization()
 
   return (
     <IntlMessagesRegistration messageTypes={TODAY_MESSAGE_TYPES}>
-      <TodayWait>
-        <Today key={organization?.id ?? 'none'} />
+      <TodayWait key={organization?.id ?? 'none'}>
+        <Today />
       </TodayWait>
     </IntlMessagesRegistration>
   )

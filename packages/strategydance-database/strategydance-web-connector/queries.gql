@@ -76,7 +76,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # cannot answer for them.
 #
 # A live query. The page subscribes to it, and each `@refresh` names a mutation that changes one
-# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation`,
+# of the lists, scoped to the organization both carry. The Today page reads it too, for the top
+# priority each member sets, which is why `UpdateTopPriority` is among them. `CreateOrganizationInvitation`,
 # `DeleteUnsentOrganizationInvitation` and `DeleteOrganization` are the backend connector's, run
 # through the Admin SDK; the last empties both lists, which the page reads as the reader having
 # left. A profile edit is not among them: refreshing on every `UpdateCurrentUser` would wake every
@@ -90,6 +91,7 @@ query GetOrganizationTeam($organizationId: UUID!)
 @auth(level: USER)
 @refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberRole", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberJobTitle", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "UpdateTopPriority", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "DeleteOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
@@ -109,6 +111,8 @@ query GetOrganizationTeam($organizationId: UUID!)
   ) {
     role
     jobTitle
+    topPriority
+    topPriorityUpdatedAt
     user {
       id
       email
@@ -125,6 +129,16 @@ query GetOrganizationTeam($organizationId: UUID!)
     limit: 100
   ) {
     email
+  }
+}
+
+# How the caller's own Today page lists the team's priorities: the order they chose and the ones
+# they hid. Keyed by the uid off the token, so there is no shape of this query that reads another
+# member's. Null for somebody outside the organization
+query GetTodayPreferences($organizationId: UUID!) @auth(level: USER) {
+  userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId }) {
+    priorityOrder
+    hiddenPriorities
   }
 }
 

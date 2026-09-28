@@ -1393,6 +1393,116 @@
         "hash": "fcf24d6e3ac8923a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
+    },
+    "today": {
+      "today.arrangePriorities": {
+        "hash": "07bcc50116e7d8b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.arrangePrioritiesLabel": {
+        "hash": "d74cb2cb962ebb1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.cancel": {
+        "hash": "4ea27964e6d83fa4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.close": {
+        "hash": "69e33c4a3714931a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.done": {
+        "hash": "6eb2a5cd8cd7ff10",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.editPriority": {
+        "hash": "e7a0f807555d2182",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.noJobTitle": {
+        "hash": "2088ea248044bfb0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.noPriority": {
+        "hash": "b77671d9252094cc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.prioritiesDescription": {
+        "hash": "0d9e3177593477da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.prioritiesLoadError": {
+        "hash": "fc3cc1a1f1956530",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.prioritiesTitle": {
+        "hash": "44f0b68005ddd267",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityDialogDescription": {
+        "hash": "3efe415aa8dfbd83",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityDialogTitle": {
+        "hash": "3ece22c31a7e34ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityError": {
+        "hash": "a8c8d87d3b4aa250",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityLabel": {
+        "hash": "2f2f7db7c72f7f48",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityLength": {
+        "hash": "9ac3ef576fc5f879",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityPlaceholder": {
+        "hash": "f8238cbfc434a32e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityUpdated": {
+        "hash": "3623ce5a8fcbd7c9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.reorderPriority": {
+        "hash": "1f25a6f52b2d21f2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.retry": {
+        "hash": "894167e3f78d52ce",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.save": {
+        "hash": "8a60000707e834ab",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.setYourPriority": {
+        "hash": "de944a864143fb2e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.showPriority": {
+        "hash": "2a821a6a2d6cdf45",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.visibilityDialogDescription": {
+        "hash": "219e54101a21def8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.visibilityDialogTitle": {
+        "hash": "a512894b5946e65d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.visibilityError": {
+        "hash": "e8b485c011172c18",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.visibleCount": {
+        "hash": "237f9e4d295f1589",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
     }
   }
 }

@@ -268,6 +268,56 @@ mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: Strin
   ) @check(expr: "this != null", message: "Nobody by that id belongs to the organization")
 }
 
+# Sets the caller's top priority in an organization, or clears it with null, for their team to
+# read on its Today page.
+#
+# Keyed by the uid off the token, so a member writes their own and nobody else's. The first step
+# reads that membership and fails for anybody outside the organization. The length and the single
+# line are checked here as well as in the dialog, since the dialog is not the only possible caller,
+# with the pattern the names use: CEL has no standard `trim()`. At most 140 characters,
+# `MAX_TOP_PRIORITY_LENGTH` in strategydance-core. `$organizationId` is also what the team's live
+# query refreshes on
+mutation UpdateTopPriority($organizationId: UUID!, $topPriority: String) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can set a top priority in it") {
+      role
+        @check(
+          expr: "vars.topPriority == null || (size(vars.topPriority) <= 140 && vars.topPriority.matches('^[[:^space:]](.*[[:^space:]])?$'))"
+          message: "A top priority is 1 to 140 characters on one line, with no space at either end"
+        )
+    }
+  }
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { topPriority: $topPriority, topPriorityUpdatedAt_expr: "request.time", updatedAt_expr: "request.time" }
+  ) @check(expr: "this != null", message: "Only a member of an organization can set a top priority in it")
+}
+
+# Saves how the caller's own Today page lists the team's priorities, both lists written whole.
+#
+# Keyed by the uid off the token, like `UpdateTopPriority`. Each list holds user ids, and neither
+# is checked against the team: an id that names nobody only sorts or hides nobody, and the page
+# drops those of people who left. What is checked is the size, at most the 100 a team holds
+# (`MAX_TEAM_SIZE` in strategydance-core), so a caller cannot grow a row without bound
+mutation UpdateTodayPreferences($organizationId: UUID!, $priorityOrder: [String!]!, $hiddenPriorities: [String!]!)
+@auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can arrange its priorities") {
+      role
+        @check(
+          expr: "size(vars.priorityOrder) <= 100 && size(vars.hiddenPriorities) <= 100"
+          message: "A team's priorities are arranged by at most 100 ids"
+        )
+    }
+  }
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { priorityOrder: $priorityOrder, hiddenPriorities: $hiddenPriorities, updatedAt_expr: "request.time" }
+  ) @check(expr: "this != null", message: "Only a member of an organization can arrange its priorities")
+}
+
 # Takes somebody out of an organization: the page calls it banning. Only an administrator may,
 # and never on themselves, which is also what keeps this from removing the last administrator.
 #

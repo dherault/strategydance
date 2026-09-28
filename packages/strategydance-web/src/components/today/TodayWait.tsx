@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
+import useTodayPreferences from '~hooks/today/useTodayPreferences'
 
 import Loading from '~components/common/Loading'
 
@@ -12,8 +13,9 @@ import Loading from '~components/common/Loading'
 */
 function TodayWait({ children }: PropsWithChildren) {
   const { initialLoading: isTeamLoading } = useOrganizationTeam()
+  const { initialLoading: arePreferencesLoading } = useTodayPreferences()
 
-  if (isTeamLoading) {
+  if (isTeamLoading || arePreferencesLoading) {
     return (
       <Loading source="TodayWait" />
     )

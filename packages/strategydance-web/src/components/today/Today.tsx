@@ -6,6 +6,7 @@ import toCalendarDate from '~utils/date/toCalendarDate'
 
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
+import TodayPriorities from '~components/today/TodayPriorities'
 
 import navigationMessages from '~data/intl/messages/navigation'
 
@@ -23,6 +24,9 @@ function Today() {
         eyebrow={formatDate(toCalendarDate(today), { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}
         title={formatMessage(navigationMessages.today)}
       />
+      <div className="flex flex-col gap-14">
+        <TodayPriorities />
+      </div>
     </ContainerLayout>
   )
 }

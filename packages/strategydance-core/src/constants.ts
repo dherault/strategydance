@@ -167,3 +167,13 @@ export const MAX_USER_NAME_LENGTH = 80
   `UpdateCurrentUserProfile`'s check, which cannot import it: change the two together
 */
 export const MAX_USER_BIO_LENGTH = 200
+
+/* ---
+  TODAY
+--- */
+
+/*
+  How long a member's top priority may be, the one line their team reads on its Today page.
+  Written out again in `UpdateTopPriority`'s check, which cannot import it: change the two together
+*/
+export const MAX_TOP_PRIORITY_LENGTH = 140

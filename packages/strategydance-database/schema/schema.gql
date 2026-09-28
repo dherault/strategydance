@@ -133,6 +133,18 @@ type UserOrganization @table(key: ["user", "organization"]) {
   # organizations. Null until somebody writes one. Named apart from the design's "Role" column
   # it fills, because `role` above is already something else
   jobTitle: String
+  # The one thing they are moving forward, in their words, which their team reads on its Today
+  # page. One line of at most 140 characters (`MAX_TOP_PRIORITY_LENGTH` in strategydance-core).
+  # Kept until they change it rather than cleared each day, and null until they first set one
+  topPriority: String
+  # When `topPriority` was last set, so a priority left for weeks can be told from today's
+  topPriorityUpdatedAt: Timestamp
+  # How their own Today page lists the team's priorities: user ids in the order they dragged
+  # them into, and the ones they hid. Theirs alone, since no operation reads another member's.
+  # Members missing from the order follow in joined-at order, and the page drops the ids of
+  # people who left on its next save, so neither list outgrows the team
+  priorityOrder: [String!]! @default(sql: "'{}'")
+  hiddenPriorities: [String!]! @default(sql: "'{}'")
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

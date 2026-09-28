@@ -25,6 +25,7 @@ export const MESSAGE_TYPES = [
   'onboarding',
   'organizationProfile',
   'team',
+  'today',
 ] as const
 
 /* ---

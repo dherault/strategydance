@@ -1,4 +1,4 @@
-import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData } from 'strategydance-database/web'
+import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData, GetTodayPreferencesData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
@@ -87,3 +87,7 @@ export type StagedImage = {
   blob: Blob
   url: string
 } | null | undefined
+
+// How the reader's own Today page lists the team's priorities: the order they chose, and whom they
+// hid, both as user ids
+export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>

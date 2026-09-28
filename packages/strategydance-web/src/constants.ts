@@ -17,15 +17,19 @@ export const MESSAGE_TYPES = [
   'account',
   'administration',
   'authentication',
+  'checklist',
   'explore',
   'global',
   'invitation',
   'landing',
+  'log',
   'navigation',
   'onboarding',
   'organizationProfile',
   'support',
+  'task',
   'team',
+  'today',
 ] as const
 
 /* ---

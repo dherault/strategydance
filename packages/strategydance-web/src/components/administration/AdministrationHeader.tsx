@@ -1,5 +1,7 @@
 import { useIntl } from 'react-intl'
 
+import PageHeader from '~components/layout/PageHeader'
+
 import navigationMessages from '~data/intl/messages/navigation'
 
 type Props = {
@@ -13,21 +15,11 @@ function AdministrationHeader({ title, lead }: Props) {
   const { formatMessage } = useIntl()
 
   return (
-    <header className="flex flex-col gap-3">
-      <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-        {formatMessage(navigationMessages.administration)}
-      </p>
-      <h1 className="m-0 text-5xl leading-[1.05]">
-        {title}
-      </h1>
-      {lead
-        ? (
-            <p className="m-0 text-base leading-[1.6] text-muted-foreground">
-              {lead}
-            </p>
-          )
-        : null}
-    </header>
+    <PageHeader
+      eyebrow={formatMessage(navigationMessages.administration)}
+      title={title}
+      lead={lead}
+    />
   )
 }
 

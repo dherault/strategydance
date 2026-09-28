@@ -76,7 +76,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # cannot answer for them.
 #
 # A live query. The page subscribes to it, and each `@refresh` names a mutation that changes one
-# of the lists, scoped to the organization both carry. `CreateOrganizationInvitation`,
+# of the lists, scoped to the organization both carry. The Today page reads it too, for the top
+# priority each member sets, which is why `UpdateTopPriority` is among them. `CreateOrganizationInvitation`,
 # `DeleteUnsentOrganizationInvitation` and `DeleteOrganization` are the backend connector's, run
 # through the Admin SDK; the last empties both lists, which the page reads as the reader having
 # left. A profile edit is not among them: refreshing on every `UpdateCurrentUser` would wake every
@@ -90,6 +91,7 @@ query GetOrganizationTeam($organizationId: UUID!)
 @auth(level: USER)
 @refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberRole", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberJobTitle", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "UpdateTopPriority", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "DeleteOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
 @refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
@@ -109,6 +111,8 @@ query GetOrganizationTeam($organizationId: UUID!)
   ) {
     role
     jobTitle
+    topPriority
+    topPriorityUpdatedAt
     user {
       id
       email
@@ -125,6 +129,16 @@ query GetOrganizationTeam($organizationId: UUID!)
     limit: 100
   ) {
     email
+  }
+}
+
+# How the caller's own Today page lists the team's priorities: the order they chose and the ones
+# they hid. Keyed by the uid off the token, so there is no shape of this query that reads another
+# member's. Null for somebody outside the organization
+query GetTodayPreferences($organizationId: UUID!) @auth(level: USER) {
+  userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId }) {
+    priorityOrder
+    hiddenPriorities
   }
 }
 
@@ -217,5 +231,205 @@ query GetAdministrationOrganizations @auth(level: USER) {
     members: userOrganizations_on_organization {
       _count
     }
+  }
+}
+
+# The caller's task lists in an organization, in the order they made them, each with how many of
+# its tasks are still open, for the pill beside its name. Their own alone: keyed by the uid off the
+# token, and read only while they belong to the organization. A deleted list is left out.
+#
+# Read up to 100, `MAX_TASK_LISTS` in strategydance-core, which `CreateTaskList` holds them to. The
+# tasks themselves are read one list at a time, by `GetTasks`, since a list holds up to 1000
+query GetTaskLists($organizationId: UUID!) @auth(level: USER) {
+  taskLists(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # `id` breaks the tie between two lists made in the same instant
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    openTasks: tasks_on_taskList(where: { isDone: { eq: false } }) {
+      _count
+    }
+  }
+}
+
+# One of the caller's task lists, its tasks in their order. Scoped as `GetTaskLists` is, through
+# the list, so an id that is somebody else's reads nothing. Up to 1000, `MAX_TASKS_PER_LIST` in
+# strategydance-core, which `CreateTask` holds a list to
+query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
+  tasks(
+    where: {
+      taskListId: { eq: $taskListId }
+      taskList: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    # Two tasks added at once can share a position, and then keep the order they were added in
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    text
+    isDone
+    position
+  }
+}
+
+# Somebody's checklist in an organization, as the Today page opens it: any member may read any
+# member's, and an outsider, or a member reading somebody who left, reads nothing.
+#
+# - `owner` is when they joined and their time zone, which say which rows the table has and which
+#   of them is their today
+# - `checklistItems` are their live columns in order, each with the days ticked in the last eight,
+#   which covers the week the table shows folded in any time zone. The window is the server's
+#   today, so the query stays the same across the reader's midnight. Up to 100 columns,
+#   `MAX_CHECKLIST_ITEMS` in strategydance-core
+# - `earliest` is their oldest tick, so the table can say how many days it would unfold to
+# - `anyItem` says whether they ever had a column, deleted ones included, so their own page seeds
+#   the default habits once and never again
+query GetChecklist($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  owner: userOrganizations(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    createdAt
+    user {
+      timezone
+    }
+  }
+  checklistItems(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    position
+    completions: checklistCompletions_on_checklistItem(
+      where: { date: { ge_date: { today: true, sub: { days: 8 } } } }
+      orderBy: [{ date: DESC }]
+      limit: 10
+    ) {
+      date
+    }
+  }
+  earliest: checklistCompletions(
+    where: {
+      checklistItem: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+        user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+      }
+    }
+    orderBy: [{ date: ASC }]
+    limit: 1
+  ) {
+    date
+  }
+  anyItem: checklistItems(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+  }
+}
+
+# Every day somebody ticked each of their live checklist columns, for the table unfolded past the
+# week `GetChecklist` reads. Read only when it unfolds, and scoped as that query is. Up to 3660 days
+# a column, ten years, `MAX_CHECKLIST_HISTORY_DAYS` in strategydance-core, which is also as far back
+# as the table draws: past that it needs pagination
+query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  checklistItems(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    limit: 100
+  ) {
+    id
+    completions: checklistCompletions_on_checklistItem(orderBy: [{ date: DESC }], limit: 3660) {
+      date
+    }
+  }
+}
+
+# A week of an organization's log, newest first, as the Today page's feed reads it: every entry
+# from `$from` to `$to` by somebody who is a member now. Outsiders read nothing. The authors' names
+# and pictures come from the team, which the page already holds live, so only their ids are read.
+#
+# Read up to 700 entries, a team of 100 (`MAX_TEAM_SIZE` in strategydance-core) writing every day
+# of the week, so a week is never cut short. `older` is the day of the newest entry before the week,
+# for the page to jump to when it loads the previous one, past any week nobody wrote in.
+#
+# A live query, for the newest week: each `@refresh` names a mutation that adds, changes or hides
+# an entry. Removing somebody hides theirs, accepting an invitation can show a returning member's
+# again, and deleting the organization empties it
+query GetOrganizationLog($organizationId: UUID!, $from: Date!, $to: Date!)
+@auth(level: USER)
+@refresh(onMutationExecuted: { operation: "CreateLogEntry", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "UpdateLogEntry", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteOrganization", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+  logEntries(
+    where: {
+      organizationId: { eq: $organizationId }
+      date: { ge: $from, le: $to }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    # `id` breaks the tie between two entries written in the same instant
+    orderBy: [{ date: DESC }, { createdAt: DESC }, { id: ASC }]
+    limit: 700
+  ) {
+    id
+    date
+    content
+    createdAt
+    updatedAt
+    user {
+      id
+    }
+  }
+  older: logEntries(
+    where: {
+      organizationId: { eq: $organizationId }
+      date: { lt: $from }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ date: DESC }]
+    limit: 1
+  ) {
+    date
   }
 }

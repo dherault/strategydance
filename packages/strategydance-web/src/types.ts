@@ -1,5 +1,5 @@
 import type { Locale } from 'strategydance-core'
-import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationTeamData } from 'strategydance-database/web'
+import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetChecklistData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationLogData, GetOrganizationTeamData, GetTaskListsData, GetTasksData, GetTodayPreferencesData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
@@ -90,3 +90,23 @@ export type StagedImage = {
   blob: Blob
   url: string
 } | null | undefined
+
+// How the reader's own Today page lists the team's priorities: the order they chose, and whom they
+// hid, both as user ids
+export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
+
+// One of the reader's task lists, with how many of its tasks are still open
+export type TaskList = GetTaskListsData['taskLists'][number]
+
+// One task on a list, where it sits in it, and whether it is done
+export type Task = GetTasksData['tasks'][number]
+
+// Somebody's checklist as the Today page opens it: who they are, their columns with the last week
+// of ticks, and how far back their ticks go
+export type Checklist = GetChecklistData
+
+// One column of a checklist, a habit, with the days it was ticked that the page has read
+export type ChecklistItem = GetChecklistData['checklistItems'][number]
+
+// One entry of an organization's log, by the id of whoever wrote it
+export type LogEntry = GetOrganizationLogData['logEntries'][number]

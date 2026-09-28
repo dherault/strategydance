@@ -1,18 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { executeQuery, subscribe } from 'firebase/data-connect'
-import { useEffect } from 'react'
+import { executeQuery } from 'firebase/data-connect'
 import { type GetCurrentUserOrganizationsData, getOrganizationTeamRef } from 'strategydance-database/web'
 
 import type { DataSource, OrganizationTeam } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
+import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import { dataConnect } from '~data/firebase'
-
-// How long a subscription that failed waits before it opens again, doubling up to the maximum
-const REOPEN_INITIAL_DELAY_MS = 1000
-const REOPEN_MAX_DELAY_MS = 60 * 1000
 
 const EMPTY_TEAM: OrganizationTeam = {
   userOrganizations: [],
@@ -58,87 +54,29 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> & { hasFailed: bool
     retryOnMount: false,
   })
 
-  useEffect(() => {
-    if (!organizationId) return
+  /*
+    The reader's own row in a pushed team says what they are in it now: their access, and what
+    they do there. When either differs from what their memberships say, somebody changed it or
+    removed them, and the memberships are read again: the sidebar follows, a removed reader's
+    current organization moves on to another, and their account page shows the new job title
+  */
+  function syncMemberships(team: OrganizationTeam) {
+    const memberships = queryClient.getQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId])
+    const known = memberships?.userOrganizations.find(membership => membership.organization.id === organizationId)
+    const pushed = team.userOrganizations.find(member => member.user.id === viewerId)
 
-    const queryKey = ['GetOrganizationTeam', organizationId]
+    const isRoleChanged = (known?.role ?? null) !== (pushed?.role ?? null)
+    const isJobTitleChanged = (known?.jobTitle ?? null) !== (pushed?.jobTitle ?? null)
 
-    /*
-      The reader's own row in a pushed team says what they are in it now: their access, and what
-      they do there. When either differs from what their memberships say, somebody changed it or
-      removed them, and the memberships are read again: the sidebar follows, a removed reader's
-      current organization moves on to another, and their account page shows the new job title
-    */
-    function syncMemberships(team: OrganizationTeam) {
-      const memberships = queryClient.getQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId])
-      const known = memberships?.userOrganizations.find(membership => membership.organization.id === organizationId)
-      const pushed = team.userOrganizations.find(member => member.user.id === viewerId)
+    if (isRoleChanged || isJobTitleChanged) queryClient.invalidateQueries({ queryKey: ['GetCurrentUserOrganizations'] })
+  }
 
-      const isRoleChanged = (known?.role ?? null) !== (pushed?.role ?? null)
-      const isJobTitleChanged = (known?.jobTitle ?? null) !== (pushed?.jobTitle ?? null)
-
-      if (isRoleChanged || isJobTitleChanged) queryClient.invalidateQueries({ queryKey: ['GetCurrentUserOrganizations'] })
-    }
-
-    /*
-      The SDK reconnects a dropped stream by itself and resends the subscription, but when it
-      gives up it reports the error and unsubscribes every callback, and nothing would ever open
-      the subscription again: the page would stop being live without a sign. So any error, and a
-      failure to open the stream at all, which throws rather than reaching `onErr`, closes this
-      subscription and opens a new one after a delay that doubles each time, up to a minute, and
-      starts over once a result arrives. The team stays as last read meanwhile
-    */
-    let unsubscribe: (() => void) | null = null
-    let reopenTimeout: ReturnType<typeof setTimeout> | undefined
-    let reopenDelay = REOPEN_INITIAL_DELAY_MS
-    let isClosed = false
-
-    function reopen() {
-      if (isClosed || reopenTimeout) return
-
-      unsubscribe?.()
-      unsubscribe = null
-
-      reopenTimeout = setTimeout(() => {
-        reopenTimeout = undefined
-        open()
-      }, reopenDelay)
-
-      reopenDelay = Math.min(reopenDelay * 2, REOPEN_MAX_DELAY_MS)
-    }
-
-    function open() {
-      try {
-        unsubscribe = subscribe(getOrganizationTeamRef(dataConnect, { organizationId: organizationId! }), {
-          onNext: ({ data: team }) => {
-            reopenDelay = REOPEN_INITIAL_DELAY_MS
-            queryClient.setQueryData(queryKey, team)
-            syncMemberships(team)
-          },
-          onErr: error => {
-            console.error('The live team query failed, reopening it', error)
-            reopen()
-          },
-        })
-      }
-      catch (error) {
-        console.error('Could not subscribe to the team, retrying', error)
-        reopen()
-      }
-    }
-
-    open()
-
-    return () => {
-      isClosed = true
-      clearTimeout(reopenTimeout)
-      unsubscribe?.()
-    }
-  }, [
-    organizationId,
-    queryClient,
-    viewerId,
-  ])
+  useLiveQuerySubscription({
+    name: 'team',
+    queryKey: organizationId ? ['GetOrganizationTeam', organizationId] : null,
+    createQueryRef: () => getOrganizationTeamRef(dataConnect, { organizationId: organizationId! }),
+    onNext: syncMemberships,
+  })
 
   return {
     data: data ?? EMPTY_TEAM,

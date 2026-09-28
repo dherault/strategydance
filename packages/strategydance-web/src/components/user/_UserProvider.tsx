@@ -104,13 +104,14 @@ function UserProvider({ children }: PropsWithChildren) {
     effect that compares the two. A write that fails after Firebase took the change leaves them
     apart until then, which the mirror mends the next time the row is read.
 
-    The language is the row's and the interface's, and the interface follows the row once it has
-    it, so a save that fails leaves the page in the language it was in rather than one that was
-    never saved.
-
     A removed picture is deleted from Storage last, once nothing points at it: failing before then
     leaves the account showing a picture that is still there, rather than one that is gone, and
     saving again deletes it.
+
+    The language is the row's and the interface's, and the interface switches only once everything
+    else has gone through, so a save that fails leaves the page in the language it was in, with the
+    choice still on the form to save again. A deletion that fails can leave the row ahead of the
+    interface, which that second save brings back in step.
 
     It throws, because the caller has a form to keep: a save that failed must not clear what
     somebody typed. The read after the write throws too, which a refetch does not by default
@@ -129,9 +130,9 @@ function UserProvider({ children }: PropsWithChildren) {
     await updateCurrentUserProfile({ displayName, imageUrl, bio, locale: toDatabaseLocale(chosenLocale) })
     await refetchUser({ throwOnError: true })
 
-    setLocale(chosenLocale)
-
     if (image === null) await deleteProfilePicture(viewer.uid)
+
+    setLocale(chosenLocale)
   }
 
   // Insert the row the first time this account is seen

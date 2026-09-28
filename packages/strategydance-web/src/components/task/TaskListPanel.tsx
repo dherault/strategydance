@@ -14,7 +14,7 @@ import useTasks from '~hooks/task/useTasks'
 
 import Spinner from '~components/common/Spinner'
 import TaskInlineInput from '~components/task/TaskInlineInput'
-import { EDITABLE_BOX_CLASS_NAME } from '~components/task/taskClassNames'
+import { EDITABLE_BOX_CLASS_NAME, REVEALED_TRANSITION_CLASS_NAME } from '~components/task/taskClassNames'
 import TaskRow from '~components/task/TaskRow'
 import TodaySectionLoadFailed from '~components/today/TodaySectionLoadFailed'
 
@@ -113,7 +113,8 @@ function TaskListPanel({ taskList, isRenaming, onRenamingChange, onRename, onDel
                   aria-label={formatMessage(taskMessages.deleteList, { name: taskList.name })}
                   title={formatMessage(taskMessages.deleteListTooltip)}
                   confirm={formatMessage(taskMessages.confirm)}
-                  className="text-neutral-500 opacity-0 not-disabled:hover:text-red-600 group-hover/head:opacity-100 group-focus-within/head:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                  // Fades in while the head is hovered, as a task's does in its row
+                  className={cn(REVEALED_TRANSITION_CLASS_NAME, 'text-neutral-500 opacity-0 not-disabled:hover:text-red-600 group-hover/head:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100')}
                   onClick={onDelete}
                 />
               </>

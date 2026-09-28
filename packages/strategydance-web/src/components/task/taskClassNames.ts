@@ -5,3 +5,9 @@
   colors and nothing else: the words stay where they were
 */
 export const EDITABLE_BOX_CLASS_NAME = '-ml-[9px] rounded-xs border px-2'
+
+/*
+  What the buttons that appear on hover fade with. The design system's button transitions its
+  colors alone, which would make them blink in, so their opacity joins those
+*/
+export const REVEALED_TRANSITION_CLASS_NAME = 'transition-[opacity,color,background-color] duration-150 ease-in-out'

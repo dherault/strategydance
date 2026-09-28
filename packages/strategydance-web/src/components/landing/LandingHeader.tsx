@@ -1,18 +1,17 @@
 import { Link } from '@tanstack/react-router'
-import { FormattedMessage } from 'react-intl'
+import type { ReactNode } from 'react'
 import { Logo } from 'strategydance-design-system/components/brand/Logo'
-import { buttonVariants } from 'strategydance-design-system/components/ui/Button'
 
+import LandingAuthenticationLinks from '~components/landing/LandingAuthenticationLinks'
 import LandingContainer from '~components/landing/LandingContainer'
 import GitHubStarButton from '~components/layout/GitHubStarButton'
 
-import landingMessages from '~data/intl/messages/landing'
+type Props = {
+  // The buttons after the GitHub one. The way in unless the page has its own
+  actions?: ReactNode
+}
 
-/*
-  Both buttons lead to the one email-first form, which tells signing in from signing up itself, and
-  forwards somebody already signed in into the app
-*/
-function LandingHeader() {
+function LandingHeader({ actions = <LandingAuthenticationLinks /> }: Props) {
   return (
     <header>
       <LandingContainer className="flex h-16 items-center justify-between gap-4">
@@ -31,18 +30,7 @@ function LandingHeader() {
           <div className="mr-2 hidden sm:block">
             <GitHubStarButton />
           </div>
-          <Link
-            to="/authentication"
-            className={buttonVariants({ variant: 'transparent', size: 'sm' })}
-          >
-            <FormattedMessage {...landingMessages.logIn} />
-          </Link>
-          <Link
-            to="/authentication"
-            className={buttonVariants({ size: 'sm' })}
-          >
-            <FormattedMessage {...landingMessages.signUp} />
-          </Link>
+          {actions}
         </nav>
       </LandingContainer>
     </header>

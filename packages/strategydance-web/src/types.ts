@@ -1,3 +1,4 @@
+import type { Locale } from 'strategydance-core'
 import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetChecklistData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationLogData, GetOrganizationTeamData, GetTaskListsData, GetTasksData, GetTodayPreferencesData } from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
@@ -28,12 +29,14 @@ export type User = NonNullable<GetCurrentUserData['user']>
 
 /*
   What the account page saves about the reader. The picture is a file to upload, null to remove
-  the one there, or undefined to leave it as it is, since an unchanged picture is not sent again
+  the one there, or undefined to leave it as it is, since an unchanged picture is not sent again.
+  The language is the account's and the interface's both
 */
 export type UserProfile = {
   displayName: string
   image: Blob | null | undefined
   bio: string | null
+  locale: Locale
 }
 
 /*

@@ -1,6 +1,6 @@
 # Insert and update are separate rather than one upsert, and `locale` is why: it is written at
-# creation and never again, so an upsert carrying it would quietly reset the account's language
-# every time an unrelated field changed.
+# creation and then only by the account page, so an upsert carrying it would quietly reset the
+# account's language every time an unrelated field changed.
 #
 # Neither takes an email. `email_expr` reads it off the verified token, so a signed-in caller
 # cannot put somebody else's address on their own row: `email` is unique, and a client that
@@ -47,11 +47,15 @@ mutation UpdateCurrentUser(
   )
 }
 
-# What the account page saves: the name, the picture and the bio, written whole.
+# What the account page saves: the name, the picture, the bio and the language, written whole.
 #
 # The name and the picture are the Firebase profile's, which the page updates first, so this
 # writes the same two values the mirror in `UpdateCurrentUser` would and nothing drifts. The bio
-# lives here alone.
+# and the language live here alone.
+#
+# The language is optional because it came after the rest: a tab still running a bundle from
+# before it leaves the account's language as it is rather than failing to save the profile, and
+# Data Connect does not count the change as a breaking one, which would stop the release
 #
 # The checks are here as well as in the page, since the page is not the only possible caller, and
 # sit on the caller's own row, read first and redacted, because an operation takes no `@check` of
@@ -62,7 +66,7 @@ mutation UpdateCurrentUser(
 # The name stored is let through as it is, since the page sends it back untouched when only the
 # picture or the bio changed. One mirrored from Google can be longer than the page allows, or carry
 # spaces at an end, and refusing it would refuse the picture and the bio with it
-mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio: String)
+mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio: String, $locale: Locale)
 @auth(level: USER) @transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {
@@ -80,6 +84,7 @@ mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio
       displayName: $displayName
       imageUrl: $imageUrl
       bio: $bio
+      locale: $locale
       updatedAt_expr: "request.time"
     }
   )

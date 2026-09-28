@@ -20,7 +20,7 @@ const accountMessages = defineMessages({
   profileTab: {
     id: 'account.profileTab',
     defaultMessage: 'Profile',
-    description: 'Tab of the account page where the reader edits their name, picture and bio.',
+    description: 'Tab of the account page where the reader edits their name, picture, bio and language.',
   },
   securityTab: {
     id: 'account.securityTab',
@@ -162,6 +162,11 @@ const accountMessages = defineMessages({
     defaultMessage: '{count, number}/{max, number}',
     description: 'Counter under the bio field, how many characters were typed out of how many are allowed, such as "42/200".',
   },
+  languageLabel: {
+    id: 'account.languageLabel',
+    defaultMessage: 'Language',
+    description: 'Label of the field on the profile tab choosing the language the reader uses the product in. Each option names its language in that language.',
+  },
   cancel: {
     id: 'account.cancel',
     defaultMessage: 'Cancel',
@@ -170,7 +175,7 @@ const accountMessages = defineMessages({
   save: {
     id: 'account.save',
     defaultMessage: 'Save changes',
-    description: 'Button at the bottom of the profile tab that saves the name, picture and bio.',
+    description: 'Button at the bottom of the profile tab that saves the name, picture, bio and language.',
   },
   saved: {
     id: 'account.saved',

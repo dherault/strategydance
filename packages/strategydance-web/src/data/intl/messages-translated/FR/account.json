@@ -16,6 +16,7 @@
   "account.eyebrow": "Personnel",
   "account.googleOnlyDescription": "Votre compte n'a pas de mot de passe, il n'y a donc rien à modifier ici. Gérez votre connexion depuis votre compte Google.",
   "account.googleOnlyTitle": "Vous vous connectez avec Google",
+  "account.languageLabel": "Langue",
   "account.lead": "Votre profil personnel et vos identifiants de connexion, partagés entre toutes les organisations auxquelles vous appartenez.",
   "account.nameLabel": "Nom",
   "account.namePlaceholder": "Votre nom complet",

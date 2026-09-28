@@ -1,4 +1,4 @@
-import { type DragEvent, type KeyboardEvent, useRef, useState } from 'react'
+import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
 type Axis = 'vertical' | 'horizontal'
 
@@ -8,6 +8,8 @@ type DropTarget = {
 }
 
 type Options = {
+  // Each item's key, in the order the list shows them now
+  keys: string[]
   // Which way the list runs, which is which half of an item the pointer is over, and which arrow
   // keys move a handle
   axis?: Axis
@@ -29,13 +31,29 @@ const KEYS: Record<Axis, { previous: string, next: string }> = {
 
   Spread `getItemProps` on each item, `getHandleProps` on its handle, and read `getDropSide` to
   draw the line where a dragged item would land. Dropping calls `onMove` once, with the index the
-  item ends up at, so a caller only ever moves one row
+  item ends up at, so a caller only ever moves one row.
+
+  The handle a key moved is focused again once the list shows the new order, found by the item's
+  key rather than its place: the list may take a moment to re-render, and until it does another
+  item's handle still sits where the moved one is going
 */
-function useDragReorder({ axis = 'vertical', isHandleArmed = true, onMove }: Options) {
+function useDragReorder({ keys, axis = 'vertical', isHandleArmed = true, onMove }: Options) {
   const [armedIndex, setArmedIndex] = useState<number | null>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
-  const handlesRef = useRef<(HTMLElement | null)[]>([])
+  const handlesRef = useRef(new Map<string, HTMLElement>())
+  const pendingFocusKeyRef = useRef<string | null>(null)
+
+  const order = keys.join('\n')
+
+  useEffect(() => {
+    const key = pendingFocusKeyRef.current
+
+    if (key === null) return
+
+    pendingFocusKeyRef.current = null
+    handlesRef.current.get(key)?.focus()
+  }, [order])
 
   function reset() {
     setArmedIndex(null)
@@ -85,10 +103,13 @@ function useDragReorder({ axis = 'vertical', isHandleArmed = true, onMove }: Opt
     }
   }
 
-  function getHandleProps(index: number, count: number) {
+  function getHandleProps(index: number) {
+    const key = keys[index] ?? ''
+
     return {
       ref: (element: HTMLElement | null) => {
-        handlesRef.current[index] = element
+        if (element) handlesRef.current.set(key, element)
+        else if (handlesRef.current.get(key)) handlesRef.current.delete(key)
       },
       onPointerDown: () => setArmedIndex(index),
       onPointerUp: () => {
@@ -103,11 +124,10 @@ function useDragReorder({ axis = 'vertical', isHandleArmed = true, onMove }: Opt
 
         const destination = index + (event.key === previous ? -1 : 1)
 
-        if (destination < 0 || destination >= count) return
+        if (destination < 0 || destination >= keys.length) return
 
+        pendingFocusKeyRef.current = key
         onMove(index, destination)
-        // The handle that was focused now sits at the destination, once the list has re-rendered
-        requestAnimationFrame(() => handlesRef.current[destination]?.focus())
       },
     }
   }

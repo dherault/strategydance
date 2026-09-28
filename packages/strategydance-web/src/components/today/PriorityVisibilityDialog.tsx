@@ -46,6 +46,7 @@ function PriorityVisibilityDialog({ members, hiddenPriorities, viewerId, onClose
   const [hiddenIds, setHiddenIds] = useState(() => new Set(hiddenPriorities.filter(userId => userId !== viewerId)))
 
   const { draggedIndex, getItemProps, getHandleProps, getDropSide } = useDragReorder({
+    keys: orderedMembers.map(({ user }) => user.id),
     onMove: (from, to) => setOrderedMembers(current => {
       const next = [...current]
       const [moved] = next.splice(from, 1)
@@ -132,7 +133,7 @@ function PriorityVisibilityDialog({ members, hiddenPriorities, viewerId, onClose
                     type="button"
                     className="inline-flex size-7 cursor-grab items-center justify-center rounded-xs text-neutral-400 transition-colors duration-150 ease-in-out hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary active:cursor-grabbing [&_svg]:size-4"
                     aria-label={formatMessage(todayMessages.reorderPriority, { name, position: index + 1, total: orderedMembers.length })}
-                    {...getHandleProps(index, orderedMembers.length)}
+                    {...getHandleProps(index)}
                   >
                     <GripVerticalIcon aria-hidden="true" />
                   </button>

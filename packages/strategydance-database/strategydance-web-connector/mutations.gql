@@ -443,7 +443,10 @@ mutation RenameTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @aut
 # outcome is the one asked for.
 #
 # It also prunes the caller's lists deleted more than a day ago, in every organization, their tasks
-# cascading with them: nothing undoes a delete that old, so they are kept no longer
+# cascading with them, since nothing undoes a delete that old. Pruning here is lazy: the lists
+# deleted in the day before the caller's latest delete stay until their next one, unread by
+# anything but `RestoreTaskList`, which bounds them by what one person deletes in a day. A
+# guaranteed expiry would take a scheduled job
 mutation DeleteTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -622,7 +625,9 @@ mutation UpdateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!,
 
 # Removes one of the caller's checklist columns by setting `deletedAt`, so `RestoreChecklistItem`
 # can take it back with its history, and prunes the caller's columns removed over a day ago, in
-# every organization, their ticks cascading with them. Removing one that is gone already succeeds
+# every organization, their ticks cascading with them. The pruning is as lazy as
+# `DeleteTaskList`'s: the columns removed in the day before the caller's latest removal stay until
+# their next one. Removing one that is gone already succeeds
 mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })

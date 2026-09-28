@@ -196,8 +196,10 @@ type SentInvitation @table @index(fields: ["invitedById", "createdAt"]) {
 # Deleting the account or the organization cascades.
 #
 # Deleted by setting `deletedAt`, so an Undo is one update that brings the list back with its tasks
-# rather than a re-insert of every one of them. `DeleteTaskList` prunes the ones deleted over a day
-# ago, so a deleted list is only kept for as long as its Undo could matter
+# rather than a re-insert of every one of them. `DeleteTaskList` prunes the caller's lists deleted
+# over a day ago, lazily: the ones deleted in the day before somebody's latest delete stay, read by
+# nothing but `RestoreTaskList`, until they delete another. So they are at most what one person
+# deletes in a day, and a guaranteed expiry would take a scheduled job
 type TaskList @table @index(fields: ["userId", "organizationId"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Implies a `userId: String!` column, cascade deleting
@@ -237,7 +239,7 @@ type Task @table @index(fields: ["taskListId", "position"]) {
 #
 # Deleted by setting `deletedAt`, so an Undo brings the column back with every day it was ticked,
 # which reaches further back than the page has read. `DeleteChecklistItem` prunes the ones deleted
-# over a day ago, their ticks cascading with them
+# over a day ago, their ticks cascading with them, as lazily as `DeleteTaskList` prunes lists
 type ChecklistItem @table @index(fields: ["userId", "organizationId"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Implies a `userId: String!` column, cascade deleting

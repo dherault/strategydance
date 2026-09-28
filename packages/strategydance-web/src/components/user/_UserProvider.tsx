@@ -35,7 +35,7 @@ import { dataConnect } from '~data/firebase'
 */
 function UserProvider({ children }: PropsWithChildren) {
   const { data: viewer } = useAuthentication()
-  const { locale } = useAppIntl()
+  const { locale, setLocale } = useAppIntl()
   const timezone = useSystemTimezone()
 
   const viewerId = viewer?.uid ?? null
@@ -108,10 +108,15 @@ function UserProvider({ children }: PropsWithChildren) {
     leaves the account showing a picture that is still there, rather than one that is gone, and
     saving again deletes it.
 
+    The language is the row's and the interface's, and the interface switches only once everything
+    else has gone through, so a save that fails leaves the page in the language it was in, with the
+    choice still on the form to save again. A deletion that fails can leave the row ahead of the
+    interface, which that second save brings back in step.
+
     It throws, because the caller has a form to keep: a save that failed must not clear what
     somebody typed. The read after the write throws too, which a refetch does not by default
   */
-  async function updateProfile({ displayName, image, bio }: UserProfile) {
+  async function updateProfile({ displayName, image, bio, locale: chosenLocale }: UserProfile) {
     if (!viewer) throw new Error('Cannot update the profile of nobody signed in')
 
     let imageUrl = viewer.photoURL
@@ -122,10 +127,12 @@ function UserProvider({ children }: PropsWithChildren) {
     // An empty string rather than null takes the picture off the account, since the Auth emulator
     // refuses a null. Firebase reads either back as null
     await updateFirebaseProfile(viewer, { displayName, photoURL: imageUrl ?? '' })
-    await updateCurrentUserProfile({ displayName, imageUrl, bio })
+    await updateCurrentUserProfile({ displayName, imageUrl, bio, locale: toDatabaseLocale(chosenLocale) })
     await refetchUser({ throwOnError: true })
 
     if (image === null) await deleteProfilePicture(viewer.uid)
+
+    setLocale(chosenLocale)
   }
 
   // Insert the row the first time this account is seen

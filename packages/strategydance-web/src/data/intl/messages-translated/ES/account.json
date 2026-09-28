@@ -16,6 +16,7 @@
   "account.eyebrow": "Personal",
   "account.googleOnlyDescription": "Tu cuenta no tiene contraseña, por lo que no hay nada que cambiar aquí. Administra el inicio de sesión desde tu cuenta de Google.",
   "account.googleOnlyTitle": "Inicias sesión con Google",
+  "account.languageLabel": "Idioma",
   "account.lead": "Tu perfil personal y de inicio de sesión, compartido en todas las organizaciones a las que perteneces.",
   "account.nameLabel": "Nombre",
   "account.namePlaceholder": "Tu nombre completo",

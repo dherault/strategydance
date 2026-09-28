@@ -1,4 +1,4 @@
-import { isValidTimezone } from 'strategydance-core'
+import { isValidTimezone, resolveSystemTimezone } from 'strategydance-core'
 
 // One formatter per zone, since building one is the slow part and a page asks many times
 const formatters = new Map<string, Intl.DateTimeFormat>()
@@ -6,10 +6,13 @@ const formatters = new Map<string, Intl.DateTimeFormat>()
 /*
   The calendar day an instant falls on in a time zone, as `YYYY-MM-DD`, the shape a Postgres
   `Date` takes. The system's zone when none is given, or when the one given is not a zone, so a
-  bad value stored for somebody reads as the reader's own day rather than throwing on screen
+  bad value stored for somebody reads as the reader's own day rather than throwing on screen.
+
+  The system's zone is read again on every call rather than once, since a laptop that travels
+  changes it under a page left open, and the day that page shows has to follow
 */
 function getLocalDate(instant: Date | number, timeZone?: string | null) {
-  const zone = timeZone && isValidTimezone(timeZone) ? timeZone : undefined
+  const zone = (timeZone && isValidTimezone(timeZone) ? timeZone : resolveSystemTimezone()) ?? undefined
   const key = zone ?? ''
   let formatter = formatters.get(key)
 

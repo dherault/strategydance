@@ -20,4 +20,19 @@ describe('getLocalDate', () => {
     expect(getLocalDate(instant, 'Not/A_Zone')).toBe(getLocalDate(instant))
     expect(getLocalDate(instant, '+05:00')).toBe(getLocalDate(instant))
   })
+
+  it('follows the system zone when it changes', () => {
+    const previous = process.env.TZ
+
+    try {
+      process.env.TZ = 'Europe/Paris'
+      expect(getLocalDate(instant)).toBe('2026-09-29')
+
+      process.env.TZ = 'America/New_York'
+      expect(getLocalDate(instant)).toBe('2026-09-28')
+    }
+    finally {
+      process.env.TZ = previous
+    }
+  })
 })

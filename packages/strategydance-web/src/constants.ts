@@ -22,6 +22,7 @@ export const MESSAGE_TYPES = [
   'global',
   'invitation',
   'landing',
+  'log',
   'navigation',
   'onboarding',
   'organizationProfile',

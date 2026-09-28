@@ -380,3 +380,55 @@ query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level:
     }
   }
 }
+
+# A week of an organization's log, newest first, as the Today page's feed reads it: every entry
+# from `$from` to `$to` by somebody who is a member now. Outsiders read nothing. The authors' names
+# and pictures come from the team, which the page already holds live, so only their ids are read.
+#
+# Read up to 700 entries, a team of 100 (`MAX_TEAM_SIZE` in strategydance-core) writing every day
+# of the week, so a week is never cut short. `older` is the day of the newest entry before the week,
+# for the page to jump to when it loads the previous one, past any week nobody wrote in.
+#
+# A live query, for the newest week: each `@refresh` names a mutation that adds, changes or hides
+# an entry. Removing somebody hides theirs, accepting an invitation can show a returning member's
+# again, and deleting the organization empties it
+query GetOrganizationLog($organizationId: UUID!, $from: Date!, $to: Date!)
+@auth(level: USER)
+@refresh(onMutationExecuted: { operation: "CreateLogEntry", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "UpdateLogEntry", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
+@refresh(onMutationExecuted: { operation: "DeleteOrganization", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+  logEntries(
+    where: {
+      organizationId: { eq: $organizationId }
+      date: { ge: $from, le: $to }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    # `id` breaks the tie between two entries written in the same instant
+    orderBy: [{ date: DESC }, { createdAt: DESC }, { id: ASC }]
+    limit: 700
+  ) {
+    id
+    date
+    content
+    createdAt
+    updatedAt
+    user {
+      id
+    }
+  }
+  older: logEntries(
+    where: {
+      organizationId: { eq: $organizationId }
+      date: { lt: $from }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ date: DESC }]
+    limit: 1
+  ) {
+    date
+  }
+}

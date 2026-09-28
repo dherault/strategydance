@@ -134,8 +134,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 }
 
 # Deletes an organization, for one of its administrators. Its memberships and pending invitations
-# go with it, and so does everything its members keep in it on their Today pages, their task lists
-# first: all of them reference it as required, which Data Connect cascades. Its files are the
+# go with it, and so does everything its members keep in it on their Today pages, task lists,
+# checklists and log entries: all of them reference it as required, which Data Connect cascades. Its files are the
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).
 #
@@ -149,8 +149,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # would take a second write to one row, which Data Connect skips. The membership goes with the
 # organization anyway, so touching it costs nothing.
 #
-# `$organizationId` is also what `GetOrganizationTeam` refreshes on, so a member watching the
-# team page sees it go
+# `$organizationId` is also what `GetOrganizationTeam` and `GetOrganizationLog` refresh on, so a
+# member watching the team page or the log sees it go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(key: { userId: $userId, organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
     @redact

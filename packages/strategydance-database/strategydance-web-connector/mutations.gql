@@ -683,3 +683,41 @@ mutation UncheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $
     }
   )
 }
+
+# Writes the caller's log entry for a day, which the unique key holds to one: a second for the same
+# day is refused, and the page offers to edit the first. The id is the page's.
+#
+# The day is the caller's, in their zone, so it can only be checked against the server's clock
+# loosely. In CEL a date is the instant it starts in UTC, and a day starting between 48 hours ago
+# and 24 hours ahead is today somewhere from UTC-12 to UTC+14: an entry cannot be backdated into
+# last week, or written ahead. At most 50000 characters of serialized state, `MAX_LOG_ENTRY_LENGTH`
+# in strategydance-core. `$organizationId` is also what the log's live query refreshes on
+mutation CreateLogEntry($organizationId: UUID!, $id: UUID!, $date: Date!, $content: String!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can write in its log") {
+      role
+        @check(expr: "size(vars.content) > 0 && size(vars.content) <= 50000", message: "A log entry is at most 50000 characters")
+        @check(
+          expr: "vars.date >= request.time - duration('48h') && vars.date <= request.time + duration('24h')"
+          message: "A log entry is for today"
+        )
+    }
+  }
+  logEntry_insert(data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, date: $date, content: $content })
+}
+
+# Rewrites one of the caller's log entries, whichever day it is for, held to what `CreateLogEntry`
+# holds an entry to
+mutation UpdateLogEntry($organizationId: UUID!, $id: UUID!, $content: String!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can write in its log") {
+      role @check(expr: "size(vars.content) > 0 && size(vars.content) <= 50000", message: "A log entry is at most 50000 characters")
+    }
+  }
+  logEntry_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }
+    data: { content: $content, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No log entry of yours by that id")
+}

@@ -7,6 +7,7 @@ import toCalendarDate from '~utils/date/toCalendarDate'
 import Checklist from '~components/checklist/Checklist'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
+import Log from '~components/log/Log'
 import Tasks from '~components/task/Tasks'
 import TodayPriorities from '~components/today/TodayPriorities'
 
@@ -30,6 +31,7 @@ function Today() {
         <TodayPriorities />
         <Tasks />
         <Checklist />
+        <Log />
       </div>
     </ContainerLayout>
   )

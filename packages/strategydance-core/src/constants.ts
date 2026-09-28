@@ -196,3 +196,10 @@ export const MAX_TASK_LENGTH = 120
 */
 export const MAX_CHECKLIST_ITEMS = 100
 export const MAX_CHECKLIST_ITEM_NAME_LENGTH = 40
+
+/*
+  How long a log entry's serialized editor state may be, which is about a page of formatted text.
+  Written out again in `CreateLogEntry`'s and `UpdateLogEntry`'s checks, which cannot import it:
+  change the three together
+*/
+export const MAX_LOG_ENTRY_LENGTH = 50000

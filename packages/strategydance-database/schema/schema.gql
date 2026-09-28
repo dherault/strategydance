@@ -262,3 +262,28 @@ type ChecklistCompletion @table(key: ["checklistItem", "date"]) {
   date: Date!
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# What a member moved forward on a day, in their words, which the whole team reads on its Today
+# page as a feed. One a day: the member, the organization and the day are unique together, so a
+# second entry for a day is refused and the page offers to edit the first instead.
+#
+# It references the account and the organization rather than the membership, as `TaskList` does:
+# the feed leaves out whoever is not a member any more, and shows their entries again should they
+# be invited back
+type LogEntry @table @unique(fields: ["user", "organization", "date"]) @index(fields: ["organizationId", "date"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The author's day, in their time zone, as their page reads it
+  date: Date!
+  # Lexical's editor state, serialized, at most 50000 characters (`MAX_LOG_ENTRY_LENGTH` in
+  # strategydance-core). It is somebody else's for every reader but its author, so the page never
+  # hands it to Lexical or to the DOM: it draws it through the design system's `RichText`, which
+  # reads an allowlist of nodes and nothing else
+  content: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+  # Later than `createdAt` once the author has edited it, which the feed says
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

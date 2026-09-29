@@ -553,10 +553,12 @@ GitHub deletes a branch once its pull request merges. `git fetch --prune` drops 
 remote-tracking ref it leaves behind.
 
 The person merges when they choose, sometimes while a session is still working on the branch.
-Before every push to a pull request's branch, and before editing its description, check that it
-is still open: `gh pr view <number> --json state --jq .state`. A push after the merge re-creates
-the branch GitHub deleted, with no pull request to carry it. When it prints `MERGED`, open a new
-pull request from the same branch for what `git log origin/dev..HEAD` lists.
+Before every push to a pull request's branch, and before editing its description, check that `gh
+pr view <number> --json state --jq .state` still prints `OPEN`. A push after the merge
+re-creates the branch GitHub deleted, with no pull request to carry it: when it prints `MERGED`,
+open a new pull request from the same branch for what `git log origin/dev..HEAD` lists. When it
+prints `CLOSED`, somebody closed it on purpose, so stop and ask the person rather than pushing,
+reopening it or opening another.
 
 ### Copilot review loop
 

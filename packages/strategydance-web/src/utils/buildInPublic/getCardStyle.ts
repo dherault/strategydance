@@ -9,7 +9,7 @@ type Variables = Record<`--${string}`, string>
 function getAccentVariables(accent: string): Variables {
   return {
     '--card-accent': accent,
-    '--card-on-accent': isDarkColor(accent) ? '#ffffff' : '#0a0a0a',
+    '--card-on-accent': isDarkColor(accent) ? '#ffffff' : '#000000',
     '--card-accent-50': `color-mix(in oklch, ${accent} 8%, white)`,
     '--card-accent-100': `color-mix(in oklch, ${accent} 16%, white)`,
     '--card-accent-light': `color-mix(in oklch, ${accent} 50%, white)`,

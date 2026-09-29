@@ -9,7 +9,7 @@ function read(style: object, name: string) {
 describe('getCardStyle', () => {
   it('writes in white on a dark accent, and in black on a light one', () => {
     expect(read(getCardStyle('accent', '#0051A3'), '--card-on-accent')).toBe('#ffffff')
-    expect(read(getCardStyle('accent', '#FDE047'), '--card-on-accent')).toBe('#0a0a0a')
+    expect(read(getCardStyle('accent', '#FDE047'), '--card-on-accent')).toBe('#000000')
   })
 
   it('draws the card on its tone', () => {

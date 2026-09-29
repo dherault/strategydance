@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Opens the release pull request: everything that has landed on `dev` goes to `main`.
-# Idempotent, because `dev` is long lived and one pull request stays open across several
-# merges into it: a second run reports the open one rather than failing.
+# Opens the release pull request: everything that has landed on `dev` goes to `main`, which deploys
+# when a human merges it. Idempotent, because `dev` is long lived and one pull request stays open
+# across several merges into it: a second run reports the open one rather than failing
 
 set -euo pipefail
 
@@ -16,9 +16,9 @@ fi
 
 git fetch --quiet origin "$BASE" "$HEAD"
 
-# Before anything else, including the exits that report there is nothing to do: a commit
-# sitting unpushed is one the pull request would leave behind whichever branch it takes,
-# and saying "nothing to ship" over the top of it is the reading that costs a release.
+# Before anything else, including the exits that report there is nothing to do: a commit sitting
+# unpushed is one the pull request would leave behind whichever branch it takes, and saying "nothing
+# to ship" over the top of it is the reading that costs a release
 if git show-ref --quiet --verify "refs/heads/$HEAD"; then
   unpushed=$(git rev-list --count "origin/$HEAD..$HEAD")
 
@@ -36,16 +36,16 @@ if [[ -n $url ]]; then
   exit 0
 fi
 
-# The remote refs, not the local branches, because they are what GitHub will compare. The
-# whole range decides whether there is a release, merges included, since a merge that
-# resolved a conflict by hand carries changes no other commit in the range does.
+# The remote refs, not the local branches, because they are what GitHub will compare. The whole
+# range decides whether there is a release, merges included, since a merge that resolved a conflict
+# by hand carries changes no other commit in the range does
 if [[ -z $(git rev-list "origin/$BASE..origin/$HEAD") ]]; then
   echo "origin/$HEAD holds nothing that origin/$BASE does not. Nothing to ship."
   exit 0
 fi
 
-# The body reads better without them, though: a merge names the branch work arrived on,
-# and the commits under it say what the release does. Unless merges are all there is.
+# The body reads better without them, though: a merge names the branch work arrived on, and the
+# commits under it say what the release does. Unless merges are all there is
 commits=$(git log --format='- %s' --no-merges --reverse "origin/$BASE..origin/$HEAD")
 
 if [[ -z $commits ]]; then

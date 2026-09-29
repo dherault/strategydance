@@ -15,40 +15,46 @@ import {
   DialogTitle,
 } from 'strategydance-design-system/components/ui/Dialog'
 import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDropzone'
+import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useStagedImage from '~hooks/common/useStagedImage'
+import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
+
+import Spinner from '~components/common/Spinner'
 
 import organizationProfileMessages from '~data/intl/messages/organizationProfile'
 
 // What each picture should measure, as the dialog advises. Advice only: nothing refuses a smaller
-// picture, since the banner is cropped to fill its band and the logo fitted inside its square
+// picture, since each is cropped to fill its band or its square
 const MINIMUM_SIZES: Record<OrganizationImageKind, { width: number; height: number }> = {
   banner: { width: 2400, height: 600 },
   logo: { width: 256, height: 256 },
 }
 
 type Props = {
+  organizationId: string
   kind: OrganizationImageKind
-  // What the card shows now, whether saved or chosen earlier and not saved yet
+  // The picture saved now, if any
   currentSrc: string | null
-  // A picture to put on the card, or null to take the one there away. Saving is the card's
-  onApply: (image: Blob | null) => void
   onClose: () => void
 }
 
 /*
-  Chooses the organization's banner or logo, or removes it. Mounted only while open, so it starts
-  from what the card shows every time.
+  Chooses the organization's banner or logo, or removes it, and saves that the moment it is
+  confirmed, apart from the profile's form. Mounted only while open, so it starts from what is
+  saved every time.
 
-  Applying puts the choice on the card and nothing more: the card saves it with the rest of its
-  changes. The type and size are checked here, before anything is sent, and the backend checks
-  both again
+  It stays open until the save lands, and cannot be dismissed meanwhile, so a failure keeps the
+  choice for another try. The type and size are checked here, before anything is sent, and the
+  backend checks both again
 */
-function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: Props) {
+function OrganizationProfileImageDialog({ organizationId, kind, currentSrc, onClose }: Props) {
   const { formatMessage } = useIntl()
+  const { changeOrganizationImage } = useUserOrganizations()
   const { staged: choice, stage } = useStagedImage()
 
   const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const isBanner = kind === 'banner'
   const maximumMegabytes = MAX_ORGANIZATION_IMAGE_SIZES[kind] / (1024 * 1024)
@@ -79,9 +85,37 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
     stage(null)
   }
 
-  // The blob rather than the preview's URL, which this dialog revokes as it closes
-  function apply() {
-    onApply(choice ? choice.blob : null)
+  /*
+    Sends the blob rather than the preview's URL, which this dialog revokes as it closes, and
+    closes once the list shows the new picture, which is when the card does
+  */
+  async function save() {
+    if (isSaving) return
+
+    setIsSaving(true)
+
+    try {
+      await changeOrganizationImage(organizationId, kind, choice ? choice.blob : null)
+    } catch (saveError) {
+      console.error(`Failed to save the organization's ${kind}`, saveError)
+
+      toast.error(formatMessage(organizationProfileMessages.imageSaveError))
+      setIsSaving(false)
+
+      return
+    }
+
+    toast.success(
+      formatMessage(
+        isBanner
+          ? choice
+            ? organizationProfileMessages.bannerSaved
+            : organizationProfileMessages.bannerRemoved
+          : choice
+            ? organizationProfileMessages.logoSaved
+            : organizationProfileMessages.logoRemoved,
+      ),
+    )
     onClose()
   }
 
@@ -94,7 +128,7 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
   return (
     <Dialog
       open
-      onOpenChange={open => !open && onClose()}
+      onOpenChange={open => !open && !isSaving && onClose()}
     >
       <DialogContent
         closeLabel={formatMessage(organizationProfileMessages.close)}
@@ -136,6 +170,7 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
             }
             accept={ORGANIZATION_IMAGE_CONTENT_TYPES.join(',')}
             onFileSelect={selectFile}
+            disabled={isSaving}
           />
           {error ? (
             <p
@@ -162,6 +197,7 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
               variant="danger"
               size="sm"
               confirm={formatMessage(organizationProfileMessages.removeConfirm)}
+              disabled={isSaving}
               onClick={remove}
               className="sm:mr-auto"
             >
@@ -170,15 +206,17 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
           ) : null}
           <Button
             variant="transparent"
+            disabled={isSaving}
             onClick={onClose}
           >
             {formatMessage(organizationProfileMessages.cancel)}
           </Button>
           <Button
-            disabled={!isChanged}
-            onClick={apply}
+            disabled={!isChanged || isSaving}
+            icon={isSaving ? <Spinner tone="current" /> : undefined}
+            onClick={save}
           >
-            {formatMessage(organizationProfileMessages.apply)}
+            {formatMessage(organizationProfileMessages.saveImage)}
           </Button>
         </DialogFooter>
       </DialogContent>

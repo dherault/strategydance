@@ -1,7 +1,6 @@
 import { useState } from 'react'
+import { getInitials } from 'strategydance-design-system/lib/getInitials'
 import { cn } from 'strategydance-design-system/lib/utils'
-
-import getOrganizationInitials from '~utils/organization/getOrganizationInitials'
 
 type Props = {
   name: string
@@ -29,7 +28,7 @@ function BuildInPublicLogo({ name, logoUrl, size, isInverted = false }: Props) {
       )}
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
-      {getOrganizationInitials(name)}
+      {getInitials(name)}
       {logoUrl && logoUrl !== failedLogoUrl ? (
         <img
           src={logoUrl}

@@ -64,7 +64,7 @@ function SidebarOrganizationMenu() {
                         name={name}
                         logoUrl={logoUrl}
                         color={color}
-                        className="size-6 text-xs"
+                        size="sm"
                       />
                       <span className="min-w-0 flex-1 truncate">{name}</span>
                       {id === organization?.id ? <CheckIcon className="text-primary" /> : null}

@@ -1781,10 +1781,6 @@
         "hash": "6658b7c5cb84a52a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationProfile.apply": {
-        "hash": "0f5401501915c638",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "organizationProfile.bannerAlt": {
         "hash": "6dad18936015119b",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1794,7 +1790,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.bannerPreviewAlt": {
-        "hash": "8b5bc3054e60d621",
+        "hash": "3475f3e17dd71ba6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.bannerRemoved": {
+        "hash": "4ca00408b318370f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.bannerSaved": {
+        "hash": "bb6fc038e4fe5b46",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.briefCount": {
@@ -1869,6 +1873,10 @@
         "hash": "3808fd1072edf4f5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "organizationProfile.imageSaveError": {
+        "hash": "065d708a3cbc92d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "organizationProfile.imageSizeError": {
         "hash": "1c5caa27b603f078",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1886,7 +1894,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.logoPreviewAlt": {
-        "hash": "fd0b0e8705ba94db",
+        "hash": "8c5c9122819ff1f5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.logoRemoved": {
+        "hash": "eac01c3112e334cc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.logoSaved": {
+        "hash": "72561cb992cf992b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.maximumSize": {
@@ -1931,6 +1947,10 @@
       },
       "organizationProfile.saveError": {
         "hash": "985c5bdb54ee0e54",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.saveImage": {
+        "hash": "a03be25ecdac9b12",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.saved": {

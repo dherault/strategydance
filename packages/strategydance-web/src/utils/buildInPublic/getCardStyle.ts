@@ -1,8 +1,7 @@
 import type { CSSProperties } from 'react'
+import { isDarkColor } from 'strategydance-design-system/lib/isDarkColor'
 
 import type { CardTone, FlameColor } from '~types'
-
-import isDarkColor from '~utils/organization/isDarkColor'
 
 type Variables = Record<`--${string}`, string>
 

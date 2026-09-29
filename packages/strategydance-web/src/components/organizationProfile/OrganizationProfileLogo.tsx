@@ -33,7 +33,8 @@ function OrganizationProfileLogo({ name, logoUrl, color, label, disabled = false
         name={name}
         logoUrl={logoUrl}
         color={color}
-        className="size-full rounded-none text-4xl font-bold tracking-[-0.02em]"
+        size="2xl"
+        className="size-full rounded-none"
       />
       <span
         aria-hidden="true"

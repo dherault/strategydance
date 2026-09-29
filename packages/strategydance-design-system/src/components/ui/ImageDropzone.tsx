@@ -11,17 +11,11 @@ const ZONE_CLASS_NAMES: Record<Shape, string> = {
   circle: 'mx-auto aspect-square max-w-[200px] rounded-full',
 }
 
-// How the preview fills the zone: a banner or an avatar is cropped to it, a logo is shown whole
-const PREVIEW_CLASS_NAMES: Record<Shape, string> = {
-  wide: 'object-cover',
-  square: 'bg-white object-contain',
-  circle: 'object-cover',
-}
-
 type Props = Omit<ComponentProps<'div'>, 'onChange' | 'children' | 'onDrop'> & {
   /**
-   * Wide is 4:1 and covers the zone, as a banner; square is 1:1 and fits inside it, as a logo;
-   * circle is round and covers it, as an avatar crops a profile picture
+   * Wide is 4:1, as a banner; square is 1:1, as a logo, on white for one with transparent parts;
+   * circle is round, as an avatar. Each preview is cropped to fill the zone, as the picture is
+   * wherever it is shown
    */
   shape?: Shape
   /** The image to preview, or nothing for the empty prompt */
@@ -121,7 +115,7 @@ function ImageDropzone({
         <img
           src={src}
           alt={alt}
-          className={cn('absolute inset-0 size-full', PREVIEW_CLASS_NAMES[shape])}
+          className={cn('absolute inset-0 size-full object-cover', shape === 'square' && 'bg-white')}
         />
       ) : (
         <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">

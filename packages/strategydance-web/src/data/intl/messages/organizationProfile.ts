@@ -160,12 +160,12 @@ const organizationProfileMessages = defineMessages({
   bannerPreviewAlt: {
     id: 'organizationProfile.bannerPreviewAlt',
     defaultMessage: 'Banner preview',
-    description: 'Alternative text of the chosen banner as the dialog previews it before it is applied.',
+    description: 'Alternative text of the chosen banner as the dialog previews it before it is saved.',
   },
   logoPreviewAlt: {
     id: 'organizationProfile.logoPreviewAlt',
     defaultMessage: 'Logo preview',
-    description: 'Alternative text of the chosen logo as the dialog previews it before it is applied.',
+    description: 'Alternative text of the chosen logo as the dialog previews it before it is saved.',
   },
   wideRatio: {
     id: 'organizationProfile.wideRatio',
@@ -211,11 +211,37 @@ const organizationProfileMessages = defineMessages({
     description:
       'What the remove button in the banner or logo dialog says after its first click, asking to be clicked again to go ahead.',
   },
-  apply: {
-    id: 'organizationProfile.apply',
-    defaultMessage: 'Apply',
+  saveImage: {
+    id: 'organizationProfile.saveImage',
+    defaultMessage: 'Save',
     description:
-      'Button in the banner or logo dialog that puts the chosen picture on the profile card, to be saved with the rest.',
+      'Button in the banner or logo dialog that saves the chosen picture, or its removal, to the organization at once.',
+  },
+  bannerSaved: {
+    id: 'organizationProfile.bannerSaved',
+    defaultMessage: 'Banner saved',
+    description:
+      'Confirmation shown after a new banner, the wide picture across the top, was saved to the organization.',
+  },
+  bannerRemoved: {
+    id: 'organizationProfile.bannerRemoved',
+    defaultMessage: 'Banner removed',
+    description: "Confirmation shown after the organization's banner, the wide picture across the top, was removed.",
+  },
+  logoSaved: {
+    id: 'organizationProfile.logoSaved',
+    defaultMessage: 'Logo saved',
+    description: 'Confirmation shown after a new logo was saved to the organization.',
+  },
+  logoRemoved: {
+    id: 'organizationProfile.logoRemoved',
+    defaultMessage: 'Logo removed',
+    description: "Confirmation shown after the organization's logo was removed.",
+  },
+  imageSaveError: {
+    id: 'organizationProfile.imageSaveError',
+    defaultMessage: 'The picture could not be saved. Try again.',
+    description: 'Error shown when saving or removing the banner or the logo of the organization failed.',
   },
   deleteOrganization: {
     id: 'organizationProfile.deleteOrganization',

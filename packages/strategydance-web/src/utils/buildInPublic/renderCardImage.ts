@@ -1,4 +1,4 @@
-import getOrganizationInitials from '~utils/organization/getOrganizationInitials'
+import { getInitials } from 'strategydance-design-system/lib/getInitials'
 
 // Twice the card's CSS size, so a 600px wide card is a 1200px wide picture, sharp on any screen
 const PIXEL_RATIO = 2
@@ -64,7 +64,7 @@ function drawInitials(name: string, size: number) {
   context.font = `600 ${Math.round(canvas.width * 0.4)}px "Inter Variable", sans-serif`
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.fillText(getOrganizationInitials(name), canvas.width / 2, canvas.height / 2 + 1)
+  context.fillText(getInitials(name), canvas.width / 2, canvas.height / 2 + 1)
 
   return canvas.toDataURL()
 }

@@ -55,7 +55,7 @@ describe('CompanyLogo', () => {
 
     expect(onDark).toContain('text-white')
     expect(onDark).toContain('background-color:#0051A3')
-    expect(onLight).toContain('text-neutral-950')
+    expect(onLight).toContain('text-black')
     expect(renderToStaticMarkup(<CompanyLogo name="Acme" />)).toContain('bg-primary text-primary-foreground')
   })
 })

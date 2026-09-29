@@ -30,7 +30,7 @@ type Props = Omit<ComponentProps<'span'>, 'children'>
     name: string
     /** Cropped to fill the square, on white. The initials show while there is none, and for good if it fails */
     src?: string | null
-    /** The initials' background, as `#RRGGBB`, with their own color, white or near black, whichever reads on it. Defaults to the primary */
+    /** The initials' background, as `#RRGGBB`, with their own color, white or black, whichever reads on it. Defaults to the primary */
     color?: string | null
     /** Defaults to the name. Empty for a logo shown beside the name it stands for, which leaves it decorative */
     alt?: string
@@ -60,7 +60,7 @@ function CompanyLogo({ name, src, color, alt, size, className, style, ...props }
       aria-hidden={label ? undefined : true}
       className={cn(
         companyLogoVariants({ size }),
-        color ? (isDarkColor(color) ? 'text-white' : 'text-neutral-950') : 'bg-primary text-primary-foreground',
+        color ? (isDarkColor(color) ? 'text-white' : 'text-black') : 'bg-primary text-primary-foreground',
         className,
       )}
       style={color ? { backgroundColor: color, ...style } : style}

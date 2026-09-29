@@ -26,7 +26,7 @@ export const Initials: Story = {
   },
 }
 
-// The initials are white or near black, whichever reads on the company's color
+// The initials are white or black, whichever reads on the company's color
 export const Colors: Story = {
   args: {
     src: undefined,

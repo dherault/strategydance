@@ -3,7 +3,7 @@ import type { PropsWithChildren } from 'react'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useActivityDays from '~hooks/buildInPublic/useActivityDays'
 import useChecklist from '~hooks/checklist/useChecklist'
-import useChecklistHistory from '~hooks/checklist/useChecklistHistory'
+import useRecentChecklistTicks from '~hooks/checklist/useRecentChecklistTicks'
 import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
 import useTaskListsWithTasks from '~hooks/task/useTaskListsWithTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
@@ -22,7 +22,7 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
   const { data: viewer } = useAuthentication()
   const viewerId = viewer?.uid ?? null
   const { initialLoading: isChecklistLoading } = useChecklist(viewerId)
-  const { isLoading: isChecklistHistoryLoading } = useChecklistHistory(viewerId, true)
+  const { initialLoading: areTicksLoading } = useRecentChecklistTicks()
   const { initialLoading: isLogLoading } = useLatestLogEntries()
 
   if (
@@ -30,7 +30,7 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
     || isTeamLoading
     || areTaskListsLoading
     || isChecklistLoading
-    || isChecklistHistoryLoading
+    || areTicksLoading
     || isLogLoading
   ) {
     return <Loading source="BuildInPublicWait" />

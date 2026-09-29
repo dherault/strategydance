@@ -6,7 +6,7 @@ import type { CardField } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 import useChecklist from '~hooks/checklist/useChecklist'
-import useChecklistHistory from '~hooks/checklist/useChecklistHistory'
+import useRecentChecklistTicks from '~hooks/checklist/useRecentChecklistTicks'
 import useLocalDate from '~hooks/common/useLocalDate'
 
 import getChecklistGrid from '~utils/buildInPublic/getChecklistGrid'
@@ -42,9 +42,10 @@ type Props = {
 }
 
 /*
-  The checklist cards, from the reader's own checklist over the last month, or since they joined:
-  a grid of each item's days, one item's run with the ticks of every day, how often each item was
-  kept, and one day's list. The section is left out while the checklist has no item
+  The checklist cards, from the reader's own checklist over the last month, or since they joined,
+  with each item's run counted back through the last year: a grid of each item's days, one item's
+  run with the ticks of every day, how often each item was kept, and one day's list. The section is
+  left out while the checklist has no item
 */
 function BuildInPublicChecklist({ settings }: Props) {
   const { formatMessage, formatDate, formatNumber } = useIntl()
@@ -52,25 +53,25 @@ function BuildInPublicChecklist({ settings }: Props) {
   const viewerId = viewer?.uid ?? null
   const { data: checklist, loading, refetch, hasFailed } = useChecklist(viewerId)
   const {
-    data: history,
-    isFetching: isHistoryFetching,
-    refetch: refetchHistory,
-    hasFailed: hasHistoryFailed,
-  } = useChecklistHistory(viewerId, true)
+    data: recentTicks,
+    loading: areTicksLoading,
+    refetch: refetchTicks,
+    hasFailed: haveTicksFailed,
+  } = useRecentChecklistTicks()
   const today = useLocalDate()
 
   const items = checklist.checklistItems
 
-  if (!hasFailed && !hasHistoryFailed && !items.length) return null
+  if (!hasFailed && !haveTicksFailed && !items.length) return null
 
   const owner = checklist.owner[0] ?? null
   const joinedOn = owner ? getLocalDate(new Date(owner.createdAt)) : today
   const days = Math.max(1, Math.min(CHECKLIST_WINDOW_DAYS, getDaysBetween(joinedOn, today) + 1))
-  // Every tick the history holds, with the last week's the checklist holds, which a tick made since
-  // the history was read is in
+  // Every tick of the last year, with the last week's the checklist holds, which a tick made since
+  // the year was read is in
   const ticks = new Map(items.map(item => [item.id, new Set(item.completions.map(completion => completion.date))]))
 
-  for (const item of history ?? []) {
+  for (const item of recentTicks) {
     for (const completion of item.completions) ticks.get(item.id)?.add(completion.date)
   }
 
@@ -140,13 +141,13 @@ function BuildInPublicChecklist({ settings }: Props) {
       title={formatMessage(buildInPublicMessages.checklistTitle)}
       description={formatMessage(buildInPublicMessages.checklistDescription, { count: days })}
       failure={
-        hasFailed || hasHistoryFailed
+        hasFailed || haveTicksFailed
           ? {
               message: formatMessage(buildInPublicMessages.checklistLoadFailed),
-              isRetrying: loading || isHistoryFetching,
+              isRetrying: loading || areTicksLoading,
               onRetry: () => {
                 refetch()
-                refetchHistory()
+                refetchTicks()
               },
             }
           : null

@@ -516,6 +516,31 @@ query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level:
   }
 }
 
+# The days the caller ticked each of their live checklist columns over the last year, for the build
+# in public page: its cards lay out a month, and a column's run counts back through the year. The
+# window is the server's today, so the query stays the same across the reader's midnight, as
+# `GetChecklist`'s does. At most 367 days a column, where `GetChecklistHistory` reads ten years
+query GetRecentChecklistTicks($organizationId: UUID!) @auth(level: USER) {
+  checklistItems(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 100
+  ) {
+    id
+    completions: checklistCompletions_on_checklistItem(
+      where: { date: { ge_date: { today: true, sub: { days: 366 } } } }
+      orderBy: [{ date: DESC }]
+      limit: 367
+    ) {
+      date
+    }
+  }
+}
+
 # A week of an organization's log, newest first, as the Today page's feed reads it: every entry
 # from `$from` to `$to` by somebody who is a member now. Outsiders read nothing. The authors' names
 # and pictures come from the team, which the page already holds live, so only their ids are read.

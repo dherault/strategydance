@@ -29,14 +29,12 @@ function ProfileRoute() {
   return (
     <IntlMessagesRegistration messageTypes={ORGANIZATION_PROFILE_MESSAGE_TYPES}>
       <OrganizationProfileBouncer>
-        {organization
-          ? (
-              <OrganizationProfile
-                key={organization.id}
-                organization={organization}
-              />
-            )
-          : null}
+        {organization ? (
+          <OrganizationProfile
+            key={organization.id}
+            organization={organization}
+          />
+        ) : null}
       </OrganizationProfileBouncer>
     </IntlMessagesRegistration>
   )

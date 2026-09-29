@@ -16,15 +16,18 @@ const queues = new Map<string, Promise<unknown>>()
   reaches the server after the list does, while tasks on one list still write side by side
 */
 function runInOrder<T>(key: string, write: () => Promise<T>, after: string[] = []): Promise<T> {
-  const waits = [queues.get(key), ...after.map(dependency => queues.get(dependency))]
-    .map(queued => (queued ?? Promise.resolve()).catch(() => undefined))
+  const waits = [queues.get(key), ...after.map(dependency => queues.get(dependency))].map(queued =>
+    (queued ?? Promise.resolve()).catch(() => undefined),
+  )
   const next = Promise.all(waits).then(write)
 
   queues.set(key, next)
 
-  next.finally(() => {
-    if (queues.get(key) === next) queues.delete(key)
-  }).catch(() => undefined)
+  next
+    .finally(() => {
+      if (queues.get(key) === next) queues.delete(key)
+    })
+    .catch(() => undefined)
 
   return next
 }

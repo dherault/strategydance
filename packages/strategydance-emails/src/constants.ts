@@ -63,4 +63,5 @@ export const BODY_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", 
 export const HEADING_FONT_FAMILY = 'Oswald, "Arial Narrow", Arial, sans-serif'
 
 // Google Fonts' Latin subset of Oswald 400, the one weight headings use
-export const HEADING_FONT_URL = 'https://fonts.gstatic.com/s/oswald/v57/TK3_WkUHHAIjg75cFRf3bXL8LICs1_FvsUZiZSSUhiCXAA.woff2'
+export const HEADING_FONT_URL =
+  'https://fonts.gstatic.com/s/oswald/v57/TK3_WkUHHAIjg75cFRf3bXL8LICs1_FvsUZiZSSUhiCXAA.woff2'

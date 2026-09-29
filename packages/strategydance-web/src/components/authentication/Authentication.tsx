@@ -9,7 +9,12 @@ import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import * as z from 'zod'
 
-import { AUTHENTICATION_ERRORS, DEFAULT_AUTHENTICATION_ERROR, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '~constants'
+import {
+  AUTHENTICATION_ERRORS,
+  DEFAULT_AUTHENTICATION_ERROR,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from '~constants'
 
 import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMessage'
 
@@ -22,7 +27,6 @@ import { FormField, FormInputField } from '~components/ui/FormField'
 import { TextDivider } from '~components/ui/TextDivider'
 
 import { authentication, dataConnect } from '~data/firebase'
-
 import authenticationMessages from '~data/intl/messages/authentication'
 
 /*
@@ -36,7 +40,7 @@ const MODES = {
   SIGNUP: 'SIGNUP',
 } as const
 
-type Mode = typeof MODES[keyof typeof MODES]
+type Mode = (typeof MODES)[keyof typeof MODES]
 
 // zod carries a *key* into the authentication catalogue rather than a sentence, so the message
 // is formatted in the reader's language at render rather than in English at schema definition
@@ -56,10 +60,11 @@ const passwordFormSchema = z.object({
   password: passwordSchema,
 })
 
-const passwordsFormSchema = z.object({
-  password: passwordSchema,
-  passwordConfirmation: passwordSchema,
-})
+const passwordsFormSchema = z
+  .object({
+    password: passwordSchema,
+    passwordConfirmation: passwordSchema,
+  })
   .refine(data => data.password === data.passwordConfirmation, {
     message: 'validationPasswordConfirmationMismatch',
     path: ['passwordConfirmation'],
@@ -127,13 +132,11 @@ function Authentication() {
 
       setProviders(found.authenticationProviders)
       setMode(MODES.LOGIN)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       console.error('Failed to look up the account', error)
 
       setErrorCode(error.code ?? DEFAULT_AUTHENTICATION_ERROR)
-    }
-    finally {
+    } finally {
       setLoading(false)
     }
   }
@@ -146,8 +149,7 @@ function Authentication() {
 
     try {
       await createUserWithEmailAndPassword(authentication, email, values.password)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       setLoading(false)
       setErrorCode(error.code)
     }
@@ -161,8 +163,7 @@ function Authentication() {
 
     try {
       await signInWithEmailAndPassword(authentication, email, values.password)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       setLoading(false)
       setErrorCode(error.code)
     }
@@ -187,7 +188,11 @@ function Authentication() {
             </p>
           )}
           <p className="mt-2 mb-4 text-center text-sm font-medium">
-            <FormattedMessage {...(hasPassword ? authenticationMessages.modeLoginBothPrompt : authenticationMessages.modeLoginGooglePrompt)} />
+            <FormattedMessage
+              {...(hasPassword
+                ? authenticationMessages.modeLoginBothPrompt
+                : authenticationMessages.modeLoginGooglePrompt)}
+            />
           </p>
         </>
       )}
@@ -231,9 +236,7 @@ function Authentication() {
           <p className="mt-8 text-center text-sm font-medium">
             <FormattedMessage {...authenticationMessages.modeSignupTitle} />
           </p>
-          <p className="mt-1.5 mb-4 text-center text-sm font-medium">
-            {email}
-          </p>
+          <p className="mt-1.5 mb-4 text-center text-sm font-medium">{email}</p>
           <form
             onSubmit={passwordsForm.handleSubmit(handleSignupSubmit)}
             className="space-y-4"
@@ -292,18 +295,12 @@ function Authentication() {
       )}
       {mode === MODES.LOGIN && hasNoSupportedProvider && (
         <>
-          <p className="mt-8 text-center text-sm font-medium">
-            {email}
-          </p>
+          <p className="mt-8 text-center text-sm font-medium">{email}</p>
           <p className="mt-1.5 text-center text-sm font-medium text-muted-foreground">
             <FormattedMessage
               {...authenticationMessages.modeLoginNoSupportedProvider}
               values={{
-                link: chunks => (
-                  <Link to="/support">
-                    {chunks}
-                  </Link>
-                ),
+                link: chunks => <Link to="/support">{chunks}</Link>,
               }}
             />
           </p>
@@ -316,9 +313,7 @@ function Authentication() {
               <p className="mt-8 text-center text-sm font-medium">
                 <FormattedMessage {...authenticationMessages.modeLoginTitle} />
               </p>
-              <p className="mt-1.5 mb-4 text-center text-sm font-medium">
-                {email}
-              </p>
+              <p className="mt-1.5 mb-4 text-center text-sm font-medium">{email}</p>
             </>
           )}
           <form

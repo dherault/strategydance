@@ -35,14 +35,12 @@ function AppLayout({ children }: PropsWithChildren) {
           {children}
         </SidebarInset>
       </SidebarProvider>
-      {chapter
-        ? (
-            <AspectChapter
-              aspect={chapter.aspect}
-              phase={chapter.phase}
-            />
-          )
-        : null}
+      {chapter ? (
+        <AspectChapter
+          aspect={chapter.aspect}
+          phase={chapter.phase}
+        />
+      ) : null}
     </>
   )
 }

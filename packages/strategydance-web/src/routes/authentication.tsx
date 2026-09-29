@@ -2,12 +2,12 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 import type { MessageType } from '~types'
 
+import parseRedirectPath from '~utils/authentication/parseRedirectPath'
+
 import AuthenticationLayout from '~components/authentication/AuthenticationLayout'
 import AuthenticationRedirect from '~components/authentication/AuthenticationRedirect'
 import AuthenticationWait from '~components/authentication/AuthenticationWait'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
-
-import parseRedirectPath from '~utils/authentication/parseRedirectPath'
 
 // At module scope so the reference is stable across renders
 const AUTHENTICATION_MESSAGE_TYPES: MessageType[] = ['authentication']

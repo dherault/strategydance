@@ -11,7 +11,6 @@ import {
 import type { UserProfile } from '~types'
 
 import type { UserContextType } from '~contexts/UserContext'
-
 import UserContext from '~contexts/UserContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
@@ -47,7 +46,12 @@ function UserProvider({ children }: PropsWithChildren) {
     `enabled` keeps it from running for a signed out reader, whose token the `@auth(level: USER)`
     operation would refuse anyway
   */
-  const { data, isPending, isError, refetch: refetchUser } = useGetCurrentUser(dataConnect, {
+  const {
+    data,
+    isPending,
+    isError,
+    refetch: refetchUser,
+  } = useGetCurrentUser(dataConnect, {
     queryKey: ['GetCurrentUser', viewerId],
     enabled: Boolean(viewerId),
   })
@@ -69,7 +73,7 @@ function UserProvider({ children }: PropsWithChildren) {
   // read of the row
   const welcomeRequestedForViewerIdRef = useRef<string | null>(null)
 
-  const user = viewerId ? data?.user ?? null : null
+  const user = viewerId ? (data?.user ?? null) : null
 
   /*
     The read has answered *and* succeeded, which is a different thing from there being a row.
@@ -172,15 +176,7 @@ function UserProvider({ children }: PropsWithChildren) {
 
         console.error('Failed to create the user', error)
       })
-  }, [
-    viewer,
-    user,
-    hasReadUser,
-    locale,
-    timezone,
-    createCurrentUser,
-    refetchUser,
-  ])
+  }, [viewer, user, hasReadUser, locale, timezone, createCurrentUser, refetchUser])
 
   // Keep the mirrored columns in step with the Firebase profile
   useEffect(() => {
@@ -193,7 +189,8 @@ function UserProvider({ children }: PropsWithChildren) {
       here. It is the column the sign-in screen looks accounts up by, so an address that
       changed in Firebase and not in Postgres is an account nobody can find again
     */
-    const hasDrifted = user.email !== viewer.email
+    const hasDrifted =
+      user.email !== viewer.email
       || user.displayName !== viewer.displayName
       || user.imageUrl !== viewer.photoURL
       || user.authenticationProviders.join() !== authenticationProviders.join()
@@ -222,13 +219,7 @@ function UserProvider({ children }: PropsWithChildren) {
       .catch(error => {
         console.error('Failed to update the user', error)
       })
-  }, [
-    viewer,
-    user,
-    timezone,
-    updateCurrentUser,
-    refetchUser,
-  ])
+  }, [viewer, user, timezone, updateCurrentUser, refetchUser])
 
   /*
     Ask the backend to welcome a new account that has not been. The browser creates the row, so
@@ -259,11 +250,7 @@ function UserProvider({ children }: PropsWithChildren) {
     updateProfile,
   }
 
-  return (
-    <UserContext.Provider value={contextValue}>
-      {children}
-    </UserContext.Provider>
-  )
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
 }
 
 export default UserProvider

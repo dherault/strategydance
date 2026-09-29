@@ -25,7 +25,11 @@ describe('parseInvitationEmails', () => {
   })
 
   it('sets members and pending invitations apart', () => {
-    const parsed = parseInvitationEmails('member@x.com, Invited@x.com, new@x.com', new Set(['member@x.com']), new Set(['invited@x.com']))
+    const parsed = parseInvitationEmails(
+      'member@x.com, Invited@x.com, new@x.com',
+      new Set(['member@x.com']),
+      new Set(['invited@x.com']),
+    )
 
     expect(parsed).toEqual({
       valid: ['new@x.com'],

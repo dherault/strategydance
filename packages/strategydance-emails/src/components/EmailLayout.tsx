@@ -84,9 +84,7 @@ function EmailLayout({ preview, children }: EmailLayoutProps) {
         {/* A constant, never anything a user wrote */}
         <style dangerouslySetInnerHTML={{ __html: FONT_FACE }} />
       </Head>
-      <Preview>
-        {preview}
-      </Preview>
+      <Preview>{preview}</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -102,15 +100,11 @@ function EmailLayout({ preview, children }: EmailLayoutProps) {
                 />
               </Column>
               <Column>
-                <Text style={wordmark}>
-                  {PRODUCT_NAME}
-                </Text>
+                <Text style={wordmark}>{PRODUCT_NAME}</Text>
               </Column>
             </Row>
           </Section>
-          <Section style={card}>
-            {children}
-          </Section>
+          <Section style={card}>{children}</Section>
         </Container>
       </Body>
     </Html>

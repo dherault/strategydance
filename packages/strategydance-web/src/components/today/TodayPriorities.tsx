@@ -55,22 +55,28 @@ function TodayPriorities() {
 
   const viewerId = viewer?.uid ?? null
   const members = sortByPriorityOrder(team.userOrganizations, preferences.priorityOrder)
-  const visibleMembers = members.filter(({ user }) => user.id === viewerId || !preferences.hiddenPriorities.includes(user.id))
+  const visibleMembers = members.filter(
+    ({ user }) => user.id === viewerId || !preferences.hiddenPriorities.includes(user.id),
+  )
   const viewerMember = members.find(({ user }) => user.id === viewerId)
   const hasFailed = hasTeamFailed || havePreferencesFailed
 
   async function saveArrangement(next: TodayPreferences) {
     setIsArranging(false)
 
-    const isUnchanged = next.priorityOrder.join() === members.map(({ user }) => user.id).join()
-      && [...next.hiddenPriorities].sort().join() === preferences.hiddenPriorities.filter(userId => userId !== viewerId).sort().join()
+    const isUnchanged =
+      next.priorityOrder.join() === members.map(({ user }) => user.id).join()
+      && [...next.hiddenPriorities].sort().join()
+        === preferences.hiddenPriorities
+          .filter(userId => userId !== viewerId)
+          .sort()
+          .join()
 
     if (isUnchanged) return
 
     try {
       await updatePreferences(next)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save the priorities view', error)
 
       toast.error(formatMessage(todayMessages.visibilityError))
@@ -85,69 +91,68 @@ function TodayPriorities() {
     <PageSection
       title={formatMessage(todayMessages.prioritiesTitle, { count: visibleMembers.length })}
       description={formatMessage(todayMessages.prioritiesDescription)}
-      actions={hasFailed
-        ? null
-        : (
-            <Tooltip
-              content={formatMessage(todayMessages.arrangePriorities)}
-              delay={300}
-            >
-              <Button
-                variant="transparent"
-                size="sm"
-                icon={<EyeIcon />}
-                aria-label={formatMessage(todayMessages.arrangePrioritiesLabel, { visible: visibleMembers.length, total: members.length })}
-                onClick={() => setIsArranging(true)}
-              />
-            </Tooltip>
-          )}
+      actions={
+        hasFailed ? null : (
+          <Tooltip
+            content={formatMessage(todayMessages.arrangePriorities)}
+            delay={300}
+          >
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<EyeIcon />}
+              aria-label={formatMessage(todayMessages.arrangePrioritiesLabel, {
+                visible: visibleMembers.length,
+                total: members.length,
+              })}
+              onClick={() => setIsArranging(true)}
+            />
+          </Tooltip>
+        )
+      }
     >
-      {hasFailed
-        ? (
-            <TodaySectionLoadFailed
-              message={formatMessage(todayMessages.prioritiesLoadError)}
-              isRetrying={isTeamLoading || arePreferencesLoading}
-              onRetry={retry}
-            />
-          )
-        : (
-            <div className="@container">
-              <ul className={cn('m-0 grid list-none gap-4 p-0', GRID_COLUMNS[getPriorityColumnCount(visibleMembers.length)])}>
-                {visibleMembers.map(member => (
-                  <li
-                    key={member.user.id}
-                    className="flex min-w-0 [&>*]:flex-1"
-                  >
-                    <TodayPriorityCard
-                      member={member}
-                      isViewer={member.user.id === viewerId}
-                      onEdit={() => setIsEditing(true)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-      {organization && viewerId && isEditing
-        ? (
-            <TopPriorityDialog
-              organizationId={organization.id}
-              viewerId={viewerId}
-              topPriority={viewerMember?.topPriority ?? null}
-              onClose={() => setIsEditing(false)}
-            />
-          )
-        : null}
-      {viewerId && isArranging
-        ? (
-            <PriorityVisibilityDialog
-              members={members}
-              hiddenPriorities={preferences.hiddenPriorities}
-              viewerId={viewerId}
-              onClose={saveArrangement}
-            />
-          )
-        : null}
+      {hasFailed ? (
+        <TodaySectionLoadFailed
+          message={formatMessage(todayMessages.prioritiesLoadError)}
+          isRetrying={isTeamLoading || arePreferencesLoading}
+          onRetry={retry}
+        />
+      ) : (
+        <div className="@container">
+          <ul
+            className={cn('m-0 grid list-none gap-4 p-0', GRID_COLUMNS[getPriorityColumnCount(visibleMembers.length)])}
+          >
+            {visibleMembers.map(member => (
+              <li
+                key={member.user.id}
+                className="flex min-w-0 [&>*]:flex-1"
+              >
+                <TodayPriorityCard
+                  member={member}
+                  isViewer={member.user.id === viewerId}
+                  onEdit={() => setIsEditing(true)}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {organization && viewerId && isEditing ? (
+        <TopPriorityDialog
+          organizationId={organization.id}
+          viewerId={viewerId}
+          topPriority={viewerMember?.topPriority ?? null}
+          onClose={() => setIsEditing(false)}
+        />
+      ) : null}
+      {viewerId && isArranging ? (
+        <PriorityVisibilityDialog
+          members={members}
+          hiddenPriorities={preferences.hiddenPriorities}
+          viewerId={viewerId}
+          onClose={saveArrangement}
+        />
+      ) : null}
     </PageSection>
   )
 }

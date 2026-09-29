@@ -41,63 +41,53 @@ function Team() {
   return (
     <ContainerLayout className="gap-8">
       <TeamHeader
-        organizationName={hasFailed ? null : organization?.name ?? null}
+        organizationName={hasFailed ? null : (organization?.name ?? null)}
         memberCount={team.userOrganizations.length}
         invitationCount={team.organizationInvitations.length}
         onInvite={organization && isAdministrator ? () => setIsInviting(true) : null}
       />
-      {organization && hasFailed
-        ? (
-            <TeamLoadFailed
-              isRetrying={loading}
-              onRetry={refetch}
-            />
-          )
-        : null}
-      {organization && !hasFailed
-        ? (
-            <TeamTable
-              organizationId={organization.id}
-              team={team}
-              viewerId={viewerId}
-              isAdministrator={isAdministrator}
-              onEditJobTitle={setEditingMember}
-              onBan={setBanningMember}
-            />
-          )
-        : null}
-      {organization && isInviting
-        ? (
-            <InviteMembersDialog
-              organizationId={organization.id}
-              organizationName={organization.name}
-              memberEmails={team.userOrganizations.map(({ user }) => user.email)}
-              invitedEmails={team.organizationInvitations.map(({ email }) => email)}
-              onClose={() => setIsInviting(false)}
-            />
-          )
-        : null}
-      {organization && editingMember
-        ? (
-            <EditJobTitleDialog
-              organizationId={organization.id}
-              organizationName={organization.name}
-              member={editingMember}
-              isViewer={editingMember.user.id === viewerId}
-              onClose={() => setEditingMember(null)}
-            />
-          )
-        : null}
-      {organization && banningMember
-        ? (
-            <BanMemberDialog
-              organizationId={organization.id}
-              organizationName={organization.name}
-              member={banningMember}
-              onClose={() => setBanningMember(null)}
-            />
-          )
-        : null}
+      {organization && hasFailed ? (
+        <TeamLoadFailed
+          isRetrying={loading}
+          onRetry={refetch}
+        />
+      ) : null}
+      {organization && !hasFailed ? (
+        <TeamTable
+          organizationId={organization.id}
+          team={team}
+          viewerId={viewerId}
+          isAdministrator={isAdministrator}
+          onEditJobTitle={setEditingMember}
+          onBan={setBanningMember}
+        />
+      ) : null}
+      {organization && isInviting ? (
+        <InviteMembersDialog
+          organizationId={organization.id}
+          organizationName={organization.name}
+          memberEmails={team.userOrganizations.map(({ user }) => user.email)}
+          invitedEmails={team.organizationInvitations.map(({ email }) => email)}
+          onClose={() => setIsInviting(false)}
+        />
+      ) : null}
+      {organization && editingMember ? (
+        <EditJobTitleDialog
+          organizationId={organization.id}
+          organizationName={organization.name}
+          member={editingMember}
+          isViewer={editingMember.user.id === viewerId}
+          onClose={() => setEditingMember(null)}
+        />
+      ) : null}
+      {organization && banningMember ? (
+        <BanMemberDialog
+          organizationId={organization.id}
+          organizationName={organization.name}
+          member={banningMember}
+          onClose={() => setBanningMember(null)}
+        />
+      ) : null}
     </ContainerLayout>
   )
 }

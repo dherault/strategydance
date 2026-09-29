@@ -13,9 +13,7 @@ function OrganizationInvitationWait({ invitationId, children }: Props) {
   const { initialLoading } = useOrganizationInvitation(invitationId)
 
   if (initialLoading) {
-    return (
-      <Loading source="OrganizationInvitationWait" />
-    )
+    return <Loading source="OrganizationInvitationWait" />
   }
 
   return children

@@ -83,9 +83,8 @@ export async function requestApi<T = void>({ method, path, body }: RequestApiOpt
   let payload: ApiResponse<T>
 
   try {
-    payload = await response.json() as ApiResponse<T>
-  }
-  catch {
+    payload = (await response.json()) as ApiResponse<T>
+  } catch {
     // Something other than the backend answered, like a proxy's error page
     throw new ApiError(response.status, ERROR_CODE_UNKNOWN_ERROR, 'The server did not answer with JSON')
   }

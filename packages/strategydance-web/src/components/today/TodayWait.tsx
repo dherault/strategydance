@@ -43,10 +43,15 @@ function TodayWait({ children }: PropsWithChildren) {
   const today = useLocalDate()
   const { initialLoading: isLogLoading } = useOrganizationLogWeek({ from: addDays(today, -6), to: today, isLive: true })
 
-  if (isTeamLoading || arePreferencesLoading || areTaskListsLoading || areTasksLoading || isChecklistLoading || isLogLoading) {
-    return (
-      <Loading source="TodayWait" />
-    )
+  if (
+    isTeamLoading
+    || arePreferencesLoading
+    || areTaskListsLoading
+    || areTasksLoading
+    || isChecklistLoading
+    || isLogLoading
+  ) {
+    return <Loading source="TodayWait" />
   }
 
   return children

@@ -26,10 +26,7 @@ function OnboardingBouncer({ children }: PropsWithChildren) {
     if (!hasOrganization) return
 
     navigate({ to: '/today', replace: true })
-  }, [
-    hasOrganization,
-    navigate,
-  ])
+  }, [hasOrganization, navigate])
 
   if (hasFailed) {
     return (

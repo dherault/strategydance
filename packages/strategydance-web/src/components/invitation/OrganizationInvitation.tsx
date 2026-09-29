@@ -4,10 +4,10 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useOrganizationInvitation from '~hooks/invitation/useOrganizationInvitation'
 
 import OrganizationInvitationCard from '~components/invitation/OrganizationInvitationCard'
-import ContainerLayout from '~components/layout/ContainerLayout'
 import OrganizationInvitationFailed from '~components/invitation/OrganizationInvitationFailed'
 import OrganizationInvitationMissing from '~components/invitation/OrganizationInvitationMissing'
 import OrganizationInvitationUnverified from '~components/invitation/OrganizationInvitationUnverified'
+import ContainerLayout from '~components/layout/ContainerLayout'
 
 import invitationMessages from '~data/intl/messages/invitation'
 
@@ -27,23 +27,21 @@ function OrganizationInvitation({ invitationId }: Props) {
       <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
         {formatMessage(invitationMessages.eyebrow)}
       </p>
-      {!emailVerified
-        ? <OrganizationInvitationUnverified />
-        : hasFailed
-          ? (
-              <OrganizationInvitationFailed
-                isRetrying={loading}
-                onRetry={refetch}
-              />
-            )
-          : invitation
-            ? (
-                <OrganizationInvitationCard
-                  invitationId={invitationId}
-                  invitation={invitation}
-                />
-              )
-            : <OrganizationInvitationMissing />}
+      {!emailVerified ? (
+        <OrganizationInvitationUnverified />
+      ) : hasFailed ? (
+        <OrganizationInvitationFailed
+          isRetrying={loading}
+          onRetry={refetch}
+        />
+      ) : invitation ? (
+        <OrganizationInvitationCard
+          invitationId={invitationId}
+          invitation={invitation}
+        />
+      ) : (
+        <OrganizationInvitationMissing />
+      )}
     </ContainerLayout>
   )
 }

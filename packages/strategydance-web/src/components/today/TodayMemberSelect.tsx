@@ -29,14 +29,12 @@ function TodayMemberSelect({ ownerId, isOwn, onOwnerChange, 'aria-label': ariaLa
 
   return (
     <div className="flex items-center gap-3">
-      {isOwn
-        ? null
-        : (
-            <span className="hidden items-center gap-1.5 text-sm whitespace-nowrap text-muted-foreground sm:inline-flex [&_svg]:size-4">
-              <EyeIcon aria-hidden="true" />
-              {formatMessage(todayMessages.viewOnly)}
-            </span>
-          )}
+      {isOwn ? null : (
+        <span className="hidden items-center gap-1.5 text-sm whitespace-nowrap text-muted-foreground sm:inline-flex [&_svg]:size-4">
+          <EyeIcon aria-hidden="true" />
+          {formatMessage(todayMessages.viewOnly)}
+        </span>
+      )}
       <Select
         value={ownerId ?? undefined}
         onValueChange={onOwnerChange}

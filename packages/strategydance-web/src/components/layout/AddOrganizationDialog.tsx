@@ -62,19 +62,18 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
 
       setOrganizationId(organizationId)
 
-      if (!isRead) toast.error(formatMessage(navigationMessages.addOrganizationUnread, { organizationName: trimmedName }))
+      if (!isRead)
+        toast.error(formatMessage(navigationMessages.addOrganizationUnread, { organizationName: trimmedName }))
 
       setName('')
       setBrief('')
       onOpenChange(false)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to create the organization', error)
 
       // What was typed stays where it was typed
       setHasFailed(true)
-    }
-    finally {
+    } finally {
       setIsCreating(false)
     }
   }
@@ -90,12 +89,8 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
           className="grid gap-6"
         >
           <DialogHeader>
-            <DialogTitle>
-              {formatMessage(navigationMessages.addOrganizationTitle)}
-            </DialogTitle>
-            <DialogDescription>
-              {formatMessage(navigationMessages.addOrganizationDescription)}
-            </DialogDescription>
+            <DialogTitle>{formatMessage(navigationMessages.addOrganizationTitle)}</DialogTitle>
+            <DialogDescription>{formatMessage(navigationMessages.addOrganizationDescription)}</DialogDescription>
           </DialogHeader>
           <Input
             label={formatMessage(navigationMessages.organizationName)}

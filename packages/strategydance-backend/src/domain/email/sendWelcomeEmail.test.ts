@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
 // What each collaborator answers, set per test
 let claimed = 1
-let recipient: { email: string, displayName: string | null } | null = { email: 'astrid@example.com', displayName: 'Astrid Lindqvist' }
-let sendFailures: { index: number, message: string }[] = []
+let recipient: { email: string; displayName: string | null } | null = {
+  email: 'astrid@example.com',
+  displayName: 'Astrid Lindqvist',
+}
+let sendFailures: { index: number; message: string }[] = []
 let completionFailures = 0
 
 const completeWelcomeEmail = mock(async () => {
@@ -14,7 +17,7 @@ const completeWelcomeEmail = mock(async () => {
 
 const sendEmails = mock(async () => sendFailures)
 
-const renderWelcomeEmail = mock(async (props: { firstName: string | null, appUrl: string }) => ({
+const renderWelcomeEmail = mock(async (props: { firstName: string | null; appUrl: string }) => ({
   senderName: 'David Hérault',
   subject: 'Welcome to Strategy Dance',
   html: `<p>Hi ${props.firstName}</p>`,
@@ -65,7 +68,10 @@ describe('sendWelcomeEmail', () => {
 
     expect(renderWelcomeEmail).toHaveBeenCalledWith({ firstName: 'Astrid', appUrl: 'http://localhost:5173' })
     expect(sendEmails).toHaveBeenCalledTimes(1)
-    expect(sendEmails.mock.calls[0]).toEqual([[expect.objectContaining({ to: 'astrid@example.com' })], 'welcome/user-1'] as never)
+    expect(sendEmails.mock.calls[0]).toEqual([
+      [expect.objectContaining({ to: 'astrid@example.com' })],
+      'welcome/user-1',
+    ] as never)
     expect(completeWelcomeEmail).toHaveBeenCalledTimes(1)
   })
 

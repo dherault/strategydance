@@ -1,11 +1,10 @@
 import { type PropsWithChildren, useState } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 
-import sleep from '~utils/common/sleep'
-
 import type { AspectChapter, AspectChapterContextType, AspectChapterPhase } from '~contexts/AspectChapterContext'
-
 import AspectChapterContext from '~contexts/AspectChapterContext'
+
+import sleep from '~utils/common/sleep'
 
 // When each beat lands, in milliseconds from the start, as the design has it: the words fade in,
 // then out together, and the screen lifts. The last is how long `AspectChapter` takes to fade
@@ -65,11 +64,7 @@ function AspectChapterProvider({ children }: PropsWithChildren) {
     playChapter,
   }
 
-  return (
-    <AspectChapterContext.Provider value={contextValue}>
-      {children}
-    </AspectChapterContext.Provider>
-  )
+  return <AspectChapterContext.Provider value={contextValue}>{children}</AspectChapterContext.Provider>
 }
 
 export default AspectChapterProvider

@@ -1,12 +1,6 @@
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from 'strategydance-design-system/components/ui/Table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from 'strategydance-design-system/components/ui/Table'
 
 import type { OrganizationMember, OrganizationTeam } from '~types'
 
@@ -38,24 +32,14 @@ function TeamTable({ organizationId, team, viewerId, isAdministrator, onEditJobT
           <TableHead className="sticky left-0 z-1 bg-neutral-50 shadow-[inset_-1px_0_0_var(--color-neutral-200)]">
             {formatMessage(teamMessages.columnName)}
           </TableHead>
-          <TableHead>
-            {formatMessage(teamMessages.columnEmail)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(teamMessages.columnJobTitle)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(teamMessages.columnAccess)}
-          </TableHead>
-          {isAdministrator
-            ? (
-                <TableHead className="w-px">
-                  <span className="sr-only">
-                    {formatMessage(teamMessages.columnActions)}
-                  </span>
-                </TableHead>
-              )
-            : null}
+          <TableHead>{formatMessage(teamMessages.columnEmail)}</TableHead>
+          <TableHead>{formatMessage(teamMessages.columnJobTitle)}</TableHead>
+          <TableHead>{formatMessage(teamMessages.columnAccess)}</TableHead>
+          {isAdministrator ? (
+            <TableHead className="w-px">
+              <span className="sr-only">{formatMessage(teamMessages.columnActions)}</span>
+            </TableHead>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>

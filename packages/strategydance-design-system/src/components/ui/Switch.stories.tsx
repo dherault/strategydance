@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Switch } from 'strategydance-design-system/components/ui/Switch'
 
 const meta = {

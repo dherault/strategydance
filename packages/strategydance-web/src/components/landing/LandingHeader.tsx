@@ -21,9 +21,7 @@ function LandingHeader({ actions = <LandingAuthenticationLinks /> }: Props) {
         >
           <Logo className="h-[22px] w-auto" />
           {/* The name is the wordmark, so it is set as the brand sets it rather than translated */}
-          <span className="font-bold tracking-[-0.02em]">
-            Strategy Dance
-          </span>
+          <span className="font-bold tracking-[-0.02em]">Strategy Dance</span>
         </Link>
         <nav className="flex items-center gap-2">
           {/* Hidden on a phone, where the header has room for the two buttons only */}

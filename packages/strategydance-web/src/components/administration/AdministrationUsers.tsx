@@ -21,17 +21,15 @@ function AdministrationUsers() {
         title={formatMessage(navigationMessages.administrationUsers)}
         lead={hasFailed ? null : formatMessage(administrationMessages.usersLead, { count: users.length })}
       />
-      {hasFailed
-        ? (
-            <AdministrationLoadFailed
-              message={formatMessage(administrationMessages.usersLoadError)}
-              isRetrying={loading}
-              onRetry={refetch}
-            />
-          )
-        : (
-            <AdministrationUsersTable users={users} />
-          )}
+      {hasFailed ? (
+        <AdministrationLoadFailed
+          message={formatMessage(administrationMessages.usersLoadError)}
+          isRetrying={loading}
+          onRetry={refetch}
+        />
+      ) : (
+        <AdministrationUsersTable users={users} />
+      )}
     </ContainerLayout>
   )
 }

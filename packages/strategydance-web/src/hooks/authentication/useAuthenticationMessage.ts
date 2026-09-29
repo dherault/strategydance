@@ -19,7 +19,8 @@ function useAuthenticationMessage() {
   const { formatMessage } = useIntl()
 
   return (key: string) => {
-    const descriptor = authenticationMessages[key as keyof typeof authenticationMessages]
+    const descriptor =
+      authenticationMessages[key as keyof typeof authenticationMessages]
       ?? authenticationMessages[DEFAULT_AUTHENTICATION_ERROR as keyof typeof authenticationMessages]
 
     return formatMessage(descriptor, {

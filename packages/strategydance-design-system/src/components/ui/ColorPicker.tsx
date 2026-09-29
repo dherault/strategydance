@@ -1,11 +1,9 @@
 import { type ComponentProps, type ReactNode, useId } from 'react'
 import { HexColorInput, HexColorPicker } from 'react-colorful'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { inputClassName } from 'strategydance-design-system/components/ui/Input'
 import { Popover, PopoverContent, PopoverTrigger } from 'strategydance-design-system/components/ui/Popover'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 const SHORT_HEX_PATTERN = /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i
 
@@ -92,9 +90,7 @@ function ColorPicker({
             className="size-5 shrink-0 rounded-xs shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)]"
             style={{ backgroundColor: color }}
           />
-          <span className="tabular-nums">
-            {color}
-          </span>
+          <span className="tabular-nums">{color}</span>
         </button>
       </PopoverTrigger>
       {/*

@@ -19,9 +19,7 @@ function AuthenticationLayout({ passwordResetSent, children }: Props) {
       >
         <Logo className="w-20 text-secondary" />
         {/* The name is the wordmark, so it is set as the brand sets it rather than as a title */}
-        <h1 className="mt-2 font-sans text-4xl font-bold tracking-[-0.02em]">
-          Strategy Dance
-        </h1>
+        <h1 className="mt-2 font-sans text-4xl font-bold tracking-[-0.02em]">Strategy Dance</h1>
       </Link>
       <div className="mx-auto mt-1 w-full max-w-[384px]">
         {passwordResetSent && (
@@ -32,9 +30,7 @@ function AuthenticationLayout({ passwordResetSent, children }: Props) {
             <FormattedMessage {...authenticationMessages.layoutPasswordResetSuccess} />
           </Alert>
         )}
-        <div className="mt-8">
-          {children}
-        </div>
+        <div className="mt-8">{children}</div>
       </div>
     </div>
   )

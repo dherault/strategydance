@@ -1,7 +1,6 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import { Avatar as AvatarPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 const avatarVariants = cva(
@@ -33,13 +32,14 @@ function initialsOf(name: string) {
 }
 
 // The avatar renders its own image and initials, so it takes neither children nor `asChild`
-type Props = Omit<ComponentProps<typeof AvatarPrimitive.Root>, 'asChild' | 'children'> & VariantProps<typeof avatarVariants> & {
-  /** Falls back to the initials while it loads, and for good if it fails */
-  src?: string
-  /** Used for the initials, the alt text and the title */
-  name?: string
-  alt?: string
-}
+type Props = Omit<ComponentProps<typeof AvatarPrimitive.Root>, 'asChild' | 'children'>
+  & VariantProps<typeof avatarVariants> & {
+    /** Falls back to the initials while it loads, and for good if it fails */
+    src?: string
+    /** Used for the initials, the alt text and the title */
+    name?: string
+    alt?: string
+  }
 
 function Avatar({ src, name = '', alt, size, className, ...props }: Props) {
   // The initials take the image's name, so the avatar keeps one whether its image loads or not,
@@ -53,15 +53,13 @@ function Avatar({ src, name = '', alt, size, className, ...props }: Props) {
       className={cn(avatarVariants({ size }), className)}
       {...props}
     >
-      {src
-        ? (
-            <AvatarPrimitive.Image
-              src={src}
-              alt={alt ?? name}
-              className="size-full object-cover"
-            />
-          )
-        : null}
+      {src ? (
+        <AvatarPrimitive.Image
+          src={src}
+          alt={alt ?? name}
+          className="size-full object-cover"
+        />
+      ) : null}
       <AvatarPrimitive.Fallback
         role={label ? 'img' : undefined}
         aria-label={label || undefined}

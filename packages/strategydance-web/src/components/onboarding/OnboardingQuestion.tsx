@@ -50,10 +50,7 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
   useEffect(() => {
     if (!isAnswered) return
 
-    const timeouts = [
-      setTimeout(() => setIsLeaving(true), LEAVE_AT),
-      setTimeout(onAnswered, DONE_AT),
-    ]
+    const timeouts = [setTimeout(() => setIsLeaving(true), LEAVE_AT), setTimeout(onAnswered, DONE_AT)]
 
     return () => timeouts.forEach(clearTimeout)
   }, [isAnswered, onAnswered])
@@ -93,7 +90,10 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
             onClick={() => pick(answerIndex)}
             className={cn(
               'min-w-50',
-              picked === answerIndex && (answerIndex === correct ? 'border-success text-success not-disabled:hover:border-success' : 'border-danger text-danger not-disabled:hover:border-danger'),
+              picked === answerIndex
+                && (answerIndex === correct
+                  ? 'border-success text-success not-disabled:hover:border-success'
+                  : 'border-danger text-danger not-disabled:hover:border-danger'),
             )}
           >
             {formatMessage(answer)}
@@ -104,7 +104,9 @@ function OnboardingQuestion({ index, count, question, answers, correct, onAnswer
         role="status"
         className="sr-only"
       >
-        {picked === null ? null : formatMessage(isAnswered ? onboardingMessages.answerRight : onboardingMessages.answerWrong)}
+        {picked === null
+          ? null
+          : formatMessage(isAnswered ? onboardingMessages.answerRight : onboardingMessages.answerWrong)}
       </p>
     </div>
   )

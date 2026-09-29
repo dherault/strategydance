@@ -42,16 +42,10 @@ function SidebarUserMenu() {
                 name={name}
               />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm leading-tight font-semibold text-secondary">
-                  {name}
-                </span>
-                {user?.displayName
-                  ? (
-                      <span className="truncate text-xs leading-tight text-muted-foreground">
-                        {user.email}
-                      </span>
-                    )
-                  : null}
+                <span className="truncate text-sm leading-tight font-semibold text-secondary">{name}</span>
+                {user?.displayName ? (
+                  <span className="truncate text-xs leading-tight text-muted-foreground">{user.email}</span>
+                ) : null}
               </span>
               <ChevronsUpDownIcon />
             </SidebarMenuButton>

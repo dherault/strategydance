@@ -7,9 +7,8 @@ function parseStorageObjectName(url: string, bucket: string) {
   let pathname: string
 
   try {
-    ({ pathname } = new URL(url))
-  }
-  catch {
+    ;({ pathname } = new URL(url))
+  } catch {
     return null
   }
 
@@ -23,8 +22,7 @@ function parseStorageObjectName(url: string, bucket: string) {
 
   try {
     return decodeURIComponent(encodedName)
-  }
-  catch {
+  } catch {
     return null
   }
 }

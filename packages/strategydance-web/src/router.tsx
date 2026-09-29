@@ -36,9 +36,7 @@ export function getRouter() {
             <UserProvider>
               <UserOrganizationsProvider>
                 <CurrentOrganizationProvider>
-                  <AspectChapterProvider>
-                    {children}
-                  </AspectChapterProvider>
+                  <AspectChapterProvider>{children}</AspectChapterProvider>
                 </CurrentOrganizationProvider>
               </UserOrganizationsProvider>
             </UserProvider>

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { type ComponentProps, useState } from 'react'
-
 import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDropzone'
 
 // Stand-ins for an uploaded banner, logo and photo, drawn inline so the stories need no asset. The

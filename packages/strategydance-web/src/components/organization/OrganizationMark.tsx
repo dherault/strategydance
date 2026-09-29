@@ -33,7 +33,10 @@ function OrganizationMark({ name, logoUrl, color, className }: Props) {
     return (
       <span
         aria-hidden="true"
-        className={cn('size-8 shrink-0 overflow-hidden rounded-xs bg-white shadow-[inset_0_0_0_1px_var(--color-border)]', className)}
+        className={cn(
+          'size-8 shrink-0 overflow-hidden rounded-xs bg-white shadow-[inset_0_0_0_1px_var(--color-border)]',
+          className,
+        )}
       >
         <img
           src={logoUrl}
@@ -51,7 +54,9 @@ function OrganizationMark({ name, logoUrl, color, className }: Props) {
       className={cn(
         'grid size-8 shrink-0 place-items-center rounded-xs text-sm font-semibold',
         name
-          ? isDarkColor(backgroundColor) ? 'text-white [&_svg]:text-white!' : 'text-neutral-950 [&_svg]:text-neutral-950!'
+          ? isDarkColor(backgroundColor)
+            ? 'text-white [&_svg]:text-white!'
+            : 'text-neutral-950 [&_svg]:text-neutral-950!'
           : 'bg-primary text-primary-foreground [&_svg]:text-primary-foreground!',
         className,
       )}

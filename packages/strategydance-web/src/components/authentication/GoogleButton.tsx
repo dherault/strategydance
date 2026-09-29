@@ -6,7 +6,6 @@ import { Button } from 'strategydance-design-system/components/ui/Button'
 import Spinner from '~components/common/Spinner'
 
 import { authentication, googleProvider } from '~data/firebase'
-
 import authenticationMessages from '~data/intl/messages/authentication'
 
 const googleIcon = (
@@ -61,13 +60,11 @@ function GoogleButton({ onErrorCode, disabled, ...props }: Props) {
     */
     try {
       await signInWithPopup(authentication, googleProvider)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       console.error('Error during Google sign-in', error)
 
       onErrorCode(error.code)
-    }
-    finally {
+    } finally {
       setLoading(false)
     }
   }

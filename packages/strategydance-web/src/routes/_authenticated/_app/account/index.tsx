@@ -12,7 +12,5 @@ export const Route = createFileRoute('/_authenticated/_app/account/')({
 function AccountProfileRoute() {
   const { data: user } = useUser()
 
-  return user
-    ? <AccountProfile user={user} />
-    : null
+  return user ? <AccountProfile user={user} /> : null
 }

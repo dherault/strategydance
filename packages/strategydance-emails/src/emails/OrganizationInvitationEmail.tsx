@@ -18,11 +18,13 @@ export type OrganizationInvitationEmailProps = {
   An invitation to somebody who may never have heard of the product, from somebody they know. It
   names both before it names the product, and says that ignoring it is safe
 */
-function OrganizationInvitationEmail({ organizationName, inviterName, invitationUrl }: OrganizationInvitationEmailProps) {
+function OrganizationInvitationEmail({
+  organizationName,
+  inviterName,
+  invitationUrl,
+}: OrganizationInvitationEmailProps) {
   return (
-    <EmailLayout
-      preview={`${inviterName} invited you to join ${organizationName} on ${PRODUCT_NAME}.`}
-    >
+    <EmailLayout preview={`${inviterName} invited you to join ${organizationName} on ${PRODUCT_NAME}.`}>
       <Heading
         as="h1"
         style={heading}
@@ -32,9 +34,7 @@ function OrganizationInvitationEmail({ organizationName, inviterName, invitation
       <Text style={paragraph}>
         {`${inviterName} invited you to join ${organizationName} on ${PRODUCT_NAME}, where your team works through each aspect of your company together, from strategy and product to finances and sales.`}
       </Text>
-      <EmailButton href={invitationUrl}>
-        Accept the invitation
-      </EmailButton>
+      <EmailButton href={invitationUrl}>Accept the invitation</EmailButton>
       <Text style={note}>
         Not expecting this invitation? You can ignore this email. Nothing happens until you accept it.
       </Text>

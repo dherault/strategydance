@@ -20,7 +20,7 @@ type Options = {
   onMove: (from: number, to: number) => void
 }
 
-const KEYS: Record<Axis, { previous: string, next: string }> = {
+const KEYS: Record<Axis, { previous: string; next: string }> = {
   vertical: { previous: 'ArrowUp', next: 'ArrowDown' },
   horizontal: { previous: 'ArrowLeft', next: 'ArrowRight' },
 }
@@ -87,9 +87,8 @@ function useDragReorder({ keys, axis = 'vertical', isHandleArmed = true, onMove 
         event.preventDefault()
 
         const rect = event.currentTarget.getBoundingClientRect()
-        const isAfter = axis === 'vertical'
-          ? event.clientY > rect.top + rect.height / 2
-          : event.clientX > rect.left + rect.width / 2
+        const isAfter =
+          axis === 'vertical' ? event.clientY > rect.top + rect.height / 2 : event.clientX > rect.left + rect.width / 2
 
         if (dropTarget?.index !== index || dropTarget.isAfter !== isAfter) setDropTarget({ index, isAfter })
       },

@@ -10,9 +10,7 @@ function AuthenticationWait({ children }: PropsWithChildren) {
   const { loading } = useAuthentication()
 
   if (loading) {
-    return (
-      <Loading source="AuthenticationWait" />
-    )
+    return <Loading source="AuthenticationWait" />
   }
 
   return children

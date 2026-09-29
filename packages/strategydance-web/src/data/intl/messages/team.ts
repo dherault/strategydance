@@ -4,13 +4,16 @@ import { defineMessages } from 'react-intl'
 const teamMessages = defineMessages({
   eyebrow: {
     id: 'team.eyebrow',
-    defaultMessage: 'You\'re in good company',
-    description: 'Small uppercase label above the title of the team page, a friendly nod to the people listed under it.',
+    defaultMessage: "You're in good company",
+    description:
+      'Small uppercase label above the title of the team page, a friendly nod to the people listed under it.',
   },
   lead: {
     id: 'team.lead',
-    defaultMessage: '{memberCount, plural, one {# member} other {# members}} in {organizationName}{invitationCount, plural, =0 {} one {, # pending invitation} other {, # pending invitations}}.',
-    description: 'Introduction under the title of the team page, counting the people in the organization and the invitations nobody has answered yet, such as "5 members in Acme, 2 pending invitations."',
+    defaultMessage:
+      '{memberCount, plural, one {# member} other {# members}} in {organizationName}{invitationCount, plural, =0 {} one {, # pending invitation} other {, # pending invitations}}.',
+    description:
+      'Introduction under the title of the team page, counting the people in the organization and the invitations nobody has answered yet, such as "5 members in Acme, 2 pending invitations."',
   },
   invite: {
     id: 'team.invite',
@@ -60,7 +63,8 @@ const teamMessages = defineMessages({
   inviteEmailsOnePerLine: {
     id: 'team.inviteEmailsOnePerLine',
     defaultMessage: 'or one per line',
-    description: 'Second line of the example shown in the empty invite field, under two example addresses separated by a comma.',
+    description:
+      'Second line of the example shown in the empty invite field, under two example addresses separated by a comma.',
   },
   inviteEmailsHint: {
     id: 'team.inviteEmailsHint',
@@ -70,7 +74,8 @@ const teamMessages = defineMessages({
   emailListMore: {
     id: 'team.emailListMore',
     defaultMessage: '{count} more',
-    description: 'Last item of a shortened list of email addresses, standing for the ones left out, as in "a@x.com, b@x.com and 3 more".',
+    description:
+      'Last item of a shortened list of email addresses, standing for the ones left out, as in "a@x.com, b@x.com and 3 more".',
   },
   invalidEmails: {
     id: 'team.invalidEmails',
@@ -94,8 +99,10 @@ const teamMessages = defineMessages({
   },
   teamFull: {
     id: 'team.teamFull',
-    defaultMessage: '{room, plural, =0 {This team is full: it holds at most {max} members and pending invitations.} one {This team has room for one more member or invitation, out of {max}.} other {This team has room for # more members or invitations, out of {max}.}}',
-    description: 'Error under the invite field when the team cannot hold every address typed, saying how many more it can take.',
+    defaultMessage:
+      '{room, plural, =0 {This team is full: it holds at most {max} members and pending invitations.} one {This team has room for one more member or invitation, out of {max}.} other {This team has room for # more members or invitations, out of {max}.}}',
+    description:
+      'Error under the invite field when the team cannot hold every address typed, saying how many more it can take.',
   },
   inviteTeamFullError: {
     id: 'team.inviteTeamFullError',
@@ -105,7 +112,8 @@ const teamMessages = defineMessages({
   invitationsReady: {
     id: 'team.invitationsReady',
     defaultMessage: '{count, plural, one {<b>#</b> invitation ready} other {<b>#</b> invitations ready}}',
-    description: 'Summary at the bottom of the invite dialog counting the valid addresses typed so far. The number is shown in bold.',
+    description:
+      'Summary at the bottom of the invite dialog counting the valid addresses typed so far. The number is shown in bold.',
   },
   noEmailsYet: {
     id: 'team.noEmailsYet',
@@ -125,17 +133,20 @@ const teamMessages = defineMessages({
   invitationsTaken: {
     id: 'team.invitationsTaken',
     defaultMessage: 'Could not invite {emails}: they joined or were invited in the meantime.',
-    description: 'Error shown after sending invitations, listing the addresses that were taken by a membership or another invitation while the reader was sending.',
+    description:
+      'Error shown after sending invitations, listing the addresses that were taken by a membership or another invitation while the reader was sending.',
   },
   invitationsNoRoom: {
     id: 'team.invitationsNoRoom',
     defaultMessage: 'Could not invite {emails}: the team filled up in the meantime.',
-    description: 'Error shown after sending invitations, listing the addresses left out because the team reached its size limit while the reader was sending.',
+    description:
+      'Error shown after sending invitations, listing the addresses left out because the team reached its size limit while the reader was sending.',
   },
   invitationsForbidden: {
     id: 'team.invitationsForbidden',
     defaultMessage: 'Could not invite {emails}: you no longer administer this team.',
-    description: 'Error shown after sending invitations, listing the addresses left out because the reader lost administrator access while sending.',
+    description:
+      'Error shown after sending invitations, listing the addresses left out because the reader lost administrator access while sending.',
   },
   invitationsNotSent: {
     id: 'team.invitationsNotSent',
@@ -145,7 +156,8 @@ const teamMessages = defineMessages({
   inviteConflictError: {
     id: 'team.inviteConflictError',
     defaultMessage: 'Some of these addresses joined or were invited in the meantime. Check the list and try again.',
-    description: 'Error in the invite dialog when the server found addresses that belong to members or were invited since the page last updated.',
+    description:
+      'Error in the invite dialog when the server found addresses that belong to members or were invited since the page last updated.',
   },
   inviteRateLimitError: {
     id: 'team.inviteRateLimitError',
@@ -170,27 +182,30 @@ const teamMessages = defineMessages({
   columnName: {
     id: 'team.columnName',
     defaultMessage: 'Name',
-    description: 'Heading of the team table column listing each member\'s name.',
+    description: "Heading of the team table column listing each member's name.",
   },
   columnEmail: {
     id: 'team.columnEmail',
     defaultMessage: 'Email',
-    description: 'Heading of the team table column listing each member\'s email address.',
+    description: "Heading of the team table column listing each member's email address.",
   },
   columnJobTitle: {
     id: 'team.columnJobTitle',
     defaultMessage: 'Role',
-    description: 'Heading of the team table column listing what each member does in the company, such as "Product designer". A job title, not a permission level.',
+    description:
+      'Heading of the team table column listing what each member does in the company, such as "Product designer". A job title, not a permission level.',
   },
   columnAccess: {
     id: 'team.columnAccess',
     defaultMessage: 'Access',
-    description: 'Heading of the team table column listing what each member may do in the app: administrator or member.',
+    description:
+      'Heading of the team table column listing what each member may do in the app: administrator or member.',
   },
   columnActions: {
     id: 'team.columnActions',
     defaultMessage: 'Actions',
-    description: 'Accessible heading of the team table column holding the buttons that act on a member. Not shown on screen.',
+    description:
+      'Accessible heading of the team table column holding the buttons that act on a member. Not shown on screen.',
   },
   noJobTitle: {
     id: 'team.noJobTitle',
@@ -200,12 +215,13 @@ const teamMessages = defineMessages({
   editOwnJobTitle: {
     id: 'team.editOwnJobTitle',
     defaultMessage: 'Edit your role',
-    description: 'Accessible label of the pencil button beside the reader\'s own job title, and title of the dialog it opens.',
+    description:
+      "Accessible label of the pencil button beside the reader's own job title, and title of the dialog it opens.",
   },
   editJobTitleFor: {
     id: 'team.editJobTitleFor',
     defaultMessage: 'Edit role for {name}',
-    description: 'Accessible label of the pencil button beside another member\'s job title.',
+    description: "Accessible label of the pencil button beside another member's job title.",
   },
   administrator: {
     id: 'team.administrator',
@@ -220,12 +236,13 @@ const teamMessages = defineMessages({
   accessFor: {
     id: 'team.accessFor',
     defaultMessage: 'Access for {name}',
-    description: 'Accessible label of the dropdown that changes a member\'s access level.',
+    description: "Accessible label of the dropdown that changes a member's access level.",
   },
   onlyAdministrator: {
     id: 'team.onlyAdministrator',
     defaultMessage: 'An organization keeps at least one administrator. Make somebody else an administrator first.',
-    description: 'Tooltip on the reader\'s own access dropdown when they are the only administrator and so cannot become a regular member.',
+    description:
+      "Tooltip on the reader's own access dropdown when they are the only administrator and so cannot become a regular member.",
   },
   nowAdministratorSelf: {
     id: 'team.nowAdministratorSelf',
@@ -250,7 +267,7 @@ const teamMessages = defineMessages({
   accessError: {
     id: 'team.accessError',
     defaultMessage: 'The access could not be changed. Try again.',
-    description: 'Error shown when changing a member\'s access level failed.',
+    description: "Error shown when changing a member's access level failed.",
   },
   ban: {
     id: 'team.ban',
@@ -260,7 +277,7 @@ const teamMessages = defineMessages({
   banName: {
     id: 'team.banName',
     defaultMessage: 'Ban {name}',
-    description: 'Accessible label of the ban button in a member\'s row, and title of the dialog confirming it.',
+    description: "Accessible label of the ban button in a member's row, and title of the dialog confirming it.",
   },
   banDescription: {
     id: 'team.banDescription',
@@ -310,7 +327,7 @@ const teamMessages = defineMessages({
   editJobTitleDescription: {
     id: 'team.editJobTitleDescription',
     defaultMessage: 'What {name} does at {organizationName}.',
-    description: 'Explanation under the title of the dialog where the reader writes another member\'s job title.',
+    description: "Explanation under the title of the dialog where the reader writes another member's job title.",
   },
   jobTitleLabel: {
     id: 'team.jobTitleLabel',

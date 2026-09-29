@@ -60,13 +60,15 @@ const MAX_RETRY_DELAY_MS = 10 * 1000
 */
 async function sendEmails(emails: Email[], idempotencyKey: string): Promise<EmailFailure[]> {
   if (!IS_PRODUCTION) {
-    await Promise.all(emails.map(async ({ to, subject, html }) => {
-      const file = path.join(os.tmpdir(), `strategydance-email-${randomUUID()}.html`)
+    await Promise.all(
+      emails.map(async ({ to, subject, html }) => {
+        const file = path.join(os.tmpdir(), `strategydance-email-${randomUUID()}.html`)
 
-      await fs.writeFile(file, html, 'utf-8')
+        await fs.writeFile(file, html, 'utf-8')
 
-      logger.info(`📨 Would send "${subject}" to ${to}: file://${file}`)
-    }))
+        logger.info(`📨 Would send "${subject}" to ${to}: file://${file}`)
+      }),
+    )
 
     return []
   }
@@ -109,7 +111,8 @@ async function sendBatch(resend: Resend, emails: Email[], idempotencyKey: string
     const isRateLimited = error.name === 'rate_limit_exceeded'
     // The SDK reports a request that never got an answer, a lost response included, as a
     // statusless `application_error`
-    const isUndetermined = error.statusCode === null || error.statusCode >= 500 || error.name === 'concurrent_idempotent_requests'
+    const isUndetermined =
+      error.statusCode === null || error.statusCode >= 500 || error.name === 'concurrent_idempotent_requests'
 
     // The SDK resolves with a refusal rather than throwing it: an unverified domain, a spent quota,
     // a malformed request. Resolving quietly would report a delivery that never happened
@@ -126,7 +129,9 @@ async function sendBatch(resend: Resend, emails: Email[], idempotencyKey: string
     const retryAfterSeconds = isRateLimited ? Number(headers?.['retry-after'] ?? 1) : 2 ** attempt
     const delayMs = Math.min(Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 1000, MAX_RETRY_DELAY_MS)
 
-    logger.warn(`Email: ${isRateLimited ? 'Resend limited the rate' : 'Resend did not answer'}, trying again in ${delayMs}ms`)
+    logger.warn(
+      `Email: ${isRateLimited ? 'Resend limited the rate' : 'Resend did not answer'}, trying again in ${delayMs}ms`,
+    )
 
     await Bun.sleep(delayMs)
   }

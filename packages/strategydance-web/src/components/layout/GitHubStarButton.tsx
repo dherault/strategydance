@@ -8,7 +8,8 @@ import useGitHubStargazers from '~hooks/github/useGitHubStargazers'
 import navigationMessages from '~data/intl/messages/navigation'
 
 // GitHub's own colours and type, deliberately: the button reads as GitHub's, as its Star button does
-const linkClassName = 'inline-flex items-center border border-[#d0d7de] whitespace-nowrap text-[#24292f] no-underline transition-colors duration-[80ms] ease-in-out hover:text-[#24292f] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0969da]'
+const linkClassName =
+  'inline-flex items-center border border-[#d0d7de] whitespace-nowrap text-[#24292f] no-underline transition-colors duration-[80ms] ease-in-out hover:text-[#24292f] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0969da]'
 
 // The Octicons mark
 function GitHubMark() {
@@ -38,24 +39,26 @@ function GitHubStarButton() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={formatMessage(navigationMessages.githubStarLabel, { repository: GITHUB_REPOSITORY })}
-        className={cn(linkClassName, 'gap-1.5 bg-[#f6f8fa] px-2.5 hover:bg-[#eaeef2]', hasCount ? 'rounded-l-md' : 'rounded-md')}
+        className={cn(
+          linkClassName,
+          'gap-1.5 bg-[#f6f8fa] px-2.5 hover:bg-[#eaeef2]',
+          hasCount ? 'rounded-l-md' : 'rounded-md',
+        )}
       >
         <GitHubMark />
         {formatMessage(navigationMessages.githubStar)}
       </a>
-      {hasCount
-        ? (
-            <a
-              href={`https://github.com/${GITHUB_REPOSITORY}/stargazers`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={formatMessage(navigationMessages.githubStargazers, { count: stargazers })}
-              className={cn(linkClassName, '-ml-px rounded-r-md bg-white px-2.5 hover:text-[#0969da]')}
-            >
-              {formatNumber(stargazers, { notation: 'compact' })}
-            </a>
-          )
-        : null}
+      {hasCount ? (
+        <a
+          href={`https://github.com/${GITHUB_REPOSITORY}/stargazers`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={formatMessage(navigationMessages.githubStargazers, { count: stargazers })}
+          className={cn(linkClassName, '-ml-px rounded-r-md bg-white px-2.5 hover:text-[#0969da]')}
+        >
+          {formatNumber(stargazers, { notation: 'compact' })}
+        </a>
+      ) : null}
     </div>
   )
 }

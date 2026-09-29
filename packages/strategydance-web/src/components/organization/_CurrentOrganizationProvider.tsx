@@ -1,7 +1,6 @@
 import type { PropsWithChildren } from 'react'
 
 import type { CurrentOrganizationContextType } from '~contexts/CurrentOrganizationContext'
-
 import CurrentOrganizationContext from '~contexts/CurrentOrganizationContext'
 
 import usePersistedState from '~hooks/common/usePersistedState'
@@ -33,9 +32,8 @@ function CurrentOrganizationProvider({ children }: PropsWithChildren) {
     back, which is both why there is no state syncing effect here and why somebody re-invited to
     that organization later gets their old choice returned to them
   */
-  const userOrganization = userOrganizations.find(({ organization }) => organization.id === organizationId)
-    ?? userOrganizations[0]
-    ?? null
+  const userOrganization =
+    userOrganizations.find(({ organization }) => organization.id === organizationId) ?? userOrganizations[0] ?? null
 
   const contextValue: CurrentOrganizationContextType = {
     organization: userOrganization?.organization ?? null,
@@ -44,11 +42,7 @@ function CurrentOrganizationProvider({ children }: PropsWithChildren) {
     setOrganizationId,
   }
 
-  return (
-    <CurrentOrganizationContext.Provider value={contextValue}>
-      {children}
-    </CurrentOrganizationContext.Provider>
-  )
+  return <CurrentOrganizationContext.Provider value={contextValue}>{children}</CurrentOrganizationContext.Provider>
 }
 
 export default CurrentOrganizationProvider

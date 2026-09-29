@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Pill } from 'strategydance-design-system/components/ui/Pill'
 
 const variants = ['primary', 'secondary', 'neutral', 'danger'] as const

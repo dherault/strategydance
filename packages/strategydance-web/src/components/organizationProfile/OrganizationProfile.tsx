@@ -1,7 +1,12 @@
 import { PencilIcon, UploadIcon } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { DEFAULT_ORGANIZATION_COLOR, MAX_ORGANIZATION_BRIEF_LENGTH, MAX_ORGANIZATION_NAME_LENGTH, type OrganizationImageKind } from 'strategydance-core'
+import {
+  DEFAULT_ORGANIZATION_COLOR,
+  MAX_ORGANIZATION_BRIEF_LENGTH,
+  MAX_ORGANIZATION_NAME_LENGTH,
+  type OrganizationImageKind,
+} from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { ColorPicker } from 'strategydance-design-system/components/ui/ColorPicker'
 import { Input } from 'strategydance-design-system/components/ui/Input'
@@ -64,16 +69,18 @@ function OrganizationProfile({ organization }: Props) {
   const trimmedBrief = brief.trim()
   const isColorChanged = color !== savedColor
   const isVisibilityChanged = isPublic !== organization.isPublic
-  const areDetailsChanged = trimmedName !== organization.name || isColorChanged || trimmedBrief !== savedBrief || isVisibilityChanged
+  const areDetailsChanged =
+    trimmedName !== organization.name || isColorChanged || trimmedBrief !== savedBrief || isVisibilityChanged
   const areImagesChanged = stagedLogo !== undefined || stagedBanner !== undefined
   // Anything to discard, spaces around the name and the brief included
-  const isDirty = name !== organization.name || isColorChanged || brief !== savedBrief || isVisibilityChanged || areImagesChanged
+  const isDirty =
+    name !== organization.name || isColorChanged || brief !== savedBrief || isVisibilityChanged || areImagesChanged
   // Anything to save, which spaces alone are not
   const canSave = (areDetailsChanged || areImagesChanged) && !!trimmedName && !isSaving
 
   // What the card shows: a picture chosen and not saved yet, or else the saved one
-  const logoSrc = stagedLogo === undefined ? organization.logoUrl ?? null : stagedLogo?.url ?? null
-  const bannerSrc = stagedBanner === undefined ? organization.bannerUrl ?? null : stagedBanner?.url ?? null
+  const logoSrc = stagedLogo === undefined ? (organization.logoUrl ?? null) : (stagedLogo?.url ?? null)
+  const bannerSrc = stagedBanner === undefined ? (organization.bannerUrl ?? null) : (stagedBanner?.url ?? null)
 
   function discardChanges() {
     setName(organization.name)
@@ -119,7 +126,7 @@ function OrganizationProfile({ organization }: Props) {
         // An untouched color is sent as stored, so one never picked stays the default
         await updateOrganization(organization.id, {
           name: trimmedName,
-          color: isColorChanged ? color : organization.color ?? null,
+          color: isColorChanged ? color : (organization.color ?? null),
           brief: trimmedBrief || null,
           isPublic,
         })
@@ -130,14 +137,12 @@ function OrganizationProfile({ organization }: Props) {
       }
 
       toast.success(formatMessage(organizationProfileMessages.saved))
-    }
-    catch (error) {
-      console.error('Failed to save the organization\'s profile', error)
+    } catch (error) {
+      console.error("Failed to save the organization's profile", error)
 
       // What was not saved stays where it was chosen or typed
       toast.error(formatMessage(organizationProfileMessages.saveError))
-    }
-    finally {
+    } finally {
       setIsSaving(false)
     }
   }
@@ -160,7 +165,9 @@ function OrganizationProfile({ organization }: Props) {
             disabled={isSaving}
             onClick={() => setEditingImage('banner')}
           >
-            {formatMessage(bannerSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner)}
+            {formatMessage(
+              bannerSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner,
+            )}
           </Button>
         </OrganizationProfileBanner>
         <div className="flex flex-col items-center gap-8 px-5 pb-6 md:px-8 md:pb-8">
@@ -169,7 +176,9 @@ function OrganizationProfile({ organization }: Props) {
             name={trimmedName || organization.name}
             logoUrl={logoSrc}
             color={color}
-            label={formatMessage(logoSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo)}
+            label={formatMessage(
+              logoSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo,
+            )}
             disabled={isSaving}
             onClick={() => setEditingImage('logo')}
           />
@@ -193,11 +202,14 @@ function OrganizationProfile({ organization }: Props) {
             rows={4}
             autosize
             readOnly={isSaving}
-            hint={(
+            hint={
               <span className="flex justify-end tabular-nums">
-                {formatMessage(organizationProfileMessages.briefCount, { count: brief.length, max: MAX_ORGANIZATION_BRIEF_LENGTH })}
+                {formatMessage(organizationProfileMessages.briefCount, {
+                  count: brief.length,
+                  max: MAX_ORGANIZATION_BRIEF_LENGTH,
+                })}
               </span>
-            )}
+            }
             className="w-full max-w-100"
           />
           <ColorPicker
@@ -238,25 +250,21 @@ function OrganizationProfile({ organization }: Props) {
           </Button>
         </div>
       </form>
-      {editingImage
-        ? (
-            <OrganizationProfileImageDialog
-              kind={editingImage}
-              currentSrc={editingImage === 'logo' ? logoSrc : bannerSrc}
-              onApply={image => applyImage(editingImage, image)}
-              onClose={() => setEditingImage(null)}
-            />
-          )
-        : null}
-      {isDeleting
-        ? (
-            <OrganizationProfileDeleteDialog
-              organizationId={organization.id}
-              organizationName={organization.name}
-              onClose={() => setIsDeleting(false)}
-            />
-          )
-        : null}
+      {editingImage ? (
+        <OrganizationProfileImageDialog
+          kind={editingImage}
+          currentSrc={editingImage === 'logo' ? logoSrc : bannerSrc}
+          onApply={image => applyImage(editingImage, image)}
+          onClose={() => setEditingImage(null)}
+        />
+      ) : null}
+      {isDeleting ? (
+        <OrganizationProfileDeleteDialog
+          organizationId={organization.id}
+          organizationName={organization.name}
+          onClose={() => setIsDeleting(false)}
+        />
+      ) : null}
     </ContainerLayout>
   )
 }

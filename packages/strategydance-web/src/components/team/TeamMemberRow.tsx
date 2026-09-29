@@ -30,7 +30,15 @@ type Props = {
   A member edits their own job title and an administrator anybody's. Only an administrator sees
   the ban column, and never a ban button on their own row
 */
-function TeamMemberRow({ organizationId, member, isViewer, isAdministrator, isOnlyAdministrator, onEditJobTitle, onBan }: Props) {
+function TeamMemberRow({
+  organizationId,
+  member,
+  isViewer,
+  isAdministrator,
+  isOnlyAdministrator,
+  onEditJobTitle,
+  onBan,
+}: Props) {
   const { formatMessage } = useIntl()
 
   const name = getMemberName(member)
@@ -41,13 +49,15 @@ function TeamMemberRow({ organizationId, member, isViewer, isAdministrator, isOn
       <TableCell className="sticky left-0 z-1 bg-white shadow-[inset_-1px_0_0_var(--color-neutral-200)] transition-colors duration-150 ease-in-out group-hover/row:bg-neutral-50">
         <TeamMemberName member={member} />
       </TableCell>
-      <TableCell className="text-muted-foreground">
-        {member.user.email}
-      </TableCell>
+      <TableCell className="text-muted-foreground">{member.user.email}</TableCell>
       <TableCell>
         <TeamMemberJobTitle
           jobTitle={member.jobTitle ?? null}
-          editLabel={canEditJobTitle ? formatMessage(isViewer ? teamMessages.editOwnJobTitle : teamMessages.editJobTitleFor, { name }) : null}
+          editLabel={
+            canEditJobTitle
+              ? formatMessage(isViewer ? teamMessages.editOwnJobTitle : teamMessages.editJobTitleFor, { name })
+              : null
+          }
           onEdit={onEditJobTitle}
         />
       </TableCell>
@@ -60,28 +70,24 @@ function TeamMemberRow({ organizationId, member, isViewer, isAdministrator, isOn
           isOnlyAdministrator={isOnlyAdministrator}
         />
       </TableCell>
-      {isAdministrator
-        ? (
-            <TableCell
-              align="right"
-              className="w-px"
+      {isAdministrator ? (
+        <TableCell
+          align="right"
+          className="w-px"
+        >
+          {isViewer ? null : (
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<BanIcon />}
+              aria-label={formatMessage(teamMessages.banName, { name })}
+              onClick={onBan}
             >
-              {isViewer
-                ? null
-                : (
-                    <Button
-                      variant="transparent"
-                      size="sm"
-                      icon={<BanIcon />}
-                      aria-label={formatMessage(teamMessages.banName, { name })}
-                      onClick={onBan}
-                    >
-                      {formatMessage(teamMessages.ban)}
-                    </Button>
-                  )}
-            </TableCell>
-          )
-        : null}
+              {formatMessage(teamMessages.ban)}
+            </Button>
+          )}
+        </TableCell>
+      ) : null}
     </TableRow>
   )
 }

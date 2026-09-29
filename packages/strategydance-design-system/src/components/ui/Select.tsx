@@ -1,11 +1,9 @@
 import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 import { Select as SelectPrimitive } from 'radix-ui'
 import { type ReactNode, useId } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { inputClassName } from 'strategydance-design-system/components/ui/Input'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 type SelectOption = {
   /** Any string but the empty one, which Radix reserves for clearing the selection */
@@ -57,9 +55,7 @@ function SelectItem({ option }: { option: SelectOption }) {
       disabled={option.disabled}
       className="relative flex min-h-8 cursor-pointer items-center gap-2 rounded-xs py-0 pr-8 pl-2 text-sm text-foreground outline-none select-none data-highlighted:bg-neutral-100 data-highlighted:text-secondary data-disabled:cursor-not-allowed data-disabled:opacity-50 data-[state=checked]:font-medium data-[state=checked]:text-secondary"
     >
-      <SelectPrimitive.ItemText>
-        {option.label}
-      </SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center text-primary">
         <CheckIcon className="size-4" />
       </SelectPrimitive.ItemIndicator>
@@ -128,33 +124,29 @@ function Select({
           className="z-50 max-h-[min(280px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-xs border border-border bg-popover font-sans shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-[2px] data-[side=top]:slide-in-from-bottom-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0"
         >
           <SelectPrimitive.Viewport className="p-1">
-            {options.map((option, index) => isGroup(option)
-              ? (
-                  <SelectPrimitive.Group key={index}>
-                    {index > 0
-                      ? <SelectPrimitive.Separator className="-mx-1 my-1 h-px bg-border" />
-                      : null}
-                    {option.label
-                      ? (
-                          <SelectPrimitive.Label className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                            {option.label}
-                          </SelectPrimitive.Label>
-                        )
-                      : null}
-                    {option.options.map(toOption).map(groupOption => (
-                      <SelectItem
-                        key={groupOption.value}
-                        option={groupOption}
-                      />
-                    ))}
-                  </SelectPrimitive.Group>
-                )
-              : (
-                  <SelectItem
-                    key={toOption(option).value}
-                    option={toOption(option)}
-                  />
-                ))}
+            {options.map((option, index) =>
+              isGroup(option) ? (
+                <SelectPrimitive.Group key={index}>
+                  {index > 0 ? <SelectPrimitive.Separator className="-mx-1 my-1 h-px bg-border" /> : null}
+                  {option.label ? (
+                    <SelectPrimitive.Label className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      {option.label}
+                    </SelectPrimitive.Label>
+                  ) : null}
+                  {option.options.map(toOption).map(groupOption => (
+                    <SelectItem
+                      key={groupOption.value}
+                      option={groupOption}
+                    />
+                  ))}
+                </SelectPrimitive.Group>
+              ) : (
+                <SelectItem
+                  key={toOption(option).value}
+                  option={toOption(option)}
+                />
+              ),
+            )}
           </SelectPrimitive.Viewport>
         </SelectPrimitive.Content>
       </SelectPrimitive.Portal>

@@ -31,7 +31,16 @@ type Props = {
 
   Submitting waits for text, and holds an entry to the characters the server accepts
 */
-function LogEditor({ initialValue, placeholder, submitLabel, submitHint, isPending, onSubmit, onCancel, autoFocus = false }: Props) {
+function LogEditor({
+  initialValue,
+  placeholder,
+  submitLabel,
+  submitHint,
+  isPending,
+  onSubmit,
+  onCancel,
+  autoFocus = false,
+}: Props) {
   const { formatMessage } = useIntl()
   const { RichTextEditor, hasFailed } = useRichTextEditor()
 
@@ -48,44 +57,42 @@ function LogEditor({ initialValue, placeholder, submitLabel, submitHint, isPendi
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-      {RichTextEditor
-        ? (
-            <RichTextEditor
-              initialValue={initialValue}
-              placeholder={placeholder}
-              autoFocus={autoFocus}
-              onChange={setChange}
-              onSubmit={submit}
-              labels={{
-                toolbar: formatMessage(logMessages.toolbar),
-                bold: formatMessage(logMessages.bold),
-                italic: formatMessage(logMessages.italic),
-                underline: formatMessage(logMessages.underline),
-                strikethrough: formatMessage(logMessages.strikethrough),
-                heading: formatMessage(logMessages.heading),
-                bulletedList: formatMessage(logMessages.bulletedList),
-                numberedList: formatMessage(logMessages.numberedList),
-                quote: formatMessage(logMessages.quote),
-                undo: formatMessage(logMessages.undo),
-                redo: formatMessage(logMessages.redo),
-              }}
-            />
-          )
-        : (
-            <div className="flex min-h-34 items-center gap-2 rounded-xs border border-border bg-white p-3 text-sm text-muted-foreground">
-              {hasFailed
-                ? formatMessage(logMessages.editorError)
-                : (
-                    <>
-                      <Spinner
-                        size="sm"
-                        tone="muted"
-                      />
-                      {formatMessage(logMessages.loadingEditor)}
-                    </>
-                  )}
-            </div>
+      {RichTextEditor ? (
+        <RichTextEditor
+          initialValue={initialValue}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          onChange={setChange}
+          onSubmit={submit}
+          labels={{
+            toolbar: formatMessage(logMessages.toolbar),
+            bold: formatMessage(logMessages.bold),
+            italic: formatMessage(logMessages.italic),
+            underline: formatMessage(logMessages.underline),
+            strikethrough: formatMessage(logMessages.strikethrough),
+            heading: formatMessage(logMessages.heading),
+            bulletedList: formatMessage(logMessages.bulletedList),
+            numberedList: formatMessage(logMessages.numberedList),
+            quote: formatMessage(logMessages.quote),
+            undo: formatMessage(logMessages.undo),
+            redo: formatMessage(logMessages.redo),
+          }}
+        />
+      ) : (
+        <div className="flex min-h-34 items-center gap-2 rounded-xs border border-border bg-white p-3 text-sm text-muted-foreground">
+          {hasFailed ? (
+            formatMessage(logMessages.editorError)
+          ) : (
+            <>
+              <Spinner
+                size="sm"
+                tone="muted"
+              />
+              {formatMessage(logMessages.loadingEditor)}
+            </>
           )}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-end gap-3">
         <span className="min-w-0 flex-1 text-xs text-muted-foreground">
           {formatMessage(submitHint, {
@@ -98,17 +105,15 @@ function LogEditor({ initialValue, placeholder, submitLabel, submitHint, isPendi
           })}
         </span>
         <div className="flex gap-2">
-          {onCancel
-            ? (
-                <Button
-                  variant="transparent"
-                  size="sm"
-                  onClick={onCancel}
-                >
-                  {formatMessage(logMessages.cancel)}
-                </Button>
-              )
-            : null}
+          {onCancel ? (
+            <Button
+              variant="transparent"
+              size="sm"
+              onClick={onCancel}
+            >
+              {formatMessage(logMessages.cancel)}
+            </Button>
+          ) : null}
           <Button
             size="sm"
             disabled={!canSubmit}

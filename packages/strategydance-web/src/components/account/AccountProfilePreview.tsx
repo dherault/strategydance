@@ -45,14 +45,13 @@ function AccountProfilePreview({ name, bio, pictureSrc, initialsName }: Props) {
       <h2 className={cn('m-0 mt-2 text-3xl leading-[1.1] wrap-anywhere', !name && 'text-neutral-400')}>
         {name || formatMessage(accountMessages.previewNameEmpty)}
       </h2>
-      {meta
-        ? (
-            <p className="m-0 text-sm text-muted-foreground">
-              {meta}
-            </p>
-          )
-        : null}
-      <p className={cn('m-0 max-w-64 text-sm leading-[1.6] text-pretty whitespace-pre-line wrap-anywhere', bio ? 'text-foreground' : 'text-neutral-400')}>
+      {meta ? <p className="m-0 text-sm text-muted-foreground">{meta}</p> : null}
+      <p
+        className={cn(
+          'm-0 max-w-64 text-sm leading-[1.6] text-pretty whitespace-pre-line wrap-anywhere',
+          bio ? 'text-foreground' : 'text-neutral-400',
+        )}
+      >
         {bio || formatMessage(accountMessages.previewBioEmpty)}
       </p>
     </aside>

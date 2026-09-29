@@ -12,9 +12,7 @@ type DeleteOrganizationInput = {
   userId: string
 }
 
-type DeleteOrganizationResult =
-  | { outcome: 'forbidden' }
-  | { outcome: 'deleted' }
+type DeleteOrganizationResult = { outcome: 'forbidden' } | { outcome: 'deleted' }
 
 /*
   Deletes an organization, for one of its administrators: every file under its prefix, then the
@@ -35,7 +33,10 @@ type DeleteOrganizationResult =
   pictures. That takes an outage, or its administrator being demoted in the instant between the
   route's check and the mutation's, and the mark and the banner fall back to their empty looks
 */
-async function deleteOrganization({ organizationId, userId }: DeleteOrganizationInput): Promise<DeleteOrganizationResult> {
+async function deleteOrganization({
+  organizationId,
+  userId,
+}: DeleteOrganizationInput): Promise<DeleteOrganizationResult> {
   const prefix = buildOrganizationStoragePrefix(organizationId)
 
   // `force` carries on past a file that fails, so one cannot keep the rest, and throws after
@@ -43,8 +44,7 @@ async function deleteOrganization({ organizationId, userId }: DeleteOrganization
 
   try {
     await deleteOrganizationMutation(dataConnect, { organizationId, userId })
-  }
-  catch (error) {
+  } catch (error) {
     if (isAdministratorRefusal(error)) return { outcome: 'forbidden' }
 
     throw error
@@ -53,8 +53,7 @@ async function deleteOrganization({ organizationId, userId }: DeleteOrganization
   // Finds nothing unless an upload raced the delete
   try {
     await bucket.deleteFiles({ prefix, force: true })
-  }
-  catch (error) {
+  } catch (error) {
     logger.error(`Organization deletion: could not sweep ${prefix} again after deleting its row`, error)
   }
 

@@ -22,21 +22,17 @@ function TeamMemberJobTitle({ jobTitle, editLabel, onEdit }: Props) {
 
   return (
     <div className="flex items-center gap-1">
-      <span className={cn(!jobTitle && 'text-neutral-400')}>
-        {jobTitle || formatMessage(teamMessages.noJobTitle)}
-      </span>
-      {editLabel
-        ? (
-            <Button
-              variant="transparent"
-              size="sm"
-              icon={<PencilIcon />}
-              aria-label={editLabel}
-              onClick={onEdit}
-              className="opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100"
-            />
-          )
-        : null}
+      <span className={cn(!jobTitle && 'text-neutral-400')}>{jobTitle || formatMessage(teamMessages.noJobTitle)}</span>
+      {editLabel ? (
+        <Button
+          variant="transparent"
+          size="sm"
+          icon={<PencilIcon />}
+          aria-label={editLabel}
+          onClick={onEdit}
+          className="opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100"
+        />
+      ) : null}
     </div>
   )
 }

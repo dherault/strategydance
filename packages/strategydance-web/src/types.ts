@@ -1,9 +1,21 @@
 import type { Locale } from 'strategydance-core'
-import type { GetAdministrationOrganizationsData, GetAdministrationUsersData, GetChecklistData, GetCurrentUserData, GetCurrentUserOrganizationsData, GetOrganizationInvitationData, GetOrganizationLogData, GetOrganizationTeamData, GetTaskListsData, GetTasksData, GetTodayPreferencesData } from 'strategydance-database/web'
+import type {
+  GetAdministrationOrganizationsData,
+  GetAdministrationUsersData,
+  GetChecklistData,
+  GetCurrentUserData,
+  GetCurrentUserOrganizationsData,
+  GetOrganizationInvitationData,
+  GetOrganizationLogData,
+  GetOrganizationTeamData,
+  GetTaskListsData,
+  GetTasksData,
+  GetTodayPreferencesData,
+} from 'strategydance-database/web'
 
 import type { MESSAGE_TYPES } from '~constants'
 
-export type MessageType = typeof MESSAGE_TYPES[number]
+export type MessageType = (typeof MESSAGE_TYPES)[number]
 
 /*
   The shape every context that owns remote data exposes, so a consumer reads the same four
@@ -86,10 +98,13 @@ export type AdministrationOrganization = GetAdministrationOrganizationsData['org
   A picture chosen but not saved yet: undefined while nothing was chosen, null once the one there
   is to be removed, or the file with an object URL that previews it
 */
-export type StagedImage = {
-  blob: Blob
-  url: string
-} | null | undefined
+export type StagedImage =
+  | {
+      blob: Blob
+      url: string
+    }
+  | null
+  | undefined
 
 // How the reader's own Today page lists the team's priorities: the order they chose, and whom they
 // hid, both as user ids

@@ -16,9 +16,7 @@ function LandingLayout({ headerActions, className, children }: Props) {
   return (
     <div className="flex min-h-screen flex-col">
       <LandingHeader actions={headerActions} />
-      <main className={cn('flex flex-1 items-center', className)}>
-        {children}
-      </main>
+      <main className={cn('flex flex-1 items-center', className)}>{children}</main>
       <LandingFooter />
     </div>
   )

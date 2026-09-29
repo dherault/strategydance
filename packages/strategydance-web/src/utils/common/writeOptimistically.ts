@@ -53,18 +53,20 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
 
   try {
     // Queued now, so the row's writes keep the order they were made in, and sent once applied
-    await runInOrder(rowKey, async () => {
-      await applied
+    await runInOrder(
+      rowKey,
+      async () => {
+        await applied
 
-      return write()
-    }, after)
-  }
-  catch (error) {
+        return write()
+      },
+      after,
+    )
+  } catch (error) {
     hasFailed = true
 
     throw error
-  }
-  finally {
+  } finally {
     queryKeys.forEach((queryKey, index) => {
       const key = keys[index]!
       const left = (pendingWrites.get(key) ?? 1) - 1

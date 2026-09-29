@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Sheet,
@@ -17,23 +16,17 @@ const meta = {
   render: args => (
     <Sheet {...args}>
       <SheetTrigger asChild>
-        <Button variant="outline">
-          Open the sheet
-        </Button>
+        <Button variant="outline">Open the sheet</Button>
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>
-            Pricing for the beta
-          </SheetTitle>
+          <SheetTitle>Pricing for the beta</SheetTitle>
           <SheetDescription>
             Set a price before Friday, so the first 20 users sign up knowing what it costs.
           </SheetDescription>
         </SheetHeader>
         <SheetFooter>
-          <Button>
-            Set pricing
-          </Button>
+          <Button>Set pricing</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

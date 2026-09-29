@@ -34,7 +34,11 @@ type Week = {
   is read rather than the page waiting again. It does not retry on mount, and a failed read is
   `hasFailed` rather than a quiet week: `TodayWait` waits on the newest
 */
-function useOrganizationLogWeek({ from, to, isLive }: Week): DataSource<GetOrganizationLogData> & { hasFailed: boolean } {
+function useOrganizationLogWeek({
+  from,
+  to,
+  isLive,
+}: Week): DataSource<GetOrganizationLogData> & { hasFailed: boolean } {
   const { organization } = useCurrentOrganization()
 
   const organizationId = organization?.id ?? null
@@ -43,7 +47,9 @@ function useOrganizationLogWeek({ from, to, isLive }: Week): DataSource<GetOrgan
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: week } = await executeQuery(getOrganizationLogRef(dataConnect, { organizationId: organizationId!, from, to }))
+      const { data: week } = await executeQuery(
+        getOrganizationLogRef(dataConnect, { organizationId: organizationId!, from, to }),
+      )
 
       return week
     },

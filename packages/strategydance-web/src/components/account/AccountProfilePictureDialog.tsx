@@ -45,7 +45,7 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
 
   const [error, setError] = useState<string | null>(null)
 
-  const src = choice === undefined ? currentSrc : choice?.url ?? null
+  const src = choice === undefined ? currentSrc : (choice?.url ?? null)
   // Removing a picture that was never there changes nothing
   const isChanged = choice !== undefined && (choice !== null || currentSrc !== null)
 
@@ -96,9 +96,7 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
           <DialogTitle>
             {formatMessage(currentSrc ? accountMessages.changePicture : accountMessages.uploadPicture)}
           </DialogTitle>
-          <DialogDescription>
-            {formatMessage(accountMessages.pictureDialogDescription)}
-          </DialogDescription>
+          <DialogDescription>{formatMessage(accountMessages.pictureDialogDescription)}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <ImageDropzone
@@ -106,31 +104,25 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
             src={src}
             alt={formatMessage(accountMessages.picturePreviewAlt)}
             label={formatMessage(accountMessages.choosePicture)}
-            prompt={(
+            prompt={
               <FormattedMessage
                 {...accountMessages.pictureDropPrompt}
                 values={{
-                  strong: chunks => (
-                    <strong>
-                      {chunks}
-                    </strong>
-                  ),
+                  strong: chunks => <strong>{chunks}</strong>,
                 }}
               />
-            )}
+            }
             accept={PROFILE_PICTURE_CONTENT_TYPES.join(',')}
             onFileSelect={selectFile}
           />
-          {error
-            ? (
-                <p
-                  role="alert"
-                  className="m-0 text-center text-xs text-danger"
-                >
-                  {error}
-                </p>
-              )
-            : null}
+          {error ? (
+            <p
+              role="alert"
+              className="m-0 text-center text-xs text-danger"
+            >
+              {error}
+            </p>
+          ) : null}
           <ul className="m-0 flex list-none flex-wrap justify-center gap-x-2 gap-y-1 p-0 text-xs text-muted-foreground">
             {specs.map((spec, index) => (
               <li
@@ -143,19 +135,17 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
           </ul>
         </div>
         <DialogFooter className="-mx-6 -mb-6 border-t border-border px-6 py-4 sm:items-center">
-          {src
-            ? (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  confirm={formatMessage(accountMessages.removePictureConfirm)}
-                  onClick={remove}
-                  className="sm:mr-auto"
-                >
-                  {formatMessage(accountMessages.removePicture)}
-                </Button>
-              )
-            : null}
+          {src ? (
+            <Button
+              variant="danger"
+              size="sm"
+              confirm={formatMessage(accountMessages.removePictureConfirm)}
+              onClick={remove}
+              className="sm:mr-auto"
+            >
+              {formatMessage(accountMessages.removePicture)}
+            </Button>
+          ) : null}
           <Button
             variant="transparent"
             onClick={onClose}

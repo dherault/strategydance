@@ -5,7 +5,8 @@ const onboardingMessages = defineMessages({
   prologueTitle: {
     id: 'onboarding.prologueTitle',
     defaultMessage: 'Prologue',
-    description: 'Large title of the first screen a new user sees, before they create their company. As in the opening section of a story.',
+    description:
+      'Large title of the first screen a new user sees, before they create their company. As in the opening section of a story.',
   },
   prologueQuestion: {
     id: 'onboarding.prologueQuestion',
@@ -14,7 +15,7 @@ const onboardingMessages = defineMessages({
   },
   prologueLead: {
     id: 'onboarding.prologueLead',
-    defaultMessage: 'Let\'s see how well you know the road ahead.',
+    defaultMessage: "Let's see how well you know the road ahead.",
     description: 'Second line under the "Prologue" title, announcing a short quiz about starting a company.',
   },
   questionCount: {
@@ -54,8 +55,9 @@ const onboardingMessages = defineMessages({
   },
   answerRight: {
     id: 'onboarding.answerRight',
-    defaultMessage: 'That\'s right.',
-    description: 'Announced to screen readers when the reader picks the right answer to a quiz question, just before the next one appears.',
+    defaultMessage: "That's right.",
+    description:
+      'Announced to screen readers when the reader picks the right answer to a quiz question, just before the next one appears.',
   },
   answerWrong: {
     id: 'onboarding.answerWrong',
@@ -64,13 +66,14 @@ const onboardingMessages = defineMessages({
   },
   title: {
     id: 'onboarding.title',
-    defaultMessage: 'With that covered, let\'s begin.',
+    defaultMessage: "With that covered, let's begin.",
     description: 'Title of the screen where a new user creates their company, after the quiz.',
   },
   lead: {
     id: 'onboarding.lead',
     defaultMessage: 'Strategy Dance can guide you, but the work is yours.',
-    description: 'Line under the title of the screen where a new user creates their company. Strategy Dance is the product name and stays untranslated.',
+    description:
+      'Line under the title of the screen where a new user creates their company. Strategy Dance is the product name and stays untranslated.',
   },
   nameLabel: {
     id: 'onboarding.nameLabel',
@@ -110,7 +113,7 @@ const onboardingMessages = defineMessages({
   submit: {
     id: 'onboarding.submit',
     defaultMessage: 'Create company',
-    description: 'Button that creates the new user\'s company and opens the app.',
+    description: "Button that creates the new user's company and opens the app.",
   },
   createError: {
     id: 'onboarding.createError',
@@ -120,7 +123,8 @@ const onboardingMessages = defineMessages({
   createdUnread: {
     id: 'onboarding.createdUnread',
     defaultMessage: 'Your company was created, but it could not be loaded. Check your connection and try again.',
-    description: 'Error shown above the button when the company was created but could not be loaded afterwards. The button then tries loading it again.',
+    description:
+      'Error shown above the button when the company was created but could not be loaded afterwards. The button then tries loading it again.',
   },
   created: {
     id: 'onboarding.created',

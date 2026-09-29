@@ -48,28 +48,36 @@ beforeEach(() => {
 
 describe('deleteOrganization', () => {
   test('sweeps its files, deletes its row, then sweeps once more for an upload that raced it', async () => {
-    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({ outcome: 'deleted' })
+    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({
+      outcome: 'deleted',
+    })
     expect(steps).toEqual([`sweep ${PREFIX}`, 'row', `sweep ${PREFIX}`])
   })
 
   test('keeps the row when the first sweep fails, so the delete can be asked for again', async () => {
     sweepFailures = [new Error('Storage is down')]
 
-    await expect(deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).rejects.toThrow('Storage is down')
+    await expect(deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).rejects.toThrow(
+      'Storage is down',
+    )
     expect(steps).toEqual([`sweep ${PREFIX}`])
   })
 
   test('answers forbidden to an administrator demoted in the meantime, and sweeps no more', async () => {
     rowFailure = new Error('Only an administrator can delete an organization')
 
-    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({ outcome: 'forbidden' })
+    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({
+      outcome: 'forbidden',
+    })
     expect(steps).toEqual([`sweep ${PREFIX}`, 'row'])
   })
 
   test('logs a second sweep that fails, and still reads as deleted, since the row is gone', async () => {
     sweepFailures = [undefined, new Error('Storage is down')]
 
-    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({ outcome: 'deleted' })
+    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({
+      outcome: 'deleted',
+    })
     expect(logError).toHaveBeenCalledTimes(1)
     expect(logError.mock.calls[0]?.[0]).toContain(PREFIX)
   })

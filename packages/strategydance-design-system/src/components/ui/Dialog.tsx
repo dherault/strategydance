@@ -1,10 +1,8 @@
 import { XIcon } from 'lucide-react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 // A window over the page, centred on a blurred backdrop
 function Dialog(props: ComponentProps<typeof DialogPrimitive.Root>) {
@@ -48,7 +46,10 @@ function DialogOverlay({ className, ...props }: ComponentProps<typeof DialogPrim
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
-      className={cn('fixed inset-0 isolate z-50 bg-black/10 duration-150 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0', className)}
+      className={cn(
+        'fixed inset-0 isolate z-50 bg-black/10 duration-150 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        className,
+      )}
       {...props}
     />
   )
@@ -78,19 +79,17 @@ function DialogContent({
         {...props}
       >
         {children}
-        {showCloseButton
-          ? (
-              <DialogPrimitive.Close asChild>
-                <Button
-                  variant="transparent"
-                  size="sm"
-                  icon={<XIcon />}
-                  aria-label={closeLabel}
-                  className="absolute top-4 right-4"
-                />
-              </DialogPrimitive.Close>
-            )
-          : null}
+        {showCloseButton ? (
+          <DialogPrimitive.Close asChild>
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<XIcon />}
+              aria-label={closeLabel}
+              className="absolute top-4 right-4"
+            />
+          </DialogPrimitive.Close>
+        ) : null}
       </DialogPrimitive.Content>
     </DialogPortal>
   )
@@ -125,15 +124,11 @@ function DialogFooter({
       {...props}
     >
       {children}
-      {showCloseButton
-        ? (
-            <DialogPrimitive.Close asChild>
-              <Button variant="outline">
-                {closeLabel}
-              </Button>
-            </DialogPrimitive.Close>
-          )
-        : null}
+      {showCloseButton ? (
+        <DialogPrimitive.Close asChild>
+          <Button variant="outline">{closeLabel}</Button>
+        </DialogPrimitive.Close>
+      ) : null}
     </div>
   )
 }

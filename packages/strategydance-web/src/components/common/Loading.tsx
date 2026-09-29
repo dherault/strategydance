@@ -25,11 +25,7 @@ function Loading({ source }: Props) {
         size="xl"
         aria-hidden="true"
       />
-      {import.meta.env.DEV && (
-        <div className="text-xs text-muted-foreground">
-          {source}
-        </div>
-      )}
+      {import.meta.env.DEV && <div className="text-xs text-muted-foreground">{source}</div>}
     </div>
   )
 }

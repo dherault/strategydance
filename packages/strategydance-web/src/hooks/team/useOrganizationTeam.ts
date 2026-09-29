@@ -46,7 +46,9 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> & { hasFailed: bool
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetOrganizationTeam', organizationId],
     queryFn: async () => {
-      const { data: team } = await executeQuery(getOrganizationTeamRef(dataConnect, { organizationId: organizationId! }))
+      const { data: team } = await executeQuery(
+        getOrganizationTeamRef(dataConnect, { organizationId: organizationId! }),
+      )
 
       return team
     },
@@ -61,7 +63,10 @@ function useOrganizationTeam(): DataSource<OrganizationTeam> & { hasFailed: bool
     current organization moves on to another, and their account page shows the new job title
   */
   function syncMemberships(team: OrganizationTeam) {
-    const memberships = queryClient.getQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId])
+    const memberships = queryClient.getQueryData<GetCurrentUserOrganizationsData>([
+      'GetCurrentUserOrganizations',
+      viewerId,
+    ])
     const known = memberships?.userOrganizations.find(membership => membership.organization.id === organizationId)
     const pushed = team.userOrganizations.find(member => member.user.id === viewerId)
 

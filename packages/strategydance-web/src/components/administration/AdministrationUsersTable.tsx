@@ -1,11 +1,5 @@
 import { useIntl } from 'react-intl'
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from 'strategydance-design-system/components/ui/Table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from 'strategydance-design-system/components/ui/Table'
 
 import type { AdministrationUser } from '~types'
 
@@ -25,21 +19,11 @@ function AdministrationUsersTable({ users }: Props) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>
-            {formatMessage(administrationMessages.usersColumnName)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.usersColumnEmail)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.usersColumnOrganizations)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.usersColumnSignIn)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.usersColumnJoined)}
-          </TableHead>
+          <TableHead>{formatMessage(administrationMessages.usersColumnName)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.usersColumnEmail)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.usersColumnOrganizations)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.usersColumnSignIn)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.usersColumnJoined)}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

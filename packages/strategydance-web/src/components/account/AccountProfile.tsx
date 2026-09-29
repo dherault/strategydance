@@ -77,10 +77,15 @@ function AccountProfile({ user }: Props) {
     Anything to save, which spaces alone are not. Only once something was touched: a name mirrored
     from Google as it came, spaces at an end included, differs from its trimmed self on arrival
   */
-  const canSave = isDirty && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged || isLocaleChanged) && !!trimmedName && !isNameTooLong && !isSaving
+  const canSave =
+    isDirty
+    && (trimmedName !== savedName || trimmedBio !== savedBio || isPictureChanged || isLocaleChanged)
+    && !!trimmedName
+    && !isNameTooLong
+    && !isSaving
 
   // What the card shows: a picture chosen and not saved yet, or else the saved one
-  const pictureSrc = stagedPicture === undefined ? user.imageUrl ?? null : stagedPicture?.url ?? null
+  const pictureSrc = stagedPicture === undefined ? (user.imageUrl ?? null) : (stagedPicture?.url ?? null)
 
   /*
     Stages what the dialog applied. Removing a picture that is not saved, only chosen, is going back
@@ -112,7 +117,7 @@ function AccountProfile({ user }: Props) {
     try {
       await updateProfile({
         displayName,
-        image: stagedPicture === undefined ? undefined : stagedPicture?.blob ?? null,
+        image: stagedPicture === undefined ? undefined : (stagedPicture?.blob ?? null),
         bio: trimmedBio || null,
         locale,
       })
@@ -124,14 +129,12 @@ function AccountProfile({ user }: Props) {
 
       // In the language the form was saved from, even when the save just switched it
       toast.success(formatMessage(accountMessages.saved))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save the profile', error)
 
       // What was not saved stays where it was chosen or typed
       toast.error(formatMessage(accountMessages.saveError))
-    }
-    finally {
+    } finally {
       setIsSaving(false)
     }
   }
@@ -173,11 +176,13 @@ function AccountProfile({ user }: Props) {
                 autoComplete="name"
                 required
                 readOnly={isSaving}
-                error={isNameMissing
-                ? formatMessage(accountMessages.nameRequired)
-                : isNameTooLong
-                  ? formatMessage(accountMessages.nameTooLong, { maxNameLength: MAX_USER_NAME_LENGTH })
-                  : undefined}
+                error={
+                  isNameMissing
+                    ? formatMessage(accountMessages.nameRequired)
+                    : isNameTooLong
+                      ? formatMessage(accountMessages.nameTooLong, { maxNameLength: MAX_USER_NAME_LENGTH })
+                      : undefined
+                }
               />
               <Textarea
                 label={formatMessage(accountMessages.bioLabel)}
@@ -187,16 +192,19 @@ function AccountProfile({ user }: Props) {
                 maxLength={MAX_USER_BIO_LENGTH}
                 rows={4}
                 readOnly={isSaving}
-                hint={(
+                hint={
                   <span className="flex justify-between gap-3">
-                    <span>
-                      {formatMessage(accountMessages.bioHint)}
-                    </span>
-                    <span className={cn('flex-none tabular-nums', MAX_USER_BIO_LENGTH - bio.length <= BIO_COUNT_WARNING && 'text-warning')}>
+                    <span>{formatMessage(accountMessages.bioHint)}</span>
+                    <span
+                      className={cn(
+                        'flex-none tabular-nums',
+                        MAX_USER_BIO_LENGTH - bio.length <= BIO_COUNT_WARNING && 'text-warning',
+                      )}
+                    >
                       {formatMessage(accountMessages.bioCount, { count: bio.length, max: MAX_USER_BIO_LENGTH })}
                     </span>
                   </span>
-                )}
+                }
               />
               <Select
                 label={formatMessage(accountMessages.languageLabel)}
@@ -225,15 +233,13 @@ function AccountProfile({ user }: Props) {
           </div>
         </div>
       </form>
-      {isEditingPicture
-        ? (
-            <AccountProfilePictureDialog
-              currentSrc={pictureSrc}
-              onApply={applyPicture}
-              onClose={() => setIsEditingPicture(false)}
-            />
-          )
-        : null}
+      {isEditingPicture ? (
+        <AccountProfilePictureDialog
+          currentSrc={pictureSrc}
+          onApply={applyPicture}
+          onClose={() => setIsEditingPicture(false)}
+        />
+      ) : null}
     </>
   )
 }

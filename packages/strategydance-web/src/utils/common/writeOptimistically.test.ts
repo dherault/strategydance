@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+
 import type { QueryClient } from '@tanstack/react-query'
 
 import writeOptimistically from '~utils/common/writeOptimistically'
@@ -29,11 +30,28 @@ describe('writeOptimistically', () => {
     const queryClient = createQueryClient(events)
 
     await Promise.all([
-      writeOptimistically({ queryClient, queryKeys: [['row']], rowKey: 'ordered', apply: () => events.push('apply check'), write: async () => events.push('write check') }),
-      writeOptimistically({ queryClient, queryKeys: [['row']], rowKey: 'ordered', apply: () => events.push('apply uncheck'), write: async () => events.push('write uncheck') }),
+      writeOptimistically({
+        queryClient,
+        queryKeys: [['row']],
+        rowKey: 'ordered',
+        apply: () => events.push('apply check'),
+        write: async () => events.push('write check'),
+      }),
+      writeOptimistically({
+        queryClient,
+        queryKeys: [['row']],
+        rowKey: 'ordered',
+        apply: () => events.push('apply uncheck'),
+        write: async () => events.push('write uncheck'),
+      }),
     ])
 
-    expect(events.filter(event => event !== 'invalidate')).toEqual(['apply check', 'write check', 'apply uncheck', 'write uncheck'])
+    expect(events.filter(event => event !== 'invalidate')).toEqual([
+      'apply check',
+      'write check',
+      'apply uncheck',
+      'write uncheck',
+    ])
   })
 
   it('reads the query again once its last write settles, and not before', async () => {
@@ -45,11 +63,23 @@ describe('writeOptimistically', () => {
     }) as QueryClient['invalidateQueries']
 
     await Promise.all([
-      writeOptimistically({ queryClient, queryKeys: [['list']], rowKey: 'first', apply: () => {}, write: async () => events.push('first') }),
-      writeOptimistically({ queryClient, queryKeys: [['list']], rowKey: 'second', apply: () => {}, write: async () => {
-        await wait(10)
-        events.push('second')
-      } }),
+      writeOptimistically({
+        queryClient,
+        queryKeys: [['list']],
+        rowKey: 'first',
+        apply: () => {},
+        write: async () => events.push('first'),
+      }),
+      writeOptimistically({
+        queryClient,
+        queryKeys: [['list']],
+        rowKey: 'second',
+        apply: () => {},
+        write: async () => {
+          await wait(10)
+          events.push('second')
+        },
+      }),
     ])
 
     expect(events).toEqual(['first', 'second', 'invalidate'])
@@ -59,9 +89,17 @@ describe('writeOptimistically', () => {
     const events: string[] = []
     const queryClient = createQueryClient(events)
 
-    expect(writeOptimistically({ queryClient, queryKeys: [['refused']], rowKey: 'refused', apply: () => {}, write: async () => {
-      throw new Error('refused')
-    } })).rejects.toThrow('refused')
+    expect(
+      writeOptimistically({
+        queryClient,
+        queryKeys: [['refused']],
+        rowKey: 'refused',
+        apply: () => {},
+        write: async () => {
+          throw new Error('refused')
+        },
+      }),
+    ).rejects.toThrow('refused')
 
     await wait(40)
 

@@ -32,8 +32,7 @@ function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>
       const item = localStorage.getItem(localStorageKey)
 
       if (item) return parser(JSON.parse(item))
-    }
-    catch (error) {
+    } catch (error) {
       console.error(`Error on localStorage.getItem of ${key}`, error)
     }
 
@@ -51,8 +50,7 @@ function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>
       // effect, taking the tree down to the nearest error boundary
       try {
         if (isBrowser) localStorage.setItem(localStorageKey, JSON.stringify(nextValue))
-      }
-      catch (error) {
+      } catch (error) {
         console.error(`Error on localStorage.setItem of ${key}`, error)
       }
 

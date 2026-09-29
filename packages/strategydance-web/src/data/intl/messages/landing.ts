@@ -12,7 +12,8 @@ const landingMessages = defineMessages({
   logIn: {
     id: 'landing.logIn',
     defaultMessage: 'Log in',
-    description: 'Button in the header of the public home page that leads to the sign-in page, for somebody who already has an account.',
+    description:
+      'Button in the header of the public home page that leads to the sign-in page, for somebody who already has an account.',
   },
   signUp: {
     id: 'landing.signUp',
@@ -27,12 +28,15 @@ const landingMessages = defineMessages({
   title: {
     id: 'landing.title',
     defaultMessage: 'Startup chaos, in harmony',
-    description: 'Main heading of the public home page, a short slogan. Strategy Dance helps founders bring order to the mess of running a startup.',
+    description:
+      'Main heading of the public home page, a short slogan. Strategy Dance helps founders bring order to the mess of running a startup.',
   },
   subtitle: {
     id: 'landing.subtitle',
-    defaultMessage: 'Strategy Dance helps entrepreneurs act on their projects with AI guidance and human wisdom. The MVP is open to everyone while we build toward AI execution.',
-    description: 'Paragraph under the main heading of the public home page. Strategy Dance is the product name and stays untranslated. MVP means minimum viable product.',
+    defaultMessage:
+      'Strategy Dance helps entrepreneurs act on their projects with AI guidance and human wisdom. The MVP is open to everyone while we build toward AI execution.',
+    description:
+      'Paragraph under the main heading of the public home page. Strategy Dance is the product name and stays untranslated. MVP means minimum viable product.',
   },
   start: {
     id: 'landing.start',
@@ -42,12 +46,14 @@ const landingMessages = defineMessages({
   copyright: {
     id: 'landing.copyright',
     defaultMessage: '© {year} Strategy Dance',
-    description: 'Copyright notice in the footer of the public pages. {year} is the current year, such as 2026. Strategy Dance is the product name and stays untranslated.',
+    description:
+      'Copyright notice in the footer of the public pages. {year} is the current year, such as 2026. Strategy Dance is the product name and stays untranslated.',
   },
   github: {
     id: 'landing.github',
     defaultMessage: 'GitHub',
-    description: 'Link in the footer of the public pages to the project\'s source code on GitHub. A brand name, so it stays untranslated.',
+    description:
+      "Link in the footer of the public pages to the project's source code on GitHub. A brand name, so it stays untranslated.",
   },
   privacy: {
     id: 'landing.privacy',
@@ -62,7 +68,8 @@ const landingMessages = defineMessages({
   legal: {
     id: 'landing.legal',
     defaultMessage: 'Legal',
-    description: 'Name of the page holding the privacy policy and the terms of service, shown in the notice "Legal is on its way." Not the company aspect of the same name, which covers a startup\'s own legal matters.',
+    description:
+      'Name of the page holding the privacy policy and the terms of service, shown in the notice "Legal is on its way." Not the company aspect of the same name, which covers a startup\'s own legal matters.',
   },
 })
 

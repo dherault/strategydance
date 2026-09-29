@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Logo } from 'strategydance-design-system/components/brand/Logo'
 
 const meta = {
@@ -47,9 +46,7 @@ export const Lockup: Story = {
         title={undefined}
         className="h-6 w-auto"
       />
-      <span className="font-sans text-xl font-bold tracking-[-0.02em]">
-        Strategy Dance
-      </span>
+      <span className="font-sans text-xl font-bold tracking-[-0.02em]">Strategy Dance</span>
     </div>
   ),
 }

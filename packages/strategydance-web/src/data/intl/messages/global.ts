@@ -22,7 +22,8 @@ const globalMessages = defineMessages({
   notifications: {
     id: 'global.notifications',
     defaultMessage: 'Notifications',
-    description: 'Accessible label of the screen region where short confirmation messages pop up, like "Invitation sent".',
+    description:
+      'Accessible label of the screen region where short confirmation messages pop up, like "Invitation sent".',
   },
   closeNotification: {
     id: 'global.closeNotification',
@@ -32,12 +33,14 @@ const globalMessages = defineMessages({
   showPassword: {
     id: 'global.showPassword',
     defaultMessage: 'Show password',
-    description: 'Accessible label of the eye button at the end of a password field, which reveals the password typed in it.',
+    description:
+      'Accessible label of the eye button at the end of a password field, which reveals the password typed in it.',
   },
   hidePassword: {
     id: 'global.hidePassword',
     defaultMessage: 'Hide password',
-    description: 'Accessible label of the eye button at the end of a password field, which hides the password typed in it again.',
+    description:
+      'Accessible label of the eye button at the end of a password field, which hides the password typed in it again.',
   },
   organizationsLoadError: {
     id: 'global.organizationsLoadError',
@@ -52,7 +55,8 @@ const globalMessages = defineMessages({
   logOut: {
     id: 'global.logOut',
     defaultMessage: 'Log out',
-    description: 'Button in the corner of a full-page screen, like the onboarding or an invitation, that signs the reader out.',
+    description:
+      'Button in the corner of a full-page screen, like the onboarding or an invitation, that signs the reader out.',
   },
   notFoundTitle: {
     id: 'global.notFoundTitle',

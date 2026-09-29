@@ -37,7 +37,9 @@ function OrganizationProfileVisibility({ isPublic, disabled = false, onChange }:
           id={hintId}
           className="m-0 text-xs leading-normal text-muted-foreground"
         >
-          {formatMessage(isPublic ? organizationProfileMessages.publicHintPublic : organizationProfileMessages.publicHintPrivate)}
+          {formatMessage(
+            isPublic ? organizationProfileMessages.publicHintPublic : organizationProfileMessages.publicHintPrivate,
+          )}
         </p>
       </div>
       <Switch

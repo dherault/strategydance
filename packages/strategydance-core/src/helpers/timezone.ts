@@ -29,8 +29,7 @@ export function isValidTimezone(timezone: string | null | undefined) {
     Intl.DateTimeFormat('en', { timeZone: timezone })
 
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { OrnamentDivider } from 'strategydance-design-system/components/brand/OrnamentDivider'
 
 const meta = {
@@ -15,13 +14,9 @@ type Story = StoryObj<typeof meta>
 export const OnPrimary: Story = {
   render: args => (
     <div className="flex flex-col items-center gap-6 bg-primary p-12 text-center text-white">
-      <p className="m-0 text-3xl font-medium tracking-wider uppercase">
-        Chapter 1
-      </p>
+      <p className="m-0 text-3xl font-medium tracking-wider uppercase">Chapter 1</p>
       <OrnamentDivider {...args} />
-      <h1 className="m-0 text-7xl leading-none text-white">
-        Strategy
-      </h1>
+      <h1 className="m-0 text-7xl leading-none text-white">Strategy</h1>
     </div>
   ),
 }

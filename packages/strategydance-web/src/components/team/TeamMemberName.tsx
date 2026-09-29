@@ -18,9 +18,7 @@ function TeamMemberName({ member }: Props) {
         src={member.user.imageUrl ?? undefined}
         name={name}
       />
-      <span className="font-medium whitespace-nowrap text-secondary">
-        {name}
-      </span>
+      <span className="font-medium whitespace-nowrap text-secondary">{name}</span>
     </div>
   )
 }

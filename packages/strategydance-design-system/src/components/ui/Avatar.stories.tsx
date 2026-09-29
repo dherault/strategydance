@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
 
 const photo = 'https://randomuser.me/api/portraits/men/32.jpg'

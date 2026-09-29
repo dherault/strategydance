@@ -21,7 +21,11 @@ const SEPARATOR_PATTERN = /[\s,;]+/
   member whose account uses either. The design's own parser, ported, with the four lists it
   reports errors from
 */
-function parseInvitationEmails(text: string, memberEmails: ReadonlySet<string>, invitedEmails: ReadonlySet<string>): ParsedInvitationEmails {
+function parseInvitationEmails(
+  text: string,
+  memberEmails: ReadonlySet<string>,
+  invitedEmails: ReadonlySet<string>,
+): ParsedInvitationEmails {
   const parsed: ParsedInvitationEmails = {
     valid: [],
     invalid: [],

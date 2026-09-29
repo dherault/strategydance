@@ -48,8 +48,9 @@ and it spends quota on every run, so it is run by hand rather than in CI.
 | `bun run build` | Typechecks and builds the design system's Storybook and the frontend |
 | `bun run storybook` | Runs the design system's Storybook |
 | `bun run preview` | Serves the production build |
-| `bun run lint` | Runs oxlint across the repo |
-| `bun run lint:fix` | Runs oxlint with `--fix` |
+| `bun run lint` | Runs oxlint across the repo and checks its formatting with oxfmt |
+| `bun run lint:fix` | Applies oxlint's safe fixes, then formats |
+| `bun run format` | Formats the repo with oxfmt |
 | `bun run typecheck` | Runs `tsc` across the packages |
 | `bun run test` | Runs `bun test` across the packages |
 | `bun run translate` | Translates the message catalogues (needs a Gemini API key) |

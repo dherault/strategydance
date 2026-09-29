@@ -59,7 +59,9 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: checklist } = await executeQuery(getChecklistRef(dataConnect, { organizationId: organizationId!, userId: userId! }))
+      const { data: checklist } = await executeQuery(
+        getChecklistRef(dataConnect, { organizationId: organizationId!, userId: userId! }),
+      )
 
       return checklist
     },
@@ -71,15 +73,37 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
   const items = checklist.checklistItems
 
   function setItems(update: (current: ChecklistItem[]) => ChecklistItem[]) {
-    queryClient.setQueryData<GetChecklistData>(queryKey, current => current && { ...current, checklistItems: update(current.checklistItems) })
+    queryClient.setQueryData<GetChecklistData>(
+      queryKey,
+      current => current && { ...current, checklistItems: update(current.checklistItems) },
+    )
   }
 
-  function change(rowKey: string, apply: () => void, write: () => Promise<unknown>, withHistory = false, after?: string[]) {
-    return writeOptimistically({ queryClient, queryKeys: withHistory ? [queryKey, historyQueryKey] : [queryKey], rowKey, after, apply, write })
+  function change(
+    rowKey: string,
+    apply: () => void,
+    write: () => Promise<unknown>,
+    withHistory = false,
+    after?: string[],
+  ) {
+    return writeOptimistically({
+      queryClient,
+      queryKeys: withHistory ? [queryKey, historyQueryKey] : [queryKey],
+      rowKey,
+      after,
+      apply,
+      write,
+    })
   }
 
   function writeItem(item: ChecklistItem) {
-    return () => updateChecklistItem(dataConnect, { organizationId: organizationId!, id: item.id, name: item.name, position: item.position })
+    return () =>
+      updateChecklistItem(dataConnect, {
+        organizationId: organizationId!,
+        id: item.id,
+        name: item.name,
+        position: item.position,
+      })
   }
 
   // The id is the caller's, so the column it adds can open for naming before the server answers
@@ -134,7 +158,11 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
     if (position !== null) {
       const item = { ...moved, position }
 
-      await change(`checklistItem:${item.id}`, () => setItems(() => reordered.map(existing => (existing.id === item.id ? item : existing))), writeItem(item))
+      await change(
+        `checklistItem:${item.id}`,
+        () => setItems(() => reordered.map(existing => (existing.id === item.id ? item : existing))),
+        writeItem(item),
+      )
 
       return
     }
@@ -143,7 +171,11 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
     const renumbered = reordered.map((item, index) => ({ ...item, position: index + 1 }))
     const changed = renumbered.filter((item, index) => item.position !== reordered[index]!.position)
 
-    await Promise.all(changed.map((item, index) => change(`checklistItem:${item.id}`, index === 0 ? () => setItems(() => renumbered) : () => {}, writeItem(item))))
+    await Promise.all(
+      changed.map((item, index) =>
+        change(`checklistItem:${item.id}`, index === 0 ? () => setItems(() => renumbered) : () => {}, writeItem(item)),
+      ),
+    )
   }
 
   function setChecked(itemId: string, date: string, isChecked: boolean) {
@@ -156,13 +188,26 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
     return change(
       `checklistCompletion:${itemId}:${date}`,
       () => {
-        setItems(current => current.map(item => (item.id === itemId ? { ...item, completions: toggle(item.completions) } : item)))
-        queryClient.setQueryData<GetChecklistHistoryData>(historyQueryKey, current => current && {
-          ...current,
-          checklistItems: current.checklistItems.map(item => (item.id === itemId ? { ...item, completions: toggle(item.completions) } : item)),
-        })
+        setItems(current =>
+          current.map(item => (item.id === itemId ? { ...item, completions: toggle(item.completions) } : item)),
+        )
+        queryClient.setQueryData<GetChecklistHistoryData>(
+          historyQueryKey,
+          current =>
+            current && {
+              ...current,
+              checklistItems: current.checklistItems.map(item =>
+                item.id === itemId ? { ...item, completions: toggle(item.completions) } : item,
+              ),
+            },
+        )
       },
-      () => (isChecked ? checkChecklistItem : uncheckChecklistItem)(dataConnect, { organizationId: organizationId!, checklistItemId: itemId, date }),
+      () =>
+        (isChecked ? checkChecklistItem : uncheckChecklistItem)(dataConnect, {
+          organizationId: organizationId!,
+          checklistItemId: itemId,
+          date,
+        }),
       true,
       // Behind whatever its column has queued, so a tick on a column just added or brought back
       // reaches the server once the column is there

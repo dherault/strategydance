@@ -57,9 +57,13 @@ describe('runInOrder', () => {
         await wait(20)
         order.push('create list')
       }),
-      runInOrder('task', async () => {
-        order.push('add task')
-      }, ['list']),
+      runInOrder(
+        'task',
+        async () => {
+          order.push('add task')
+        },
+        ['list'],
+      ),
       runInOrder('list', async () => {
         order.push('rename list')
       }),

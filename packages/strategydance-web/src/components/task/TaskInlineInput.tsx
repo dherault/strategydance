@@ -48,8 +48,7 @@ function TaskInlineInput({ value, maxLength, 'aria-label': ariaLabel, className,
         if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
           event.preventDefault()
           commit()
-        }
-        else if (event.key === 'Escape') {
+        } else if (event.key === 'Escape') {
           event.preventDefault()
           isClosedRef.current = true
           onCancel()

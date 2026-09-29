@@ -1,5 +1,4 @@
 import { type ComponentProps, useId } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 /*

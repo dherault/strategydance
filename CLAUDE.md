@@ -29,7 +29,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   catalogues. Node-only: never import it from the frontend
 - `packages/strategydance-emails` — the transactional emails, as
   [React Email](https://react.email) templates. Node-only: the backend renders them. See below
-- [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
+- [oxlint](https://oxc.rs) for linting and oxfmt, from the same project, for formatting, configured
+  in `.oxlintrc.json` and `.oxfmtrc.json`. See [Linting and formatting](#linting-and-formatting)
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
   `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, in its
@@ -49,7 +50,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
-| `bun run lint` | oxlint across the repo |
+| `bun run lint` | oxlint across the repo, then oxfmt's check. A warning fails it, and so does an unformatted file |
+| `bun run lint:fix` / `format` | Applies oxlint's safe fixes, then formats; or only formats |
 | `bun run typecheck` | `tsc` across the packages |
 | `bun run test` | `bun test` across the packages, each file in a fresh global so a `mock.module` stays in the file that made it |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
@@ -66,6 +68,42 @@ dev and build, and is committed because `tsc` needs it.
 `packages/strategydance-database/generated/` is written by the Firebase CLI on `postinstall`,
 and is **not** committed: generating it needs neither credentials nor a network, so a clone
 produces its own. That is why `firebase-tools` is a devDependency.
+
+### Linting and formatting
+
+oxlint lints and oxfmt formats, from one root `.oxlintrc.json` and one root `.oxfmtrc.json`, as
+in sunshine. `bun run lint` checks both, so an unformatted file fails CI and the husky
+`pre-commit` hook as a lint error does, and so do a warning and a disable directive that no
+longer suppresses anything. `bun run lint:fix` applies oxlint's safe fixes and then formats, but
+stops before formatting when an error it cannot fix remains; `bun run format` formats on its
+own. A PostToolUse hook does the same to every file Claude Code edits, `oxlint --fix` on a
+`.ts`/`.tsx` under `packages/` and then oxfmt on anything in the repo it formats. A Stop hook
+typechecks every package when a turn ends, and VS Code formats on save through the oxc
+extension.
+
+- **Keep it to one config.** A nested `.oxlintrc.json` replaces the root one for its directory
+  rather than extending it, so it would silently drop every rule. A package-specific rule goes
+  in the root config's `overrides`
+- **The formatter owns layout**: two spaces, single quotes, no semicolons, one JSX prop per
+  line, 120 columns. The order of the classes in a `className` is still kept by hand: oxfmt's
+  Tailwind sorting would replace the semantic order this code follows with Tailwind's official
+  one
+- **So is import order.** Imports sort into the groups `.oxfmtrc.json` lists, one per alias; an
+  import no group matches sorts into `rest`, after all of them, so a new `~` alias needs a group
+  of its own there. A `/// <reference>` directive moves with the import below it, and
+  TypeScript ignores one that is not at the top of the file: keep it above the import that
+  sorts first
+- **Markdown and HTML are not formatted**, nor are the files a generator writes
+  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock),
+  whose next run would rewrite them anyway. The schema and the connectors are formatted, and
+  generate the same SDK
+- **An unused import is an error that `--fix` does not remove**: oxlint files that fix as
+  dangerous. An import written before the code that uses it survives the edit hook and is only
+  reported
+- A suppression is `// oxlint-disable-next-line <rule>` under oxlint's rule names
+  (`react/exhaustive-deps`, not `react-hooks/exhaustive-deps`), and it covers the line below it
+  as formatted, which is not always where it was written once the formatter wraps a long
+  statement
 
 ## Frontend conventions
 

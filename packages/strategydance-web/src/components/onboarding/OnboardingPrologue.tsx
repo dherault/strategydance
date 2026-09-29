@@ -43,7 +43,13 @@ function OnboardingPrologue({ onDone }: Props) {
         {formatMessage(onboardingMessages.prologueTitle)}
       </h1>
       <OrnamentDivider className={cn('text-white', fadeClassName, isIn && 'delay-1400')} />
-      <p className={cn('m-0 -mt-2.5 text-xl leading-relaxed text-pretty text-white', fadeClassName, isIn && 'delay-2400')}>
+      <p
+        className={cn(
+          'm-0 -mt-2.5 text-xl leading-relaxed text-pretty text-white',
+          fadeClassName,
+          isIn && 'delay-2400',
+        )}
+      >
         {formatMessage(onboardingMessages.prologueQuestion)}
         <br />
         {formatMessage(onboardingMessages.prologueLead)}

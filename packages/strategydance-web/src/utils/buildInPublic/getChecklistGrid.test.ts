@@ -31,6 +31,14 @@ describe('getChecklistGrid', () => {
     expect(weekDoneCount).toBe(5)
   })
 
+  it('counts a run past the days it lays out', () => {
+    const dates = Array.from({ length: 10 }, (_, index) => `2026-09-${String(20 + index - 1).padStart(2, '0')}`)
+    const { perItem } = getChecklistGrid(items, new Map([['reflexion', new Set(dates)]]), '2026-09-29', 3)
+
+    expect(perItem[0].doneCount).toBe(2)
+    expect(perItem[0].streak).toBe(10)
+  })
+
   it('reads the latest day as the last one when nothing is ticked', () => {
     const { latest, best } = getChecklistGrid(items, new Map(), '2026-09-29', 2)
 

@@ -1,3 +1,4 @@
+import getStreak from '~utils/buildInPublic/getStreak'
 import addDays from '~utils/date/addDays'
 
 type Item = {
@@ -12,7 +13,7 @@ type Item = {
   week holds.
 
   An item's run is counted back from today, or from yesterday while today is not ticked yet, as a
-  streak is: see `getStreak`
+  streak is, through all of its ticks rather than the days laid out: see `getStreak`
 */
 function getChecklistGrid<T extends Item>(items: T[], ticks: Map<string, Set<string>>, today: string, days: number) {
   const rows = Array.from({ length: days }, (_, index) => {
@@ -25,26 +26,12 @@ function getChecklistGrid<T extends Item>(items: T[], ticks: Map<string, Set<str
     }
   })
 
-  function getRun(index: number) {
-    let run = 0
-
-    for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex--) {
-      const row = rows[rowIndex]
-
-      if (row.isToday && !row.done[index]) continue
-      if (!row.done[index]) break
-
-      run += 1
-    }
-
-    return run
-  }
-
   const perItem = items.map((item, index) => ({
     ...item,
     index,
     doneCount: rows.filter(row => row.done[index]).length,
-    streak: getRun(index),
+    // Through every tick read, not the window alone, so a run longer than the window is not cut to it
+    streak: getStreak([...(ticks.get(item.id) ?? [])], today).current,
   }))
   const best = perItem.reduce<(typeof perItem)[number] | null>(
     (longest, item) => (!longest || item.streak > longest.streak ? item : longest),

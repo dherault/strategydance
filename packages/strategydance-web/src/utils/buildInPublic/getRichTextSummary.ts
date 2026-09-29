@@ -11,14 +11,25 @@ function childrenOf(node: SerializedNode) {
   return Array.isArray(node.children) ? node.children.filter(isNode) : []
 }
 
-// A node's words, with a line break read as a space
+// The nodes that stand on their own lines, whose words are kept apart from their neighbours'
+const BLOCK_TYPES = new Set(['paragraph', 'heading', 'quote', 'list', 'listitem'])
+
+/*
+  A node's words, with a line break read as a space, and a space around each block, so two list
+  items or two paragraphs do not run into one word. Text runs within a block join as they are,
+  since a word half in bold is two runs
+*/
 function readText(node: SerializedNode, depth = 0): string {
   if (depth > MAX_DEPTH) return ''
   if (node.type === 'text' || node.type === 'tab') return typeof node.text === 'string' ? node.text : ''
   if (node.type === 'linebreak') return ' '
 
   return childrenOf(node)
-    .map(child => readText(child, depth + 1))
+    .map(child => {
+      const text = readText(child, depth + 1)
+
+      return typeof child.type === 'string' && BLOCK_TYPES.has(child.type) ? ` ${text} ` : text
+    })
     .join('')
 }
 

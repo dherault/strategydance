@@ -48,7 +48,7 @@ describe('getRichTextSummary', () => {
       listType: 'bullet',
       children: [
         { type: 'listitem', children: [text('One')] },
-        { type: 'listitem', children: [text(' two')] },
+        { type: 'listitem', children: [text('two')] },
       ],
     })
 

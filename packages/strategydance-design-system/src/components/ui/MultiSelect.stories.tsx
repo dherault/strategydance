@@ -53,7 +53,12 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+// With no visible label, the trigger and the list it opens are named by `aria-label`
+export const Default: Story = {
+  args: {
+    'aria-label': 'Distribution channels',
+  },
+}
 
 export const WithLabel: Story = {
   args: {

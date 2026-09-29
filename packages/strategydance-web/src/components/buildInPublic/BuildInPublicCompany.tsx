@@ -139,7 +139,7 @@ function BuildInPublicCompany({ settings }: Props) {
               min={22}
               lines={2}
               lineHeight={1.12}
-              className={CARD_DISPLAY_CLASS_NAME}
+              isDisplay
             >
               {name}
             </FitText>
@@ -184,7 +184,8 @@ function BuildInPublicCompany({ settings }: Props) {
           min={24}
           lines={2}
           lineHeight={1.12}
-          className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-5')}
+          isDisplay
+          className="mt-5"
         >
           {name}
         </FitText>

@@ -160,12 +160,12 @@ const organizationProfileMessages = defineMessages({
   bannerPreviewAlt: {
     id: 'organizationProfile.bannerPreviewAlt',
     defaultMessage: 'Banner preview',
-    description: 'Alternative text of the chosen banner as the dialog previews it before it is saved.',
+    description: 'Alternative text of the banner as the dialog shows it, the saved one or one just chosen.',
   },
   logoPreviewAlt: {
     id: 'organizationProfile.logoPreviewAlt',
     defaultMessage: 'Logo preview',
-    description: 'Alternative text of the chosen logo as the dialog previews it before it is saved.',
+    description: 'Alternative text of the logo as the dialog shows it, the saved one or one just chosen.',
   },
   wideRatio: {
     id: 'organizationProfile.wideRatio',
@@ -203,7 +203,7 @@ const organizationProfileMessages = defineMessages({
   remove: {
     id: 'organizationProfile.remove',
     defaultMessage: 'Remove',
-    description: 'Button in the banner or logo dialog that takes the picture away.',
+    description: 'Button in the banner or logo dialog that takes the picture away from the organization at once.',
   },
   removeConfirm: {
     id: 'organizationProfile.removeConfirm',
@@ -211,11 +211,11 @@ const organizationProfileMessages = defineMessages({
     description:
       'What the remove button in the banner or logo dialog says after its first click, asking to be clicked again to go ahead.',
   },
-  saveImage: {
-    id: 'organizationProfile.saveImage',
-    defaultMessage: 'Save',
+  imageSaving: {
+    id: 'organizationProfile.imageSaving',
+    defaultMessage: 'Saving the picture',
     description:
-      'Button in the banner or logo dialog that saves the chosen picture, or its removal, to the organization at once.',
+      'Accessible label of the spinner shown over the banner or logo dialog while the picture just chosen, or its removal, is being saved.',
   },
   bannerSaved: {
     id: 'organizationProfile.bannerSaved',

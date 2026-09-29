@@ -1252,7 +1252,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.bannerPreviewAlt": {
-        "hash": "3475f3e17dd71ba6",
+        "hash": "33dc5b62dcafaa9a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.bannerRemoved": {
@@ -1339,6 +1339,10 @@
         "hash": "065d708a3cbc92d3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "organizationProfile.imageSaving": {
+        "hash": "b452bd63990dfc12",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "organizationProfile.imageSizeError": {
         "hash": "1c5caa27b603f078",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1356,7 +1360,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.logoPreviewAlt": {
-        "hash": "8c5c9122819ff1f5",
+        "hash": "4fdf822f5f2662a3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.logoRemoved": {
@@ -1396,7 +1400,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.remove": {
-        "hash": "0e18eebd50b28628",
+        "hash": "1c0c4478ff31aa3e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.removeConfirm": {
@@ -1409,10 +1413,6 @@
       },
       "organizationProfile.saveError": {
         "hash": "985c5bdb54ee0e54",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "organizationProfile.saveImage": {
-        "hash": "a03be25ecdac9b12",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.saved": {

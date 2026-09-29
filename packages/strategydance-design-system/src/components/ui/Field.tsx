@@ -1,6 +1,9 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
+// Shared with the MultiSelect's label, which labels a combobox rather than a native control
+const fieldLabelClassName = 'text-sm font-medium text-foreground'
+
 type Props = ComponentProps<'div'> & {
   label?: ReactNode
   hint?: ReactNode
@@ -25,7 +28,7 @@ function Field({ label, hint, error, htmlFor, messageId, className, children, ..
       {label ? (
         <label
           htmlFor={htmlFor}
-          className="text-sm font-medium text-foreground"
+          className={fieldLabelClassName}
         >
           {label}
         </label>
@@ -45,4 +48,4 @@ function Field({ label, hint, error, htmlFor, messageId, className, children, ..
   )
 }
 
-export { Field }
+export { Field, fieldLabelClassName }

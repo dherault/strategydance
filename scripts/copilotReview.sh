@@ -59,6 +59,8 @@ wait_for_review() {
   done
 }
 
+# The newest review can sit on any page, so the pages are read as one array, and `gh api` refuses
+# `--slurp` beside `--jq`: this filter alone needs the standalone jq, which macOS ships
 print_body() {
   gh api --paginate --slurp "repos/$REPOSITORY/pulls/$1/reviews" \
     | jq -r 'add | [.[] | select(.user.login | test("copilot")) | select(.body | length > 0)] | last | .body // empty'

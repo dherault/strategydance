@@ -10,6 +10,8 @@
   "buildInPublic.buildingInPublic": "{organization} をオープンに構築中",
   "buildInPublic.calendarCard": "カレンダー",
   "buildInPublic.caption": "{card} · {ratio}",
+  "buildInPublic.checkboxDone": "完了",
+  "buildInPublic.checkboxNotDone": "未完了",
   "buildInPublic.checklistDays": "{count, plural, one {チェックリスト · #日} other {チェックリスト · #日間}}",
   "buildInPublic.checklistDescription": "過去{count, plural, one {#日} other {#日間}}の継続状況",
   "buildInPublic.checklistItem": "チェックリスト項目",

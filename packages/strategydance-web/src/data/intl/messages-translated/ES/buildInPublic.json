@@ -10,6 +10,8 @@
   "buildInPublic.buildingInPublic": "Construyendo {organization} en público",
   "buildInPublic.calendarCard": "Calendario",
   "buildInPublic.caption": "{card} · {ratio}",
+  "buildInPublic.checkboxDone": "Completado",
+  "buildInPublic.checkboxNotDone": "No completado",
   "buildInPublic.checklistDays": "{count, plural, one {Checklist · # día} other {Checklist · # días}}",
   "buildInPublic.checklistDescription": "Tu constancia durante {count, plural, one {el último día} other {los últimos # días}}",
   "buildInPublic.checklistItem": "Elemento de la lista",

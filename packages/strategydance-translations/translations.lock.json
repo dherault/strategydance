@@ -487,6 +487,14 @@
         "hash": "c31d98bab5f62efc",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.checkboxDone": {
+        "hash": "21247cb5765667e7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checkboxNotDone": {
+        "hash": "0102fcf6b7cece4a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.checklistDays": {
         "hash": "029382aebcb96eac",
         "locales": "DE,ES,FR,JA,PT,ZH"

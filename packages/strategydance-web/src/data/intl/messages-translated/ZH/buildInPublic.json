@@ -10,6 +10,8 @@
   "buildInPublic.buildingInPublic": "公开构建 {organization}",
   "buildInPublic.calendarCard": "日历",
   "buildInPublic.caption": "{card} · {ratio}",
+  "buildInPublic.checkboxDone": "已完成",
+  "buildInPublic.checkboxNotDone": "未完成",
   "buildInPublic.checklistDays": "{count, plural, other {清单 · # 天}}",
   "buildInPublic.checklistDescription": "你在过去 {count, plural, other {# 天}}的坚持情况",
   "buildInPublic.checklistItem": "清单项",

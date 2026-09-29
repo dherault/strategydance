@@ -413,6 +413,18 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: '{count, plural, one {+# more task} other {+# more tasks}}',
     description: 'Line under the tasks a card lists, saying how many more the list has.',
   },
+  checkboxDone: {
+    id: 'buildInPublic.checkboxDone',
+    defaultMessage: 'Done',
+    description:
+      'Accessible name of a ticked checkbox drawn on a card, beside a task or a checklist habit that is done.',
+  },
+  checkboxNotDone: {
+    id: 'buildInPublic.checkboxNotDone',
+    defaultMessage: 'Not done',
+    description:
+      'Accessible name of an empty checkbox drawn on a card, beside a task or a checklist habit not done yet.',
+  },
   tasksCrossedOff: {
     id: 'buildInPublic.tasksCrossedOff',
     defaultMessage: 'Tasks crossed off',

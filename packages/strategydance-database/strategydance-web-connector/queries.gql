@@ -67,6 +67,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       color
       brief
       isPublic
+      # When it was made, which the build in public page counts its days from
+      createdAt
     }
   }
 }

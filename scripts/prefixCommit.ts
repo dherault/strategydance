@@ -16,6 +16,10 @@ const COMMIT_PREFIX_TO_PATH = {
 const commitMessageFile = process.argv[2]
 const message = fs.readFileSync(commitMessageFile, 'utf8').trim()
 
+// Git hands its instructions over as `#` lines and strips them only after this hook, so a message
+// of nothing else is a commit abandoned in the editor: left as it is, Git refuses it
+if (message.split('\n').every(line => !line.trim() || line.startsWith('#'))) process.exit(0)
+
 const ALL_PREFIXES = [DEFAULT_COMMIT_PREFIX, ...Object.keys(COMMIT_PREFIX_TO_PATH)]
 
 for (const pathPrefix of ALL_PREFIXES) {

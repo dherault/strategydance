@@ -306,6 +306,16 @@ failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With
 a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
 the read fails, and its mount retries it, forever.
 
+The build in public page counts a member's streak from `ActivityDay` rows: one per member,
+organization and day on which they changed their own Today data, their top priority, a task
+list or task, their checklist or their log. The day is the one the change was made on, never
+the day it was about, and `RecordActivity` holds it to the caller's today. The mutations that
+make those changes do not write the row themselves, since each would need a `$date` it has no
+other use for, a breaking connector change: the web app calls `recordActivity` once one goes
+through, from the `change` helpers of `useTaskLists`, `useTasks` and `useChecklist` and from the
+components that set a priority or write the log. A new way to change Today data calls it too, or
+the days it is used on go uncounted.
+
 ### Routing
 
 The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the

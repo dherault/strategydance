@@ -343,6 +343,32 @@ query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
   }
 }
 
+# The caller's task lists in an organization, each with every one of its tasks in their order, for
+# the build in public page, whose cards draw across lists. Scoped as `GetTaskLists` is, and in its
+# order. Up to 100 lists of up to 1000 tasks, `MAX_TASK_LISTS` and `MAX_TASKS_PER_LIST` in
+# strategydance-core
+query GetTaskListsWithTasks($organizationId: UUID!) @auth(level: USER) {
+  taskLists(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    tasks: tasks_on_taskList(orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }], limit: 1000) {
+      id
+      text
+      isDone
+      position
+    }
+  }
+}
+
 # Somebody's task lists in an organization, read only, for the Today page's picker: any member may
 # read any member's, and an outsider, or a member reading somebody who left, reads nothing. The
 # same lists `GetTaskLists` reads for their owner, in the same order and as many.

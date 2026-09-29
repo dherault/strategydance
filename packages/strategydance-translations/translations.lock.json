@@ -1039,6 +1039,10 @@
         "hash": "ce221a37f6b30b70",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.chapter": {
+        "hash": "de7d12680c6293f0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.close": {
         "hash": "3398142982cb3a04",
         "locales": "DE,ES,FR,JA,PT,ZH"

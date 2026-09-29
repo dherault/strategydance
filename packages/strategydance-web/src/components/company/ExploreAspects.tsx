@@ -6,6 +6,7 @@ import { Alert } from 'strategydance-design-system/components/ui/Alert'
 
 import { COMPANY_ASPECTS } from '~constants'
 
+import useAspectChapter from '~hooks/company/useAspectChapter'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
@@ -18,37 +19,47 @@ import navigationMessages from '~data/intl/messages/navigation'
 
 /*
   Every aspect of a company, the ones the organization works on and the ones it could start on.
-  Starting one adds it to the organization, which puts it in the sidebar, and opens its page
+  Starting one plays its chapter and, beneath it, adds it to the organization, which puts it in
+  the sidebar, and opens its page
 */
 function ExploreAspects() {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
   const { organization } = useCurrentOrganization()
   const { exploreCompanyAspect } = useUserOrganizations()
+  const { chapter, playChapter } = useAspectChapter()
 
-  const [startingAspect, setStartingAspect] = useState<CompanyAspect | null>(null)
   const [hasFailed, setHasFailed] = useState(false)
 
   const aspects = COMPANY_ASPECTS
   const exploredAspects = organization?.exploredAspects ?? []
 
-  async function startExploration(aspect: CompanyAspect) {
-    if (!organization || startingAspect) return
+  async function openAspect(organizationId: string, aspect: CompanyAspect) {
+    await exploreCompanyAspect(organizationId, aspect)
+    await navigate({ to: '/aspects/$aspect', params: { aspect } })
+  }
 
-    setStartingAspect(aspect)
+  /*
+    The aspect's chapter goes up the moment it is asked for, and the write and the navigation run
+    beneath it, so the telling is the same however long they take. The chapter lifts onto the
+    aspect's page, or onto this one when either failed, where the error is by then
+  */
+  async function startExploration(aspect: CompanyAspect) {
+    if (!organization || chapter) return
+
     setHasFailed(false)
 
+    const pageChange = openAspect(organization.id, aspect)
+
+    playChapter(aspect, pageChange)
+
     try {
-      await exploreCompanyAspect(organization.id, aspect)
-      await navigate({ to: '/aspects/$aspect', params: { aspect } })
+      await pageChange
     }
     catch (error) {
       console.error('Failed to explore the aspect', error)
 
       setHasFailed(true)
-    }
-    finally {
-      setStartingAspect(null)
     }
   }
 
@@ -75,8 +86,7 @@ function ExploreAspects() {
             key={aspect}
             aspect={aspect}
             isExplored={exploredAspects.includes(aspect)}
-            isStarting={startingAspect === aspect}
-            isDisabled={!organization || startingAspect !== null}
+            isDisabled={!organization}
             onStart={() => startExploration(aspect)}
           />
         ))}

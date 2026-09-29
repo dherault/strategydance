@@ -107,6 +107,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Legal',
     description: 'Name of the legal aspect of a company.',
   },
+  chapter: {
+    id: 'navigation.chapter',
+    defaultMessage: 'Chapter {number}',
+    description: 'Small heading above an aspect\'s name, such as "Chapter 3" above "Sales", on the full screen shown when the organization starts working on that aspect. {number} is the aspect\'s place among the nine.',
+  },
   organizations: {
     id: 'navigation.organizations',
     defaultMessage: 'Organizations',

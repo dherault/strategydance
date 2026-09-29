@@ -5,6 +5,7 @@ import {
   type GetTasksData,
   createTask as createTaskMutation,
   deleteTask as deleteTaskMutation,
+  getMemberTasksRef,
   getTasksRef,
   updateTask as updateTaskMutation,
 } from 'strategydance-database/web'
@@ -23,8 +24,9 @@ import { dataConnect } from '~data/firebase'
 const EMPTY_TASKS: Task[] = []
 
 /*
-  One of the reader's task lists, its tasks in their order, and what changes them. Null while no
-  list is open.
+  One of a member's task lists, the reader's own or a teammate's, its tasks in their order, and what
+  changes them: only the reader's own change. Null while no list is open. A teammate's are read by
+  their uid, as `useTaskLists` reads their lists.
 
   Changes land in the cache first and are sent after, each queued behind the ones before it for the
   same task, so a delete and its Undo, or two quick moves, reach the server in the order they were
@@ -34,7 +36,7 @@ const EMPTY_TASKS: Task[] = []
   A move writes the one task that moved, halfway between its new neighbours, unless those are too
   close for a float to fit between, when the list is renumbered one task at a time
 */
-function useTasks(taskListId: string | null): DataSource<Task[]> & {
+function useTasks(userId: string | null, taskListId: string | null): DataSource<Task[]> & {
   hasFailed: boolean
   createTask: (text: string) => Promise<void>
   updateTask: (task: Task) => Promise<void>
@@ -46,16 +48,18 @@ function useTasks(taskListId: string | null): DataSource<Task[]> & {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
-  const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
-  // Keyed by the reader too, as the lists are, for the account that signs in next in this tab
-  const queryKey = ['GetTasks', organizationId, viewerId, taskListId]
-  const isEnabled = Boolean(organizationId && viewerId && taskListId)
+  const isOwn = userId === (viewer?.uid ?? null)
+  // Keyed by the owner too, as the lists are, for the account that signs in next in this tab
+  const queryKey = ['GetTasks', organizationId, userId, taskListId]
+  const isEnabled = Boolean(organizationId && userId && taskListId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: tasks } = await executeQuery(getTasksRef(dataConnect, { organizationId: organizationId!, taskListId: taskListId! }))
+      const { data: tasks } = await executeQuery(isOwn
+        ? getTasksRef(dataConnect, { organizationId: organizationId!, taskListId: taskListId! })
+        : getMemberTasksRef(dataConnect, { organizationId: organizationId!, userId: userId!, taskListId: taskListId! }))
 
       return tasks
     },
@@ -64,7 +68,7 @@ function useTasks(taskListId: string | null): DataSource<Task[]> & {
   })
 
   const tasks = data?.tasks ?? EMPTY_TASKS
-  const taskListsQueryKey = ['GetTaskLists', organizationId, viewerId]
+  const taskListsQueryKey = ['GetTaskLists', organizationId, userId]
 
   function setTasks(update: (current: Task[]) => Task[]) {
     queryClient.setQueryData<GetTasksData>(queryKey, current => current && { ...current, tasks: update(current.tasks) })

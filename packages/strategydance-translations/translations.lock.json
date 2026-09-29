@@ -1524,11 +1524,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.lists": {
-        "hash": "4fbe127f50379d81",
+        "hash": "518c8bf44ea3fdbb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.loadError": {
-        "hash": "9869525c3bd2071c",
+        "hash": "b2b052f5f01dc83d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.markDone": {
@@ -1545,6 +1545,10 @@
       },
       "task.noLists": {
         "hash": "89857d6dbdee1a16",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.noMemberLists": {
+        "hash": "721c56faf54fdaf1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.openCount": {
@@ -1567,6 +1571,10 @@
         "hash": "62cefcbcd92f4b24",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "task.showFor": {
+        "hash": "32ff3cb4a8107811",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "task.taskDeleted": {
         "hash": "9c9403164c6d1977",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1576,7 +1584,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.title": {
-        "hash": "d8c7725894622bfd",
+        "hash": "81d8be6bc45182ff",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.undo": {

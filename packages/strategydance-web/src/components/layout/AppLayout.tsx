@@ -17,7 +17,8 @@ import SidebarToggleBar from '~components/layout/SidebarToggleBar'
 
   An aspect's chapter plays over all of it, here rather than on the explore page that starts it,
   because the aspect's page replaces that one beneath it. Everything under the chapter is inert
-  until it is gone, so neither a click nor a key reaches the page it covers
+  until it is gone, so neither a click nor a key reaches the page it covers. The toasts are beside
+  this layout rather than in it, so the root covers them itself
 */
 function AppLayout({ children }: PropsWithChildren) {
   const { chapter } = useAspectChapter()

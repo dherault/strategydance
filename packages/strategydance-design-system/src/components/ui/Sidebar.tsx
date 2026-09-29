@@ -49,6 +49,7 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange,
+  inert,
   className,
   style,
   children,
@@ -75,11 +76,15 @@ function SidebarProvider({
 
   const isHeld = openProp !== undefined && !onOpenChange
 
-  // Cmd+B or Ctrl+B toggles it, from anywhere on the page. A held sidebar on a wide screen has
-  // nothing to toggle, so the key is left to the browser
+  /*
+    Cmd+B or Ctrl+B toggles it, from anywhere on the page. A held sidebar on a wide screen has
+    nothing to toggle, so the key is left to the browser, and so does an inert one: the key
+    reaches the window rather than anything inside, so inertness alone would not stop it opening
+    the panel beneath whatever made it inert
+  */
   const handleShortcut = useEffectEvent((event: KeyboardEvent) => {
     if (event.key !== SIDEBAR_KEYBOARD_SHORTCUT || !(event.metaKey || event.ctrlKey)) return
-    if (isHeld && !isMobile) return
+    if (inert || (isHeld && !isMobile)) return
 
     event.preventDefault()
     toggleSidebar()
@@ -113,6 +118,7 @@ function SidebarProvider({
           ...style,
         } as CSSProperties}
         className={cn('group/sidebar-wrapper flex min-h-svh w-full font-sans has-data-[variant=inset]:bg-sidebar', className)}
+        inert={inert}
         {...props}
       >
         {children}

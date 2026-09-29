@@ -9,8 +9,6 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
 
-import Spinner from '~components/common/Spinner'
-
 import aspectMessages from '~data/intl/aspectMessages'
 import exploreMessages from '~data/intl/messages/explore'
 
@@ -32,8 +30,7 @@ const cardClassName = 'relative flex flex-col gap-4 rounded-xs border bg-card p-
 type Props = {
   aspect: CompanyAspect
   isExplored: boolean
-  isStarting: boolean
-  // While another aspect is being added, or with no organization to add it to
+  // With no organization to add it to
   isDisabled: boolean
   onStart: () => void
 }
@@ -43,7 +40,7 @@ type Props = {
   that is not stands out in primary, and the whole card starts it, the button being what the
   keyboard reaches
 */
-function ExploreAspectCard({ aspect, isExplored, isStarting, isDisabled, onStart }: Props) {
+function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
   const { formatMessage } = useIntl()
 
   const body = (
@@ -90,7 +87,7 @@ function ExploreAspectCard({ aspect, isExplored, isStarting, isDisabled, onStart
       <div>
         <Button
           size="sm"
-          icon={isStarting ? <Spinner tone="current" /> : <CompassIcon />}
+          icon={<CompassIcon />}
           disabled={isDisabled}
           onClick={event => {
             event.stopPropagation()

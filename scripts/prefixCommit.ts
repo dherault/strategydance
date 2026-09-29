@@ -20,6 +20,10 @@ const message = fs.readFileSync(commitMessageFile, 'utf8').trim()
 // of nothing else is a commit abandoned in the editor: left as it is, Git refuses it
 if (message.split('\n').every(line => !line.trim() || line.startsWith('#'))) process.exit(0)
 
+// `git rebase --autosquash` finds a fixup by the subject it starts with, which a scope in front
+// would hide, and the subject it names already carries its own
+if (/^(fixup|squash|amend)! /.test(message)) process.exit(0)
+
 const ALL_PREFIXES = [DEFAULT_COMMIT_PREFIX, ...Object.keys(COMMIT_PREFIX_TO_PATH)]
 
 for (const pathPrefix of ALL_PREFIXES) {

@@ -80,7 +80,7 @@ const accountMessages = defineMessages({
   picturePreviewAlt: {
     id: 'account.picturePreviewAlt',
     defaultMessage: 'Profile picture preview',
-    description: 'Alternative text of the chosen profile picture as the dialog previews it before it is applied.',
+    description: 'Alternative text of the profile picture as the dialog shows it, the saved one or one just chosen.',
   },
   pictureSquare: {
     id: 'account.pictureSquare',
@@ -102,7 +102,8 @@ const accountMessages = defineMessages({
   removePicture: {
     id: 'account.removePicture',
     defaultMessage: 'Remove',
-    description: "Button in the profile picture dialog that takes the reader's picture away, leaving their initials.",
+    description:
+      "Button in the profile picture dialog that takes the reader's picture away at once, leaving their initials.",
   },
   removePictureConfirm: {
     id: 'account.removePictureConfirm',
@@ -110,11 +111,26 @@ const accountMessages = defineMessages({
     description:
       'What the remove button in the profile picture dialog says after its first click, asking to be clicked again to go ahead.',
   },
-  applyPicture: {
-    id: 'account.applyPicture',
-    defaultMessage: 'Apply',
+  pictureSaving: {
+    id: 'account.pictureSaving',
+    defaultMessage: 'Saving the picture',
     description:
-      'Button in the profile picture dialog that puts the chosen picture on the profile card, to be saved with the rest.',
+      'Accessible label of the spinner shown over the profile picture dialog while the picture just chosen, or its removal, is being saved.',
+  },
+  pictureSaved: {
+    id: 'account.pictureSaved',
+    defaultMessage: 'Profile picture saved',
+    description: "Notification shown once a new profile picture was saved to the reader's account.",
+  },
+  pictureRemoved: {
+    id: 'account.pictureRemoved',
+    defaultMessage: 'Profile picture removed',
+    description: "Notification shown once the reader's profile picture was removed.",
+  },
+  pictureSaveError: {
+    id: 'account.pictureSaveError',
+    defaultMessage: 'Your profile picture could not be saved. Try again.',
+    description: "Notification shown when saving or removing the reader's profile picture failed.",
   },
   closeDialog: {
     id: 'account.closeDialog',

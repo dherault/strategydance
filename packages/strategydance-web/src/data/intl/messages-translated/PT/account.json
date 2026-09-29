@@ -1,5 +1,4 @@
 {
-  "account.applyPicture": "Aplicar",
   "account.bioCount": "{count, number}/{max, number}",
   "account.bioHint": "Visível no seu perfil e para os agentes.",
   "account.bioLabel": "Bio",
@@ -33,6 +32,10 @@
   "account.pictureMaximumSize": "Até {megabytes} MB",
   "account.pictureMinimumSize": "Pelo menos {width}×{height}px",
   "account.picturePreviewAlt": "Pré-visualização da foto de perfil",
+  "account.pictureRemoved": "Foto de perfil removida",
+  "account.pictureSaveError": "Não foi possível salvar a sua foto de perfil. Tente novamente.",
+  "account.pictureSaved": "Foto de perfil salva",
+  "account.pictureSaving": "Salvando a foto",
   "account.pictureSizeError": "Escolha uma imagem de {megabytes} MB ou menos.",
   "account.pictureSquare": "Imagem quadrada",
   "account.pictureTypeError": "Escolha uma imagem PNG, JPEG, GIF ou WebP.",

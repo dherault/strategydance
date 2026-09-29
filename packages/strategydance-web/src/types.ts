@@ -40,13 +40,11 @@ export type DataSource<Data> = {
 export type User = NonNullable<GetCurrentUserData['user']>
 
 /*
-  What the account page saves about the reader. The picture is a file to upload, null to remove
-  the one there, or undefined to leave it as it is, since an unchanged picture is not sent again.
-  The language is the account's and the interface's both
+  What the account page's form saves about the reader. The picture is not part of it: its dialog
+  saves it on its own. The language is the account's and the interface's both
 */
 export type UserProfile = {
   displayName: string
-  image: Blob | null | undefined
   bio: string | null
   locale: Locale
 }
@@ -94,16 +92,12 @@ export type AdministrationUser = GetAdministrationUsersData['users'][number]
 // An organization as the administration's organizations page lists it, with its member count
 export type AdministrationOrganization = GetAdministrationOrganizationsData['organizations'][number]
 
-/*
-  A picture chosen but not saved yet: undefined while nothing was chosen, null once the one there
-  is to be removed, or the file with an object URL that previews it
-*/
+// A picture chosen and being saved, with an object URL that previews it, or undefined for none
 export type StagedImage =
   | {
       blob: Blob
       url: string
     }
-  | null
   | undefined
 
 // How the reader's own Today page lists the team's priorities: the order they chose, and whom they

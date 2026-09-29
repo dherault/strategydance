@@ -42,11 +42,22 @@ function BuildInPublicCompany({ settings }: Props) {
   const { formatMessage, formatDate } = useIntl()
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
-  const { data: team, loading, refetch, hasFailed } = useOrganizationTeam()
+  const { data: team, loading: isTeamLoading, refetch: refetchTeam, hasFailed: hasTeamFailed } = useOrganizationTeam()
   const today = useLocalDate()
   const viewerId = viewer?.uid ?? null
-  const { data: checklist } = useChecklist(viewerId)
-  const { data: log } = useOrganizationLogWeek({
+  // The recap counts the week's ticks and entries from these, so neither may fail quietly into a 0
+  const {
+    data: checklist,
+    loading: isChecklistLoading,
+    refetch: refetchChecklist,
+    hasFailed: hasChecklistFailed,
+  } = useChecklist(viewerId)
+  const {
+    data: log,
+    loading: isLogLoading,
+    refetch: refetchLog,
+    hasFailed: hasLogFailed,
+  } = useOrganizationLogWeek({
     from: addDays(today, -(BUILD_IN_PUBLIC_LOG_DAYS - 1)),
     to: today,
     isLive: false,
@@ -80,8 +91,16 @@ function BuildInPublicCompany({ settings }: Props) {
       title={formatMessage(buildInPublicMessages.companyTitle)}
       description={formatMessage(buildInPublicMessages.companyDescription)}
       failure={
-        hasFailed
-          ? { message: formatMessage(buildInPublicMessages.teamLoadFailed), isRetrying: loading, onRetry: refetch }
+        hasTeamFailed || hasChecklistFailed || hasLogFailed
+          ? {
+              message: formatMessage(buildInPublicMessages.companyLoadFailed),
+              isRetrying: isTeamLoading || isChecklistLoading || isLogLoading,
+              onRetry: () => {
+                if (hasTeamFailed) refetchTeam()
+                if (hasChecklistFailed) refetchChecklist()
+                if (hasLogFailed) refetchLog()
+              },
+            }
           : null
       }
     >

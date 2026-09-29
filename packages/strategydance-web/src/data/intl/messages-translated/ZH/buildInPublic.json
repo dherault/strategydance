@@ -34,6 +34,7 @@
   "buildInPublic.colorViolet": "紫罗兰",
   "buildInPublic.companyColor": "公司代表色",
   "buildInPublic.companyDescription": "您的组织与团队",
+  "buildInPublic.companyLoadFailed": "无法加载您的公司卡片。",
   "buildInPublic.companyTitle": "公司",
   "buildInPublic.consistencyCard": "坚持度",
   "buildInPublic.copyFailed": "无法复制图片，请直接下载。",

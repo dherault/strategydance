@@ -634,6 +634,12 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'Your organization and team',
     description: 'Line under the title of the company section.',
   },
+  companyLoadFailed: {
+    id: 'buildInPublic.companyLoadFailed',
+    defaultMessage: 'Your company cards could not be loaded.',
+    description:
+      'Error shown in place of the company cards when the team, the checklist or the log they count from failed to load.',
+  },
   profileCard: {
     id: 'buildInPublic.profileCard',
     defaultMessage: 'Profile',

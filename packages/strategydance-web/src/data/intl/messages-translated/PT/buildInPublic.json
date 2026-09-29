@@ -34,6 +34,7 @@
   "buildInPublic.colorViolet": "Violeta",
   "buildInPublic.companyColor": "Cor da empresa",
   "buildInPublic.companyDescription": "Sua organização e equipe",
+  "buildInPublic.companyLoadFailed": "Não foi possível carregar os cartões da sua empresa.",
   "buildInPublic.companyTitle": "Empresa",
   "buildInPublic.consistencyCard": "Consistência",
   "buildInPublic.copyFailed": "Não foi possível copiar a imagem. Baixe-a em vez disso.",

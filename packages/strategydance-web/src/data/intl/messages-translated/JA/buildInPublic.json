@@ -34,6 +34,7 @@
   "buildInPublic.colorViolet": "バイオレット",
   "buildInPublic.companyColor": "企業カラー",
   "buildInPublic.companyDescription": "組織とチーム",
+  "buildInPublic.companyLoadFailed": "会社カードを読み込めませんでした。",
   "buildInPublic.companyTitle": "会社",
   "buildInPublic.consistencyCard": "継続率",
   "buildInPublic.copyFailed": "画像をコピーできませんでした。代わりにダウンロードしてください。",

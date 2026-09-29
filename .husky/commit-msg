@@ -1,0 +1,1 @@
+node scripts/prefixCommit.ts "$1"

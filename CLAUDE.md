@@ -675,4 +675,10 @@ sends the SQL to a Data Connect endpoint that answers this service with a 404. T
 turns it off on every run.
 
 Pull requests still deploy a Hosting preview, with the one key the repository holds, which
-`firebase-hosting-pull-request.yml` explains.
+`firebase-hosting-pull-request.yml` explains. `delete-preview-channel.yml` deletes a pull
+request's channel when it closes, since Hosting caps the channels a site holds and a preview past
+the cap fails with a 429. Run by hand from the Actions tab, it deletes every channel but `live`,
+which is the way out once the quota is full. Both triggers run the copy on `main`, whatever a pull
+request's base: `pull_request_target` always runs the default branch's workflow, and GitHub
+offers a workflow to run by hand only once the default branch holds it. A change to it takes
+effect with the release, not with its merge into `dev`.

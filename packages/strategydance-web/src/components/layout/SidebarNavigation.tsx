@@ -4,7 +4,7 @@ import {
   CalendarIcon,
   CompassIcon,
   ContactRoundIcon,
-  RadioTowerIcon,
+  LighthouseIcon,
   StoreIcon,
   UsersRoundIcon,
 } from 'lucide-react'
@@ -93,7 +93,7 @@ function SidebarNavigation() {
           <NavigationLink
             path="/build-in-public"
             label={formatMessage(navigationMessages.buildInPublic)}
-            icon={<RadioTowerIcon />}
+            icon={<LighthouseIcon />}
             link={{ to: '/build-in-public' }}
           />
         </SidebarMenu>

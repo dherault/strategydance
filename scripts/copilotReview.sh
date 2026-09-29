@@ -60,10 +60,14 @@ wait_for_review() {
 }
 
 # The newest review can sit on any page, so the pages are read as one array, and `gh api` refuses
-# `--slurp` beside `--jq`: this filter alone needs the standalone jq, which macOS ships
+# `--slurp` beside `--jq`: Bun, which runs this script anyway, filters them instead of a jq that a
+# machine may not have
 print_body() {
   gh api --paginate --slurp "repos/$REPOSITORY/pulls/$1/reviews" \
-    | jq -r 'add | [.[] | select(.user.login | test("copilot")) | select(.body | length > 0)] | last | .body // empty'
+    | bun -e '
+      const reviews = (await Bun.stdin.json()).flat()
+      const body = reviews.filter(review => /copilot/.test(review.user.login) && review.body).at(-1)?.body
+      if (body) console.log(body)'
 }
 
 # `--paginate` follows `$endCursor`, so a pull request with more than a page of threads is read whole

@@ -16,6 +16,8 @@ import {
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
+import recordActivity from '~utils/activity/recordActivity'
+
 import Spinner from '~components/common/Spinner'
 
 import { dataConnect } from '~data/firebase'
@@ -61,6 +63,7 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
     try {
       await updateTopPriority({ organizationId, topPriority: nextTopPriority })
 
+      recordActivity(organizationId)
       queryClient.setQueryData<GetOrganizationTeamData>(
         ['GetOrganizationTeam', organizationId],
         team =>

@@ -16,6 +16,7 @@ import type { Checklist, ChecklistItem, DataSource } from '~types'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import recordActivity from '~utils/activity/recordActivity'
 import getPositionBetween from '~utils/common/getPositionBetween'
 import writeOptimistically from '~utils/common/writeOptimistically'
 
@@ -92,7 +93,8 @@ function useChecklist(userId: string | null): DataSource<Checklist> & {
       rowKey,
       after,
       apply,
-      write,
+      // One that goes through marks the day active, for the reader's streak
+      write: () => write().then(() => recordActivity(organizationId!)),
     })
   }
 

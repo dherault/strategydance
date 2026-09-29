@@ -10,6 +10,7 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { LogEntry, OrganizationMember } from '~types'
 
+import recordActivity from '~utils/activity/recordActivity'
 import getMemberName from '~utils/team/getMemberName'
 
 import LogEditor from '~components/log/LogEditor'
@@ -49,6 +50,7 @@ function LogPost({ organizationId, entry, author, isViewer }: Props) {
     try {
       await updateLogEntry(dataConnect, { organizationId, id: entry.id, content })
 
+      recordActivity(organizationId)
       await queryClient.invalidateQueries({ queryKey: ['GetOrganizationLog', organizationId] })
       toast.success(formatMessage(logMessages.updated))
       setIsEditing(false)

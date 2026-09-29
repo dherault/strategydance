@@ -16,6 +16,7 @@ import type { DataSource, TaskList } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import recordActivity from '~utils/activity/recordActivity'
 import writeOptimistically from '~utils/common/writeOptimistically'
 
 import { dataConnect } from '~data/firebase'
@@ -75,8 +76,15 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
     )
   }
 
+  // A change that goes through marks the day active, for the reader's streak
   function change(taskListId: string, apply: () => void, write: () => Promise<unknown>) {
-    return writeOptimistically({ queryClient, queryKeys: [queryKey], rowKey: `taskList:${taskListId}`, apply, write })
+    return writeOptimistically({
+      queryClient,
+      queryKeys: [queryKey],
+      rowKey: `taskList:${taskListId}`,
+      apply,
+      write: () => write().then(() => recordActivity(organizationId!)),
+    })
   }
 
   // The id is the caller's, which opens the list before the server has answered

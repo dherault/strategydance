@@ -6,6 +6,7 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { LogEntry } from '~types'
 
+import recordActivity from '~utils/activity/recordActivity'
 import createId from '~utils/common/createId'
 
 import LogEditor from '~components/log/LogEditor'
@@ -40,6 +41,7 @@ function LogComposer({ organizationId, today, todayEntry }: Props) {
     try {
       await createLogEntry(dataConnect, { organizationId, id: createId(), date: today, content })
 
+      recordActivity(organizationId)
       toast.success(formatMessage(logMessages.posted))
       await queryClient.invalidateQueries({ queryKey: ['GetOrganizationLog', organizationId] })
     } catch (error) {

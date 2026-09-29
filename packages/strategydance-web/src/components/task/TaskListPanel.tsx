@@ -13,6 +13,7 @@ import useDragReorder from '~hooks/common/useDragReorder'
 import useTasks from '~hooks/task/useTasks'
 
 import Spinner from '~components/common/Spinner'
+import ReadOnlyTaskRow from '~components/task/ReadOnlyTaskRow'
 import TaskInlineInput from '~components/task/TaskInlineInput'
 import { EDITABLE_BOX_CLASS_NAME, REVEALED_TRANSITION_CLASS_NAME } from '~components/task/taskClassNames'
 import TaskRow from '~components/task/TaskRow'
@@ -21,7 +22,11 @@ import TodaySectionLoadFailed from '~components/today/TodaySectionLoadFailed'
 import taskMessages from '~data/intl/messages/task'
 
 type Props = {
+  // Whose list it is
+  userId: string
   taskList: TaskList
+  // The reader's own list, which they rename, delete and change the tasks of. A teammate's is read only
+  isOwn: boolean
   isRenaming: boolean
   onRenamingChange: (isRenaming: boolean) => void
   onRename: (name: string) => void
@@ -30,11 +35,12 @@ type Props = {
 
 /*
   The open task list: its name, which a click renames, the tasks on it, and the field that adds
-  one. Mounted per list, so switching lists starts with nothing being edited and an empty field
+  one. Mounted per list, so switching lists starts with nothing being edited and an empty field.
+  A teammate's shows the same name and tasks, and none of the ways to change them
 */
-function TaskListPanel({ taskList, isRenaming, onRenamingChange, onRename, onDelete }: Props) {
+function TaskListPanel({ userId, taskList, isOwn, isRenaming, onRenamingChange, onRename, onDelete }: Props) {
   const { formatMessage } = useIntl()
-  const { data: tasks, initialLoading, hasFailed, loading, refetch, createTask, updateTask, deleteTask, restoreTask, moveTask } = useTasks(taskList.id)
+  const { data: tasks, initialLoading, hasFailed, loading, refetch, createTask, updateTask, deleteTask, restoreTask, moveTask } = useTasks(userId, taskList.id)
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -82,43 +88,49 @@ function TaskListPanel({ taskList, isRenaming, onRenamingChange, onRename, onDel
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="group/head flex min-h-14 items-center gap-2 border-b border-neutral-200 px-4 py-2.5">
-        {isRenaming
+        {!isOwn
           ? (
-              <TaskInlineInput
-                value={taskList.name}
-                maxLength={MAX_TASK_LIST_NAME_LENGTH}
-                aria-label={formatMessage(taskMessages.listName)}
-                className="max-w-90 flex-auto text-base font-semibold text-secondary"
-                onSave={name => {
-                  onRename(name)
-                  onRenamingChange(false)
-                }}
-                onCancel={() => onRenamingChange(false)}
-              />
+              <span className={cn(EDITABLE_BOX_CLASS_NAME, 'flex min-h-8 min-w-0 items-center border-transparent py-[3px] text-base font-semibold wrap-anywhere text-secondary')}>
+                {taskList.name}
+              </span>
             )
-          : (
-              <>
-                <button
-                  type="button"
-                  title={formatMessage(taskMessages.renameList)}
-                  className={cn(EDITABLE_BOX_CLASS_NAME, 'flex min-h-8 min-w-0 cursor-text items-center border-transparent bg-transparent py-[3px] text-left font-sans text-base font-semibold wrap-anywhere text-secondary transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary')}
-                  onClick={() => onRenamingChange(true)}
-                >
-                  {taskList.name}
-                </button>
-                <Button
-                  variant="transparent"
-                  size="sm"
-                  icon={<Trash2Icon />}
-                  aria-label={formatMessage(taskMessages.deleteList, { name: taskList.name })}
-                  title={formatMessage(taskMessages.deleteListTooltip)}
-                  confirm={formatMessage(taskMessages.confirm)}
-                  // Fades in while the head is hovered, as a task's does in its row
-                  className={cn(REVEALED_TRANSITION_CLASS_NAME, 'text-neutral-500 opacity-0 not-disabled:hover:text-red-600 group-hover/head:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100')}
-                  onClick={onDelete}
+          : isRenaming
+            ? (
+                <TaskInlineInput
+                  value={taskList.name}
+                  maxLength={MAX_TASK_LIST_NAME_LENGTH}
+                  aria-label={formatMessage(taskMessages.listName)}
+                  className="max-w-90 flex-auto text-base font-semibold text-secondary"
+                  onSave={name => {
+                    onRename(name)
+                    onRenamingChange(false)
+                  }}
+                  onCancel={() => onRenamingChange(false)}
                 />
-              </>
-            )}
+              )
+            : (
+                <>
+                  <button
+                    type="button"
+                    title={formatMessage(taskMessages.renameList)}
+                    className={cn(EDITABLE_BOX_CLASS_NAME, 'flex min-h-8 min-w-0 cursor-text items-center border-transparent bg-transparent py-[3px] text-left font-sans text-base font-semibold wrap-anywhere text-secondary transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary')}
+                    onClick={() => onRenamingChange(true)}
+                  >
+                    {taskList.name}
+                  </button>
+                  <Button
+                    variant="transparent"
+                    size="sm"
+                    icon={<Trash2Icon />}
+                    aria-label={formatMessage(taskMessages.deleteList, { name: taskList.name })}
+                    title={formatMessage(taskMessages.deleteListTooltip)}
+                    confirm={formatMessage(taskMessages.confirm)}
+                    // Fades in while the head is hovered, as a task's does in its row
+                    className={cn(REVEALED_TRANSITION_CLASS_NAME, 'text-neutral-500 opacity-0 not-disabled:hover:text-red-600 group-hover/head:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100')}
+                    onClick={onDelete}
+                  />
+                </>
+              )}
         <span className="ml-auto text-sm whitespace-nowrap text-muted-foreground">
           {tasks.length ? formatMessage(taskMessages.openOfTotal, { open: openCount, total: tasks.length }) : null}
         </span>
@@ -141,49 +153,60 @@ function TaskListPanel({ taskList, isRenaming, onRenamingChange, onRename, onDel
             )
           : (
               <ul className="m-0 flex list-none flex-col p-0">
-                {tasks.map((task, index) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    position={index + 1}
-                    total={tasks.length}
-                    isEditing={editingTaskId === task.id}
-                    isDragged={draggedIndex === index}
-                    dropSide={getDropSide(index)}
-                    itemProps={getItemProps(index)}
-                    handleProps={getHandleProps(index)}
-                    onEdit={() => setEditingTaskId(task.id)}
-                    onCancelEdit={() => setEditingTaskId(null)}
-                    onSave={text => {
-                      setEditingTaskId(null)
-                      report(updateTask({ ...task, text }))
-                    }}
-                    onToggle={() => report(updateTask({ ...task, isDone: !task.isDone }))}
-                    onDelete={() => handleDelete(task)}
-                  />
-                ))}
+                {tasks.map((task, index) => (isOwn
+                  ? (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        position={index + 1}
+                        total={tasks.length}
+                        isEditing={editingTaskId === task.id}
+                        isDragged={draggedIndex === index}
+                        dropSide={getDropSide(index)}
+                        itemProps={getItemProps(index)}
+                        handleProps={getHandleProps(index)}
+                        onEdit={() => setEditingTaskId(task.id)}
+                        onCancelEdit={() => setEditingTaskId(null)}
+                        onSave={text => {
+                          setEditingTaskId(null)
+                          report(updateTask({ ...task, text }))
+                        }}
+                        onToggle={() => report(updateTask({ ...task, isDone: !task.isDone }))}
+                        onDelete={() => handleDelete(task)}
+                      />
+                    )
+                  : (
+                      <ReadOnlyTaskRow
+                        key={task.id}
+                        task={task}
+                      />
+                    )))}
               </ul>
             )}
-      <form
-        onSubmit={handleAdd}
-        className="mt-auto flex items-center gap-2 px-4 py-3"
-      >
-        <Input
-          value={draft}
-          maxLength={MAX_TASK_LENGTH}
-          placeholder={formatMessage(taskMessages.addPlaceholder)}
-          aria-label={formatMessage(taskMessages.addLabel, { name: taskList.name })}
-          onChange={event => setDraft(event.target.value)}
-          className="min-w-0 flex-1"
-        />
-        <Button
-          type="submit"
-          variant="secondary"
-          disabled={!trimmedDraft}
-        >
-          {formatMessage(taskMessages.add)}
-        </Button>
-      </form>
+      {isOwn
+        ? (
+            <form
+              onSubmit={handleAdd}
+              className="mt-auto flex items-center gap-2 px-4 py-3"
+            >
+              <Input
+                value={draft}
+                maxLength={MAX_TASK_LENGTH}
+                placeholder={formatMessage(taskMessages.addPlaceholder)}
+                aria-label={formatMessage(taskMessages.addLabel, { name: taskList.name })}
+                onChange={event => setDraft(event.target.value)}
+                className="min-w-0 flex-1"
+              />
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={!trimmedDraft}
+              >
+                {formatMessage(taskMessages.add)}
+              </Button>
+            </form>
+          )
+        : null}
     </div>
   )
 }

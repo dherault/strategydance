@@ -22,6 +22,7 @@
   "today.save": "保存",
   "today.setYourPriority": "最優先事項を設定",
   "today.showPriority": "{name}を表示",
+  "today.viewOnly": "閲覧のみ",
   "today.visibilityDialogDescription": "「今日」ページに表示するメンバーの最優先事項を選択し、ドラッグして並べ替えます。この変更はあなたの表示にのみ適用されます。",
   "today.visibilityDialogTitle": "表示する最優先事項",
   "today.visibilityError": "最優先事項の表示設定を保存できませんでした。もう一度お試しください。",

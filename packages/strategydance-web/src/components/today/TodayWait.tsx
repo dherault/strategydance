@@ -33,12 +33,13 @@ import Loading from '~components/common/Loading'
 */
 function TodayWait({ children }: PropsWithChildren) {
   const { initialLoading: isTeamLoading } = useOrganizationTeam()
-  const { initialLoading: arePreferencesLoading } = useTodayPreferences()
-  const { initialLoading: areTaskListsLoading } = useTaskLists()
-  const [activeTaskListId] = useActiveTaskListId()
-  const { initialLoading: areTasksLoading } = useTasks(activeTaskListId)
   const { data: viewer } = useAuthentication()
-  const { initialLoading: isChecklistLoading } = useChecklist(viewer?.uid ?? null)
+  const viewerId = viewer?.uid ?? null
+  const { initialLoading: arePreferencesLoading } = useTodayPreferences()
+  const { initialLoading: areTaskListsLoading } = useTaskLists(viewerId)
+  const [activeTaskListId] = useActiveTaskListId()
+  const { initialLoading: areTasksLoading } = useTasks(viewerId, activeTaskListId)
+  const { initialLoading: isChecklistLoading } = useChecklist(viewerId)
   const today = useLocalDate()
   const { initialLoading: isLogLoading } = useOrganizationLogWeek({ from: addDays(today, -6), to: today, isLive: true })
 

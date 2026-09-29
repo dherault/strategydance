@@ -32,6 +32,5 @@
   "checklist.today": "Heute",
   "checklist.undo": "Rückgängig",
   "checklist.unlockDay": "{day} entsperren",
-  "checklist.unlockHint": "Zum Bearbeiten entsperren",
-  "checklist.viewOnly": "Nur Ansicht"
+  "checklist.unlockHint": "Zum Bearbeiten entsperren"
 }

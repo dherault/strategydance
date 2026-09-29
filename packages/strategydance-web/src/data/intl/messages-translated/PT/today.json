@@ -22,6 +22,7 @@
   "today.save": "Salvar",
   "today.setYourPriority": "Defina sua prioridade máxima",
   "today.showPriority": "Mostrar {name}",
+  "today.viewOnly": "Apenas visualização",
   "today.visibilityDialogDescription": "Escolha de quem é a prioridade máxima exibida na sua página Hoje e arraste para reordenar. Isso altera apenas a sua visualização.",
   "today.visibilityDialogTitle": "Prioridades visíveis",
   "today.visibilityError": "Não foi possível salvar sua visualização das prioridades. Tente novamente.",

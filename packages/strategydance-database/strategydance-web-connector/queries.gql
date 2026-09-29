@@ -235,8 +235,9 @@ query GetAdministrationOrganizations @auth(level: USER) {
 }
 
 # The caller's task lists in an organization, in the order they made them, each with how many of
-# its tasks are still open, for the pill beside its name. Their own alone: keyed by the uid off the
-# token, and read only while they belong to the organization. A deleted list is left out.
+# its tasks are still open, for the pill beside its name. Keyed by the uid off the token, and read
+# only while they belong to the organization. A deleted list is left out. A teammate's are
+# `GetMemberTaskLists`.
 #
 # Read up to 100, `MAX_TASK_LISTS` in strategydance-core, which `CreateTaskList` holds them to. The
 # tasks themselves are read one list at a time, by `GetTasks`, since a list holds up to 1000
@@ -275,6 +276,56 @@ query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
       }
     }
     # Two tasks added at once can share a position, and then keep the order they were added in
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    text
+    isDone
+    position
+  }
+}
+
+# Somebody's task lists in an organization, read only, for the Today page's picker: any member may
+# read any member's, and an outsider, or a member reading somebody who left, reads nothing. The
+# same lists `GetTaskLists` reads for their owner, in the same order and as many.
+#
+# The owner's own page keeps `GetTaskLists`, keyed by the token, rather than calling this with their
+# own uid: the deployed page calls it, and taking the owner as a variable would break it
+query GetMemberTaskLists($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  taskLists(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    openTasks: tasks_on_taskList(where: { isDone: { eq: false } }) {
+      _count
+    }
+  }
+}
+
+# One of somebody's task lists, its tasks in their order, read only. Scoped as `GetMemberTaskLists`
+# is, through the list, so an id that is not that member's reads nothing
+query GetMemberTasks($organizationId: UUID!, $userId: String!, $taskListId: UUID!) @auth(level: USER) {
+  tasks(
+    where: {
+      taskListId: { eq: $taskListId }
+      taskList: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+        user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+      }
+    }
     orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
     limit: 1000
   ) {

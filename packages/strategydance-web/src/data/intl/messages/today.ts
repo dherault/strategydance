@@ -112,6 +112,11 @@ const todayMessages = defineMessages({
     defaultMessage: 'The team\'s priorities could not be loaded.',
     description: 'Error shown in place of the top priorities when they could not be read.',
   },
+  viewOnly: {
+    id: 'today.viewOnly',
+    defaultMessage: 'View only',
+    description: 'Label beside a section of the Today page, the tasks or the checklist, when it shows a teammate\'s, which the reader can read but not change.',
+  },
   retry: {
     id: 'today.retry',
     defaultMessage: 'Try again',

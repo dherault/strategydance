@@ -188,8 +188,8 @@ type SentInvitation @table @index(fields: ["invitedById", "createdAt"]) {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
-# One of somebody's lists of things to do in an organization, on their Today page. Private: every
-# operation on it is keyed by the uid off the token, so nobody reads or writes another's.
+# One of somebody's lists of things to do in an organization, on their Today page. Their team reads
+# it, and only they write it: every write is keyed by the uid off the token.
 #
 # It references the account and the organization rather than the membership, so removing somebody,
 # which deletes the membership and nothing else, keeps their lists should they be invited again.

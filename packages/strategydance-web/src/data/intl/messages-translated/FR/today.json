@@ -22,6 +22,7 @@
   "today.save": "Enregistrer",
   "today.setYourPriority": "Définir votre priorité principale",
   "today.showPriority": "Afficher {name}",
+  "today.viewOnly": "Lecture seule",
   "today.visibilityDialogDescription": "Choisissez les personnes dont la priorité principale s'affiche sur votre page Aujourd'hui et faites glisser pour réorganiser. Cela ne modifie que votre affichage.",
   "today.visibilityDialogTitle": "Priorités visibles",
   "today.visibilityError": "Impossible d'enregistrer votre affichage des priorités. Réessayez.",

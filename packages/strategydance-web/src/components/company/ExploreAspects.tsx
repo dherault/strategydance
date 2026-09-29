@@ -42,7 +42,10 @@ function ExploreAspects() {
   /*
     The aspect's chapter goes up the moment it is asked for, and the write and the navigation run
     beneath it, so the telling is the same however long they take. The chapter lifts onto the
-    aspect's page, or onto this one when either failed, where the error is by then
+    aspect's page, or onto this one when either failed.
+
+    The error waits for the chapter to be gone before it shows. The page is inert until then, and
+    an alert that appears there is not announced, nor is one already there once the page wakes
   */
   async function startExploration(aspect: CompanyAspect) {
     if (!organization || chapter) return
@@ -70,7 +73,7 @@ function ExploreAspects() {
         title={formatMessage(navigationMessages.exploreMore)}
         lead={formatMessage(exploreMessages.lead)}
       />
-      {hasFailed
+      {hasFailed && !chapter
         ? (
             <Alert
               variant="danger"

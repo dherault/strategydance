@@ -5,7 +5,7 @@ import { isDarkColor } from 'strategydance-design-system/lib/isDarkColor'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 const companyLogoVariants = cva(
-  'relative grid shrink-0 place-items-center overflow-hidden rounded-xs leading-none font-semibold select-none',
+  'relative grid shrink-0 place-items-center overflow-hidden rounded-xs font-semibold select-none',
   {
     variants: {
       size: {

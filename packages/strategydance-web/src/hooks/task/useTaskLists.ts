@@ -17,6 +17,7 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import recordActivity from '~utils/activity/recordActivity'
+import getPositionBetween from '~utils/common/getPositionBetween'
 import writeOptimistically from '~utils/common/writeOptimistically'
 
 import { dataConnect } from '~data/firebase'
@@ -69,6 +70,8 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
     retryOnMount: false,
   })
 
+  const taskLists = data?.taskLists ?? EMPTY_TASK_LISTS
+
   function setTaskLists(update: (taskLists: TaskList[]) => TaskList[]) {
     queryClient.setQueryData<GetTaskListsData>(
       queryKey,
@@ -87,24 +90,25 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
     })
   }
 
-  // The id is the caller's, which opens the list before the server has answered
+  // The id is the caller's, which opens the list before the server has answered. It goes last
   function createTaskList(id: string, name: string) {
+    const position = getPositionBetween(taskLists.at(-1)?.position ?? null, null)!
+
     return change(
       id,
       () => {
-        setTaskLists(taskLists => [...taskLists, { id, name, openTasks: [{ _count: 0 }] }])
+        setTaskLists(current => [...current, { id, name, position, openTasks: [{ _count: 0 }] }])
         // A new list has no tasks, so there is nothing to wait for when it opens
         queryClient.setQueryData<GetTasksData>(['GetTasks', organizationId, userId, id], { tasks: [] })
       },
-      () => createTaskListMutation(dataConnect, { organizationId: organizationId!, id, name }),
+      () => createTaskListMutation(dataConnect, { organizationId: organizationId!, id, name, position }),
     )
   }
 
   function renameTaskList(id: string, name: string) {
     return change(
       id,
-      () =>
-        setTaskLists(taskLists => taskLists.map(taskList => (taskList.id === id ? { ...taskList, name } : taskList))),
+      () => setTaskLists(current => current.map(taskList => (taskList.id === id ? { ...taskList, name } : taskList))),
       () => renameTaskListMutation(dataConnect, { organizationId: organizationId!, id, name }),
     )
   }
@@ -112,7 +116,7 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   function deleteTaskList(id: string) {
     return change(
       id,
-      () => setTaskLists(taskLists => taskLists.filter(taskList => taskList.id !== id)),
+      () => setTaskLists(current => current.filter(taskList => taskList.id !== id)),
       () => deleteTaskListMutation(dataConnect, { organizationId: organizationId!, id }),
     )
   }
@@ -121,13 +125,13 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   function restoreTaskList(taskList: TaskList, index: number) {
     return change(
       taskList.id,
-      () => setTaskLists(taskLists => [...taskLists.slice(0, index), taskList, ...taskLists.slice(index)]),
+      () => setTaskLists(current => [...current.slice(0, index), taskList, ...current.slice(index)]),
       () => restoreTaskListMutation(dataConnect, { organizationId: organizationId!, id: taskList.id }),
     )
   }
 
   return {
-    data: data?.taskLists ?? EMPTY_TASK_LISTS,
+    data: taskLists,
     initialLoading: isEnabled && isPending && !isError,
     loading: isEnabled && isFetching,
     refetch: async () => {

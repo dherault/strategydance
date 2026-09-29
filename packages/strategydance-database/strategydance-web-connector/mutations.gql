@@ -391,13 +391,17 @@ mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth
 }
 
 # Adds a task list for the caller in an organization. The id is the page's, which writes the list
-# into its cache before the server answers.
+# into its cache before the server answers, and so is the position, one past the last list's.
+# `$position` is optional only because the page deployed before lists could move sends none, and
+# its list then takes the column's 0, as the lists made before then did.
 #
 # At most 100 lists a person in an organization (`MAX_TASK_LISTS` in strategydance-core), counted
 # under a lock: the first step writes the caller's own membership, which also refuses anybody
 # outside the organization, so two tabs adding at once count one after the other. A name is one
 # line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH`)
-mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @auth(level: USER) @transaction {
+mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float)
+@auth(level: USER)
+@transaction {
   userOrganization_update(
     key: { userId_expr: "auth.uid", organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
@@ -416,7 +420,9 @@ mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @aut
       id
     }
   }
-  taskList_insert(data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name })
+  taskList_insert(
+    data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name, position: $position }
+  )
 }
 
 # Renames one of the caller's task lists, held to what `CreateTaskList` holds a name to

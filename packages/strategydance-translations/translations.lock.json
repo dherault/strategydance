@@ -595,6 +595,14 @@
         "hash": "0973ccb49fa8d264",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.focusCard": {
+        "hash": "363f9ac3f887b35f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.focusedOn": {
+        "hash": "b576ebbc3ee7ad22",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.imageCopied": {
         "hash": "8a4d1e406e736bcb",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -611,12 +619,44 @@
         "hash": "05d002c233fc4880",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.noPriority": {
+        "hash": "ccb20c97eb626b0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.oneThingCard": {
+        "hash": "1cae7e5f84085d87",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.oneThingToday": {
+        "hash": "45e5bfc5538abdc6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.posterCard": {
         "hash": "99d044d7bc1bb58c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.priorityDescription": {
+        "hash": "490b175f5276b8e6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.priorityOn": {
+        "hash": "fc6d28f2e1a7e606",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.priorityTitle": {
+        "hash": "5142b818055a8afa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.retry": {
         "hash": "0f5ccff4c294a92b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.setPriority": {
+        "hash": "8cb81f6c370501c7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.statementCard": {
+        "hash": "f336c61840954092",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.streakDays": {
@@ -633,6 +673,14 @@
       },
       "buildInPublic.streakTitle": {
         "hash": "1457d34688d00b9d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.teamLoadFailed": {
+        "hash": "dfdd905c55fe3ea3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.teammate": {
+        "hash": "11beebe04e25b027",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.thisWeek": {

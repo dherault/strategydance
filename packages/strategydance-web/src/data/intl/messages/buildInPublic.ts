@@ -288,6 +288,66 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: '{count} of {total}',
     description: 'How many of the last {total} days the reader was active on, as in "18 of 30".',
   },
+  priorityTitle: {
+    id: 'buildInPublic.priorityTitle',
+    defaultMessage: 'Top priority',
+    description: 'Title of the section of cards showing the one thing the reader, or a teammate, is moving forward.',
+  },
+  priorityDescription: {
+    id: 'buildInPublic.priorityDescription',
+    defaultMessage: 'What you are focused on today',
+    description: 'Line under the title of the top priority section.',
+  },
+  teamLoadFailed: {
+    id: 'buildInPublic.teamLoadFailed',
+    defaultMessage: 'Your team could not be loaded.',
+    description: "Error shown in place of the top priority cards when the team's priorities failed to load.",
+  },
+  focusCard: {
+    id: 'buildInPublic.focusCard',
+    defaultMessage: 'Date and focus',
+    description: "Name of the wide card showing today's date beside somebody's top priority.",
+  },
+  statementCard: {
+    id: 'buildInPublic.statementCard',
+    defaultMessage: 'Bold statement',
+    description: "Name of the square card showing somebody's top priority in large type.",
+  },
+  oneThingCard: {
+    id: 'buildInPublic.oneThingCard',
+    defaultMessage: 'One thing',
+    description: "Name of the tall card showing somebody's top priority as the one thing they do today.",
+  },
+  teammate: {
+    id: 'buildInPublic.teammate',
+    defaultMessage: 'Teammate',
+    description: 'Label of the setting that picks whose priority or log a card shows.',
+  },
+  focusedOn: {
+    id: 'buildInPublic.focusedOn',
+    defaultMessage: "Today I'm focused on",
+    description: "Uppercase line above somebody's top priority, written as they would say it.",
+  },
+  priorityOn: {
+    id: 'buildInPublic.priorityOn',
+    defaultMessage: 'Top priority · {date}',
+    description: 'Uppercase line above somebody\'s top priority, then today\'s date, such as "Sep 29".',
+  },
+  oneThingToday: {
+    id: 'buildInPublic.oneThingToday',
+    defaultMessage: 'One thing today',
+    description: "Uppercase line above somebody's top priority, the one thing they move forward today.",
+  },
+  setPriority: {
+    id: 'buildInPublic.setPriority',
+    defaultMessage: 'Set your top priority on the Today page',
+    description: "Shown on a card in place of the reader's top priority while they have none.",
+  },
+  noPriority: {
+    id: 'buildInPublic.noPriority',
+    defaultMessage: 'No top priority set yet',
+    description: "Shown on a card in place of a teammate's top priority while they have none.",
+  },
 })
 
 export default buildInPublicMessages

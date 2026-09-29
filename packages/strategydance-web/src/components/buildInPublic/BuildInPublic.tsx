@@ -2,6 +2,7 @@ import { useIntl } from 'react-intl'
 
 import useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 
+import BuildInPublicPriority from '~components/buildInPublic/BuildInPublicPriority'
 import BuildInPublicStreak from '~components/buildInPublic/BuildInPublicStreak'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
@@ -26,6 +27,7 @@ function BuildInPublic() {
         lead={formatMessage(buildInPublicMessages.lead)}
       />
       <BuildInPublicStreak settings={settings} />
+      <BuildInPublicPriority settings={settings} />
     </ContainerLayout>
   )
 }

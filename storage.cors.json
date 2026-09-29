@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["https://strategydance.com", "https://strategydance.web.app", "https://strategydance.firebaseapp.com"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

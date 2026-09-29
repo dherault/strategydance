@@ -235,6 +235,14 @@ That matters most for the sign-in screen's `@auth(level: PUBLIC)` email lookup, 
 enumerates registered addresses to any direct caller until it is. Switch it on for Data
 Connect and Storage before the project is reachable from the internet.
 
+**Storage lets another origin read a file only as `storage.cors.json` allows.** A browser shows
+an `<img>` from Storage without it, but reading the bytes, as the build in public page does to
+draw a card as a PNG, takes the bucket's CORS rule. It is a setting on the bucket, which no
+deploy sends: after changing the file, run `gcloud storage buckets update
+gs://strategydance.firebasestorage.app --cors-file=storage.cors.json` as an account that may
+change the bucket. A preview channel's origin is not listed, so an export there draws initials
+where the pictures were. The Storage emulator applies no rule, so development never needs it.
+
 ### The database
 
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the

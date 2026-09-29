@@ -18,8 +18,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them. See below
-- `packages/strategydance-design-system` — the component library: shadcn on Radix, Tailwind
-  CSS v4, documented in Storybook. It imports itself by its package name,
+- `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
+  UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. It imports itself by its package name,
   `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
   component resolves the same when another package reads it as source. Its tokens and components
   are ported from the Strategy Dance Design System project in Claude Design and keep that
@@ -165,6 +165,13 @@ them: `FormField` for react-hook-form, `TextDivider`.
 Strings stay in the frontend's catalogues. A design-system component that names itself in
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
 it: `~components/common/Spinner` is the design system's spinner with that label.
+
+shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
+its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer
+events and hides from assistive technology everything outside itself, and dismisses on any Escape
+that reaches the document. The `MultiSelect` portals its list into the dialog around its trigger
+and claims Escape while the list is open. A Base UI popup added later needs both, and a story
+inside a `Dialog` to show it works there.
 
 ### Static files
 

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 
@@ -29,14 +28,23 @@ export const Untrusted: Story = {
           {
             type: 'paragraph',
             children: [
-              { type: 'text', format: 0, style: 'position: fixed; inset: 0; background: red', text: 'Styled to cover the page, drawn plain' },
+              {
+                type: 'text',
+                format: 0,
+                style: 'position: fixed; inset: 0; background: red',
+                text: 'Styled to cover the page, drawn plain',
+              },
             ],
           },
           {
             type: 'paragraph',
             children: [
               { type: 'text', format: 0, text: '<b onmouseover="alert(1)">Markup</b> is text' },
-              { type: 'link', url: 'javascript:alert(1)', children: [{ type: 'text', format: 0, text: ', and a link is its words' }] },
+              {
+                type: 'link',
+                url: 'javascript:alert(1)',
+                children: [{ type: 'text', format: 0, text: ', and a link is its words' }],
+              },
             ],
           },
         ],

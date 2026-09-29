@@ -29,37 +29,25 @@ function AdministrationOrganizationsTable({ organizations }: Props) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>
-            {formatMessage(administrationMessages.organizationsColumnName)}
-          </TableHead>
-          <TableHead align="right">
-            {formatMessage(administrationMessages.organizationsColumnMembers)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.organizationsColumnProfile)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.organizationsColumnAspects)}
-          </TableHead>
-          <TableHead>
-            {formatMessage(administrationMessages.organizationsColumnCreated)}
-          </TableHead>
+          <TableHead>{formatMessage(administrationMessages.organizationsColumnName)}</TableHead>
+          <TableHead align="right">{formatMessage(administrationMessages.organizationsColumnMembers)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.organizationsColumnProfile)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.organizationsColumnAspects)}</TableHead>
+          <TableHead>{formatMessage(administrationMessages.organizationsColumnCreated)}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {organizations.length === 0
-          ? (
-              <TableRow>
-                <TableCell
-                  colSpan={COLUMN_COUNT}
-                  align="center"
-                  className="py-6 text-muted-foreground"
-                >
-                  {formatMessage(administrationMessages.organizationsEmpty)}
-                </TableCell>
-              </TableRow>
-            )
-          : null}
+        {organizations.length === 0 ? (
+          <TableRow>
+            <TableCell
+              colSpan={COLUMN_COUNT}
+              align="center"
+              className="py-6 text-muted-foreground"
+            >
+              {formatMessage(administrationMessages.organizationsEmpty)}
+            </TableCell>
+          </TableRow>
+        ) : null}
         {organizations.map(organization => (
           <AdministrationOrganizationRow
             key={organization.id}

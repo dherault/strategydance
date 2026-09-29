@@ -34,8 +34,7 @@ async function deleteReplacedOrganizationImage({ organizationId, kind, url }: De
 
   try {
     await bucket.file(name).delete({ ignoreNotFound: true })
-  }
-  catch (error) {
+  } catch (error) {
     logger.error(`Organization images: could not delete ${name}, which nothing points at any more`, error)
   }
 }

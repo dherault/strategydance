@@ -5,6 +5,7 @@ import {
   type GetTasksData,
   createTaskList as createTaskListMutation,
   deleteTaskList as deleteTaskListMutation,
+  getMemberTaskListsRef,
   getTaskListsRef,
   renameTaskList as renameTaskListMutation,
   restoreTaskList as restoreTaskListMutation,
@@ -15,6 +16,7 @@ import type { DataSource, TaskList } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import recordActivity from '~utils/activity/recordActivity'
 import writeOptimistically from '~utils/common/writeOptimistically'
 
 import { dataConnect } from '~data/firebase'
@@ -22,8 +24,9 @@ import { dataConnect } from '~data/firebase'
 const EMPTY_TASK_LISTS: TaskList[] = []
 
 /*
-  The reader's task lists in the current organization, which are theirs alone, and what changes
-  them.
+  A member's task lists in the current organization, the reader's own or a teammate's, and what
+  changes them: only the reader's own changes, which the server holds to as well. The reader's own
+  are read keyed by the token, and a teammate's by their uid, through the query any member may call.
 
   Every change lands in the cache first, so the rail follows at once, and is sent after, queued
   behind any earlier change to the same list: see `writeOptimistically`. When the server refuses
@@ -31,9 +34,9 @@ const EMPTY_TASK_LISTS: TaskList[] = []
   to the caller to say so.
 
   It does not retry on mount, and a failed read is `hasFailed` rather than no lists: `TodayWait`
-  waits on it
+  waits on the reader's own
 */
-function useTaskLists(): DataSource<TaskList[]> & {
+function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   hasFailed: boolean
   createTaskList: (id: string, name: string) => Promise<void>
   renameTaskList: (id: string, name: string) => Promise<void>
@@ -44,17 +47,21 @@ function useTaskLists(): DataSource<TaskList[]> & {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
-  const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
-  // The reader's own lists, so the key names them: the tab's cache outlives a sign-out, and the
-  // next account in the same organization must not open on this one's lists
-  const queryKey = ['GetTaskLists', organizationId, viewerId]
-  const isEnabled = Boolean(organizationId && viewerId)
+  const isOwn = userId === (viewer?.uid ?? null)
+  // The key names whose lists they are: the tab's cache outlives a sign-out, and the next account
+  // in the same organization must not open on this one's lists
+  const queryKey = ['GetTaskLists', organizationId, userId]
+  const isEnabled = Boolean(organizationId && userId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: taskLists } = await executeQuery(getTaskListsRef(dataConnect, { organizationId: organizationId! }))
+      const { data: taskLists } = await executeQuery(
+        isOwn
+          ? getTaskListsRef(dataConnect, { organizationId: organizationId! })
+          : getMemberTaskListsRef(dataConnect, { organizationId: organizationId!, userId: userId! }),
+      )
 
       return taskLists
     },
@@ -63,11 +70,21 @@ function useTaskLists(): DataSource<TaskList[]> & {
   })
 
   function setTaskLists(update: (taskLists: TaskList[]) => TaskList[]) {
-    queryClient.setQueryData<GetTaskListsData>(queryKey, current => current && { ...current, taskLists: update(current.taskLists) })
+    queryClient.setQueryData<GetTaskListsData>(
+      queryKey,
+      current => current && { ...current, taskLists: update(current.taskLists) },
+    )
   }
 
+  // A change that goes through marks the day active, for the reader's streak
   function change(taskListId: string, apply: () => void, write: () => Promise<unknown>) {
-    return writeOptimistically({ queryClient, queryKeys: [queryKey], rowKey: `taskList:${taskListId}`, apply, write })
+    return writeOptimistically({
+      queryClient,
+      queryKeys: [queryKey],
+      rowKey: `taskList:${taskListId}`,
+      apply,
+      write: () => write().then(() => recordActivity(organizationId!)),
+    })
   }
 
   // The id is the caller's, which opens the list before the server has answered
@@ -77,7 +94,7 @@ function useTaskLists(): DataSource<TaskList[]> & {
       () => {
         setTaskLists(taskLists => [...taskLists, { id, name, openTasks: [{ _count: 0 }] }])
         // A new list has no tasks, so there is nothing to wait for when it opens
-        queryClient.setQueryData<GetTasksData>(['GetTasks', organizationId, viewerId, id], { tasks: [] })
+        queryClient.setQueryData<GetTasksData>(['GetTasks', organizationId, userId, id], { tasks: [] })
       },
       () => createTaskListMutation(dataConnect, { organizationId: organizationId!, id, name }),
     )
@@ -86,7 +103,8 @@ function useTaskLists(): DataSource<TaskList[]> & {
   function renameTaskList(id: string, name: string) {
     return change(
       id,
-      () => setTaskLists(taskLists => taskLists.map(taskList => (taskList.id === id ? { ...taskList, name } : taskList))),
+      () =>
+        setTaskLists(taskLists => taskLists.map(taskList => (taskList.id === id ? { ...taskList, name } : taskList))),
       () => renameTaskListMutation(dataConnect, { organizationId: organizationId!, id, name }),
     )
   }

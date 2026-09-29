@@ -30,7 +30,9 @@ const INVITATION_ID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{
   before, it would fail, and the page would offer to try again something that cannot succeed.
   The page asks them to confirm their address instead
 */
-function useOrganizationInvitation(invitationId: string): DataSource<OrganizationInvitation | null> & { hasFailed: boolean } {
+function useOrganizationInvitation(
+  invitationId: string,
+): DataSource<OrganizationInvitation | null> & { hasFailed: boolean } {
   const { data: viewer, emailVerified } = useAuthentication()
 
   // Null until somebody may read: signed in, with a verified address

@@ -3,9 +3,7 @@ import { render } from 'react-email'
 
 // html-to-text capitalizes headings by default, which in a plain-text email reads as shouting
 const PLAIN_TEXT_OPTIONS = {
-  selectors: [
-    { selector: 'h1', options: { uppercase: false } },
-  ],
+  selectors: [{ selector: 'h1', options: { uppercase: false } }],
 }
 
 /*

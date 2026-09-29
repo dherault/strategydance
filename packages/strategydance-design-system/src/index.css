@@ -5,12 +5,12 @@
   The design adds two brand scales, three status colours and two typefaces. Everything else,
   spacing, type scale, radius, shadow and motion, is Tailwind's default theme, used as is
 */
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter/opsz.css";
-@import "@fontsource-variable/inter/opsz-italic.css";
-@import "@fontsource-variable/oswald";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter/opsz.css';
+@import '@fontsource-variable/inter/opsz-italic.css';
+@import '@fontsource-variable/oswald';
 
 /*
   Nothing toggles this, and the design has no dark palette. The variant is declared so that a
@@ -19,8 +19,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-display: "Oswald Variable", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-display: 'Oswald Variable', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
 
   /* Primary, the action and brand colour, derived around #0051A3 at 700 */
   --color-primary-50: #eef5fc;

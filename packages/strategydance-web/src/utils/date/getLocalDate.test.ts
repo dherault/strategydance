@@ -30,8 +30,7 @@ describe('getLocalDate', () => {
 
       process.env.TZ = 'America/New_York'
       expect(getLocalDate(instant)).toBe('2026-09-28')
-    }
-    finally {
+    } finally {
       process.env.TZ = previous
     }
   })

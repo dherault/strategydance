@@ -21,7 +21,7 @@ export type UserOrganizationsContextType = DataSource<UserOrganization[]> & {
   // a list that could not be read back is `isRead: false`, to be read again with `refetch` rather
   // than created again. Selecting is deliberately not done here: this context does not know what
   // is selected
-  createOrganization: (name: string, brief: string | null) => Promise<{ organizationId: string, isRead: boolean }>
+  createOrganization: (name: string, brief: string | null) => Promise<{ organizationId: string; isRead: boolean }>
   // Accepts an invitation to the organization, and resolves once the list shows the membership
   joinOrganization: (invitationId: string, organizationId: string) => Promise<void>
   // Adds an aspect to the organization's explored ones, and resolves once the list shows it

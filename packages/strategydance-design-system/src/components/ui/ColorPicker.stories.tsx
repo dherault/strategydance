@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { type ComponentProps, useState } from 'react'
-
 import { ColorPicker } from 'strategydance-design-system/components/ui/ColorPicker'
 
 // The picker is controlled, so each story holds its color in state
-function ColorPickerDemo(props: Omit<ComponentProps<typeof ColorPicker>, 'value' | 'onChange'> & { initialValue?: string }) {
+function ColorPickerDemo(
+  props: Omit<ComponentProps<typeof ColorPicker>, 'value' | 'onChange'> & { initialValue?: string },
+) {
   const { initialValue = '#0051A3', ...rest } = props
   const [value, setValue] = useState(initialValue)
 
@@ -83,7 +84,7 @@ export const Below: Story = {
 export const WithHint: Story = {
   args: {
     value: '#E11D48',
-    hint: 'Fills your organization\'s mark wherever it has no logo.',
+    hint: "Fills your organization's mark wherever it has no logo.",
   },
 }
 

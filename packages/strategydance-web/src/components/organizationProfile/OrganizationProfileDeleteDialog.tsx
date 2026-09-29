@@ -51,8 +51,7 @@ function OrganizationProfileDeleteDialog({ organizationId, organizationName, onC
         method: 'DELETE',
         path: `/organizations/${organizationId}`,
       })
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to delete the organization', error)
 
       toast.error(formatMessage(organizationProfileMessages.deleteError))
@@ -78,9 +77,7 @@ function OrganizationProfileDeleteDialog({ organizationId, organizationName, onC
         className="sm:max-w-[420px]"
       >
         <DialogHeader>
-          <DialogTitle>
-            {formatMessage(organizationProfileMessages.deleteOrganization)}
-          </DialogTitle>
+          <DialogTitle>{formatMessage(organizationProfileMessages.deleteOrganization)}</DialogTitle>
           <DialogDescription>
             {formatMessage(organizationProfileMessages.deleteDescription, { organizationName })}
           </DialogDescription>

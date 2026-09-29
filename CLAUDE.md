@@ -2,6 +2,14 @@
 
 Guidance for Claude Code when working in this repository.
 
+**Every change to a tracked file ships without asking.** It is made in its own worktree,
+committed granularly as each piece passes CI's checks, pushed, opened as a pull request into
+`dev` and taken through the Copilot review loop, until all that is left for a human is the
+merge. That is the person's standing request in every session, so never ask whether to commit,
+push, open the pull request or address the review. [Workflow](#workflow) says how.
+
+`AGENTS.md` is a symlink to this file: edit `CLAUDE.md` only.
+
 ## Stack
 
 A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
@@ -18,8 +26,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them. See below
-- `packages/strategydance-design-system` — the component library: shadcn on Radix, Tailwind
-  CSS v4, documented in Storybook. It imports itself by its package name,
+- `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
+  UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. It imports itself by its package name,
   `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
   component resolves the same when another package reads it as source. Its tokens and components
   are ported from the Strategy Dance Design System project in Claude Design and keep that
@@ -29,7 +37,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   catalogues. Node-only: never import it from the frontend
 - `packages/strategydance-emails` — the transactional emails, as
   [React Email](https://react.email) templates. Node-only: the backend renders them. See below
-- [oxlint](https://oxc.rs) for linting, configured in `.oxlintrc.json`
+- [oxlint](https://oxc.rs) for linting and oxfmt, from the same project, for formatting, configured
+  in `.oxlintrc.json` and `.oxfmtrc.json`. See [Linting and formatting](#linting-and-formatting)
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
   `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, in its
@@ -49,16 +58,24 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
-| `bun run lint` | oxlint across the repo |
+| `bun run lint` | oxlint across the repo, then oxfmt's check. A warning fails it, and so does an unformatted file |
+| `bun run lint:fix` / `format` | Applies oxlint's safe fixes, then formats; or only formats |
 | `bun run typecheck` | `tsc` across the packages |
 | `bun run test` | `bun test` across the packages, each file in a fresh global so a `mock.module` stays in the file that made it |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
+| `bun run review <command>` | The GitHub calls of the Copilot review loop: `count`, `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [Copilot review loop](#copilot-review-loop) |
 | `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`. Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
-Run lint, typecheck and build before every commit — the husky pre-commit hook only lints.
+**CI's definition of green** is the pull request check: `bun run lint && bun run typecheck &&
+bun run test && bun run build` from the root. Run those four before every commit, since the
+husky `pre-commit` hook only lints.
+
+**The `deploy:*` scripts are run by humans only.** A merge into `main` deploys the release by
+itself, and a migration that stops it waits for a human to read its SQL, as
+[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says.
 
 Two things are generated and never edited by hand.
 `packages/strategydance-web/src/routeTree.gen.ts` is written by the TanStack Router plugin on
@@ -66,6 +83,42 @@ dev and build, and is committed because `tsc` needs it.
 `packages/strategydance-database/generated/` is written by the Firebase CLI on `postinstall`,
 and is **not** committed: generating it needs neither credentials nor a network, so a clone
 produces its own. That is why `firebase-tools` is a devDependency.
+
+### Linting and formatting
+
+oxlint lints and oxfmt formats, from one root `.oxlintrc.json` and one root `.oxfmtrc.json`, as
+in sunshine. `bun run lint` checks both, so an unformatted file fails CI and the husky
+`pre-commit` hook as a lint error does, and so do a warning and a disable directive that no
+longer suppresses anything. `bun run lint:fix` applies oxlint's safe fixes and then formats, but
+stops before formatting when an error it cannot fix remains; `bun run format` formats on its
+own. A PostToolUse hook does the same to every file Claude Code edits, `oxlint --fix` on a
+`.ts`/`.tsx` under `packages/` and then oxfmt on anything in the repo it formats. A Stop hook
+typechecks every package when a turn ends, and VS Code formats on save through the oxc
+extension.
+
+- **Keep it to one config.** A nested `.oxlintrc.json` replaces the root one for its directory
+  rather than extending it, so it would silently drop every rule. A package-specific rule goes
+  in the root config's `overrides`
+- **The formatter owns layout**: two spaces, single quotes, no semicolons, one JSX prop per
+  line, 120 columns. The order of the classes in a `className` is still kept by hand: oxfmt's
+  Tailwind sorting would replace the semantic order this code follows with Tailwind's official
+  one
+- **So is import order.** Imports sort into the groups `.oxfmtrc.json` lists, one per alias; an
+  import no group matches sorts into `rest`, after all of them, so a new `~` alias needs a group
+  of its own there. A `/// <reference>` directive moves with the import below it, and
+  TypeScript ignores one that is not at the top of the file: keep it above the import that
+  sorts first
+- **Markdown and HTML are not formatted**, nor are the files a generator writes
+  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock),
+  whose next run would rewrite them anyway. The schema and the connectors are formatted, and
+  generate the same SDK
+- **An unused import is an error that `--fix` does not remove**: oxlint files that fix as
+  dangerous. An import written before the code that uses it survives the edit hook and is only
+  reported
+- A suppression is `// oxlint-disable-next-line <rule>` under oxlint's rule names
+  (`react/exhaustive-deps`, not `react-hooks/exhaustive-deps`), and it covers the line below it
+  as formatted, which is not always where it was written once the formatter wraps a long
+  statement
 
 ## Frontend conventions
 
@@ -128,6 +181,13 @@ Strings stay in the frontend's catalogues. A design-system component that names 
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
 it: `~components/common/Spinner` is the design system's spinner with that label.
 
+shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
+its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer
+events and hides from assistive technology everything outside itself, and dismisses on any Escape
+that reaches the document. The `MultiSelect` portals its list into the dialog around its trigger
+and claims Escape while the list is open. A Base UI popup added later needs both, and a story
+inside a `Dialog` to show it works there.
+
 ### Static files
 
 `packages/strategydance-web/public/` is served as-is from the site root, unhashed. Images go
@@ -174,6 +234,14 @@ a token; nothing rejects a request without one until enforcement is switched on 
 That matters most for the sign-in screen's `@auth(level: PUBLIC)` email lookup, which
 enumerates registered addresses to any direct caller until it is. Switch it on for Data
 Connect and Storage before the project is reachable from the internet.
+
+**Storage lets another origin read a file only as `storage.cors.json` allows.** A browser shows
+an `<img>` from Storage without it, but reading the bytes, as the build in public page does to
+draw a card as a PNG, takes the bucket's CORS rule. It is a setting on the bucket, which no
+deploy sends: after changing the file, run `gcloud storage buckets update
+gs://strategydance.firebasestorage.app --cors-file=storage.cors.json` as an account that may
+change the bucket. A preview channel's origin is not listed, so an export there draws initials
+where the pictures were. The Storage emulator applies no rule, so development never needs it.
 
 ### The database
 
@@ -238,6 +306,16 @@ failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With
 a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
 the read fails, and its mount retries it, forever.
 
+The build in public page counts a member's streak from `ActivityDay` rows: one per member,
+organization and day on which they changed their own Today data, their top priority, a task
+list or task, their checklist or their log. The day is the one the change was made on, never
+the day it was about, and `RecordActivity` holds it to the caller's today. The mutations that
+make those changes do not write the row themselves, since each would need a `$date` it has no
+other use for, a breaking connector change: the web app calls `recordActivity` once one goes
+through, from the `change` helpers of `useTaskLists`, `useTasks` and `useChecklist` and from the
+components that set a priority or write the log. A new way to change Today data calls it too, or
+the days it is used on go uncounted.
+
 ### Routing
 
 The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the
@@ -249,6 +327,12 @@ aspects are under `/aspects/`, where the public `/legal` cannot hide the Legal a
 No path prefix marks a page as authenticated, so code that needs to know asks the question it
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
 screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
+
+An address nothing matches, and a `notFound()` any page throws, render `NotFound` full screen:
+it is the root's `notFoundComponent`, and no other route sets one. The root stays mounted as the
+boundary and shows it in its outlet, so its strings live in `global`, the one catalogue the root
+registers. A route that sets a `notFoundComponent` of its own catches its pages before the root
+does.
 
 The area used to live under `/-/`, and invitation emails sent then still link there, so
 `firebase.json` redirects `/-/<path>` to `/<path>` with a 301. It is a `regex` rather than a
@@ -357,98 +441,231 @@ on the backend's side.
 
 ## Workflow
 
-### Granular commits
+**This section is the person's own request, standing in every session.** Any task that changes a
+tracked file, however small, goes worktree → granular commits → push → pull request into `dev` →
+Copilot review loop → handed to a human, in one go, without stopping to ask. "Should I commit?",
+"Want me to open a pull request?" and "Shall I address the review?" all have the answer yes, and
+a turn that ends on one of them has failed: the person then has to come back and say what this
+section already says. Work is finished when its pull request is green, reviewed and waiting for
+a human, not when the code is written.
 
-One logical change per commit, each self-contained and passing lint, typecheck and build on
-its own. A dependency bump, a refactor and a feature are three commits, not one.
+It does not apply to a task that changes nothing tracked, such as a question, an investigation
+or a review. It gives way when the person says otherwise for the task at hand ("don't commit",
+"just try it", "only look"). And three things stay a human's call whatever the task: merging a
+pull request, the release to `main` (both below), and the `deploy:*` scripts (see Commands).
 
-Write subjects in the imperative mood, saying what the change does rather than which files it
-touches.
+A turn ends in one of two ways only: the pull request is handed over (the last step below), or
+the work is blocked on something only the person can supply, such as a credential, a product
+decision a review raised, or a check that fails for a reason outside the change. Anything else
+is a reason to keep going.
 
-### Branch off `dev`
+This section reads the same in sunshine and strategydance, apart from each repository's
+commands, and `scripts/copilotReview.sh` and `scripts/ship.sh` are the same file in both. An
+improvement to one goes to the other.
 
-`dev` is the integration branch: every pull request starts from it and goes back into it.
-Never commit to `dev` or `main` directly, and never leave a branch with commits but no pull
-request. Work is finished when its pull request is reviewed, green and waiting for a human —
-not when the code is written.
+### Work in a worktree
+
+Create the worktree **before the first edit**, and do every edit, test, commit and push in it.
+Never edit, switch branches or commit in the main checkout, unless the person asks for a
+checkout there (below): other sessions are running in it at the same time, the person's dev
+servers serve it, and a `git switch` there changes the ground under all of them.
 
 ```sh
-git switch dev && git pull --ff-only
-git switch -c <branch>
-# commit, then:
-gh pr create --base dev
+git fetch origin dev
+git worktree add --no-track -b <branch> .claude/worktrees/<branch> origin/dev
+cd .claude/worktrees/<branch>
+bun install --frozen-lockfile  # its postinstall generates the Data Connect SDK
+ln -s <main checkout>/packages/strategydance-translations/.env packages/strategydance-translations/.env  # if the main checkout has one
 ```
 
-`--base dev` is not optional: the repository's default base branch is `main`.
+- Branch from a freshly fetched `origin/dev`, not from local `dev`, which is only as recent as
+  the last pull in the main checkout, and the main checkout may not even have `dev` checked out.
+  `--no-track` keeps the branch from tracking `origin/dev`: the first `git push -u origin HEAD`
+  gives it its own upstream
+- Claude Code's `EnterWorktree` creates its worktree from `origin/main`, the repository's
+  default branch, which lags `dev`. Create the worktree with the commands above and pass its
+  `path` to `EnterWorktree`
+- The translations `.env` is gitignored, so a new worktree has none, and `bun run translate`
+  needs its key. A link rather than a copy, so a rotated key reaches every worktree
+- When what should ship is uncommitted work already sitting in the main checkout, copy it across
+  rather than committing it there: `git -C <main checkout> diff HEAD | git apply` from the
+  worktree, plus any untracked files by hand. Leave the original for the person to discard
+- The person's stack usually holds ports 5173 and 3003 from the main checkout, and other
+  sessions run worktree servers of their own. To look at the worktree's frontend, start it on
+  the first port from 5174 that nothing listens on (`lsof -nP -iTCP:<port> -sTCP:LISTEN` prints
+  nothing): `bunx vite --port <port> --strictPort` from its `packages/strategydance-web`. The
+  development backend accepts any origin. Aim a browser or a script at that port and no other,
+  since one left on a port another session took tests that session's branch without a word
+- Keep the worktree until the pull request merges, since the review rounds are fixed in it, then
+  `git worktree remove .claude/worktrees/<branch>`
+
+**A checkout in the main checkout, when the person asks for one.** This is the one exception to
+the rule above, typically so they can try a branch on the stack they already run there ("check
+it out", "put it on my checkout"). Only their request counts, never your own convenience:
+
+- The main checkout must be clean first (`git -C <main checkout> status --porcelain` prints
+  nothing). When it is not, say what is there and stop. Never stash it, since the stash stack is
+  shared by every worktree and session, and never discard it
+- Note the branch it is on before the switch and tell the person, so it can be put back. Put it
+  back only when they ask
+- Check the branch out **detached**: `git -C <main checkout> switch --detach <branch>`. A plain
+  `git switch <branch>` fails with "already used by worktree", because git lets a branch be
+  checked out in one place at a time, and the worktree keeps it on purpose: the review rounds
+  are still committed there. After pushing a round's fixes, run the same command again to bring
+  the main checkout along, as long as it is still clean and still on the branch's previous
+  commit
+- When the person wants the branch itself there, to commit on it themselves, the worktree lets
+  go first (`git switch --detach` inside it), then `git -C <main checkout> switch <branch>`. The
+  branch's remaining work, review rounds included, then happens in the main checkout, where they
+  put it. Never use `--ignore-other-worktrees`: with one branch checked out twice, a commit in
+  either leaves the other's files behind, and the stale one then shows that commit reversed as
+  staged changes
+- The switch moves the code, not what is built from it. Run `bun install --frozen-lockfile`
+  there when the branch changed dependencies or the database package, whose SDK its postinstall
+  regenerates: an install that is not frozen can rewrite `bun.lock`, which leaves the checkout
+  dirty and stops the next refresh
+- The Data Connect emulator watches the main checkout's `schema.gql` and connectors, and
+  migrates the moment they change on disk, dropping every table it cannot migrate additively.
+  Before a switch that changes the database package, check whether it runs (`lsof -nP -iTCP:9399
+  -sTCP:LISTEN`). When it does, say so and let the person stop it, or export its data first
+  (`bunx firebase emulators:export ./firebase-export-<date>-backup`)
+
+`dev` is the integration branch: every pull request starts from it and goes back into it. The
+one exception is the release that takes `dev` to `main`, which is a human's call (see below).
+Never commit to `dev` or `main` directly, and never leave a branch with commits but no pull
+request.
+
+### Commit as you go
+
+One logical change per commit, each self-contained and passing `bun run lint && bun run
+typecheck && bun run test && bun run build` on its own. A dependency bump, a refactor and a
+feature are three commits, not one.
+
+Commit each piece as soon as it passes, without asking and without waiting for the rest of the
+task. When a message changed, `bun run translate` runs before those checks (see
+Internationalization), and the locale files and the lock go in the commit with the message.
+
+Stage by path (`git add <path>…`), never `git add -A` or `git add .`, and read `git status
+--short` before each commit. The Firebase CLI and its emulators write untracked files into the
+tree at unpredictable moments, and an unexpected path belongs in `.gitignore`, not in a commit.
+
+Write subjects in the imperative mood, saying what the change does rather than which files it
+touches. A husky `commit-msg` hook (`scripts/prefixCommit.ts`) prepends a scope derived from the
+staged paths: `[web]`, `[backend]`, `[core]`, `[database]`, `[design-system]`, `[translations]`,
+`[emails]`, or `[root]` when the change spans more than one. **Write the message without a
+prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong one
+sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
+within one package where it is natural.
+
+### Open the pull request
+
+As soon as the code part is committed, push and open the pull request, in the same turn:
+
+```sh
+git push -u origin HEAD
+gh pr create --base dev --title '<what the change does>' --body-file - << 'EOF'
+<what changed and why, and how it was verified>
+EOF
+```
+
+`--base dev` is not optional: the repository's default branch is `main`, and a pull request into
+`main` deploys to production the moment it merges.
+
+Never open a pull request as a draft. The `dev` ruleset has Copilot skip drafts, so no review
+would ever arrive and the wait in the loop below would never end.
+
+GitHub deletes a branch once its pull request merges. `git fetch --prune` drops the
+remote-tracking ref it leaves behind.
+
+The person merges when they choose, sometimes while a session is still working on the branch.
+Before every push to a pull request's branch, and before editing its description, check that it
+is still open with `bun run review open <number>`, chained in front: `bun run review open
+<number> && git push`. It fails and names the state unless the pull request is open, where `gh
+pr view` succeeds whatever the state and would let the push through. A push after the merge
+re-creates the branch GitHub deleted, with no pull request to carry it: when it says `MERGED`,
+open a new pull request from the same branch for what `git log origin/dev..HEAD` lists. When it
+says `CLOSED`, somebody closed it on purpose, so stop and ask the person rather than pushing,
+reopening it or opening another.
 
 ### Copilot review loop
 
 1. **Never request a review.** The repository requests one automatically, on the pull request
-   and on every push to it. Requesting by hand races that: `gh pr edit <number>
-   --add-reviewer @copilot` exits 0 and requests nothing anyway, because resolving `@copilot`
-   needs a `read:project` scope this token lacks and gh swallows the partial GraphQL error,
-   and the `requestReviews` mutation that does work only adds a duplicate.
+   and on every push to it. Requesting by hand races that: `gh pr edit <number> --add-reviewer
+   @copilot` exits 0 and requests nothing anyway, because resolving `@copilot` needs a
+   `read:project` scope this token lacks and gh swallows the partial GraphQL error, and the
+   `requestReviews` mutation that does work only adds a duplicate.
 
-   Wait for the review to land instead. Count reviews *by Copilot with a non-empty body*:
-   every reply posted to a thread creates a review record with an empty one, so a bare count
-   climbs without a review having happened.
+   Wait for the review to land instead. `bun run review` (`scripts/copilotReview.sh`) holds
+   every GitHub call of this loop: it has to be a script, because a session inside a worktree
+   refuses a `gh` call nested in `$(…)` or in a shell loop, which a wait is. What it counts is
+   reviews *by Copilot with a non-empty body*; the script says why each part of that matters.
 
    ```sh
-   gh api repos/dherault/strategydance/pulls/<number>/reviews \
-     --jq '[.[] | select(.user.login | test("copilot")) | select(.body | length > 0)] | length'
+   bun run review count <number>             # the baseline, read before the push that asks for a review
+   bun run review wait <number> <baseline>   # returns once the count passes it
    ```
-2. Wait for CI and fix whatever fails.
-3. Answer every Copilot comment, either with an edit that addresses it or a reply explaining
-   why it does not apply. Never ignore one, and never resolve one without replying first.
 
-   Then resolve the thread, so the next round shows only what is still open. `gh` has no
-   command for it, so it is GraphQL:
+   The baseline is 0 for a pull request just opened. Never read it after `gh pr create`: the
+   opening review may already be in it, and the wait then holds out for one that never comes.
+   **Wait in the foreground, inside the same turn**. Nothing else is waiting on you, and a turn
+   that ends on "I will pick it up when it lands" leaves the person to come back and tell you it
+   has. A review takes a few minutes. The wait gives up after nine minutes, inside the shell's
+   ten-minute cap, with exit status 75 and a message: run the same command again, as many times
+   as it takes.
+2. Wait for CI (`gh pr checks <number> --watch`) and fix whatever fails. Its job, `ci` in
+   `.github/workflows/check-pull-request.yml`, is a required check on `main`.
+3. Answer every Copilot comment, either with an edit that addresses it or a reply explaining why
+   it does not apply. Never ignore one, and never resolve one without replying first.
+
+   Reply on the thread, then resolve it, so the next round shows only what is still open. `gh`
+   has no command for either, so the script does both over GraphQL, keyed by the thread id:
 
    ```sh
-   # Thread ids, with the first comment of each so you can tell them apart
-   gh api graphql -f query='query($owner:String!,$name:String!,$pr:Int!){repository(owner:$owner,name:$name){pullRequest(number:$pr){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{path body}}}}}}}'      -f owner=dherault -f name=strategydance -F pr=<number>
-
-   gh api graphql -f query='mutation($t:ID!){resolveReviewThread(input:{threadId:$t}){thread{isResolved}}}' -f t=<thread id>
+   bun run review threads <number>   # open threads: id, path, line and first comment, one JSON object each
+   bun run review reply <thread id> - << 'EOF'
+   <reply>
+   EOF
+   bun run review resolve <thread id>
    ```
 
    Reply first, resolve second: resolving hides the thread, and a reviewer who cannot see the
    answer reads it as the comment having been waved away.
 
-   All of this happens **before the push**, so the next automatic review reads the replies
-   along with the diff rather than re-raising what has already been answered. Citing a commit
-   that exists only locally is fine: it will be pushed before anybody follows it.
+   Read the review's body too (`bun run review body <number>`), not only its threads. Copilot
+   lists findings there under *Previously missed*, against lines the round's diff did not touch,
+   and those have no thread to reply on. Handle them the same way and answer them in one pull
+   request comment (`gh pr comment <number>`).
+
+   All of this happens **before the push**, so the next automatic review reads the replies along
+   with the diff rather than re-raising what has already been answered. Citing a commit that
+   exists only locally is fine: it will be pushed before anybody follows it.
 4. Commit the fixes, granularly, without pushing yet.
-5. Push, which is what asks for the next round. Do not push while a review is in flight:
-   land the round you have, answer it, then push its fixes as one batch. Pushing mid-round
-   gets you overlapping reviews of different heads, and findings against code you have
-   already replaced.
-6. Repeat from step 2 until a round comes back with nothing but nitpicks or praise.
+5. Read the count (`bun run review count <number>`), then push behind the open check (above),
+   which is what asks for the next round. That count is the baseline the next wait has to pass.
+   Do not push while a review is in flight: land the round you have, answer it, then push its
+   fixes as one batch. Pushing mid-round gets you overlapping reviews of different heads, and
+   findings against code you have already replaced.
+6. Repeat from step 1, with the count from before this push as the one to pass, until a round
+   comes back with nothing but nitpicks or praise. Step 1, not step 2: CI can finish before the
+   new review exists, and answering the threads at that point answers the old round again.
 
 ### Hand the pull request to a human
 
-Never merge a pull request — that is a human decision, taken on GitHub after a human
-approval. Once CI is green and review is clean, say so, link the pull request and stop there.
+Never merge a pull request: that is a human decision, taken on GitHub after a human approval.
+Once CI is green and review is clean, say so, link the pull request and stop there.
 
-Humans merge with a merge commit, not a squash: the granular commits are the point, and
-squashing collapses them into one.
+Humans merge with a merge commit, not a squash, and the repository allows nothing else: the
+granular commits are the point, and squashing collapses them into one.
 
 ### Ship `dev` to `main`
 
-`bun run ship` opens the release pull request, the one that takes everything sitting on `dev`
-to `main`. It is the only pull request nobody writes by hand: its title never varies and its
-body is the list of commits `main` has not seen yet, merges dropped, since a merge names the
-branch work arrived on and the commits under it say what the release does. A range holding
-nothing but merges lists those instead, rather than nothing.
-
-Running it twice is safe. `dev` is long lived, so the release pull request stays open while
-further work merges into it, and a second run prints its URL instead of failing.
-
-It compares `origin/dev` to `origin/main` rather than the local branches, since those are what
-GitHub will compare, and it refuses outright when the local `dev` is ahead of its remote: a
-commit that has not been pushed is a commit the pull request would leave behind. Pushing it is
-your call, not the script's.
-
-Merging it is a human decision like any other, and it deploys: see below.
+Taking `dev` to `main` is a release, and a human's call like any other merge, since it deploys
+everything, the database included (see below). `bun run ship` (`scripts/ship.sh`) opens the
+release pull request, titled "Ship dev to main", with the release's commits as its body. It is
+idempotent, reporting the open one rather than failing, since one release pull request stays
+open across several merges into `dev`, and it refuses to run while local `dev` has unpushed
+commits the release would leave behind. A human merges it. Nothing pushes to `main` directly:
+its ruleset accepts only a pull request.
 
 ### What a merge into `main` deploys
 
@@ -476,4 +693,10 @@ sends the SQL to a Data Connect endpoint that answers this service with a 404. T
 turns it off on every run.
 
 Pull requests still deploy a Hosting preview, with the one key the repository holds, which
-`firebase-hosting-pull-request.yml` explains.
+`firebase-hosting-pull-request.yml` explains. `delete-preview-channel.yml` deletes a pull
+request's channel when it closes, since Hosting caps the channels a site holds and a preview past
+the cap fails with a 429. Run by hand from the Actions tab, it deletes every channel but `live`,
+which is the way out once the quota is full. Both triggers run the copy on `main`, whatever a pull
+request's base: `pull_request_target` always runs the default branch's workflow, and GitHub
+offers a workflow to run by hand only once the default branch holds it. A change to it takes
+effect with the release, not with its merge into `dev`.

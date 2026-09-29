@@ -50,17 +50,21 @@ export const targetLocales = SUPPORTED_LOCALES.filter(locale => locale !== sourc
 export async function getMessageTypes(): Promise<MessageType[]> {
   const messagesDirectoryEntries = await fs.readdir(messagesDirectory)
 
-  return messagesDirectoryEntries
-    // Tests live next to the messages they cover, so a .test.ts is not a message type
-    .filter(messageFileName => messageFileName.endsWith('.ts') && !messageFileName.endsWith('.test.ts'))
-    .map(messageFileName => path.parse(messageFileName).name)
+  return (
+    messagesDirectoryEntries
+      // Tests live next to the messages they cover, so a .test.ts is not a message type
+      .filter(messageFileName => messageFileName.endsWith('.ts') && !messageFileName.endsWith('.test.ts'))
+      .map(messageFileName => path.parse(messageFileName).name)
+  )
 }
 
 export async function getMessagesInput(messageTypes: MessageType[]): Promise<MessagesInput> {
   const allMessages = {} as MessagesInput
 
   for (const messageType of messageTypes) {
-    const messages = await import(path.resolve(messagesDirectory, `${messageType}.ts`)).then(module => module.default) as SourceMessages
+    const messages = (await import(path.resolve(messagesDirectory, `${messageType}.ts`)).then(
+      module => module.default,
+    )) as SourceMessages
 
     allMessages[messageType] = messages
   }
@@ -90,7 +94,9 @@ export function collectSourceMessages(messagesInput: MessagesInput): SourceMessa
       const previousMessageType = seenIds.get(descriptor.id)
 
       if (previousMessageType) {
-        throw new Error(`Duplicate message id "${descriptor.id}" in both ${previousMessageType}.ts and ${messageType}.ts`)
+        throw new Error(
+          `Duplicate message id "${descriptor.id}" in both ${previousMessageType}.ts and ${messageType}.ts`,
+        )
       }
 
       seenIds.set(descriptor.id, messageType)
@@ -117,38 +123,43 @@ export async function prepareOutputDirectories() {
   }
 }
 
-export async function loadExistingTranslations(locale: Locale, messageTypes: MessageType[]): Promise<DestinationMessages> {
+export async function loadExistingTranslations(
+  locale: Locale,
+  messageTypes: MessageType[],
+): Promise<DestinationMessages> {
   const result = {} as DestinationMessages
 
-  await Promise.all(messageTypes.map(async messageType => {
-    const filePath = path.resolve(localesDirectory, `${locale}/${messageType}.json`)
+  await Promise.all(
+    messageTypes.map(async messageType => {
+      const filePath = path.resolve(localesDirectory, `${locale}/${messageType}.json`)
 
-    try {
-      const content = await fs.readFile(filePath, 'utf-8')
+      try {
+        const content = await fs.readFile(filePath, 'utf-8')
 
-      result[messageType] = JSON.parse(content) as FlatMessages
-    }
-    catch (error) {
-      // A message type a locale has never been translated for has no file yet, and that is the
-      // normal state for a newly added catalogue. A damaged one is not: read as empty it would be
-      // re-sent to the model in full and then overwritten, losing whatever was recoverable
-      if (!isFileNotFound(error)) throw error
+        result[messageType] = JSON.parse(content) as FlatMessages
+      } catch (error) {
+        // A message type a locale has never been translated for has no file yet, and that is the
+        // normal state for a newly added catalogue. A damaged one is not: read as empty it would be
+        // re-sent to the model in full and then overwritten, losing whatever was recoverable
+        if (!isFileNotFound(error)) throw error
 
-      result[messageType] = {}
-    }
-  }))
+        result[messageType] = {}
+      }
+    }),
+  )
 
   return result
 }
 
 export async function writeLocaleMessages(locale: Locale, destinationMessages: DestinationMessages) {
-  await Promise.all(Object.entries(destinationMessages).map(async ([messageType, flatMessages]) => {
-    const outputPath = path.resolve(localesDirectory, `${locale}/${messageType}.json`)
-    const orderedOutput = Object.fromEntries(
-      Object.entries(flatMessages)
-        .sort(([idA], [idB]) => compareKeys(idA, idB)),
-    )
+  await Promise.all(
+    Object.entries(destinationMessages).map(async ([messageType, flatMessages]) => {
+      const outputPath = path.resolve(localesDirectory, `${locale}/${messageType}.json`)
+      const orderedOutput = Object.fromEntries(
+        Object.entries(flatMessages).sort(([idA], [idB]) => compareKeys(idA, idB)),
+      )
 
-    await fs.writeFile(outputPath, `${JSON.stringify(orderedOutput, null, 2)}\n`, 'utf-8')
-  }))
+      await fs.writeFile(outputPath, `${JSON.stringify(orderedOutput, null, 2)}\n`, 'utf-8')
+    }),
+  )
 }

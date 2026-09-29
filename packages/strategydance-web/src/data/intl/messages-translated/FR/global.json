@@ -1,9 +1,12 @@
 {
   "global.closeNotification": "Fermer la notification",
+  "global.goHome": "Retourner à l'accueil",
   "global.hidePassword": "Masquer le mot de passe",
   "global.language": "Langue",
   "global.loading": "Chargement",
   "global.logOut": "Se déconnecter",
+  "global.notFoundLead": "Il n'y a rien à cette adresse. Le lien est peut-être rompu ou la page a peut-être été déplacée.",
+  "global.notFoundTitle": "Page introuvable",
   "global.notifications": "Notifications",
   "global.organizationsLoadError": "Impossible de charger vos organisations. Vérifiez votre connexion et réessayez.",
   "global.retry": "Réessayer",

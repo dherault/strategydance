@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Checkbox } from 'strategydance-design-system/components/ui/Checkbox'
 
 const meta = {

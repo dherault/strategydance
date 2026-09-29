@@ -13,7 +13,6 @@ import {
 import type { OrganizationDetails } from '~types'
 
 import type { UserOrganizationsContextType } from '~contexts/UserOrganizationsContext'
-
 import UserOrganizationsContext from '~contexts/UserOrganizationsContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
@@ -41,7 +40,13 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     `enabled` keeps it from running for a signed out reader, whose token the `@auth(level: USER)`
     operation would refuse anyway
   */
-  const { data, isPending, isFetching, isError, refetch: refetchUserOrganizations } = useGetCurrentUserOrganizations(dataConnect, {
+  const {
+    data,
+    isPending,
+    isFetching,
+    isError,
+    refetch: refetchUserOrganizations,
+  } = useGetCurrentUserOrganizations(dataConnect, {
     queryKey: ['GetCurrentUserOrganizations', viewerId],
     enabled: Boolean(viewerId),
   })
@@ -51,7 +56,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   const { mutateAsync: acceptInvitationMutation } = useAcceptOrganizationInvitation(dataConnect)
   const { mutateAsync: updateOrganizationMutation } = useUpdateOrganization(dataConnect)
 
-  const userOrganizations = viewerId ? data?.userOrganizations ?? [] : []
+  const userOrganizations = viewerId ? (data?.userOrganizations ?? []) : []
 
   /*
     The two halves of `DataSource` mean different things, so they are read off different flags:
@@ -97,8 +102,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
       const isRead = !!refetched?.userOrganizations.some(({ organization: { id } }) => id === organization.id)
 
       return { organizationId: organization.id, isRead }
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to read the memberships back after creating an organization', error)
 
       return { organizationId: organization.id, isRead: false }
@@ -134,7 +138,8 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     let memberships = userOrganizations
 
     for (let attempt = 1; ; attempt++) {
-      const exploredAspects = memberships.find(({ organization }) => organization.id === organizationId)?.organization.exploredAspects ?? []
+      const exploredAspects =
+        memberships.find(({ organization }) => organization.id === organizationId)?.organization.exploredAspects ?? []
 
       if (exploredAspects.includes(aspect)) return
 
@@ -147,8 +152,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
         await refetchUserOrganizations({ throwOnError: true })
 
         return
-      }
-      catch (error) {
+      } catch (error) {
         if (attempt >= 3) throw error
 
         const { data: refetched } = await refetchUserOrganizations({ throwOnError: true })
@@ -175,7 +179,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   /*
     Makes a picture an organization's logo or banner, or removes it, through the backend: only an
     administrator may, which a Storage rule cannot check. Resolves once the list shows the new URL,
-    so the profile page can drop its preview without the old picture flashing back in between
+    so the profile page's dialog closes onto the new picture rather than the old one
   */
   async function changeOrganizationImage(organizationId: string, kind: OrganizationImageKind, image: Blob | null) {
     await requestApi<ChangeOrganizationImageData>({
@@ -194,10 +198,14 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     an organization that is gone meanwhile. The read is what catches anything else that changed
   */
   async function forgetOrganization(organizationId: string) {
-    queryClient.setQueryData<GetCurrentUserOrganizationsData>(['GetCurrentUserOrganizations', viewerId], cached => cached && {
-      ...cached,
-      userOrganizations: cached.userOrganizations.filter(({ organization }) => organization.id !== organizationId),
-    })
+    queryClient.setQueryData<GetCurrentUserOrganizationsData>(
+      ['GetCurrentUserOrganizations', viewerId],
+      cached =>
+        cached && {
+          ...cached,
+          userOrganizations: cached.userOrganizations.filter(({ organization }) => organization.id !== organizationId),
+        },
+    )
 
     await refetchUserOrganizations()
   }
@@ -216,11 +224,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     forgetOrganization,
   }
 
-  return (
-    <UserOrganizationsContext.Provider value={contextValue}>
-      {children}
-    </UserOrganizationsContext.Provider>
-  )
+  return <UserOrganizationsContext.Provider value={contextValue}>{children}</UserOrganizationsContext.Provider>
 }
 
 export default UserOrganizationsProvider

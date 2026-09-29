@@ -32,7 +32,10 @@ query GetCurrentUser @auth(level: USER) {
 # It returns the providers and nothing else. The row's existence is inherent to the question,
 # so nothing is gained by leaking a name or an id alongside it
 query GetAuthenticationProvidersByEmail($email: String!)
-@auth(level: PUBLIC, insecureReason: "The sign-in screen has to know which button to offer before anybody has signed in.") {
+@auth(
+  level: PUBLIC
+  insecureReason: "The sign-in screen has to know which button to offer before anybody has signed in."
+) {
   users(where: { email: { eq: $email } }, limit: 1) {
     authenticationProviders
   }
@@ -64,6 +67,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       color
       brief
       isPublic
+      # When it was made, which the build in public page counts its days from
+      createdAt
     }
   }
 }
@@ -89,16 +94,66 @@ query GetCurrentUserOrganizations @auth(level: USER) {
 # strategydance-core), so neither list is ever cut short
 query GetOrganizationTeam($organizationId: UUID!)
 @auth(level: USER)
-@refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberRole", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "UpdateOrganizationMemberJobTitle", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "UpdateTopPriority", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "DeleteOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "DeclineOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "CreateOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "DeleteUnsentOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "DeleteOrganization", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateOrganizationMemberRole"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateOrganizationMemberJobTitle"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTopPriority"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganizationInvitation"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AcceptOrganizationInvitation"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeclineOrganizationInvitation"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateOrganizationInvitation"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteUnsentOrganizationInvitation"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
   userOrganizations(
     where: {
       organizationId: { eq: $organizationId }
@@ -181,7 +236,8 @@ query GetAdministrationUsers @auth(level: USER) {
   viewer: user(key: { id_expr: "auth.uid" })
     @redact
     @check(expr: "this != null", message: "Only an administrator of Strategy Dance can list every account") {
-    isAdministrator @check(expr: "this == true", message: "Only an administrator of Strategy Dance can list every account")
+    isAdministrator
+      @check(expr: "this == true", message: "Only an administrator of Strategy Dance can list every account")
   }
   users(
     # `id` breaks the tie between two accounts created in the same instant
@@ -214,7 +270,8 @@ query GetAdministrationOrganizations @auth(level: USER) {
   viewer: user(key: { id_expr: "auth.uid" })
     @redact
     @check(expr: "this != null", message: "Only an administrator of Strategy Dance can list every organization") {
-    isAdministrator @check(expr: "this == true", message: "Only an administrator of Strategy Dance can list every organization")
+    isAdministrator
+      @check(expr: "this == true", message: "Only an administrator of Strategy Dance can list every organization")
   }
   organizations(
     # `id` breaks the tie between two organizations created in the same instant
@@ -235,8 +292,9 @@ query GetAdministrationOrganizations @auth(level: USER) {
 }
 
 # The caller's task lists in an organization, in the order they made them, each with how many of
-# its tasks are still open, for the pill beside its name. Their own alone: keyed by the uid off the
-# token, and read only while they belong to the organization. A deleted list is left out.
+# its tasks are still open, for the pill beside its name. Keyed by the uid off the token, and read
+# only while they belong to the organization. A deleted list is left out. A teammate's are
+# `GetMemberTaskLists`.
 #
 # Read up to 100, `MAX_TASK_LISTS` in strategydance-core, which `CreateTaskList` holds them to. The
 # tasks themselves are read one list at a time, by `GetTasks`, since a list holds up to 1000
@@ -275,6 +333,103 @@ query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
       }
     }
     # Two tasks added at once can share a position, and then keep the order they were added in
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    text
+    isDone
+    position
+  }
+}
+
+# The caller's task lists in an organization as the build in public page draws them: each with how
+# many tasks it holds and how many are done, and the few tasks a card lists, the first ones, the
+# first done and the first still open, in their order. Counts rather than every task, so the page
+# reads at most 13 tasks a list whatever a list holds. Scoped as `GetTaskLists` is, and in its order
+query GetTaskListSummaries($organizationId: UUID!) @auth(level: USER) {
+  taskLists(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    allTasks: tasks_on_taskList {
+      _count
+    }
+    doneTasks: tasks_on_taskList(where: { isDone: { eq: true } }) {
+      _count
+    }
+    firstTasks: tasks_on_taskList(orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }], limit: 6) {
+      id
+      text
+      isDone
+    }
+    firstDoneTasks: tasks_on_taskList(
+      where: { isDone: { eq: true } }
+      orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+      limit: 3
+    ) {
+      id
+      text
+    }
+    firstOpenTasks: tasks_on_taskList(
+      where: { isDone: { eq: false } }
+      orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+      limit: 4
+    ) {
+      id
+      text
+    }
+  }
+}
+
+# Somebody's task lists in an organization, read only, for the Today page's picker: any member may
+# read any member's, and an outsider, or a member reading somebody who left, reads nothing. The
+# same lists `GetTaskLists` reads for their owner, in the same order and as many.
+#
+# The owner's own page keeps `GetTaskLists`, keyed by the token, rather than calling this with their
+# own uid: the deployed page calls it, and taking the owner as a variable would break it
+query GetMemberTaskLists($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  taskLists(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    name
+    openTasks: tasks_on_taskList(where: { isDone: { eq: false } }) {
+      _count
+    }
+  }
+}
+
+# One of somebody's task lists, its tasks in their order, read only. Scoped as `GetMemberTaskLists`
+# is, through the list, so an id that is not that member's reads nothing
+query GetMemberTasks($organizationId: UUID!, $userId: String!, $taskListId: UUID!) @auth(level: USER) {
+  tasks(
+    where: {
+      taskListId: { eq: $taskListId }
+      taskList: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+        user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+      }
+    }
     orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
     limit: 1000
   ) {
@@ -382,6 +537,31 @@ query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level:
   }
 }
 
+# The days the caller ticked each of their live checklist columns over the last year, for the build
+# in public page: its cards lay out a month, and a column's run counts back through the year. The
+# window is the server's today, so the query stays the same across the reader's midnight, as
+# `GetChecklist`'s does. At most 367 days a column, where `GetChecklistHistory` reads ten years
+query GetRecentChecklistTicks($organizationId: UUID!) @auth(level: USER) {
+  checklistItems(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 100
+  ) {
+    id
+    completions: checklistCompletions_on_checklistItem(
+      where: { date: { ge_date: { today: true, sub: { days: 366 } } } }
+      orderBy: [{ date: DESC }]
+      limit: 367
+    ) {
+      date
+    }
+  }
+}
+
 # A week of an organization's log, newest first, as the Today page's feed reads it: every entry
 # from `$from` to `$to` by somebody who is a member now. Outsiders read nothing. The authors' names
 # and pictures come from the team, which the page already holds live, so only their ids are read.
@@ -395,11 +575,36 @@ query GetChecklistHistory($organizationId: UUID!, $userId: String!) @auth(level:
 # again, and deleting the organization empties it
 query GetOrganizationLog($organizationId: UUID!, $from: Date!, $to: Date!)
 @auth(level: USER)
-@refresh(onMutationExecuted: { operation: "CreateLogEntry", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "UpdateLogEntry", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "RemoveOrganizationMember", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "AcceptOrganizationInvitation", condition: "mutation.variables.organizationId == request.variables.organizationId" })
-@refresh(onMutationExecuted: { operation: "DeleteOrganization", condition: "mutation.variables.organizationId == request.variables.organizationId" }) {
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateLogEntry"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateLogEntry"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AcceptOrganizationInvitation"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
   logEntries(
     where: {
       organizationId: { eq: $organizationId }
@@ -431,5 +636,68 @@ query GetOrganizationLog($organizationId: UUID!, $from: Date!, $to: Date!)
     limit: 1
   ) {
     date
+  }
+}
+
+# Every day the caller was active in an organization, newest first, for the streak the build in
+# public page counts: see `ActivityDay`. Keyed by the uid off the token, and read only while they
+# belong to the organization. Up to 3660 days, ten years, as `GetChecklistHistory` reads, past which
+# the best streak only looks that far back
+query GetActivityDays($organizationId: UUID!) @auth(level: USER) {
+  activityDays(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ date: DESC }]
+    limit: 3660
+  ) {
+    date
+  }
+}
+
+# The members of an organization who have written in its log, for the build in public page's
+# picker of whose log its cards show: their ids alone, since the entries are read one author at a
+# time, by `GetMemberLatestLogEntries`. Read only by a member, as `GetOrganizationLog` is
+query GetLogAuthors($organizationId: UUID!) @auth(level: USER) {
+  userOrganizations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { logEntries_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
+  ) {
+    user {
+      id
+    }
+  }
+}
+
+# One member's latest entries in an organization's log, newest first, for the build in public
+# page's log cards and recap: up to 30, as many as a picker lists, so what the page reads is bound
+# by one author whatever the team writes. Read only by a member, and only of a member now, as
+# `GetOrganizationLog` is
+query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  logEntries(
+    where: {
+      organizationId: { eq: $organizationId }
+      userId: { eq: $userId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ date: DESC }, { createdAt: DESC }]
+    limit: 30
+  ) {
+    id
+    date
+    content
+    createdAt
+    updatedAt
+    user {
+      id
+    }
   }
 }

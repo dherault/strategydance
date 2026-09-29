@@ -1,5 +1,4 @@
 import type { ComponentProps } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type Align = 'left' | 'center' | 'right'
@@ -28,7 +27,14 @@ type TableProps = ComponentProps<'table'> & {
   Density and striping are set once here and read by the rows and cells below through the named
   `table` group, so a cell never has to be told which table it sits in
 */
-function Table({ density = 'md', striped = false, bordered = true, containerClassName, className, ...props }: TableProps) {
+function Table({
+  density = 'md',
+  striped = false,
+  bordered = true,
+  containerClassName,
+  className,
+  ...props
+}: TableProps) {
   return (
     <div
       data-slot="table-container"
@@ -42,7 +48,10 @@ function Table({ density = 'md', striped = false, bordered = true, containerClas
         data-slot="table"
         data-density={density}
         data-striped={striped}
-        className={cn('group/table w-full caption-bottom border-collapse text-sm leading-[1.43] text-foreground', className)}
+        className={cn(
+          'group/table w-full caption-bottom border-collapse text-sm leading-[1.43] text-foreground',
+          className,
+        )}
         {...props}
       />
     </div>
@@ -159,13 +168,4 @@ function TableCaption({ className, ...props }: ComponentProps<'caption'>) {
   )
 }
 
-export {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-}
+export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow }

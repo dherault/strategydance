@@ -5,7 +5,8 @@ const accountMessages = defineMessages({
   eyebrow: {
     id: 'account.eyebrow',
     defaultMessage: 'Personal',
-    description: 'Small uppercase label above the title of the account page, saying the page is about the reader rather than their organization.',
+    description:
+      'Small uppercase label above the title of the account page, saying the page is about the reader rather than their organization.',
   },
   lead: {
     id: 'account.lead',
@@ -30,22 +31,23 @@ const accountMessages = defineMessages({
   profilePreview: {
     id: 'account.profilePreview',
     defaultMessage: 'Profile preview',
-    description: 'Accessible name of the panel on the profile tab that shows the reader\'s profile as others see it, read by screen readers.',
+    description:
+      "Accessible name of the panel on the profile tab that shows the reader's profile as others see it, read by screen readers.",
   },
   previewNameEmpty: {
     id: 'account.previewNameEmpty',
     defaultMessage: 'Your name',
-    description: 'Shown greyed in the profile preview in place of the reader\'s name while the name field is empty.',
+    description: "Shown greyed in the profile preview in place of the reader's name while the name field is empty.",
   },
   previewBioEmpty: {
     id: 'account.previewBioEmpty',
     defaultMessage: 'Add a short bio so your team and agents know what you focus on.',
-    description: 'Shown greyed in the profile preview in place of the reader\'s bio while the bio field is empty.',
+    description: "Shown greyed in the profile preview in place of the reader's bio while the bio field is empty.",
   },
   pictureLabel: {
     id: 'account.pictureLabel',
     defaultMessage: 'Profile picture',
-    description: 'Label above the buttons that upload, change or remove the reader\'s profile picture.',
+    description: "Label above the buttons that upload, change or remove the reader's profile picture.",
   },
   uploadPicture: {
     id: 'account.uploadPicture',
@@ -60,22 +62,25 @@ const accountMessages = defineMessages({
   pictureDialogDescription: {
     id: 'account.pictureDialogDescription',
     defaultMessage: 'Appears next to your name, for your team and agents.',
-    description: 'Description in the dialog for choosing the reader\'s profile picture. Agents are the product\'s AI assistants.',
+    description:
+      "Description in the dialog for choosing the reader's profile picture. Agents are the product's AI assistants.",
   },
   choosePicture: {
     id: 'account.choosePicture',
     defaultMessage: 'Choose a profile picture',
-    description: 'Accessible label of the area in the profile picture dialog that opens the file picker, or takes a file dragged onto it.',
+    description:
+      'Accessible label of the area in the profile picture dialog that opens the file picker, or takes a file dragged onto it.',
   },
   pictureDropPrompt: {
     id: 'account.pictureDropPrompt',
     defaultMessage: '<strong>Choose a file</strong> or drag it here',
-    description: 'Text inside the empty area of the profile picture dialog. The part in the strong tag is highlighted, since clicking the area opens the file picker.',
+    description:
+      'Text inside the empty area of the profile picture dialog. The part in the strong tag is highlighted, since clicking the area opens the file picker.',
   },
   picturePreviewAlt: {
     id: 'account.picturePreviewAlt',
     defaultMessage: 'Profile picture preview',
-    description: 'Alternative text of the chosen profile picture as the dialog previews it before it is applied.',
+    description: 'Alternative text of the profile picture as the dialog shows it, the saved one or one just chosen.',
   },
   pictureSquare: {
     id: 'account.pictureSquare',
@@ -85,27 +90,47 @@ const accountMessages = defineMessages({
   pictureMinimumSize: {
     id: 'account.pictureMinimumSize',
     defaultMessage: 'At least {width}×{height}px',
-    description: 'Hint under the picture in the profile picture dialog, its smallest recommended size in pixels, such as "At least 256×256px".',
+    description:
+      'Hint under the picture in the profile picture dialog, its smallest recommended size in pixels, such as "At least 256×256px".',
   },
   pictureMaximumSize: {
     id: 'account.pictureMaximumSize',
     defaultMessage: 'Up to {megabytes} MB',
-    description: 'Hint under the picture in the profile picture dialog, the largest file accepted, such as "Up to 2 MB".',
+    description:
+      'Hint under the picture in the profile picture dialog, the largest file accepted, such as "Up to 2 MB".',
   },
   removePicture: {
     id: 'account.removePicture',
     defaultMessage: 'Remove',
-    description: 'Button in the profile picture dialog that takes the reader\'s picture away, leaving their initials.',
+    description:
+      "Button in the profile picture dialog that takes the reader's picture away at once, leaving their initials.",
   },
   removePictureConfirm: {
     id: 'account.removePictureConfirm',
     defaultMessage: 'Confirm?',
-    description: 'What the remove button in the profile picture dialog says after its first click, asking to be clicked again to go ahead.',
+    description:
+      'What the remove button in the profile picture dialog says after its first click, asking to be clicked again to go ahead.',
   },
-  applyPicture: {
-    id: 'account.applyPicture',
-    defaultMessage: 'Apply',
-    description: 'Button in the profile picture dialog that puts the chosen picture on the profile card, to be saved with the rest.',
+  pictureSaving: {
+    id: 'account.pictureSaving',
+    defaultMessage: 'Saving the picture',
+    description:
+      'Accessible label of the spinner shown over the profile picture dialog while the picture just chosen, or its removal, is being saved.',
+  },
+  pictureSaved: {
+    id: 'account.pictureSaved',
+    defaultMessage: 'Profile picture saved',
+    description: "Notification shown once a new profile picture was saved to the reader's account.",
+  },
+  pictureRemoved: {
+    id: 'account.pictureRemoved',
+    defaultMessage: 'Profile picture removed',
+    description: "Notification shown once the reader's profile picture was removed.",
+  },
+  pictureSaveError: {
+    id: 'account.pictureSaveError',
+    defaultMessage: 'Your profile picture could not be saved. Try again.',
+    description: "Notification shown when saving or removing the reader's profile picture failed.",
   },
   closeDialog: {
     id: 'account.closeDialog',
@@ -120,12 +145,13 @@ const accountMessages = defineMessages({
   pictureSizeError: {
     id: 'account.pictureSizeError',
     defaultMessage: 'Choose a picture of {megabytes} MB or less.',
-    description: 'Error in the profile picture dialog when the chosen file is larger than accepted, such as "Choose a picture of 2 MB or less."',
+    description:
+      'Error in the profile picture dialog when the chosen file is larger than accepted, such as "Choose a picture of 2 MB or less."',
   },
   nameLabel: {
     id: 'account.nameLabel',
     defaultMessage: 'Name',
-    description: 'Label of the field holding the reader\'s full name on the profile tab.',
+    description: "Label of the field holding the reader's full name on the profile tab.",
   },
   namePlaceholder: {
     id: 'account.namePlaceholder',
@@ -140,7 +166,8 @@ const accountMessages = defineMessages({
   nameTooLong: {
     id: 'account.nameTooLong',
     defaultMessage: 'Keep your name to {maxNameLength} characters.',
-    description: 'Error under the name field on the profile tab when the reader has changed their name to one longer than allowed, such as "Keep your name to 80 characters."',
+    description:
+      'Error under the name field on the profile tab when the reader has changed their name to one longer than allowed, such as "Keep your name to 80 characters."',
   },
   bioLabel: {
     id: 'account.bioLabel',
@@ -155,17 +182,20 @@ const accountMessages = defineMessages({
   bioHint: {
     id: 'account.bioHint',
     defaultMessage: 'Shown on your profile and to agents.',
-    description: 'Hint under the bio field on the profile tab, saying who reads it. Agents are the product\'s AI assistants.',
+    description:
+      "Hint under the bio field on the profile tab, saying who reads it. Agents are the product's AI assistants.",
   },
   bioCount: {
     id: 'account.bioCount',
     defaultMessage: '{count, number}/{max, number}',
-    description: 'Counter under the bio field, how many characters were typed out of how many are allowed, such as "42/200".',
+    description:
+      'Counter under the bio field, how many characters were typed out of how many are allowed, such as "42/200".',
   },
   languageLabel: {
     id: 'account.languageLabel',
     defaultMessage: 'Language',
-    description: 'Label of the field on the profile tab choosing the language the reader uses the product in. Each option names its language in that language.',
+    description:
+      'Label of the field on the profile tab choosing the language the reader uses the product in. Each option names its language in that language.',
   },
   cancel: {
     id: 'account.cancel',
@@ -180,21 +210,23 @@ const accountMessages = defineMessages({
   saved: {
     id: 'account.saved',
     defaultMessage: 'Profile saved',
-    description: 'Notification shown once the reader\'s profile has been saved.',
+    description: "Notification shown once the reader's profile has been saved.",
   },
   saveError: {
     id: 'account.saveError',
     defaultMessage: 'Your profile could not be saved. Try again.',
-    description: 'Notification shown when saving the reader\'s profile failed.',
+    description: "Notification shown when saving the reader's profile failed.",
   },
   googleOnlyTitle: {
     id: 'account.googleOnlyTitle',
     defaultMessage: 'You sign in with Google',
-    description: 'Title of the notice on the security tab for a reader whose account has no password, only Google sign-in.',
+    description:
+      'Title of the notice on the security tab for a reader whose account has no password, only Google sign-in.',
   },
   googleOnlyDescription: {
     id: 'account.googleOnlyDescription',
-    defaultMessage: 'Your account has no password, so there is nothing to change here. Manage sign-in from your Google account.',
+    defaultMessage:
+      'Your account has no password, so there is nothing to change here. Manage sign-in from your Google account.',
     description: 'Notice on the security tab for a reader whose account has no password, only Google sign-in.',
   },
   changePasswordTitle: {
@@ -205,7 +237,8 @@ const accountMessages = defineMessages({
   changePasswordDescription: {
     id: 'account.changePasswordDescription',
     defaultMessage: 'You will stay signed in on this device. Other sessions will be signed out.',
-    description: 'Explanation under the title of the change password card, saying what changing the password does to the reader\'s other signed in browsers and devices.',
+    description:
+      "Explanation under the title of the change password card, saying what changing the password does to the reader's other signed in browsers and devices.",
   },
   currentPasswordLabel: {
     id: 'account.currentPasswordLabel',
@@ -215,7 +248,8 @@ const accountMessages = defineMessages({
   currentPasswordRequired: {
     id: 'account.currentPasswordRequired',
     defaultMessage: 'Enter your current password.',
-    description: 'Error under the current password field when the reader tries to change their password without typing it.',
+    description:
+      'Error under the current password field when the reader tries to change their password without typing it.',
   },
   newPasswordLabel: {
     id: 'account.newPasswordLabel',
@@ -240,17 +274,18 @@ const accountMessages = defineMessages({
   updatePassword: {
     id: 'account.updatePassword',
     defaultMessage: 'Update password',
-    description: 'Button that changes the reader\'s password.',
+    description: "Button that changes the reader's password.",
   },
   passwordUpdated: {
     id: 'account.passwordUpdated',
     defaultMessage: 'Password updated',
-    description: 'Notification shown once the reader\'s password has been changed.',
+    description: "Notification shown once the reader's password has been changed.",
   },
   passwordResetSent: {
     id: 'account.passwordResetSent',
     defaultMessage: 'We sent a link to reset your password to {email}.',
-    description: 'Notification shown after the reader asked for a password reset from the security tab, such as "We sent a link to reset your password to astrid@example.com."',
+    description:
+      'Notification shown after the reader asked for a password reset from the security tab, such as "We sent a link to reset your password to astrid@example.com."',
   },
 })
 

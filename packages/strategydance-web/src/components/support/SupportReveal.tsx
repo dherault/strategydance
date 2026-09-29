@@ -23,9 +23,7 @@ function SupportReveal({ id, isShown, children }: Props) {
       )}
     >
       <div className="overflow-hidden">
-        <div className="pt-2">
-          {children}
-        </div>
+        <div className="pt-2">{children}</div>
       </div>
     </div>
   )

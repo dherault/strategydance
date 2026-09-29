@@ -1,6 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FirebaseError } from 'firebase/app'
-import { EmailAuthProvider, type User as Viewer, reauthenticateWithCredential, sendPasswordResetEmail, updatePassword } from 'firebase/auth'
+import {
+  EmailAuthProvider,
+  type User as Viewer,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail,
+  updatePassword,
+} from 'firebase/auth'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useIntl } from 'react-intl'
@@ -9,7 +15,12 @@ import { Separator } from 'strategydance-design-system/components/ui/Separator'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import * as z from 'zod'
 
-import { AUTHENTICATION_ERRORS, DEFAULT_AUTHENTICATION_ERROR, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '~constants'
+import {
+  AUTHENTICATION_ERRORS,
+  DEFAULT_AUTHENTICATION_ERROR,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from '~constants'
 
 import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMessage'
 
@@ -18,7 +29,6 @@ import Spinner from '~components/common/Spinner'
 import { FormField } from '~components/ui/FormField'
 
 import { authentication } from '~data/firebase'
-
 import accountMessages from '~data/intl/messages/account'
 import authenticationMessages from '~data/intl/messages/authentication'
 
@@ -27,14 +37,15 @@ import authenticationMessages from '~data/intl/messages/authentication'
   at render. A key names a message in the account catalogue, or else in the authentication one,
   whose password rules and Firebase errors this form shares with the sign-in screen
 */
-const passwordFormSchema = z.object({
-  currentPassword: z.string().min(1, 'currentPasswordRequired'),
-  newPassword: z
-    .string()
-    .min(MIN_PASSWORD_LENGTH, 'validationPasswordMin')
-    .max(MAX_PASSWORD_LENGTH, 'validationPasswordMax'),
-  newPasswordConfirmation: z.string(),
-})
+const passwordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'currentPasswordRequired'),
+    newPassword: z
+      .string()
+      .min(MIN_PASSWORD_LENGTH, 'validationPasswordMin')
+      .max(MAX_PASSWORD_LENGTH, 'validationPasswordMax'),
+    newPasswordConfirmation: z.string(),
+  })
   .refine(data => data.newPassword !== data.currentPassword, {
     message: 'newPasswordUnchanged',
     path: ['newPassword'],
@@ -103,8 +114,7 @@ function AccountPasswordForm({ viewer, email }: Props) {
       form.reset(DEFAULT_VALUES)
 
       toast.success(formatMessage(accountMessages.passwordUpdated))
-    }
-    catch (error) {
+    } catch (error) {
       const code = error instanceof FirebaseError ? error.code : null
 
       // A wrong current password is the field's to say, as a password the server finds too weak is
@@ -133,15 +143,13 @@ function AccountPasswordForm({ viewer, email }: Props) {
       await sendPasswordResetEmail(authentication, email)
 
       toast.success(formatMessage(accountMessages.passwordResetSent, { email }))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to send the password reset email', error)
 
       const code = error instanceof FirebaseError ? error.code : null
 
       toast.error(formatAuthenticationMessage((code && AUTHENTICATION_ERRORS[code]) || DEFAULT_AUTHENTICATION_ERROR))
-    }
-    finally {
+    } finally {
       setIsSendingReset(false)
     }
   }
@@ -149,9 +157,7 @@ function AccountPasswordForm({ viewer, email }: Props) {
   return (
     <section className="max-w-[560px] rounded-xs border border-border bg-white">
       <div className="flex flex-col gap-1 px-5 pt-6 md:px-8 md:pt-8">
-        <h2 className="m-0 text-2xl leading-[1.15]">
-          {formatMessage(accountMessages.changePasswordTitle)}
-        </h2>
+        <h2 className="m-0 text-2xl leading-[1.15]">{formatMessage(accountMessages.changePasswordTitle)}</h2>
         <p className="m-0 text-sm leading-normal text-muted-foreground">
           {formatMessage(accountMessages.changePasswordDescription)}
         </p>

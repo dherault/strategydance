@@ -9,8 +9,6 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
 
-import Spinner from '~components/common/Spinner'
-
 import aspectMessages from '~data/intl/aspectMessages'
 import exploreMessages from '~data/intl/messages/explore'
 
@@ -27,13 +25,13 @@ const blurbMessages: Record<CompanyAspect, MessageDescriptor> = {
 }
 
 // The card's frame. Its last child, the call to action, sinks to the bottom so a row lines up
-const cardClassName = 'relative flex flex-col gap-4 rounded-xs border bg-card p-6 transition-colors duration-150 ease-in-out *:last:mt-auto'
+const cardClassName =
+  'relative flex flex-col gap-4 rounded-xs border bg-card p-6 transition-colors duration-150 ease-in-out *:last:mt-auto'
 
 type Props = {
   aspect: CompanyAspect
   isExplored: boolean
-  isStarting: boolean
-  // While another aspect is being added, or with no organization to add it to
+  // With no organization to add it to
   isDisabled: boolean
   onStart: () => void
 }
@@ -43,12 +41,17 @@ type Props = {
   that is not stands out in primary, and the whole card starts it, the button being what the
   keyboard reaches
 */
-function ExploreAspectCard({ aspect, isExplored, isStarting, isDisabled, onStart }: Props) {
+function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
   const { formatMessage } = useIntl()
 
   const body = (
     <>
-      <span className={cn('grid size-10 place-items-center rounded-xs', isExplored ? 'bg-neutral-100 text-muted-foreground' : 'bg-primary-50 text-primary')}>
+      <span
+        className={cn(
+          'grid size-10 place-items-center rounded-xs',
+          isExplored ? 'bg-neutral-100 text-muted-foreground' : 'bg-primary-50 text-primary',
+        )}
+      >
         <CompanyAspectIcon
           aspect={toAspectSlug(aspect)}
           size={20}
@@ -70,7 +73,10 @@ function ExploreAspectCard({ aspect, isExplored, isStarting, isDisabled, onStart
       <Link
         to="/aspects/$aspect"
         params={{ aspect }}
-        className={cn(cardClassName, 'group border-neutral-200 text-inherit no-underline hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary')}
+        className={cn(
+          cardClassName,
+          'group border-neutral-200 text-inherit no-underline hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
+        )}
       >
         {body}
         <span className="flex items-center gap-1.5 text-sm font-medium text-neutral-600 group-hover:text-neutral-900">
@@ -84,13 +90,17 @@ function ExploreAspectCard({ aspect, isExplored, isStarting, isDisabled, onStart
   return (
     <div
       onClick={isDisabled ? undefined : onStart}
-      className={cn(cardClassName, 'border-primary', isDisabled ? 'cursor-default' : 'cursor-pointer hover:border-primary-800')}
+      className={cn(
+        cardClassName,
+        'border-primary',
+        isDisabled ? 'cursor-default' : 'cursor-pointer hover:border-primary-800',
+      )}
     >
       {body}
       <div>
         <Button
           size="sm"
-          icon={isStarting ? <Spinner tone="current" /> : <CompassIcon />}
+          icon={<CompassIcon />}
           disabled={isDisabled}
           onClick={event => {
             event.stopPropagation()

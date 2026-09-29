@@ -7,6 +7,14 @@ permissions:
   checks: write
   contents: read
   pull-requests: write
+# Shared with delete-preview-channel.yml, so a preview still deploying when its pull request
+# closes lands before the channel is deleted rather than after, which would leave it to expire.
+# `queue: max` keeps every waiting run: the default keeps one, and a later run would cancel the
+# waiting cleanup in its place
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+  queue: max
 jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
@@ -28,7 +36,19 @@ jobs:
       #
       # `bun install` generates the Data Connect SDK through postinstall, which the build needs
       - run: bun install --frozen-lockfile && bun run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      # A run that waited in the queue can start once its pull request has closed and the cleanup
+      # has run, and deploying then would open the channel again, so it reads the pull request's
+      # state as it is now rather than when the event fired
+      - name: Read whether the pull request is still open
+        id: pull_request
+        run: |
+          state=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMBER" --jq .state)
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+      - if: steps.pull_request.outputs.state == 'open'
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STRATEGYDANCE }}

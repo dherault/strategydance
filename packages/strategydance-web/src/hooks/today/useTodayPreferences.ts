@@ -1,6 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { executeQuery } from 'firebase/data-connect'
-import { type GetTodayPreferencesData, getTodayPreferencesRef, updateTodayPreferences } from 'strategydance-database/web'
+import {
+  type GetTodayPreferencesData,
+  getTodayPreferencesRef,
+  updateTodayPreferences,
+} from 'strategydance-database/web'
 
 import type { DataSource, TodayPreferences } from '~types'
 
@@ -44,7 +48,9 @@ function useTodayPreferences(): DataSource<TodayPreferences> & {
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: preferences } = await executeQuery(getTodayPreferencesRef(dataConnect, { organizationId: organizationId! }))
+      const { data: preferences } = await executeQuery(
+        getTodayPreferencesRef(dataConnect, { organizationId: organizationId! }),
+      )
 
       return preferences
     },

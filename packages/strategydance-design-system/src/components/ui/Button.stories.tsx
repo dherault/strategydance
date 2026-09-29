@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ArrowRightIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Spinner } from 'strategydance-design-system/components/ui/Spinner'
 

@@ -39,7 +39,9 @@ function loadMessages(locale: Locale, messageType: MessageType): Promise<IntlMes
 
   if (cached) return cached
 
-  const promise = (import(`../../data/intl/messages-translated/${locale}/${messageType}.json`) as Promise<IntlMessagesModule>)
+  const promise = (
+    import(`../../data/intl/messages-translated/${locale}/${messageType}.json`) as Promise<IntlMessagesModule>
+  )
     .then(module => module.default)
     /*
       A message catalogue added before the human `bun run translate` step has no locale file yet. An
@@ -149,36 +151,30 @@ function AppIntlProvider({ children }: PropsWithChildren) {
     let cancelled = false
 
     for (const messageType of registeredTypes) {
-      loadMessages(locale, messageType)
-        .then(loadedMessages => {
-          if (cancelled) return
+      loadMessages(locale, messageType).then(loadedMessages => {
+        if (cancelled) return
 
-          setResolved(previous => {
-            if (previous[locale]?.[messageType] === loadedMessages) return previous
+        setResolved(previous => {
+          if (previous[locale]?.[messageType] === loadedMessages) return previous
 
-            return {
-              ...previous,
-              [locale]: { ...previous[locale], [messageType]: loadedMessages },
-            }
-          })
+          return {
+            ...previous,
+            [locale]: { ...previous[locale], [messageType]: loadedMessages },
+          }
         })
+      })
     }
 
     return () => {
       cancelled = true
     }
-  }, [
-    locale,
-    registeredTypes,
-  ])
+  }, [locale, registeredTypes])
 
   // The prerendered shell ships `lang="en"`, and it is what a screen reader announces in, what
   // hyphenation and font fallback are chosen from, and what a browser offers to translate against
   useEffect(() => {
     document.documentElement.lang = locale.toLowerCase()
-  }, [
-    locale,
-  ])
+  }, [locale])
 
   const messages: IntlMessages = {}
 

@@ -8,11 +8,13 @@ type Props = {
   // Laid at the right of the title, as a section's own buttons are
   actions?: ReactNode
   className?: string
+  // For the head alone, such as keeping it in view while the section scrolls under it
+  headClassName?: string
   children: ReactNode
 }
 
 // One section of a page, named by its heading for the reader who jumps between them
-function PageSection({ title, description, actions, className, children }: Props) {
+function PageSection({ title, description, actions, className, headClassName, children }: Props) {
   const titleId = useId()
 
   return (
@@ -20,7 +22,7 @@ function PageSection({ title, description, actions, className, children }: Props
       aria-labelledby={titleId}
       className={cn('flex flex-col gap-4', className)}
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className={cn('flex items-center justify-between gap-4', headClassName)}>
         <div className="flex min-w-0 flex-col gap-1">
           <h2
             id={titleId}
@@ -28,13 +30,7 @@ function PageSection({ title, description, actions, className, children }: Props
           >
             {title}
           </h2>
-          {description
-            ? (
-                <p className="m-0 text-sm text-muted-foreground">
-                  {description}
-                </p>
-              )
-            : null}
+          {description ? <p className="m-0 text-sm text-muted-foreground">{description}</p> : null}
         </div>
         {actions}
       </div>

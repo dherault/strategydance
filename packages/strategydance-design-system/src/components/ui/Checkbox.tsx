@@ -1,17 +1,9 @@
-import {
-  type ComponentProps,
-  type ReactNode,
-  useEffect,
-  useId,
-  useImperativeHandle,
-  useRef,
-} from 'react'
-
+import { type ComponentProps, type ReactNode, useEffect, useId, useImperativeHandle, useRef } from 'react'
+import { Choice } from 'strategydance-design-system/components/ui/Choice'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import { Choice } from 'strategydance-design-system/components/ui/Choice'
-
-const glyphClassName = 'pointer-events-none absolute size-3 scale-0 text-white transition-transform duration-[180ms] ease-in-out motion-reduce:transition-none'
+const glyphClassName =
+  'pointer-events-none absolute size-3 scale-0 text-white transition-transform duration-[180ms] ease-in-out motion-reduce:transition-none'
 
 type Props = Omit<ComponentProps<'input'>, 'type'> & {
   label?: ReactNode

@@ -1,10 +1,8 @@
 import { XIcon } from 'lucide-react'
 import { Dialog as SheetPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 // A panel sliding in from an edge of the screen, over a blurred backdrop
 function Sheet(props: ComponentProps<typeof SheetPrimitive.Root>) {
@@ -48,7 +46,10 @@ function SheetOverlay({ className, ...props }: ComponentProps<typeof SheetPrimit
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
-      className={cn('fixed inset-0 z-50 bg-black/10 duration-150 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0', className)}
+      className={cn(
+        'fixed inset-0 z-50 bg-black/10 duration-150 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        className,
+      )}
       {...props}
     />
   )
@@ -83,19 +84,17 @@ function SheetContent({
         {...props}
       >
         {children}
-        {showCloseButton
-          ? (
-              <SheetPrimitive.Close asChild>
-                <Button
-                  variant="transparent"
-                  size="sm"
-                  icon={<XIcon />}
-                  aria-label={closeLabel}
-                  className="absolute top-4 right-4"
-                />
-              </SheetPrimitive.Close>
-            )
-          : null}
+        {showCloseButton ? (
+          <SheetPrimitive.Close asChild>
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<XIcon />}
+              aria-label={closeLabel}
+              className="absolute top-4 right-4"
+            />
+          </SheetPrimitive.Close>
+        ) : null}
       </SheetPrimitive.Content>
     </SheetPortal>
   )
@@ -142,13 +141,4 @@ function SheetDescription({ className, ...props }: ComponentProps<typeof SheetPr
   )
 }
 
-export {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-}
+export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger }

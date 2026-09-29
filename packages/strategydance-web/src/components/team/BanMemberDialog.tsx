@@ -45,8 +45,7 @@ function BanMemberDialog({ organizationId, organizationName, member, onClose }: 
 
       toast.success(formatMessage(teamMessages.banned, { name }))
       onClose()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to ban the member', error)
 
       toast.error(formatMessage(teamMessages.banError, { name }))
@@ -64,9 +63,7 @@ function BanMemberDialog({ organizationId, organizationName, member, onClose }: 
         className="sm:max-w-[420px]"
       >
         <DialogHeader>
-          <DialogTitle>
-            {formatMessage(teamMessages.banName, { name })}
-          </DialogTitle>
+          <DialogTitle>{formatMessage(teamMessages.banName, { name })}</DialogTitle>
           <DialogDescription>
             {formatMessage(teamMessages.banDescription, { name, organizationName })}
           </DialogDescription>

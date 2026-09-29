@@ -1,6 +1,4 @@
 import type { ReactNode } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
 import {
   RICH_TEXT_CLASS_NAME,
   RICH_TEXT_FORMAT_BOLD,
@@ -9,6 +7,7 @@ import {
   RICH_TEXT_FORMAT_UNDERLINE,
   RICH_TEXT_THEME,
 } from 'strategydance-design-system/lib/richText'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 // Deeper than any list anybody indents by hand, and shallow enough that a hostile value nesting
 // thousands of levels cannot exhaust the stack
@@ -40,11 +39,7 @@ function RichText({ value, className }: Props) {
 
   if (!root) return null
 
-  return (
-    <div className={cn(RICH_TEXT_CLASS_NAME, className)}>
-      {renderChildren(root, 0)}
-    </div>
-  )
+  return <div className={cn(RICH_TEXT_CLASS_NAME, className)}>{renderChildren(root, 0)}</div>
 }
 
 function parseRichText(value: string): SerializedNode | null {
@@ -54,8 +49,7 @@ function parseRichText(value: string): SerializedNode | null {
     if (!isNode(parsed) || !isNode(parsed.root) || parsed.root.type !== 'root') throw new Error('No root node')
 
     return parsed.root
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Could not read a rich text value', error)
 
     return null
@@ -106,23 +100,21 @@ function renderNode(node: SerializedNode, depth: number, key: number): ReactNode
         </blockquote>
       )
     case 'list':
-      return node.listType === 'number'
-        ? (
-            <ol
-              key={key}
-              className={RICH_TEXT_THEME.list.ol}
-            >
-              {renderChildren(node, depth)}
-            </ol>
-          )
-        : (
-            <ul
-              key={key}
-              className={RICH_TEXT_THEME.list.ul}
-            >
-              {renderChildren(node, depth)}
-            </ul>
-          )
+      return node.listType === 'number' ? (
+        <ol
+          key={key}
+          className={RICH_TEXT_THEME.list.ol}
+        >
+          {renderChildren(node, depth)}
+        </ol>
+      ) : (
+        <ul
+          key={key}
+          className={RICH_TEXT_THEME.list.ul}
+        >
+          {renderChildren(node, depth)}
+        </ul>
+      )
     case 'listitem':
       return (
         <li

@@ -55,7 +55,11 @@ function createOrganizationsRouter() {
       .pipe(z.array(z.string()).min(1).max(MAX_INVITATIONS_PER_REQUEST)),
   })
 
-  type InvitationsRequest = Request<z.infer<typeof invitationsParamsSchema>, ApiResponse<InviteOrganizationMembersData>, z.infer<typeof invitationsBodySchema>>
+  type InvitationsRequest = Request<
+    z.infer<typeof invitationsParamsSchema>,
+    ApiResponse<InviteOrganizationMembersData>,
+    z.infer<typeof invitationsBodySchema>
+  >
 
   /*
     Invites people to an organization by email, from one of its administrators. Answers with the
@@ -77,7 +81,12 @@ function createOrganizationsRouter() {
       })
 
       if (result.outcome === 'forbidden') {
-        respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only an administrator of the organization can invite people to it')
+        respondError(
+          response,
+          403,
+          ERROR_CODE_FORBIDDEN,
+          'Only an administrator of the organization can invite people to it',
+        )
 
         return
       }
@@ -92,7 +101,12 @@ function createOrganizationsRouter() {
       }
 
       if (result.outcome === 'full') {
-        respondError(response, 409, ERROR_CODE_TEAM_FULL, `The team has room for ${result.room} more members or invitations`)
+        respondError(
+          response,
+          409,
+          ERROR_CODE_TEAM_FULL,
+          `The team has room for ${result.room} more members or invitations`,
+        )
 
         return
       }
@@ -158,7 +172,11 @@ function createOrganizationsRouter() {
     IMAGES
   --- */
 
-  type ImageRequest = Request<z.infer<typeof organizationParamsSchema>, ApiResponse<ChangeOrganizationImageData>, unknown>
+  type ImageRequest = Request<
+    z.infer<typeof organizationParamsSchema>,
+    ApiResponse<ChangeOrganizationImageData>,
+    unknown
+  >
 
   /*
     One pair of routes per picture rather than a `:kind` parameter, since Express 5 takes no
@@ -184,7 +202,12 @@ function createOrganizationsRouter() {
         const contentType = bytes ? sniffImageContentType(bytes) : null
 
         if (!bytes || !contentType) {
-          respondError(response, 415, ERROR_CODE_UNSUPPORTED_MEDIA_TYPE, `An organization's ${kind} is a PNG, JPEG, GIF or WebP picture`)
+          respondError(
+            response,
+            415,
+            ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
+            `An organization's ${kind} is a PNG, JPEG, GIF or WebP picture`,
+          )
 
           return
         }
@@ -198,7 +221,12 @@ function createOrganizationsRouter() {
         })
 
         if (result.outcome === 'forbidden') {
-          respondError(response, 403, ERROR_CODE_FORBIDDEN, `Only an administrator of the organization can change its ${kind}`)
+          respondError(
+            response,
+            403,
+            ERROR_CODE_FORBIDDEN,
+            `Only an administrator of the organization can change its ${kind}`,
+          )
 
           return
         }
@@ -228,7 +256,12 @@ function createOrganizationsRouter() {
         })
 
         if (result.outcome === 'forbidden') {
-          respondError(response, 403, ERROR_CODE_FORBIDDEN, `Only an administrator of the organization can remove its ${kind}`)
+          respondError(
+            response,
+            403,
+            ERROR_CODE_FORBIDDEN,
+            `Only an administrator of the organization can remove its ${kind}`,
+          )
 
           return
         }

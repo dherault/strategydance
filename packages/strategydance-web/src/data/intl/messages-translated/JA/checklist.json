@@ -32,6 +32,5 @@
   "checklist.today": "今日",
   "checklist.undo": "元に戻す",
   "checklist.unlockDay": "{day}のロックを解除",
-  "checklist.unlockHint": "ロック解除して編集",
-  "checklist.viewOnly": "閲覧のみ"
+  "checklist.unlockHint": "ロック解除して編集"
 }

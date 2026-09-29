@@ -23,15 +23,10 @@ function IntlMessagesRegistration({ messageTypes, children }: Props) {
 
   useEffect(() => {
     registerMessages(messageTypes)
-  }, [
-    messageTypes,
-    registerMessages,
-  ])
+  }, [messageTypes, registerMessages])
 
   if (!messageTypes.every(type => loadedMessageTypes.includes(type))) {
-    return (
-      <Loading source="IntlMessagesRegistration" />
-    )
+    return <Loading source="IntlMessagesRegistration" />
   }
 
   return children

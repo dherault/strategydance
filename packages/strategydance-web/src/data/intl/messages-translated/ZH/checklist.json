@@ -32,6 +32,5 @@
   "checklist.today": "今天",
   "checklist.undo": "撤销",
   "checklist.unlockDay": "解锁 {day}",
-  "checklist.unlockHint": "解锁以编辑",
-  "checklist.viewOnly": "仅查看"
+  "checklist.unlockHint": "解锁以编辑"
 }

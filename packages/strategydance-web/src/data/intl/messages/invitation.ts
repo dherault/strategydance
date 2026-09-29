@@ -45,7 +45,8 @@ const invitationMessages = defineMessages({
   joinError: {
     id: 'invitation.joinError',
     defaultMessage: 'Joining {organizationName} did not go through. Reload the page to see where it stands.',
-    description: 'Error shown when accepting an invitation failed, or succeeded but could not be confirmed. Reloading shows either the invitation again or the organization joined.',
+    description:
+      'Error shown when accepting an invitation failed, or succeeded but could not be confirmed. Reloading shows either the invitation again or the organization joined.',
   },
   declineError: {
     id: 'invitation.declineError',
@@ -59,13 +60,16 @@ const invitationMessages = defineMessages({
   },
   missingLead: {
     id: 'invitation.missingLead',
-    defaultMessage: 'It was canceled or answered already, or it was sent to another address than {email}. Ask whoever invited you to send a new one, or sign in with the address it was sent to.',
-    description: 'Explanation on the invitation page when the invitation cannot be found for the signed-in reader, naming the address they are signed in with.',
+    defaultMessage:
+      'It was canceled or answered already, or it was sent to another address than {email}. Ask whoever invited you to send a new one, or sign in with the address it was sent to.',
+    description:
+      'Explanation on the invitation page when the invitation cannot be found for the signed-in reader, naming the address they are signed in with.',
   },
   loadError: {
     id: 'invitation.loadError',
     defaultMessage: 'The invitation could not be loaded. Check your connection and try again.',
-    description: 'Error on the invitation page when reading the invitation failed, as opposed to the invitation being gone.',
+    description:
+      'Error on the invitation page when reading the invitation failed, as opposed to the invitation being gone.',
   },
   retry: {
     id: 'invitation.retry',
@@ -75,17 +79,21 @@ const invitationMessages = defineMessages({
   continue: {
     id: 'invitation.continue',
     defaultMessage: 'Continue to Strategy Dance',
-    description: 'Button on the unavailable invitation page that leads into the app. Strategy Dance is the product name and stays untranslated.',
+    description:
+      'Button on the unavailable invitation page that leads into the app. Strategy Dance is the product name and stays untranslated.',
   },
   unverifiedTitle: {
     id: 'invitation.unverifiedTitle',
     defaultMessage: 'Confirm your email address',
-    description: 'Title of the invitation page when the signed-in reader has not confirmed their email address yet, which opening an invitation requires.',
+    description:
+      'Title of the invitation page when the signed-in reader has not confirmed their email address yet, which opening an invitation requires.',
   },
   unverifiedLead: {
     id: 'invitation.unverifiedLead',
-    defaultMessage: 'Invitations open only for a confirmed address. We will send a confirmation link to {email}. Open it, and it brings you back here.',
-    description: 'Explanation on the invitation page for a reader whose email address is not confirmed yet, naming the address the link is sent to.',
+    defaultMessage:
+      'Invitations open only for a confirmed address. We will send a confirmation link to {email}. Open it, and it brings you back here.',
+    description:
+      'Explanation on the invitation page for a reader whose email address is not confirmed yet, naming the address the link is sent to.',
   },
   sendConfirmation: {
     id: 'invitation.sendConfirmation',
@@ -105,17 +113,20 @@ const invitationMessages = defineMessages({
   checkConfirmation: {
     id: 'invitation.checkConfirmation',
     defaultMessage: 'I confirmed it',
-    description: 'Button the reader presses after opening the confirmation link, which checks that their address is now confirmed.',
+    description:
+      'Button the reader presses after opening the confirmation link, which checks that their address is now confirmed.',
   },
   notConfirmed: {
     id: 'invitation.notConfirmed',
     defaultMessage: '{email} is not confirmed yet. Open the link in the email we sent, or send it again.',
-    description: 'Notice shown when the reader said they confirmed their address but it is still unconfirmed, naming the address.',
+    description:
+      'Notice shown when the reader said they confirmed their address but it is still unconfirmed, naming the address.',
   },
   confirmationError: {
     id: 'invitation.confirmationError',
     defaultMessage: 'That did not go through. Check your connection and try again in a moment.',
-    description: 'Error shown when sending the confirmation link, or checking whether the address is confirmed, failed.',
+    description:
+      'Error shown when sending the confirmation link, or checking whether the address is confirmed, failed.',
   },
 })
 

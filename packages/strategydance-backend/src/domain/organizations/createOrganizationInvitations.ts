@@ -1,5 +1,10 @@
 import { type InviteOrganizationMembersData, MAX_TEAM_SIZE } from 'strategydance-core'
-import { createOrganizationInvitation, deleteUnsentOrganizationInvitation, getOrganizationInvitationContext, OrganizationRole } from 'strategydance-database/backend'
+import {
+  createOrganizationInvitation,
+  deleteUnsentOrganizationInvitation,
+  getOrganizationInvitationContext,
+  OrganizationRole,
+} from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
 
@@ -31,9 +36,9 @@ const HOUR_MS = 60 * 60 * 1000
 
 type CreateOrganizationInvitationsResult =
   | { outcome: 'forbidden' }
-  | { outcome: 'quota', retryAfterMs: number }
-  | { outcome: 'conflict', memberEmails: string[], invitedEmails: string[] }
-  | { outcome: 'full', room: number }
+  | { outcome: 'quota'; retryAfterMs: number }
+  | { outcome: 'conflict'; memberEmails: string[]; invitedEmails: string[] }
+  | { outcome: 'full'; room: number }
   | ({ outcome: 'created' } & InviteOrganizationMembersData)
 
 /*
@@ -58,7 +63,11 @@ type CreateOrganizationInvitationsResult =
   whole request: an outage fails it, then forbidden, then full, and addresses that were only
   taken are listed as such
 */
-async function createOrganizationInvitations({ organizationId, inviterId, emails }: CreateOrganizationInvitationsInput): Promise<CreateOrganizationInvitationsResult> {
+async function createOrganizationInvitations({
+  organizationId,
+  inviterId,
+  emails,
+}: CreateOrganizationInvitationsInput): Promise<CreateOrganizationInvitationsResult> {
   const { data: context } = await getOrganizationInvitationContext(dataConnect, {
     organizationId,
     userId: inviterId,
@@ -79,7 +88,8 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
   if (sentInvitations.length + emails.length > MAX_INVITATIONS_PER_HOUR) {
     return {
       outcome: 'quota',
-      retryAfterMs: new Date(sentInvitations[MAX_INVITATIONS_PER_HOUR - emails.length].createdAt).getTime() + HOUR_MS - Date.now(),
+      retryAfterMs:
+        new Date(sentInvitations[MAX_INVITATIONS_PER_HOUR - emails.length].createdAt).getTime() + HOUR_MS - Date.now(),
     }
   }
 
@@ -100,13 +110,17 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
 
   if (emails.length > room) return { outcome: 'full', room }
 
-  const results = await Promise.allSettled(emails.map(email => createOrganizationInvitation(dataConnect, {
-    organizationId,
-    userId: inviterId,
-    email,
-  })))
+  const results = await Promise.allSettled(
+    emails.map(email =>
+      createOrganizationInvitation(dataConnect, {
+        organizationId,
+        userId: inviterId,
+        email,
+      }),
+    ),
+  )
 
-  const invitations: { id: string, email: string }[] = []
+  const invitations: { id: string; email: string }[] = []
   const failedEmails: InviteOrganizationMembersData['failedEmails'] = []
   const errors: unknown[] = []
 
@@ -127,13 +141,12 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
       errors.push(result.reason)
 
       logger.error(`Invitations: could not create an invitation to ${organizationId}`, result.reason)
-    }
-    else {
+    } else {
       logger.warn(`Invitations: could not invite ${email} to ${organizationId} (${reason})`, result.reason)
     }
   })
 
-  let unsentInvitations: { id: string, email: string, error: unknown }[]
+  let unsentInvitations: { id: string; email: string; error: unknown }[]
 
   try {
     const emailFailures = await sendOrganizationInvitationEmails({
@@ -143,19 +156,20 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
     })
 
     unsentInvitations = emailFailures.map(({ id, email, message }) => ({ id, email, error: new Error(message) }))
-  }
-  catch (error) {
+  } catch (error) {
     /*
       Resend may have sent them, and taking them back would break links already delivered. They
       stay, reported as invited, and the team page lists them for an administrator to cancel should
       one never arrive
     */
     if (error instanceof UnknownDeliveryError) {
-      logger.error(`Invitations: could not tell whether ${invitations.length} invitations to ${organizationId} were emailed, so they stay`, error)
+      logger.error(
+        `Invitations: could not tell whether ${invitations.length} invitations to ${organizationId} were emailed, so they stay`,
+        error,
+      )
 
       unsentInvitations = []
-    }
-    else {
+    } else {
       unsentInvitations = invitations.map(({ id, email }) => ({ id, email, error }))
     }
   }
@@ -166,16 +180,21 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
     again. It is reported as an outage, which tells the reader to try again. When taking it back
     fails too, it stays, and the team page lists it for an administrator to cancel
   */
-  await Promise.all(unsentInvitations.map(async ({ id, email, error }) => {
-    failedEmails.push({ email, reason: 'error' })
-    errors.push(error)
+  await Promise.all(
+    unsentInvitations.map(async ({ id, email, error }) => {
+      failedEmails.push({ email, reason: 'error' })
+      errors.push(error)
 
-    logger.error(`Invitations: could not email ${email}, so its invitation to ${organizationId} is taken back`, error)
+      logger.error(`Invitations: could not email ${email}, so its invitation to ${organizationId} is taken back`, error)
 
-    await deleteUnsentOrganizationInvitation(dataConnect, { id, organizationId }).catch(deleteError => {
-      logger.error(`Invitations: could not take back the unsent invitation of ${email} to ${organizationId}, which stays pending`, deleteError)
-    })
-  }))
+      await deleteUnsentOrganizationInvitation(dataConnect, { id, organizationId }).catch(deleteError => {
+        logger.error(
+          `Invitations: could not take back the unsent invitation of ${email} to ${organizationId}, which stays pending`,
+          deleteError,
+        )
+      })
+    }),
+  )
 
   const unsentIds = new Set(unsentInvitations.map(({ id }) => id))
   const deliveredInvitations = invitations.filter(({ id }) => !unsentIds.has(id))
@@ -183,7 +202,11 @@ async function createOrganizationInvitations({ organizationId, inviterId, emails
   if (!deliveredInvitations.length) {
     const reasons = new Set(failedEmails.map(({ reason }) => reason))
 
-    if (reasons.has('error')) throw new AggregateError(errors, `Could not invite ${errors.length} of ${emails.length} addresses to ${organizationId}`)
+    if (reasons.has('error'))
+      throw new AggregateError(
+        errors,
+        `Could not invite ${errors.length} of ${emails.length} addresses to ${organizationId}`,
+      )
     if (reasons.has('forbidden')) return { outcome: 'forbidden' }
     if (reasons.has('full')) return { outcome: 'full', room: 0 }
   }

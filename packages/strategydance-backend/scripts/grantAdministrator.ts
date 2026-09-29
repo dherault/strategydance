@@ -14,7 +14,9 @@ import { dataConnect } from '~firebase'
   unless it points at the emulator, which the package's `grant:administrator` script does
 */
 if (!process.env.DATA_CONNECT_EMULATOR_HOST) {
-  console.error('DATA_CONNECT_EMULATOR_HOST is not set. This script only writes to the emulators: run `bun run grant:administrator <email>`')
+  console.error(
+    'DATA_CONNECT_EMULATOR_HOST is not set. This script only writes to the emulators: run `bun run grant:administrator <email>`',
+  )
   process.exit(1)
 }
 

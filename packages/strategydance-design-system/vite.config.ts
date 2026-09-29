@@ -10,9 +10,7 @@ const source = fileURLToPath(new URL('./src', import.meta.url))
 export default defineConfig({
   resolve: {
     // Mirrors `paths` in tsconfig.app.json
-    alias: [
-      { find: /^strategydance-design-system\//, replacement: `${source}/` },
-    ],
+    alias: [{ find: /^strategydance-design-system\//, replacement: `${source}/` }],
   },
   plugins: [
     tailwindcss(),

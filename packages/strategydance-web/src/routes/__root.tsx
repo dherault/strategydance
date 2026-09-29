@@ -1,10 +1,13 @@
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-
 import type { QueryClient } from '@tanstack/react-query'
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { MessageType } from '~types'
 
+import useAspectChapter from '~hooks/company/useAspectChapter'
+
+import NotFound from '~components/common/NotFound'
 import Toaster from '~components/common/Toaster'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
@@ -35,6 +38,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootDocument,
   component: RootComponent,
+  /*
+    The catch all: an address nothing matches, and any `notFound()` a page throws, land here unless
+    a route between them sets a `notFoundComponent` of its own, and none does. The root keeps
+    rendering its component and shows this in its outlet, so the page has the `global` catalogue
+    and the toaster, and none of the app's layout
+  */
+  notFoundComponent: NotFound,
 })
 
 // Renders the document that wraps the app. In SPA mode this is what gets
@@ -57,13 +67,26 @@ function RootDocument({ children }: { children: ReactNode }) {
   Inside the document, so holding the tree back for a catalogue leaves <Scripts /> in place.
 
   The toaster is mounted once, here, so a toast raised by a page survives the navigation that
-  often follows it. It sits inside the catalogue's waiter because its labels come from `global`
+  often follows it. It sits inside the catalogue's waiter because its labels come from `global`.
+
+  An aspect's chapter covers the toasts like the rest of the app, though the app layout that draws
+  it is below here: they are hidden and inert until it is gone, rather than drawn over the chapter
+  with their buttons in reach, since Sonner puts them above everything else
 */
 function RootComponent() {
+  const { chapter } = useAspectChapter()
+
+  const isCovered = chapter !== null
+
   return (
     <IntlMessagesRegistration messageTypes={ROOT_MESSAGE_TYPES}>
       <Outlet />
-      <Toaster />
+      <div
+        inert={isCovered}
+        className={cn(isCovered && 'invisible')}
+      >
+        <Toaster />
+      </div>
     </IntlMessagesRegistration>
   )
 }

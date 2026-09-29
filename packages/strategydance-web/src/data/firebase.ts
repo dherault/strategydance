@@ -2,10 +2,10 @@ import { initializeApp } from 'firebase/app'
 import { ReCaptchaEnterpriseProvider, initializeAppCheck } from 'firebase/app-check'
 import { GoogleAuthProvider, connectAuthEmulator, getAuth } from 'firebase/auth'
 import { connectDataConnectEmulator, getDataConnect, makeMemoryCacheProvider } from 'firebase/data-connect'
-import { connectorConfig } from 'strategydance-database/web'
 import { getPerformance } from 'firebase/performance'
 import { connectStorageEmulator, getStorage } from 'firebase/storage'
 import { PRODUCTION_APP_HOSTNAME } from 'strategydance-core'
+import { connectorConfig } from 'strategydance-database/web'
 
 /*
   SPA mode prerenders the document shell in Node at build time, and the route tree really is

@@ -20,8 +20,7 @@ function parseRedirectPath(value: unknown) {
 
   try {
     url = new URL(value, PARSE_ORIGIN)
-  }
-  catch {
+  } catch {
     return null
   }
 

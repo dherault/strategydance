@@ -46,8 +46,7 @@ function OrganizationInvitationUnverified() {
 
       setHasSent(true)
       setStatus('sent')
-    }
-    catch {
+    } catch {
       setStatus('failed')
     }
   }
@@ -60,17 +59,14 @@ function OrganizationInvitationUnverified() {
 
       // Still mounted means still unverified: a verified reader is shown the invitation instead
       setStatus('unconfirmed')
-    }
-    catch {
+    } catch {
       setStatus('failed')
     }
   }
 
   return (
     <>
-      <h1 className="m-0 text-5xl leading-[1.05]">
-        {formatMessage(invitationMessages.unverifiedTitle)}
-      </h1>
+      <h1 className="m-0 text-5xl leading-[1.05]">{formatMessage(invitationMessages.unverifiedTitle)}</h1>
       <p className="m-0 max-w-xl text-base leading-[1.6] text-pretty text-muted-foreground">
         {formatMessage(invitationMessages.unverifiedLead, { email })}
       </p>

@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); root=\"$(git rev-parse --show-toplevel)\"; [ -n \"$root\" ] || exit 0; case \"$f\" in \"$root\"/*) ;; *) exit 0 ;; esac; cd \"$root\" || exit 1; status=0; case \"$f\" in */packages/*.ts|*/packages/*.tsx) \"$root/node_modules/.bin/oxlint\" --fix --deny-warnings --report-unused-disable-directives \"$f\" || status=$? ;; esac; \"$root/node_modules/.bin/oxfmt\" --no-error-on-unmatched-pattern \"$f\" > /dev/null || status=$?; exit $status",
+            "timeout": 30,
+            "statusMessage": "Linting and formatting the edited file..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"$(git rev-parse --show-toplevel)\"; cd \"$root\" && ./packages/strategydance-web/node_modules/.bin/tsc -b packages/strategydance-core packages/strategydance-database packages/strategydance-design-system packages/strategydance-translations packages/strategydance-emails packages/strategydance-backend packages/strategydance-web",
+            "timeout": 120,
+            "statusMessage": "Type-checking..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -16,7 +16,15 @@ const richTextSample = JSON.stringify({
         textFormat: 0,
         textStyle: '',
         children: [
-          { type: 'text', version: 1, detail: 0, format: 0, mode: 'normal', style: '', text: 'Task feed p95 is down from 410ms to 230ms. Two indexes on ' },
+          {
+            type: 'text',
+            version: 1,
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            text: 'Task feed p95 is down from 410ms to 230ms. Two indexes on ',
+          },
           { type: 'text', version: 1, detail: 0, format: 1, mode: 'normal', style: '', text: 'task_assignments' },
           { type: 'text', version: 1, detail: 0, format: 0, mode: 'normal', style: '', text: ' did most of the work.' },
         ],
@@ -50,7 +58,15 @@ const richTextSample = JSON.stringify({
             format: '',
             indent: 0,
             children: [
-              { type: 'text', version: 1, detail: 0, format: 2, mode: 'normal', style: '', text: 'Remove the N+1 query on comments' },
+              {
+                type: 'text',
+                version: 1,
+                detail: 0,
+                format: 2,
+                mode: 'normal',
+                style: '',
+                text: 'Remove the N+1 query on comments',
+              },
             ],
           },
           {
@@ -61,7 +77,15 @@ const richTextSample = JSON.stringify({
             format: '',
             indent: 0,
             children: [
-              { type: 'text', version: 1, detail: 0, format: 12, mode: 'normal', style: '', text: 'Cache org settings per request' },
+              {
+                type: 'text',
+                version: 1,
+                detail: 0,
+                format: 12,
+                mode: 'normal',
+                style: '',
+                text: 'Cache org settings per request',
+              },
             ],
           },
         ],
@@ -73,7 +97,15 @@ const richTextSample = JSON.stringify({
         format: '',
         indent: 0,
         children: [
-          { type: 'text', version: 1, detail: 0, format: 0, mode: 'normal', style: '', text: 'This is the first one the whole team opens every morning.' },
+          {
+            type: 'text',
+            version: 1,
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            text: 'This is the first one the whole team opens every morning.',
+          },
         ],
       },
     ],

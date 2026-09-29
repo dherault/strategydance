@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Input } from 'strategydance-design-system/components/ui/Input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from 'strategydance-design-system/components/ui/Popover'
+import { Popover, PopoverContent, PopoverTrigger } from 'strategydance-design-system/components/ui/Popover'
 
 const meta = {
   title: 'Components/Popover',
@@ -24,9 +19,7 @@ const meta = {
   render: args => (
     <Popover {...args}>
       <PopoverTrigger asChild>
-        <Button variant="outline">
-          Rename
-        </Button>
+        <Button variant="outline">Rename</Button>
       </PopoverTrigger>
       <PopoverContent className="grid gap-3">
         <Input
@@ -40,9 +33,7 @@ const meta = {
           >
             Cancel
           </Button>
-          <Button size="sm">
-            Save
-          </Button>
+          <Button size="sm">Save</Button>
         </div>
       </PopoverContent>
     </Popover>
@@ -64,9 +55,7 @@ export const Top: Story = {
     <div className="pt-48">
       <Popover {...args}>
         <PopoverTrigger asChild>
-          <Button variant="outline">
-            Details
-          </Button>
+          <Button variant="outline">Details</Button>
         </PopoverTrigger>
         <PopoverContent
           side="top"

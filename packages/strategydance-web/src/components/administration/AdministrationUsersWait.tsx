@@ -12,9 +12,7 @@ function AdministrationUsersWait({ children }: PropsWithChildren) {
   const { initialLoading } = useAdministrationUsers()
 
   if (initialLoading) {
-    return (
-      <Loading source="AdministrationUsersWait" />
-    )
+    return <Loading source="AdministrationUsersWait" />
   }
 
   return children

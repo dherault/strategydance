@@ -1,13 +1,15 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { type ComponentProps, useEffect, useRef, useState } from 'react'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 // How long the button says it copied before it offers to copy again
 const COPIED_DURATION_MS = 2000
 
-type Props = Omit<ComponentProps<typeof Button>, 'icon' | 'iconPosition' | 'children' | 'confirm' | 'confirmTimeout' | 'aria-label' | 'onClick'> & {
+type Props = Omit<
+  ComponentProps<typeof Button>,
+  'icon' | 'iconPosition' | 'children' | 'confirm' | 'confirmTimeout' | 'aria-label' | 'onClick'
+> & {
   /** What a press puts on the clipboard */
   value: string
   /** The button's accessible name and tooltip. The default is English: a caller with a catalogue passes its own */
@@ -42,8 +44,7 @@ function CopyButton({
   async function handleClick() {
     try {
       await navigator.clipboard.writeText(value)
-    }
-    catch {
+    } catch {
       return
     }
 

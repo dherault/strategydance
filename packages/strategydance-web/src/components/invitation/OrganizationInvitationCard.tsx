@@ -55,8 +55,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
       toast.success(formatMessage(invitationMessages.joined, { organizationName }))
 
       await navigate({ to: '/today', replace: true })
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to accept the invitation', error)
 
       setHasFailed(true)
@@ -71,8 +70,7 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
       toast(formatMessage(invitationMessages.declined))
 
       await navigate({ to: userOrganizations.length ? '/today' : '/prologue', replace: true })
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to decline the invitation', error)
 
       toast.error(formatMessage(invitationMessages.declineError))
@@ -81,22 +79,21 @@ function OrganizationInvitationCard({ invitationId, invitation }: Props) {
 
   return (
     <>
-      <h1 className="m-0 text-5xl leading-[1.05]">
-        {formatMessage(invitationMessages.title, { organizationName })}
-      </h1>
+      <h1 className="m-0 text-5xl leading-[1.05]">{formatMessage(invitationMessages.title, { organizationName })}</h1>
       <p className="m-0 max-w-xl text-base leading-[1.6] text-pretty text-muted-foreground">
-        {formatMessage(invitationMessages.lead, { inviterName: invitedBy.displayName || invitedBy.email, organizationName })}
+        {formatMessage(invitationMessages.lead, {
+          inviterName: invitedBy.displayName || invitedBy.email,
+          organizationName,
+        })}
       </p>
-      {hasFailed
-        ? (
-            <Alert
-              variant="danger"
-              className="max-w-xl"
-            >
-              {formatMessage(invitationMessages.joinError, { organizationName })}
-            </Alert>
-          )
-        : null}
+      {hasFailed ? (
+        <Alert
+          variant="danger"
+          className="max-w-xl"
+        >
+          {formatMessage(invitationMessages.joinError, { organizationName })}
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           disabled={isAnswering}

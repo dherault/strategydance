@@ -1,9 +1,12 @@
 {
   "global.closeNotification": "关闭通知",
+  "global.goHome": "返回首页",
   "global.hidePassword": "隐藏密码",
   "global.language": "语言",
   "global.loading": "加载中",
   "global.logOut": "退出登录",
+  "global.notFoundLead": "此地址没有任何内容。链接可能已损坏，或者页面已被移动。",
+  "global.notFoundTitle": "页面未找到",
   "global.notifications": "通知",
   "global.organizationsLoadError": "无法加载您的组织。请检查网络连接并重试。",
   "global.retry": "重试",

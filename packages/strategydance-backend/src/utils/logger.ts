@@ -9,13 +9,15 @@ type Severity = 'INFO' | 'WARNING' | 'ERROR'
   terminal
 */
 function write(severity: Severity, message: string, error?: unknown) {
-  const detail = error instanceof Error ? error.stack ?? error.message : error === undefined ? '' : String(error)
+  const detail = error instanceof Error ? (error.stack ?? error.message) : error === undefined ? '' : String(error)
 
   if (IS_PRODUCTION) {
-    console.log(JSON.stringify({
-      severity,
-      message: detail ? `${message}\n${detail}` : message,
-    }))
+    console.log(
+      JSON.stringify({
+        severity,
+        message: detail ? `${message}\n${detail}` : message,
+      }),
+    )
 
     return
   }

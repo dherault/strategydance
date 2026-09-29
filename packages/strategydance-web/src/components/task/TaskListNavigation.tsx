@@ -11,12 +11,15 @@ import taskMessages from '~data/intl/messages/task'
 type Props = {
   taskLists: TaskList[]
   activeTaskListId: string | null
+  // The reader's own lists, which they can add to. A teammate's are read only
+  isOwn: boolean
   onSelect: (taskListId: string) => void
   onAdd: () => void
 }
 
-// The rail of the reader's task lists, each with how many of its tasks are open, and the way to add one
-function TaskListNavigation({ taskLists, activeTaskListId, onSelect, onAdd }: Props) {
+// The rail of a member's task lists, each with how many of its tasks are open, and on the reader's
+// own the way to add one
+function TaskListNavigation({ taskLists, activeTaskListId, isOwn, onSelect, onAdd }: Props) {
   const { formatMessage } = useIntl()
 
   return (
@@ -40,33 +43,31 @@ function TaskListNavigation({ taskLists, activeTaskListId, onSelect, onAdd }: Pr
                 )}
                 onClick={() => onSelect(taskList.id)}
               >
-                <span className="min-w-0 flex-1 truncate">
-                  {taskList.name}
-                </span>
-                {openCount > 0
-                  ? (
-                      <Pill
-                        size="sm"
-                        variant={isActive ? 'primary' : 'neutral'}
-                        count={openCount}
-                        aria-label={formatMessage(taskMessages.openCount, { count: openCount })}
-                      />
-                    )
-                  : null}
+                <span className="min-w-0 flex-1 truncate">{taskList.name}</span>
+                {openCount > 0 ? (
+                  <Pill
+                    size="sm"
+                    variant={isActive ? 'primary' : 'neutral'}
+                    count={openCount}
+                    aria-label={formatMessage(taskMessages.openCount, { count: openCount })}
+                  />
+                ) : null}
               </button>
             </li>
           )
         })}
       </ul>
-      <Button
-        variant="transparent"
-        size="sm"
-        icon={<PlusIcon />}
-        className="w-full justify-start"
-        onClick={onAdd}
-      >
-        {formatMessage(taskMessages.newList)}
-      </Button>
+      {isOwn ? (
+        <Button
+          variant="transparent"
+          size="sm"
+          icon={<PlusIcon />}
+          className="w-full justify-start"
+          onClick={onAdd}
+        >
+          {formatMessage(taskMessages.newList)}
+        </Button>
+      ) : null}
     </nav>
   )
 }

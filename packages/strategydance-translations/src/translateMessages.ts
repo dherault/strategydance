@@ -21,7 +21,11 @@ const translationResponseSchema = z.record(z.string(), z.string().min(1))
   translation of at all: `translations.lock.json` decides that before the call, so the model is
   never asked to reconsider a translation that is already correct. It answers with all of them
 */
-export default function translateMessages(apiKey: string, locale: Locale, messages: TranslationPayloadEntry[]): Promise<Record<string, string>> {
+export default function translateMessages(
+  apiKey: string,
+  locale: Locale,
+  messages: TranslationPayloadEntry[],
+): Promise<Record<string, string>> {
   const lowercaseLocale = locale.toLowerCase()
   const prompt = `
 # Instructions

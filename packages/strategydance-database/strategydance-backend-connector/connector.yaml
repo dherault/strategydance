@@ -11,4 +11,4 @@ generate:
     # Not committed, like the web SDK: `postinstall` generates it on every clone. Never edited by
     # hand
     - outputDir: ../generated/strategydance-backend-connector
-      package: "@strategydance/backend-connector"
+      package: '@strategydance/backend-connector'

@@ -1,27 +1,23 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import { PanelLeftIcon, XIcon } from 'lucide-react'
 import { Slot } from 'radix-ui'
-import {
-  type CSSProperties,
-  type ComponentProps,
-  type ReactNode,
-  useEffect,
-  useEffectEvent,
-  useState,
-} from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
-import SidebarContext, { type SidebarContextType } from 'strategydance-design-system/contexts/SidebarContext'
-import useIsMobile from 'strategydance-design-system/hooks/useIsMobile'
-import useSidebar from 'strategydance-design-system/hooks/useSidebar'
-
+import { type CSSProperties, type ComponentProps, type ReactNode, useEffect, useEffectEvent, useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Input } from 'strategydance-design-system/components/ui/Input'
 import { Separator } from 'strategydance-design-system/components/ui/Separator'
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from 'strategydance-design-system/components/ui/Sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from 'strategydance-design-system/components/ui/Sheet'
 import { Skeleton } from 'strategydance-design-system/components/ui/Skeleton'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
+import SidebarContext, { type SidebarContextType } from 'strategydance-design-system/contexts/SidebarContext'
+import useIsMobile from 'strategydance-design-system/hooks/useIsMobile'
+import useSidebar from 'strategydance-design-system/hooks/useSidebar'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 /*
   shadcn's sidebar, on the design's: a 256px neutral-50 column with no border, rows 32px tall that
@@ -35,7 +31,8 @@ const SIDEBAR_WIDTH_MOBILE = '18rem'
 const SIDEBAR_WIDTH_ICON = '3rem'
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 
-const focusClassName = 'outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring'
+const focusClassName =
+  'outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring'
 
 type SidebarProviderProps = ComponentProps<'div'> & {
   defaultOpen?: boolean
@@ -49,6 +46,7 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange,
+  inert,
   className,
   style,
   children,
@@ -75,11 +73,15 @@ function SidebarProvider({
 
   const isHeld = openProp !== undefined && !onOpenChange
 
-  // Cmd+B or Ctrl+B toggles it, from anywhere on the page. A held sidebar on a wide screen has
-  // nothing to toggle, so the key is left to the browser
+  /*
+    Cmd+B or Ctrl+B toggles it, from anywhere on the page. A held sidebar on a wide screen has
+    nothing to toggle, so the key is left to the browser, and so does an inert one: the key
+    reaches the window rather than anything inside, so inertness alone would not stop it opening
+    the panel beneath whatever made it inert
+  */
   const handleShortcut = useEffectEvent((event: KeyboardEvent) => {
     if (event.key !== SIDEBAR_KEYBOARD_SHORTCUT || !(event.metaKey || event.ctrlKey)) return
-    if (isHeld && !isMobile) return
+    if (inert || (isHeld && !isMobile)) return
 
     event.preventDefault()
     toggleSidebar()
@@ -107,12 +109,18 @@ function SidebarProvider({
     <SidebarContext.Provider value={contextValue}>
       <div
         data-slot="sidebar-wrapper"
-        style={{
-          '--sidebar-width': SIDEBAR_WIDTH,
-          '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-          ...style,
-        } as CSSProperties}
-        className={cn('group/sidebar-wrapper flex min-h-svh w-full font-sans has-data-[variant=inset]:bg-sidebar', className)}
+        style={
+          {
+            '--sidebar-width': SIDEBAR_WIDTH,
+            '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+            ...style,
+          } as CSSProperties
+        }
+        className={cn(
+          'group/sidebar-wrapper flex min-h-svh w-full font-sans has-data-[variant=inset]:bg-sidebar',
+          className,
+        )}
+        inert={inert}
         {...props}
       >
         {children}
@@ -179,9 +187,7 @@ function Sidebar({
           {...props}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>
-              {label}
-            </SheetTitle>
+            <SheetTitle>{label}</SheetTitle>
           </SheetHeader>
           {/*
             The sheet is modal, so whatever opened it is out of reach until it closes, and this is
@@ -198,9 +204,7 @@ function Sidebar({
               className="absolute top-2 right-2 z-20 bg-sidebar not-focus-visible:sr-only"
             />
           </SheetClose>
-          <div className="flex size-full flex-col">
-            {children}
-          </div>
+          <div className="flex size-full flex-col">{children}</div>
         </SheetContent>
       </Sheet>
     )
@@ -365,7 +369,10 @@ function SidebarContent({ className, ...props }: ComponentProps<'div'>) {
     <div
       data-slot="sidebar-content"
       data-sidebar="content"
-      className={cn('flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-2 group-data-[collapsible=icon]:overflow-hidden', className)}
+      className={cn(
+        'flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-2 group-data-[collapsible=icon]:overflow-hidden',
+        className,
+      )}
       {...props}
     />
   )
@@ -399,7 +406,11 @@ function SidebarGroupLabel({ asChild = false, className, ...props }: ComponentPr
   )
 }
 
-function SidebarGroupAction({ asChild = false, className, ...props }: ComponentProps<'button'> & { asChild?: boolean }) {
+function SidebarGroupAction({
+  asChild = false,
+  className,
+  ...props
+}: ComponentProps<'button'> & { asChild?: boolean }) {
   const Component = asChild ? Slot.Root : 'button'
 
   return (
@@ -476,12 +487,13 @@ const sidebarMenuButtonVariants = cva(
   },
 )
 
-type SidebarMenuButtonProps = ComponentProps<'button'> & VariantProps<typeof sidebarMenuButtonVariants> & {
-  asChild?: boolean
-  isActive?: boolean
-  // Shown beside the row while the sidebar is collapsed to its icons
-  tooltip?: ReactNode
-}
+type SidebarMenuButtonProps = ComponentProps<'button'>
+  & VariantProps<typeof sidebarMenuButtonVariants> & {
+    asChild?: boolean
+    isActive?: boolean
+    // Shown beside the row while the sidebar is collapsed to its icons
+    tooltip?: ReactNode
+  }
 
 function SidebarMenuButton({
   asChild = false,
@@ -525,7 +537,7 @@ function SidebarMenuAction({
   showOnHover = false,
   className,
   ...props
-}: ComponentProps<'button'> & { asChild?: boolean, showOnHover?: boolean }) {
+}: ComponentProps<'button'> & { asChild?: boolean; showOnHover?: boolean }) {
   const Component = asChild ? Slot.Root : 'button'
 
   return (
@@ -535,7 +547,8 @@ function SidebarMenuAction({
       className={cn(
         'absolute top-1.5 right-1 flex aspect-square w-5 cursor-pointer items-center justify-center rounded-xs p-0 text-muted-foreground transition-colors group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-3.5 peer-data-[size=sm]/menu-button:top-1 after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0',
         focusClassName,
-        showOnHover && 'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-[active=true]/menu-button:text-primary aria-expanded:opacity-100 md:opacity-0',
+        showOnHover
+          && 'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-[active=true]/menu-button:text-primary aria-expanded:opacity-100 md:opacity-0',
         className,
       )}
       {...props}
@@ -564,7 +577,7 @@ function SidebarMenuSkeleton({
   width = '70%',
   className,
   ...props
-}: ComponentProps<'div'> & { showIcon?: boolean, width?: string }) {
+}: ComponentProps<'div'> & { showIcon?: boolean; width?: string }) {
   return (
     <div
       data-slot="sidebar-menu-skeleton"
@@ -572,14 +585,12 @@ function SidebarMenuSkeleton({
       className={cn('flex h-8 items-center gap-2 rounded-xs px-2', className)}
       {...props}
     >
-      {showIcon
-        ? (
-            <Skeleton
-              data-sidebar="menu-skeleton-icon"
-              className="size-4"
-            />
-          )
-        : null}
+      {showIcon ? (
+        <Skeleton
+          data-sidebar="menu-skeleton-icon"
+          className="size-4"
+        />
+      ) : null}
       <Skeleton
         data-sidebar="menu-skeleton-text"
         className="h-4 max-w-(--skeleton-width) flex-1"
@@ -594,7 +605,10 @@ function SidebarMenuSub({ className, ...props }: ComponentProps<'ul'>) {
     <ul
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
-      className={cn('mx-3.5 my-0 flex min-w-0 translate-x-px list-none flex-col gap-0.5 border-l border-sidebar-border px-2.5 py-0.5 group-data-[collapsible=icon]:hidden', className)}
+      className={cn(
+        'mx-3.5 my-0 flex min-w-0 translate-x-px list-none flex-col gap-0.5 border-l border-sidebar-border px-2.5 py-0.5 group-data-[collapsible=icon]:hidden',
+        className,
+      )}
       {...props}
     />
   )
@@ -617,7 +631,7 @@ function SidebarMenuSubButton({
   isActive = false,
   className,
   ...props
-}: ComponentProps<'a'> & { asChild?: boolean, size?: 'sm' | 'md', isActive?: boolean }) {
+}: ComponentProps<'a'> & { asChild?: boolean; size?: 'sm' | 'md'; isActive?: boolean }) {
   const Component = asChild ? Slot.Root : 'a'
 
   return (

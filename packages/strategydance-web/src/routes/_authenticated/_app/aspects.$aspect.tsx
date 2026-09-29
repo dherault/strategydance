@@ -32,7 +32,5 @@ function AspectRoute() {
 
   if (!aspect) return null
 
-  return (
-    <ComingSoon page={formatMessage(aspectMessages[aspect])} />
-  )
+  return <ComingSoon page={formatMessage(aspectMessages[aspect])} />
 }

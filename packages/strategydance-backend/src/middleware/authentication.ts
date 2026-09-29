@@ -28,8 +28,7 @@ async function authenticationMiddleware(request: Request, response: Response, ne
       id: uid,
       email: email ?? null,
     }
-  }
-  catch (error) {
+  } catch (error) {
     logger.warn('Authentication: the ID token failed verification', error)
 
     respondError(response, 401, ERROR_CODE_UNAUTHORIZED_AUTHENTICATION, 'Invalid token')

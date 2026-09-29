@@ -36,7 +36,12 @@ type Options<Data, Variables> = {
   The two callbacks are effect events, so they read the caller's latest values without the
   subscription closing and opening each time those change: only a new key does that
 */
-function useLiveQuerySubscription<Data, Variables>({ name, queryKey, createQueryRef, onNext }: Options<Data, Variables>) {
+function useLiveQuerySubscription<Data, Variables>({
+  name,
+  queryKey,
+  createQueryRef,
+  onNext,
+}: Options<Data, Variables>) {
   const queryClient = useQueryClient()
   const createRef = useEffectEvent(createQueryRef)
   const handleNext = useEffectEvent((data: Data) => onNext?.(data))
@@ -81,8 +86,7 @@ function useLiveQuerySubscription<Data, Variables>({ name, queryKey, createQuery
             reopen()
           },
         })
-      }
-      catch (error) {
+      } catch (error) {
         console.error(`Could not subscribe to the ${name}, retrying`, error)
         reopen()
       }

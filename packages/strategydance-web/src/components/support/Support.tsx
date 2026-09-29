@@ -54,15 +54,9 @@ function Support() {
           {formatMessage(supportMessages.eyebrow)}
         </p>
         {/* A name, so it is written as it is rather than translated */}
-        <h1 className="mt-2 text-4xl leading-[1.1]">
-          {SUPPORT_CONTACT.name}
-        </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {formatMessage(supportMessages.role)}
-        </p>
-        <p className="mt-6 max-w-[380px] leading-[1.6] text-pretty">
-          {formatMessage(supportMessages.lead)}
-        </p>
+        <h1 className="mt-2 text-4xl leading-[1.1]">{SUPPORT_CONTACT.name}</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">{formatMessage(supportMessages.role)}</p>
+        <p className="mt-6 max-w-[380px] leading-[1.6] text-pretty">{formatMessage(supportMessages.lead)}</p>
         <div className="mt-8 flex w-full flex-col gap-2">
           <a
             href={SUPPORT_CONTACT.calendarUrl}

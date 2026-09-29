@@ -11,8 +11,7 @@ import getProfilePictureReference from '~utils/user/getProfilePictureReference'
 async function deleteProfilePicture(userId: string) {
   try {
     await deleteObject(getProfilePictureReference(userId))
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof FirebaseError && error.code === 'storage/object-not-found') return
 
     throw error

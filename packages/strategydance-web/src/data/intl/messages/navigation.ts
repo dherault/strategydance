@@ -22,6 +22,12 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Today',
     description: 'Sidebar link to the page about what to do today.',
   },
+  buildInPublic: {
+    id: 'navigation.buildInPublic',
+    defaultMessage: 'Build in public',
+    description:
+      "Sidebar link to the page that turns the reader's progress into pictures to share on social networks, and that page's title. Building in public is sharing openly how a company is being built.",
+  },
   aspects: {
     id: 'navigation.aspects',
     defaultMessage: 'Aspects',
@@ -45,22 +51,26 @@ const navigationMessages = defineMessages({
   profile: {
     id: 'navigation.profile',
     defaultMessage: 'Profile',
-    description: 'Sidebar link, under the "Company" heading, to the page where administrators set how the organization appears to its team, the community and agents.',
+    description:
+      'Sidebar link, under the "Company" heading, to the page where administrators set how the organization appears to its team, the community and agents.',
   },
   administration: {
     id: 'navigation.administration',
     defaultMessage: 'Administration',
-    description: 'Sidebar heading above the links to the pages that administer the whole product, shown only to its own administrators. Also the small label above those pages\' titles.',
+    description:
+      "Sidebar heading above the links to the pages that administer the whole product, shown only to its own administrators. Also the small label above those pages' titles.",
   },
   administrationUsers: {
     id: 'navigation.administrationUsers',
     defaultMessage: 'Users',
-    description: 'Sidebar link, under the "Administration" heading, to the page listing every account on the product. Also that page\'s title.',
+    description:
+      'Sidebar link, under the "Administration" heading, to the page listing every account on the product. Also that page\'s title.',
   },
   administrationOrganizations: {
     id: 'navigation.administrationOrganizations',
     defaultMessage: 'Organizations',
-    description: 'Sidebar link, under the "Administration" heading, to the page listing every organization on the product. Also that page\'s title.',
+    description:
+      'Sidebar link, under the "Administration" heading, to the page listing every organization on the product. Also that page\'s title.',
   },
   aspectStrategy: {
     id: 'navigation.aspectStrategy',
@@ -107,10 +117,16 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Legal',
     description: 'Name of the legal aspect of a company.',
   },
+  chapter: {
+    id: 'navigation.chapter',
+    defaultMessage: 'Chapter {number}',
+    description:
+      'Small heading above an aspect\'s name, such as "Chapter 3" above "Sales", on the full screen shown when the organization starts working on that aspect. {number} is the aspect\'s place among the nine.',
+  },
   organizations: {
     id: 'navigation.organizations',
     defaultMessage: 'Organizations',
-    description: 'Heading of the menu listing the reader\'s organizations.',
+    description: "Heading of the menu listing the reader's organizations.",
   },
   addOrganization: {
     id: 'navigation.addOrganization',
@@ -130,12 +146,12 @@ const navigationMessages = defineMessages({
   organizationName: {
     id: 'navigation.organizationName',
     defaultMessage: 'Name',
-    description: 'Label of the field for the new organization\'s name.',
+    description: "Label of the field for the new organization's name.",
   },
   organizationBrief: {
     id: 'navigation.organizationBrief',
     defaultMessage: 'Brief',
-    description: 'Label of the field for a short description of the new organization\'s company.',
+    description: "Label of the field for a short description of the new organization's company.",
   },
   organizationBriefPlaceholder: {
     id: 'navigation.organizationBriefPlaceholder',
@@ -160,7 +176,8 @@ const navigationMessages = defineMessages({
   addOrganizationUnread: {
     id: 'navigation.addOrganizationUnread',
     defaultMessage: '{organizationName} was created, but it could not be loaded. Reload the page to see it.',
-    description: 'Error shown once the window creating an organization closes, when the organization was created but the list of organizations could not be refreshed.',
+    description:
+      'Error shown once the window creating an organization closes, when the organization was created but the list of organizations could not be refreshed.',
   },
   close: {
     id: 'navigation.close',
@@ -170,7 +187,7 @@ const navigationMessages = defineMessages({
   account: {
     id: 'navigation.account',
     defaultMessage: 'Account',
-    description: 'User menu item leading to the reader\'s account.',
+    description: "User menu item leading to the reader's account.",
   },
   support: {
     id: 'navigation.support',
@@ -185,12 +202,13 @@ const navigationMessages = defineMessages({
   githubStar: {
     id: 'navigation.githubStar',
     defaultMessage: 'Star',
-    description: 'Label of the button that stars the project\'s repository on GitHub, as GitHub itself words it.',
+    description: "Label of the button that stars the project's repository on GitHub, as GitHub itself words it.",
   },
   githubStarLabel: {
     id: 'navigation.githubStarLabel',
     defaultMessage: 'Star {repository} on GitHub',
-    description: 'Accessible label of the button that stars the project\'s repository on GitHub. {repository} is the repository\'s name, such as dherault/strategydance, and stays as is.',
+    description:
+      "Accessible label of the button that stars the project's repository on GitHub. {repository} is the repository's name, such as dherault/strategydance, and stays as is.",
   },
   githubStargazers: {
     id: 'navigation.githubStargazers',
@@ -205,7 +223,7 @@ const navigationMessages = defineMessages({
   comingSoonDescription: {
     id: 'navigation.comingSoonDescription',
     defaultMessage: '{page} is on its way.',
-    description: 'Text of the notice on a page that is not built yet. {page} is the page\'s name, such as Today.',
+    description: "Text of the notice on a page that is not built yet. {page} is the page's name, such as Today.",
   },
 })
 

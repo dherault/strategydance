@@ -5,7 +5,7 @@
   Through the workspace path rather than `node_modules`, which Vite does not watch: through the
   link, a component edited while the dev server runs kept its old classes until a restart
 */
-@import "strategydance-design-system/index.css";
+@import 'strategydance-design-system/index.css';
 
 @source "../../strategydance-design-system/src";
 @source not "../../strategydance-design-system/src/**/*.stories.tsx";

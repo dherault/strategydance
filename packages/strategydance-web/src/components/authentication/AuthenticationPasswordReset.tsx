@@ -18,7 +18,6 @@ import Spinner from '~components/common/Spinner'
 import { FormInputField } from '~components/ui/FormField'
 
 import { authentication } from '~data/firebase'
-
 import authenticationMessages from '~data/intl/messages/authentication'
 
 const formSchema = z.object({
@@ -51,8 +50,7 @@ function AuthenticationPasswordReset() {
 
     try {
       await sendPasswordResetEmail(authentication, formatEmail(values.email))
-    }
-    catch (error: any) {
+    } catch (error: any) {
       /*
         An unknown address takes the success path. Firebase only raises this when email
         enumeration protection is off in the project, and surfacing it would turn this form
@@ -69,7 +67,11 @@ function AuthenticationPasswordReset() {
 
     // The banner says the same thing whether or not the address had an account. The page asked
     // for before signing in comes back along with it
-    await navigate({ to: '/authentication', search: ({ redirect }) => ({ passwordResetSent: true, redirect }), replace: true })
+    await navigate({
+      to: '/authentication',
+      search: ({ redirect }) => ({ passwordResetSent: true, redirect }),
+      replace: true,
+    })
   }
 
   return (

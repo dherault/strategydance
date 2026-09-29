@@ -24,7 +24,7 @@ const CompanyAspects = [
   { id: 'legal', label: 'Legal', lucide: 'scale' },
 ] as const
 
-type CompanyAspect = typeof CompanyAspects[number]['id']
+type CompanyAspect = (typeof CompanyAspects)[number]['id']
 
 const icons = {
   strategy: ChessKnightIcon,

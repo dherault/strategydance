@@ -5,7 +5,9 @@ import parseRedirectPath from './parseRedirectPath'
 describe('parseRedirectPath', () => {
   it('keeps a page of the site, its query included', () => {
     expect(parseRedirectPath('/team')).toBe('/team')
-    expect(parseRedirectPath('/invitation/5febe4d9f66a4422967941b41d5e6589')).toBe('/invitation/5febe4d9f66a4422967941b41d5e6589')
+    expect(parseRedirectPath('/invitation/5febe4d9f66a4422967941b41d5e6589')).toBe(
+      '/invitation/5febe4d9f66a4422967941b41d5e6589',
+    )
     expect(parseRedirectPath('/explore?tab=all')).toBe('/explore?tab=all')
     expect(parseRedirectPath('/aspects/legal')).toBe('/aspects/legal')
   })

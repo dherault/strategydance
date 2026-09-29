@@ -32,6 +32,5 @@
   "checklist.today": "Hoy",
   "checklist.undo": "Deshacer",
   "checklist.unlockDay": "Desbloquear {day}",
-  "checklist.unlockHint": "Desbloquear para editar",
-  "checklist.viewOnly": "Solo lectura"
+  "checklist.unlockHint": "Desbloquear para editar"
 }

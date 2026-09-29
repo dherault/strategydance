@@ -5,7 +5,8 @@ const todayMessages = defineMessages({
   prioritiesTitle: {
     id: 'today.prioritiesTitle',
     defaultMessage: '{count, plural, one {Top priority} other {Top priorities}}',
-    description: 'Title of the section of the Today page showing the one thing each teammate is moving forward. Singular when only the reader\'s own is shown.',
+    description:
+      "Title of the section of the Today page showing the one thing each teammate is moving forward. Singular when only the reader's own is shown.",
   },
   prioritiesDescription: {
     id: 'today.prioritiesDescription',
@@ -15,32 +16,35 @@ const todayMessages = defineMessages({
   arrangePriorities: {
     id: 'today.arrangePriorities',
     defaultMessage: 'Choose visible priorities',
-    description: 'Tooltip of the eye button in the top priorities section, which opens the dialog for choosing whose priorities show and in what order.',
+    description:
+      'Tooltip of the eye button in the top priorities section, which opens the dialog for choosing whose priorities show and in what order.',
   },
   arrangePrioritiesLabel: {
     id: 'today.arrangePrioritiesLabel',
     defaultMessage: 'Choose visible priorities ({visible} of {total} shown)',
-    description: 'Accessible label of the eye button in the top priorities section, counting the priorities shown out of the whole team.',
+    description:
+      'Accessible label of the eye button in the top priorities section, counting the priorities shown out of the whole team.',
   },
   noJobTitle: {
     id: 'today.noJobTitle',
     defaultMessage: 'No role',
-    description: 'Placeholder under a teammate\'s name for somebody who has not said what they do in the company.',
+    description: "Placeholder under a teammate's name for somebody who has not said what they do in the company.",
   },
   setYourPriority: {
     id: 'today.setYourPriority',
     defaultMessage: 'Set your top priority',
-    description: 'Placeholder on the reader\'s own priority card before they have set one. Clicking the card sets it.',
+    description: "Placeholder on the reader's own priority card before they have set one. Clicking the card sets it.",
   },
   noPriority: {
     id: 'today.noPriority',
     defaultMessage: 'No priority set',
-    description: 'Placeholder on a teammate\'s priority card when they have not set one.',
+    description: "Placeholder on a teammate's priority card when they have not set one.",
   },
   editPriority: {
     id: 'today.editPriority',
     defaultMessage: 'Edit',
-    description: 'Hint shown on the reader\'s own priority card when it is hovered or focused, since clicking it edits the priority.',
+    description:
+      "Hint shown on the reader's own priority card when it is hovered or focused, since clicking it edits the priority.",
   },
   priorityDialogTitle: {
     id: 'today.priorityDialogTitle',
@@ -49,7 +53,7 @@ const todayMessages = defineMessages({
   },
   priorityDialogDescription: {
     id: 'today.priorityDialogDescription',
-    defaultMessage: 'The one thing you\'re moving forward today. Your team sees it on their Today page.',
+    defaultMessage: "The one thing you're moving forward today. Your team sees it on their Today page.",
     description: 'Explanation under the title of the top priority dialog.',
   },
   priorityLabel: {
@@ -65,7 +69,8 @@ const todayMessages = defineMessages({
   priorityLength: {
     id: 'today.priorityLength',
     defaultMessage: '{length}/{max}',
-    description: 'Counter under the top priority field, such as "42/140": the characters typed out of the most allowed.',
+    description:
+      'Counter under the top priority field, such as "42/140": the characters typed out of the most allowed.',
   },
   priorityUpdated: {
     id: 'today.priorityUpdated',
@@ -80,22 +85,25 @@ const todayMessages = defineMessages({
   visibilityDialogTitle: {
     id: 'today.visibilityDialogTitle',
     defaultMessage: 'Visible priorities',
-    description: 'Title of the dialog for choosing whose top priority shows on the reader\'s Today page, and in what order.',
+    description:
+      "Title of the dialog for choosing whose top priority shows on the reader's Today page, and in what order.",
   },
   visibilityDialogDescription: {
     id: 'today.visibilityDialogDescription',
-    defaultMessage: 'Choose whose top priority appears on your Today page and drag to reorder. This only changes your view.',
+    defaultMessage:
+      'Choose whose top priority appears on your Today page and drag to reorder. This only changes your view.',
     description: 'Explanation under the title of the visible priorities dialog.',
   },
   visibleCount: {
     id: 'today.visibleCount',
     defaultMessage: '{visible} of {total} visible',
-    description: 'Summary at the bottom of the visible priorities dialog, counting the priorities shown out of the whole team.',
+    description:
+      'Summary at the bottom of the visible priorities dialog, counting the priorities shown out of the whole team.',
   },
   showPriority: {
     id: 'today.showPriority',
     defaultMessage: 'Show {name}',
-    description: 'Accessible label of the switch that shows or hides a teammate\'s priority on the reader\'s Today page.',
+    description: "Accessible label of the switch that shows or hides a teammate's priority on the reader's Today page.",
   },
   reorderPriority: {
     id: 'today.reorderPriority',
@@ -109,8 +117,14 @@ const todayMessages = defineMessages({
   },
   prioritiesLoadError: {
     id: 'today.prioritiesLoadError',
-    defaultMessage: 'The team\'s priorities could not be loaded.',
+    defaultMessage: "The team's priorities could not be loaded.",
     description: 'Error shown in place of the top priorities when they could not be read.',
+  },
+  viewOnly: {
+    id: 'today.viewOnly',
+    defaultMessage: 'View only',
+    description:
+      "Label beside a section of the Today page, the tasks or the checklist, when it shows a teammate's, which the reader can read but not change.",
   },
   retry: {
     id: 'today.retry',

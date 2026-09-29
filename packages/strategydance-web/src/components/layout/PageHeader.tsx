@@ -15,19 +15,9 @@ function PageHeader({ eyebrow, title, lead, actions }: Props) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex max-w-[640px] min-w-0 flex-auto flex-col gap-3">
-        <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          {eyebrow}
-        </p>
-        <h1 className="m-0 text-5xl leading-[1.05]">
-          {title}
-        </h1>
-        {lead
-          ? (
-              <p className="m-0 text-base leading-[1.6] text-pretty text-muted-foreground">
-                {lead}
-              </p>
-            )
-          : null}
+        <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">{eyebrow}</p>
+        <h1 className="m-0 text-5xl leading-[1.05]">{title}</h1>
+        {lead ? <p className="m-0 text-base leading-[1.6] text-pretty text-muted-foreground">{lead}</p> : null}
       </div>
       {actions}
     </header>

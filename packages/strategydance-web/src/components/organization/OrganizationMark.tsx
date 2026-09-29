@@ -1,10 +1,8 @@
 import { PlusIcon } from 'lucide-react'
-import { useState } from 'react'
+import type { ComponentProps } from 'react'
 import { DEFAULT_ORGANIZATION_COLOR } from 'strategydance-core'
+import { CompanyLogo, companyLogoVariants } from 'strategydance-design-system/components/company/CompanyLogo'
 import { cn } from 'strategydance-design-system/lib/utils'
-
-import getOrganizationInitials from '~utils/organization/getOrganizationInitials'
-import isDarkColor from '~utils/organization/isDarkColor'
 
 type Props = {
   // Undefined while there is no organization, which draws a plus instead
@@ -12,53 +10,40 @@ type Props = {
   logoUrl?: string | null
   // Null or undefined is the default color
   color?: string | null
-  // The size, and the initials' text size with it
+  size?: ComponentProps<typeof CompanyLogo>['size']
   className?: string
 }
 
 /*
-  An organization's square: its logo on white, or its initials on its color, in white or black,
-  whichever reads. Decorative, since its name is always written beside it.
-
-  A logo that fails to load falls back to the initials. The URL that failed is kept rather than a
-  flag, so a new logo gets its chance without anything resetting the flag
+  An organization's square: the design system's company logo, its initials on the organization's
+  color, or a plus while there is no organization. Decorative, since its name is always written
+  beside it
 */
-function OrganizationMark({ name, logoUrl, color, className }: Props) {
-  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null)
-
-  const backgroundColor = color ?? DEFAULT_ORGANIZATION_COLOR
-  const hasLogo = !!name && !!logoUrl && logoUrl !== failedLogoUrl
-
-  if (hasLogo) {
+function OrganizationMark({ name, logoUrl, color, size, className }: Props) {
+  if (!name) {
     return (
       <span
         aria-hidden="true"
-        className={cn('size-8 shrink-0 overflow-hidden rounded-xs bg-white shadow-[inset_0_0_0_1px_var(--color-border)]', className)}
+        className={cn(
+          companyLogoVariants({ size }),
+          'bg-primary text-primary-foreground [&_svg]:text-primary-foreground!',
+          className,
+        )}
       >
-        <img
-          src={logoUrl}
-          alt=""
-          onError={() => setFailedLogoUrl(logoUrl)}
-          className="size-full object-contain"
-        />
+        <PlusIcon />
       </span>
     )
   }
 
   return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'grid size-8 shrink-0 place-items-center rounded-xs text-sm font-semibold',
-        name
-          ? isDarkColor(backgroundColor) ? 'text-white [&_svg]:text-white!' : 'text-neutral-950 [&_svg]:text-neutral-950!'
-          : 'bg-primary text-primary-foreground [&_svg]:text-primary-foreground!',
-        className,
-      )}
-      style={name ? { backgroundColor } : undefined}
-    >
-      {name ? getOrganizationInitials(name) : <PlusIcon />}
-    </span>
+    <CompanyLogo
+      name={name}
+      src={logoUrl}
+      color={color ?? DEFAULT_ORGANIZATION_COLOR}
+      alt=""
+      size={size}
+      className={className}
+    />
   )
 }
 

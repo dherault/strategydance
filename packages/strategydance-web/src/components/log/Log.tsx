@@ -39,7 +39,7 @@ function Log() {
   // The weeks loaded before the newest, as of the day they were loaded on. The newest week moves at
   // midnight, and a day would then fall between it and the older ones, shown in neither, so a new
   // day starts over from the newest alone. The page is not remounted for it, so a draft stays
-  const [loaded, setLoaded] = useState<{ today: string, weeks: Week[] }>({ today: '', weeks: [] })
+  const [loaded, setLoaded] = useState<{ today: string; weeks: Week[] }>({ today: '', weeks: [] })
 
   const olderWeeks = loaded.today === today ? loaded.weeks : []
   const viewerId = viewer?.uid ?? null

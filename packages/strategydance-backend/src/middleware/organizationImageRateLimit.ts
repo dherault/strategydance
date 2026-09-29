@@ -1,5 +1,5 @@
-import { ERROR_CODE_TOO_MANY_REQUESTS } from 'strategydance-core'
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
+import { ERROR_CODE_TOO_MANY_REQUESTS } from 'strategydance-core'
 
 import respondError from '~utils/respondError'
 

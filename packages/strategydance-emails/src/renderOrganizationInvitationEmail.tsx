@@ -1,5 +1,7 @@
 import { PRODUCT_NAME, SENDER_NAME } from './constants'
-import OrganizationInvitationEmail, { type OrganizationInvitationEmailProps } from './emails/OrganizationInvitationEmail'
+import OrganizationInvitationEmail, {
+  type OrganizationInvitationEmailProps,
+} from './emails/OrganizationInvitationEmail'
 import renderEmail from './renderEmail'
 
 /*
@@ -11,7 +13,7 @@ async function renderOrganizationInvitationEmail(props: OrganizationInvitationEm
   return {
     senderName: SENDER_NAME,
     subject: `${props.inviterName} invited you to join ${props.organizationName} on ${PRODUCT_NAME}`,
-    ...await renderEmail(<OrganizationInvitationEmail {...props} />),
+    ...(await renderEmail(<OrganizationInvitationEmail {...props} />)),
   }
 }
 

@@ -39,11 +39,7 @@ function AuthenticationBouncer({ children }: PropsWithChildren) {
       search: { redirect: href },
       replace: true,
     })
-  }, [
-    navigate,
-    router,
-    viewer,
-  ])
+  }, [navigate, router, viewer])
 
   if (!viewer) return null
 

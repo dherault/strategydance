@@ -1,10 +1,8 @@
 import { EyeClosedIcon, EyeIcon } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useId, useState } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { Input } from 'strategydance-design-system/components/ui/Input'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 type Props = Omit<ComponentProps<'input'>, 'type'> & {
   label?: ReactNode

@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "semi": false,
+  "singleQuote": true,
+  "arrowParens": "avoid",
+  "singleAttributePerLine": true,
+  "experimentalOperatorPosition": "start",
+  "sortPackageJson": false,
+  "sortImports": {
+    "internalPattern": ["~"],
+    // One group per alias, in the order the code already kept them. An import no group matches sorts
+    // into `rest`, after all of them, so a new `~` alias needs a group of its own here
+    "customGroups": [
+      { "groupName": "types", "elementNamePattern": ["~types"] },
+      { "groupName": "constants", "elementNamePattern": ["~constants"] },
+      { "groupName": "firebase", "elementNamePattern": ["~firebase"] },
+      { "groupName": "contexts", "elementNamePattern": ["~contexts/**"] },
+      { "groupName": "hooks", "elementNamePattern": ["~hooks/**"] },
+      { "groupName": "utils", "elementNamePattern": ["~utils/**"] },
+      { "groupName": "components", "elementNamePattern": ["~components/**"] },
+      { "groupName": "data", "elementNamePattern": ["~data/**"] },
+      { "groupName": "middleware", "elementNamePattern": ["~middleware/**"] },
+      { "groupName": "routes", "elementNamePattern": ["~routes/**"] },
+      { "groupName": "domain", "elementNamePattern": ["~domain/**"] },
+      { "groupName": "rest", "elementNamePattern": ["~*", "~*/**"] }
+    ],
+    "groups": [
+      "builtin",
+      "external",
+      "internal",
+      "types",
+      "constants",
+      "firebase",
+      "contexts",
+      "hooks",
+      "utils",
+      "components",
+      "data",
+      "middleware",
+      "routes",
+      "domain",
+      "parent",
+      "sibling",
+      "index",
+      "rest",
+      "unknown"
+    ]
+  },
+  "ignorePatterns": [
+    ".claude/**",
+    // Prose, which the formatter would only rewrap
+    "**/*.md",
+    "**/*.html",
+    // Written by the router plugin, the Firebase CLI and `bun run translate`, which would undo any
+    // formatting on their next run
+    "**/routeTree.gen.ts",
+    "packages/strategydance-database/generated/**",
+    "packages/strategydance-web/src/data/intl/messages-translated/**",
+    "packages/strategydance-translations/translations.lock.json"
+  ]
+}

@@ -28,6 +28,11 @@ describe('sortByPriorityOrder', () => {
   })
 
   it('skips ids of people who left', () => {
-    expect(ids(sortByPriorityOrder(team, ['gone', 'priya', 'jordan', 'alex', 'sam']))).toEqual(['priya', 'jordan', 'alex', 'sam'])
+    expect(ids(sortByPriorityOrder(team, ['gone', 'priya', 'jordan', 'alex', 'sam']))).toEqual([
+      'priya',
+      'jordan',
+      'alex',
+      'sam',
+    ])
   })
 })

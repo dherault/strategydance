@@ -19,19 +19,19 @@ function AdministrationOrganizations() {
     <ContainerLayout className="gap-8">
       <AdministrationHeader
         title={formatMessage(navigationMessages.administrationOrganizations)}
-        lead={hasFailed ? null : formatMessage(administrationMessages.organizationsLead, { count: organizations.length })}
+        lead={
+          hasFailed ? null : formatMessage(administrationMessages.organizationsLead, { count: organizations.length })
+        }
       />
-      {hasFailed
-        ? (
-            <AdministrationLoadFailed
-              message={formatMessage(administrationMessages.organizationsLoadError)}
-              isRetrying={loading}
-              onRetry={refetch}
-            />
-          )
-        : (
-            <AdministrationOrganizationsTable organizations={organizations} />
-          )}
+      {hasFailed ? (
+        <AdministrationLoadFailed
+          message={formatMessage(administrationMessages.organizationsLoadError)}
+          isRetrying={loading}
+          onRetry={refetch}
+        />
+      ) : (
+        <AdministrationOrganizationsTable organizations={organizations} />
+      )}
     </ContainerLayout>
   )
 }

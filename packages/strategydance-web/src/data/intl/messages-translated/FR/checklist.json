@@ -32,6 +32,5 @@
   "checklist.today": "Aujourd'hui",
   "checklist.undo": "Annuler",
   "checklist.unlockDay": "Déverrouiller {day}",
-  "checklist.unlockHint": "Déverrouiller pour modifier",
-  "checklist.viewOnly": "Lecture seule"
+  "checklist.unlockHint": "Déverrouiller pour modifier"
 }

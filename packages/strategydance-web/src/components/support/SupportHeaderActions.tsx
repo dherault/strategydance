@@ -2,9 +2,9 @@ import { Link } from '@tanstack/react-router'
 import { useIntl } from 'react-intl'
 import { buttonVariants } from 'strategydance-design-system/components/ui/Button'
 
-import LandingAuthenticationLinks from '~components/landing/LandingAuthenticationLinks'
-
 import useAuthentication from '~hooks/authentication/useAuthentication'
+
+import LandingAuthenticationLinks from '~components/landing/LandingAuthenticationLinks'
 
 import supportMessages from '~data/intl/messages/support'
 

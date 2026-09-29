@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { SparklesIcon } from 'lucide-react'
-
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
 
 const variants = ['neutral', 'primary', 'secondary', 'success', 'warning', 'danger'] as const

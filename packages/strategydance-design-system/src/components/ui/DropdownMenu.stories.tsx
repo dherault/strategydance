@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { CircleHelpIcon, LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   DropdownMenu,
@@ -30,14 +29,10 @@ const meta = {
   render: args => (
     <DropdownMenu {...args}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">
-          Alex Martin
-        </Button>
+        <Button variant="outline">Alex Martin</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
-        <DropdownMenuLabel>
-          Signed in as alex@example.com
-        </DropdownMenuLabel>
+        <DropdownMenuLabel>Signed in as alex@example.com</DropdownMenuLabel>
         <DropdownMenuItem>
           <UserIcon />
           Account
@@ -45,18 +40,14 @@ const meta = {
         <DropdownMenuItem>
           <SettingsIcon />
           Settings
-          <DropdownMenuShortcut>
-            ⌘,
-          </DropdownMenuShortcut>
+          <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem disabled>
           <CircleHelpIcon />
           Support
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuCheckboxItem checked>
-          Weekly summary
-        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem checked>Weekly summary</DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive">
           <LogOutIcon />

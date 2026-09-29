@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 
 import AuthenticationProvider from '~components/authentication/_AuthenticationProvider'
+import AspectChapterProvider from '~components/company/_AspectChapterProvider'
 import IntlProvider from '~components/intl/_IntlProvider'
 import CurrentOrganizationProvider from '~components/organization/_CurrentOrganizationProvider'
 import UserProvider from '~components/user/_UserProvider'
@@ -35,7 +36,7 @@ export function getRouter() {
             <UserProvider>
               <UserOrganizationsProvider>
                 <CurrentOrganizationProvider>
-                  {children}
+                  <AspectChapterProvider>{children}</AspectChapterProvider>
                 </CurrentOrganizationProvider>
               </UserOrganizationsProvider>
             </UserProvider>

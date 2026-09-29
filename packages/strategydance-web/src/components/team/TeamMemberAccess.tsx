@@ -62,10 +62,15 @@ function TeamMemberAccess({ organizationId, member, isViewer, isAdministrator, i
 
       const isAdministratorNow = role === OrganizationRole.ADMINISTRATOR
 
-      if (isViewer) toast.success(formatMessage(isAdministratorNow ? teamMessages.nowAdministratorSelf : teamMessages.nowMemberSelf))
-      else toast.success(formatMessage(isAdministratorNow ? teamMessages.nowAdministrator : teamMessages.nowMember, { name }))
-    }
-    catch (error) {
+      if (isViewer)
+        toast.success(
+          formatMessage(isAdministratorNow ? teamMessages.nowAdministratorSelf : teamMessages.nowMemberSelf),
+        )
+      else
+        toast.success(
+          formatMessage(isAdministratorNow ? teamMessages.nowAdministrator : teamMessages.nowMember, { name }),
+        )
+    } catch (error) {
       console.error('Failed to change the access', error)
 
       toast.error(formatMessage(teamMessages.accessError))

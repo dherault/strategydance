@@ -1,6 +1,5 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import type { ComponentProps, ReactNode } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 const badgeVariants = cva(
@@ -61,12 +60,13 @@ const outlineDotClassNames = {
   danger: 'bg-danger',
 }
 
-type Props = ComponentProps<'span'> & VariantProps<typeof badgeVariants> & {
-  /** A leading dot in the variant's colour */
-  dot?: boolean
-  /** A leading 12px icon */
-  icon?: ReactNode
-}
+type Props = ComponentProps<'span'>
+  & VariantProps<typeof badgeVariants> & {
+    /** A leading dot in the variant's colour */
+    dot?: boolean
+    /** A leading 12px icon */
+    icon?: ReactNode
+  }
 
 // A short, non-interactive status or category label
 function Badge({
@@ -85,24 +85,23 @@ function Badge({
       className={cn(badgeVariants({ variant, appearance, size }), className)}
       {...props}
     >
-      {dot
-        ? (
-            <span
-              aria-hidden="true"
-              className={cn('size-1.5 shrink-0 rounded-full bg-current', appearance === 'outline' && outlineDotClassNames[variant ?? 'neutral'])}
-            />
-          )
-        : null}
-      {icon
-        ? (
-            <span
-              aria-hidden="true"
-              className="flex shrink-0 [&_svg]:size-3"
-            >
-              {icon}
-            </span>
-          )
-        : null}
+      {dot ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'size-1.5 shrink-0 rounded-full bg-current',
+            appearance === 'outline' && outlineDotClassNames[variant ?? 'neutral'],
+          )}
+        />
+      ) : null}
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="flex shrink-0 [&_svg]:size-3"
+        >
+          {icon}
+        </span>
+      ) : null}
       {children}
     </span>
   )

@@ -1,6 +1,8 @@
 import type { ComponentProps, ReactNode } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
+
+// Shared with the MultiSelect's label, which labels a combobox rather than a native control
+const fieldLabelClassName = 'text-sm font-medium text-foreground'
 
 type Props = ComponentProps<'div'> & {
   label?: ReactNode
@@ -23,31 +25,27 @@ function Field({ label, hint, error, htmlFor, messageId, className, children, ..
       className={cn('flex flex-col gap-1.5 font-sans', className)}
       {...props}
     >
-      {label
-        ? (
-            <label
-              htmlFor={htmlFor}
-              className="text-sm font-medium text-foreground"
-            >
-              {label}
-            </label>
-          )
-        : null}
+      {label ? (
+        <label
+          htmlFor={htmlFor}
+          className={fieldLabelClassName}
+        >
+          {label}
+        </label>
+      ) : null}
       {children}
-      {message
-        ? (
-            <span
-              id={messageId}
-              // An error is announced as it appears, which `aria-describedby` alone does not do
-              role={error ? 'alert' : undefined}
-              className={cn('text-xs', error ? 'text-danger' : 'text-muted-foreground')}
-            >
-              {message}
-            </span>
-          )
-        : null}
+      {message ? (
+        <span
+          id={messageId}
+          // An error is announced as it appears, which `aria-describedby` alone does not do
+          role={error ? 'alert' : undefined}
+          className={cn('text-xs', error ? 'text-danger' : 'text-muted-foreground')}
+        >
+          {message}
+        </span>
+      ) : null}
     </div>
   )
 }
 
-export { Field }
+export { Field, fieldLabelClassName }

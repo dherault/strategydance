@@ -1,10 +1,8 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import { Tabs as TabsPrimitive } from 'radix-ui'
 import type { ComponentProps, ReactNode } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { pillVariants } from 'strategydance-design-system/components/ui/Pill'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 /*
   The underline grows from the centre on hover, and stays on the active tab. Leaving a tab, it
@@ -45,14 +43,18 @@ type TabItem = {
 }
 
 // Horizontal only: the list lays out and scrolls in a row, so Radix's `orientation` is not offered
-type Props = Omit<ComponentProps<typeof TabsPrimitive.Root>, 'value' | 'defaultValue' | 'onValueChange' | 'children' | 'orientation'> & VariantProps<typeof tabVariants> & {
-  items: TabItem[]
-  value?: string
-  /** Defaults to the first enabled item */
-  defaultValue?: string
-  onValueChange?: (value: string) => void
-  'aria-label'?: string
-}
+type Props = Omit<
+  ComponentProps<typeof TabsPrimitive.Root>,
+  'value' | 'defaultValue' | 'onValueChange' | 'children' | 'orientation'
+>
+  & VariantProps<typeof tabVariants> & {
+    items: TabItem[]
+    value?: string
+    /** Defaults to the first enabled item */
+    defaultValue?: string
+    onValueChange?: (value: string) => void
+    'aria-label'?: string
+  }
 
 // Switches between related views of the same context. Arrow keys, Home and End move the selection
 function Tabs({
@@ -77,7 +79,10 @@ function Tabs({
     >
       <TabsPrimitive.List
         aria-label={ariaLabel}
-        className={cn('flex min-w-0 items-stretch gap-6 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-border)] scrollbar-none [&::-webkit-scrollbar]:hidden', fullWidth && 'self-stretch')}
+        className={cn(
+          'flex min-w-0 items-stretch gap-6 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-border)] scrollbar-none [&::-webkit-scrollbar]:hidden',
+          fullWidth && 'self-stretch',
+        )}
       >
         {items.map(item => (
           <TabsPrimitive.Trigger
@@ -87,30 +92,31 @@ function Tabs({
             className={tabVariants({ size, fullWidth })}
           >
             {item.icon}
-            <span>
-              {item.label}
-            </span>
-            {item.count !== undefined && item.count !== null
-              ? (
-                  <span className={cn(pillVariants({ variant: 'neutral', size: 'sm' }), 'group-data-[state=active]:bg-primary-100 group-data-[state=active]:text-primary-800')}>
-                    {item.count}
-                  </span>
-                )
-              : null}
+            <span>{item.label}</span>
+            {item.count !== undefined && item.count !== null ? (
+              <span
+                className={cn(
+                  pillVariants({ variant: 'neutral', size: 'sm' }),
+                  'group-data-[state=active]:bg-primary-100 group-data-[state=active]:text-primary-800',
+                )}
+              >
+                {item.count}
+              </span>
+            ) : null}
           </TabsPrimitive.Trigger>
         ))}
       </TabsPrimitive.List>
-      {items.map(item => item.content === undefined
-        ? null
-        : (
-            <TabsPrimitive.Content
-              key={item.value}
-              value={item.value}
-              className="text-sm leading-normal outline-none focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
-            >
-              {item.content}
-            </TabsPrimitive.Content>
-          ))}
+      {items.map(item =>
+        item.content === undefined ? null : (
+          <TabsPrimitive.Content
+            key={item.value}
+            value={item.value}
+            className="text-sm leading-normal outline-none focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+          >
+            {item.content}
+          </TabsPrimitive.Content>
+        ),
+      )}
     </TabsPrimitive.Root>
   )
 }

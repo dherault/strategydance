@@ -1,4 +1,10 @@
-import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, ListItemNode, ListNode, REMOVE_LIST_COMMAND } from '@lexical/list'
+import {
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
+  ListItemNode,
+  ListNode,
+  REMOVE_LIST_COMMAND,
+} from '@lexical/list'
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -41,12 +47,10 @@ import {
   Undo2Icon,
 } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
-
-import { RICH_TEXT_CLASS_NAME, RICH_TEXT_THEME } from 'strategydance-design-system/lib/richText'
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
+import { RICH_TEXT_CLASS_NAME, RICH_TEXT_THEME } from 'strategydance-design-system/lib/richText'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 type RichTextEditorLabels = {
   toolbar: string
@@ -165,23 +169,26 @@ function RichTextEditor({
     <LexicalComposer initialConfig={initialConfig}>
       <div
         data-slot="rich-text-editor"
-        className={cn('rounded-xs border border-border bg-white transition-colors duration-150 ease-in-out focus-within:border-secondary', className)}
+        className={cn(
+          'rounded-xs border border-border bg-white transition-colors duration-150 ease-in-out focus-within:border-secondary',
+          className,
+        )}
       >
         <RichTextToolbar labels={{ ...DEFAULT_LABELS, ...labels }} />
         <div className="relative">
           <RichTextPlugin
-            contentEditable={(
+            contentEditable={
               <ContentEditable
                 aria-label={ariaLabel ?? placeholder}
                 aria-placeholder={placeholder}
-                placeholder={(
+                placeholder={
                   <div className="pointer-events-none absolute inset-x-3 top-3 text-[15px] leading-[1.6] text-neutral-400 select-none">
                     {placeholder}
                   </div>
-                )}
+                }
                 className={cn(RICH_TEXT_CLASS_NAME, 'max-h-[420px] min-h-24 overflow-auto p-3 outline-none')}
               />
-            )}
+            }
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>
@@ -210,8 +217,7 @@ function isSerializedEditorState(value: string | null | undefined): value is str
     const parsed: unknown = JSON.parse(value)
 
     return typeof parsed === 'object' && parsed !== null && 'root' in parsed
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -220,45 +226,61 @@ function RichTextToolbar({ labels }: { labels: RichTextEditorLabels }) {
   const [editor] = useLexicalComposerContext()
   const [state, setState] = useState(INITIAL_TOOLBAR_STATE)
 
-  useEffect(() => mergeRegister(
-    editor.registerUpdateListener(({ editorState }) => {
-      editorState.read(() => {
-        const selection = $getSelection()
+  useEffect(
+    () =>
+      mergeRegister(
+        editor.registerUpdateListener(({ editorState }) => {
+          editorState.read(() => {
+            const selection = $getSelection()
 
-        if (!$isRangeSelection(selection)) return
+            if (!$isRangeSelection(selection)) return
 
-        const anchor = selection.anchor.getNode()
-        const block = anchor.getKey() === 'root' ? null : anchor.getTopLevelElement()
-        const list = $getNearestNodeOfType(anchor, ListNode)
-        const blockType: BlockType = list
-          ? list.getListType() === 'number' ? 'number' : 'bullet'
-          : !block || block.getType() === 'paragraph'
-            ? 'paragraph'
-            : $isHeadingNode(block)
-              ? 'h2'
-              : block.getType() === 'quote' ? 'quote' : 'other'
+            const anchor = selection.anchor.getNode()
+            const block = anchor.getKey() === 'root' ? null : anchor.getTopLevelElement()
+            const list = $getNearestNodeOfType(anchor, ListNode)
+            const blockType: BlockType = list
+              ? list.getListType() === 'number'
+                ? 'number'
+                : 'bullet'
+              : !block || block.getType() === 'paragraph'
+                ? 'paragraph'
+                : $isHeadingNode(block)
+                  ? 'h2'
+                  : block.getType() === 'quote'
+                    ? 'quote'
+                    : 'other'
 
-        setState(current => ({
-          ...current,
-          blockType,
-          isBold: selection.hasFormat('bold'),
-          isItalic: selection.hasFormat('italic'),
-          isUnderline: selection.hasFormat('underline'),
-          isStrikethrough: selection.hasFormat('strikethrough'),
-        }))
-      })
-    }),
-    editor.registerCommand(CAN_UNDO_COMMAND, canUndo => {
-      setState(current => ({ ...current, canUndo }))
+            setState(current => ({
+              ...current,
+              blockType,
+              isBold: selection.hasFormat('bold'),
+              isItalic: selection.hasFormat('italic'),
+              isUnderline: selection.hasFormat('underline'),
+              isStrikethrough: selection.hasFormat('strikethrough'),
+            }))
+          })
+        }),
+        editor.registerCommand(
+          CAN_UNDO_COMMAND,
+          canUndo => {
+            setState(current => ({ ...current, canUndo }))
 
-      return false
-    }, COMMAND_PRIORITY_LOW),
-    editor.registerCommand(CAN_REDO_COMMAND, canRedo => {
-      setState(current => ({ ...current, canRedo }))
+            return false
+          },
+          COMMAND_PRIORITY_LOW,
+        ),
+        editor.registerCommand(
+          CAN_REDO_COMMAND,
+          canRedo => {
+            setState(current => ({ ...current, canRedo }))
 
-      return false
-    }, COMMAND_PRIORITY_LOW),
-  ), [editor])
+            return false
+          },
+          COMMAND_PRIORITY_LOW,
+        ),
+      ),
+    [editor],
+  )
 
   function formatText(format: TextFormatType) {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, format)
@@ -287,7 +309,10 @@ function RichTextToolbar({ labels }: { labels: RichTextEditorLabels }) {
       return
     }
 
-    editor.dispatchCommand(listType === 'bullet' ? INSERT_UNORDERED_LIST_COMMAND : INSERT_ORDERED_LIST_COMMAND, undefined)
+    editor.dispatchCommand(
+      listType === 'bullet' ? INSERT_UNORDERED_LIST_COMMAND : INSERT_ORDERED_LIST_COMMAND,
+      undefined,
+    )
   }
 
   // Read here rather than at module scope, which the document shell's prerender evaluates in Node
@@ -395,7 +420,10 @@ function ToolbarButton({ label, icon, shortcut, isActive, disabled = false, onCl
         aria-label={label}
         aria-pressed={isActive}
         disabled={disabled}
-        className={cn('text-neutral-600 disabled:text-neutral-300 disabled:opacity-100', isActive && 'bg-primary-50 text-primary not-disabled:hover:bg-primary-100')}
+        className={cn(
+          'text-neutral-600 disabled:text-neutral-300 disabled:opacity-100',
+          isActive && 'bg-primary-50 text-primary not-disabled:hover:bg-primary-100',
+        )}
         // Keeps the selection in the editor, so the format lands on what was selected
         onMouseDown={event => event.preventDefault()}
         onClick={onClick}
@@ -417,14 +445,22 @@ function ToolbarSeparator() {
 function SubmitShortcutPlugin({ onSubmit }: { onSubmit: () => void }) {
   const [editor] = useLexicalComposerContext()
 
-  useEffect(() => editor.registerCommand(KEY_ENTER_COMMAND, event => {
-    if (!event || !(event.metaKey || event.ctrlKey)) return false
+  useEffect(
+    () =>
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        event => {
+          if (!event || !(event.metaKey || event.ctrlKey)) return false
 
-    event.preventDefault()
-    onSubmit()
+          event.preventDefault()
+          onSubmit()
 
-    return true
-  }, COMMAND_PRIORITY_HIGH), [editor, onSubmit])
+          return true
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+    [editor, onSubmit],
+  )
 
   return null
 }
@@ -433,14 +469,18 @@ function SubmitShortcutPlugin({ onSubmit }: { onSubmit: () => void }) {
 function PastedContentPlugin() {
   const [editor] = useLexicalComposerContext()
 
-  useEffect(() => mergeRegister(
-    editor.registerNodeTransform(TextNode, node => {
-      if (node.getStyle()) node.setStyle('')
-    }),
-    editor.registerNodeTransform(HeadingNode, node => {
-      if (node.getTag() !== 'h2') node.setTag('h2')
-    }),
-  ), [editor])
+  useEffect(
+    () =>
+      mergeRegister(
+        editor.registerNodeTransform(TextNode, node => {
+          if (node.getStyle()) node.setStyle('')
+        }),
+        editor.registerNodeTransform(HeadingNode, node => {
+          if (node.getTag() !== 'h2') node.setTag('h2')
+        }),
+      ),
+    [editor],
+  )
 
   return null
 }

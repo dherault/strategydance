@@ -63,8 +63,7 @@ function EditJobTitleDialog({ organizationId, organizationName, member, isViewer
 
       toast.success(formatMessage(teamMessages.jobTitleUpdated))
       onClose()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save the job title', error)
 
       // What was typed stays where it was typed

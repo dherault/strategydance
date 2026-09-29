@@ -8,9 +8,7 @@ function TextDivider({ children, className, ...props }: HTMLAttributes<HTMLDivEl
       {...props}
     >
       <div className="w-10 border-b border-border" />
-      <div className="mx-2 text-sm font-light text-muted-foreground">
-        {children}
-      </div>
+      <div className="mx-2 text-sm font-light text-muted-foreground">{children}</div>
       <div className="w-10 border-b border-border" />
     </div>
   )

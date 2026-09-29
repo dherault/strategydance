@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
-
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 import { RichTextEditor } from 'strategydance-design-system/components/ui/RichTextEditor'
@@ -49,9 +48,7 @@ function RoundTripExample(props: Parameters<typeof RichTextEditor>[0]) {
         onChange={({ value: nextValue }) => setValue(nextValue)}
         onSubmit={() => setSubmitCount(count => count + 1)}
       />
-      <p className="text-xs text-muted-foreground">
-        Submitted {submitCount} times with ⌘Enter
-      </p>
+      <p className="text-xs text-muted-foreground">Submitted {submitCount} times with ⌘Enter</p>
       {value ? <RichText value={value} /> : null}
     </div>
   )

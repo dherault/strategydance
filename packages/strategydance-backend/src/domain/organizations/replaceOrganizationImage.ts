@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto'
+
 import type { OrganizationImageKind } from 'strategydance-core'
 
 import { STORAGE_DOWNLOAD_ORIGIN } from '~constants'
+
 import { bucket } from '~firebase'
 
 import buildOrganizationStoragePrefix from '~utils/buildOrganizationStoragePrefix'
@@ -21,9 +23,7 @@ type ReplaceOrganizationImageInput = {
   contentType: string
 }
 
-type ReplaceOrganizationImageResult =
-  | { outcome: 'forbidden' }
-  | { outcome: 'replaced', url: string }
+type ReplaceOrganizationImageResult = { outcome: 'forbidden' } | { outcome: 'replaced'; url: string }
 
 /*
   Makes a picture an organization's logo or banner, for one of its administrators.
@@ -35,7 +35,13 @@ type ReplaceOrganizationImageResult =
 
   A refused or failed row write deletes the new file, so nothing is left that no row points at
 */
-async function replaceOrganizationImage({ organizationId, userId, kind, bytes, contentType }: ReplaceOrganizationImageInput): Promise<ReplaceOrganizationImageResult> {
+async function replaceOrganizationImage({
+  organizationId,
+  userId,
+  kind,
+  bytes,
+  contentType,
+}: ReplaceOrganizationImageInput): Promise<ReplaceOrganizationImageResult> {
   const name = `${buildOrganizationStoragePrefix(organizationId, kind)}${randomUUID()}`
   const token = randomUUID()
   const file = bucket.file(name)
@@ -60,12 +66,10 @@ async function replaceOrganizationImage({ organizationId, userId, kind, bytes, c
 
   try {
     previousUrl = await writeOrganizationImageUrl({ organizationId, userId, kind, url })
-  }
-  catch (error) {
+  } catch (error) {
     try {
       await file.delete({ ignoreNotFound: true })
-    }
-    catch (deleteError) {
+    } catch (deleteError) {
       logger.error(`Organization images: could not delete ${name} after its row refused it`, deleteError)
     }
 

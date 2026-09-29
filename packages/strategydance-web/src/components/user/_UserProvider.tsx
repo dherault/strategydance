@@ -11,7 +11,6 @@ import {
 import type { UserProfile } from '~types'
 
 import type { UserContextType } from '~contexts/UserContext'
-
 import UserContext from '~contexts/UserContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
@@ -47,7 +46,12 @@ function UserProvider({ children }: PropsWithChildren) {
     `enabled` keeps it from running for a signed out reader, whose token the `@auth(level: USER)`
     operation would refuse anyway
   */
-  const { data, isPending, isError, refetch: refetchUser } = useGetCurrentUser(dataConnect, {
+  const {
+    data,
+    isPending,
+    isError,
+    refetch: refetchUser,
+  } = useGetCurrentUser(dataConnect, {
     queryKey: ['GetCurrentUser', viewerId],
     enabled: Boolean(viewerId),
   })
@@ -69,7 +73,7 @@ function UserProvider({ children }: PropsWithChildren) {
   // read of the row
   const welcomeRequestedForViewerIdRef = useRef<string | null>(null)
 
-  const user = viewerId ? data?.user ?? null : null
+  const user = viewerId ? (data?.user ?? null) : null
 
   /*
     The read has answered *and* succeeded, which is a different thing from there being a row.
@@ -95,44 +99,72 @@ function UserProvider({ children }: PropsWithChildren) {
   }
 
   /*
-    Saves what the account page edits, and resolves once the row shows it, so the page can drop
-    what it staged without the old values flashing back in between.
+    Saves what the account page's form edits, and resolves once the row shows it, so the form reads
+    as saved without the old values flashing back in between.
 
-    The name and the picture are the Firebase profile's, which the row mirrors, so they go there
-    first and the row follows. The row is written here rather than left to the mirror below, since
-    Firebase updates the account in place: `viewer` keeps its identity, and nothing would run the
-    effect that compares the two. A write that fails after Firebase took the change leaves them
-    apart until then, which the mirror mends the next time the row is read.
-
-    A removed picture is deleted from Storage last, once nothing points at it: failing before then
-    leaves the account showing a picture that is still there, rather than one that is gone, and
-    saving again deletes it.
+    The name is the Firebase profile's, which the row mirrors, so it goes there first and the row
+    follows, with the picture as it is. The row is written here rather than left to the mirror
+    below, since Firebase updates the account in place: `viewer` keeps its identity, and nothing
+    would run the effect that compares the two. A write that fails after Firebase took the change
+    leaves them apart until then, which the mirror mends the next time the row is read.
 
     The language is the row's and the interface's, and the interface switches only once everything
     else has gone through, so a save that fails leaves the page in the language it was in, with the
-    choice still on the form to save again. A deletion that fails can leave the row ahead of the
-    interface, which that second save brings back in step.
+    choice still on the form to save again.
 
     It throws, because the caller has a form to keep: a save that failed must not clear what
     somebody typed. The read after the write throws too, which a refetch does not by default
   */
-  async function updateProfile({ displayName, image, bio, locale: chosenLocale }: UserProfile) {
+  async function updateProfile({ displayName, bio, locale: chosenLocale }: UserProfile) {
     if (!viewer) throw new Error('Cannot update the profile of nobody signed in')
 
-    let imageUrl = viewer.photoURL
+    await updateFirebaseProfile(viewer, { displayName })
+    await updateCurrentUserProfile({
+      displayName,
+      imageUrl: viewer.photoURL,
+      bio,
+      locale: toDatabaseLocale(chosenLocale),
+    })
+    await refetchUser({ throwOnError: true })
 
-    if (image) imageUrl = await uploadProfilePicture(viewer.uid, image)
-    if (image === null) imageUrl = null
+    setLocale(chosenLocale)
+  }
+
+  /*
+    Makes a picture the reader's, or null takes theirs away, on its own rather than with the form,
+    and resolves once the row shows it.
+
+    The picture is the Firebase profile's, like the name, so it goes there first, and the row
+    follows through the mutation that mirrors the Firebase profile, with the name as it is there
+    and the bio and the language left alone. Written here rather than left to the mirror below, for
+    the reason `updateProfile` gives.
+
+    The account has one picture object, which `storage.rules` explains, so nothing can bring back
+    the bytes a new picture replaced: a failure after the upload leaves the account pointing at
+    that object, and trying again, or the mirror on the next read, settles it on the new picture.
+
+    A removed picture is deleted first, so it stops being served whatever fails after. The account
+    then points at a picture that is gone, which shows as its initials, until removing it again,
+    which finds nothing to delete, clears it. It throws, as `updateProfile` does, so the dialog
+    stays open for that try
+  */
+  async function changePicture(image: Blob | null) {
+    if (!viewer || !user) throw new Error('Cannot change the picture of nobody signed in')
+
+    if (!image) await deleteProfilePicture(viewer.uid)
+
+    const imageUrl = image ? await uploadProfilePicture(viewer.uid, image) : null
 
     // An empty string rather than null takes the picture off the account, since the Auth emulator
     // refuses a null. Firebase reads either back as null
-    await updateFirebaseProfile(viewer, { displayName, photoURL: imageUrl ?? '' })
-    await updateCurrentUserProfile({ displayName, imageUrl, bio, locale: toDatabaseLocale(chosenLocale) })
+    await updateFirebaseProfile(viewer, { photoURL: imageUrl ?? '' })
+    await updateCurrentUser({
+      displayName: viewer.displayName,
+      imageUrl,
+      timezone: timezone ?? user.timezone,
+      authenticationProviders: getAuthenticationProviders(viewer),
+    })
     await refetchUser({ throwOnError: true })
-
-    if (image === null) await deleteProfilePicture(viewer.uid)
-
-    setLocale(chosenLocale)
   }
 
   // Insert the row the first time this account is seen
@@ -172,15 +204,7 @@ function UserProvider({ children }: PropsWithChildren) {
 
         console.error('Failed to create the user', error)
       })
-  }, [
-    viewer,
-    user,
-    hasReadUser,
-    locale,
-    timezone,
-    createCurrentUser,
-    refetchUser,
-  ])
+  }, [viewer, user, hasReadUser, locale, timezone, createCurrentUser, refetchUser])
 
   // Keep the mirrored columns in step with the Firebase profile
   useEffect(() => {
@@ -193,7 +217,8 @@ function UserProvider({ children }: PropsWithChildren) {
       here. It is the column the sign-in screen looks accounts up by, so an address that
       changed in Firebase and not in Postgres is an account nobody can find again
     */
-    const hasDrifted = user.email !== viewer.email
+    const hasDrifted =
+      user.email !== viewer.email
       || user.displayName !== viewer.displayName
       || user.imageUrl !== viewer.photoURL
       || user.authenticationProviders.join() !== authenticationProviders.join()
@@ -222,13 +247,7 @@ function UserProvider({ children }: PropsWithChildren) {
       .catch(error => {
         console.error('Failed to update the user', error)
       })
-  }, [
-    viewer,
-    user,
-    timezone,
-    updateCurrentUser,
-    refetchUser,
-  ])
+  }, [viewer, user, timezone, updateCurrentUser, refetchUser])
 
   /*
     Ask the backend to welcome a new account that has not been. The browser creates the row, so
@@ -257,13 +276,10 @@ function UserProvider({ children }: PropsWithChildren) {
     loading,
     refetch,
     updateProfile,
+    changePicture,
   }
 
-  return (
-    <UserContext.Provider value={contextValue}>
-      {children}
-    </UserContext.Provider>
-  )
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
 }
 
 export default UserProvider

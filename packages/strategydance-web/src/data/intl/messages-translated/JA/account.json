@@ -1,5 +1,4 @@
 {
-  "account.applyPicture": "適用",
   "account.bioCount": "{count, number}/{max, number}",
   "account.bioHint": "プロフィールおよびエージェントに表示されます。",
   "account.bioLabel": "自己紹介",
@@ -33,6 +32,10 @@
   "account.pictureMaximumSize": "最大{megabytes} MB",
   "account.pictureMinimumSize": "{width}×{height}px以上",
   "account.picturePreviewAlt": "プロフィール画像のプレビュー",
+  "account.pictureRemoved": "プロフィール画像を削除しました",
+  "account.pictureSaveError": "プロフィール画像を保存できませんでした。もう一度お試しください。",
+  "account.pictureSaved": "プロフィール画像を保存しました",
+  "account.pictureSaving": "画像を保存中",
   "account.pictureSizeError": "{megabytes} MB以下の画像を選択してください。",
   "account.pictureSquare": "正方形の画像",
   "account.pictureTypeError": "PNG、JPEG、GIF、またはWebP形式の画像を選択してください。",

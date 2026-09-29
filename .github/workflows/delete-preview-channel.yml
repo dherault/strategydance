@@ -23,11 +23,14 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  pull-requests: read
 # Shared with the preview, so a pull request that closes while its preview deploys deletes the
-# channel once the deploy lands, rather than before it, which would leave the channel to expire
+# channel once the deploy lands, rather than before it, which would leave the channel to expire.
+# `queue: max` keeps every waiting run, since the default keeps one and cancels it for the next
 concurrency:
   group: preview-${{ github.event.pull_request.number || 'all' }}
   cancel-in-progress: false
+  queue: max
 jobs:
   delete_channel:
     runs-on: ubuntu-latest
@@ -48,10 +51,22 @@ jobs:
       # sanitizes from the branch name. The dash keeps `pr5-` off `pr57-`. Through the CLI rather
       # than the API, because deploying a channel adds its domain to Auth's authorized domains, and
       # the CLI's delete removes it again
+      #
+      # A pull request reopened while this run waited has a preview queued or deployed after it,
+      # so like the preview it reads the pull request's state as it is now
       - name: Delete the channels
         env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
           PREFIX: ${{ github.event.pull_request && format('pr{0}-', github.event.pull_request.number) || '' }}
         run: |
+          if [ -n "$NUMBER" ]; then
+            state=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMBER" --jq .state)
+            if [ "$state" = open ]; then
+              echo "The pull request has reopened, so its preview stays"
+              exit 0
+            fi
+          fi
           list=$(bunx firebase hosting:channel:list --project strategydance --json)
           channels=$(echo "$list" | jq -r --arg prefix "$PREFIX" \
             '.result.channels[].name | split("/") | last | select(. != "live" and startswith($prefix))')

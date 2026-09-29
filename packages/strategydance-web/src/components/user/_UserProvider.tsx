@@ -139,13 +139,19 @@ function UserProvider({ children }: PropsWithChildren) {
     and the bio and the language left alone. Written here rather than left to the mirror below, for
     the reason `updateProfile` gives.
 
-    A removed picture is deleted from Storage last, once nothing points at it: failing before then
-    leaves the account showing a picture that is still there, rather than one that is gone, and
-    removing it again deletes it. It throws, as `updateProfile` does, so the dialog keeps the
-    picture for another try
+    The account has one picture object, which `storage.rules` explains, so nothing can bring back
+    the bytes a new picture replaced: a failure after the upload leaves the account pointing at
+    that object, and trying again, or the mirror on the next read, settles it on the new picture.
+
+    A removed picture is deleted first, so it stops being served whatever fails after. The account
+    then points at a picture that is gone, which shows as its initials, until removing it again,
+    which finds nothing to delete, clears it. It throws, as `updateProfile` does, so the dialog
+    stays open for that try
   */
   async function changePicture(image: Blob | null) {
     if (!viewer || !user) throw new Error('Cannot change the picture of nobody signed in')
+
+    if (!image) await deleteProfilePicture(viewer.uid)
 
     const imageUrl = image ? await uploadProfilePicture(viewer.uid, image) : null
 
@@ -159,8 +165,6 @@ function UserProvider({ children }: PropsWithChildren) {
       authenticationProviders: getAuthenticationProviders(viewer),
     })
     await refetchUser({ throwOnError: true })
-
-    if (!image) await deleteProfilePicture(viewer.uid)
   }
 
   // Insert the row the first time this account is seen

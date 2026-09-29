@@ -37,9 +37,9 @@ type Props = {
   open, so it starts from what is saved every time.
 
   A picture chosen shows in the zone while it is saved, and the dialog stays open until the save
-  lands and cannot be dismissed meanwhile. A failure puts the saved picture back, for another try.
-  The type and size are checked here, before anything is sent, and the Storage rule checks both
-  again
+  lands and cannot be dismissed meanwhile. A failure leaves it open for another try, showing what
+  the row still points at, which `changePicture` says more about. The type and size are checked
+  here, before anything is sent, and the Storage rule checks both again
 */
 function AccountProfilePictureDialog({ currentSrc, onClose }: Props) {
   const { formatMessage } = useIntl()

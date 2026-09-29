@@ -657,33 +657,47 @@ query GetActivityDays($organizationId: UUID!) @auth(level: USER) {
   }
 }
 
-# Each member's latest entries in an organization's log, newest first, for the build in public
-# page, whose cards pick from one author's own. Read per member rather than over a range of days,
-# so a busy team cannot crowd a quieter author out of one shared limit: up to 30 each, as many as
-# a picker lists, for up to 100 members, `MAX_TEAM_SIZE` in strategydance-core. Read only by a
-# member of the organization, and only for its members now, as `GetOrganizationLog` is
-query GetLatestLogEntries($organizationId: UUID!) @auth(level: USER) {
+# The members of an organization who have written in its log, for the build in public page's
+# picker of whose log its cards show: their ids alone, since the entries are read one author at a
+# time, by `GetMemberLatestLogEntries`. Read only by a member, as `GetOrganizationLog` is
+query GetLogAuthors($organizationId: UUID!) @auth(level: USER) {
   userOrganizations(
     where: {
       organizationId: { eq: $organizationId }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { logEntries_on_user: { exist: { organizationId: { eq: $organizationId } } } }
     }
     orderBy: [{ createdAt: ASC }, { userId: ASC }]
     limit: 100
   ) {
     user {
       id
-      logEntries: logEntries_on_user(
-        where: { organizationId: { eq: $organizationId } }
-        orderBy: [{ date: DESC }]
-        limit: 30
-      ) {
-        id
-        date
-        content
-        createdAt
-        updatedAt
-      }
+    }
+  }
+}
+
+# One member's latest entries in an organization's log, newest first, for the build in public
+# page's log cards and recap: up to 30, as many as a picker lists, so what the page reads is bound
+# by one author whatever the team writes. Read only by a member, and only of a member now, as
+# `GetOrganizationLog` is
+query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(level: USER) {
+  logEntries(
+    where: {
+      organizationId: { eq: $organizationId }
+      userId: { eq: $userId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+    }
+    orderBy: [{ date: DESC }, { createdAt: DESC }]
+    limit: 30
+  ) {
+    id
+    date
+    content
+    createdAt
+    updatedAt
+    user {
+      id
     }
   }
 }

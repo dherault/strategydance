@@ -7,7 +7,7 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 import useChecklist from '~hooks/checklist/useChecklist'
 import useLocalDate from '~hooks/common/useLocalDate'
-import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
+import useMemberLatestLogEntries from '~hooks/log/useMemberLatestLogEntries'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
@@ -58,7 +58,7 @@ function BuildInPublicCompany({ settings }: Props) {
     loading: isLogLoading,
     refetch: refetchLog,
     hasFailed: hasLogFailed,
-  } = useLatestLogEntries()
+  } = useMemberLatestLogEntries(viewerId)
   const [failedBannerUrl, setFailedBannerUrl] = useState<string | null>(null)
 
   const name = organization?.name ?? ''

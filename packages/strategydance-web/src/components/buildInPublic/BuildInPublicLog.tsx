@@ -8,12 +8,14 @@ import type { CardField, LogEntry, OrganizationMember } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 import useLocalDate from '~hooks/common/useLocalDate'
-import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
+import useLogAuthors from '~hooks/log/useLogAuthors'
+import useMemberLatestLogEntries from '~hooks/log/useMemberLatestLogEntries'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
 import getRichTextSummary from '~utils/buildInPublic/getRichTextSummary'
+import pickLogAuthor from '~utils/buildInPublic/pickLogAuthor'
 import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
 import getMemberName from '~utils/team/getMemberName'
@@ -50,10 +52,10 @@ type Props = {
 }
 
 /*
-  The log cards, from each member's latest entries in the team's log: one entry in full, a quote from
-  one, the last few updates, and the day the organization is on. Each shows the reader's own log
-  unless they pick a teammate who wrote in it, and a card is left out while its author has nothing
-  for it
+  The log cards, from one author's latest entries in the team's log: one entry in full, a quote from
+  one, the last few updates, and the day the organization is on. They show the reader's own log
+  unless they pick a teammate who wrote in it, one pick for every card, so only that author's
+  entries are read. A card is left out while its author has nothing for it
 */
 function BuildInPublicLog({ settings }: Props) {
   const { formatMessage, formatDate } = useIntl()
@@ -62,10 +64,25 @@ function BuildInPublicLog({ settings }: Props) {
   // The authors' names and pictures, without which no entry has anybody to show it under
   const { data: team, loading: isTeamLoading, refetch: refetchTeam, hasFailed: hasTeamFailed } = useOrganizationTeam()
   const today = useLocalDate()
-  const { data: entries, loading, refetch, hasFailed } = useLatestLogEntries()
+  const {
+    data: authorIds,
+    loading: areAuthorsLoading,
+    refetch: refetchAuthors,
+    hasFailed: haveAuthorsFailed,
+  } = useLogAuthors()
 
   const viewerId = viewer?.uid ?? ''
-  const authors = team.userOrganizations.filter(member => entries.some(entry => entry.user.id === member.user.id))
+  // The pick every card showing somebody shares
+  const { user: pickedId } = settings.readCard('log-entry', { user: viewerId })
+  const {
+    data: entries,
+    loading,
+    refetch,
+    hasFailed,
+  } = useMemberLatestLogEntries(pickLogAuthor(pickedId, authorIds, viewerId))
+  const authors = team.userOrganizations.filter(member => authorIds.includes(member.user.id))
+  // Whose entries are on screen, which are the last author's while another's are read
+  const author = authors.find(member => member.user.id === entries[0]?.user.id) ?? null
   const dayCount = organization ? getOrganizationDayCount(organization.createdAt, today) : 1
 
   function formatDay(date: string) {
@@ -93,19 +110,6 @@ function BuildInPublicLog({ settings }: Props) {
         ]
       : []
 
-  // Whose log a card shows: the one picked while they are an author, else the reader, else the
-  // first author
-  function readAuthor(cardKey: string) {
-    const { user } = settings.readCard(cardKey, { user: viewerId })
-    const author =
-      authors.find(member => member.user.id === user)
-      ?? authors.find(member => member.user.id === viewerId)
-      ?? authors[0]
-      ?? null
-
-    return { author, authored: author ? entries.filter(entry => entry.user.id === author.user.id) : [] }
-  }
-
   function entryField(
     key: string,
     label: string,
@@ -131,10 +135,9 @@ function BuildInPublicLog({ settings }: Props) {
     ]
   }
 
-  // An entry card: whose log, and which of their entries, the newest unless another is picked
+  // An entry card: which of the author's entries, the newest unless another is picked
   function readEntryCard(cardKey: string, choose: (authored: LogEntry[]) => LogEntry[]) {
-    const { author, authored } = readAuthor(cardKey)
-    const choices = choose(authored)
+    const choices = choose(entries)
     const { entry: entryId } = settings.readCard(cardKey, { entry: choices[0]?.id ?? '' })
     const entry = choices.find(choice => choice.id === entryId) ?? choices[0] ?? null
 
@@ -150,11 +153,10 @@ function BuildInPublicLog({ settings }: Props) {
   )
   const counter = readEntryCard('log-day-counter', authored => authored)
 
-  const timelineAuthor = readAuthor('log-timeline')
   const { count: timelineCountValue } = settings.readCard('log-timeline', { count: '4' })
   const timelineCount = Math.min(
     TIMELINE_COUNTS.includes(timelineCountValue) ? Number(timelineCountValue) : 4,
-    timelineAuthor.authored.length,
+    entries.length,
   )
 
   // A card is posted for anybody to see, so it names somebody only by the name they gave
@@ -177,12 +179,13 @@ function BuildInPublicLog({ settings }: Props) {
       title={formatMessage(buildInPublicMessages.logTitle)}
       description={formatMessage(buildInPublicMessages.logDescription)}
       failure={
-        hasFailed || hasTeamFailed
+        hasFailed || haveAuthorsFailed || hasTeamFailed
           ? {
               message: formatMessage(buildInPublicMessages.logLoadFailed),
-              isRetrying: loading || isTeamLoading,
+              isRetrying: loading || areAuthorsLoading || isTeamLoading,
               onRetry: () => {
                 if (hasFailed) refetch()
+                if (haveAuthorsFailed) refetchAuthors()
                 if (hasTeamFailed) refetchTeam()
               },
             }
@@ -253,7 +256,7 @@ function BuildInPublicLog({ settings }: Props) {
           settings={settings}
           fields={[
             ...teammateFields,
-            ...(timelineAuthor.authored.length > 2
+            ...(entries.length > 2
               ? [
                   {
                     kind: 'select' as const,
@@ -267,14 +270,14 @@ function BuildInPublicLog({ settings }: Props) {
                 ]
               : []),
           ]}
-          values={{ user: timelineAuthor.author?.user.id ?? viewerId, count: String(timelineCount) }}
+          values={{ user: author?.user.id ?? viewerId, count: String(timelineCount) }}
         >
           <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.buildLog)}</p>
           <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 mb-5 text-[26px]/[1.12]')}>
             {formatMessage(buildInPublicMessages.lastUpdates, { count: timelineCount })}
           </p>
           <ol className="m-0 flex list-none flex-col p-0">
-            {timelineAuthor.authored.slice(0, timelineCount).map((entry, index) => (
+            {entries.slice(0, timelineCount).map((entry, index) => (
               <li
                 key={entry.id}
                 className="relative grid grid-cols-[20px_minmax(0,1fr)] pb-4"

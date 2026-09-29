@@ -7,6 +7,7 @@ import {
   deleteTaskList as deleteTaskListMutation,
   getMemberTaskListsRef,
   getTaskListsRef,
+  moveTaskList as moveTaskListMutation,
   renameTaskList as renameTaskListMutation,
   restoreTaskList as restoreTaskListMutation,
 } from 'strategydance-database/web'
@@ -34,6 +35,10 @@ const EMPTY_TASK_LISTS: TaskList[] = []
   one, the lists are read again, so the rail shows what is really there, and the error goes back
   to the caller to say so.
 
+  A move writes the one list that moved, halfway between its new neighbours, unless those are too
+  close for a float to fit between, when the rail is renumbered one list at a time, as `useTasks`
+  moves a task.
+
   It does not retry on mount, and a failed read is `hasFailed` rather than no lists: `TodayWait`
   waits on the reader's own
 */
@@ -43,6 +48,7 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   renameTaskList: (id: string, name: string) => Promise<void>
   deleteTaskList: (id: string) => Promise<void>
   restoreTaskList: (taskList: TaskList, index: number) => Promise<void>
+  moveTaskList: (from: number, to: number) => Promise<void>
 } {
   const queryClient = useQueryClient()
   const { data: viewer } = useAuthentication()
@@ -130,6 +136,51 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
     )
   }
 
+  function write(taskList: TaskList) {
+    return () =>
+      moveTaskListMutation(dataConnect, {
+        organizationId: organizationId!,
+        id: taskList.id,
+        position: taskList.position,
+      })
+  }
+
+  async function moveTaskList(from: number, to: number) {
+    const moved = taskLists[from]
+
+    if (!moved || from === to) return
+
+    const reordered = taskLists.filter((_, index) => index !== from)
+
+    reordered.splice(to, 0, moved)
+
+    const position = getPositionBetween(reordered[to - 1]?.position ?? null, reordered[to + 1]?.position ?? null)
+
+    if (position !== null) {
+      const taskList = { ...moved, position }
+
+      await change(
+        taskList.id,
+        () => setTaskLists(() => reordered.map(item => (item.id === taskList.id ? taskList : item))),
+        write(taskList),
+      )
+
+      return
+    }
+
+    // No room left between the two, as there never is between two lists made before lists could
+    // move: every list takes a whole position again, the rail landing in the cache at once and each
+    // list that moved written on its own
+    const renumbered = reordered.map((item, index) => ({ ...item, position: index + 1 }))
+    const changed = renumbered.filter((item, index) => item.position !== reordered[index]!.position)
+
+    await Promise.all(
+      changed.map((item, index) =>
+        change(item.id, index === 0 ? () => setTaskLists(() => renumbered) : () => {}, write(item)),
+      ),
+    )
+  }
+
   return {
     data: taskLists,
     initialLoading: isEnabled && isPending && !isError,
@@ -142,6 +193,7 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
     renameTaskList,
     deleteTaskList,
     restoreTaskList,
+    moveTaskList,
   }
 }
 

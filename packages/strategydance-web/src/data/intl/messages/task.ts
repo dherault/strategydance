@@ -110,6 +110,11 @@ const taskMessages = defineMessages({
     defaultMessage: 'Delete task',
     description: 'Tooltip of the button that deletes a task.',
   },
+  reorderList: {
+    id: 'task.reorderList',
+    defaultMessage: 'Reorder {name}, position {position} of {total}. Use arrow keys to move.',
+    description: 'Accessible label of the drag handle beside a task list in the column listing the task lists.',
+  },
   reorderTask: {
     id: 'task.reorderTask',
     defaultMessage: 'Reorder {text}, position {position} of {total}. Use arrow keys to move.',

@@ -22,6 +22,7 @@
   "task.openCount": "{count} pendientes",
   "task.openOfTotal": "{open} de {total} pendientes",
   "task.renameList": "Cambiar nombre de la lista",
+  "task.reorderList": "Reordenar {name}, posición {position} de {total}. Usa las teclas de flecha para mover.",
   "task.reorderTask": "Reordenar {text}, posición {position} de {total}. Usa las teclas de flecha para mover.",
   "task.saveError": "No se pudo guardar el cambio en tus tareas. Inténtalo de nuevo.",
   "task.showFor": "Mostrar tareas de",

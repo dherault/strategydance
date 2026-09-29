@@ -22,6 +22,7 @@
   "task.openCount": "{count} offen",
   "task.openOfTotal": "{open} von {total} offen",
   "task.renameList": "Liste umbenennen",
+  "task.reorderList": "{name} neu anordnen, Position {position} von {total}. Pfeiltasten zum Verschieben verwenden.",
   "task.reorderTask": "{text} neu anordnen, Position {position} von {total}. Mit Pfeiltasten verschieben.",
   "task.saveError": "Deine Änderung an deinen Aufgaben konnte nicht gespeichert werden. Versuche es erneut.",
   "task.showFor": "Aufgaben anzeigen für",

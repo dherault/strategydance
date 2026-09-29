@@ -28,6 +28,9 @@ import FitText from '~components/buildInPublic/FitText'
 
 import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 
+// As many large avatars, overlapping, as the square card's width holds: 40px each, 28px apart
+const MAX_TEAM_AVATARS = 9
+
 type Props = {
   settings: ReturnType<typeof useBuildInPublicSettings>
 }
@@ -66,10 +69,10 @@ function BuildInPublicCompany({ settings }: Props) {
   const weekStart = addDays(today, -6)
 
   const { members: pickedIds } = settings.readCard('company-team', {
-    members: members.map(member => member.user.id),
+    members: members.slice(0, MAX_TEAM_AVATARS).map(member => member.user.id),
   })
-  const pickedMembers = members.filter(member => pickedIds.includes(member.user.id))
-  const shownMembers = pickedMembers.length ? pickedMembers : members
+  const pickedMembers = members.filter(member => pickedIds.includes(member.user.id)).slice(0, MAX_TEAM_AVATARS)
+  const shownMembers = pickedMembers.length ? pickedMembers : members.slice(0, MAX_TEAM_AVATARS)
 
   const viewerMember = members.find(member => member.user.id === viewerId)
   const priority = viewerMember?.topPriority || formatMessage(buildInPublicMessages.setPriority)
@@ -161,6 +164,7 @@ function BuildInPublicCompany({ settings }: Props) {
                   kind: 'multiSelect',
                   key: 'members',
                   label: formatMessage(buildInPublicMessages.members),
+                  max: MAX_TEAM_AVATARS,
                   options: members.map(member => ({ value: member.user.id, label: getMemberName(member) })),
                 },
               ]

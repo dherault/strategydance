@@ -34,8 +34,8 @@ type Props = {
 
 /*
   How the organization appears to its team, the community and agents, for one of its
-  administrators to change: one card, its name, color, brief and visibility one form, saved or
-  discarded together.
+  administrators to change: one card, on which the name, the color, the brief and the visibility
+  make one form, saved or discarded together.
 
   The form starts from the organization and is compared to it on every render, so it reads as
   changed or not without an effect, and as saved the moment the memberships show what was sent.

@@ -54,6 +54,21 @@ const globalMessages = defineMessages({
     defaultMessage: 'Log out',
     description: 'Button in the corner of a full-page screen, like the onboarding or an invitation, that signs the reader out.',
   },
+  notFoundTitle: {
+    id: 'global.notFoundTitle',
+    defaultMessage: 'Page not found',
+    description: 'Title of the full-page screen shown when the address in the browser leads to no page of the app.',
+  },
+  notFoundLead: {
+    id: 'global.notFoundLead',
+    defaultMessage: 'There is nothing at this address. The link may be broken, or the page may have moved.',
+    description: 'Explanation under the title of the page-not-found screen.',
+  },
+  goHome: {
+    id: 'global.goHome',
+    defaultMessage: 'Go home',
+    description: 'Button on the page-not-found screen that leads to the home page of the site.',
+  },
 })
 
 export default globalMessages

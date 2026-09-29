@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import type { CompanyAspect } from 'strategydance-database/web'
 import { OrnamentDivider } from 'strategydance-design-system/components/brand/OrnamentDivider'
@@ -25,16 +25,25 @@ type Props = {
   The number is the aspect's place in the order the sidebar and the explore page list them.
 
   It takes focus when it appears, so a screen reader announces the chapter. The layout makes the
-  app beneath it inert meanwhile, which is what makes it modal
+  app beneath it inert meanwhile, which is what makes it modal. Once it is gone it hands focus back
+  to what had it, if that is still on the page: the button that started it, after a write that
+  failed. After a page change that button went with its page, and focus is left where it falls
 */
 function AspectChapter({ aspect, phase }: Props) {
   const { formatMessage } = useIntl()
   const id = useId()
   const screenRef = useRef<HTMLDivElement>(null)
 
+  // Read on the first render, before the commit that makes the app inert takes focus from it
+  const [opener] = useState(() => document.activeElement)
+
   useEffect(() => {
     screenRef.current?.focus()
-  }, [])
+
+    return () => {
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
+    }
+  }, [opener])
 
   const numberId = `${id}-number`
   const nameId = `${id}-name`

@@ -579,6 +579,14 @@
         "hash": "f9d1eb00f641bbf2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.companyDescription": {
+        "hash": "b8fb3481174c7958",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.companyTitle": {
+        "hash": "1a79dcabc36a7c04",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.consistencyCard": {
         "hash": "99e99d2369e08ba2",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -629,6 +637,10 @@
       },
       "buildInPublic.dayField": {
         "hash": "af00a14dc3d4e061",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dayNumber": {
+        "hash": "0daced6cde830471",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayStreak": {
@@ -751,6 +763,10 @@
         "hash": "e8ab67cb5337e4b2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.members": {
+        "hash": "54501bfb916d3da8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.moreTasks": {
         "hash": "39ce64b0e84ba07e",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -791,12 +807,20 @@
         "hash": "5142b818055a8afa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.profileCard": {
+        "hash": "b54de971313eeac3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.progressCard": {
         "hash": "2fbcca68ca530d81",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.quoteCard": {
         "hash": "779fde542b6e9306",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.recapCard": {
+        "hash": "56e77cf59c15ab44",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.retry": {
@@ -851,6 +875,10 @@
         "hash": "ee48501898b8f9ab",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.tasksDoneThisWeek": {
+        "hash": "2f717c4af0e19114",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.tasksLoadFailed": {
         "hash": "b139189a291e6b89",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -865,6 +893,18 @@
       },
       "buildInPublic.tasksTitle": {
         "hash": "5a44dce4afe2fed4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.teamBrief": {
+        "hash": "fee93b3275a6fbd9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.teamCard": {
+        "hash": "699ebc15167014fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.teamDay": {
+        "hash": "1c14505a9a88499c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.teamLoadFailed": {
@@ -917,6 +957,10 @@
       },
       "buildInPublic.updatesOption": {
         "hash": "4ee67d3557eec6ba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.updatesThisWeek": {
+        "hash": "e2dd75614a48f68b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.weekCard": {

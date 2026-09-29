@@ -624,6 +624,61 @@ const buildInPublicMessages = defineMessages({
     description:
       'Which day of its life the organization is on, as in "Day 12". The word and the number are drawn at different sizes: keep both tags around them.',
   },
+  companyTitle: {
+    id: 'buildInPublic.companyTitle',
+    defaultMessage: 'Company',
+    description: "Title of the section of cards about the reader's organization and its team.",
+  },
+  companyDescription: {
+    id: 'buildInPublic.companyDescription',
+    defaultMessage: 'Your organization and team',
+    description: 'Line under the title of the company section.',
+  },
+  profileCard: {
+    id: 'buildInPublic.profileCard',
+    defaultMessage: 'Profile',
+    description: "Name of the wide card showing the organization's banner, logo, name and brief.",
+  },
+  teamCard: {
+    id: 'buildInPublic.teamCard',
+    defaultMessage: 'Team',
+    description: "Name of the square card showing the organization's name and its members' pictures.",
+  },
+  recapCard: {
+    id: 'buildInPublic.recapCard',
+    defaultMessage: 'Daily recap',
+    description: "Name of the wide card summing up the reader's day: their priority, checklist and log.",
+  },
+  members: {
+    id: 'buildInPublic.members',
+    defaultMessage: 'Members',
+    description: 'Label of the setting that picks whose pictures the team card shows.',
+  },
+  dayNumber: {
+    id: 'buildInPublic.dayNumber',
+    defaultMessage: 'Day {count}',
+    description: 'Uppercase line saying which day of its life the organization is on, as in "Day 12".',
+  },
+  teamBrief: {
+    id: 'buildInPublic.teamBrief',
+    defaultMessage: '{count, plural, one {Building in public, solo.} other {Building in public with a team of #.}}',
+    description: 'Shown on the profile card in place of the brief the organization has not written yet.',
+  },
+  teamDay: {
+    id: 'buildInPublic.teamDay',
+    defaultMessage: '{count, plural, one {Team of #} other {Team of #}} · Day {day}',
+    description: "Line under the organization's name: how many members it has, then which day of its life it is on.",
+  },
+  tasksDoneThisWeek: {
+    id: 'buildInPublic.tasksDoneThisWeek',
+    defaultMessage: '{count, plural, one {task done this week} other {tasks done this week}}',
+    description: 'Words under the big number of checklist habits kept over the last seven days.',
+  },
+  updatesThisWeek: {
+    id: 'buildInPublic.updatesThisWeek',
+    defaultMessage: '{count, plural, one {update this week} other {updates this week}}',
+    description: 'Words under the big number of log entries the reader wrote over the last seven days.',
+  },
 })
 
 export default buildInPublicMessages

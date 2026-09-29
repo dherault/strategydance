@@ -1,0 +1,246 @@
+import { useState } from 'react'
+import { useIntl } from 'react-intl'
+import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
+import { cn } from 'strategydance-design-system/lib/utils'
+
+import { BUILD_IN_PUBLIC_LOG_DAYS } from '~constants'
+
+import useAuthentication from '~hooks/authentication/useAuthentication'
+import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
+import useChecklist from '~hooks/checklist/useChecklist'
+import useLocalDate from '~hooks/common/useLocalDate'
+import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
+import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
+
+import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
+import addDays from '~utils/date/addDays'
+import toCalendarDate from '~utils/date/toCalendarDate'
+import getMemberName from '~utils/team/getMemberName'
+
+import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
+import BuildInPublicLogo from '~components/buildInPublic/BuildInPublicLogo'
+import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
+import {
+  CARD_DISPLAY_CLASS_NAME,
+  CARD_EYEBROW_CLASS_NAME,
+  CARD_MUTED_CLASS_NAME,
+} from '~components/buildInPublic/cardClassNames'
+import FitText from '~components/buildInPublic/FitText'
+
+import buildInPublicMessages from '~data/intl/messages/buildInPublic'
+
+type Props = {
+  settings: ReturnType<typeof useBuildInPublicSettings>
+}
+
+/*
+  The company cards: the organization's profile, its team, and a recap of the reader's day, their
+  priority beside how many checklist ticks and log entries their last seven days hold
+*/
+function BuildInPublicCompany({ settings }: Props) {
+  const { formatMessage, formatDate } = useIntl()
+  const { data: viewer } = useAuthentication()
+  const { organization } = useCurrentOrganization()
+  const { data: team, loading, refetch, hasFailed } = useOrganizationTeam()
+  const today = useLocalDate()
+  const viewerId = viewer?.uid ?? null
+  const { data: checklist } = useChecklist(viewerId)
+  const { data: log } = useOrganizationLogWeek({
+    from: addDays(today, -(BUILD_IN_PUBLIC_LOG_DAYS - 1)),
+    to: today,
+    isLive: false,
+  })
+  const [failedBannerUrl, setFailedBannerUrl] = useState<string | null>(null)
+
+  const name = organization?.name ?? ''
+  const logoUrl = organization?.logoUrl ?? null
+  const bannerUrl = organization?.bannerUrl ?? null
+  const members = team.userOrganizations
+  const dayCount = organization ? getOrganizationDayCount(organization.createdAt, today) : 1
+  const weekStart = addDays(today, -6)
+
+  const { members: pickedIds } = settings.readCard('company-team', {
+    members: members.map(member => member.user.id),
+  })
+  const pickedMembers = members.filter(member => pickedIds.includes(member.user.id))
+  const shownMembers = pickedMembers.length ? pickedMembers : members
+
+  const viewerMember = members.find(member => member.user.id === viewerId)
+  const priority = viewerMember?.topPriority || formatMessage(buildInPublicMessages.setPriority)
+  const weekChecks = checklist.checklistItems.reduce(
+    (sum, item) =>
+      sum + item.completions.filter(completion => completion.date >= weekStart && completion.date <= today).length,
+    0,
+  )
+  const weekLogs = log.logEntries.filter(entry => entry.user.id === viewerId && entry.date >= weekStart).length
+
+  return (
+    <BuildInPublicSection
+      title={formatMessage(buildInPublicMessages.companyTitle)}
+      description={formatMessage(buildInPublicMessages.companyDescription)}
+      failure={
+        hasFailed
+          ? { message: formatMessage(buildInPublicMessages.teamLoadFailed), isRetrying: loading, onRetry: refetch }
+          : null
+      }
+    >
+      <BuildInPublicCard
+        cardKey="company-profile"
+        label={formatMessage(buildInPublicMessages.profileCard)}
+        format="landscape"
+        tone="white"
+        isFlush
+        settings={settings}
+      >
+        {/* The banner over the accent, which shows wherever the banner does not */}
+        <div className="relative h-[136px] flex-none bg-(--card-accent)">
+          {bannerUrl && bannerUrl !== failedBannerUrl ? (
+            <img
+              src={bannerUrl}
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+              onError={() => setFailedBannerUrl(bannerUrl)}
+            />
+          ) : null}
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col px-7 pb-11">
+          {/* Positioned, so its white frame is drawn over the banner it overlaps rather than under it */}
+          <div className="relative -mt-9 self-start rounded-xs bg-white p-[3px]">
+            <BuildInPublicLogo
+              name={name}
+              logoUrl={logoUrl}
+              size={72}
+            />
+          </div>
+          <div className="mt-3 flex items-end justify-between gap-4">
+            <FitText
+              as="p"
+              max={30}
+              min={22}
+              lines={2}
+              lineHeight={1.12}
+              className={CARD_DISPLAY_CLASS_NAME}
+            >
+              {name}
+            </FitText>
+            <p className={cn(CARD_EYEBROW_CLASS_NAME, 'pb-1.5')}>
+              {formatMessage(buildInPublicMessages.dayNumber, { count: dayCount })}
+            </p>
+          </div>
+          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-1.5 mb-0 line-clamp-2 text-sm leading-[1.5]')}>
+            {organization?.brief || formatMessage(buildInPublicMessages.teamBrief, { count: members.length })}
+          </p>
+        </div>
+      </BuildInPublicCard>
+      <BuildInPublicCard
+        cardKey="company-team"
+        label={formatMessage(buildInPublicMessages.teamCard)}
+        format="square"
+        tone="accent"
+        settings={settings}
+        fields={
+          members.length > 1
+            ? [
+                {
+                  kind: 'multiSelect',
+                  key: 'members',
+                  label: formatMessage(buildInPublicMessages.members),
+                  options: members.map(member => ({ value: member.user.id, label: getMemberName(member) })),
+                },
+              ]
+            : []
+        }
+        values={{ members: shownMembers.map(member => member.user.id) }}
+      >
+        <BuildInPublicLogo
+          name={name}
+          logoUrl={logoUrl}
+          size={56}
+          isInverted
+        />
+        <FitText
+          as="p"
+          max={34}
+          min={24}
+          lines={2}
+          lineHeight={1.12}
+          className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-5')}
+        >
+          {name}
+        </FitText>
+        <p className="mt-1.5 mb-0 text-sm font-medium">
+          {formatMessage(buildInPublicMessages.teamDay, { count: members.length, day: dayCount })}
+        </p>
+        <AvatarGroup className="mt-auto">
+          {shownMembers.map(member => (
+            <Avatar
+              key={member.user.id}
+              src={member.user.imageUrl ?? undefined}
+              name={member.user.displayName ?? ''}
+              size="lg"
+            />
+          ))}
+        </AvatarGroup>
+      </BuildInPublicCard>
+      <BuildInPublicCard
+        cardKey="company-recap"
+        label={formatMessage(buildInPublicMessages.recapCard)}
+        format="landscape"
+        tone="white"
+        settings={settings}
+      >
+        <div className="flex items-center gap-2.5">
+          <BuildInPublicLogo
+            name={name}
+            logoUrl={logoUrl}
+            size={28}
+          />
+          <FitText
+            max={14}
+            min={11}
+            className="flex-1 font-semibold"
+          >
+            {name}
+          </FitText>
+          <p className={CARD_EYEBROW_CLASS_NAME}>
+            {formatDate(toCalendarDate(today), { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+          </p>
+        </div>
+        <div className="mt-auto grid min-h-[170px] grid-cols-[1.5fr_1fr_1fr]">
+          <div className="flex min-w-0 flex-col gap-3 pr-5">
+            <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.priorityTitle)}</p>
+            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 text-[22px]/[1.2]')}>{priority}</p>
+          </div>
+          {[
+            {
+              label: formatMessage(buildInPublicMessages.checklistTitle),
+              count: weekChecks,
+              words: formatMessage(buildInPublicMessages.tasksDoneThisWeek, { count: weekChecks }),
+            },
+            {
+              label: formatMessage(buildInPublicMessages.logTitle),
+              count: weekLogs,
+              words: formatMessage(buildInPublicMessages.updatesThisWeek, { count: weekLogs }),
+            },
+          ].map(stat => (
+            <div
+              key={stat.label}
+              className="flex min-w-0 flex-col gap-3 border-l border-[color-mix(in_srgb,currentColor_18%,transparent)] px-5"
+            >
+              <p className={CARD_EYEBROW_CLASS_NAME}>{stat.label}</p>
+              <div>
+                <p className={cn(CARD_DISPLAY_CLASS_NAME, 'text-[56px] leading-none text-(--card-strong)')}>
+                  {stat.count}
+                </p>
+                <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-1.5 mb-0 text-[13px]')}>{stat.words}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </BuildInPublicCard>
+    </BuildInPublicSection>
+  )
+}
+
+export default BuildInPublicCompany

@@ -37,7 +37,7 @@ const MIN_HEADER_HEIGHT = 96
 const LABEL_CLASS_NAME =
   'absolute bottom-0.5 left-[calc(50%-10px)] block h-6 w-max origin-bottom-left rotate-[-62deg] rounded-xs border-0 bg-transparent px-1.5 text-left font-sans text-[13px] leading-6 font-medium whitespace-nowrap text-secondary'
 const ITEM_CELL_CLASS_NAME = 'w-14 min-w-14 max-w-14'
-const DAY_CELL_CLASS_NAME = 'sticky left-0 w-44 min-w-44 border-r border-neutral-200 bg-white'
+const DAY_CELL_CLASS_NAME = 'sticky left-0 border-r border-neutral-200 bg-white sm:w-44 sm:min-w-44'
 const BOX_CLASS_NAME = 'flex h-10 w-full items-center justify-center text-primary [&_svg]:size-[18px]'
 
 type Props = {
@@ -55,7 +55,8 @@ type Props = {
   for a day they forgot. A column's name opens a popover to rename, move or remove it, and drags to
   reorder. A teammate's reads the same, locked, in their time zone.
 
-  The header is as tall as the longest name needs once slanted, measured after each rename
+  The header is as tall as the longest name needs once slanted, measured after each rename. On a
+  small screen the days are abbreviated and their column fits them, which leaves the habits room
 */
 function ChecklistTable({ userId, isOwn }: Props) {
   const { formatMessage, formatDate } = useIntl()
@@ -140,10 +141,10 @@ function ChecklistTable({ userId, isOwn }: Props) {
     }
   }
 
-  function formatDay(date: string) {
+  function formatDay(date: string, width: 'long' | 'short' = 'long') {
     return formatDate(toCalendarDate(date), {
-      weekday: 'long',
-      month: 'long',
+      weekday: width,
+      month: width,
       day: 'numeric',
       year: date.startsWith(currentYear) ? undefined : 'numeric',
       timeZone: 'UTC',
@@ -230,7 +231,7 @@ function ChecklistTable({ userId, isOwn }: Props) {
                 scope="col"
                 className={cn(
                   DAY_CELL_CLASS_NAME,
-                  'z-3 border-b px-4 pb-3 text-left align-bottom text-xs font-medium text-muted-foreground',
+                  'z-3 border-b px-3 pb-3 text-left align-bottom text-xs font-medium text-muted-foreground sm:px-4',
                 )}
               >
                 {formatMessage(checklistMessages.day)}
@@ -341,12 +342,13 @@ function ChecklistTable({ userId, isOwn }: Props) {
                     scope="row"
                     className={cn(
                       DAY_CELL_CLASS_NAME,
-                      'z-1 h-10 px-4 text-left whitespace-nowrap',
+                      'z-1 h-10 px-3 text-left whitespace-nowrap sm:px-4',
                       isToday ? 'font-medium text-secondary' : 'font-normal',
                     )}
                   >
                     <span className="flex items-center gap-2">
-                      {day}
+                      <span className="sm:hidden">{formatDay(date, 'short')}</span>
+                      <span className="hidden sm:inline">{day}</span>
                       {isToday ? (
                         <Badge
                           size="sm"

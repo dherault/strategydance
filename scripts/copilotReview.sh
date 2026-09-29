@@ -25,6 +25,7 @@ Usage: bun run review <command>
   threads <pr>               the open review threads, one JSON object each
   reply <thread id> <body>   reply on a thread, reading the body from stdin when it is -
   resolve <thread id>        resolve a thread, once it has been replied to
+  open <pr>                  succeed only while the pull request is open: chain a push after it
 EOF
   exit 64
 }
@@ -108,6 +109,18 @@ resolve() {
     --jq '.data.resolveReviewThread.thread.isResolved'
 }
 
+# `gh pr view` succeeds whatever the state, so a push chained after it goes out over a merged pull
+# request too, and re-creates the branch GitHub deleted. This fails instead, naming the state
+is_open() {
+  local state
+  state=$(gh pr view "$1" --repo "$REPOSITORY" --json state --jq .state)
+
+  if [ "$state" != OPEN ]; then
+    echo "#$1 is $state" >&2
+    return 1
+  fi
+}
+
 case "${1:-}" in
   count) [ $# -eq 2 ] || usage; count_reviews "$2" ;;
   wait) [ $# -eq 3 ] || usage; wait_for_review "$2" "$3" ;;
@@ -115,5 +128,6 @@ case "${1:-}" in
   threads) [ $# -eq 2 ] || usage; print_threads "$2" ;;
   reply) [ $# -eq 3 ] || usage; reply "$2" "$3" ;;
   resolve) [ $# -eq 2 ] || usage; resolve "$2" ;;
+  open) [ $# -eq 2 ] || usage; is_open "$2" ;;
   *) usage ;;
 esac

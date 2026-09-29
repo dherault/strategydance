@@ -65,7 +65,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
-| `bun run review <command>` | The GitHub calls of the Copilot review loop: `count`, `wait`, `body`, `threads`, `reply` and `resolve`. See [Copilot review loop](#copilot-review-loop) |
+| `bun run review <command>` | The GitHub calls of the Copilot review loop: `count`, `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [Copilot review loop](#copilot-review-loop) |
 | `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`. Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
@@ -553,11 +553,13 @@ GitHub deletes a branch once its pull request merges. `git fetch --prune` drops 
 remote-tracking ref it leaves behind.
 
 The person merges when they choose, sometimes while a session is still working on the branch.
-Before every push to a pull request's branch, and before editing its description, check that `gh
-pr view <number> --json state --jq .state` still prints `OPEN`. A push after the merge
-re-creates the branch GitHub deleted, with no pull request to carry it: when it prints `MERGED`,
+Before every push to a pull request's branch, and before editing its description, check that it
+is still open with `bun run review open <number>`, chained in front: `bun run review open
+<number> && git push`. It fails and names the state unless the pull request is open, where `gh
+pr view` succeeds whatever the state and would let the push through. A push after the merge
+re-creates the branch GitHub deleted, with no pull request to carry it: when it says `MERGED`,
 open a new pull request from the same branch for what `git log origin/dev..HEAD` lists. When it
-prints `CLOSED`, somebody closed it on purpose, so stop and ask the person rather than pushing,
+says `CLOSED`, somebody closed it on purpose, so stop and ask the person rather than pushing,
 reopening it or opening another.
 
 ### Copilot review loop
@@ -613,11 +615,11 @@ reopening it or opening another.
    with the diff rather than re-raising what has already been answered. Citing a commit that
    exists only locally is fine: it will be pushed before anybody follows it.
 4. Commit the fixes, granularly, without pushing yet.
-5. Check that the pull request is still open (above), read the count (`bun run review count
-   <number>`), then push, which is what asks for the next round. That count is the baseline the
-   next wait has to pass. Do not push while a review is in flight: land the round you have,
-   answer it, then push its fixes as one batch. Pushing mid-round gets you overlapping reviews
-   of different heads, and findings against code you have already replaced.
+5. Read the count (`bun run review count <number>`), then push behind the open check (above),
+   which is what asks for the next round. That count is the baseline the next wait has to pass.
+   Do not push while a review is in flight: land the round you have, answer it, then push its
+   fixes as one batch. Pushing mid-round gets you overlapping reviews of different heads, and
+   findings against code you have already replaced.
 6. Repeat from step 1, with the count from before this push as the one to pass, until a round
    comes back with nothing but nitpicks or praise. Step 1, not step 2: CI can finish before the
    new review exists, and answering the threads at that point answers the old round again.

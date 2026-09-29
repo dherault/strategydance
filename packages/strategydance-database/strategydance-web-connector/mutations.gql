@@ -448,6 +448,26 @@ mutation RenameTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @aut
   ) @check(expr: "this == 1", message: "No task list of yours by that id")
 }
 
+# Moves one of the caller's task lists in their rail. The page sends the position halfway between
+# its new neighbours', and renumbers the rail one list at a time when they are too close for that
+mutation MoveTaskList($organizationId: UUID!, $id: UUID!, $position: Float!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
+      role
+    }
+  }
+  taskList_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    data: { position: $position, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task list of yours by that id")
+}
+
 # Deletes one of the caller's task lists by setting `deletedAt`, so `RestoreTaskList` can take it
 # back with its tasks. Deleting one that is gone already changes nothing and succeeds, since the
 # outcome is the one asked for.

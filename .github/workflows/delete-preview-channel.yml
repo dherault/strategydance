@@ -1,0 +1,58 @@
+# Deletes a pull request's Hosting preview channel once the pull request closes, merged or not.
+# firebase-hosting-pull-request.yml opens one per pull request, `pr<number>-<branch>`, and Hosting
+# caps how many channels a site holds. Left to their seven-day expiry, a busy week fills the quota
+# and every preview after it fails with a 429, "channel quota reached"
+#
+# Run by hand from the Actions tab, it deletes every channel but `live` instead, open pull
+# requests' included, which is the way out once the quota is full. A pull request's next push
+# opens its channel again
+#
+# It holds the preview's key, but runs on `pull_request_target`, so GitHub runs this file as it
+# stands on the base branch and never the pull request's copy: unlike the preview, a pull request
+# cannot edit it to print the key. The checkout is the base branch too, which is what
+# actions/checkout takes on this event. Never point it at the pull request's head, which would run
+# the pull request's code with the key in reach
+name: Delete the preview channel
+on:
+  pull_request_target:
+    types:
+      - closed
+  workflow_dispatch:
+permissions:
+  contents: read
+# Shared with the preview, so a pull request that closes while its preview deploys deletes the
+# channel once the deploy lands, rather than before it, which would leave the channel to expire
+concurrency:
+  group: preview-${{ github.event.pull_request.number || 'all' }}
+  cancel-in-progress: false
+jobs:
+  delete_channel:
+    runs-on: ubuntu-latest
+    steps:
+      # The CLI reads firebase.json, so it runs from a checkout
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Pins CI to the packageManager version in package.json, as check-pull-request does
+          bun-version-file: package.json
+      # Only for the Firebase CLI, at the version the lockfile pins. Nothing here needs the Data
+      # Connect SDK that postinstall generates
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STRATEGYDANCE }}
+      # Matches the number rather than rebuilding the id, which the deploy action cuts and
+      # sanitizes from the branch name. The dash keeps `pr5-` off `pr57-`. Through the CLI rather
+      # than the API, because deploying a channel adds its domain to Auth's authorized domains, and
+      # the CLI's delete removes it again
+      - name: Delete the channels
+        env:
+          PREFIX: ${{ github.event.pull_request && format('pr{0}-', github.event.pull_request.number) || '' }}
+        run: |
+          list=$(bunx firebase hosting:channel:list --project strategydance --json)
+          channels=$(echo "$list" | jq -r --arg prefix "$PREFIX" \
+            '.result.channels[].name | split("/") | last | select(. != "live" and startswith($prefix))')
+          for channel in $channels; do
+            bunx firebase hosting:channel:delete "$channel" --project strategydance --force
+          done
+          [ -n "$channels" ] || echo "No channel to delete"

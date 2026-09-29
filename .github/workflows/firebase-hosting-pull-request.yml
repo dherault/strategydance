@@ -7,6 +7,11 @@ permissions:
   checks: write
   contents: read
   pull-requests: write
+# Shared with delete-preview-channel.yml, so a preview still deploying when its pull request
+# closes lands before the channel is deleted rather than after, which would leave it to expire
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}

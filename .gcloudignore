@@ -12,6 +12,7 @@
 .gcloudignore
 .husky/
 .claude/
+.vscode/
 .agents/
 .firebase/
 .DS_Store

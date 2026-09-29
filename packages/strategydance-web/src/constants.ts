@@ -105,6 +105,10 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
 // What a build in public card can be drawn on, in the order its picker lists them
 export const CARD_TONES: readonly CardTone[] = ['accent', 'tint', 'white', 'neutral', 'dark']
 
+// How many days of the log the build in public page reads, today included, which its cards pick
+// entries from
+export const BUILD_IN_PUBLIC_LOG_DAYS = 90
+
 /*
   The colors a build in public card's accent can take besides the organization's own, in the order
   its picker lists them. Each is named by a message of its own in the `buildInPublic` catalogue

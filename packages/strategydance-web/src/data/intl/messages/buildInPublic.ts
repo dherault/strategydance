@@ -540,6 +540,90 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'done',
     description: 'Word after how many checklist habits were kept on a day, as in "3/4 done".',
   },
+  logTitle: {
+    id: 'buildInPublic.logTitle',
+    defaultMessage: 'Log',
+    description:
+      "Title of the section of cards drawn from the team's log, where each member writes what they moved forward.",
+  },
+  logDescription: {
+    id: 'buildInPublic.logDescription',
+    defaultMessage: 'What moved forward',
+    description: 'Line under the title of the log section.',
+  },
+  logLoadFailed: {
+    id: 'buildInPublic.logLoadFailed',
+    defaultMessage: 'The log could not be loaded.',
+    description: "Error shown in place of the log cards when the team's log failed to load.",
+  },
+  logEntryCard: {
+    id: 'buildInPublic.logEntryCard',
+    defaultMessage: 'Log entry',
+    description: 'Name of the wide card showing one log entry in full, and the label of the setting that picks it.',
+  },
+  quoteCard: {
+    id: 'buildInPublic.quoteCard',
+    defaultMessage: 'Quote',
+    description:
+      'Name of the square card showing a quote from a log entry, and the label of the setting that picks it.',
+  },
+  timelineCard: {
+    id: 'buildInPublic.timelineCard',
+    defaultMessage: 'Timeline',
+    description: "Name of the tall card listing somebody's last log entries one under the other.",
+  },
+  dayCounterCard: {
+    id: 'buildInPublic.dayCounterCard',
+    defaultMessage: 'Day counter',
+    description: 'Name of the square card showing which day of its life the organization is on, over a log entry.',
+  },
+  numberOfUpdates: {
+    id: 'buildInPublic.numberOfUpdates',
+    defaultMessage: 'Number of updates',
+    description: 'Label of the setting that picks how many log entries the timeline card lists.',
+  },
+  updatesOption: {
+    id: 'buildInPublic.updatesOption',
+    defaultMessage: '{count, plural, one {# update} other {# updates}}',
+    description: 'Option of how many log entries the timeline card lists, as in "3 updates".',
+  },
+  yesterday: {
+    id: 'buildInPublic.yesterday',
+    defaultMessage: 'Yesterday',
+    description: 'The day before today, as a card names the day of a log entry.',
+  },
+  entryOption: {
+    id: 'buildInPublic.entryOption',
+    defaultMessage: '{day} · {text}',
+    description: 'Option of the setting that picks a log entry: its day, such as "Yesterday", then its first words.',
+  },
+  logOn: {
+    id: 'buildInPublic.logOn',
+    defaultMessage: 'Log · {day}',
+    description: 'Uppercase line beside the author of a log entry on a card, then its day, such as "Today".',
+  },
+  fromLog: {
+    id: 'buildInPublic.fromLog',
+    defaultMessage: "From {name}'s log · {date}",
+    description:
+      'Line under a quote from a log entry: whose log it is from, by first name, and its date, such as "Sep 28".',
+  },
+  buildLog: {
+    id: 'buildInPublic.buildLog',
+    defaultMessage: 'Build log',
+    description: 'Uppercase line at the top of the timeline card, the log of how the company is being built.',
+  },
+  lastUpdates: {
+    id: 'buildInPublic.lastUpdates',
+    defaultMessage: '{count, plural, one {Last update} other {Last # updates}}',
+    description: 'Heading of the timeline card, saying how many log entries it lists.',
+  },
+  dayCounter: {
+    id: 'buildInPublic.dayCounter',
+    defaultMessage: '<word>Day</word> <number>{count}</number>',
+    description:
+      'Which day of its life the organization is on, as in "Day 12". The word and the number are drawn at different sizes: keep both tags around them.',
+  },
 })
 
 export default buildInPublicMessages

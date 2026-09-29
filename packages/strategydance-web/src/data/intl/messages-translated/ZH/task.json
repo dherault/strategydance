@@ -22,6 +22,7 @@
   "task.openCount": "{count} 项未完成",
   "task.openOfTotal": "{open}/{total} 项未完成",
   "task.renameList": "重命名列表",
+  "task.reorderList": "重新排序 {name}，第 {position} 位，共 {total} 位。使用方向键移动。",
   "task.reorderTask": "重新排序 {text}，第 {position}/{total} 位。使用方向键移动。",
   "task.saveError": "无法保存任务更改，请重试。",
   "task.showFor": "显示以下成员的任务",

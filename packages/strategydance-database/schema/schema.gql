@@ -208,6 +208,9 @@ type TaskList @table @index(fields: ["userId", "organizationId"]) {
   organization: Organization!
   # One line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH` in strategydance-core)
   name: String!
+  # Where it sits in its owner's rail, ascending, moved one row at a time as a task is. The lists
+  # made before they could move all sit at 0, and ties keep the order they were made in
+  position: Float! @default(value: 0)
   deletedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")

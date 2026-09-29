@@ -22,6 +22,7 @@
   "task.openCount": "{count} em aberto",
   "task.openOfTotal": "{open} de {total} em aberto",
   "task.renameList": "Renomear lista",
+  "task.reorderList": "Reordenar {name}, posição {position} de {total}. Use as teclas de seta para mover.",
   "task.reorderTask": "Reordenar {text}, posição {position} de {total}. Use as teclas de seta para mover.",
   "task.saveError": "Não foi possível salvar a alteração nas suas tarefas. Tente novamente.",
   "task.showFor": "Mostrar tarefas de",

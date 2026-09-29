@@ -22,6 +22,7 @@
   "task.openCount": "{count} en cours",
   "task.openOfTotal": "{open} sur {total} en cours",
   "task.renameList": "Renommer la liste",
+  "task.reorderList": "Réorganiser {name}, position {position} sur {total}. Utilisez les touches fléchées pour déplacer.",
   "task.reorderTask": "Réorganiser {text}, position {position} sur {total}. Utilisez les touches fléchées pour déplacer.",
   "task.saveError": "Impossible d'enregistrer la modification de vos tâches. Réessayez.",
   "task.showFor": "Afficher les tâches de",

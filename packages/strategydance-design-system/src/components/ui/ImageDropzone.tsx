@@ -32,9 +32,9 @@ type Props = Omit<ComponentProps<'div'>, 'onChange' | 'children' | 'onDrop'> & {
   /** Called with the file chosen or dropped. Checking its type and size is the caller's to do */
   onFileSelect: (file: File) => void
   disabled?: boolean
-  /** While a picture is being saved: the preview dims under a spinner, and the zone takes no file */
+  /** While a picture is being saved: the preview dims under a spinner, and the zone is disabled */
   busy?: boolean
-  /** The spinner's accessible name */
+  /** What is announced while busy */
   busyLabel?: string
 }
 
@@ -102,70 +102,85 @@ function ImageDropzone({
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-label={label}
-      aria-disabled={disabled || undefined}
-      data-slot="image-dropzone"
-      data-dragging={isDragging || undefined}
-      aria-busy={busy || undefined}
-      onClick={openPicker}
-      onKeyDown={handleKeyDown}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={cn(
-        'relative grid w-full cursor-pointer place-items-center overflow-hidden rounded-xs border border-dashed border-neutral-300 bg-neutral-50 font-sans transition-[border-color,background-color] duration-150 ease-in-out outline-none hover:border-primary hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary data-dragging:border-primary data-dragging:bg-primary-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-busy:cursor-progress',
-        ZONE_CLASS_NAMES[shape],
-        className,
-      )}
-      {...props}
-    >
-      {src ? (
-        <img
-          src={src}
-          alt={alt}
-          className={cn(
-            'absolute inset-0 size-full object-cover',
-            shape === 'square' && 'bg-white',
-            busy && 'opacity-50',
-          )}
-        />
-      ) : busy ? null : (
-        <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">
-          <ImageIcon
+    <>
+      <div
+        role="button"
+        tabIndex={isInert ? -1 : 0}
+        aria-label={label}
+        aria-disabled={isInert || undefined}
+        aria-busy={busy || undefined}
+        data-slot="image-dropzone"
+        data-dragging={isDragging || undefined}
+        onClick={openPicker}
+        onKeyDown={handleKeyDown}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          'relative grid w-full cursor-pointer place-items-center overflow-hidden rounded-xs border border-dashed border-neutral-300 bg-neutral-50 font-sans transition-[border-color,background-color] duration-150 ease-in-out outline-none hover:border-primary hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary data-dragging:border-primary data-dragging:bg-primary-50 aria-disabled:not-aria-busy:cursor-not-allowed aria-disabled:not-aria-busy:opacity-50 aria-busy:cursor-progress',
+          ZONE_CLASS_NAMES[shape],
+          className,
+        )}
+        {...props}
+      >
+        {src ? (
+          <img
+            src={src}
+            alt={alt}
+            className={cn(
+              'absolute inset-0 size-full object-cover',
+              shape === 'square' && 'bg-white',
+              busy && 'opacity-50',
+            )}
+          />
+        ) : busy ? null : (
+          <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">
+            <ImageIcon
+              aria-hidden="true"
+              className="size-6"
+            />
+            <span>{prompt}</span>
+          </div>
+        )}
+        {busy ? (
+          // On a white disc, which reads over any picture, and positioned so it sits over the preview.
+          // Only drawn: the status beside the zone announces the save
+          <span
             aria-hidden="true"
-            className="size-6"
-          />
-          <span>{prompt}</span>
-        </div>
-      )}
-      {busy ? (
-        // On a white disc, which reads over any picture, and positioned so it sits over the preview
-        <span className="relative grid place-items-center rounded-full bg-white p-2 shadow-sm">
-          <Spinner
-            size="lg"
-            aria-label={busyLabel}
-          />
-        </span>
-      ) : null}
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        hidden
-        tabIndex={-1}
-        onChange={event => {
-          const file = event.target.files?.[0]
+            className="relative grid place-items-center rounded-full bg-white p-2 shadow-sm"
+          >
+            <Spinner
+              size="lg"
+              role={undefined}
+              aria-label={undefined}
+            />
+          </span>
+        ) : null}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          hidden
+          tabIndex={-1}
+          onChange={event => {
+            const file = event.target.files?.[0]
 
-          // Cleared, so choosing the same file again still fires a change
-          event.target.value = ''
+            // Cleared, so choosing the same file again still fires a change
+            event.target.value = ''
 
-          if (file) onFileSelect(file)
-        }}
-      />
-    </div>
+            if (file) onFileSelect(file)
+          }}
+        />
+      </div>
+      {/* Beside the zone rather than in it, since a status inside a button is not reliably announced.
+          Always there, since a live region is read out when its text changes, not when it appears */}
+      <span
+        role="status"
+        className="sr-only"
+      >
+        {busy ? busyLabel : null}
+      </span>
+    </>
   )
 }
 

@@ -7,11 +7,14 @@
 # requests' included, which is the way out once the quota is full. A pull request's next push
 # opens its channel again
 #
-# It holds the preview's key, but runs on `pull_request_target`, so GitHub runs this file as it
-# stands on the base branch and never the pull request's copy: unlike the preview, a pull request
-# cannot edit it to print the key. The checkout is the base branch too, which is what
-# actions/checkout takes on this event. Never point it at the pull request's head, which would run
-# the pull request's code with the key in reach
+# It holds the preview's key, but runs on `pull_request_target`, which GitHub always runs from the
+# default branch: the file as it stands on `main`, whatever the pull request's base. A pull
+# request cannot edit it to print the key, unlike the preview, and neither can a push to `dev`.
+# The checkout is `main`'s tip too. Never point it at the pull request's head, which would run the
+# pull request's code with the key in reach
+#
+# So both triggers work only once `main` holds this file, and closing a pull request into `dev`
+# runs `main`'s copy
 name: Delete the preview channel
 on:
   pull_request_target:

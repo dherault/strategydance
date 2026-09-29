@@ -348,6 +348,107 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'No top priority set yet',
     description: "Shown on a card in place of a teammate's top priority while they have none.",
   },
+  tasksTitle: {
+    id: 'buildInPublic.tasksTitle',
+    defaultMessage: 'Tasks',
+    description: "Title of the section of cards about the reader's task lists.",
+  },
+  tasksDescription: {
+    id: 'buildInPublic.tasksDescription',
+    defaultMessage: 'What you are getting done',
+    description: 'Line under the title of the tasks section.',
+  },
+  tasksLoadFailed: {
+    id: 'buildInPublic.tasksLoadFailed',
+    defaultMessage: 'Your tasks could not be loaded.',
+    description: "Error shown in place of the task cards when the reader's task lists failed to load.",
+  },
+  progressCard: {
+    id: 'buildInPublic.progressCard',
+    defaultMessage: 'List progress',
+    description: 'Name of the wide card showing how much of one task list is done, and its first tasks.',
+  },
+  crossedOffCard: {
+    id: 'buildInPublic.crossedOffCard',
+    defaultMessage: 'Crossed off',
+    description: 'Name of the square card counting the tasks the reader has done.',
+  },
+  upNextCard: {
+    id: 'buildInPublic.upNextCard',
+    defaultMessage: 'Up next',
+    description: 'Name of the tall card listing the next tasks the reader will do on one list.',
+  },
+  allListsCard: {
+    id: 'buildInPublic.allListsCard',
+    defaultMessage: 'All lists',
+    description: 'Name of the square card showing how much of each task list is done.',
+  },
+  taskList: {
+    id: 'buildInPublic.taskList',
+    defaultMessage: 'Task list',
+    description: 'Label of the setting that picks which task list a card shows, and the uppercase line above its name.',
+  },
+  taskLists: {
+    id: 'buildInPublic.taskLists',
+    defaultMessage: 'Task lists',
+    description: 'Label of the setting that picks which task lists a card counts.',
+  },
+  numberOfTasks: {
+    id: 'buildInPublic.numberOfTasks',
+    defaultMessage: 'Number of tasks',
+    description: 'Label of the setting that picks how many tasks a card lists.',
+  },
+  tasksOption: {
+    id: 'buildInPublic.tasksOption',
+    defaultMessage: '{count, plural, one {# task} other {# tasks}}',
+    description: 'Option of how many tasks a card lists, as in "3 tasks".',
+  },
+  tasksDone: {
+    id: 'buildInPublic.tasksDone',
+    defaultMessage: '{count, plural, one {task done} other {tasks done}}',
+    description: 'Words under how many tasks of a list are done, as in "3/8 tasks done". The numbers are drawn apart.',
+  },
+  moreTasks: {
+    id: 'buildInPublic.moreTasks',
+    defaultMessage: '{count, plural, one {+# more task} other {+# more tasks}}',
+    description: 'Line under the tasks a card lists, saying how many more the list has.',
+  },
+  tasksCrossedOff: {
+    id: 'buildInPublic.tasksCrossedOff',
+    defaultMessage: 'Tasks crossed off',
+    description: 'Uppercase line above the big number of tasks the reader has done.',
+  },
+  doneOnList: {
+    id: 'buildInPublic.doneOnList',
+    defaultMessage: 'done on {list}',
+    description:
+      'Words under the big number of tasks done, naming the one list they are on, as in "12 done on Launch".',
+  },
+  doneAcrossLists: {
+    id: 'buildInPublic.doneAcrossLists',
+    defaultMessage: '{count, plural, one {done across # list} other {done across # lists}}',
+    description: 'Words under the big number of tasks done, saying how many lists they are on.',
+  },
+  upNext: {
+    id: 'buildInPublic.upNext',
+    defaultMessage: 'Up next',
+    description: 'Uppercase line above the name of a task list whose next tasks a card lists.',
+  },
+  allDone: {
+    id: 'buildInPublic.allDone',
+    defaultMessage: 'Everything on this list is done.',
+    description: 'Shown in place of the next tasks when every task on the list is done.',
+  },
+  tasksAcrossLists: {
+    id: 'buildInPublic.tasksAcrossLists',
+    defaultMessage: '{count, plural, one {Tasks · # list} other {Tasks · # lists}}',
+    description: 'Uppercase line above how much of each task list is done, saying how many lists there are.',
+  },
+  doneOf: {
+    id: 'buildInPublic.doneOf',
+    defaultMessage: '{done} of {total} done',
+    description: 'How many of a number of tasks or checks are done, as in "12 of 20 done".',
+  },
 })
 
 export default buildInPublicMessages

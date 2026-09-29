@@ -455,6 +455,14 @@
         "hash": "367c3ccb681989ac",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.allDone": {
+        "hash": "e4c9ffc80c543d67",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.allListsCard": {
+        "hash": "ce14987559e3788f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.background": {
         "hash": "5d6df793fea27a95",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -555,6 +563,10 @@
         "hash": "3d1ec82ffb6acf46",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.crossedOffCard": {
+        "hash": "020053b349e73ddb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.customize": {
         "hash": "9921af04f7370ed2",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -569,6 +581,18 @@
       },
       "buildInPublic.daysInARow": {
         "hash": "2b8d1ca461e0043d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.doneAcrossLists": {
+        "hash": "6361e57ed1d26624",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.doneOf": {
+        "hash": "967cbdabbedf7dc8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.doneOnList": {
+        "hash": "ebc733afab2f8538",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.downloadImage": {
@@ -619,8 +643,16 @@
         "hash": "05d002c233fc4880",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.moreTasks": {
+        "hash": "39ce64b0e84ba07e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.noPriority": {
         "hash": "ccb20c97eb626b0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.numberOfTasks": {
+        "hash": "88c3b3119ae5013e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.oneThingCard": {
@@ -645,6 +677,10 @@
       },
       "buildInPublic.priorityTitle": {
         "hash": "5142b818055a8afa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.progressCard": {
+        "hash": "2fbcca68ca530d81",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.retry": {
@@ -675,6 +711,42 @@
         "hash": "1457d34688d00b9d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.taskList": {
+        "hash": "56cfdd99472e3aef",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.taskLists": {
+        "hash": "ccaaffa05a15f2e8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksAcrossLists": {
+        "hash": "8dd715dbaed4e0cf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksCrossedOff": {
+        "hash": "88bd8de7e3aa8363",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksDescription": {
+        "hash": "adb35bd5faea1c1c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksDone": {
+        "hash": "ee48501898b8f9ab",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksLoadFailed": {
+        "hash": "b139189a291e6b89",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksOption": {
+        "hash": "581d062b4a552445",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.tasksTitle": {
+        "hash": "5a44dce4afe2fed4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.teamLoadFailed": {
         "hash": "dfdd905c55fe3ea3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -701,6 +773,14 @@
       },
       "buildInPublic.toneWhite": {
         "hash": "d1aedb0dffcd6daa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.upNext": {
+        "hash": "39a96ed113e6be0f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.upNextCard": {
+        "hash": "4edb43544a37f603",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.upTo": {

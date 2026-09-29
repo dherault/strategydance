@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 
 import useActivityDays from '~hooks/buildInPublic/useActivityDays'
+import useTaskListsWithTasks from '~hooks/task/useTaskListsWithTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import Loading from '~components/common/Loading'
@@ -13,8 +14,9 @@ import Loading from '~components/common/Loading'
 function BuildInPublicWait({ children }: PropsWithChildren) {
   const { initialLoading: areActivityDaysLoading } = useActivityDays()
   const { initialLoading: isTeamLoading } = useOrganizationTeam()
+  const { initialLoading: areTaskListsLoading } = useTaskListsWithTasks()
 
-  if (areActivityDaysLoading || isTeamLoading) return <Loading source="BuildInPublicWait" />
+  if (areActivityDaysLoading || isTeamLoading || areTaskListsLoading) return <Loading source="BuildInPublicWait" />
 
   return children
 }

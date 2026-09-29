@@ -4,6 +4,7 @@ import useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSetti
 
 import BuildInPublicPriority from '~components/buildInPublic/BuildInPublicPriority'
 import BuildInPublicStreak from '~components/buildInPublic/BuildInPublicStreak'
+import BuildInPublicTasks from '~components/buildInPublic/BuildInPublicTasks'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
 
@@ -28,6 +29,7 @@ function BuildInPublic() {
       />
       <BuildInPublicStreak settings={settings} />
       <BuildInPublicPriority settings={settings} />
+      <BuildInPublicTasks settings={settings} />
     </ContainerLayout>
   )
 }

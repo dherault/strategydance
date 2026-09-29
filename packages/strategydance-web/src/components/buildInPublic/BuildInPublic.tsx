@@ -2,6 +2,7 @@ import { useIntl } from 'react-intl'
 
 import useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 
+import BuildInPublicChecklist from '~components/buildInPublic/BuildInPublicChecklist'
 import BuildInPublicPriority from '~components/buildInPublic/BuildInPublicPriority'
 import BuildInPublicStreak from '~components/buildInPublic/BuildInPublicStreak'
 import BuildInPublicTasks from '~components/buildInPublic/BuildInPublicTasks'
@@ -30,6 +31,7 @@ function BuildInPublic() {
       <BuildInPublicStreak settings={settings} />
       <BuildInPublicPriority settings={settings} />
       <BuildInPublicTasks settings={settings} />
+      <BuildInPublicChecklist settings={settings} />
     </ContainerLayout>
   )
 }

@@ -483,6 +483,34 @@
         "hash": "c31d98bab5f62efc",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.checklistDays": {
+        "hash": "029382aebcb96eac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checklistDescription": {
+        "hash": "abe4cb832aa9fd4f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checklistItem": {
+        "hash": "ad8e87eeb3e6ac95",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checklistItems": {
+        "hash": "c9a0a6d90060210f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checklistLoadFailed": {
+        "hash": "131167ee34278424",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checklistStreakCard": {
+        "hash": "d18a76ef3034d9ff",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.checklistTitle": {
+        "hash": "f3baf5129f3f1cd3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.colorAmber": {
         "hash": "1b9391febda4eef5",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -547,6 +575,10 @@
         "hash": "f9d1eb00f641bbf2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.consistencyCard": {
+        "hash": "99e99d2369e08ba2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.copyFailed": {
         "hash": "b02718826b8cf44e",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -567,8 +599,24 @@
         "hash": "020053b349e73ddb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.currentStreak": {
+        "hash": "a4d97b82e12b7d39",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.customize": {
         "hash": "9921af04f7370ed2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dailyListCard": {
+        "hash": "19faa356afc5d64e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dailyTasksDone": {
+        "hash": "62ff1e3081f4d5a6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dayField": {
+        "hash": "af00a14dc3d4e061",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayStreak": {
@@ -579,8 +627,16 @@
         "hash": "186f397c83ea0d69",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.daysField": {
+        "hash": "755cb1542e4012bd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.daysInARow": {
         "hash": "2b8d1ca461e0043d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.done": {
+        "hash": "74ae66da1eea8beb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.doneAcrossLists": {
@@ -627,6 +683,10 @@
         "hash": "b576ebbc3ee7ad22",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.gridCard": {
+        "hash": "e08dded40082276e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.imageCopied": {
         "hash": "8a4d1e406e736bcb",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -637,6 +697,10 @@
       },
       "buildInPublic.imageFailed": {
         "hash": "3b55c47919376e79",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.itemStreak": {
+        "hash": "02be51f70c9820f5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.lead": {
@@ -743,6 +807,10 @@
         "hash": "581d062b4a552445",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.tasksPerDay": {
+        "hash": "70b08b467358e75e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.tasksTitle": {
         "hash": "5a44dce4afe2fed4",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -757,6 +825,10 @@
       },
       "buildInPublic.thisWeek": {
         "hash": "d5898229999f91fe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.today": {
+        "hash": "3422b8a4daa03b7e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.toneAccent": {

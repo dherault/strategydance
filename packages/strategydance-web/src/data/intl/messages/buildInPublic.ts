@@ -449,6 +449,97 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: '{done} of {total} done',
     description: 'How many of a number of tasks or checks are done, as in "12 of 20 done".',
   },
+  checklistTitle: {
+    id: 'buildInPublic.checklistTitle',
+    defaultMessage: 'Checklist',
+    description: "Title of the section of cards about the reader's daily checklist of habits.",
+  },
+  checklistDescription: {
+    id: 'buildInPublic.checklistDescription',
+    defaultMessage: 'Your consistency over the last {count, plural, one {day} other {# days}}',
+    description: 'Line under the title of the checklist section, saying how many days its cards look back.',
+  },
+  checklistLoadFailed: {
+    id: 'buildInPublic.checklistLoadFailed',
+    defaultMessage: 'Your checklist could not be loaded.',
+    description: "Error shown in place of the checklist cards when the reader's checklist failed to load.",
+  },
+  gridCard: {
+    id: 'buildInPublic.gridCard',
+    defaultMessage: 'Grid',
+    description: 'Name of the square card showing each checklist habit as a row of squares, one a day.',
+  },
+  checklistStreakCard: {
+    id: 'buildInPublic.checklistStreakCard',
+    defaultMessage: 'Streak',
+    description: 'Name of the wide card showing how many days in a row one checklist habit was kept.',
+  },
+  consistencyCard: {
+    id: 'buildInPublic.consistencyCard',
+    defaultMessage: 'Consistency',
+    description: 'Name of the tall card showing how often each checklist habit was kept.',
+  },
+  dailyListCard: {
+    id: 'buildInPublic.dailyListCard',
+    defaultMessage: 'Daily list',
+    description: "Name of the square card showing one day's checklist, ticked or not.",
+  },
+  daysField: {
+    id: 'buildInPublic.daysField',
+    defaultMessage: 'Days',
+    description: 'Label of the setting that picks how many days a checklist card shows.',
+  },
+  checklistItems: {
+    id: 'buildInPublic.checklistItems',
+    defaultMessage: 'Tasks',
+    description: 'Label of the setting that picks which habits of the daily checklist a card shows.',
+  },
+  checklistItem: {
+    id: 'buildInPublic.checklistItem',
+    defaultMessage: 'Checklist item',
+    description: 'Label of the setting that picks which habit of the daily checklist a card shows.',
+  },
+  dayField: {
+    id: 'buildInPublic.dayField',
+    defaultMessage: 'Day',
+    description: 'Label of the setting that picks which day of the checklist a card shows.',
+  },
+  today: {
+    id: 'buildInPublic.today',
+    defaultMessage: 'Today',
+    description: 'The current day, as a card names it.',
+  },
+  checklistDays: {
+    id: 'buildInPublic.checklistDays',
+    defaultMessage: '{count, plural, one {Checklist · # day} other {Checklist · # days}}',
+    description: 'Uppercase line at the top of a checklist card, saying how many days it shows.',
+  },
+  currentStreak: {
+    id: 'buildInPublic.currentStreak',
+    defaultMessage: 'Current streak',
+    description: 'Uppercase line above the number of days in a row one checklist habit was kept.',
+  },
+  itemStreak: {
+    id: 'buildInPublic.itemStreak',
+    defaultMessage: '{count, plural, one {day of {item} in a row} other {days of {item} in a row}}',
+    description:
+      'Words under the big number of days in a row a checklist habit was kept, as in "12 days of Talk to users in a row". {item} is the habit as the reader named it.',
+  },
+  tasksPerDay: {
+    id: 'buildInPublic.tasksPerDay',
+    defaultMessage: 'Tasks done per day',
+    description: 'Uppercase line above a bar chart of how many checklist habits were kept each day.',
+  },
+  dailyTasksDone: {
+    id: 'buildInPublic.dailyTasksDone',
+    defaultMessage: 'of my daily tasks done',
+    description: 'Words under the big percentage of checklist habits kept, as in "74% of my daily tasks done".',
+  },
+  done: {
+    id: 'buildInPublic.done',
+    defaultMessage: 'done',
+    description: 'Word after how many checklist habits were kept on a day, as in "3/4 done".',
+  },
 })
 
 export default buildInPublicMessages

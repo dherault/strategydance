@@ -1,6 +1,9 @@
 import type { PropsWithChildren } from 'react'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useActivityDays from '~hooks/buildInPublic/useActivityDays'
+import useChecklist from '~hooks/checklist/useChecklist'
+import useChecklistHistory from '~hooks/checklist/useChecklistHistory'
 import useTaskListsWithTasks from '~hooks/task/useTaskListsWithTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
@@ -15,8 +18,20 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
   const { initialLoading: areActivityDaysLoading } = useActivityDays()
   const { initialLoading: isTeamLoading } = useOrganizationTeam()
   const { initialLoading: areTaskListsLoading } = useTaskListsWithTasks()
+  const { data: viewer } = useAuthentication()
+  const viewerId = viewer?.uid ?? null
+  const { initialLoading: isChecklistLoading } = useChecklist(viewerId)
+  const { isLoading: isChecklistHistoryLoading } = useChecklistHistory(viewerId, true)
 
-  if (areActivityDaysLoading || isTeamLoading || areTaskListsLoading) return <Loading source="BuildInPublicWait" />
+  if (
+    areActivityDaysLoading
+    || isTeamLoading
+    || areTaskListsLoading
+    || isChecklistLoading
+    || isChecklistHistoryLoading
+  ) {
+    return <Loading source="BuildInPublicWait" />
+  }
 
   return children
 }

@@ -6,8 +6,10 @@ import type { DataSource, User, UserProfile } from '~types'
 // later and can legitimately be absent for a moment: an account exists from the instant it is
 // created, its row only once the first insert lands
 export type UserContextType = DataSource<User | null> & {
-  // Saves what the account page edits, and resolves once the row shows it
+  // Saves what the account page's form edits, and resolves once the row shows it
   updateProfile: (profile: UserProfile) => Promise<void>
+  // Saves a profile picture, or null to remove it, and resolves once the row shows it
+  changePicture: (image: Blob | null) => Promise<void>
 }
 
 export default createContext<UserContextType>({
@@ -16,4 +18,5 @@ export default createContext<UserContextType>({
   loading: false,
   refetch: async () => {},
   updateProfile: async () => {},
+  changePicture: async () => {},
 })

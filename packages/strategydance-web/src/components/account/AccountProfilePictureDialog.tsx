@@ -10,10 +10,12 @@ import {
   DialogTitle,
 } from 'strategydance-design-system/components/ui/Dialog'
 import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDropzone'
+import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import { MAX_PROFILE_PICTURE_SIZE, PROFILE_PICTURE_CONTENT_TYPES } from '~constants'
 
 import useStagedImage from '~hooks/common/useStagedImage'
+import useUser from '~hooks/user/useUser'
 
 import accountMessages from '~data/intl/messages/account'
 
@@ -24,30 +26,31 @@ const MINIMUM_SIZE = { width: 256, height: 256 }
 const MAXIMUM_MEGABYTES = MAX_PROFILE_PICTURE_SIZE / (1024 * 1024)
 
 type Props = {
-  // What the card shows now, whether saved or chosen earlier and not saved yet
+  // The picture saved now, if any
   currentSrc: string | null
-  // A picture to put on the card, or null to take the one there away. Saving is the card's
-  onApply: (image: Blob | null) => void
   onClose: () => void
 }
 
 /*
-  Chooses the reader's profile picture, or removes it, as an organization's logo is chosen on its
-  company profile. Mounted only while open, so it starts from what the card shows every time.
+  Chooses the reader's profile picture, or removes it, and saves that at once, apart from the
+  account page's form, as an organization's logo is on its company profile. Mounted only while
+  open, so it starts from what is saved every time.
 
-  Applying puts the choice on the card and nothing more: the card saves it with the rest of its
-  changes. The type and size are checked here, before anything is sent, and the Storage rule
-  checks both again
+  A picture chosen shows in the zone while it is saved, and the dialog stays open until the save
+  lands and cannot be dismissed meanwhile. A failure leaves it open for another try, showing what
+  the row still points at, which `changePicture` says more about. The type and size are checked
+  here, before anything is sent, and the Storage rule checks both again
 */
-function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
+function AccountProfilePictureDialog({ currentSrc, onClose }: Props) {
   const { formatMessage } = useIntl()
-  const { staged: choice, stage } = useStagedImage()
+  const { changePicture } = useUser()
+  const { staged: choice, stage, unstage } = useStagedImage()
 
   const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const src = choice === undefined ? currentSrc : (choice?.url ?? null)
-  // Removing a picture that was never there changes nothing
-  const isChanged = choice !== undefined && (choice !== null || currentSrc !== null)
+  // The picture being saved, or else the saved one
+  const src = choice ? choice.url : currentSrc
 
   const specs = [
     formatMessage(accountMessages.pictureSquare),
@@ -70,23 +73,44 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
 
     setError(null)
     stage(file)
+    save(file)
   }
 
   function remove() {
     setError(null)
-    stage(null)
+    save(null)
   }
 
-  // The blob rather than the preview's URL, which this dialog revokes as it closes
-  function apply() {
-    onApply(choice ? choice.blob : null)
+  /*
+    Saves a picture, or null to remove the one there, and closes once the row shows the change,
+    which is when the card does. Handed the file rather than the preview's URL, which this dialog
+    revokes as it closes
+  */
+  async function save(image: Blob | null) {
+    if (isSaving) return
+
+    setIsSaving(true)
+
+    try {
+      await changePicture(image)
+    } catch (saveError) {
+      console.error('Failed to save the profile picture', saveError)
+
+      toast.error(formatMessage(accountMessages.pictureSaveError))
+      unstage()
+      setIsSaving(false)
+
+      return
+    }
+
+    toast.success(formatMessage(image ? accountMessages.pictureSaved : accountMessages.pictureRemoved))
     onClose()
   }
 
   return (
     <Dialog
       open
-      onOpenChange={open => !open && onClose()}
+      onOpenChange={open => !open && !isSaving && onClose()}
     >
       <DialogContent
         closeLabel={formatMessage(accountMessages.closeDialog)}
@@ -114,6 +138,8 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
             }
             accept={PROFILE_PICTURE_CONTENT_TYPES.join(',')}
             onFileSelect={selectFile}
+            busy={isSaving}
+            busyLabel={formatMessage(accountMessages.pictureSaving)}
           />
           {error ? (
             <p
@@ -135,11 +161,12 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
           </ul>
         </div>
         <DialogFooter className="-mx-6 -mb-6 border-t border-border px-6 py-4 sm:items-center">
-          {src ? (
+          {currentSrc ? (
             <Button
               variant="danger"
               size="sm"
               confirm={formatMessage(accountMessages.removePictureConfirm)}
+              disabled={isSaving}
               onClick={remove}
               className="sm:mr-auto"
             >
@@ -148,15 +175,10 @@ function AccountProfilePictureDialog({ currentSrc, onApply, onClose }: Props) {
           ) : null}
           <Button
             variant="transparent"
+            disabled={isSaving}
             onClick={onClose}
           >
             {formatMessage(accountMessages.cancel)}
-          </Button>
-          <Button
-            disabled={!isChanged}
-            onClick={apply}
-          >
-            {formatMessage(accountMessages.applyPicture)}
           </Button>
         </DialogFooter>
       </DialogContent>

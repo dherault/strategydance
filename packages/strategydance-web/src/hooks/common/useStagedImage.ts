@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { StagedImage } from '~types'
 
 /*
-  A picture chosen but not saved yet, with the object URL that previews it.
+  A picture chosen and being saved, with the object URL that previews it meanwhile.
 
   The URL is made where the picture is staged, in an event, and revoked by the effect once the
   picture it previews is replaced or the component goes, so a page choosing ten pictures holds
@@ -21,9 +21,8 @@ function useStagedImage() {
     return () => URL.revokeObjectURL(url)
   }, [staged])
 
-  // A blob to preview and save, or null for the picture there to be removed
-  function stage(blob: Blob | null) {
-    setStaged(blob ? { blob, url: URL.createObjectURL(blob) } : null)
+  function stage(blob: Blob) {
+    setStaged({ blob, url: URL.createObjectURL(blob) })
   }
 
   // Back to nothing chosen

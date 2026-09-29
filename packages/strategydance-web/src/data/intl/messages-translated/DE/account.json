@@ -1,5 +1,4 @@
 {
-  "account.applyPicture": "Übernehmen",
   "account.bioCount": "{count, number}/{max, number}",
   "account.bioHint": "Wird in deinem Profil und für Agenten angezeigt.",
   "account.bioLabel": "Biografie",
@@ -33,6 +32,10 @@
   "account.pictureMaximumSize": "Bis zu {megabytes} MB",
   "account.pictureMinimumSize": "Mindestens {width}×{height}px",
   "account.picturePreviewAlt": "Profilbild-Vorschau",
+  "account.pictureRemoved": "Profilbild entfernt",
+  "account.pictureSaveError": "Dein Profilbild konnte nicht gespeichert werden. Versuche es erneut.",
+  "account.pictureSaved": "Profilbild gespeichert",
+  "account.pictureSaving": "Bild wird gespeichert",
   "account.pictureSizeError": "Wähle ein Bild mit höchstens {megabytes} MB.",
   "account.pictureSquare": "Quadratisches Bild",
   "account.pictureTypeError": "Wähle ein PNG-, JPEG-, GIF- oder WebP-Bild.",

@@ -1,10 +1,6 @@
 {
   "messages": {
     "account": {
-      "account.applyPicture": {
-        "hash": "31527fc74aef8374",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "account.bioCount": {
         "hash": "a88b168aa6583372",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -134,7 +130,23 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.picturePreviewAlt": {
-        "hash": "6b8b77add4fdb2f9",
+        "hash": "1be6c7dd95e4e6a1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureRemoved": {
+        "hash": "f07fd4d2c1519a69",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSaveError": {
+        "hash": "a4817b8ee99038b0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSaved": {
+        "hash": "4930dc9fc524e7c4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "account.pictureSaving": {
+        "hash": "370601540ed3d439",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.pictureSizeError": {
@@ -166,7 +178,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.removePicture": {
-        "hash": "d6473d642bd3895d",
+        "hash": "ad50ccaecf4436b3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "account.removePictureConfirm": {
@@ -1243,10 +1255,6 @@
         "hash": "6658b7c5cb84a52a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "organizationProfile.apply": {
-        "hash": "0f5401501915c638",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "organizationProfile.bannerAlt": {
         "hash": "6dad18936015119b",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1256,7 +1264,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.bannerPreviewAlt": {
-        "hash": "8b5bc3054e60d621",
+        "hash": "33dc5b62dcafaa9a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.bannerRemoved": {
+        "hash": "4ca00408b318370f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.bannerSaved": {
+        "hash": "bb6fc038e4fe5b46",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.briefCount": {
@@ -1331,6 +1347,14 @@
         "hash": "3808fd1072edf4f5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "organizationProfile.imageSaveError": {
+        "hash": "065d708a3cbc92d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.imageSaving": {
+        "hash": "b452bd63990dfc12",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "organizationProfile.imageSizeError": {
         "hash": "1c5caa27b603f078",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1348,7 +1372,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.logoPreviewAlt": {
-        "hash": "fd0b0e8705ba94db",
+        "hash": "4fdf822f5f2662a3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.logoRemoved": {
+        "hash": "eac01c3112e334cc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "organizationProfile.logoSaved": {
+        "hash": "72561cb992cf992b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.maximumSize": {
@@ -1380,7 +1412,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.remove": {
-        "hash": "0e18eebd50b28628",
+        "hash": "1c0c4478ff31aa3e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "organizationProfile.removeConfirm": {

@@ -1,5 +1,4 @@
 {
-  "account.applyPicture": "应用",
   "account.bioCount": "{count, number}/{max, number}",
   "account.bioHint": "将显示在个人资料中并对智能助手可见。",
   "account.bioLabel": "个人简介",
@@ -33,6 +32,10 @@
   "account.pictureMaximumSize": "最大 {megabytes} MB",
   "account.pictureMinimumSize": "至少 {width}×{height}px",
   "account.picturePreviewAlt": "头像预览",
+  "account.pictureRemoved": "头像已移除",
+  "account.pictureSaveError": "无法保存您的头像。请重试。",
+  "account.pictureSaved": "头像已保存",
+  "account.pictureSaving": "正在保存头像",
   "account.pictureSizeError": "请选择大小在 {megabytes} MB 以内的图片。",
   "account.pictureSquare": "正方形图片",
   "account.pictureTypeError": "请选择 PNG、JPEG、GIF 或 WebP 格式的图片。",

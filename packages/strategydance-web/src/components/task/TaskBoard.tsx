@@ -27,9 +27,10 @@ type Props = {
 /*
   A member's task lists: a rail of lists beside the open one. Under 600px the rail stacks above it.
 
-  On the reader's own, the list last opened stays open from one visit to the next. A new list opens
-  with its name selected, to be named straight away. Deleting a list asks twice, then offers to take
-  it back, tasks and all. A teammate's opens on their first list, and changes nothing
+  On the reader's own, the list last opened stays open from one visit to the next, and the lists
+  move in the rail as tasks do in a list. A new list opens last, with its name selected, to be named
+  straight away. Deleting a list asks twice, then offers to take it back, tasks and all. A
+  teammate's opens on their first list, and changes nothing
 */
 function TaskBoard({ userId, isOwn }: Props) {
   const { formatMessage } = useIntl()
@@ -43,6 +44,7 @@ function TaskBoard({ userId, isOwn }: Props) {
     renameTaskList,
     deleteTaskList,
     restoreTaskList,
+    moveTaskList,
   } = useTaskLists(userId)
   const [rememberedTaskListId, setRememberedTaskListId] = useActiveTaskListId()
   const [browsedTaskListId, setBrowsedTaskListId] = useState<string | null>(null)
@@ -121,6 +123,7 @@ function TaskBoard({ userId, isOwn }: Props) {
           isOwn={isOwn}
           onSelect={select}
           onAdd={add}
+          onMove={(from, to) => report(moveTaskList(from, to))}
         />
         {activeTaskList ? (
           <TaskListPanel

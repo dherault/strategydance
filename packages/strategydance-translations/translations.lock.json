@@ -2181,6 +2181,10 @@
         "hash": "fc4f1f2f0e27c1c0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "task.reorderList": {
+        "hash": "d9c4b469c55a1930",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "task.reorderTask": {
         "hash": "2f51f8199675ff26",
         "locales": "DE,ES,FR,JA,PT,ZH"

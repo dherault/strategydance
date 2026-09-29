@@ -15,7 +15,6 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { Organization } from '~types'
 
-import useStagedImage from '~hooks/common/useStagedImage'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import Spinner from '~components/common/Spinner'
@@ -35,22 +34,20 @@ type Props = {
 
 /*
   How the organization appears to its team, the community and agents, for one of its
-  administrators to change: one card, one form, saved or discarded together.
+  administrators to change: one card, its name, color, brief and visibility one form, saved or
+  discarded together.
 
   The form starts from the organization and is compared to it on every render, so it reads as
   changed or not without an effect, and as saved the moment the memberships show what was sent.
   The route keys it by the organization, so switching to another starts it over.
 
-  A picture chosen in its dialog waits on the card, previewed, until the form is saved. Saving
-  sends each picture, then the name, color, brief and visibility, one after the other, and each is
-  cleared from the form as soon as it lands: a failure halfway keeps only what did not, for the
-  next try
+  The banner and the logo are not part of the form: each is saved from its dialog as soon as it is
+  chosen, and the card shows what is saved. The logo is still drawn in the form's name and color,
+  so its initials follow them before they are saved
 */
 function OrganizationProfile({ organization }: Props) {
   const { formatMessage } = useIntl()
-  const { updateOrganization, changeOrganizationImage } = useUserOrganizations()
-  const { staged: stagedLogo, stage: stageLogo, unstage: unstageLogo } = useStagedImage()
-  const { staged: stagedBanner, stage: stageBanner, unstage: unstageBanner } = useStagedImage()
+  const { updateOrganization } = useUserOrganizations()
 
   const savedColor = organization.color ?? DEFAULT_ORGANIZATION_COLOR
   const savedBrief = organization.brief ?? ''
@@ -71,37 +68,19 @@ function OrganizationProfile({ organization }: Props) {
   const isVisibilityChanged = isPublic !== organization.isPublic
   const areDetailsChanged =
     trimmedName !== organization.name || isColorChanged || trimmedBrief !== savedBrief || isVisibilityChanged
-  const areImagesChanged = stagedLogo !== undefined || stagedBanner !== undefined
   // Anything to discard, spaces around the name and the brief included
-  const isDirty =
-    name !== organization.name || isColorChanged || brief !== savedBrief || isVisibilityChanged || areImagesChanged
+  const isDirty = name !== organization.name || isColorChanged || brief !== savedBrief || isVisibilityChanged
   // Anything to save, which spaces alone are not
-  const canSave = (areDetailsChanged || areImagesChanged) && !!trimmedName && !isSaving
+  const canSave = areDetailsChanged && !!trimmedName && !isSaving
 
-  // What the card shows: a picture chosen and not saved yet, or else the saved one
-  const logoSrc = stagedLogo === undefined ? (organization.logoUrl ?? null) : (stagedLogo?.url ?? null)
-  const bannerSrc = stagedBanner === undefined ? (organization.bannerUrl ?? null) : (stagedBanner?.url ?? null)
+  const logoSrc = organization.logoUrl ?? null
+  const bannerSrc = organization.bannerUrl ?? null
 
   function discardChanges() {
     setName(organization.name)
     setColor(savedColor)
     setBrief(savedBrief)
     setIsPublic(organization.isPublic)
-    unstageLogo()
-    unstageBanner()
-  }
-
-  /*
-    Stages what the dialog applied. Removing a picture that is not saved, only chosen, is going
-    back to nothing chosen rather than a removal to send
-  */
-  function applyImage(kind: OrganizationImageKind, image: Blob | null) {
-    const savedUrl = kind === 'logo' ? organization.logoUrl : organization.bannerUrl
-    const stage = kind === 'logo' ? stageLogo : stageBanner
-    const unstage = kind === 'logo' ? unstageLogo : unstageBanner
-
-    if (image || savedUrl) stage(image)
-    else unstage()
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -112,35 +91,23 @@ function OrganizationProfile({ organization }: Props) {
     setIsSaving(true)
 
     try {
-      if (stagedBanner !== undefined) {
-        await changeOrganizationImage(organization.id, 'banner', stagedBanner?.blob ?? null)
-        unstageBanner()
-      }
+      // An untouched color is sent as stored, so one never picked stays the default
+      await updateOrganization(organization.id, {
+        name: trimmedName,
+        color: isColorChanged ? color : (organization.color ?? null),
+        brief: trimmedBrief || null,
+        isPublic,
+      })
 
-      if (stagedLogo !== undefined) {
-        await changeOrganizationImage(organization.id, 'logo', stagedLogo?.blob ?? null)
-        unstageLogo()
-      }
-
-      if (areDetailsChanged) {
-        // An untouched color is sent as stored, so one never picked stays the default
-        await updateOrganization(organization.id, {
-          name: trimmedName,
-          color: isColorChanged ? color : (organization.color ?? null),
-          brief: trimmedBrief || null,
-          isPublic,
-        })
-
-        // What was saved, without the spaces the server was never sent
-        setName(trimmedName)
-        setBrief(trimmedBrief)
-      }
+      // What was saved, without the spaces the server was never sent
+      setName(trimmedName)
+      setBrief(trimmedBrief)
 
       toast.success(formatMessage(organizationProfileMessages.saved))
     } catch (error) {
       console.error("Failed to save the organization's profile", error)
 
-      // What was not saved stays where it was chosen or typed
+      // What was not saved stays where it was typed
       toast.error(formatMessage(organizationProfileMessages.saveError))
     } finally {
       setIsSaving(false)
@@ -252,9 +219,9 @@ function OrganizationProfile({ organization }: Props) {
       </form>
       {editingImage ? (
         <OrganizationProfileImageDialog
+          organizationId={organization.id}
           kind={editingImage}
           currentSrc={editingImage === 'logo' ? logoSrc : bannerSrc}
-          onApply={image => applyImage(editingImage, image)}
           onClose={() => setEditingImage(null)}
         />
       ) : null}

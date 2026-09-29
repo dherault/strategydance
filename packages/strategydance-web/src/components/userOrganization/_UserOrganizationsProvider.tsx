@@ -179,7 +179,7 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   /*
     Makes a picture an organization's logo or banner, or removes it, through the backend: only an
     administrator may, which a Storage rule cannot check. Resolves once the list shows the new URL,
-    so the profile page can drop its preview without the old picture flashing back in between
+    so the profile page's dialog closes onto the new picture rather than the old one
   */
   async function changeOrganizationImage(organizationId: string, kind: OrganizationImageKind, image: Blob | null) {
     await requestApi<ChangeOrganizationImageData>({

@@ -44,7 +44,11 @@ function parseLook(value: unknown): CardLook {
   const tone = CARD_TONES.find(cardTone => cardTone === value.tone)
 
   if (tone) look.tone = tone
-  if (value.accent === 'organization' || (typeof value.accent === 'string' && value.accent in CARD_ACCENT_COLORS)) {
+  // An own key only: `in` would also take `constructor` or `toString` for a color
+  if (
+    value.accent === 'organization'
+    || (typeof value.accent === 'string' && Object.hasOwn(CARD_ACCENT_COLORS, value.accent))
+  ) {
     look.accent = value.accent as CardLook['accent']
   }
 

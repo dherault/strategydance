@@ -1,5 +1,6 @@
 import { ImageIcon } from 'lucide-react'
 import { type ComponentProps, type DragEvent, type KeyboardEvent, type ReactNode, useRef, useState } from 'react'
+import { Spinner } from 'strategydance-design-system/components/ui/Spinner'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type Shape = 'wide' | 'square' | 'circle'
@@ -31,12 +32,17 @@ type Props = Omit<ComponentProps<'div'>, 'onChange' | 'children' | 'onDrop'> & {
   /** Called with the file chosen or dropped. Checking its type and size is the caller's to do */
   onFileSelect: (file: File) => void
   disabled?: boolean
+  /** While a picture is being saved: the preview dims under a spinner, and the zone takes no file */
+  busy?: boolean
+  /** The spinner's accessible name */
+  busyLabel?: string
 }
 
 /*
   Where a picture is chosen: a dashed zone that opens the file picker on a click, Enter or Space,
   and takes a file dragged onto it. It previews whatever `src` it is given, and hands over the file
-  and nothing more, since what a caller accepts varies
+  and nothing more, since what a caller accepts varies. A caller that saves the file at once says
+  so with `busy` until it has
 */
 function ImageDropzone({
   shape = 'wide',
@@ -51,6 +57,8 @@ function ImageDropzone({
   accept = 'image/*',
   onFileSelect,
   disabled = false,
+  busy = false,
+  busyLabel = 'Saving',
   className,
   ...props
 }: Props) {
@@ -58,8 +66,10 @@ function ImageDropzone({
 
   const [isDragging, setIsDragging] = useState(false)
 
+  const isInert = disabled || busy
+
   function openPicker() {
-    if (!disabled) inputRef.current?.click()
+    if (!isInert) inputRef.current?.click()
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -72,7 +82,7 @@ function ImageDropzone({
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
 
-    if (!disabled) setIsDragging(true)
+    if (!isInert) setIsDragging(true)
   }
 
   // Moving between the zone and the preview inside it fires a leave too, which is not one
@@ -88,7 +98,7 @@ function ImageDropzone({
 
     const file = event.dataTransfer.files[0]
 
-    if (file && !disabled) onFileSelect(file)
+    if (file && !isInert) onFileSelect(file)
   }
 
   return (
@@ -99,13 +109,14 @@ function ImageDropzone({
       aria-disabled={disabled || undefined}
       data-slot="image-dropzone"
       data-dragging={isDragging || undefined}
+      aria-busy={busy || undefined}
       onClick={openPicker}
       onKeyDown={handleKeyDown}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={cn(
-        'relative grid w-full cursor-pointer place-items-center overflow-hidden rounded-xs border border-dashed border-neutral-300 bg-neutral-50 font-sans transition-[border-color,background-color] duration-150 ease-in-out outline-none hover:border-primary hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary data-dragging:border-primary data-dragging:bg-primary-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
+        'relative grid w-full cursor-pointer place-items-center overflow-hidden rounded-xs border border-dashed border-neutral-300 bg-neutral-50 font-sans transition-[border-color,background-color] duration-150 ease-in-out outline-none hover:border-primary hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary data-dragging:border-primary data-dragging:bg-primary-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-busy:cursor-progress',
         ZONE_CLASS_NAMES[shape],
         className,
       )}
@@ -115,9 +126,13 @@ function ImageDropzone({
         <img
           src={src}
           alt={alt}
-          className={cn('absolute inset-0 size-full object-cover', shape === 'square' && 'bg-white')}
+          className={cn(
+            'absolute inset-0 size-full object-cover',
+            shape === 'square' && 'bg-white',
+            busy && 'opacity-50',
+          )}
         />
-      ) : (
+      ) : busy ? null : (
         <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">
           <ImageIcon
             aria-hidden="true"
@@ -126,6 +141,15 @@ function ImageDropzone({
           <span>{prompt}</span>
         </div>
       )}
+      {busy ? (
+        // On a white disc, which reads over any picture, and positioned so it sits over the preview
+        <span className="relative grid place-items-center rounded-full bg-white p-2 shadow-sm">
+          <Spinner
+            size="lg"
+            aria-label={busyLabel}
+          />
+        </span>
+      ) : null}
       <input
         ref={inputRef}
         type="file"

@@ -83,6 +83,17 @@ export const CirclePreview: Story = {
   },
 }
 
+// While the picture just chosen is being saved
+export const Busy: Story = {
+  args: {
+    shape: 'square',
+    label: 'Choose a logo',
+    src: LOGO,
+    alt: 'Logo preview',
+    busy: true,
+  },
+}
+
 export const Disabled: Story = {
   args: {
     disabled: true,

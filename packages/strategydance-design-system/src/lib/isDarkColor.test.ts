@@ -15,6 +15,11 @@ describe('isDarkColor', () => {
     expect(isDarkColor('#BFDBFE')).toBe(false)
   })
 
+  it('reads a mid gray as dark, where white contrasts more than near black does', () => {
+    // 4.54:1 against white, 4.36:1 against #0A0A0A, although 4.62:1 against pure black
+    expect(isDarkColor('#767676')).toBe(true)
+  })
+
   it('takes lowercase hex as well', () => {
     expect(isDarkColor('#ffff00')).toBe(false)
   })

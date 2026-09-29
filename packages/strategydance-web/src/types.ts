@@ -10,7 +10,7 @@ import type {
   GetOrganizationLogData,
   GetOrganizationTeamData,
   GetTaskListsData,
-  GetTaskListsWithTasksData,
+  GetTaskListSummariesData,
   GetTasksData,
   GetTodayPreferencesData,
 } from 'strategydance-database/web'
@@ -118,8 +118,9 @@ export type TaskList = GetTaskListsData['taskLists'][number]
 // One task on a list, where it sits in it, and whether it is done
 export type Task = GetTasksData['tasks'][number]
 
-// One of the reader's task lists with all of its tasks, as the build in public page reads them
-export type TaskListWithTasks = GetTaskListsWithTasksData['taskLists'][number]
+// One of the reader's task lists as the build in public page reads it: its counts, and the few
+// tasks its cards list
+export type TaskListSummary = GetTaskListSummariesData['taskLists'][number]
 
 // Somebody's checklist as the Today page opens it: who they are, their columns with the last week
 // of ticks, and how far back their ticks go

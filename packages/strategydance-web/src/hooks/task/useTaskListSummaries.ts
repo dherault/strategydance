@@ -1,25 +1,25 @@
 import { useQuery } from '@tanstack/react-query'
 import { executeQuery } from 'firebase/data-connect'
-import { getTaskListsWithTasksRef } from 'strategydance-database/web'
+import { getTaskListSummariesRef } from 'strategydance-database/web'
 
-import type { DataSource, TaskListWithTasks } from '~types'
+import type { DataSource, TaskListSummary } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import { dataConnect } from '~data/firebase'
 
-const EMPTY_TASK_LISTS: TaskListWithTasks[] = []
+const EMPTY_TASK_LISTS: TaskListSummary[] = []
 
 /*
-  The reader's own task lists in the current organization, each with all of its tasks, read only,
-  for the build in public page, whose cards count and list tasks across lists. The Today page reads
-  one list at a time instead, through `useTasks`.
+  The reader's own task lists in the current organization as the build in public page draws them:
+  how many tasks each holds and how many are done, and the few tasks its cards list. The Today page
+  reads every task of one list at a time instead, through `useTasks`.
 
   It does not retry on mount, and a failed read is `hasFailed` rather than no lists:
   `BuildInPublicWait` waits on it
 */
-function useTaskListsWithTasks(): DataSource<TaskListWithTasks[]> & { hasFailed: boolean } {
+function useTaskListSummaries(): DataSource<TaskListSummary[]> & { hasFailed: boolean } {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
@@ -29,13 +29,13 @@ function useTaskListsWithTasks(): DataSource<TaskListWithTasks[]> & { hasFailed:
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     // The key names whose lists they are, as `useTaskLists`' does
-    queryKey: ['GetTaskListsWithTasks', organizationId, viewerId],
+    queryKey: ['GetTaskListSummaries', organizationId, viewerId],
     queryFn: async () => {
-      const { data: taskLists } = await executeQuery(
-        getTaskListsWithTasksRef(dataConnect, { organizationId: organizationId! }),
+      const { data: summaries } = await executeQuery(
+        getTaskListSummariesRef(dataConnect, { organizationId: organizationId! }),
       )
 
-      return taskLists.taskLists
+      return summaries.taskLists
     },
     enabled: isEnabled,
     retryOnMount: false,
@@ -52,4 +52,4 @@ function useTaskListsWithTasks(): DataSource<TaskListWithTasks[]> & { hasFailed:
   }
 }
 
-export default useTaskListsWithTasks
+export default useTaskListSummaries

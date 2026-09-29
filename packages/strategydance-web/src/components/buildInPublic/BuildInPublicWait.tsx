@@ -5,7 +5,7 @@ import useActivityDays from '~hooks/buildInPublic/useActivityDays'
 import useChecklist from '~hooks/checklist/useChecklist'
 import useRecentChecklistTicks from '~hooks/checklist/useRecentChecklistTicks'
 import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
-import useTaskListsWithTasks from '~hooks/task/useTaskListsWithTasks'
+import useTaskListSummaries from '~hooks/task/useTaskListSummaries'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import Loading from '~components/common/Loading'
@@ -18,7 +18,7 @@ import Loading from '~components/common/Loading'
 function BuildInPublicWait({ children }: PropsWithChildren) {
   const { initialLoading: areActivityDaysLoading } = useActivityDays()
   const { initialLoading: isTeamLoading } = useOrganizationTeam()
-  const { initialLoading: areTaskListsLoading } = useTaskListsWithTasks()
+  const { initialLoading: areTaskListsLoading } = useTaskListSummaries()
   const { data: viewer } = useAuthentication()
   const viewerId = viewer?.uid ?? null
   const { initialLoading: isChecklistLoading } = useChecklist(viewerId)

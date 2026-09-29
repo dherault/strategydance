@@ -2,10 +2,10 @@ import { CheckIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import type { CardField, TaskListWithTasks } from '~types'
+import type { CardField, TaskListSummary } from '~types'
 
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
-import useTaskListsWithTasks from '~hooks/task/useTaskListsWithTasks'
+import useTaskListSummaries from '~hooks/task/useTaskListSummaries'
 
 import BuildInPublicBar from '~components/buildInPublic/BuildInPublicBar'
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
@@ -32,8 +32,13 @@ type Props = {
   settings: ReturnType<typeof useBuildInPublicSettings>
 }
 
-function countDone(taskList: TaskListWithTasks) {
-  return taskList.tasks.filter(task => task.isDone).length
+// A count comes back as a list of one
+function countDone(taskList: TaskListSummary) {
+  return taskList.doneTasks[0]?._count ?? 0
+}
+
+function countAll(taskList: TaskListSummary) {
+  return taskList.allTasks[0]?._count ?? 0
 }
 
 /*
@@ -43,9 +48,9 @@ function countDone(taskList: TaskListWithTasks) {
 */
 function BuildInPublicTasks({ settings }: Props) {
   const { formatMessage } = useIntl()
-  const { data: taskLists, loading, refetch, hasFailed } = useTaskListsWithTasks()
+  const { data: taskLists, loading, refetch, hasFailed } = useTaskListSummaries()
 
-  const firstWithTasks = taskLists.find(taskList => taskList.tasks.length > 0)
+  const firstWithTasks = taskLists.find(taskList => countAll(taskList) > 0)
 
   if (!hasFailed && !firstWithTasks) return null
 
@@ -85,24 +90,28 @@ function BuildInPublicTasks({ settings }: Props) {
   const progressValues = settings.readCard('tasks-progress', { list: firstWithTasks?.id ?? '' })
   const progressList = findList(progressValues.list)
   const progressDone = progressList ? countDone(progressList) : 0
-  const progressTasks = progressList?.tasks ?? []
+  const progressTotal = progressList ? countAll(progressList) : 0
+  // Its first tasks, one fewer once the list holds more than fit, to say how many more there are
   const shownTasks =
-    progressTasks.length > MAX_TASKS_SHOWN ? progressTasks.slice(0, MAX_TASKS_SHOWN - 1) : progressTasks
+    progressTotal > MAX_TASKS_SHOWN
+      ? (progressList?.firstTasks.slice(0, MAX_TASKS_SHOWN - 1) ?? [])
+      : (progressList?.firstTasks ?? [])
 
   const crossedOffValues = settings.readCard('tasks-crossed-off', { lists: taskListIds })
   const crossedOffLists = pickLists(crossedOffValues.lists)
-  const doneTasks = crossedOffLists.flatMap(taskList => taskList.tasks.filter(task => task.isDone))
+  const doneCount = crossedOffLists.reduce((sum, taskList) => sum + countDone(taskList), 0)
+  const doneTasks = crossedOffLists.flatMap(taskList => taskList.firstDoneTasks).slice(0, 3)
 
-  const firstOpen = taskLists.find(taskList => taskList.tasks.some(task => !task.isDone)) ?? firstWithTasks
+  const firstOpen = taskLists.find(taskList => countAll(taskList) > countDone(taskList)) ?? firstWithTasks
   const upNextValues = settings.readCard('tasks-up-next', { list: firstOpen?.id ?? '', count: '4' })
   const upNextList = findList(upNextValues.list)
   const upNextCount = NEXT_TASK_COUNTS.includes(upNextValues.count) ? upNextValues.count : '4'
-  const openTasks = upNextList?.tasks.filter(task => !task.isDone).slice(0, Number(upNextCount)) ?? []
+  const openTasks = upNextList?.firstOpenTasks.slice(0, Number(upNextCount)) ?? []
 
   const allListsValues = settings.readCard('tasks-all-lists', { lists: taskListIds.slice(0, MAX_LISTS_SHOWN) })
   const allLists = pickLists(allListsValues.lists).slice(0, MAX_LISTS_SHOWN)
   const allDone = allLists.reduce((sum, taskList) => sum + countDone(taskList), 0)
-  const allTotal = allLists.reduce((sum, taskList) => sum + taskList.tasks.length, 0)
+  const allTotal = allLists.reduce((sum, taskList) => sum + countAll(taskList), 0)
 
   return (
     <BuildInPublicSection
@@ -130,14 +139,14 @@ function BuildInPublicTasks({ settings }: Props) {
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.taskList)}</p>
               <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 text-[28px]/[1.12]')}>{progressList.name}</p>
               <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[64px] leading-[0.9] text-(--card-strong)')}>
-                {progressDone}/{progressTasks.length}
+                {progressDone}/{progressTotal}
               </p>
               <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-2 mb-0 text-sm')}>
                 {formatMessage(buildInPublicMessages.tasksDone, { count: progressDone })}
               </p>
             </div>
             <div className="flex min-w-0 flex-col px-7 pt-8 pb-11">
-              <BuildInPublicBar ratio={progressDone / (progressTasks.length || 1)} />
+              <BuildInPublicBar ratio={progressDone / (progressTotal || 1)} />
               <ul className="m-0 mt-6 flex list-none flex-col gap-3 p-0">
                 {shownTasks.map(task => (
                   <li
@@ -148,10 +157,10 @@ function BuildInPublicTasks({ settings }: Props) {
                     <span className={cn('truncate', !task.isDone && CARD_MUTED_CLASS_NAME)}>{task.text}</span>
                   </li>
                 ))}
-                {progressTasks.length > shownTasks.length ? (
+                {progressTotal > shownTasks.length ? (
                   <li className={cn(CARD_MUTED_CLASS_NAME, 'pl-[34px] text-sm font-medium')}>
                     {formatMessage(buildInPublicMessages.moreTasks, {
-                      count: progressTasks.length - shownTasks.length,
+                      count: progressTotal - shownTasks.length,
                     })}
                   </li>
                 ) : null}
@@ -170,7 +179,7 @@ function BuildInPublicTasks({ settings }: Props) {
         values={{ lists: crossedOffLists.map(taskList => taskList.id) }}
       >
         <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.tasksCrossedOff)}</p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[112px] leading-[0.85]')}>{doneTasks.length}</p>
+        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[112px] leading-[0.85]')}>{doneCount}</p>
         <p className="mt-2.5 mb-0 truncate text-base font-medium">
           {crossedOffLists.length === 1
             ? formatMessage(buildInPublicMessages.doneOnList, { list: crossedOffLists[0].name })
@@ -178,7 +187,7 @@ function BuildInPublicTasks({ settings }: Props) {
         </p>
         {doneTasks.length ? (
           <ul className="m-0 mt-5 flex list-none flex-col gap-1.5 p-0">
-            {doneTasks.slice(0, 3).map(task => (
+            {doneTasks.map(task => (
               <li
                 key={task.id}
                 className="flex min-w-0 items-center gap-2 text-sm"
@@ -264,11 +273,11 @@ function BuildInPublicTasks({ settings }: Props) {
               <div className="flex justify-between gap-3 text-[13px]">
                 <span className="truncate font-medium">{taskList.name}</span>
                 <span className={cn(CARD_MUTED_CLASS_NAME, 'tabular-nums')}>
-                  {countDone(taskList)}/{taskList.tasks.length}
+                  {countDone(taskList)}/{countAll(taskList)}
                 </span>
               </div>
               <BuildInPublicBar
-                ratio={countDone(taskList) / (taskList.tasks.length || 1)}
+                ratio={countDone(taskList) / (countAll(taskList) || 1)}
                 className="bg-white"
               />
             </div>

@@ -343,11 +343,11 @@ query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
   }
 }
 
-# The caller's task lists in an organization, each with every one of its tasks in their order, for
-# the build in public page, whose cards draw across lists. Scoped as `GetTaskLists` is, and in its
-# order. Up to 100 lists of up to 1000 tasks, `MAX_TASK_LISTS` and `MAX_TASKS_PER_LIST` in
-# strategydance-core
-query GetTaskListsWithTasks($organizationId: UUID!) @auth(level: USER) {
+# The caller's task lists in an organization as the build in public page draws them: each with how
+# many tasks it holds and how many are done, and the few tasks a card lists, the first ones, the
+# first done and the first still open, in their order. Counts rather than every task, so the page
+# reads at most 13 tasks a list whatever a list holds. Scoped as `GetTaskLists` is, and in its order
+query GetTaskListSummaries($organizationId: UUID!) @auth(level: USER) {
   taskLists(
     where: {
       userId: { eq_expr: "auth.uid" }
@@ -360,11 +360,32 @@ query GetTaskListsWithTasks($organizationId: UUID!) @auth(level: USER) {
   ) {
     id
     name
-    tasks: tasks_on_taskList(orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }], limit: 1000) {
+    allTasks: tasks_on_taskList {
+      _count
+    }
+    doneTasks: tasks_on_taskList(where: { isDone: { eq: true } }) {
+      _count
+    }
+    firstTasks: tasks_on_taskList(orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }], limit: 6) {
       id
       text
       isDone
-      position
+    }
+    firstDoneTasks: tasks_on_taskList(
+      where: { isDone: { eq: true } }
+      orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+      limit: 3
+    ) {
+      id
+      text
+    }
+    firstOpenTasks: tasks_on_taskList(
+      where: { isDone: { eq: false } }
+      orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+      limit: 4
+    ) {
+      id
+      text
     }
   }
 }

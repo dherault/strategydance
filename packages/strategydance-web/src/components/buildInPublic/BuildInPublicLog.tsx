@@ -62,7 +62,8 @@ function BuildInPublicLog({ settings }: Props) {
   const { formatMessage, formatDate } = useIntl()
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
-  const { data: team } = useOrganizationTeam()
+  // The authors' names and pictures, without which no entry has anybody to show it under
+  const { data: team, loading: isTeamLoading, refetch: refetchTeam, hasFailed: hasTeamFailed } = useOrganizationTeam()
   const today = useLocalDate()
   const {
     data: log,
@@ -185,8 +186,15 @@ function BuildInPublicLog({ settings }: Props) {
       title={formatMessage(buildInPublicMessages.logTitle)}
       description={formatMessage(buildInPublicMessages.logDescription)}
       failure={
-        hasFailed
-          ? { message: formatMessage(buildInPublicMessages.logLoadFailed), isRetrying: loading, onRetry: refetch }
+        hasFailed || hasTeamFailed
+          ? {
+              message: formatMessage(buildInPublicMessages.logLoadFailed),
+              isRetrying: loading || isTeamLoading,
+              onRetry: () => {
+                if (hasFailed) refetch()
+                if (hasTeamFailed) refetchTeam()
+              },
+            }
           : null
       }
     >

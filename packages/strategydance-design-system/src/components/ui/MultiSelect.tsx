@@ -318,6 +318,8 @@ function MultiSelect({
   const shownOptions = selectedOptions.slice(0, fitCount)
   const hiddenCount = selectedCount - shownOptions.length
   const selectionKey = currentValue.join('\u0000')
+  // A whole number of chips, and none fewer than none
+  const chipCap = maxCount === undefined ? undefined : Math.max(0, Math.floor(maxCount))
 
   // Every chip, and the widest count, render once more out of sight, so their widths say how many
   // fit on the line. The count takes its own room in the fit, and one chip always shows
@@ -351,7 +353,7 @@ function MultiSelect({
         count = Math.max(count, 1)
       }
 
-      setFitCount(maxCount === undefined ? count : Math.min(count, maxCount))
+      setFitCount(chipCap === undefined ? count : Math.min(count, chipCap))
     }
 
     fitChips()
@@ -362,7 +364,7 @@ function MultiSelect({
     observer.observe(measure)
 
     return () => observer.disconnect()
-  }, [selectionKey, maxCount])
+  }, [selectionKey, chipCap])
 
   // A Radix dialog dismisses on an Escape that reaches the document, which it hears before the
   // list does. It leaves a prevented one alone, and Base UI closes the list on it all the same, so

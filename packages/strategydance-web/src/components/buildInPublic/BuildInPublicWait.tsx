@@ -1,17 +1,12 @@
 import type { PropsWithChildren } from 'react'
 
-import { BUILD_IN_PUBLIC_LOG_DAYS } from '~constants'
-
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useActivityDays from '~hooks/buildInPublic/useActivityDays'
 import useChecklist from '~hooks/checklist/useChecklist'
 import useChecklistHistory from '~hooks/checklist/useChecklistHistory'
-import useLocalDate from '~hooks/common/useLocalDate'
-import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
+import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
 import useTaskListsWithTasks from '~hooks/task/useTaskListsWithTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
-
-import addDays from '~utils/date/addDays'
 
 import Loading from '~components/common/Loading'
 
@@ -28,12 +23,7 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
   const viewerId = viewer?.uid ?? null
   const { initialLoading: isChecklistLoading } = useChecklist(viewerId)
   const { isLoading: isChecklistHistoryLoading } = useChecklistHistory(viewerId, true)
-  const today = useLocalDate()
-  const { initialLoading: isLogLoading } = useOrganizationLogWeek({
-    from: addDays(today, -(BUILD_IN_PUBLIC_LOG_DAYS - 1)),
-    to: today,
-    isLive: false,
-  })
+  const { initialLoading: isLogLoading } = useLatestLogEntries()
 
   if (
     areActivityDaysLoading

@@ -5,18 +5,15 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { CardField, LogEntry, OrganizationMember } from '~types'
 
-import { BUILD_IN_PUBLIC_LOG_DAYS } from '~constants'
-
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 import useLocalDate from '~hooks/common/useLocalDate'
-import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
+import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
 import getRichTextSummary from '~utils/buildInPublic/getRichTextSummary'
-import addDays from '~utils/date/addDays'
 import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
 import getMemberName from '~utils/team/getMemberName'
@@ -53,7 +50,7 @@ type Props = {
 }
 
 /*
-  The log cards, from the team's log over the last three months: one entry in full, a quote from
+  The log cards, from each member's latest entries in the team's log: one entry in full, a quote from
   one, the last few updates, and the day the organization is on. Each shows the reader's own log
   unless they pick a teammate who wrote in it, and a card is left out while its author has nothing
   for it
@@ -65,15 +62,9 @@ function BuildInPublicLog({ settings }: Props) {
   // The authors' names and pictures, without which no entry has anybody to show it under
   const { data: team, loading: isTeamLoading, refetch: refetchTeam, hasFailed: hasTeamFailed } = useOrganizationTeam()
   const today = useLocalDate()
-  const {
-    data: log,
-    loading,
-    refetch,
-    hasFailed,
-  } = useOrganizationLogWeek({ from: addDays(today, -(BUILD_IN_PUBLIC_LOG_DAYS - 1)), to: today, isLive: false })
+  const { data: entries, loading, refetch, hasFailed } = useLatestLogEntries()
 
   const viewerId = viewer?.uid ?? ''
-  const entries = log.logEntries
   const authors = team.userOrganizations.filter(member => entries.some(entry => entry.user.id === member.user.id))
   const dayCount = organization ? getOrganizationDayCount(organization.createdAt, today) : 1
 

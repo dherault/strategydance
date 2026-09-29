@@ -610,3 +610,34 @@ query GetActivityDays($organizationId: UUID!) @auth(level: USER) {
     date
   }
 }
+
+# Each member's latest entries in an organization's log, newest first, for the build in public
+# page, whose cards pick from one author's own. Read per member rather than over a range of days,
+# so a busy team cannot crowd a quieter author out of one shared limit: up to 30 each, as many as
+# a picker lists, for up to 100 members, `MAX_TEAM_SIZE` in strategydance-core. Read only by a
+# member of the organization, and only for its members now, as `GetOrganizationLog` is
+query GetLatestLogEntries($organizationId: UUID!) @auth(level: USER) {
+  userOrganizations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
+  ) {
+    user {
+      id
+      logEntries: logEntries_on_user(
+        where: { organizationId: { eq: $organizationId } }
+        orderBy: [{ date: DESC }]
+        limit: 30
+      ) {
+        id
+        date
+        content
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}

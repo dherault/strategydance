@@ -3,13 +3,11 @@ import { useIntl } from 'react-intl'
 import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import { BUILD_IN_PUBLIC_LOG_DAYS } from '~constants'
-
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
 import useChecklist from '~hooks/checklist/useChecklist'
 import useLocalDate from '~hooks/common/useLocalDate'
-import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
+import useLatestLogEntries from '~hooks/log/useLatestLogEntries'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
@@ -53,15 +51,11 @@ function BuildInPublicCompany({ settings }: Props) {
     hasFailed: hasChecklistFailed,
   } = useChecklist(viewerId)
   const {
-    data: log,
+    data: logEntries,
     loading: isLogLoading,
     refetch: refetchLog,
     hasFailed: hasLogFailed,
-  } = useOrganizationLogWeek({
-    from: addDays(today, -(BUILD_IN_PUBLIC_LOG_DAYS - 1)),
-    to: today,
-    isLive: false,
-  })
+  } = useLatestLogEntries()
   const [failedBannerUrl, setFailedBannerUrl] = useState<string | null>(null)
 
   const name = organization?.name ?? ''
@@ -84,7 +78,9 @@ function BuildInPublicCompany({ settings }: Props) {
       sum + item.completions.filter(completion => completion.date >= weekStart && completion.date <= today).length,
     0,
   )
-  const weekLogs = log.logEntries.filter(entry => entry.user.id === viewerId && entry.date >= weekStart).length
+  const weekLogs = logEntries.filter(
+    entry => entry.user.id === viewerId && entry.date >= weekStart && entry.date <= today,
+  ).length
 
   return (
     <BuildInPublicSection

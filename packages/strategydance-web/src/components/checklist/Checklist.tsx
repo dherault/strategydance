@@ -11,7 +11,7 @@ import checklistMessages from '~data/intl/messages/checklist'
 
 /*
   The habits a member ticks every day: the reader's own to begin with, and any teammate's through
-  the picker, read only.
+  the picker, read only. The picker is not there on a team of one.
 
   The reader's own starts with the default habits the first time they open it
 */

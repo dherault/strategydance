@@ -17,13 +17,15 @@ type Props = {
 
 /*
   The picker beside a section of the Today page that can show any member's, and the reminder that
-  a teammate's is read only
+  a teammate's is read only. Nothing at all on a team of one, which has nobody else to pick
 */
 function TodayMemberSelect({ ownerId, isOwn, onOwnerChange, 'aria-label': ariaLabel }: Props) {
   const { formatMessage } = useIntl()
   const { data: team } = useOrganizationTeam()
 
   const members = team.userOrganizations
+
+  if (members.length < 2) return null
 
   return (
     <div className="flex items-center gap-3">

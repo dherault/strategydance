@@ -564,3 +564,21 @@ query GetOrganizationLog($organizationId: UUID!, $from: Date!, $to: Date!)
     date
   }
 }
+
+# Every day the caller was active in an organization, newest first, for the streak the build in
+# public page counts: see `ActivityDay`. Keyed by the uid off the token, and read only while they
+# belong to the organization. Up to 3660 days, ten years, as `GetChecklistHistory` reads, past which
+# the best streak only looks that far back
+query GetActivityDays($organizationId: UUID!) @auth(level: USER) {
+  activityDays(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ date: DESC }]
+    limit: 3660
+  ) {
+    date
+  }
+}

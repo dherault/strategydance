@@ -864,3 +864,29 @@ mutation UpdateLogEntry($organizationId: UUID!, $id: UUID!, $content: String!) @
     data: { content: $content, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No log entry of yours by that id")
 }
+
+# Marks today as a day the caller changed something of their own on their Today page in an
+# organization, for the streak the build in public page counts. The app sends it once a change to
+# their top priority, a task list or a task, their checklist or their log has gone through. An
+# upsert, so every change after the first that day writes nothing new.
+#
+# It is its own operation rather than a step in each of those, which would take a `$date` they do
+# not otherwise need, a breaking change to every one of them. The day is held to what
+# `CreateLogEntry` holds a log entry's to, the caller's today in the zone stored on their row, so a
+# past day cannot be marked, nor one to come
+mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization has a streak in it") {
+      role
+    }
+    user(key: { id_expr: "auth.uid" }) {
+      timezone
+        @check(
+          expr: "this != null ? (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) == (request.time.getFullYear(this) * 10000 + request.time.getMonth(this) * 100 + request.time.getDate(this)) : (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) >= ((request.time - duration('12h')).getFullYear('UTC') * 10000 + (request.time - duration('12h')).getMonth('UTC') * 100 + (request.time - duration('12h')).getDate('UTC')) && (vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) <= ((request.time + duration('14h')).getFullYear('UTC') * 10000 + (request.time + duration('14h')).getMonth('UTC') * 100 + (request.time + duration('14h')).getDate('UTC'))"
+          message: "Only today can be marked active"
+        )
+    }
+  }
+  activityDay_upsert(data: { userId_expr: "auth.uid", organizationId: $organizationId, date: $date })
+}

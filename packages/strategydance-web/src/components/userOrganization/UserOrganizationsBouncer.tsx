@@ -27,11 +27,7 @@ function UserOrganizationsBouncer({ children }: PropsWithChildren) {
     if (hasFailed || hasOrganization) return
 
     navigate({ to: '/prologue', replace: true })
-  }, [
-    hasFailed,
-    hasOrganization,
-    navigate,
-  ])
+  }, [hasFailed, hasOrganization, navigate])
 
   if (hasFailed) {
     return (

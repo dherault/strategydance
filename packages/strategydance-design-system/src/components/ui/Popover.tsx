@@ -1,6 +1,5 @@
 import { Popover as PopoverPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 /*
@@ -60,9 +59,4 @@ function PopoverContent({
   )
 }
 
-export {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-  PopoverTrigger,
-}
+export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger }

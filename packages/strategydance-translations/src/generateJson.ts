@@ -12,7 +12,11 @@ const ACCEPTED_FINISH_REASONS: (FinishReason | undefined)[] = [
   FinishReason.FINISH_REASON_UNSPECIFIED,
 ]
 
-export default async function generateJson<Schema extends z.ZodType>(apiKey: string, prompt: string, schema: Schema): Promise<z.infer<Schema>> {
+export default async function generateJson<Schema extends z.ZodType>(
+  apiKey: string,
+  prompt: string,
+  schema: Schema,
+): Promise<z.infer<Schema>> {
   const ai = new GoogleGenAI({ apiKey })
 
   const response = await ai.models.generateContent({

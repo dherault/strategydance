@@ -1,12 +1,14 @@
 import { Tooltip as TooltipPrimitive } from 'radix-ui'
 import { type ComponentProps, type ReactNode, isValidElement } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 // The rotated square that draws the arrow, and so how far Radix pushes the tooltip out for it
 const ARROW_SIZE = 8
 
-type Props = Omit<ComponentProps<typeof TooltipPrimitive.Content>, 'content' | 'children' | 'side' | 'align' | 'sideOffset'> & {
+type Props = Omit<
+  ComponentProps<typeof TooltipPrimitive.Content>,
+  'content' | 'children' | 'side' | 'align' | 'sideOffset'
+> & {
   /** One short line of plain text. Anything interactive belongs in a popover */
   content: ReactNode
   /**
@@ -54,16 +56,16 @@ function Tooltip({
   if (disabled || !hasContent) return children
 
   // Text has nothing to focus, so its wrapper takes focus itself and the keyboard still reaches it
-  const trigger = isValidElement(children)
-    ? children
-    : (
-        <span
-          tabIndex={0}
-          className="inline-flex rounded-xs align-middle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
-        >
-          {children}
-        </span>
-      )
+  const trigger = isValidElement(children) ? (
+    children
+  ) : (
+    <span
+      tabIndex={0}
+      className="inline-flex rounded-xs align-middle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+    >
+      {children}
+    </span>
+  )
 
   return (
     <TooltipPrimitive.Provider delayDuration={delay}>
@@ -72,9 +74,7 @@ function Tooltip({
         defaultOpen={defaultOpen}
         onOpenChange={onOpenChange}
       >
-        <TooltipPrimitive.Trigger asChild>
-          {trigger}
-        </TooltipPrimitive.Trigger>
+        <TooltipPrimitive.Trigger asChild>{trigger}</TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             data-slot="tooltip"
@@ -92,25 +92,21 @@ function Tooltip({
             {...props}
           >
             {content}
-            {shortcut
-              ? (
-                  <kbd className="ml-2 inline-flex h-4 items-center rounded-xs border border-border bg-neutral-50 px-1 align-[1px] font-mono text-[10px] text-muted-foreground">
-                    {shortcut}
-                  </kbd>
-                )
-              : null}
-            {arrow
-              ? (
-                  // The arrow is a square straddling the edge, its inner half hiding the tooltip's
-                  // border. Radix draws it for the top side and rotates its wrapper for the others,
-                  // so the two borders on the bottom corner outline every side's arrow
-                  <TooltipPrimitive.Arrow
-                    width={ARROW_SIZE}
-                    height={ARROW_SIZE}
-                    className="block size-2 -translate-y-1/2 rotate-45 border-r border-b border-border bg-popover fill-transparent"
-                  />
-                )
-              : null}
+            {shortcut ? (
+              <kbd className="ml-2 inline-flex h-4 items-center rounded-xs border border-border bg-neutral-50 px-1 align-[1px] font-mono text-[10px] text-muted-foreground">
+                {shortcut}
+              </kbd>
+            ) : null}
+            {arrow ? (
+              // The arrow is a square straddling the edge, its inner half hiding the tooltip's
+              // border. Radix draws it for the top side and rotates its wrapper for the others,
+              // so the two borders on the bottom corner outline every side's arrow
+              <TooltipPrimitive.Arrow
+                width={ARROW_SIZE}
+                height={ARROW_SIZE}
+                className="block size-2 -translate-y-1/2 rotate-45 border-r border-b border-border bg-popover fill-transparent"
+              />
+            ) : null}
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>

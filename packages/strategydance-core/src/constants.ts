@@ -18,7 +18,6 @@ export const SUPPORTED_LOCALES = supportedLocales
 // frontend bundle already carries
 export const DEFAULT_LOCALE = Locale.EN
 
-
 /* ---
   URLS
 --- */

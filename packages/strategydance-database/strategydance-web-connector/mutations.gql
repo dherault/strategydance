@@ -67,7 +67,8 @@ mutation UpdateCurrentUser(
 # picture or the bio changed. One mirrored from Google can be longer than the page allows, or carry
 # spaces at an end, and refusing it would refuse the picture and the bio with it
 mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio: String, $locale: Locale)
-@auth(level: USER) @transaction {
+@auth(level: USER)
+@transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {
       displayName
@@ -80,13 +81,7 @@ mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio
   }
   user_update(
     key: { id_expr: "auth.uid" }
-    data: {
-      displayName: $displayName
-      imageUrl: $imageUrl
-      bio: $bio
-      locale: $locale
-      updatedAt_expr: "request.time"
-    }
+    data: { displayName: $displayName, imageUrl: $imageUrl, bio: $bio, locale: $locale, updatedAt_expr: "request.time" }
   )
 }
 
@@ -155,13 +150,7 @@ mutation AddOrganizationExploredAspect(
         )
     }
   }
-  organization_update(
-    id: $organizationId
-    data: {
-      exploredAspects: $exploredAspects
-      updatedAt_expr: "request.time"
-    }
-  )
+  organization_update(id: $organizationId, data: { exploredAspects: $exploredAspects, updatedAt_expr: "request.time" })
 }
 
 # Sets how an organization appears: its name, the color of its mark, its brief, and whether its
@@ -183,22 +172,12 @@ mutation AddOrganizationExploredAspect(
 # write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
 # does, so the checks after it read what a demotion in the same instant committed, and a check
 # that fails rolls the write back
-mutation UpdateOrganization(
-  $organizationId: UUID!
-  $name: String!
-  $color: String
-  $brief: String
-  $isPublic: Boolean!
-) @auth(level: USER) @transaction {
+mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String, $brief: String, $isPublic: Boolean!)
+@auth(level: USER)
+@transaction {
   organization_update(
     id: $organizationId
-    data: {
-      name: $name
-      color: $color
-      brief: $brief
-      isPublic: $isPublic
-      updatedAt_expr: "request.time"
-    }
+    data: { name: $name, color: $color, brief: $brief, isPublic: $isPublic, updatedAt_expr: "request.time" }
   )
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -209,7 +188,10 @@ mutation UpdateOrganization(
           expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
           message: "A name is 1 to 80 characters on one line, with no space at either end"
         )
-        @check(expr: "vars.color == null || vars.color.matches('^#[0-9A-F]{6}$')", message: "A color is six uppercase hex digits after a #")
+        @check(
+          expr: "vars.color == null || vars.color.matches('^#[0-9A-F]{6}$')"
+          message: "A color is six uppercase hex digits after a #"
+        )
         @check(expr: "vars.brief == null || size(vars.brief) <= 500", message: "A brief is at most 500 characters")
     }
   }
@@ -227,7 +209,8 @@ mutation UpdateOrganization(
 # and both succeed, leaving none. The one that waited reads after the other commits, since
 # Postgres starts each statement on what is committed by then
 mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, $role: OrganizationRole!)
-@auth(level: USER) @transaction {
+@auth(level: USER)
+@transaction {
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -237,7 +220,11 @@ mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, 
     userOrganizations(
       where: { organizationId: { eq: $organizationId }, role: { eq: ADMINISTRATOR }, userId: { ne: $userId } }
       limit: 1
-    ) @check(expr: "vars.role == 'ADMINISTRATOR' || size(this) > 0", message: "An organization keeps at least one administrator") {
+    )
+      @check(
+        expr: "vars.role == 'ADMINISTRATOR' || size(this) > 0"
+        message: "An organization keeps at least one administrator"
+      ) {
       userId
     }
   }
@@ -257,14 +244,21 @@ mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, 
 # administrator demoted in the same instant cannot still write somebody else's title: whichever
 # runs second reads what the first committed
 mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: String!, $jobTitle: String)
-@auth(level: USER) @transaction {
+@auth(level: USER)
+@transaction {
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change a job title in it") {
       role
-        @check(expr: "this == 'ADMINISTRATOR' || vars.userId == auth.uid", message: "Only an administrator can change somebody else's job title")
-        @check(expr: "vars.jobTitle == null || size(vars.jobTitle) <= 60", message: "A job title is at most 60 characters")
+        @check(
+          expr: "this == 'ADMINISTRATOR' || vars.userId == auth.uid"
+          message: "Only an administrator can change somebody else's job title"
+        )
+        @check(
+          expr: "vars.jobTitle == null || size(vars.jobTitle) <= 60"
+          message: "A job title is at most 60 characters"
+        )
     }
   }
   userOrganization_update(
@@ -306,7 +300,8 @@ mutation UpdateTopPriority($organizationId: UUID!, $topPriority: String) @auth(l
 # drops those of people who left. What is checked is the size, at most the 100 a team holds
 # (`MAX_TEAM_SIZE` in strategydance-core), so a caller cannot grow a row without bound
 mutation UpdateTodayPreferences($organizationId: UUID!, $priorityOrder: [String!]!, $hiddenPriorities: [String!]!)
-@auth(level: USER) @transaction {
+@auth(level: USER)
+@transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can arrange its priorities") {
@@ -349,8 +344,7 @@ mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @aut
 # was accepted or canceled a moment ago deletes nothing and succeeds, since the outcome is the
 # one asked for. The organization's row lock comes first, so an administrator demoted in the
 # same instant cannot still cancel
-mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!)
-@auth(level: USER) @transaction {
+mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!) @auth(level: USER) @transaction {
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -370,7 +364,8 @@ mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!)
 # `$organizationId` is asked for rather than read off the invitation so the first step can check
 # the pair, and so the team page's live query can tell which organization changed
 mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!)
-@auth(level: USER_EMAIL_VERIFIED) @transaction {
+@auth(level: USER_EMAIL_VERIFIED)
+@transaction {
   query @redact {
     organizationInvitations(
       where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
@@ -389,8 +384,7 @@ mutation AcceptOrganizationInvitation($id: UUID!, $organizationId: UUID!)
 
 # Declines an invitation, which deletes it. Only its addressee may, on the same terms as accepting,
 # verified address included
-mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!)
-@auth(level: USER_EMAIL_VERIFIED) {
+mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth(level: USER_EMAIL_VERIFIED) {
   organizationInvitation_deleteMany(
     where: { id: { eq: $id }, organizationId: { eq: $organizationId }, email: { eq_expr: "auth.token.email" } }
   )
@@ -404,7 +398,10 @@ mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!)
 # outside the organization, so two tabs adding at once count one after the other. A name is one
 # line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH`)
 mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @auth(level: USER) @transaction {
-  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
     @check(
@@ -412,8 +409,10 @@ mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @aut
       message: "A task list's name is 1 to 120 characters on one line, with no space at either end"
     )
   query @redact {
-    taskLists(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
-      @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
+    taskLists(
+      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
       id
     }
   }
@@ -433,7 +432,12 @@ mutation RenameTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @aut
     }
   }
   taskList_updateMany(
-    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
     data: { name: $name, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No task list of yours by that id")
 }
@@ -455,10 +459,17 @@ mutation DeleteTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @
     }
   }
   taskList_updateMany(
-    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
     data: { deletedAt_expr: "request.time", updatedAt_expr: "request.time" }
   )
-  taskList_deleteMany(where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }) @redact
+  taskList_deleteMany(
+    where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
 }
 
 # Takes back a delete, which the page offers for a few seconds after one. Fails once the list was
@@ -468,17 +479,25 @@ mutation DeleteTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @
 # membership: without it, deleting a list at the cap, adding another and taking the delete back
 # would keep 101
 mutation RestoreTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
-    @redact
-    @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
   query @redact {
-    taskLists(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
-      @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
+    taskLists(
+      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
       id
     }
   }
   taskList_updateMany(
-    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: false }
+    }
     data: { deletedAt: null, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The task list is gone for good")
 }
@@ -490,8 +509,14 @@ mutation RestoreTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
 # nothing unless the list is the caller's, alive, and in an organization they belong to. At most
 # 1000 tasks a list (`MAX_TASKS_PER_LIST` in strategydance-core), each one line of at most 120
 # characters (`MAX_TASK_LENGTH`)
-mutation CreateTask($organizationId: UUID!, $id: UUID!, $taskListId: UUID!, $text: String!, $position: Float!, $isDone: Boolean!)
-@auth(level: USER) @transaction {
+mutation CreateTask(
+  $organizationId: UUID!
+  $id: UUID!
+  $taskListId: UUID!
+  $text: String!
+  $position: Float!
+  $isDone: Boolean!
+) @auth(level: USER) @transaction {
   taskList_updateMany(
     where: {
       id: { eq: $taskListId }
@@ -521,7 +546,8 @@ mutation CreateTask($organizationId: UUID!, $id: UUID!, $taskListId: UUID!, $tex
 # sends all three from what it shows, whichever changed, and queues its writes to one task so they
 # land in order
 mutation UpdateTask($organizationId: UUID!, $id: UUID!, $text: String!, $isDone: Boolean!, $position: Float!)
-@auth(level: USER) @transaction {
+@auth(level: USER)
+@transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
@@ -535,7 +561,11 @@ mutation UpdateTask($organizationId: UUID!, $id: UUID!, $text: String!, $isDone:
   task_updateMany(
     where: {
       id: { eq: $id }
-      taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      taskList: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+      }
     }
     data: { text: $text, isDone: $isDone, position: $position, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No task of yours by that id")
@@ -549,7 +579,9 @@ mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tran
       role
     }
   }
-  task_deleteMany(where: { id: { eq: $id }, taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } } })
+  task_deleteMany(
+    where: { id: { eq: $id }, taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } } }
+  )
 }
 
 # Starts the caller's checklist in an organization with the four default habits, named by the page
@@ -560,9 +592,17 @@ mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tran
 # then finds the four the first made and is refused. Any column at all, a deleted one included,
 # refuses it too, so a member who removed the defaults does not get them back, and a member invited
 # again keeps the checklist they had. Each name is held to what `CreateChecklistItem` holds one to
-mutation CreateDefaultChecklistItems($organizationId: UUID!, $firstName: String!, $secondName: String!, $thirdName: String!, $fourthName: String!)
-@auth(level: USER) @transaction {
-  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+mutation CreateDefaultChecklistItems(
+  $organizationId: UUID!
+  $firstName: String!
+  $secondName: String!
+  $thirdName: String!
+  $fourthName: String!
+) @auth(level: USER) @transaction {
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
     @check(
@@ -575,10 +615,18 @@ mutation CreateDefaultChecklistItems($organizationId: UUID!, $firstName: String!
       id
     }
   }
-  first: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $firstName, position: 1 })
-  second: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $secondName, position: 2 })
-  third: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $thirdName, position: 3 })
-  fourth: checklistItem_insert(data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $fourthName, position: 4 })
+  first: checklistItem_insert(
+    data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $firstName, position: 1 }
+  )
+  second: checklistItem_insert(
+    data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $secondName, position: 2 }
+  )
+  third: checklistItem_insert(
+    data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $thirdName, position: 3 }
+  )
+  fourth: checklistItem_insert(
+    data: { userId_expr: "auth.uid", organizationId: $organizationId, name: $fourthName, position: 4 }
+  )
 }
 
 # Adds a column to the caller's checklist in an organization. The id is the page's, which shows the
@@ -587,8 +635,13 @@ mutation CreateDefaultChecklistItems($organizationId: UUID!, $firstName: String!
 # At most 100 live columns (`MAX_CHECKLIST_ITEMS` in strategydance-core), counted under a lock on
 # the caller's own membership, as `CreateTaskList` counts lists. A name is one line of at most 40
 # characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
-mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!) @auth(level: USER) @transaction {
-  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
+mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!)
+@auth(level: USER)
+@transaction {
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
     @check(
@@ -596,17 +649,23 @@ mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!,
       message: "A checklist column's name is 1 to 40 characters on one line, with no space at either end"
     )
   query @redact {
-    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
-      @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
+    checklistItems(
+      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
       id
     }
   }
-  checklistItem_insert(data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name, position: $position })
+  checklistItem_insert(
+    data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name, position: $position }
+  )
 }
 
 # Renames or moves one of the caller's checklist columns, both written whole, held to what
 # `CreateChecklistItem` holds a name to
-mutation UpdateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!) @auth(level: USER) @transaction {
+mutation UpdateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!)
+@auth(level: USER)
+@transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
@@ -618,7 +677,12 @@ mutation UpdateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!,
     }
   }
   checklistItem_updateMany(
-    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
     data: { name: $name, position: $position, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No checklist column of yours by that id")
 }
@@ -636,10 +700,17 @@ mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: US
     }
   }
   checklistItem_updateMany(
-    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
     data: { deletedAt_expr: "request.time", updatedAt_expr: "request.time" }
   )
-  checklistItem_deleteMany(where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }) @redact
+  checklistItem_deleteMany(
+    where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
 }
 
 # Takes back a removal, which the page offers for a few seconds after one. Fails once the column was
@@ -648,17 +719,25 @@ mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: US
 # A column brought back counts against the 100 as a new one does, under the same lock on the
 # caller's membership, as `RestoreTaskList` counts lists
 mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  userOrganization_update(key: { userId_expr: "auth.uid", organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
-    @redact
-    @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
   query @redact {
-    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 100)
-      @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
+    checklistItems(
+      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
       id
     }
   }
   checklistItem_updateMany(
-    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: false }
+    }
     data: { deletedAt: null, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The checklist column is gone for good")
 }
@@ -675,7 +754,9 @@ mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: U
 # Nor is a day before the caller joined the organization, give or take the zones behind UTC, so a
 # checklist's history is as long as its owner's time there and no longer: a tick sent for a day in
 # 1900 would otherwise make every teammate who unfolds it draw a century of rows
-mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!) @auth(level: USER) @transaction {
+mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!)
+@auth(level: USER)
+@transaction {
   query @redact {
     checklistItems(
       where: {
@@ -686,11 +767,19 @@ mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $da
         organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
       }
       limit: 1
-    ) @check(expr: "size(this) == 1", message: "Only a column on your own checklist, in an organization you belong to, can be ticked") {
+    )
+      @check(
+        expr: "size(this) == 1"
+        message: "Only a column on your own checklist, in an organization you belong to, can be ticked"
+      ) {
       id
     }
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId }) {
-      createdAt @check(expr: "(vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) >= ((this - duration('12h')).getFullYear('UTC') * 10000 + (this - duration('12h')).getMonth('UTC') * 100 + (this - duration('12h')).getDate('UTC'))", message: "A day before you joined cannot be ticked")
+      createdAt
+        @check(
+          expr: "(vars.date.getFullYear('UTC') * 10000 + vars.date.getMonth('UTC') * 100 + vars.date.getDate('UTC')) >= ((this - duration('12h')).getFullYear('UTC') * 10000 + (this - duration('12h')).getMonth('UTC') * 100 + (this - duration('12h')).getDate('UTC'))"
+          message: "A day before you joined cannot be ticked"
+        )
     }
     user(key: { id_expr: "auth.uid" }) {
       timezone
@@ -705,7 +794,9 @@ mutation CheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $da
 
 # Unticks a day on one of the caller's checklist columns. A day that is not ticked stays so, and
 # the call succeeds
-mutation UncheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!) @auth(level: USER) @transaction {
+mutation UncheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $date: Date!)
+@auth(level: USER)
+@transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it") {
@@ -730,11 +821,17 @@ mutation UncheckChecklistItem($organizationId: UUID!, $checklistItemId: UUID!, $
 # browser's. With no zone stored, it has to be today somewhere, from UTC-12 to UTC+14. At most
 # 50000 characters of serialized state, `MAX_LOG_ENTRY_LENGTH` in strategydance-core.
 # `$organizationId` is also what the log's live query refreshes on
-mutation CreateLogEntry($organizationId: UUID!, $id: UUID!, $date: Date!, $content: String!) @auth(level: USER) @transaction {
+mutation CreateLogEntry($organizationId: UUID!, $id: UUID!, $date: Date!, $content: String!)
+@auth(level: USER)
+@transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can write in its log") {
-      role @check(expr: "size(vars.content) > 0 && size(vars.content) <= 50000", message: "A log entry is at most 50000 characters")
+      role
+        @check(
+          expr: "size(vars.content) > 0 && size(vars.content) <= 50000"
+          message: "A log entry is at most 50000 characters"
+        )
     }
     user(key: { id_expr: "auth.uid" }) {
       timezone
@@ -744,7 +841,9 @@ mutation CreateLogEntry($organizationId: UUID!, $id: UUID!, $date: Date!, $conte
         )
     }
   }
-  logEntry_insert(data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, date: $date, content: $content })
+  logEntry_insert(
+    data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, date: $date, content: $content }
+  )
 }
 
 # Rewrites one of the caller's log entries, whichever day it is for, held to what `CreateLogEntry`
@@ -753,7 +852,11 @@ mutation UpdateLogEntry($organizationId: UUID!, $id: UUID!, $content: String!) @
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can write in its log") {
-      role @check(expr: "size(vars.content) > 0 && size(vars.content) <= 50000", message: "A log entry is at most 50000 characters")
+      role
+        @check(
+          expr: "size(vars.content) > 0 && size(vars.content) <= 50000"
+          message: "A log entry is at most 50000 characters"
+        )
     }
   }
   logEntry_updateMany(

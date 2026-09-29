@@ -1,8 +1,6 @@
 import { type ComponentProps, type ReactNode, useId } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Choice } from 'strategydance-design-system/components/ui/Choice'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 type Props = Omit<ComponentProps<'input'>, 'type'> & {
   label?: ReactNode

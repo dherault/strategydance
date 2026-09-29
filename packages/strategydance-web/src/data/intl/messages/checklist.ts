@@ -20,7 +20,7 @@ const checklistMessages = defineMessages({
   day: {
     id: 'checklist.day',
     defaultMessage: 'Day',
-    description: 'Heading of the checklist\'s first column, which lists the days.',
+    description: "Heading of the checklist's first column, which lists the days.",
   },
   today: {
     id: 'checklist.today',
@@ -30,7 +30,7 @@ const checklistMessages = defineMessages({
   addItem: {
     id: 'checklist.addItem',
     defaultMessage: 'Add task',
-    description: 'Accessible label and tooltip of the button that adds a column, a habit, to the reader\'s checklist.',
+    description: "Accessible label and tooltip of the button that adds a column, a habit, to the reader's checklist.",
   },
   newItemName: {
     id: 'checklist.newItemName',
@@ -40,7 +40,7 @@ const checklistMessages = defineMessages({
   itemHint: {
     id: 'checklist.itemHint',
     defaultMessage: '{name}: click to edit, drag to reorder',
-    description: 'Tooltip of a column\'s slanted name in the reader\'s own checklist.',
+    description: "Tooltip of a column's slanted name in the reader's own checklist.",
   },
   editItem: {
     id: 'checklist.editItem',
@@ -65,7 +65,7 @@ const checklistMessages = defineMessages({
   remove: {
     id: 'checklist.remove',
     defaultMessage: 'Remove',
-    description: 'Button that removes a column from the reader\'s checklist. It asks for a second click.',
+    description: "Button that removes a column from the reader's checklist. It asks for a second click.",
   },
   confirm: {
     id: 'checklist.confirm',
@@ -75,12 +75,13 @@ const checklistMessages = defineMessages({
   save: {
     id: 'checklist.save',
     defaultMessage: 'Save',
-    description: 'Button that saves a checklist column\'s new name.',
+    description: "Button that saves a checklist column's new name.",
   },
   removed: {
     id: 'checklist.removed',
     defaultMessage: 'Removed {name}',
-    description: 'Notification after the reader removed a column from their checklist, beside a button that takes it back.',
+    description:
+      'Notification after the reader removed a column from their checklist, beside a button that takes it back.',
   },
   undo: {
     id: 'checklist.undo',
@@ -90,7 +91,8 @@ const checklistMessages = defineMessages({
   cell: {
     id: 'checklist.cell',
     defaultMessage: '{name}, {day}',
-    description: 'Accessible label of a checklist cell the reader can tick: the habit, then the day, such as "Talk to users, Friday, September 25".',
+    description:
+      'Accessible label of a checklist cell the reader can tick: the habit, then the day, such as "Talk to users, Friday, September 25".',
   },
   cellDone: {
     id: 'checklist.cellDone',
@@ -115,7 +117,7 @@ const checklistMessages = defineMessages({
   unlockHint: {
     id: 'checklist.unlockHint',
     defaultMessage: 'Unlock to edit',
-    description: 'Tooltip of the lock beside a past day of the reader\'s checklist.',
+    description: "Tooltip of the lock beside a past day of the reader's checklist.",
   },
   lockHint: {
     id: 'checklist.lockHint',
@@ -135,27 +137,31 @@ const checklistMessages = defineMessages({
   noItems: {
     id: 'checklist.noItems',
     defaultMessage: 'No tasks on this checklist.',
-    description: 'What a checklist with no columns says, as a teammate\'s may.',
+    description: "What a checklist with no columns says, as a teammate's may.",
   },
   defaultReflexion: {
     id: 'checklist.defaultReflexion',
     defaultMessage: 'Reflexion',
-    description: 'Name of the first habit every checklist starts with: time spent thinking the company over. Keep it short: it is read slanted above a narrow column.',
+    description:
+      'Name of the first habit every checklist starts with: time spent thinking the company over. Keep it short: it is read slanted above a narrow column.',
   },
   defaultTalkToUsers: {
     id: 'checklist.defaultTalkToUsers',
     defaultMessage: 'Talk to users',
-    description: 'Name of the second habit every checklist starts with. Keep it short: it is read slanted above a narrow column.',
+    description:
+      'Name of the second habit every checklist starts with. Keep it short: it is read slanted above a narrow column.',
   },
   defaultDistribution: {
     id: 'checklist.defaultDistribution',
     defaultMessage: 'Distribution',
-    description: 'Name of the third habit every checklist starts with: getting the product in front of people. Keep it short: it is read slanted above a narrow column.',
+    description:
+      'Name of the third habit every checklist starts with: getting the product in front of people. Keep it short: it is read slanted above a narrow column.',
   },
   defaultBuilding: {
     id: 'checklist.defaultBuilding',
     defaultMessage: 'Building',
-    description: 'Name of the fourth habit every checklist starts with: making the product. Keep it short: it is read slanted above a narrow column.',
+    description:
+      'Name of the fourth habit every checklist starts with: making the product. Keep it short: it is read slanted above a narrow column.',
   },
   loadError: {
     id: 'checklist.loadError',

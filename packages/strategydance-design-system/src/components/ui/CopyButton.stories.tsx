@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { CopyButton } from 'strategydance-design-system/components/ui/CopyButton'
 
 const variants = ['transparent', 'outline', 'secondary', 'primary'] as const
@@ -50,9 +49,7 @@ export const CustomLabels: Story = {
 export const BesideAValue: Story = {
   render: args => (
     <div className="flex items-center gap-1 text-sm text-muted-foreground">
-      <span>
-        {args.value}
-      </span>
+      <span>{args.value}</span>
       <CopyButton {...args} />
     </div>
   ),

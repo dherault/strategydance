@@ -43,37 +43,31 @@ function TaskListNavigation({ taskLists, activeTaskListId, isOwn, onSelect, onAd
                 )}
                 onClick={() => onSelect(taskList.id)}
               >
-                <span className="min-w-0 flex-1 truncate">
-                  {taskList.name}
-                </span>
-                {openCount > 0
-                  ? (
-                      <Pill
-                        size="sm"
-                        variant={isActive ? 'primary' : 'neutral'}
-                        count={openCount}
-                        aria-label={formatMessage(taskMessages.openCount, { count: openCount })}
-                      />
-                    )
-                  : null}
+                <span className="min-w-0 flex-1 truncate">{taskList.name}</span>
+                {openCount > 0 ? (
+                  <Pill
+                    size="sm"
+                    variant={isActive ? 'primary' : 'neutral'}
+                    count={openCount}
+                    aria-label={formatMessage(taskMessages.openCount, { count: openCount })}
+                  />
+                ) : null}
               </button>
             </li>
           )
         })}
       </ul>
-      {isOwn
-        ? (
-            <Button
-              variant="transparent"
-              size="sm"
-              icon={<PlusIcon />}
-              className="w-full justify-start"
-              onClick={onAdd}
-            >
-              {formatMessage(taskMessages.newList)}
-            </Button>
-          )
-        : null}
+      {isOwn ? (
+        <Button
+          variant="transparent"
+          size="sm"
+          icon={<PlusIcon />}
+          className="w-full justify-start"
+          onClick={onAdd}
+        >
+          {formatMessage(taskMessages.newList)}
+        </Button>
+      ) : null}
     </nav>
   )
 }

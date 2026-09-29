@@ -26,36 +26,27 @@ const signature: CSSProperties = {
 */
 function WelcomeEmail({ firstName, appUrl }: WelcomeEmailProps) {
   return (
-    <EmailLayout
-      preview="Thank you for signing up. Here is where to start, and how to reach me."
-    >
+    <EmailLayout preview="Thank you for signing up. Here is where to start, and how to reach me.">
       <Heading
         as="h1"
         style={heading}
       >
         {`Welcome to ${PRODUCT_NAME}`}
       </Heading>
-      <Text style={paragraph}>
-        {firstName ? `Hi ${firstName},` : 'Hi,'}
-      </Text>
-      <Text style={paragraph}>
-        {`Thank you for signing up. I'm David, and I build ${PRODUCT_NAME}.`}
-      </Text>
+      <Text style={paragraph}>{firstName ? `Hi ${firstName},` : 'Hi,'}</Text>
+      <Text style={paragraph}>{`Thank you for signing up. I'm David, and I build ${PRODUCT_NAME}.`}</Text>
       <Text style={paragraph}>
         {`${PRODUCT_NAME} walks your company through each of its aspects, from strategy and product to finances and sales. Start with the one that matters most to you right now, and bring your team in when you are ready.`}
       </Text>
-      <EmailButton href={appUrl}>
-        {`Open ${PRODUCT_NAME}`}
-      </EmailButton>
+      <EmailButton href={appUrl}>{`Open ${PRODUCT_NAME}`}</EmailButton>
       <Text style={paragraph}>
-        It is early days, so I would love to hear from you: what brought you here, what you hope it does for your company, and anything that feels off. Reply to this email, it comes straight to me.
+        It is early days, so I would love to hear from you: what brought you here, what you hope it does for your
+        company, and anything that feels off. Reply to this email, it comes straight to me.
       </Text>
       <Text style={signature}>
         Best,
         <br />
-        <strong>
-          David Hérault
-        </strong>
+        <strong>David Hérault</strong>
         <br />
         {PRODUCT_NAME}
       </Text>

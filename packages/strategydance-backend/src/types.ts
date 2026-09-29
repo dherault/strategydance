@@ -1,8 +1,4 @@
-export type {
-  ApiErrorResponse,
-  ApiResponse,
-  ApiSuccessResponse,
-} from 'strategydance-core'
+export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
 /* ---
   REQUEST AUGMENTATION

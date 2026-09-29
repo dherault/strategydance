@@ -52,13 +52,11 @@ function LogPost({ organizationId, entry, author, isViewer }: Props) {
       await queryClient.invalidateQueries({ queryKey: ['GetOrganizationLog', organizationId] })
       toast.success(formatMessage(logMessages.updated))
       setIsEditing(false)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save the log entry', error)
 
       toast.error(formatMessage(logMessages.saveError))
-    }
-    finally {
+    } finally {
       setIsPending(false)
     }
   }
@@ -72,44 +70,34 @@ function LogPost({ organizationId, entry, author, isViewer }: Props) {
           size="lg"
         />
         <span className="flex min-w-0 flex-1 flex-col text-sm leading-[1.4]">
-          <span className="truncate font-medium text-secondary">
-            {name}
-          </span>
-          {details
-            ? (
-                <span className="truncate text-xs text-muted-foreground">
-                  {details}
-                </span>
-              )
-            : null}
+          <span className="truncate font-medium text-secondary">{name}</span>
+          {details ? <span className="truncate text-xs text-muted-foreground">{details}</span> : null}
         </span>
-        {isViewer && !isEditing
-          ? (
-              <Button
-                variant="transparent"
-                size="sm"
-                icon={<PencilIcon />}
-                aria-label={formatMessage(logMessages.editEntry)}
-                className="-mt-1 -mr-1 self-start"
-                onClick={() => setIsEditing(true)}
-              />
-            )
-          : null}
+        {isViewer && !isEditing ? (
+          <Button
+            variant="transparent"
+            size="sm"
+            icon={<PencilIcon />}
+            aria-label={formatMessage(logMessages.editEntry)}
+            className="-mt-1 -mr-1 self-start"
+            onClick={() => setIsEditing(true)}
+          />
+        ) : null}
       </div>
-      {isEditing
-        ? (
-            <LogEditor
-              initialValue={entry.content}
-              placeholder={formatMessage(logMessages.editPlaceholder)}
-              submitLabel={formatMessage(logMessages.save)}
-              submitHint={logMessages.saveHint}
-              isPending={isPending}
-              onSubmit={save}
-              onCancel={() => setIsEditing(false)}
-              autoFocus
-            />
-          )
-        : <RichText value={entry.content} />}
+      {isEditing ? (
+        <LogEditor
+          initialValue={entry.content}
+          placeholder={formatMessage(logMessages.editPlaceholder)}
+          submitLabel={formatMessage(logMessages.save)}
+          submitHint={logMessages.saveHint}
+          isPending={isPending}
+          onSubmit={save}
+          onCancel={() => setIsEditing(false)}
+          autoFocus
+        />
+      ) : (
+        <RichText value={entry.content} />
+      )}
     </article>
   )
 }

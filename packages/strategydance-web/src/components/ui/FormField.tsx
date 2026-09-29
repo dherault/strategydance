@@ -1,5 +1,12 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { type Control, Controller, type ControllerFieldState, type ControllerRenderProps, type FieldPath, type FieldValues } from 'react-hook-form'
+import {
+  type Control,
+  Controller,
+  type ControllerFieldState,
+  type ControllerRenderProps,
+  type FieldPath,
+  type FieldValues,
+} from 'react-hook-form'
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { Input } from 'strategydance-design-system/components/ui/Input'
 
@@ -56,9 +63,10 @@ function FormField<Values extends FieldValues, Name extends FieldPath<Values>>({
       name={name}
       control={control}
       render={({ field, fieldState }) => {
-        const error = fieldState.invalid && !!formatError && fieldState.error?.message
-          ? formatError(fieldState.error.message)
-          : null
+        const error =
+          fieldState.invalid && !!formatError && fieldState.error?.message
+            ? formatError(fieldState.error.message)
+            : null
 
         return (
           <Field
@@ -78,8 +86,10 @@ function FormField<Values extends FieldValues, Name extends FieldPath<Values>>({
   )
 }
 
-type FormInputFieldProps<Values extends FieldValues, Name extends FieldPath<Values>> =
-  Omit<FormFieldProps<Values, Name>, 'children'>
+type FormInputFieldProps<Values extends FieldValues, Name extends FieldPath<Values>> = Omit<
+  FormFieldProps<Values, Name>,
+  'children'
+>
   & Omit<ComponentProps<typeof Input>, 'id' | 'name' | 'defaultValue' | 'label' | 'hint' | 'error'>
 
 // The overwhelmingly common case: a text input. Everything else goes through `FormField` and

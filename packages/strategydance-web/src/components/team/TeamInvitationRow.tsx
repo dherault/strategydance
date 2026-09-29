@@ -29,8 +29,7 @@ function TeamInvitationRow({ organizationId, email, isAdministrator }: Props) {
       await deleteInvitation({ organizationId, email })
 
       toast(formatMessage(teamMessages.invitationCanceled, { email }))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to cancel the invitation', error)
 
       toast.error(formatMessage(teamMessages.cancelInvitationError, { email }))
@@ -51,28 +50,22 @@ function TeamInvitationRow({ organizationId, email, isAdministrator }: Props) {
           </Badge>
         </div>
       </TableCell>
-      <TableCell className="text-muted-foreground">
-        {email}
-      </TableCell>
+      <TableCell className="text-muted-foreground">{email}</TableCell>
       <TableCell />
       <TableCell className="w-44">
         <div className="flex w-40 items-center justify-between gap-2">
-          <span className="text-muted-foreground">
-            {formatMessage(teamMessages.member)}
-          </span>
-          {isAdministrator
-            ? (
-                <Button
-                  variant="transparent"
-                  size="sm"
-                  disabled={isPending}
-                  aria-label={formatMessage(teamMessages.cancelInvitationFor, { email })}
-                  onClick={cancel}
-                >
-                  {formatMessage(teamMessages.cancel)}
-                </Button>
-              )
-            : null}
+          <span className="text-muted-foreground">{formatMessage(teamMessages.member)}</span>
+          {isAdministrator ? (
+            <Button
+              variant="transparent"
+              size="sm"
+              disabled={isPending}
+              aria-label={formatMessage(teamMessages.cancelInvitationFor, { email })}
+              onClick={cancel}
+            >
+              {formatMessage(teamMessages.cancel)}
+            </Button>
+          ) : null}
         </div>
       </TableCell>
       {isAdministrator ? <TableCell /> : null}

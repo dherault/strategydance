@@ -13,7 +13,6 @@ import {
   UserIcon,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-
 import { CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Avatar } from 'strategydance-design-system/components/ui/Avatar'
@@ -71,15 +70,19 @@ const groups: ExampleGroup[] = [
   },
   {
     label: 'Workspace',
-    items: [
-      { label: 'Settings', icon: <SettingsIcon /> },
-    ],
+    items: [{ label: 'Settings', icon: <SettingsIcon /> }],
   },
 ]
 
-function OrganizationMark({ name, small = false }: { name: string, small?: boolean }) {
+function OrganizationMark({ name, small = false }: { name: string; small?: boolean }) {
   return (
-    <span className={small ? 'grid size-6 shrink-0 place-items-center rounded-xs bg-primary text-xs font-semibold text-primary-foreground' : 'grid size-8 shrink-0 place-items-center rounded-xs bg-primary text-sm font-semibold text-primary-foreground'}>
+    <span
+      className={
+        small
+          ? 'grid size-6 shrink-0 place-items-center rounded-xs bg-primary text-xs font-semibold text-primary-foreground'
+          : 'grid size-8 shrink-0 place-items-center rounded-xs bg-primary text-sm font-semibold text-primary-foreground'
+      }
+    >
       {name[0]}
     </span>
   )
@@ -97,12 +100,8 @@ function ExampleSidebar() {
                 <SidebarMenuButton size="lg">
                   <OrganizationMark name="Strategy Dance" />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-sm leading-tight font-semibold text-secondary">
-                      Strategy Dance
-                    </span>
-                    <span className="truncate text-xs leading-tight text-muted-foreground">
-                      Founder
-                    </span>
+                    <span className="truncate text-sm leading-tight font-semibold text-secondary">Strategy Dance</span>
+                    <span className="truncate text-xs leading-tight text-muted-foreground">Founder</span>
                   </span>
                   <ChevronsUpDownIcon />
                 </SidebarMenuButton>
@@ -113,17 +112,13 @@ function ExampleSidebar() {
                 sideOffset={14}
                 className="w-60"
               >
-                <DropdownMenuLabel>
-                  Organizations
-                </DropdownMenuLabel>
+                <DropdownMenuLabel>Organizations</DropdownMenuLabel>
                 <DropdownMenuItem>
                   <OrganizationMark
                     small
                     name="Strategy Dance"
                   />
-                  <span className="flex-1">
-                    Strategy Dance
-                  </span>
+                  <span className="flex-1">Strategy Dance</span>
                   <CheckIcon className="text-primary" />
                 </DropdownMenuItem>
                 <DropdownMenuItem>
@@ -131,9 +126,7 @@ function ExampleSidebar() {
                     small
                     name="Side project"
                   />
-                  <span className="flex-1">
-                    Side project
-                  </span>
+                  <span className="flex-1">Side project</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-muted-foreground">
@@ -150,13 +143,7 @@ function ExampleSidebar() {
       <SidebarContent>
         {groups.map(group => (
           <SidebarGroup key={group.label ?? 'main'}>
-            {group.label
-              ? (
-                  <SidebarGroupLabel>
-                    {group.label}
-                  </SidebarGroupLabel>
-                )
-              : null}
+            {group.label ? <SidebarGroupLabel>{group.label}</SidebarGroupLabel> : null}
             <SidebarMenu>
               {group.items.map(item => (
                 <SidebarMenuItem key={item.label}>
@@ -165,17 +152,9 @@ function ExampleSidebar() {
                     tooltip={item.label}
                   >
                     {item.icon}
-                    <span>
-                      {item.label}
-                    </span>
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
-                  {item.badge
-                    ? (
-                        <SidebarMenuBadge>
-                          {item.badge}
-                        </SidebarMenuBadge>
-                      )
-                    : null}
+                  {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -190,12 +169,8 @@ function ExampleSidebar() {
                 <SidebarMenuButton size="lg">
                   <Avatar name="Alex Martin" />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-sm leading-tight font-semibold text-secondary">
-                      Alex Martin
-                    </span>
-                    <span className="truncate text-xs leading-tight text-muted-foreground">
-                      alex@example.com
-                    </span>
+                    <span className="truncate text-sm leading-tight font-semibold text-secondary">Alex Martin</span>
+                    <span className="truncate text-xs leading-tight text-muted-foreground">alex@example.com</span>
                   </span>
                   <ChevronsUpDownIcon />
                 </SidebarMenuButton>
@@ -269,9 +244,7 @@ export const Loading: Story = {
       <Sidebar>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>
-              Company
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>Company</SidebarGroupLabel>
             <SidebarMenu>
               {['60%', '75%', '50%', '65%'].map(width => (
                 <SidebarMenuItem key={width}>

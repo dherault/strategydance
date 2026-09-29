@@ -16,23 +16,15 @@ function OrganizationProfileBanner({ src, alt, children }: Props) {
 
   return (
     <div className="relative grid aspect-[4/1] place-items-center overflow-hidden rounded-t-xs border-b border-border bg-neutral-100">
-      {src && src !== failedSrc
-        ? (
-            <img
-              src={src}
-              alt={alt}
-              onError={() => setFailedSrc(src)}
-              className="absolute inset-0 size-full object-cover"
-            />
-          )
-        : null}
-      {children
-        ? (
-            <div className="absolute top-3 right-3">
-              {children}
-            </div>
-          )
-        : null}
+      {src && src !== failedSrc ? (
+        <img
+          src={src}
+          alt={alt}
+          onError={() => setFailedSrc(src)}
+          className="absolute inset-0 size-full object-cover"
+        />
+      ) : null}
+      {children ? <div className="absolute top-3 right-3">{children}</div> : null}
     </div>
   )
 }

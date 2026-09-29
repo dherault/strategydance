@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { fn } from 'storybook/test'
-
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 
@@ -58,9 +57,7 @@ export const WithActions: Story = {
     variant: 'info',
     actions: (
       <>
-        <Button size="sm">
-          Add a payment method
-        </Button>
+        <Button size="sm">Add a payment method</Button>
         <Button
           size="sm"
           variant="transparent"

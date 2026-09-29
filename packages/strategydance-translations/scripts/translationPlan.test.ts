@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+
 import { Locale } from 'strategydance-core'
 
 import type { SourceMessage } from './intlMessages'
@@ -24,7 +25,9 @@ describe('resolveDoneLocales', () => {
   it('keeps the locales the lock vouches for when the hash still matches', () => {
     const entry = { hash: 'hash', locales: 'DE,ES,FR' }
 
-    expect(resolveDoneLocales(entry, 'hash', TARGET_LOCALES, () => true)).toEqual(new Set([Locale.FR, Locale.ES, Locale.DE]))
+    expect(resolveDoneLocales(entry, 'hash', TARGET_LOCALES, () => true)).toEqual(
+      new Set([Locale.FR, Locale.ES, Locale.DE]),
+    )
   })
 
   it('retires a locale whose translation is no longer on disk, and only that one', () => {

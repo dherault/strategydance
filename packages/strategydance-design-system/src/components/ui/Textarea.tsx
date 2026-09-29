@@ -1,10 +1,8 @@
 import { type ComponentProps, type ReactNode, useId } from 'react'
 import TextareaAutosize, { type TextareaAutosizeProps } from 'react-textarea-autosize'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { inputClassName } from 'strategydance-design-system/components/ui/Input'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 type Props = Omit<ComponentProps<'textarea'>, 'style'> & {
   label?: ReactNode
@@ -36,30 +34,28 @@ function Textarea({ label, hint, error, id, className, autosize, rows, maxRows, 
   const hasField = !!(label || hint || error)
 
   const sharedProps = {
-    'id': textareaId,
+    id: textareaId,
     'data-slot': 'textarea',
     'aria-invalid': error ? true : undefined,
     'aria-describedby': hint || error ? messageId : undefined,
   }
 
-  const textarea = autosize
-    ? (
-        <TextareaAutosize
-          {...sharedProps}
-          minRows={rows}
-          maxRows={maxRows}
-          className={cn(inputClassName, 'block h-auto resize-none py-2.5 leading-normal', !hasField && className)}
-          {...props}
-        />
-      )
-    : (
-        <textarea
-          {...sharedProps}
-          rows={rows}
-          className={cn(inputClassName, 'block h-auto min-h-32 resize-y py-2.5 leading-normal', !hasField && className)}
-          {...props}
-        />
-      )
+  const textarea = autosize ? (
+    <TextareaAutosize
+      {...sharedProps}
+      minRows={rows}
+      maxRows={maxRows}
+      className={cn(inputClassName, 'block h-auto resize-none py-2.5 leading-normal', !hasField && className)}
+      {...props}
+    />
+  ) : (
+    <textarea
+      {...sharedProps}
+      rows={rows}
+      className={cn(inputClassName, 'block h-auto min-h-32 resize-y py-2.5 leading-normal', !hasField && className)}
+      {...props}
+    />
+  )
 
   if (!hasField) return textarea
 

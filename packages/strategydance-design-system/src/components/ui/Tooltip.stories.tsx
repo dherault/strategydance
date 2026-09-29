@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { SearchIcon } from 'lucide-react'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
@@ -52,9 +51,7 @@ export const Sides: Story = {
           content={`On the ${side}`}
           defaultOpen
         >
-          <Button variant="outline">
-            {side}
-          </Button>
+          <Button variant="outline">{side}</Button>
         </Tooltip>
       ))}
     </div>

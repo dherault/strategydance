@@ -1,6 +1,5 @@
 import { ImageIcon } from 'lucide-react'
 import { type ComponentProps, type DragEvent, type KeyboardEvent, type ReactNode, useRef, useState } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type Shape = 'wide' | 'square' | 'circle'
@@ -52,9 +51,7 @@ function ImageDropzone({
   label,
   prompt = (
     <>
-      <strong>Choose a file</strong>
-      {' '}
-      or drag it here
+      <strong>Choose a file</strong> or drag it here
     </>
   ),
   accept = 'image/*',
@@ -120,25 +117,21 @@ function ImageDropzone({
       )}
       {...props}
     >
-      {src
-        ? (
-            <img
-              src={src}
-              alt={alt}
-              className={cn('absolute inset-0 size-full', PREVIEW_CLASS_NAMES[shape])}
-            />
-          )
-        : (
-            <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">
-              <ImageIcon
-                aria-hidden="true"
-                className="size-6"
-              />
-              <span>
-                {prompt}
-              </span>
-            </div>
-          )}
+      {src ? (
+        <img
+          src={src}
+          alt={alt}
+          className={cn('absolute inset-0 size-full', PREVIEW_CLASS_NAMES[shape])}
+        />
+      ) : (
+        <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">
+          <ImageIcon
+            aria-hidden="true"
+            className="size-6"
+          />
+          <span>{prompt}</span>
+        </div>
+      )}
       <input
         ref={inputRef}
         type="file"

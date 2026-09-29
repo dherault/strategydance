@@ -17,9 +17,7 @@ function OrganizationInvitationMissing() {
 
   return (
     <>
-      <h1 className="m-0 text-5xl leading-[1.05]">
-        {formatMessage(invitationMessages.missingTitle)}
-      </h1>
+      <h1 className="m-0 text-5xl leading-[1.05]">{formatMessage(invitationMessages.missingTitle)}</h1>
       <p className="m-0 max-w-xl text-base leading-[1.6] text-pretty text-muted-foreground">
         {formatMessage(invitationMessages.missingLead, { email: viewer?.email ?? '' })}
       </p>

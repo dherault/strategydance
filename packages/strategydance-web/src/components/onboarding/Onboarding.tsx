@@ -43,23 +43,33 @@ function Onboarding() {
   }
 
   return (
-    <main className={cn('relative flex min-h-svh items-center justify-center transition-colors duration-900 ease-in-out', isPrologue ? 'bg-primary' : 'bg-white')}>
-      <LogOutButton className={cn('absolute top-4 right-4', isPrologue && 'text-white not-disabled:hover:bg-primary-800 not-disabled:active:bg-primary-900')} />
-      {isPrologue
-        ? <OnboardingPrologue onDone={goToNextStep} />
-        : question
-          ? (
-              <OnboardingQuestion
-                key={questionIndex}
-                index={step}
-                count={QUESTIONS.length}
-                question={question.question}
-                answers={question.answers}
-                correct={question.correct}
-                onAnswered={goToNextStep}
-              />
-            )
-          : <OnboardingOrganizationForm />}
+    <main
+      className={cn(
+        'relative flex min-h-svh items-center justify-center transition-colors duration-900 ease-in-out',
+        isPrologue ? 'bg-primary' : 'bg-white',
+      )}
+    >
+      <LogOutButton
+        className={cn(
+          'absolute top-4 right-4',
+          isPrologue && 'text-white not-disabled:hover:bg-primary-800 not-disabled:active:bg-primary-900',
+        )}
+      />
+      {isPrologue ? (
+        <OnboardingPrologue onDone={goToNextStep} />
+      ) : question ? (
+        <OnboardingQuestion
+          key={questionIndex}
+          index={step}
+          count={QUESTIONS.length}
+          question={question.question}
+          answers={question.answers}
+          correct={question.correct}
+          onAnswered={goToNextStep}
+        />
+      ) : (
+        <OnboardingOrganizationForm />
+      )}
     </main>
   )
 }

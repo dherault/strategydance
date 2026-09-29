@@ -5,11 +5,13 @@ const exploreMessages = defineMessages({
   explored: {
     id: 'explore.explored',
     defaultMessage: '{explored} of {total} explored',
-    description: 'Small label above the page title counting the aspects the organization works on, such as "5 of 9 explored".',
+    description:
+      'Small label above the page title counting the aspects the organization works on, such as "5 of 9 explored".',
   },
   lead: {
     id: 'explore.lead',
-    defaultMessage: 'Every company runs on the same nine aspects. Add the ones you want guidance on, and get ready to work.',
+    defaultMessage:
+      'Every company runs on the same nine aspects. Add the ones you want guidance on, and get ready to work.',
     description: 'Introduction under the title of the page listing the aspects of a company.',
   },
   blurbStrategy: {

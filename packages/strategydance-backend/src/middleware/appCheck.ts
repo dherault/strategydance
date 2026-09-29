@@ -34,8 +34,7 @@ async function appCheckMiddleware(request: Request, response: Response, next: Ne
 
   try {
     await appCheck.verifyToken(appCheckToken)
-  }
-  catch (error) {
+  } catch (error) {
     logger.warn('App Check: the token failed verification', error)
 
     respondError(response, 401, ERROR_CODE_UNAUTHORIZED_APP_CHECK, 'Invalid App Check token')

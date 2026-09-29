@@ -19,7 +19,9 @@ function useChecklistHistory(userId: string | null, isEnabled: boolean) {
   const { data, isPending, isError } = useQuery({
     queryKey: ['GetChecklistHistory', organizationId, userId],
     queryFn: async () => {
-      const { data: history } = await executeQuery(getChecklistHistoryRef(dataConnect, { organizationId: organizationId!, userId: userId! }))
+      const { data: history } = await executeQuery(
+        getChecklistHistoryRef(dataConnect, { organizationId: organizationId!, userId: userId! }),
+      )
 
       return history
     },

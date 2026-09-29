@@ -47,14 +47,15 @@ function PriorityVisibilityDialog({ members, hiddenPriorities, viewerId, onClose
 
   const { draggedIndex, getItemProps, getHandleProps, getDropSide } = useDragReorder({
     keys: orderedMembers.map(({ user }) => user.id),
-    onMove: (from, to) => setOrderedMembers(current => {
-      const next = [...current]
-      const [moved] = next.splice(from, 1)
+    onMove: (from, to) =>
+      setOrderedMembers(current => {
+        const next = [...current]
+        const [moved] = next.splice(from, 1)
 
-      if (moved) next.splice(to, 0, moved)
+        if (moved) next.splice(to, 0, moved)
 
-      return next
-    }),
+        return next
+      }),
   })
 
   const memberIds = new Set(orderedMembers.map(({ user }) => user.id))
@@ -89,12 +90,8 @@ function PriorityVisibilityDialog({ members, hiddenPriorities, viewerId, onClose
         className="max-h-[calc(100svh-48px)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-[480px]"
       >
         <DialogHeader>
-          <DialogTitle>
-            {formatMessage(todayMessages.visibilityDialogTitle)}
-          </DialogTitle>
-          <DialogDescription>
-            {formatMessage(todayMessages.visibilityDialogDescription)}
-          </DialogDescription>
+          <DialogTitle>{formatMessage(todayMessages.visibilityDialogTitle)}</DialogTitle>
+          <DialogDescription>{formatMessage(todayMessages.visibilityDialogDescription)}</DialogDescription>
         </DialogHeader>
         <ul className="m-0 -mx-6 flex list-none flex-col overflow-y-auto px-6 py-0">
           {orderedMembers.map((member, index) => {
@@ -132,7 +129,11 @@ function PriorityVisibilityDialog({ members, hiddenPriorities, viewerId, onClose
                   <button
                     type="button"
                     className="inline-flex size-7 cursor-grab items-center justify-center rounded-xs text-neutral-400 transition-colors duration-150 ease-in-out hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary active:cursor-grabbing [&_svg]:size-4"
-                    aria-label={formatMessage(todayMessages.reorderPriority, { name, position: index + 1, total: orderedMembers.length })}
+                    aria-label={formatMessage(todayMessages.reorderPriority, {
+                      name,
+                      position: index + 1,
+                      total: orderedMembers.length,
+                    })}
                     {...getHandleProps(index)}
                   >
                     <GripVerticalIcon aria-hidden="true" />
@@ -146,9 +147,7 @@ function PriorityVisibilityDialog({ members, hiddenPriorities, viewerId, onClose
           <span className="text-sm text-muted-foreground">
             {formatMessage(todayMessages.visibleCount, { visible: visibleCount, total: orderedMembers.length })}
           </span>
-          <Button onClick={close}>
-            {formatMessage(todayMessages.done)}
-          </Button>
+          <Button onClick={close}>{formatMessage(todayMessages.done)}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -20,24 +20,22 @@ function Tasks() {
     <PageSection
       title={formatMessage(taskMessages.title)}
       description={formatMessage(taskMessages.description)}
-      actions={(
+      actions={
         <TodayMemberSelect
           ownerId={ownerId}
           isOwn={isOwn}
           onOwnerChange={pickOwner}
           aria-label={formatMessage(taskMessages.showFor)}
         />
-      )}
+      }
     >
-      {ownerId
-        ? (
-            <TaskBoard
-              key={ownerId}
-              userId={ownerId}
-              isOwn={isOwn}
-            />
-          )
-        : null}
+      {ownerId ? (
+        <TaskBoard
+          key={ownerId}
+          userId={ownerId}
+          isOwn={isOwn}
+        />
+      ) : null}
     </PageSection>
   )
 }

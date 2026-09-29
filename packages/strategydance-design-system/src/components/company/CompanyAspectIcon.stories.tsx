@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { CompanyAspectIcon, CompanyAspects } from 'strategydance-design-system/components/company/CompanyAspectIcon'
 
 const meta = {

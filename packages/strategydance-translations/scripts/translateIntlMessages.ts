@@ -3,8 +3,25 @@ import type { Locale } from 'strategydance-core'
 import getDevelopmentApiKey from '../src/getDevelopmentApiKey'
 import translateMessages, { type TranslationPayloadEntry } from '../src/translateMessages'
 
-import { type DestinationMessages, type SourceMessage, collectSourceMessages, getMessageTypes, getMessagesInput, loadExistingTranslations, prepareOutputDirectories, targetLocales, writeLocaleMessages } from './intlMessages'
-import { type TranslationLock, buildLockEntry, hashParts, indexMessageLock, readLock, writeLock } from './translationLock'
+import {
+  type DestinationMessages,
+  type SourceMessage,
+  collectSourceMessages,
+  getMessageTypes,
+  getMessagesInput,
+  loadExistingTranslations,
+  prepareOutputDirectories,
+  targetLocales,
+  writeLocaleMessages,
+} from './intlMessages'
+import {
+  type TranslationLock,
+  buildLockEntry,
+  hashParts,
+  indexMessageLock,
+  readLock,
+  writeLock,
+} from './translationLock'
 import { buildMessageBatches, resolveDoneLocales } from './translationPlan'
 
 const BATCH_CHARACTER_BUDGET = 8000
@@ -34,23 +51,26 @@ async function run() {
   const lock = await readLock()
   const lockIndex = indexMessageLock(lock)
 
-  const hashes = new Map(sourceMessages.map(message => [message.id, hashParts(message.defaultMessage, message.description)]))
+  const hashes = new Map(
+    sourceMessages.map(message => [message.id, hashParts(message.defaultMessage, message.description)]),
+  )
 
   const existing = {} as Record<Locale, Map<string, string>>
 
-  await Promise.all(targetLocales.map(async locale => {
-    existing[locale] = flattenTranslations(await loadExistingTranslations(locale, messageTypes))
-  }))
+  await Promise.all(
+    targetLocales.map(async locale => {
+      existing[locale] = flattenTranslations(await loadExistingTranslations(locale, messageTypes))
+    }),
+  )
 
-  const doneLocales = new Map<string, Set<Locale>>(sourceMessages.map(message => [
-    message.id,
-    resolveDoneLocales(
-      lockIndex.get(message.id),
-      hashes.get(message.id)!,
-      targetLocales,
-      locale => existing[locale].has(message.id),
-    ),
-  ]))
+  const doneLocales = new Map<string, Set<Locale>>(
+    sourceMessages.map(message => [
+      message.id,
+      resolveDoneLocales(lockIndex.get(message.id), hashes.get(message.id)!, targetLocales, locale =>
+        existing[locale].has(message.id),
+      ),
+    ]),
+  )
 
   const pending = new Map<Locale, SourceMessage[]>(
     targetLocales.map(locale => [locale, sourceMessages.filter(message => !doneLocales.get(message.id)!.has(locale))]),
@@ -65,9 +85,14 @@ async function run() {
   const failures: string[] = []
   const translated = new Map<Locale, Map<string, string>>()
 
-  await Promise.all(targetLocales.map(async locale => {
-    translated.set(locale, await translateToTargetLocale(apiKey, locale, pending.get(locale)!, existing[locale], failures))
-  }))
+  await Promise.all(
+    targetLocales.map(async locale => {
+      translated.set(
+        locale,
+        await translateToTargetLocale(apiKey, locale, pending.get(locale)!, existing[locale], failures),
+      )
+    }),
+  )
 
   for (const locale of targetLocales) {
     const localeTranslations = translated.get(locale)!
@@ -114,7 +139,9 @@ async function run() {
   await writeLock({ messages })
 
   if (failures.length) {
-    console.warn(`\n${failures.length} batches failed. The messages they covered stay stale and are retried on the next run:`)
+    console.warn(
+      `\n${failures.length} batches failed. The messages they covered stay stale and are retried on the next run:`,
+    )
 
     for (const failure of failures) console.warn(`  ${failure}`)
   }
@@ -143,7 +170,13 @@ function flattenTranslations(destinationMessages: DestinationMessages): Map<stri
   return flat
 }
 
-async function translateToTargetLocale(apiKey: string, locale: Locale, pendingMessages: SourceMessage[], existingForLocale: Map<string, string>, failures: string[]): Promise<Map<string, string>> {
+async function translateToTargetLocale(
+  apiKey: string,
+  locale: Locale,
+  pendingMessages: SourceMessage[],
+  existingForLocale: Map<string, string>,
+  failures: string[],
+): Promise<Map<string, string>> {
   const result = new Map<string, string>()
 
   if (!pendingMessages.length) {
@@ -174,15 +207,15 @@ async function translateToTargetLocale(apiKey: string, locale: Locale, pendingMe
 
         if (translation !== undefined) result.set(message.id, translation)
       }
-    }
-    catch (error) {
+    } catch (error) {
       failures.push(`${locale} batch ${index + 1}/${batches.length}: ${(error as Error).message}`)
     }
   }
 
   const missing = pendingMessages.length - result.size
 
-  if (missing) console.warn(`${locale}: ${missing} message(s) came back untranslated, they will be retried on the next run`)
+  if (missing)
+    console.warn(`${locale}: ${missing} message(s) came back untranslated, they will be retried on the next run`)
 
   console.log(`${locale}: ${result.size}/${pendingMessages.length} translated`)
 

@@ -1,6 +1,5 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import { type ComponentProps, type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 // Interaction colours are guarded by `:not(:disabled)` rather than `:enabled`, which an anchor
@@ -10,12 +9,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground not-disabled:hover:bg-primary-800 not-disabled:active:bg-primary-900',
-        secondary: 'bg-secondary text-secondary-foreground not-disabled:hover:bg-secondary-700 not-disabled:active:bg-secondary-950',
-        transparent: 'bg-transparent text-secondary not-disabled:hover:bg-neutral-100 not-disabled:active:bg-neutral-200',
-        outline: 'border-neutral-300 bg-white text-secondary not-disabled:hover:border-secondary not-disabled:hover:bg-neutral-50 not-disabled:active:bg-neutral-100',
+        primary:
+          'bg-primary text-primary-foreground not-disabled:hover:bg-primary-800 not-disabled:active:bg-primary-900',
+        secondary:
+          'bg-secondary text-secondary-foreground not-disabled:hover:bg-secondary-700 not-disabled:active:bg-secondary-950',
+        transparent:
+          'bg-transparent text-secondary not-disabled:hover:bg-neutral-100 not-disabled:active:bg-neutral-200',
+        outline:
+          'border-neutral-300 bg-white text-secondary not-disabled:hover:border-secondary not-disabled:hover:bg-neutral-50 not-disabled:active:bg-neutral-100',
         // Darker text than the design's red-500 and red-600, which fall short of 4.5:1 on these fills
-        danger: 'bg-red-200 text-red-800 focus-visible:outline-red-500 not-disabled:hover:bg-red-300 not-disabled:hover:text-red-900 not-disabled:active:bg-red-300 not-disabled:active:text-red-900',
+        danger:
+          'bg-red-200 text-red-800 focus-visible:outline-red-500 not-disabled:hover:bg-red-300 not-disabled:hover:text-red-900 not-disabled:active:bg-red-300 not-disabled:active:text-red-900',
       },
       size: {
         sm: 'h-8 px-3 text-sm',
@@ -41,19 +45,20 @@ const buttonVariants = cva(
   },
 )
 
-type Props = ComponentProps<'button'> & Omit<VariantProps<typeof buttonVariants>, 'iconOnly'> & {
-  /** A Lucide icon, sized to the text. With no children the button becomes a square icon button: give it an `aria-label` */
-  icon?: ReactNode
-  iconPosition?: 'start' | 'end'
-  /**
+type Props = ComponentProps<'button'>
+  & Omit<VariantProps<typeof buttonVariants>, 'iconOnly'> & {
+    /** A Lucide icon, sized to the text. With no children the button becomes a square icon button: give it an `aria-label` */
+    icon?: ReactNode
+    iconPosition?: 'start' | 'end'
+    /**
     Asks twice. The first click swaps the label for this string, or for `'Confirm?'` when `true`,
     and only the second calls `onClick`. The default is English: a caller with a catalogue passes
     its own
   */
-  confirm?: boolean | string
-  /** How long an armed button waits for its second click before it reverts, in milliseconds */
-  confirmTimeout?: number
-}
+    confirm?: boolean | string
+    /** How long an armed button waits for its second click before it reverts, in milliseconds */
+    confirmTimeout?: number
+  }
 
 function Button({
   className,
@@ -130,15 +135,15 @@ function Button({
       onClick={handleClick}
       {...props}
     >
-      {isArmed
-        ? confirmLabel
-        : (
-            <>
-              {iconPosition === 'start' || iconOnly ? icon : null}
-              {children}
-              {iconPosition === 'end' && !iconOnly ? icon : null}
-            </>
-          )}
+      {isArmed ? (
+        confirmLabel
+      ) : (
+        <>
+          {iconPosition === 'start' || iconOnly ? icon : null}
+          {children}
+          {iconPosition === 'end' && !iconOnly ? icon : null}
+        </>
+      )}
     </button>
   )
 }

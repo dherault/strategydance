@@ -11,9 +11,7 @@ function UserWait({ children }: PropsWithChildren) {
   const { loading } = useUser()
 
   if (loading) {
-    return (
-      <Loading source="UserWait" />
-    )
+    return <Loading source="UserWait" />
   }
 
   return children

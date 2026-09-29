@@ -36,7 +36,10 @@ const EMPTY_TASKS: Task[] = []
   A move writes the one task that moved, halfway between its new neighbours, unless those are too
   close for a float to fit between, when the list is renumbered one task at a time
 */
-function useTasks(userId: string | null, taskListId: string | null): DataSource<Task[]> & {
+function useTasks(
+  userId: string | null,
+  taskListId: string | null,
+): DataSource<Task[]> & {
   hasFailed: boolean
   createTask: (text: string) => Promise<void>
   updateTask: (task: Task) => Promise<void>
@@ -57,9 +60,15 @@ function useTasks(userId: string | null, taskListId: string | null): DataSource<
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: tasks } = await executeQuery(isOwn
-        ? getTasksRef(dataConnect, { organizationId: organizationId!, taskListId: taskListId! })
-        : getMemberTasksRef(dataConnect, { organizationId: organizationId!, userId: userId!, taskListId: taskListId! }))
+      const { data: tasks } = await executeQuery(
+        isOwn
+          ? getTasksRef(dataConnect, { organizationId: organizationId!, taskListId: taskListId! })
+          : getMemberTasksRef(dataConnect, {
+              organizationId: organizationId!,
+              userId: userId!,
+              taskListId: taskListId!,
+            }),
+      )
 
       return tasks
     },
@@ -78,44 +87,64 @@ function useTasks(userId: string | null, taskListId: string | null): DataSource<
   function shiftOpenCount(delta: number) {
     if (!delta) return
 
-    queryClient.setQueryData<GetTaskListsData>(taskListsQueryKey, current => current && {
-      ...current,
-      taskLists: current.taskLists.map(taskList => (taskList.id === taskListId
-        ? { ...taskList, openTasks: [{ _count: Math.max(0, (taskList.openTasks[0]?._count ?? 0) + delta) }] }
-        : taskList)),
-    })
+    queryClient.setQueryData<GetTaskListsData>(
+      taskListsQueryKey,
+      current =>
+        current && {
+          ...current,
+          taskLists: current.taskLists.map(taskList =>
+            taskList.id === taskListId
+              ? { ...taskList, openTasks: [{ _count: Math.max(0, (taskList.openTasks[0]?._count ?? 0) + delta) }] }
+              : taskList,
+          ),
+        },
+    )
   }
 
   // Behind whatever its list has queued, so a task added to a list just created, or edited on a
   // list just brought back, reaches the server once the list is there
   function change(taskId: string, apply: () => void, write: () => Promise<unknown>) {
-    return writeOptimistically({ queryClient, queryKeys: [queryKey, taskListsQueryKey], rowKey: `task:${taskId}`, after: [`taskList:${taskListId}`], apply, write })
+    return writeOptimistically({
+      queryClient,
+      queryKeys: [queryKey, taskListsQueryKey],
+      rowKey: `task:${taskId}`,
+      after: [`taskList:${taskListId}`],
+      apply,
+      write,
+    })
   }
 
   function write(task: Task) {
-    return () => updateTaskMutation(dataConnect, {
-      organizationId: organizationId!,
-      id: task.id,
-      text: task.text,
-      isDone: task.isDone,
-      position: task.position,
-    })
+    return () =>
+      updateTaskMutation(dataConnect, {
+        organizationId: organizationId!,
+        id: task.id,
+        text: task.text,
+        isDone: task.isDone,
+        position: task.position,
+      })
   }
 
   function insert(task: Task) {
-    return () => createTaskMutation(dataConnect, {
-      organizationId: organizationId!,
-      id: task.id,
-      taskListId: taskListId!,
-      text: task.text,
-      position: task.position,
-      isDone: task.isDone,
-    })
+    return () =>
+      createTaskMutation(dataConnect, {
+        organizationId: organizationId!,
+        id: task.id,
+        taskListId: taskListId!,
+        text: task.text,
+        position: task.position,
+        isDone: task.isDone,
+      })
   }
 
   function createTask(text: string) {
     const last = tasks.at(-1)
-    const task: Task = { id: createId(), text, isDone: false, position: getPositionBetween(last?.position ?? null, null)! }
+    const task: Task = {
+      id: createId(),
+      text,
+      isDone: false,
+      position: getPositionBetween(last?.position ?? null, null)!,
+    }
 
     return change(
       task.id,
@@ -177,7 +206,11 @@ function useTasks(userId: string | null, taskListId: string | null): DataSource<
     if (position !== null) {
       const task = { ...moved, position }
 
-      await change(task.id, () => setTasks(() => reordered.map(item => (item.id === task.id ? task : item))), write(task))
+      await change(
+        task.id,
+        () => setTasks(() => reordered.map(item => (item.id === task.id ? task : item))),
+        write(task),
+      )
 
       return
     }
@@ -187,7 +220,11 @@ function useTasks(userId: string | null, taskListId: string | null): DataSource<
     const renumbered = reordered.map((item, index) => ({ ...item, position: index + 1 }))
     const changed = renumbered.filter((item, index) => item.position !== reordered[index]!.position)
 
-    await Promise.all(changed.map((item, index) => change(item.id, index === 0 ? () => setTasks(() => renumbered) : () => {}, write(item))))
+    await Promise.all(
+      changed.map((item, index) =>
+        change(item.id, index === 0 ? () => setTasks(() => renumbered) : () => {}, write(item)),
+      ),
+    )
   }
 
   return {

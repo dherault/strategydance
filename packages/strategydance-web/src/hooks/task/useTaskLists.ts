@@ -56,9 +56,11 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data: taskLists } = await executeQuery(isOwn
-        ? getTaskListsRef(dataConnect, { organizationId: organizationId! })
-        : getMemberTaskListsRef(dataConnect, { organizationId: organizationId!, userId: userId! }))
+      const { data: taskLists } = await executeQuery(
+        isOwn
+          ? getTaskListsRef(dataConnect, { organizationId: organizationId! })
+          : getMemberTaskListsRef(dataConnect, { organizationId: organizationId!, userId: userId! }),
+      )
 
       return taskLists
     },
@@ -67,7 +69,10 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   })
 
   function setTaskLists(update: (taskLists: TaskList[]) => TaskList[]) {
-    queryClient.setQueryData<GetTaskListsData>(queryKey, current => current && { ...current, taskLists: update(current.taskLists) })
+    queryClient.setQueryData<GetTaskListsData>(
+      queryKey,
+      current => current && { ...current, taskLists: update(current.taskLists) },
+    )
   }
 
   function change(taskListId: string, apply: () => void, write: () => Promise<unknown>) {
@@ -90,7 +95,8 @@ function useTaskLists(userId: string | null): DataSource<TaskList[]> & {
   function renameTaskList(id: string, name: string) {
     return change(
       id,
-      () => setTaskLists(taskLists => taskLists.map(taskList => (taskList.id === id ? { ...taskList, name } : taskList))),
+      () =>
+        setTaskLists(taskLists => taskLists.map(taskList => (taskList.id === id ? { ...taskList, name } : taskList))),
       () => renameTaskListMutation(dataConnect, { organizationId: organizationId!, id, name }),
     )
   }

@@ -52,33 +52,27 @@ function SidebarOrganizationMenu() {
               sideOffset={14}
               className="w-60"
             >
-              {userOrganizations.length
-                ? (
-                    <>
-                      <DropdownMenuLabel>
-                        {formatMessage(navigationMessages.organizations)}
-                      </DropdownMenuLabel>
-                      {userOrganizations.map(({ organization: { id, name, logoUrl, color } }) => (
-                        <DropdownMenuItem
-                          key={id}
-                          onSelect={() => setOrganizationId(id)}
-                        >
-                          <OrganizationMark
-                            name={name}
-                            logoUrl={logoUrl}
-                            color={color}
-                            className="size-6 text-xs"
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            {name}
-                          </span>
-                          {id === organization?.id ? <CheckIcon className="text-primary" /> : null}
-                        </DropdownMenuItem>
-                      ))}
-                      <DropdownMenuSeparator />
-                    </>
-                  )
-                : null}
+              {userOrganizations.length ? (
+                <>
+                  <DropdownMenuLabel>{formatMessage(navigationMessages.organizations)}</DropdownMenuLabel>
+                  {userOrganizations.map(({ organization: { id, name, logoUrl, color } }) => (
+                    <DropdownMenuItem
+                      key={id}
+                      onSelect={() => setOrganizationId(id)}
+                    >
+                      <OrganizationMark
+                        name={name}
+                        logoUrl={logoUrl}
+                        color={color}
+                        className="size-6 text-xs"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{name}</span>
+                      {id === organization?.id ? <CheckIcon className="text-primary" /> : null}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem
                 onSelect={() => setIsAdding(true)}
                 className="text-muted-foreground"

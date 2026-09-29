@@ -25,24 +25,22 @@ function Checklist() {
     <PageSection
       title={formatMessage(checklistMessages.title)}
       description={formatMessage(checklistMessages.description)}
-      actions={(
+      actions={
         <TodayMemberSelect
           ownerId={ownerId}
           isOwn={isOwn}
           onOwnerChange={pickOwner}
           aria-label={formatMessage(checklistMessages.showFor)}
         />
-      )}
+      }
     >
-      {ownerId
-        ? (
-            <ChecklistTable
-              key={ownerId}
-              userId={ownerId}
-              isOwn={isOwn}
-            />
-          )
-        : null}
+      {ownerId ? (
+        <ChecklistTable
+          key={ownerId}
+          userId={ownerId}
+          isOwn={isOwn}
+        />
+      ) : null}
     </PageSection>
   )
 }

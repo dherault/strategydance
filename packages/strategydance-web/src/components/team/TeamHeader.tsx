@@ -25,17 +25,19 @@ function TeamHeader({ organizationName, memberCount, invitationCount, onInvite }
     <PageHeader
       eyebrow={formatMessage(teamMessages.eyebrow)}
       title={formatMessage(navigationMessages.team)}
-      lead={organizationName ? formatMessage(teamMessages.lead, { memberCount, invitationCount, organizationName }) : null}
-      actions={onInvite
-        ? (
-            <Button
-              icon={<UserPlusIcon />}
-              onClick={onInvite}
-            >
-              {formatMessage(teamMessages.invite)}
-            </Button>
-          )
-        : null}
+      lead={
+        organizationName ? formatMessage(teamMessages.lead, { memberCount, invitationCount, organizationName }) : null
+      }
+      actions={
+        onInvite ? (
+          <Button
+            icon={<UserPlusIcon />}
+            onClick={onInvite}
+          >
+            {formatMessage(teamMessages.invite)}
+          </Button>
+        ) : null
+      }
     />
   )
 }

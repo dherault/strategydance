@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Skeleton } from 'strategydance-design-system/components/ui/Skeleton'
 
 const meta = {

@@ -12,7 +12,12 @@ import { type LockEntry, parseLocales } from './translationLock'
   catalogue is the artifact the lock describes, so deleting a locale file, or one line of it, is
   how you ask for just that to be redone
 */
-export function resolveDoneLocales(entry: LockEntry | undefined, hash: string, targetLocales: Locale[], hasTranslation: (locale: Locale) => boolean): Set<Locale> {
+export function resolveDoneLocales(
+  entry: LockEntry | undefined,
+  hash: string,
+  targetLocales: Locale[],
+  hasTranslation: (locale: Locale) => boolean,
+): Set<Locale> {
   const locales = parseLocales(entry, hash)
 
   for (const locale of locales) {

@@ -15,7 +15,7 @@ const logMessages = defineMessages({
   placeholder: {
     id: 'log.placeholder',
     defaultMessage: 'What moved forward today?',
-    description: 'Placeholder of the editor in which the reader writes today\'s log entry.',
+    description: "Placeholder of the editor in which the reader writes today's log entry.",
   },
   editPlaceholder: {
     id: 'log.editPlaceholder',
@@ -25,12 +25,12 @@ const logMessages = defineMessages({
   post: {
     id: 'log.post',
     defaultMessage: 'Post',
-    description: 'Button that posts the reader\'s log entry for today.',
+    description: "Button that posts the reader's log entry for today.",
   },
   save: {
     id: 'log.save',
     defaultMessage: 'Save',
-    description: 'Button that saves the reader\'s edit of a log entry.',
+    description: "Button that saves the reader's edit of a log entry.",
   },
   cancel: {
     id: 'log.cancel',
@@ -40,27 +40,31 @@ const logMessages = defineMessages({
   postHint: {
     id: 'log.postHint',
     defaultMessage: '{shortcut} to post',
-    description: 'Hint under the log editor, such as "⌘Enter to post": the keyboard shortcut that posts the entry. {shortcut} is the key combination.',
+    description:
+      'Hint under the log editor, such as "⌘Enter to post": the keyboard shortcut that posts the entry. {shortcut} is the key combination.',
   },
   saveHint: {
     id: 'log.saveHint',
     defaultMessage: '{shortcut} to save',
-    description: 'Hint under the editor of a log entry being edited, such as "⌘Enter to save". {shortcut} is the key combination.',
+    description:
+      'Hint under the editor of a log entry being edited, such as "⌘Enter to save". {shortcut} is the key combination.',
   },
   loggedToday: {
     id: 'log.loggedToday',
     defaultMessage: 'You logged today at {time}.',
-    description: 'What replaces the log editor once the reader has written today\'s entry, such as "You logged today at 10:12."',
+    description:
+      'What replaces the log editor once the reader has written today\'s entry, such as "You logged today at 10:12."',
   },
   loggedTodayNext: {
     id: 'log.loggedTodayNext',
-    defaultMessage: 'You can log again tomorrow, or edit today\'s entry.',
-    description: 'Line after "You logged today at…", saying one entry a day is the rule and today\'s can still be edited.',
+    defaultMessage: "You can log again tomorrow, or edit today's entry.",
+    description:
+      'Line after "You logged today at…", saying one entry a day is the rule and today\'s can still be edited.',
   },
   posted: {
     id: 'log.posted',
     defaultMessage: 'Logged for today',
-    description: 'Confirmation shown after the reader posted today\'s log entry.',
+    description: "Confirmation shown after the reader posted today's log entry.",
   },
   updated: {
     id: 'log.updated',
@@ -80,7 +84,7 @@ const logMessages = defineMessages({
   editEntry: {
     id: 'log.editEntry',
     defaultMessage: 'Edit log entry',
-    description: 'Accessible label of the pencil button on the reader\'s own log entries.',
+    description: "Accessible label of the pencil button on the reader's own log entries.",
   },
   today: {
     id: 'log.today',
@@ -120,57 +124,57 @@ const logMessages = defineMessages({
   toolbar: {
     id: 'log.toolbar',
     defaultMessage: 'Formatting',
-    description: 'Accessible name of the log editor\'s toolbar of formatting buttons.',
+    description: "Accessible name of the log editor's toolbar of formatting buttons.",
   },
   bold: {
     id: 'log.bold',
     defaultMessage: 'Bold',
-    description: 'Button and tooltip of the log editor\'s toolbar that makes the selection bold.',
+    description: "Button and tooltip of the log editor's toolbar that makes the selection bold.",
   },
   italic: {
     id: 'log.italic',
     defaultMessage: 'Italic',
-    description: 'Button and tooltip of the log editor\'s toolbar that makes the selection italic.',
+    description: "Button and tooltip of the log editor's toolbar that makes the selection italic.",
   },
   underline: {
     id: 'log.underline',
     defaultMessage: 'Underline',
-    description: 'Button and tooltip of the log editor\'s toolbar that underlines the selection.',
+    description: "Button and tooltip of the log editor's toolbar that underlines the selection.",
   },
   strikethrough: {
     id: 'log.strikethrough',
     defaultMessage: 'Strikethrough',
-    description: 'Button and tooltip of the log editor\'s toolbar that strikes the selection through.',
+    description: "Button and tooltip of the log editor's toolbar that strikes the selection through.",
   },
   heading: {
     id: 'log.heading',
     defaultMessage: 'Heading',
-    description: 'Button and tooltip of the log editor\'s toolbar that turns the paragraph into a heading.',
+    description: "Button and tooltip of the log editor's toolbar that turns the paragraph into a heading.",
   },
   bulletedList: {
     id: 'log.bulletedList',
     defaultMessage: 'Bulleted list',
-    description: 'Button and tooltip of the log editor\'s toolbar that starts a list with bullets.',
+    description: "Button and tooltip of the log editor's toolbar that starts a list with bullets.",
   },
   numberedList: {
     id: 'log.numberedList',
     defaultMessage: 'Numbered list',
-    description: 'Button and tooltip of the log editor\'s toolbar that starts a numbered list.',
+    description: "Button and tooltip of the log editor's toolbar that starts a numbered list.",
   },
   quote: {
     id: 'log.quote',
     defaultMessage: 'Quote',
-    description: 'Button and tooltip of the log editor\'s toolbar that turns the paragraph into a quote.',
+    description: "Button and tooltip of the log editor's toolbar that turns the paragraph into a quote.",
   },
   undo: {
     id: 'log.undo',
     defaultMessage: 'Undo',
-    description: 'Button and tooltip of the log editor\'s toolbar that undoes the last change.',
+    description: "Button and tooltip of the log editor's toolbar that undoes the last change.",
   },
   redo: {
     id: 'log.redo',
     defaultMessage: 'Redo',
-    description: 'Button and tooltip of the log editor\'s toolbar that redoes the change just undone.',
+    description: "Button and tooltip of the log editor's toolbar that redoes the change just undone.",
   },
 })
 

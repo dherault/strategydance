@@ -13,7 +13,7 @@ async function renderWelcomeEmail(props: WelcomeEmailProps) {
   return {
     senderName: SENDER_NAME,
     subject: `Welcome to ${PRODUCT_NAME}`,
-    ...await renderEmail(<WelcomeEmail {...props} />),
+    ...(await renderEmail(<WelcomeEmail {...props} />)),
   }
 }
 

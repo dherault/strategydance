@@ -61,14 +61,19 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
     try {
       await updateTopPriority({ organizationId, topPriority: nextTopPriority })
 
-      queryClient.setQueryData<GetOrganizationTeamData>(['GetOrganizationTeam', organizationId], team => team && {
-        ...team,
-        userOrganizations: team.userOrganizations.map(member => (member.user.id === viewerId ? { ...member, topPriority: nextTopPriority } : member)),
-      })
+      queryClient.setQueryData<GetOrganizationTeamData>(
+        ['GetOrganizationTeam', organizationId],
+        team =>
+          team && {
+            ...team,
+            userOrganizations: team.userOrganizations.map(member =>
+              member.user.id === viewerId ? { ...member, topPriority: nextTopPriority } : member,
+            ),
+          },
+      )
       toast.success(formatMessage(todayMessages.priorityUpdated))
       onClose()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save the top priority', error)
 
       // What was typed stays where it was typed
@@ -95,12 +100,8 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
           className="grid gap-6"
         >
           <DialogHeader>
-            <DialogTitle>
-              {formatMessage(todayMessages.priorityDialogTitle)}
-            </DialogTitle>
-            <DialogDescription>
-              {formatMessage(todayMessages.priorityDialogDescription)}
-            </DialogDescription>
+            <DialogTitle>{formatMessage(todayMessages.priorityDialogTitle)}</DialogTitle>
+            <DialogDescription>{formatMessage(todayMessages.priorityDialogDescription)}</DialogDescription>
           </DialogHeader>
           <Textarea
             label={formatMessage(todayMessages.priorityLabel)}
@@ -118,7 +119,9 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
             hint={formatMessage(todayMessages.priorityLength, { length: value.length, max: MAX_TOP_PRIORITY_LENGTH })}
             error={hasFailed ? formatMessage(todayMessages.priorityError) : undefined}
             // Starts with the cursor after what is there, to carry on from it
-            onFocus={event => event.currentTarget.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length)}
+            onFocus={event =>
+              event.currentTarget.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length)
+            }
             autoFocus
           />
           <DialogFooter className="-mx-6 -mb-6 border-t border-border px-6 py-4">

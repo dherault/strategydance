@@ -33,7 +33,17 @@ type Props = {
 */
 function TaskBoard({ userId, isOwn }: Props) {
   const { formatMessage } = useIntl()
-  const { data: taskLists, initialLoading, hasFailed, loading, refetch, createTaskList, renameTaskList, deleteTaskList, restoreTaskList } = useTaskLists(userId)
+  const {
+    data: taskLists,
+    initialLoading,
+    hasFailed,
+    loading,
+    refetch,
+    createTaskList,
+    renameTaskList,
+    deleteTaskList,
+    restoreTaskList,
+  } = useTaskLists(userId)
   const [rememberedTaskListId, setRememberedTaskListId] = useActiveTaskListId()
   const [browsedTaskListId, setBrowsedTaskListId] = useState<string | null>(null)
 
@@ -46,8 +56,7 @@ function TaskBoard({ userId, isOwn }: Props) {
   async function report(write: Promise<void>) {
     try {
       await write
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save a change to the task lists', error)
 
       toast.error(formatMessage(taskMessages.saveError))
@@ -113,36 +122,32 @@ function TaskBoard({ userId, isOwn }: Props) {
           onSelect={select}
           onAdd={add}
         />
-        {activeTaskList
-          ? (
-              <TaskListPanel
-                key={activeTaskList.id}
-                userId={userId}
-                taskList={activeTaskList}
-                isOwn={isOwn}
-                isRenaming={renamingTaskListId === activeTaskList.id}
-                onRenamingChange={isRenaming => setRenamingTaskListId(isRenaming ? activeTaskList.id : null)}
-                onRename={name => report(renameTaskList(activeTaskList.id, name))}
-                onDelete={() => remove(activeTaskList)}
-              />
-            )
-          : (
-              <div className="flex flex-col items-start gap-3 px-4 py-6 text-sm text-muted-foreground">
-                {formatMessage(isOwn ? taskMessages.noLists : taskMessages.noMemberLists)}
-                {isOwn
-                  ? (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={<PlusIcon />}
-                        onClick={add}
-                      >
-                        {formatMessage(taskMessages.newList)}
-                      </Button>
-                    )
-                  : null}
-              </div>
-            )}
+        {activeTaskList ? (
+          <TaskListPanel
+            key={activeTaskList.id}
+            userId={userId}
+            taskList={activeTaskList}
+            isOwn={isOwn}
+            isRenaming={renamingTaskListId === activeTaskList.id}
+            onRenamingChange={isRenaming => setRenamingTaskListId(isRenaming ? activeTaskList.id : null)}
+            onRename={name => report(renameTaskList(activeTaskList.id, name))}
+            onDelete={() => remove(activeTaskList)}
+          />
+        ) : (
+          <div className="flex flex-col items-start gap-3 px-4 py-6 text-sm text-muted-foreground">
+            {formatMessage(isOwn ? taskMessages.noLists : taskMessages.noMemberLists)}
+            {isOwn ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<PlusIcon />}
+                onClick={add}
+              >
+                {formatMessage(taskMessages.newList)}
+              </Button>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   )

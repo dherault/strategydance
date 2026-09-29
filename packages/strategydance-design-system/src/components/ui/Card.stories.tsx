@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Card } from 'strategydance-design-system/components/ui/Card'
 
@@ -23,9 +22,7 @@ export const WithContent: Story = {
   args: {
     children: (
       <div className="flex gap-2">
-        <Button size="sm">
-          Set pricing
-        </Button>
+        <Button size="sm">Set pricing</Button>
         <Button
           size="sm"
           variant="transparent"
@@ -41,10 +38,6 @@ export const BodyOnly: Story = {
   args: {
     title: undefined,
     description: undefined,
-    children: (
-      <p className="m-0 text-sm">
-        A card needs neither a title nor a description.
-      </p>
-    ),
+    children: <p className="m-0 text-sm">A card needs neither a title nor a description.</p>,
   },
 }

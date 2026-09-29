@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Separator } from 'strategydance-design-system/components/ui/Separator'
 
 const meta = {

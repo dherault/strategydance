@@ -11,7 +11,11 @@ describe('buildOrganizationStoragePrefix', () => {
   })
 
   it('narrows to one kind of picture', () => {
-    expect(buildOrganizationStoragePrefix('0f9c2b8e-4b1a-4d2c-9e7f-6a5b4c3d2e1f', 'logo')).toBe('organizations/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f/logo/')
-    expect(buildOrganizationStoragePrefix('0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', 'banner')).toBe('organizations/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f/banner/')
+    expect(buildOrganizationStoragePrefix('0f9c2b8e-4b1a-4d2c-9e7f-6a5b4c3d2e1f', 'logo')).toBe(
+      'organizations/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f/logo/',
+    )
+    expect(buildOrganizationStoragePrefix('0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', 'banner')).toBe(
+      'organizations/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f/banner/',
+    )
   })
 })

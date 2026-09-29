@@ -34,7 +34,8 @@ const COLLAPSED_DAYS = 7
 const LABEL_ANGLE_DEGREES = 62
 const MIN_HEADER_HEIGHT = 96
 
-const LABEL_CLASS_NAME = 'absolute bottom-0.5 left-[calc(50%-10px)] block h-6 w-max origin-bottom-left rotate-[-62deg] rounded-xs border-0 bg-transparent px-1.5 text-left font-sans text-[13px] leading-6 font-medium whitespace-nowrap text-secondary'
+const LABEL_CLASS_NAME =
+  'absolute bottom-0.5 left-[calc(50%-10px)] block h-6 w-max origin-bottom-left rotate-[-62deg] rounded-xs border-0 bg-transparent px-1.5 text-left font-sans text-[13px] leading-6 font-medium whitespace-nowrap text-secondary'
 const ITEM_CELL_CLASS_NAME = 'w-14 min-w-14 max-w-14'
 const DAY_CELL_CLASS_NAME = 'sticky left-0 w-44 min-w-44 border-r border-neutral-200 bg-white'
 const BOX_CLASS_NAME = 'flex h-10 w-full items-center justify-center text-primary [&_svg]:size-[18px]'
@@ -58,7 +59,19 @@ type Props = {
 */
 function ChecklistTable({ userId, isOwn }: Props) {
   const { formatMessage, formatDate } = useIntl()
-  const { data: checklist, initialLoading, hasFailed, loading, refetch, createItem, updateItem, deleteItem, restoreItem, moveItem, setChecked } = useChecklist(userId)
+  const {
+    data: checklist,
+    initialLoading,
+    hasFailed,
+    loading,
+    refetch,
+    createItem,
+    updateItem,
+    deleteItem,
+    restoreItem,
+    moveItem,
+    setChecked,
+  } = useChecklist(userId)
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [unlockedDays, setUnlockedDays] = useState<Set<string>>(() => new Set())
@@ -66,7 +79,11 @@ function ChecklistTable({ userId, isOwn }: Props) {
   const [headerHeight, setHeaderHeight] = useState(136)
   const headRef = useRef<HTMLTableSectionElement>(null)
 
-  const { data: history, isLoading: isHistoryLoading, hasFailed: hasHistoryFailed } = useChecklistHistory(userId, isExpanded)
+  const {
+    data: history,
+    isLoading: isHistoryLoading,
+    hasFailed: hasHistoryFailed,
+  } = useChecklistHistory(userId, isExpanded)
 
   const owner = checklist.owner[0] ?? null
   const timeZone = isOwn ? undefined : owner?.user.timezone
@@ -88,7 +105,9 @@ function ChecklistTable({ userId, isOwn }: Props) {
   const dayCount = Math.min(getDaysBetween(startsOn, today) + 1, MAX_CHECKLIST_HISTORY_DAYS)
   const canExpand = dayCount > COLLAPSED_DAYS
   const isShowingAll = isExpanded && history !== null
-  const days = Array.from({ length: isShowingAll ? dayCount : Math.min(COLLAPSED_DAYS, dayCount) }, (_, index) => addDays(today, -index))
+  const days = Array.from({ length: isShowingAll ? dayCount : Math.min(COLLAPSED_DAYS, dayCount) }, (_, index) =>
+    addDays(today, -index),
+  )
   const currentYear = today.slice(0, 4)
 
   // Every day each column was ticked that the page has read: the week, and the history once unfolded
@@ -106,14 +125,15 @@ function ChecklistTable({ userId, isOwn }: Props) {
     const labels = headRef.current ? [...headRef.current.querySelectorAll<HTMLElement>('[data-checklist-label]')] : []
     const widest = Math.max(0, ...labels.map(label => label.offsetWidth))
 
-    setHeaderHeight(Math.max(MIN_HEADER_HEIGHT, Math.ceil(widest * Math.sin(LABEL_ANGLE_DEGREES * Math.PI / 180) + 32)))
+    setHeaderHeight(
+      Math.max(MIN_HEADER_HEIGHT, Math.ceil(widest * Math.sin((LABEL_ANGLE_DEGREES * Math.PI) / 180) + 32)),
+    )
   }, [namesKey])
 
   async function report(write: Promise<void>) {
     try {
       await write
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to save a change to the checklist', error)
 
       toast.error(formatMessage(checklistMessages.saveError))
@@ -208,7 +228,10 @@ function ChecklistTable({ userId, isOwn }: Props) {
             <tr style={{ height: headerHeight }}>
               <th
                 scope="col"
-                className={cn(DAY_CELL_CLASS_NAME, 'z-3 border-b px-4 pb-3 text-left align-bottom text-xs font-medium text-muted-foreground')}
+                className={cn(
+                  DAY_CELL_CLASS_NAME,
+                  'z-3 border-b px-4 pb-3 text-left align-bottom text-xs font-medium text-muted-foreground',
+                )}
               >
                 {formatMessage(checklistMessages.day)}
               </th>
@@ -220,80 +243,81 @@ function ChecklistTable({ userId, isOwn }: Props) {
                   <th
                     key={item.id}
                     scope="col"
-                    className={cn(ITEM_CELL_CLASS_NAME, 'relative border-b border-neutral-200 p-0 align-bottom', draggedIndex === index && '[&_[data-checklist-label]]:opacity-40', columnClassName)}
+                    className={cn(
+                      ITEM_CELL_CLASS_NAME,
+                      'relative border-b border-neutral-200 p-0 align-bottom',
+                      draggedIndex === index && '[&_[data-checklist-label]]:opacity-40',
+                      columnClassName,
+                    )}
                     {...columnProps}
                   >
-                    {isOwn
-                      ? (
-                          <Popover
-                            open={editingItemId === item.id}
-                            onOpenChange={isOpen => setEditingItemId(isOpen ? item.id : null)}
-                          >
-                            <PopoverTrigger asChild>
-                              <button
-                                type="button"
-                                data-checklist-label
-                                title={formatMessage(checklistMessages.itemHint, { name: item.name })}
-                                draggable={draggable}
-                                onDragStart={event => {
-                                  setEditingItemId(null)
-                                  onDragStart(event)
-                                }}
-                                onDragEnd={onDragEnd}
-                                className={cn(
-                                  LABEL_CLASS_NAME,
-                                  'cursor-pointer transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-secondary active:cursor-grabbing',
-                                  editingItemId === item.id && 'bg-primary-50 text-primary hover:bg-primary-50',
-                                )}
-                              >
-                                {item.name}
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              aria-label={formatMessage(checklistMessages.editItem, { name: item.name })}
-                              className="w-68 p-3"
-                            >
-                              <ChecklistItemForm
-                                name={item.name}
-                                canMoveLeft={index > 0}
-                                canMoveRight={index < items.length - 1}
-                                canRemove={items.length > 1}
-                                onRename={name => {
-                                  setEditingItemId(null)
-
-                                  if (name !== item.name) report(updateItem({ ...item, name }))
-                                }}
-                                onMove={direction => report(moveItem(index, index + direction))}
-                                onRemove={() => remove(item, index)}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        )
-                      : (
-                          <span
+                    {isOwn ? (
+                      <Popover
+                        open={editingItemId === item.id}
+                        onOpenChange={isOpen => setEditingItemId(isOpen ? item.id : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
                             data-checklist-label
-                            title={item.name}
-                            className={LABEL_CLASS_NAME}
+                            title={formatMessage(checklistMessages.itemHint, { name: item.name })}
+                            draggable={draggable}
+                            onDragStart={event => {
+                              setEditingItemId(null)
+                              onDragStart(event)
+                            }}
+                            onDragEnd={onDragEnd}
+                            className={cn(
+                              LABEL_CLASS_NAME,
+                              'cursor-pointer transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-secondary active:cursor-grabbing',
+                              editingItemId === item.id && 'bg-primary-50 text-primary hover:bg-primary-50',
+                            )}
                           >
                             {item.name}
-                          </span>
-                        )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          aria-label={formatMessage(checklistMessages.editItem, { name: item.name })}
+                          className="w-68 p-3"
+                        >
+                          <ChecklistItemForm
+                            name={item.name}
+                            canMoveLeft={index > 0}
+                            canMoveRight={index < items.length - 1}
+                            canRemove={items.length > 1}
+                            onRename={name => {
+                              setEditingItemId(null)
+
+                              if (name !== item.name) report(updateItem({ ...item, name }))
+                            }}
+                            onMove={direction => report(moveItem(index, index + direction))}
+                            onRemove={() => remove(item, index)}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <span
+                        data-checklist-label
+                        title={item.name}
+                        className={LABEL_CLASS_NAME}
+                      >
+                        {item.name}
+                      </span>
+                    )}
                   </th>
                 )
               })}
               <th className="w-12 min-w-12 border-b border-neutral-200 px-2 pb-2 text-center align-bottom">
-                {isOwn
-                  ? (
-                      <Button
-                        variant="transparent"
-                        size="sm"
-                        icon={<PlusIcon />}
-                        aria-label={formatMessage(checklistMessages.addItem)}
-                        title={formatMessage(checklistMessages.addItem)}
-                        onClick={add}
-                      />
-                    )
-                  : null}
+                {isOwn ? (
+                  <Button
+                    variant="transparent"
+                    size="sm"
+                    icon={<PlusIcon />}
+                    aria-label={formatMessage(checklistMessages.addItem)}
+                    title={formatMessage(checklistMessages.addItem)}
+                    onClick={add}
+                  />
+                ) : null}
               </th>
               <th
                 aria-hidden="true"
@@ -315,20 +339,22 @@ function ChecklistTable({ userId, isOwn }: Props) {
                 >
                   <th
                     scope="row"
-                    className={cn(DAY_CELL_CLASS_NAME, 'z-1 h-10 px-4 text-left whitespace-nowrap', isToday ? 'font-medium text-secondary' : 'font-normal')}
+                    className={cn(
+                      DAY_CELL_CLASS_NAME,
+                      'z-1 h-10 px-4 text-left whitespace-nowrap',
+                      isToday ? 'font-medium text-secondary' : 'font-normal',
+                    )}
                   >
                     <span className="flex items-center gap-2">
                       {day}
-                      {isToday
-                        ? (
-                            <Badge
-                              size="sm"
-                              variant="primary"
-                            >
-                              {formatMessage(checklistMessages.today)}
-                            </Badge>
-                          )
-                        : null}
+                      {isToday ? (
+                        <Badge
+                          size="sm"
+                          variant="primary"
+                        >
+                          {formatMessage(checklistMessages.today)}
+                        </Badge>
+                      ) : null}
                     </span>
                   </th>
                   {items.map((item, index) => {
@@ -338,49 +364,59 @@ function ChecklistTable({ userId, isOwn }: Props) {
                     return (
                       <td
                         key={item.id}
-                        className={cn(ITEM_CELL_CLASS_NAME, 'border-l border-neutral-100 p-0', isOpen ? 'bg-primary-50' : 'bg-white', columnClassName)}
+                        className={cn(
+                          ITEM_CELL_CLASS_NAME,
+                          'border-l border-neutral-100 p-0',
+                          isOpen ? 'bg-primary-50' : 'bg-white',
+                          columnClassName,
+                        )}
                         {...columnProps}
                       >
-                        {isOpen
-                          ? (
-                              <button
-                                type="button"
-                                aria-pressed={isChecked}
-                                aria-label={formatMessage(checklistMessages.cell, { name: item.name, day })}
-                                className={cn(BOX_CLASS_NAME, 'cursor-pointer border-0 bg-transparent p-0 transition-colors duration-150 ease-in-out hover:bg-primary-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary')}
-                                onClick={() => report(setChecked(item.id, date, !isChecked))}
-                              >
-                                {isChecked ? <CheckIcon aria-hidden="true" /> : null}
-                              </button>
-                            )
-                          : (
-                              <span
-                                role="img"
-                                aria-label={formatMessage(isChecked ? checklistMessages.cellDone : checklistMessages.cellNotDone, { name: item.name, day })}
-                                className={BOX_CLASS_NAME}
-                              >
-                                {isChecked ? <CheckIcon aria-hidden="true" /> : null}
-                              </span>
+                        {isOpen ? (
+                          <button
+                            type="button"
+                            aria-pressed={isChecked}
+                            aria-label={formatMessage(checklistMessages.cell, { name: item.name, day })}
+                            className={cn(
+                              BOX_CLASS_NAME,
+                              'cursor-pointer border-0 bg-transparent p-0 transition-colors duration-150 ease-in-out hover:bg-primary-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary',
                             )}
+                            onClick={() => report(setChecked(item.id, date, !isChecked))}
+                          >
+                            {isChecked ? <CheckIcon aria-hidden="true" /> : null}
+                          </button>
+                        ) : (
+                          <span
+                            role="img"
+                            aria-label={formatMessage(
+                              isChecked ? checklistMessages.cellDone : checklistMessages.cellNotDone,
+                              { name: item.name, day },
+                            )}
+                            className={BOX_CLASS_NAME}
+                          >
+                            {isChecked ? <CheckIcon aria-hidden="true" /> : null}
+                          </span>
+                        )}
                       </td>
                     )
                   })}
                   <td className="w-12 min-w-12 border-l border-neutral-100 px-2 text-center">
                     {/* A day before the owner joined shows what they ticked then, and cannot be ticked now */}
-                    {isOwn && !isToday && date >= joinedOn
-                      ? (
-                          <Button
-                            variant="transparent"
-                            size="sm"
-                            icon={isUnlocked ? <LockOpenIcon /> : <LockIcon />}
-                            aria-pressed={isUnlocked}
-                            aria-label={formatMessage(isUnlocked ? checklistMessages.lockDay : checklistMessages.unlockDay, { day })}
-                            title={formatMessage(isUnlocked ? checklistMessages.lockHint : checklistMessages.unlockHint)}
-                            className={isUnlocked ? 'text-primary' : 'text-neutral-400 not-disabled:hover:text-neutral-700'}
-                            onClick={() => toggleLock(date)}
-                          />
-                        )
-                      : null}
+                    {isOwn && !isToday && date >= joinedOn ? (
+                      <Button
+                        variant="transparent"
+                        size="sm"
+                        icon={isUnlocked ? <LockOpenIcon /> : <LockIcon />}
+                        aria-pressed={isUnlocked}
+                        aria-label={formatMessage(
+                          isUnlocked ? checklistMessages.lockDay : checklistMessages.unlockDay,
+                          { day },
+                        )}
+                        title={formatMessage(isUnlocked ? checklistMessages.lockHint : checklistMessages.unlockHint)}
+                        className={isUnlocked ? 'text-primary' : 'text-neutral-400 not-disabled:hover:text-neutral-700'}
+                        onClick={() => toggleLock(date)}
+                      />
+                    ) : null}
                   </td>
                   <td
                     aria-hidden="true"
@@ -392,31 +428,31 @@ function ChecklistTable({ userId, isOwn }: Props) {
           </tbody>
         </table>
       </div>
-      {canExpand
-        ? (
-            <div className="flex flex-col items-center gap-1 border-t border-neutral-200 p-1">
-              <Button
-                variant="transparent"
-                size="sm"
-                aria-expanded={isShowingAll}
-                disabled={isHistoryLoading}
-                icon={isHistoryLoading
-                  ? <Spinner tone="current" />
-                  : <ChevronDownIcon className={cn('transition-transform duration-150 ease-in-out', isShowingAll && 'rotate-180')} />}
-                onClick={() => setIsExpanded(current => !current)}
-              >
-                {formatMessage(isShowingAll ? checklistMessages.showLess : checklistMessages.showAll, { count: dayCount })}
-              </Button>
-              {isExpanded && hasHistoryFailed
-                ? (
-                    <p className="m-0 pb-2 text-sm text-danger">
-                      {formatMessage(checklistMessages.historyError)}
-                    </p>
-                  )
-                : null}
-            </div>
-          )
-        : null}
+      {canExpand ? (
+        <div className="flex flex-col items-center gap-1 border-t border-neutral-200 p-1">
+          <Button
+            variant="transparent"
+            size="sm"
+            aria-expanded={isShowingAll}
+            disabled={isHistoryLoading}
+            icon={
+              isHistoryLoading ? (
+                <Spinner tone="current" />
+              ) : (
+                <ChevronDownIcon
+                  className={cn('transition-transform duration-150 ease-in-out', isShowingAll && 'rotate-180')}
+                />
+              )
+            }
+            onClick={() => setIsExpanded(current => !current)}
+          >
+            {formatMessage(isShowingAll ? checklistMessages.showLess : checklistMessages.showAll, { count: dayCount })}
+          </Button>
+          {isExpanded && hasHistoryFailed ? (
+            <p className="m-0 pb-2 text-sm text-danger">{formatMessage(checklistMessages.historyError)}</p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

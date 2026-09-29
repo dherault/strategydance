@@ -101,11 +101,7 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
     signOut,
   }
 
-  return (
-    <AuthenticationContext.Provider value={contextValue}>
-      {children}
-    </AuthenticationContext.Provider>
-  )
+  return <AuthenticationContext.Provider value={contextValue}>{children}</AuthenticationContext.Provider>
 }
 
 export default AuthenticationProvider

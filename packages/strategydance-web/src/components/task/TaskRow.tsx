@@ -8,8 +8,8 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Task } from '~types'
 
-import TaskInlineInput from '~components/task/TaskInlineInput'
 import { EDITABLE_BOX_CLASS_NAME, REVEALED_TRANSITION_CLASS_NAME } from '~components/task/taskClassNames'
+import TaskInlineInput from '~components/task/TaskInlineInput'
 
 import taskMessages from '~data/intl/messages/task'
 
@@ -31,10 +31,27 @@ type Props = {
 
 // Fades in while the row is hovered, and while the button itself has the keyboard's focus, but not
 // for a checkbox just clicked in the row. Always there on a touch screen, which has no hover
-const REVEALED_CLASS_NAME = cn(REVEALED_TRANSITION_CLASS_NAME, 'opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100')
+const REVEALED_CLASS_NAME = cn(
+  REVEALED_TRANSITION_CLASS_NAME,
+  'opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100',
+)
 
 // One task: the handle that moves it, whether it is done, what it is, and the way to delete it
-function TaskRow({ task, position, total, isEditing, isDragged, dropSide, itemProps, handleProps, onEdit, onCancelEdit, onSave, onToggle, onDelete }: Props) {
+function TaskRow({
+  task,
+  position,
+  total,
+  isEditing,
+  isDragged,
+  dropSide,
+  itemProps,
+  handleProps,
+  onEdit,
+  onCancelEdit,
+  onSave,
+  onToggle,
+  onDelete,
+}: Props) {
   const { formatMessage } = useIntl()
 
   return (
@@ -49,7 +66,10 @@ function TaskRow({ task, position, total, isEditing, isDragged, dropSide, itemPr
     >
       <button
         type="button"
-        className={cn('-mr-1 inline-flex h-7 w-5 flex-none cursor-grab items-center justify-center rounded-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-secondary active:cursor-grabbing [&_svg]:size-4', REVEALED_CLASS_NAME)}
+        className={cn(
+          '-mr-1 inline-flex h-7 w-5 flex-none cursor-grab items-center justify-center rounded-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-secondary active:cursor-grabbing [&_svg]:size-4',
+          REVEALED_CLASS_NAME,
+        )}
         aria-label={formatMessage(taskMessages.reorderTask, { text: task.text, position, total })}
         {...handleProps}
       >
@@ -60,30 +80,28 @@ function TaskRow({ task, position, total, isEditing, isDragged, dropSide, itemPr
         onChange={onToggle}
         aria-label={formatMessage(task.isDone ? taskMessages.markNotDone : taskMessages.markDone, { text: task.text })}
       />
-      {isEditing
-        ? (
-            <TaskInlineInput
-              value={task.text}
-              maxLength={MAX_TASK_LENGTH}
-              aria-label={formatMessage(taskMessages.taskLabel)}
-              onSave={onSave}
-              onCancel={onCancelEdit}
-            />
-          )
-        : (
-            <button
-              type="button"
-              title={formatMessage(taskMessages.editTask)}
-              className={cn(
-                EDITABLE_BOX_CLASS_NAME,
-                'flex min-h-8 min-w-0 flex-1 cursor-text items-center border-transparent bg-transparent py-[5px] text-left font-sans text-sm wrap-anywhere transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary',
-                task.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
-              )}
-              onClick={onEdit}
-            >
-              {task.text}
-            </button>
+      {isEditing ? (
+        <TaskInlineInput
+          value={task.text}
+          maxLength={MAX_TASK_LENGTH}
+          aria-label={formatMessage(taskMessages.taskLabel)}
+          onSave={onSave}
+          onCancel={onCancelEdit}
+        />
+      ) : (
+        <button
+          type="button"
+          title={formatMessage(taskMessages.editTask)}
+          className={cn(
+            EDITABLE_BOX_CLASS_NAME,
+            'flex min-h-8 min-w-0 flex-1 cursor-text items-center border-transparent bg-transparent py-[5px] text-left font-sans text-sm wrap-anywhere transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary',
+            task.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
           )}
+          onClick={onEdit}
+        >
+          {task.text}
+        </button>
+      )}
       <Button
         variant="transparent"
         size="sm"

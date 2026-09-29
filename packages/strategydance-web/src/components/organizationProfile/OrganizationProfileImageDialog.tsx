@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
-import { MAX_ORGANIZATION_IMAGE_SIZES, ORGANIZATION_IMAGE_CONTENT_TYPES, type OrganizationImageKind } from 'strategydance-core'
+import {
+  MAX_ORGANIZATION_IMAGE_SIZES,
+  ORGANIZATION_IMAGE_CONTENT_TYPES,
+  type OrganizationImageKind,
+} from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -18,7 +22,7 @@ import organizationProfileMessages from '~data/intl/messages/organizationProfile
 
 // What each picture should measure, as the dialog advises. Advice only: nothing refuses a smaller
 // picture, since the banner is cropped to fill its band and the logo fitted inside its square
-const MINIMUM_SIZES: Record<OrganizationImageKind, { width: number, height: number }> = {
+const MINIMUM_SIZES: Record<OrganizationImageKind, { width: number; height: number }> = {
   banner: { width: 2400, height: 600 },
   logo: { width: 256, height: 256 },
 }
@@ -49,7 +53,7 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
   const isBanner = kind === 'banner'
   const maximumMegabytes = MAX_ORGANIZATION_IMAGE_SIZES[kind] / (1024 * 1024)
   const { width, height } = MINIMUM_SIZES[kind]
-  const src = choice === undefined ? currentSrc : choice?.url ?? null
+  const src = choice === undefined ? currentSrc : (choice?.url ?? null)
   // Removing a picture that was never there changes nothing
   const isChanged = choice !== undefined && (choice !== null || currentSrc !== null)
 
@@ -99,44 +103,48 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
         <DialogHeader>
           <DialogTitle>
             {isBanner
-              ? formatMessage(currentSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner)
-              : formatMessage(currentSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo)}
+              ? formatMessage(
+                  currentSrc ? organizationProfileMessages.changeBanner : organizationProfileMessages.uploadBanner,
+                )
+              : formatMessage(
+                  currentSrc ? organizationProfileMessages.changeLogo : organizationProfileMessages.uploadLogo,
+                )}
           </DialogTitle>
           <DialogDescription>
-            {formatMessage(isBanner ? organizationProfileMessages.bannerDescription : organizationProfileMessages.logoDescription)}
+            {formatMessage(
+              isBanner ? organizationProfileMessages.bannerDescription : organizationProfileMessages.logoDescription,
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <ImageDropzone
             shape={isBanner ? 'wide' : 'square'}
             src={src}
-            alt={formatMessage(isBanner ? organizationProfileMessages.bannerPreviewAlt : organizationProfileMessages.logoPreviewAlt)}
-            label={formatMessage(isBanner ? organizationProfileMessages.chooseBanner : organizationProfileMessages.chooseLogo)}
-            prompt={(
+            alt={formatMessage(
+              isBanner ? organizationProfileMessages.bannerPreviewAlt : organizationProfileMessages.logoPreviewAlt,
+            )}
+            label={formatMessage(
+              isBanner ? organizationProfileMessages.chooseBanner : organizationProfileMessages.chooseLogo,
+            )}
+            prompt={
               <FormattedMessage
                 {...organizationProfileMessages.dropPrompt}
                 values={{
-                  strong: chunks => (
-                    <strong>
-                      {chunks}
-                    </strong>
-                  ),
+                  strong: chunks => <strong>{chunks}</strong>,
                 }}
               />
-            )}
+            }
             accept={ORGANIZATION_IMAGE_CONTENT_TYPES.join(',')}
             onFileSelect={selectFile}
           />
-          {error
-            ? (
-                <p
-                  role="alert"
-                  className="m-0 text-center text-xs text-danger"
-                >
-                  {error}
-                </p>
-              )
-            : null}
+          {error ? (
+            <p
+              role="alert"
+              className="m-0 text-center text-xs text-danger"
+            >
+              {error}
+            </p>
+          ) : null}
           <ul className="m-0 flex list-none flex-wrap justify-center gap-x-2 gap-y-1 p-0 text-xs text-muted-foreground">
             {specs.map((spec, index) => (
               <li
@@ -149,19 +157,17 @@ function OrganizationProfileImageDialog({ kind, currentSrc, onApply, onClose }: 
           </ul>
         </div>
         <DialogFooter className="-mx-6 -mb-6 border-t border-border px-6 py-4 sm:items-center">
-          {src
-            ? (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  confirm={formatMessage(organizationProfileMessages.removeConfirm)}
-                  onClick={remove}
-                  className="sm:mr-auto"
-                >
-                  {formatMessage(organizationProfileMessages.remove)}
-                </Button>
-              )
-            : null}
+          {src ? (
+            <Button
+              variant="danger"
+              size="sm"
+              confirm={formatMessage(organizationProfileMessages.removeConfirm)}
+              onClick={remove}
+              className="sm:mr-auto"
+            >
+              {formatMessage(organizationProfileMessages.remove)}
+            </Button>
+          ) : null}
           <Button
             variant="transparent"
             onClick={onClose}

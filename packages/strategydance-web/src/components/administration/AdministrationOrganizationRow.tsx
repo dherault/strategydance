@@ -3,9 +3,9 @@ import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { TableCell, TableRow } from 'strategydance-design-system/components/ui/Table'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
-import { COMPANY_ASPECTS } from '~constants'
-
 import type { AdministrationOrganization } from '~types'
+
+import { COMPANY_ASPECTS } from '~constants'
 
 import OrganizationMark from '~components/organization/OrganizationMark'
 
@@ -25,9 +25,9 @@ function AdministrationOrganizationRow({ organization }: Props) {
   const memberCount = organization.members[0]?._count ?? 0
   // Named in `COMPANY_ASPECTS`'s order, as the sidebar lists them. None makes an empty tooltip,
   // which the design system's leaves out
-  const exploredAspectNames = COMPANY_ASPECTS
-    .filter(aspect => organization.exploredAspects.includes(aspect))
-    .map(aspect => formatMessage(aspectMessages[aspect]))
+  const exploredAspectNames = COMPANY_ASPECTS.filter(aspect => organization.exploredAspects.includes(aspect)).map(
+    aspect => formatMessage(aspectMessages[aspect]),
+  )
 
   return (
     <TableRow>
@@ -38,9 +38,7 @@ function AdministrationOrganizationRow({ organization }: Props) {
             logoUrl={organization.logoUrl}
             color={organization.color}
           />
-          <span className="font-medium whitespace-nowrap text-secondary">
-            {organization.name}
-          </span>
+          <span className="font-medium whitespace-nowrap text-secondary">{organization.name}</span>
         </div>
       </TableCell>
       <TableCell
@@ -54,7 +52,11 @@ function AdministrationOrganizationRow({ organization }: Props) {
           variant={organization.isPublic ? 'success' : 'neutral'}
           size="sm"
         >
-          {formatMessage(organization.isPublic ? administrationMessages.organizationPublic : administrationMessages.organizationPrivate)}
+          {formatMessage(
+            organization.isPublic
+              ? administrationMessages.organizationPublic
+              : administrationMessages.organizationPrivate,
+          )}
         </Badge>
       </TableCell>
       <TableCell className="text-muted-foreground">

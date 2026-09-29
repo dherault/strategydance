@@ -13,9 +13,7 @@ function TeamWait({ children }: PropsWithChildren) {
   const { initialLoading } = useOrganizationTeam()
 
   if (initialLoading) {
-    return (
-      <Loading source="TeamWait" />
-    )
+    return <Loading source="TeamWait" />
   }
 
   return children

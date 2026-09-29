@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { CalendarIcon, ListTodoIcon, MessageSquareIcon } from 'lucide-react'
-
 import { Tabs } from 'strategydance-design-system/components/ui/Tabs'
 
 const meta = {

@@ -22,7 +22,12 @@ function errorMiddleware(error: unknown, request: Request, response: Response, n
   const clientErrorStatus = parseClientErrorStatus(error)
 
   if (clientErrorStatus) {
-    respondError(response, clientErrorStatus, ERROR_CODE_BAD_REQUEST, error instanceof Error ? error.message : 'Bad request')
+    respondError(
+      response,
+      clientErrorStatus,
+      ERROR_CODE_BAD_REQUEST,
+      error instanceof Error ? error.message : 'Bad request',
+    )
 
     return
   }

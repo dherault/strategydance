@@ -1,7 +1,6 @@
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 import fs from 'node:fs/promises'
 import os from 'node:os'
-
-import { afterEach, describe, expect, mock, test } from 'bun:test'
 
 // Outside production: its own file, since `sendEmails.test.ts` mocks the opposite
 const retrieveSecret = mock(async () => 're_test')
@@ -45,10 +44,19 @@ afterEach(async () => {
 
 describe('sendEmails outside production', () => {
   test('writes each email to the temp directory and sends nothing', async () => {
-    const failures = await sendEmails([
-      { senderName: 'Strategy Dance', to: 'ada@example.com', subject: 'First', html: '<p>First</p>', text: 'First' },
-      { senderName: 'Strategy Dance', to: 'grace@example.com', subject: 'Second', html: '<p>Second</p>', text: 'Second' },
-    ], 'key')
+    const failures = await sendEmails(
+      [
+        { senderName: 'Strategy Dance', to: 'ada@example.com', subject: 'First', html: '<p>First</p>', text: 'First' },
+        {
+          senderName: 'Strategy Dance',
+          to: 'grace@example.com',
+          subject: 'Second',
+          html: '<p>Second</p>',
+          text: 'Second',
+        },
+      ],
+      'key',
+    )
 
     expect(failures).toEqual([])
     expect(retrieveSecret).not.toHaveBeenCalled()

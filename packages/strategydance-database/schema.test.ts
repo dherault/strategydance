@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+
 import { SUPPORTED_LOCALES } from 'strategydance-core'
 
 const schema = await Bun.file(new URL('./schema/schema.gql', import.meta.url)).text()
@@ -17,7 +18,10 @@ function readEnumValues(name: string): string[] {
 
   if (!match) throw new Error(`No "${name}" enum in schema.gql`)
 
-  return match[1]!.split('\n').map(line => line.trim()).filter(Boolean)
+  return match[1]!
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
 }
 
 describe('schema.gql', () => {

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Toaster, toast } from 'strategydance-design-system/components/ui/Toaster'
 
@@ -45,20 +44,24 @@ const meta = {
         </Button>
         <Button
           variant="outline"
-          onClick={() => toast('Task archived', {
-            action: { label: 'Undo', onClick: () => {} },
-            cancel: { label: 'Dismiss', onClick: () => {} },
-          })}
+          onClick={() =>
+            toast('Task archived', {
+              action: { label: 'Undo', onClick: () => {} },
+              cancel: { label: 'Dismiss', onClick: () => {} },
+            })
+          }
         >
           With actions
         </Button>
         <Button
           variant="outline"
-          onClick={() => toast.promise(wait(2000), {
-            loading: 'Publishing the page',
-            success: 'Page published',
-            error: 'The page did not publish',
-          })}
+          onClick={() =>
+            toast.promise(wait(2000), {
+              loading: 'Publishing the page',
+              success: 'Page published',
+              error: 'The page did not publish',
+            })
+          }
         >
           Promise
         </Button>

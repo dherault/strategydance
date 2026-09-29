@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 
 const meta = {

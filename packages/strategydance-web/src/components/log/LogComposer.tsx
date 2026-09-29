@@ -42,13 +42,11 @@ function LogComposer({ organizationId, today, todayEntry }: Props) {
 
       toast.success(formatMessage(logMessages.posted))
       await queryClient.invalidateQueries({ queryKey: ['GetOrganizationLog', organizationId] })
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to post the log entry', error)
 
       toast.error(formatMessage(logMessages.saveError))
-    }
-    finally {
+    } finally {
       setIsPending(false)
     }
   }
@@ -57,9 +55,10 @@ function LogComposer({ organizationId, today, todayEntry }: Props) {
     return (
       <p className="m-0 mt-2 text-sm text-muted-foreground">
         <span className="font-medium text-secondary">
-          {formatMessage(logMessages.loggedToday, { time: formatTime(todayEntry.createdAt, { hour: 'numeric', minute: '2-digit' }) })}
-        </span>
-        {' '}
+          {formatMessage(logMessages.loggedToday, {
+            time: formatTime(todayEntry.createdAt, { hour: 'numeric', minute: '2-digit' }),
+          })}
+        </span>{' '}
         {formatMessage(logMessages.loggedTodayNext)}
       </p>
     )

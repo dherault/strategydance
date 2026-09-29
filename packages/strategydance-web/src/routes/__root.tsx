@@ -1,6 +1,5 @@
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-
 import type { QueryClient } from '@tanstack/react-query'
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 

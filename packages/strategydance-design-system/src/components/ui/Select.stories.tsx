@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Select } from 'strategydance-design-system/components/ui/Select'
 
 const meta = {

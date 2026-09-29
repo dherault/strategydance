@@ -28,11 +28,15 @@ const COMPLETION_RETRY_DELAY_MS = 500
   fail for seconds right after serving this request's claim and read
 */
 async function sendWelcomeEmail(userId: string) {
-  const { data: { user_updateMany: claimed } } = await claimWelcomeEmail(dataConnect, { userId })
+  const {
+    data: { user_updateMany: claimed },
+  } = await claimWelcomeEmail(dataConnect, { userId })
 
   if (!claimed) return
 
-  const { data: { user } } = await getWelcomeEmailRecipient(dataConnect, { userId })
+  const {
+    data: { user },
+  } = await getWelcomeEmailRecipient(dataConnect, { userId })
 
   if (!user) throw new Error(`No user ${userId} to welcome, though its welcome email was just claimed`)
 
@@ -51,8 +55,7 @@ async function sendWelcomeEmail(userId: string) {
       await completeWelcomeEmail(dataConnect, { userId })
 
       return
-    }
-    catch (error) {
+    } catch (error) {
       if (attempt === COMPLETION_ATTEMPTS) throw error
 
       await Bun.sleep(attempt * COMPLETION_RETRY_DELAY_MS)

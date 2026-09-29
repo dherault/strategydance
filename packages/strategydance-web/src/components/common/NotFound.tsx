@@ -20,12 +20,8 @@ function NotFound() {
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 px-4 py-16 text-center">
       <Logo className="w-12 text-secondary" />
       {/* A status code rather than a word, so it is not translated */}
-      <p className="m-0 font-heading text-[clamp(6rem,24vw,10rem)] leading-none text-primary">
-        404
-      </p>
-      <h1 className="m-0 text-5xl leading-[1.05] text-balance">
-        {formatMessage(globalMessages.notFoundTitle)}
-      </h1>
+      <p className="m-0 font-heading text-[clamp(6rem,24vw,10rem)] leading-none text-primary">404</p>
+      <h1 className="m-0 text-5xl leading-[1.05] text-balance">{formatMessage(globalMessages.notFoundTitle)}</h1>
       <p className="m-0 max-w-md text-base leading-[1.6] text-pretty text-muted-foreground">
         {formatMessage(globalMessages.notFoundLead)}
       </p>

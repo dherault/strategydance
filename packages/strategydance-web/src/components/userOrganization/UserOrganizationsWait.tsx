@@ -20,9 +20,7 @@ function UserOrganizationsWait({ children }: PropsWithChildren) {
   const { initialLoading } = useUserOrganizations()
 
   if (initialLoading) {
-    return (
-      <Loading source="UserOrganizationsWait" />
-    )
+    return <Loading source="UserOrganizationsWait" />
   }
 
   return children

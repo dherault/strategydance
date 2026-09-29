@@ -58,8 +58,7 @@ function ExploreAspects() {
 
     try {
       await pageChange
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to explore the aspect', error)
 
       setHasFailed(true)
@@ -73,16 +72,14 @@ function ExploreAspects() {
         title={formatMessage(navigationMessages.exploreMore)}
         lead={formatMessage(exploreMessages.lead)}
       />
-      {hasFailed && !chapter
-        ? (
-            <Alert
-              variant="danger"
-              className="max-w-xl"
-            >
-              {formatMessage(exploreMessages.startError)}
-            </Alert>
-          )
-        : null}
+      {hasFailed && !chapter ? (
+        <Alert
+          variant="danger"
+          className="max-w-xl"
+        >
+          {formatMessage(exploreMessages.startError)}
+        </Alert>
+      ) : null}
       <div className="grid auto-rows-fr grid-cols-1 gap-4 @min-[481px]:grid-cols-2 @min-[761px]:grid-cols-3">
         {aspects.map(aspect => (
           <ExploreAspectCard

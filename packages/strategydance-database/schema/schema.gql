@@ -230,7 +230,6 @@ type Task @table @index(fields: ["taskListId", "position"]) {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-
 # One of the habits on somebody's checklist in an organization, a column they tick on each day they
 # keep it, such as "Talk to users". Their team reads it, and only they write it.
 #

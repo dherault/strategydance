@@ -1,6 +1,5 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import type { ComponentProps } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 const pillVariants = cva(
@@ -35,12 +34,13 @@ const pillVariants = cva(
   },
 )
 
-type Props = ComponentProps<'span'> & Omit<VariantProps<typeof pillVariants>, 'dot'> & {
-  /** Omit it for a dot */
-  count?: number
-  /** A count above it shows as `{max}+`. `null` or 0 always shows the count itself */
-  max?: number | null
-}
+type Props = ComponentProps<'span'>
+  & Omit<VariantProps<typeof pillVariants>, 'dot'> & {
+    /** Omit it for a dot */
+    count?: number
+    /** A count above it shows as `{max}+`. `null` or 0 always shows the count itself */
+    max?: number | null
+  }
 
 // A fully rounded count indicator
 function Pill({ count, max = 99, variant, size, className, ...props }: Props) {

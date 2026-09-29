@@ -28,27 +28,21 @@ function AdministrationUserRow({ user }: Props) {
             src={user.imageUrl ?? undefined}
             name={name}
           />
-          <span className="font-medium whitespace-nowrap text-secondary">
-            {name}
-          </span>
-          {user.isAdministrator
-            ? (
-                <Badge
-                  variant="primary"
-                  size="sm"
-                >
-                  {formatMessage(administrationMessages.administrator)}
-                </Badge>
-              )
-            : null}
+          <span className="font-medium whitespace-nowrap text-secondary">{name}</span>
+          {user.isAdministrator ? (
+            <Badge
+              variant="primary"
+              size="sm"
+            >
+              {formatMessage(administrationMessages.administrator)}
+            </Badge>
+          ) : null}
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground">
         {/* The button at the cell's far edge, so the buttons line up down the column */}
         <div className="flex items-center justify-between gap-2">
-          <span>
-            {user.email}
-          </span>
+          <span>{user.email}</span>
           <CopyButton
             value={user.email}
             label={formatMessage(administrationMessages.copyEmail, { name })}
@@ -57,18 +51,16 @@ function AdministrationUserRow({ user }: Props) {
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground">
-        {user.userOrganizations_on_user.length > 0
-          ? (
-              // One organization per line
-              <ul className="m-0 list-none p-0">
-                {user.userOrganizations_on_user.map(({ organization }) => (
-                  <li key={organization.id}>
-                    {organization.name}
-                  </li>
-                ))}
-              </ul>
-            )
-          : formatMessage(administrationMessages.noOrganization)}
+        {user.userOrganizations_on_user.length > 0 ? (
+          // One organization per line
+          <ul className="m-0 list-none p-0">
+            {user.userOrganizations_on_user.map(({ organization }) => (
+              <li key={organization.id}>{organization.name}</li>
+            ))}
+          </ul>
+        ) : (
+          formatMessage(administrationMessages.noOrganization)
+        )}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { type ComponentProps, useState } from 'react'
-
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { Checkbox } from 'strategydance-design-system/components/ui/Checkbox'
 import {
@@ -34,9 +33,7 @@ function Invoices(props: ComponentProps<typeof Table>) {
 
   return (
     <Table {...props}>
-      <TableCaption>
-        {`Recent invoices · ${selectedIds.length} selected`}
-      </TableCaption>
+      <TableCaption>{`Recent invoices · ${selectedIds.length} selected`}</TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>
@@ -47,18 +44,10 @@ function Invoices(props: ComponentProps<typeof Table>) {
               onChange={() => setSelectedIds(allSelected ? [] : invoices.map(({ id }) => id))}
             />
           </TableHead>
-          <TableHead>
-            Invoice
-          </TableHead>
-          <TableHead>
-            Client
-          </TableHead>
-          <TableHead>
-            Status
-          </TableHead>
-          <TableHead align="right">
-            Amount
-          </TableHead>
+          <TableHead>Invoice</TableHead>
+          <TableHead>Client</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead align="right">Amount</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -74,12 +63,8 @@ function Invoices(props: ComponentProps<typeof Table>) {
                 onChange={() => toggle(invoice.id)}
               />
             </TableCell>
-            <TableCell className="font-medium text-secondary">
-              {invoice.id}
-            </TableCell>
-            <TableCell>
-              {invoice.client}
-            </TableCell>
+            <TableCell className="font-medium text-secondary">{invoice.id}</TableCell>
+            <TableCell>{invoice.client}</TableCell>
             <TableCell>
               <Badge
                 variant={invoice.variant}
@@ -89,20 +74,14 @@ function Invoices(props: ComponentProps<typeof Table>) {
                 {invoice.status}
               </Badge>
             </TableCell>
-            <TableCell align="right">
-              {invoice.amount}
-            </TableCell>
+            <TableCell align="right">{invoice.amount}</TableCell>
           </TableRow>
         ))}
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={4}>
-            Total
-          </TableCell>
-          <TableCell align="right">
-            $8,070.00
-          </TableCell>
+          <TableCell colSpan={4}>Total</TableCell>
+          <TableCell align="right">$8,070.00</TableCell>
         </TableRow>
       </TableFooter>
     </Table>

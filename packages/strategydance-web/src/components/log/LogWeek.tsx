@@ -39,7 +39,7 @@ function LogWeek({ organizationId, from, to, isLive, today, viewerId, membersByI
 
   const entries = week.logEntries.filter(entry => membersById.has(entry.user.id))
   const olderDate = week.older[0]?.date ?? null
-  const days: { date: string, entries: LogEntry[] }[] = []
+  const days: { date: string; entries: LogEntry[] }[] = []
 
   for (const entry of entries) {
     const last = days.at(-1)
@@ -81,13 +81,9 @@ function LogWeek({ organizationId, from, to, isLive, today, viewerId, membersByI
 
   return (
     <>
-      {isLive && !days.length
-        ? (
-            <p className="m-0 mt-2 text-sm text-muted-foreground">
-              {formatMessage(logMessages.empty)}
-            </p>
-          )
-        : null}
+      {isLive && !days.length ? (
+        <p className="m-0 mt-2 text-sm text-muted-foreground">{formatMessage(logMessages.empty)}</p>
+      ) : null}
       {days.map(({ date, entries: dayEntries }) => {
         const label = formatDay(date)
 
@@ -117,19 +113,17 @@ function LogWeek({ organizationId, from, to, isLive, today, viewerId, membersByI
           </Fragment>
         )
       })}
-      {onLoadPrevious && olderDate
-        ? (
-            <div className="flex justify-center pt-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onLoadPrevious(olderDate)}
-              >
-                {formatMessage(logMessages.loadPrevious)}
-              </Button>
-            </div>
-          )
-        : null}
+      {onLoadPrevious && olderDate ? (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onLoadPrevious(olderDate)}
+          >
+            {formatMessage(logMessages.loadPrevious)}
+          </Button>
+        </div>
+      ) : null}
     </>
   )
 }

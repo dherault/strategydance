@@ -1,7 +1,6 @@
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 /*
@@ -9,9 +8,11 @@ import { cn } from 'strategydance-design-system/lib/utils'
   `md` shadow, rows 32px tall that highlight in neutral-100. Icons are muted unless they carry a
   colour of their own, as a trailing check in primary does
 */
-const itemClassName = 'relative flex min-h-8 cursor-pointer items-center gap-2 rounded-xs px-2 text-sm text-foreground outline-none select-none data-highlighted:bg-neutral-100 data-highlighted:text-secondary data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4 [&_svg:not([class*="text-"])]:text-muted-foreground'
+const itemClassName =
+  'relative flex min-h-8 cursor-pointer items-center gap-2 rounded-xs px-2 text-sm text-foreground outline-none select-none data-highlighted:bg-neutral-100 data-highlighted:text-secondary data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4 [&_svg:not([class*="text-"])]:text-muted-foreground'
 
-const contentClassName = 'z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xs border border-border bg-popover p-1 font-sans text-popover-foreground shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-[2px] data-[side=left]:slide-in-from-right-[2px] data-[side=right]:slide-in-from-left-[2px] data-[side=top]:slide-in-from-bottom-[2px] data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0'
+const contentClassName =
+  'z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xs border border-border bg-popover p-1 font-sans text-popover-foreground shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-[2px] data-[side=left]:slide-in-from-right-[2px] data-[side=right]:slide-in-from-left-[2px] data-[side=top]:slide-in-from-bottom-[2px] data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0'
 
 function DropdownMenu(props: ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return (
@@ -147,7 +148,11 @@ function DropdownMenuRadioItem({
   )
 }
 
-function DropdownMenuLabel({ inset, className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Label> & { inset?: boolean }) {
+function DropdownMenuLabel({
+  inset,
+  className,
+  ...props
+}: ComponentProps<typeof DropdownMenuPrimitive.Label> & { inset?: boolean }) {
   return (
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"

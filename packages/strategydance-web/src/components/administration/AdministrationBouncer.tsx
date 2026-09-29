@@ -25,10 +25,7 @@ function AdministrationBouncer({ children }: PropsWithChildren) {
       to: '/today',
       replace: true,
     })
-  }, [
-    isAdministrator,
-    navigate,
-  ])
+  }, [isAdministrator, navigate])
 
   if (!isAdministrator) return null
 

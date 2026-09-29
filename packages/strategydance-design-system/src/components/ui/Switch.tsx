@@ -1,9 +1,7 @@
 import { type VariantProps, cva } from 'class-variance-authority'
 import { type ComponentProps, type ReactNode, useId } from 'react'
-
-import { cn } from 'strategydance-design-system/lib/utils'
-
 import { Choice } from 'strategydance-design-system/components/ui/Choice'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 const trackVariants = cva(
   'peer m-0 cursor-pointer appearance-none rounded-full border-0 bg-neutral-300 transition-colors duration-150 ease-in-out checked:bg-primary enabled:hover:bg-neutral-400 enabled:checked:hover:bg-primary-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:cursor-not-allowed',
@@ -35,10 +33,11 @@ const thumbVariants = cva(
   },
 )
 
-type Props = Omit<ComponentProps<'input'>, 'type' | 'size'> & VariantProps<typeof trackVariants> & {
-  label?: ReactNode
-  hint?: ReactNode
-}
+type Props = Omit<ComponentProps<'input'>, 'type' | 'size'>
+  & VariantProps<typeof trackVariants> & {
+    label?: ReactNode
+    hint?: ReactNode
+  }
 
 /*
   For a setting that applies the moment it flips. Inside a form that submits, use a Checkbox.

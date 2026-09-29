@@ -23,8 +23,7 @@ function SupportEmail() {
     // Outside a secure context there is no clipboard at all, and the call throws like a refusal
     try {
       await navigator.clipboard.writeText(SUPPORT_CONTACT.email)
-    }
-    catch {
+    } catch {
       toast.error(formatMessage(supportMessages.copyError))
 
       return

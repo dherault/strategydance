@@ -26,9 +26,7 @@ function TodayMemberIdentity({ member, size = 'md' }: Props) {
         size={size}
       />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium text-secondary">
-          {name}
-        </span>
+        <span className="truncate text-sm font-medium text-secondary">{name}</span>
         <span className="truncate text-xs text-muted-foreground">
           {member.jobTitle || formatMessage(todayMessages.noJobTitle)}
         </span>

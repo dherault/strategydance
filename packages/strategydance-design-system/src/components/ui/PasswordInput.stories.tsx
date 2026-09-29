@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
-
 import { PasswordInput } from 'strategydance-design-system/components/ui/PasswordInput'
 
 const meta = {

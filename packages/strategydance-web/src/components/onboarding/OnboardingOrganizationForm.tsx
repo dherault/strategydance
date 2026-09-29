@@ -78,8 +78,7 @@ function OnboardingOrganizationForm() {
         setIsUnread(true)
         setIsCreating(false)
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to create the organization', error)
 
       setHasFailed(true)
@@ -89,12 +88,8 @@ function OnboardingOrganizationForm() {
 
   return (
     <div className="flex w-full max-w-[640px] animate-in flex-col items-center gap-6 px-6 py-12 text-center duration-500 ease-in-out fade-in slide-in-from-bottom-2">
-      <h1 className="m-0 text-5xl leading-[1.1] text-balance">
-        {formatMessage(onboardingMessages.title)}
-      </h1>
-      <p className="m-0 text-lg text-pretty">
-        {formatMessage(onboardingMessages.lead)}
-      </p>
+      <h1 className="m-0 text-5xl leading-[1.1] text-balance">{formatMessage(onboardingMessages.title)}</h1>
+      <p className="m-0 text-lg text-pretty">{formatMessage(onboardingMessages.lead)}</p>
       <form
         noValidate
         onSubmit={handleSubmit}
@@ -131,13 +126,11 @@ function OnboardingOrganizationForm() {
           required
           readOnly={isCreating || isUnread}
         />
-        {hasFailed || isUnread
-          ? (
-              <Alert variant="danger">
-                {formatMessage(isUnread ? onboardingMessages.createdUnread : onboardingMessages.createError)}
-              </Alert>
-            )
-          : null}
+        {hasFailed || isUnread ? (
+          <Alert variant="danger">
+            {formatMessage(isUnread ? onboardingMessages.createdUnread : onboardingMessages.createError)}
+          </Alert>
+        ) : null}
         <Button
           type="submit"
           size="lg"

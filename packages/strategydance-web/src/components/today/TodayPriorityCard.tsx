@@ -15,7 +15,8 @@ type Props = {
   onEdit: () => void
 }
 
-const CARD_CLASS_NAME = 'relative flex min-w-0 flex-col gap-4 rounded-xs border border-neutral-200 bg-white p-4 text-left'
+const CARD_CLASS_NAME =
+  'relative flex min-w-0 flex-col gap-4 rounded-xs border border-neutral-200 bg-white p-4 text-left'
 
 // One teammate's top priority, under who they are. The reader's own opens the dialog that sets it
 function TodayPriorityCard({ member, isViewer, onEdit }: Props) {
@@ -23,7 +24,12 @@ function TodayPriorityCard({ member, isViewer, onEdit }: Props) {
 
   const priority = member.topPriority
   const text = (
-    <p className={cn('m-0 text-lg leading-[1.45] wrap-anywhere text-pretty', priority ? 'text-secondary' : 'text-neutral-400')}>
+    <p
+      className={cn(
+        'm-0 text-lg leading-[1.45] wrap-anywhere text-pretty',
+        priority ? 'text-secondary' : 'text-neutral-400',
+      )}
+    >
       {priority || formatMessage(isViewer ? todayMessages.setYourPriority : todayMessages.noPriority)}
     </p>
   )
@@ -43,7 +49,10 @@ function TodayPriorityCard({ member, isViewer, onEdit }: Props) {
   return (
     <button
       type="button"
-      className={cn(CARD_CLASS_NAME, 'group cursor-pointer transition-colors duration-150 ease-in-out hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary')}
+      className={cn(
+        CARD_CLASS_NAME,
+        'group cursor-pointer transition-colors duration-150 ease-in-out hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
+      )}
       onClick={onEdit}
     >
       <TodayMemberIdentity

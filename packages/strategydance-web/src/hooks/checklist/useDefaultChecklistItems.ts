@@ -30,7 +30,8 @@ function useDefaultChecklistItems() {
   const { data: checklist, initialLoading, hasFailed } = useChecklist(viewerId)
   const hasAskedRef = useRef(false)
 
-  const isUnstarted = Boolean(organizationId && viewerId) && !initialLoading && !hasFailed && checklist.anyItem.length === 0
+  const isUnstarted =
+    Boolean(organizationId && viewerId) && !initialLoading && !hasFailed && checklist.anyItem.length === 0
 
   useEffect(() => {
     if (!isUnstarted || hasAskedRef.current || !organizationId) return

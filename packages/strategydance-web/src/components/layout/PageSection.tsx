@@ -28,13 +28,7 @@ function PageSection({ title, description, actions, className, children }: Props
           >
             {title}
           </h2>
-          {description
-            ? (
-                <p className="m-0 text-sm text-muted-foreground">
-                  {description}
-                </p>
-              )
-            : null}
+          {description ? <p className="m-0 text-sm text-muted-foreground">{description}</p> : null}
         </div>
         {actions}
       </div>

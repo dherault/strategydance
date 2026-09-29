@@ -25,7 +25,8 @@ const blurbMessages: Record<CompanyAspect, MessageDescriptor> = {
 }
 
 // The card's frame. Its last child, the call to action, sinks to the bottom so a row lines up
-const cardClassName = 'relative flex flex-col gap-4 rounded-xs border bg-card p-6 transition-colors duration-150 ease-in-out *:last:mt-auto'
+const cardClassName =
+  'relative flex flex-col gap-4 rounded-xs border bg-card p-6 transition-colors duration-150 ease-in-out *:last:mt-auto'
 
 type Props = {
   aspect: CompanyAspect
@@ -45,7 +46,12 @@ function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
 
   const body = (
     <>
-      <span className={cn('grid size-10 place-items-center rounded-xs', isExplored ? 'bg-neutral-100 text-muted-foreground' : 'bg-primary-50 text-primary')}>
+      <span
+        className={cn(
+          'grid size-10 place-items-center rounded-xs',
+          isExplored ? 'bg-neutral-100 text-muted-foreground' : 'bg-primary-50 text-primary',
+        )}
+      >
         <CompanyAspectIcon
           aspect={toAspectSlug(aspect)}
           size={20}
@@ -67,7 +73,10 @@ function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
       <Link
         to="/aspects/$aspect"
         params={{ aspect }}
-        className={cn(cardClassName, 'group border-neutral-200 text-inherit no-underline hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary')}
+        className={cn(
+          cardClassName,
+          'group border-neutral-200 text-inherit no-underline hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
+        )}
       >
         {body}
         <span className="flex items-center gap-1.5 text-sm font-medium text-neutral-600 group-hover:text-neutral-900">
@@ -81,7 +90,11 @@ function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
   return (
     <div
       onClick={isDisabled ? undefined : onStart}
-      className={cn(cardClassName, 'border-primary', isDisabled ? 'cursor-default' : 'cursor-pointer hover:border-primary-800')}
+      className={cn(
+        cardClassName,
+        'border-primary',
+        isDisabled ? 'cursor-default' : 'cursor-pointer hover:border-primary-800',
+      )}
     >
       {body}
       <div>

@@ -12,7 +12,8 @@
 # organization run one after the other and each counts what the one before it committed: a
 # batch, or two administrators inviting at once, cannot slip past the limit together
 mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, $email: String!)
-@auth(level: NO_ACCESS) @transaction {
+@auth(level: NO_ACCESS)
+@transaction {
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
@@ -101,7 +102,8 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
 # a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
 # Only the membership is redacted, since the URL is the answer
 mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String)
-@auth(level: NO_ACCESS) @transaction {
+@auth(level: NO_ACCESS)
+@transaction {
   previous: query {
     organization(id: $organizationId) {
       logoUrl
@@ -118,7 +120,8 @@ mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoU
 
 # The banner's twin of `UpdateOrganizationLogo`, on the same terms
 mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $bannerUrl: String)
-@auth(level: NO_ACCESS) @transaction {
+@auth(level: NO_ACCESS)
+@transaction {
   previous: query {
     organization(id: $organizationId) {
       bannerUrl
@@ -152,8 +155,10 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # `$organizationId` is also what `GetOrganizationTeam` and `GetOrganizationLog` refresh on, so a
 # member watching the team page or the log sees it go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
-  userOrganization_update(key: { userId: $userId, organizationId: $organizationId }, data: { updatedAt_expr: "request.time" })
-    @redact
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can delete it") {

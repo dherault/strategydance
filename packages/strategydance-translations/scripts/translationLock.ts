@@ -74,8 +74,7 @@ export async function readLock(): Promise<TranslationLock> {
 
   try {
     content = await fs.readFile(lockFilePath, 'utf-8')
-  }
-  catch (error) {
+  } catch (error) {
     // No lock file is the documented way to force a full retranslation, so it is a valid state and
     // not an error. Any other read failure is: it would start that same full retranslation without
     // anybody having asked for one

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
 import { Spinner } from 'strategydance-design-system/components/ui/Spinner'
 
 const meta = {

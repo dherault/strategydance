@@ -1,6 +1,12 @@
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
-import { ERROR_CODE_TEAM_FULL, type InvitationFailureReason, type InviteOrganizationMembersData, MAX_INVITATIONS_PER_REQUEST, MAX_TEAM_SIZE } from 'strategydance-core'
+import {
+  ERROR_CODE_TEAM_FULL,
+  type InvitationFailureReason,
+  type InviteOrganizationMembersData,
+  MAX_INVITATIONS_PER_REQUEST,
+  MAX_TEAM_SIZE,
+} from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -61,14 +67,26 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
   function listEmails(emails: string[]) {
     if (emails.length <= LISTED_EMAILS) return formatList(emails, { type: 'conjunction' })
 
-    return formatList([...emails.slice(0, LISTED_EMAILS), formatMessage(teamMessages.emailListMore, { count: emails.length - LISTED_EMAILS })], { type: 'conjunction' })
+    return formatList(
+      [
+        ...emails.slice(0, LISTED_EMAILS),
+        formatMessage(teamMessages.emailListMore, { count: emails.length - LISTED_EMAILS }),
+      ],
+      { type: 'conjunction' },
+    )
   }
 
   const problems = [
-    parsed.invalid.length ? formatMessage(teamMessages.invalidEmails, { count: parsed.invalid.length, emails: listEmails(parsed.invalid) }) : null,
-    parsed.members.length ? formatMessage(teamMessages.alreadyMembers, { count: parsed.members.length, emails: listEmails(parsed.members) }) : null,
+    parsed.invalid.length
+      ? formatMessage(teamMessages.invalidEmails, { count: parsed.invalid.length, emails: listEmails(parsed.invalid) })
+      : null,
+    parsed.members.length
+      ? formatMessage(teamMessages.alreadyMembers, { count: parsed.members.length, emails: listEmails(parsed.members) })
+      : null,
     parsed.invited.length ? formatMessage(teamMessages.alreadyInvited, { emails: listEmails(parsed.invited) }) : null,
-    count > MAX_INVITATIONS_PER_REQUEST ? formatMessage(teamMessages.tooManyInvitations, { max: MAX_INVITATIONS_PER_REQUEST }) : null,
+    count > MAX_INVITATIONS_PER_REQUEST
+      ? formatMessage(teamMessages.tooManyInvitations, { max: MAX_INVITATIONS_PER_REQUEST })
+      : null,
     count > room ? formatMessage(teamMessages.teamFull, { room, max: MAX_TEAM_SIZE }) : null,
   ].filter(problem => problem !== null)
 
@@ -86,11 +104,7 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
     error: formatMessage(teamMessages.inviteError),
   }
 
-  const error = isTouched && problems.length
-    ? problems.join(' ')
-    : failure
-      ? failureMessages[failure]
-      : undefined
+  const error = isTouched && problems.length ? problems.join(' ') : failure ? failureMessages[failure] : undefined
 
   const canSend = count > 0 && problems.length === 0 && !isSending
 
@@ -113,7 +127,8 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
         Some can go out while others do not, since each address is inserted on its own. The
         reader hears about both: what went out, and every address that did not, grouped by why
       */
-      if (sentEmails.length) toast.success(formatMessage(teamMessages.invitationsSent, { count: sentEmails.length, email: sentEmails[0] }))
+      if (sentEmails.length)
+        toast.success(formatMessage(teamMessages.invitationsSent, { count: sentEmails.length, email: sentEmails[0] }))
 
       FAILURE_REASONS.forEach(reason => {
         const emails = failedEmails.filter(failed => failed.reason === reason).map(({ email }) => email)
@@ -122,16 +137,14 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
       })
 
       onClose()
-    }
-    catch (sendError) {
+    } catch (sendError) {
       console.error('Failed to send the invitations', sendError)
 
       if (sendError instanceof ApiError && sendError.code === ERROR_CODE_TEAM_FULL) setFailure('full')
       else if (sendError instanceof ApiError && sendError.status === 409) setFailure('conflict')
       else if (sendError instanceof ApiError && sendError.status === 429) setFailure('rateLimit')
       else setFailure('error')
-    }
-    finally {
+    } finally {
       setIsSending(false)
     }
   }
@@ -163,12 +176,8 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
           className="grid gap-6"
         >
           <DialogHeader>
-            <DialogTitle>
-              {formatMessage(teamMessages.inviteTitle)}
-            </DialogTitle>
-            <DialogDescription>
-              {formatMessage(teamMessages.inviteDescription, { organizationName })}
-            </DialogDescription>
+            <DialogTitle>{formatMessage(teamMessages.inviteTitle)}</DialogTitle>
+            <DialogDescription>{formatMessage(teamMessages.inviteDescription, { organizationName })}</DialogDescription>
           </DialogHeader>
           <Textarea
             label={formatMessage(teamMessages.inviteEmailsLabel)}
@@ -195,21 +204,17 @@ function InviteMembersDialog({ organizationId, organizationName, memberEmails, i
               aria-live="polite"
               className="min-w-0 flex-1 text-sm text-muted-foreground"
             >
-              {count
-                ? (
-                    <FormattedMessage
-                      {...teamMessages.invitationsReady}
-                      values={{
-                        count,
-                        b: chunks => (
-                          <strong className="font-medium text-secondary">
-                            {chunks}
-                          </strong>
-                        ),
-                      }}
-                    />
-                  )
-                : formatMessage(teamMessages.noEmailsYet)}
+              {count ? (
+                <FormattedMessage
+                  {...teamMessages.invitationsReady}
+                  values={{
+                    count,
+                    b: chunks => <strong className="font-medium text-secondary">{chunks}</strong>,
+                  }}
+                />
+              ) : (
+                formatMessage(teamMessages.noEmailsYet)
+              )}
             </span>
             <Button
               variant="transparent"

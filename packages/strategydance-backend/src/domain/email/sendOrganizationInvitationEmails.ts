@@ -26,28 +26,38 @@ type OrganizationInvitationEmails = {
   output. Production never logs one, because it is a secret and Cloud Logging is read by more
   people than the invitee
 */
-async function sendOrganizationInvitationEmails({ invitations, organizationName, inviterName }: OrganizationInvitationEmails) {
+async function sendOrganizationInvitationEmails({
+  invitations,
+  organizationName,
+  inviterName,
+}: OrganizationInvitationEmails) {
   if (!invitations.length) return []
 
-  const emails = await Promise.all(invitations.map(async ({ id, email }) => ({
-    ...await renderOrganizationInvitationEmail({
-      organizationName,
-      inviterName,
-      // The page that accepts it
-      invitationUrl: `${APP_URL}/invitation/${id}`,
-    }),
-    to: email,
-  })))
+  const emails = await Promise.all(
+    invitations.map(async ({ id, email }) => ({
+      ...(await renderOrganizationInvitationEmail({
+        organizationName,
+        inviterName,
+        // The page that accepts it
+        invitationUrl: `${APP_URL}/invitation/${id}`,
+      })),
+      to: email,
+    })),
+  )
 
   // The invitations the request carries, which no other request does, hashed to fit the 256
   // characters Resend allows a key
-  const idempotencyKey = `invitations/${createHash('sha256').update(invitations.map(({ id }) => id).join()).digest('hex')}`
+  const idempotencyKey = `invitations/${createHash('sha256')
+    .update(invitations.map(({ id }) => id).join())
+    .digest('hex')}`
 
   const failures = await sendEmails(emails, idempotencyKey)
 
   if (!IS_PRODUCTION) {
     invitations.forEach(({ id, email }) => {
-      logger.info(`📨 ${inviterName}'s invitation to join ${organizationName}, for ${email}: ${APP_URL}/invitation/${id}`)
+      logger.info(
+        `📨 ${inviterName}'s invitation to join ${organizationName}, for ${email}: ${APP_URL}/invitation/${id}`,
+      )
     })
   }
 

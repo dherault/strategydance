@@ -49,9 +49,7 @@ function NavigationLink({ path, label, icon, link }: NavigationLinkProps) {
           }}
         >
           {icon}
-          <span>
-            {label}
-          </span>
+          <span>{label}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -87,9 +85,7 @@ function SidebarNavigation() {
         </SidebarMenu>
       </SidebarGroup>
       <SidebarGroup>
-        <SidebarGroupLabel>
-          {formatMessage(navigationMessages.aspects)}
-        </SidebarGroupLabel>
+        <SidebarGroupLabel>{formatMessage(navigationMessages.aspects)}</SidebarGroupLabel>
         <SidebarMenu>
           {exploredAspects.map(aspect => (
             <NavigationLink
@@ -100,22 +96,18 @@ function SidebarNavigation() {
               link={{ to: '/aspects/$aspect', params: { aspect } }}
             />
           ))}
-          {exploredAspects.length < COMPANY_ASPECTS.length
-            ? (
-                <NavigationLink
-                  path="/explore"
-                  label={formatMessage(navigationMessages.exploreMore)}
-                  icon={<CompassIcon />}
-                  link={{ to: '/explore' }}
-                />
-              )
-            : null}
+          {exploredAspects.length < COMPANY_ASPECTS.length ? (
+            <NavigationLink
+              path="/explore"
+              label={formatMessage(navigationMessages.exploreMore)}
+              icon={<CompassIcon />}
+              link={{ to: '/explore' }}
+            />
+          ) : null}
         </SidebarMenu>
       </SidebarGroup>
       <SidebarGroup>
-        <SidebarGroupLabel>
-          {formatMessage(navigationMessages.company)}
-        </SidebarGroupLabel>
+        <SidebarGroupLabel>{formatMessage(navigationMessages.company)}</SidebarGroupLabel>
         <SidebarMenu>
           <NavigationLink
             path="/team"
@@ -123,42 +115,36 @@ function SidebarNavigation() {
             icon={<UsersRoundIcon />}
             link={{ to: '/team' }}
           />
-          {isAdministrator
-            ? (
-                <NavigationLink
-                  path="/profile"
-                  label={formatMessage(navigationMessages.profile)}
-                  icon={<StoreIcon />}
-                  link={{ to: '/profile' }}
-                />
-              )
-            : null}
+          {isAdministrator ? (
+            <NavigationLink
+              path="/profile"
+              label={formatMessage(navigationMessages.profile)}
+              icon={<StoreIcon />}
+              link={{ to: '/profile' }}
+            />
+          ) : null}
         </SidebarMenu>
       </SidebarGroup>
       {/* Only for an administrator of Strategy Dance itself, whatever they are in the organization */}
-      {user?.isAdministrator
-        ? (
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                {formatMessage(navigationMessages.administration)}
-              </SidebarGroupLabel>
-              <SidebarMenu>
-                <NavigationLink
-                  path="/administration/users"
-                  label={formatMessage(navigationMessages.administrationUsers)}
-                  icon={<ContactRoundIcon />}
-                  link={{ to: '/administration/users' }}
-                />
-                <NavigationLink
-                  path="/administration/organizations"
-                  label={formatMessage(navigationMessages.administrationOrganizations)}
-                  icon={<Building2Icon />}
-                  link={{ to: '/administration/organizations' }}
-                />
-              </SidebarMenu>
-            </SidebarGroup>
-          )
-        : null}
+      {user?.isAdministrator ? (
+        <SidebarGroup>
+          <SidebarGroupLabel>{formatMessage(navigationMessages.administration)}</SidebarGroupLabel>
+          <SidebarMenu>
+            <NavigationLink
+              path="/administration/users"
+              label={formatMessage(navigationMessages.administrationUsers)}
+              icon={<ContactRoundIcon />}
+              link={{ to: '/administration/users' }}
+            />
+            <NavigationLink
+              path="/administration/organizations"
+              label={formatMessage(navigationMessages.administrationOrganizations)}
+              icon={<Building2Icon />}
+              link={{ to: '/administration/organizations' }}
+            />
+          </SidebarMenu>
+        </SidebarGroup>
+      ) : null}
     </>
   )
 }

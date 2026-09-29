@@ -1,5 +1,4 @@
 import type { ComponentProps, ReactNode } from 'react'
-
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type Props = ComponentProps<'label'> & {
@@ -18,30 +17,25 @@ function Choice({ label, hint, error, messageId, className, children, ...props }
   return (
     <label
       data-slot="choice"
-      className={cn('inline-flex cursor-pointer items-start gap-2 font-sans text-foreground antialiased has-disabled:cursor-not-allowed has-disabled:opacity-50', className)}
+      className={cn(
+        'inline-flex cursor-pointer items-start gap-2 font-sans text-foreground antialiased has-disabled:cursor-not-allowed has-disabled:opacity-50',
+        className,
+      )}
       {...props}
     >
       {children}
       <span className="flex min-w-0 flex-col gap-0.5">
-        {label
-          ? (
-              <span className="text-sm leading-5 font-medium text-foreground">
-                {label}
-              </span>
-            )
-          : null}
-        {message
-          ? (
-              <span
-                id={messageId}
-                // An error is announced as it appears, which `aria-describedby` alone does not do
-                role={error ? 'alert' : undefined}
-                className={cn('text-xs leading-[1.4] text-pretty', error ? 'text-danger' : 'text-muted-foreground')}
-              >
-                {message}
-              </span>
-            )
-          : null}
+        {label ? <span className="text-sm leading-5 font-medium text-foreground">{label}</span> : null}
+        {message ? (
+          <span
+            id={messageId}
+            // An error is announced as it appears, which `aria-describedby` alone does not do
+            role={error ? 'alert' : undefined}
+            className={cn('text-xs leading-[1.4] text-pretty', error ? 'text-danger' : 'text-muted-foreground')}
+          >
+            {message}
+          </span>
+        ) : null}
       </span>
     </label>
   )

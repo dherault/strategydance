@@ -12,7 +12,7 @@
 function parseClientErrorStatus(error: unknown) {
   if (typeof error !== 'object' || error === null) return null
 
-  const { expose, status, statusCode } = error as { expose?: unknown, status?: unknown, statusCode?: unknown }
+  const { expose, status, statusCode } = error as { expose?: unknown; status?: unknown; statusCode?: unknown }
 
   if (expose !== true) return null
 

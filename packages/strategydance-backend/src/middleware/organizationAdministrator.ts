@@ -14,7 +14,11 @@ import respondError from '~utils/respondError'
   who may not act gets a body read, let alone a file written. The mutation behind the route checks
   again in its own transaction: this is the early answer, not the guard
 */
-async function organizationAdministratorMiddleware(request: Request<{ organizationId: string }>, response: Response, next: NextFunction) {
+async function organizationAdministratorMiddleware(
+  request: Request<{ organizationId: string }>,
+  response: Response,
+  next: NextFunction,
+) {
   const { data } = await getOrganizationMembership(dataConnect, {
     organizationId: request.params.organizationId,
     userId: readViewer(request).id,

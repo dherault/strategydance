@@ -5,7 +5,8 @@ const taskMessages = defineMessages({
   title: {
     id: 'task.title',
     defaultMessage: 'Tasks',
-    description: 'Title of the section of the Today page holding a member\'s task lists: the reader\'s own, or a teammate\'s.',
+    description:
+      "Title of the section of the Today page holding a member's task lists: the reader's own, or a teammate's.",
   },
   description: {
     id: 'task.description',
@@ -25,7 +26,7 @@ const taskMessages = defineMessages({
   openCount: {
     id: 'task.openCount',
     defaultMessage: '{count} open',
-    description: 'Accessible label of the count beside a task list\'s name: how many of its tasks are not done yet.',
+    description: "Accessible label of the count beside a task list's name: how many of its tasks are not done yet.",
   },
   newList: {
     id: 'task.newList',
@@ -50,7 +51,7 @@ const taskMessages = defineMessages({
   renameList: {
     id: 'task.renameList',
     defaultMessage: 'Rename list',
-    description: 'Tooltip of a task list\'s name, which becomes a field when clicked.',
+    description: "Tooltip of a task list's name, which becomes a field when clicked.",
   },
   listName: {
     id: 'task.listName',
@@ -70,17 +71,19 @@ const taskMessages = defineMessages({
   confirm: {
     id: 'task.confirm',
     defaultMessage: 'Confirm?',
-    description: 'Accessible name a task list\'s delete button takes after a first click, asking for a second to delete the list.',
+    description:
+      "Accessible name a task list's delete button takes after a first click, asking for a second to delete the list.",
   },
   openOfTotal: {
     id: 'task.openOfTotal',
     defaultMessage: '{open} of {total} open',
-    description: 'Summary beside a task list\'s name, such as "3 of 4 open": the tasks not done yet out of all its tasks.',
+    description:
+      'Summary beside a task list\'s name, such as "3 of 4 open": the tasks not done yet out of all its tasks.',
   },
   editTask: {
     id: 'task.editTask',
     defaultMessage: 'Edit task',
-    description: 'Tooltip of a task\'s text, which becomes a field when clicked.',
+    description: "Tooltip of a task's text, which becomes a field when clicked.",
   },
   taskLabel: {
     id: 'task.taskLabel',
@@ -145,7 +148,8 @@ const taskMessages = defineMessages({
   loadError: {
     id: 'task.loadError',
     defaultMessage: 'The tasks could not be loaded.',
-    description: 'Error shown in place of the tasks section when the task lists or tasks it shows, the reader\'s own or a teammate\'s, could not be read.',
+    description:
+      "Error shown in place of the tasks section when the task lists or tasks it shows, the reader's own or a teammate's, could not be read.",
   },
   saveError: {
     id: 'task.saveError',

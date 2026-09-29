@@ -56,4 +56,5 @@ and it spends quota on every run, so it is run by hand rather than in CI.
 | `bun run translate` | Translates the message catalogues (needs a Gemini API key) |
 | `bun run ncu` | Interactively updates dependencies |
 | `bun run ship` | Opens the release pull request, from `dev` to `main` |
+| `bun run review <command>` | Runs the GitHub calls of the Copilot review loop |
 | `bun run deploy:backend` | Deploys the backend to Cloud Run |

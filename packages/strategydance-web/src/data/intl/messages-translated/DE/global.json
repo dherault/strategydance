@@ -1,9 +1,12 @@
 {
   "global.closeNotification": "Benachrichtigung schließen",
+  "global.goHome": "Zur Startseite",
   "global.hidePassword": "Passwort ausblenden",
   "global.language": "Sprache",
   "global.loading": "Wird geladen",
   "global.logOut": "Abmelden",
+  "global.notFoundLead": "Unter dieser Adresse ist nichts zu finden. Der Link ist möglicherweise fehlerhaft oder die Seite wurde verschoben.",
+  "global.notFoundTitle": "Seite nicht gefunden",
   "global.notifications": "Benachrichtigungen",
   "global.organizationsLoadError": "Deine Organisationen konnten nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
   "global.retry": "Erneut versuchen",

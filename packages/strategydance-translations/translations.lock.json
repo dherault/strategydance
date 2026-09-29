@@ -643,6 +643,10 @@
         "hash": "89a465a24fac1347",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "global.goHome": {
+        "hash": "6f4ecb97d0d9b334",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "global.hidePassword": {
         "hash": "11f337c9a019a481",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -657,6 +661,14 @@
       },
       "global.logOut": {
         "hash": "f261ac6cef941a65",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.notFoundLead": {
+        "hash": "78d1e0ce9999eaf0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "global.notFoundTitle": {
+        "hash": "10b1d094d6dfa26a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "global.notifications": {

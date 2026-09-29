@@ -250,6 +250,12 @@ No path prefix marks a page as authenticated, so code that needs to know asks th
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
 screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
 
+An address nothing matches, and a `notFound()` any page throws, render `NotFound` full screen:
+it is the root's `notFoundComponent`, and no other route sets one. The root stays mounted as the
+boundary and shows it in its outlet, so its strings live in `global`, the one catalogue the root
+registers. A route that sets a `notFoundComponent` of its own catches its pages before the root
+does.
+
 The area used to live under `/-/`, and invitation emails sent then still link there, so
 `firebase.json` redirects `/-/<path>` to `/<path>` with a 301. It is a `regex` rather than a
 `:path*` source because the Hosting emulator's `:path*` matches one segment only, and

@@ -3,14 +3,25 @@ name: Check on PR
 on:
   pull_request:
 
+permissions:
+  contents: read
+
+# A push supersedes the run of the head it replaced, which would only report on code that is gone
+concurrency:
+  group: check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
+  # `ci` is the context the rulesets require: renaming this job blocks every merge until they are
+  # updated to match
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
         with:
-          # Pins CI to the packageManager version in package.json
+          # Pins CI to the packageManager version in package.json, which the Dockerfile's tag matches
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       # `postinstall` already does this. Repeated explicitly so a run with scripts disabled

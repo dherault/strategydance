@@ -11,6 +11,7 @@ import useUser from '~hooks/user/useUser'
 
 import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
 import getStreak from '~utils/buildInPublic/getStreak'
+import getStreakDayLabel from '~utils/buildInPublic/getStreakDayLabel'
 import getStreakDays from '~utils/buildInPublic/getStreakDays'
 import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
@@ -44,7 +45,8 @@ type Props = {
   yet leaves the streak where it was until the day is over: see `getStreak`
 */
 function BuildInPublicStreak({ settings }: Props) {
-  const { formatMessage, formatDate, formatDateTimeRange } = useIntl()
+  const intl = useIntl()
+  const { formatMessage, formatDate, formatDateTimeRange } = intl
   const { organization, jobTitle } = useCurrentOrganization()
   const { data: user } = useUser()
   const { data: dates, loading, refetch, hasFailed } = useActivityDays()
@@ -285,6 +287,7 @@ function BuildInPublicStreak({ settings }: Props) {
           {week.map(day => (
             <span
               key={`weekday-${day.date}`}
+              aria-hidden="true"
               className={cn(CARD_MUTED_CLASS_NAME, 'mb-0.5 text-center text-[10px] font-semibold')}
             >
               {formatWeekday(day.date)}
@@ -293,6 +296,8 @@ function BuildInPublicStreak({ settings }: Props) {
           {calendar.map(day => (
             <span
               key={day.date}
+              role="img"
+              aria-label={getStreakDayLabel(intl, day)}
               className={cn(
                 'grid aspect-square place-items-center rounded-[2px]',
                 day.isFuture

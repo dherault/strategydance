@@ -639,6 +639,14 @@
         "hash": "62ff1e3081f4d5a6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.dayActive": {
+        "hash": "76cf801e4661b3c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dayBar": {
+        "hash": "55566c588dbe24df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.dayCounter": {
         "hash": "05d4f6c20d73a7f4",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -651,12 +659,20 @@
         "hash": "af00a14dc3d4e061",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.dayInactive": {
+        "hash": "b4d958cbf77f9951",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.dayNumber": {
         "hash": "0daced6cde830471",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayStreak": {
         "hash": "97d58522628a4840",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dayToCome": {
+        "hash": "33f69c9a22eafae6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.days": {
@@ -729,6 +745,14 @@
       },
       "buildInPublic.gridCard": {
         "hash": "e08dded40082276e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.gridCellDone": {
+        "hash": "6c715ec610188ef2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.gridCellNotDone": {
+        "hash": "21ba6a849b4e6d6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.imageCopied": {

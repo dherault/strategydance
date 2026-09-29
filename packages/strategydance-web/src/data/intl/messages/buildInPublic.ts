@@ -268,6 +268,22 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'This week · {range}',
     description: 'Uppercase line on the week card, then the dates the week runs over, such as "Sep 28 – Oct 4".',
   },
+  dayActive: {
+    id: 'buildInPublic.dayActive',
+    defaultMessage: '{day}: active',
+    description:
+      'Accessible name of a lit flame for a day the reader changed something on their Today page. {day} is the date.',
+  },
+  dayInactive: {
+    id: 'buildInPublic.dayInactive',
+    defaultMessage: '{day}: no update',
+    description: 'Accessible name of an unlit flame for a day the reader changed nothing. {day} is the date.',
+  },
+  dayToCome: {
+    id: 'buildInPublic.dayToCome',
+    defaultMessage: '{day}: still to come',
+    description: 'Accessible name of a day of the current week that has not come yet. {day} is the date.',
+  },
   bestStreak: {
     id: 'buildInPublic.bestStreak',
     defaultMessage: 'Best streak',
@@ -480,6 +496,21 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.gridCard',
     defaultMessage: 'Grid',
     description: 'Name of the square card showing each checklist habit as a row of squares, one a day.',
+  },
+  gridCellDone: {
+    id: 'buildInPublic.gridCellDone',
+    defaultMessage: '{item}, {day}: done',
+    description: 'Accessible name of a filled square on the checklist grid: the habit was kept that day.',
+  },
+  gridCellNotDone: {
+    id: 'buildInPublic.gridCellNotDone',
+    defaultMessage: '{item}, {day}: not done',
+    description: 'Accessible name of an empty square on the checklist grid: the habit was not kept that day.',
+  },
+  dayBar: {
+    id: 'buildInPublic.dayBar',
+    defaultMessage: '{day}: {done} of {total} done',
+    description: 'Accessible name of one bar of the chart of checklist habits kept each day.',
   },
   checklistStreakCard: {
     id: 'buildInPublic.checklistStreakCard',

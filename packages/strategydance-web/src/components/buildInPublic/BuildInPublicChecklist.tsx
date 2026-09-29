@@ -9,6 +9,7 @@ import useChecklist from '~hooks/checklist/useChecklist'
 import useRecentChecklistTicks from '~hooks/checklist/useRecentChecklistTicks'
 import useLocalDate from '~hooks/common/useLocalDate'
 
+import formatCardDay from '~utils/buildInPublic/formatCardDay'
 import getChecklistGrid from '~utils/buildInPublic/getChecklistGrid'
 import getDaysBetween from '~utils/date/getDaysBetween'
 import getLocalDate from '~utils/date/getLocalDate'
@@ -193,6 +194,11 @@ function BuildInPublicChecklist({ settings }: Props) {
                 {gridRows.map(row => (
                   <span
                     key={row.date}
+                    role="img"
+                    aria-label={formatMessage(
+                      row.done[item.index] ? buildInPublicMessages.gridCellDone : buildInPublicMessages.gridCellNotDone,
+                      { item: item.name, day: formatCardDay(formatDate, row.date) },
+                    )}
                     className={cn(
                       'aspect-square rounded-[2px]',
                       row.done[item.index] ? 'bg-(--card-mark)' : 'bg-(--card-square)',
@@ -242,6 +248,12 @@ function BuildInPublicChecklist({ settings }: Props) {
                 {grid.rows.map(row => (
                   <span
                     key={row.date}
+                    role="img"
+                    aria-label={formatMessage(buildInPublicMessages.dayBar, {
+                      day: formatCardDay(formatDate, row.date),
+                      done: row.done.filter(Boolean).length,
+                      total: items.length,
+                    })}
                     className="flex h-full flex-1 items-end rounded-[2px] bg-[color-mix(in_srgb,currentColor_18%,transparent)]"
                   >
                     <span

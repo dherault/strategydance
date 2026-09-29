@@ -30,7 +30,9 @@ for (const pathPrefix of ALL_PREFIXES) {
   if (new RegExp(`^\\[${pathPrefix}\\]`).test(message)) process.exit(0)
 }
 
-const files = execSync('git diff --cached --name-only', { encoding: 'utf8' }).split('\n').filter(Boolean)
+// Without --no-renames, a move lists only where it went, and one out of another package would take
+// the package it lands in rather than [root]
+const files = execSync('git diff --cached --name-only --no-renames', { encoding: 'utf8' }).split('\n').filter(Boolean)
 
 let prefix = DEFAULT_COMMIT_PREFIX
 

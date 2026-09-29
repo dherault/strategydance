@@ -235,6 +235,14 @@ That matters most for the sign-in screen's `@auth(level: PUBLIC)` email lookup, 
 enumerates registered addresses to any direct caller until it is. Switch it on for Data
 Connect and Storage before the project is reachable from the internet.
 
+**Storage lets another origin read a file only as `storage.cors.json` allows.** A browser shows
+an `<img>` from Storage without it, but reading the bytes, as the build in public page does to
+draw a card as a PNG, takes the bucket's CORS rule. It is a setting on the bucket, which no
+deploy sends: after changing the file, run `gcloud storage buckets update
+gs://strategydance.firebasestorage.app --cors-file=storage.cors.json` as an account that may
+change the bucket. A preview channel's origin is not listed, so an export there draws initials
+where the pictures were. The Storage emulator applies no rule, so development never needs it.
+
 ### The database
 
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the
@@ -297,6 +305,16 @@ A query that a waiter and the page under it both read sets `retryOnMount: false`
 failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With nothing cached,
 a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
 the read fails, and its mount retries it, forever.
+
+The build in public page counts a member's streak from `ActivityDay` rows: one per member,
+organization and day on which they changed their own Today data, their top priority, a task
+list or task, their checklist or their log. The day is the one the change was made on, never
+the day it was about, and `RecordActivity` holds it to the caller's today. The mutations that
+make those changes do not write the row themselves, since each would need a `$date` it has no
+other use for, a breaking connector change: the web app calls `recordActivity` once one goes
+through, from the `change` helpers of `useTaskLists`, `useTasks` and `useChecklist` and from the
+components that set a priority or write the log. A new way to change Today data calls it too, or
+the days it is used on go uncounted.
 
 ### Routing
 

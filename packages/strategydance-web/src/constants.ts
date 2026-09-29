@@ -1,5 +1,7 @@
 import { CompanyAspect } from 'strategydance-database/web'
 
+import type { CardTone } from '~types'
+
 /* ---
   INTL
 --- */
@@ -17,6 +19,7 @@ export const MESSAGE_TYPES = [
   'account',
   'administration',
   'authentication',
+  'buildInPublic',
   'checklist',
   'explore',
   'global',
@@ -94,6 +97,35 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
   CompanyAspect.FINANCES,
   CompanyAspect.LEGAL,
 ]
+
+/* ---
+  BUILD IN PUBLIC
+--- */
+
+// What a build in public card can be drawn on, in the order its picker lists them
+export const CARD_TONES: readonly CardTone[] = ['accent', 'tint', 'white', 'neutral', 'dark']
+
+/*
+  The colors a build in public card's accent can take besides the organization's own, in the order
+  its picker lists them. Each is named by a message of its own in the `buildInPublic` catalogue
+*/
+export const CARD_ACCENT_COLORS = {
+  blue: '#0051A3',
+  sky: '#0284C7',
+  navy: '#142A41',
+  indigo: '#4F46E5',
+  violet: '#7C3AED',
+  fuchsia: '#C026D3',
+  pink: '#DB2777',
+  red: '#DC2626',
+  orange: '#EA580C',
+  amber: '#D97706',
+  lime: '#65A30D',
+  green: '#16A34A',
+  teal: '#0D9488',
+  graphite: '#404040',
+  black: '#0A0A0A',
+} as const
 
 /* ---
   GITHUB

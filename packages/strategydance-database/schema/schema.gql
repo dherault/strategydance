@@ -289,3 +289,24 @@ type LogEntry @table @unique(fields: ["user", "organization", "date"]) @index(fi
   # Later than `createdAt` once the author has edited it, which the feed says
   updatedAt: Timestamp! @default(expr: "request.time")
 }
+
+# A day a member changed something of their own on their Today page in an organization: their top
+# priority, a task list or a task, their checklist, or their log. The build in public page counts
+# their streak from these rows. The row is the day, keyed by the member, the organization and the
+# day, so a second change that day writes nothing new.
+#
+# The day is when the change was made, not the day it was about: ticking yesterday's checklist
+# today marks today. `RecordActivity` writes it, after the change itself, and holds the day to the
+# member's today, so a past day cannot be marked.
+#
+# It references the account and the organization rather than the membership, as `TaskList` does,
+# so a member removed and invited again keeps their streak's history
+type ActivityDay @table(key: ["user", "organization", "date"]) {
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The member's day, in their time zone, as a log entry's is
+  date: Date!
+  createdAt: Timestamp! @default(expr: "request.time")
+}

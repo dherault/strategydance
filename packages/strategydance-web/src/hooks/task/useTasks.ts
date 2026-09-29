@@ -15,6 +15,7 @@ import type { DataSource, Task } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import recordActivity from '~utils/activity/recordActivity'
 import createId from '~utils/common/createId'
 import getPositionBetween from '~utils/common/getPositionBetween'
 import writeOptimistically from '~utils/common/writeOptimistically'
@@ -102,7 +103,8 @@ function useTasks(
   }
 
   // Behind whatever its list has queued, so a task added to a list just created, or edited on a
-  // list just brought back, reaches the server once the list is there
+  // list just brought back, reaches the server once the list is there. One that goes through marks
+  // the day active, for the reader's streak
   function change(taskId: string, apply: () => void, write: () => Promise<unknown>) {
     return writeOptimistically({
       queryClient,
@@ -110,7 +112,7 @@ function useTasks(
       rowKey: `task:${taskId}`,
       after: [`taskList:${taskListId}`],
       apply,
-      write,
+      write: () => write().then(() => recordActivity(organizationId!)),
     })
   }
 

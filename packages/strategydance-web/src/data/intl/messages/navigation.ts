@@ -22,6 +22,12 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Today',
     description: 'Sidebar link to the page about what to do today.',
   },
+  buildInPublic: {
+    id: 'navigation.buildInPublic',
+    defaultMessage: 'Build in public',
+    description:
+      "Sidebar link to the page that turns the reader's progress into pictures to share on social networks, and that page's title. Building in public is sharing openly how a company is being built.",
+  },
   aspects: {
     id: 'navigation.aspects',
     defaultMessage: 'Aspects',

@@ -285,7 +285,8 @@ function MultiSelect({
   const currentValue = value ?? innerValue
   const searchInputRef = useRef<HTMLInputElement>(null)
   const valuesRef = useRef<HTMLSpanElement>(null)
-  const measureRef = useRef<HTMLSpanElement>(null)
+  const chipsMeasureRef = useRef<HTMLSpanElement>(null)
+  const countsMeasureRef = useRef<HTMLSpanElement>(null)
   const portalContainerRef = useRef<HTMLElement>(null)
   const [fitCount, setFitCount] = useState(currentValue.length)
   const { contains } = Combobox.useFilter()
@@ -321,17 +322,22 @@ function MultiSelect({
   // A whole number of chips, and none fewer than none
   const chipCap = maxCount === undefined ? undefined : Math.max(0, Math.floor(maxCount))
 
-  // Every chip, and the widest count, render once more out of sight, so their widths say how many
-  // fit on the line. The count takes its own room in the fit, and one chip always shows
+  /*
+    Every chip renders once more out of sight, and so does the count for every number of chips it
+    could stand for, since a translated count need not grow with its number. Their widths say how
+    many chips fit on the line beside the count they leave, and one chip always shows
+  */
   useLayoutEffect(() => {
     const values = valuesRef.current
-    const measure = measureRef.current
+    const chipsMeasure = chipsMeasureRef.current
+    const countsMeasure = countsMeasureRef.current
 
-    if (!values || !measure) return
+    if (!values || !chipsMeasure || !countsMeasure) return
 
     const fitChips = () => {
-      const widths = Array.from(measure.children, child => (child as HTMLElement).offsetWidth)
-      const moreWidth = widths.pop() ?? 0
+      const widths = Array.from(chipsMeasure.children, child => (child as HTMLElement).offsetWidth)
+      // The count's width for one hidden chip, then two, and so on
+      const countWidths = Array.from(countsMeasure.children, child => (child as HTMLElement).offsetWidth)
       const available = values.clientWidth
       const totalWidth = widths.reduce((sum, width) => sum + width, 0) + CHIP_GAP * Math.max(widths.length - 1, 0)
       let count = widths.length
@@ -343,8 +349,10 @@ function MultiSelect({
 
         for (const [index, width] of widths.entries()) {
           const nextWidth = usedWidth + (index > 0 ? CHIP_GAP : 0) + width
+          // The count beside the first `index + 1` chips stands for the rest
+          const countWidth = countWidths[widths.length - index - 2]
 
-          if (nextWidth + CHIP_GAP + moreWidth > available) break
+          if (countWidth === undefined || nextWidth + CHIP_GAP + countWidth > available) break
 
           usedWidth = nextWidth
           count = index + 1
@@ -361,7 +369,8 @@ function MultiSelect({
     const observer = new ResizeObserver(fitChips)
 
     observer.observe(values)
-    observer.observe(measure)
+    observer.observe(chipsMeasure)
+    observer.observe(countsMeasure)
 
     return () => observer.disconnect()
   }, [selectionKey, chipCap])
@@ -507,18 +516,34 @@ function MultiSelect({
         {hiddenCount > 0 ? <span className={moreChipClassName}>{moreLabel(hiddenCount)}</span> : null}
         {selectedCount > 0 ? (
           <span
-            ref={measureRef}
             aria-hidden="true"
             className="pointer-events-none invisible absolute top-0 left-0 flex w-max gap-1 whitespace-nowrap"
           >
-            {selectedOptions.map(option => (
-              <Chip
-                key={option.value}
-                label={option.label}
-                removable={!disabled}
-              />
-            ))}
-            <span className={moreChipClassName}>{moreLabel(selectedCount)}</span>
+            <span
+              ref={chipsMeasureRef}
+              className="flex gap-1"
+            >
+              {selectedOptions.map(option => (
+                <Chip
+                  key={option.value}
+                  label={option.label}
+                  removable={!disabled}
+                />
+              ))}
+            </span>
+            <span
+              ref={countsMeasureRef}
+              className="flex gap-1"
+            >
+              {selectedOptions.map((option, index) => (
+                <span
+                  key={option.value}
+                  className={moreChipClassName}
+                >
+                  {moreLabel(index + 1)}
+                </span>
+              ))}
+            </span>
           </span>
         ) : null}
       </span>

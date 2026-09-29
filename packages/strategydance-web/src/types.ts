@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Locale } from 'strategydance-core'
 import type {
   GetAdministrationOrganizationsData,
@@ -14,7 +15,7 @@ import type {
   GetTodayPreferencesData,
 } from 'strategydance-database/web'
 
-import type { MESSAGE_TYPES } from '~constants'
+import type { CARD_ACCENT_COLORS, MESSAGE_TYPES } from '~constants'
 
 export type MessageType = (typeof MESSAGE_TYPES)[number]
 
@@ -129,3 +130,64 @@ export type ChecklistItem = GetChecklistData['checklistItems'][number]
 
 // One entry of an organization's log, by the id of whoever wrote it
 export type LogEntry = GetOrganizationLogData['logEntries'][number]
+
+// How a build in public card is laid out: 16:9, 1:1 or 4:5
+export type CardFormat = 'landscape' | 'square' | 'portrait'
+
+// What a build in public card is drawn on: the accent, a light tint of it, white, light gray or navy
+export type CardTone = 'accent' | 'tint' | 'white' | 'neutral' | 'dark'
+
+// The organization's own color, or one of the others a card's accent can take
+export type CardAccent = 'organization' | keyof typeof CARD_ACCENT_COLORS
+
+// The streak cards' flame: in the accent, or in the warm colors of a real one
+export type FlameColor = 'organization' | 'warm'
+
+// What the reader chose for one card, by field: one option's value, or several
+export type CardValues = Record<string, string | string[]>
+
+// One option of a card's field, its label a swatch or a truncated line where plain text is not enough
+export type CardFieldOption = {
+  value: string
+  label: ReactNode
+}
+
+// One setting a card offers beside it: a pick of one option, or of several, up to `max`
+export type CardField =
+  | {
+      kind: 'select'
+      key: string
+      label: string
+      options: CardFieldOption[]
+    }
+  | {
+      kind: 'multiSelect'
+      key: string
+      label: string
+      options: CardFieldOption[]
+      max?: number
+    }
+
+// The look every card shares once the reader picks one: what they are drawn on, and in which color
+export type CardLook = {
+  tone?: CardTone
+  accent?: CardAccent
+}
+
+/*
+  What the reader chose on the build in public page, kept in their browser: the look, the settings
+  every card that has them shares, such as whose priority to show, and each card's own
+*/
+export type BuildInPublicSettings = {
+  look: CardLook
+  shared: CardValues
+  cards: Record<string, CardValues>
+}
+
+// One day of a streak's week or calendar, `YYYY-MM-DD`, and whether it was active
+export type StreakDay = {
+  date: string
+  isOn: boolean
+  isToday: boolean
+  isFuture: boolean
+}

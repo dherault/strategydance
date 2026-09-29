@@ -1,5 +1,13 @@
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
-import { Building2Icon, CalendarIcon, CompassIcon, ContactRoundIcon, StoreIcon, UsersRoundIcon } from 'lucide-react'
+import {
+  Building2Icon,
+  CalendarIcon,
+  CompassIcon,
+  ContactRoundIcon,
+  RadioTowerIcon,
+  StoreIcon,
+  UsersRoundIcon,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
@@ -81,6 +89,12 @@ function SidebarNavigation() {
             label={formatMessage(navigationMessages.today)}
             icon={<CalendarIcon />}
             link={{ to: '/today' }}
+          />
+          <NavigationLink
+            path="/build-in-public"
+            label={formatMessage(navigationMessages.buildInPublic)}
+            icon={<RadioTowerIcon />}
+            link={{ to: '/build-in-public' }}
           />
         </SidebarMenu>
       </SidebarGroup>

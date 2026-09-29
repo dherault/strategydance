@@ -20,6 +20,7 @@ import { Route as AuthenticationIndexRouteImport } from './routes/authentication
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
 import { Route as AuthenticatedAppAccountRouteImport } from './routes/_authenticated/_app/account'
 import { Route as AuthenticatedAppAdministrationRouteImport } from './routes/_authenticated/_app/administration'
+import { Route as AuthenticatedAppBuildInPublicRouteImport } from './routes/_authenticated/_app/build-in-public'
 import { Route as AuthenticatedAppExploreRouteImport } from './routes/_authenticated/_app/explore'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/_app/profile'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/_app/team'
@@ -85,6 +86,12 @@ const AuthenticatedAppAdministrationRoute =
   AuthenticatedAppAdministrationRouteImport.update({
     id: '/administration',
     path: '/administration',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppBuildInPublicRoute =
+  AuthenticatedAppBuildInPublicRouteImport.update({
+    id: '/build-in-public',
+    path: '/build-in-public',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
 const AuthenticatedAppExploreRoute = AuthenticatedAppExploreRouteImport.update({
@@ -160,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/authentication/': typeof AuthenticationIndexRoute
   '/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
+  '/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
   '/explore': typeof AuthenticatedAppExploreRoute
   '/profile': typeof AuthenticatedAppProfileRoute
   '/team': typeof AuthenticatedAppTeamRoute
@@ -179,6 +187,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication': typeof AuthenticationIndexRoute
+  '/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
   '/explore': typeof AuthenticatedAppExploreRoute
   '/profile': typeof AuthenticatedAppProfileRoute
   '/team': typeof AuthenticatedAppTeamRoute
@@ -204,6 +213,7 @@ export interface FileRoutesById {
   '/authentication/': typeof AuthenticationIndexRoute
   '/_authenticated/_app/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/_authenticated/_app/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
+  '/_authenticated/_app/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
   '/_authenticated/_app/explore': typeof AuthenticatedAppExploreRoute
   '/_authenticated/_app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/_app/team': typeof AuthenticatedAppTeamRoute
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/authentication/'
     | '/account'
     | '/administration'
+    | '/build-in-public'
     | '/explore'
     | '/profile'
     | '/team'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/authentication/password-reset'
     | '/authentication'
+    | '/build-in-public'
     | '/explore'
     | '/profile'
     | '/team'
@@ -271,6 +283,7 @@ export interface FileRouteTypes {
     | '/authentication/'
     | '/_authenticated/_app/account'
     | '/_authenticated/_app/administration'
+    | '/_authenticated/_app/build-in-public'
     | '/_authenticated/_app/explore'
     | '/_authenticated/_app/profile'
     | '/_authenticated/_app/team'
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/administration'
       fullPath: '/administration'
       preLoaderRoute: typeof AuthenticatedAppAdministrationRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/_app/build-in-public': {
+      id: '/_authenticated/_app/build-in-public'
+      path: '/build-in-public'
+      fullPath: '/build-in-public'
+      preLoaderRoute: typeof AuthenticatedAppBuildInPublicRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/_app/explore': {
@@ -492,6 +512,7 @@ const AuthenticatedAppAdministrationRouteWithChildren =
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAccountRoute: typeof AuthenticatedAppAccountRouteWithChildren
   AuthenticatedAppAdministrationRoute: typeof AuthenticatedAppAdministrationRouteWithChildren
+  AuthenticatedAppBuildInPublicRoute: typeof AuthenticatedAppBuildInPublicRoute
   AuthenticatedAppExploreRoute: typeof AuthenticatedAppExploreRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
@@ -503,6 +524,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAccountRoute: AuthenticatedAppAccountRouteWithChildren,
   AuthenticatedAppAdministrationRoute:
     AuthenticatedAppAdministrationRouteWithChildren,
+  AuthenticatedAppBuildInPublicRoute: AuthenticatedAppBuildInPublicRoute,
   AuthenticatedAppExploreRoute: AuthenticatedAppExploreRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,

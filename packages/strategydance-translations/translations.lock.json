@@ -442,6 +442,228 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "buildInPublic": {
+      "buildInPublic.accentColor": {
+        "hash": "fdb3dbb3c3da6361",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.activeDays": {
+        "hash": "68ba13a3cc3815e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.activeDaysCount": {
+        "hash": "367c3ccb681989ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.background": {
+        "hash": "5d6df793fea27a95",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.bestStreak": {
+        "hash": "7226dc9c00c2a985",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.buildingInPublic": {
+        "hash": "92627311dcb30df0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.calendarCard": {
+        "hash": "723182982cb1d938",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.caption": {
+        "hash": "c31d98bab5f62efc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorAmber": {
+        "hash": "1b9391febda4eef5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorBlack": {
+        "hash": "3fa83ff5f9cbba49",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorBlue": {
+        "hash": "1c67c895b707c80a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorFuchsia": {
+        "hash": "e53594d4597088ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorGraphite": {
+        "hash": "3b7495e7e0643fd0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorGreen": {
+        "hash": "0a40620e886c2df9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorIndigo": {
+        "hash": "e6c45c0e6aac059d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorLime": {
+        "hash": "7347d7fd7719acee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorNavy": {
+        "hash": "664ea7c180f5ca5c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorOrange": {
+        "hash": "d19eae6c315f95c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorPink": {
+        "hash": "97f5f1b0c440554a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorRed": {
+        "hash": "a8b2243d2936b848",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorSky": {
+        "hash": "530e7820e1edeb03",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorTeal": {
+        "hash": "5e47c63e2d40afc5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.colorViolet": {
+        "hash": "8e6103b3525a34b9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.companyColor": {
+        "hash": "f9d1eb00f641bbf2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.copyFailed": {
+        "hash": "b02718826b8cf44e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.copyImage": {
+        "hash": "d6af93d3939cb0c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.copyImageLabel": {
+        "hash": "65c1503f9b0a780d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.copyUnsupported": {
+        "hash": "3d1ec82ffb6acf46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.customize": {
+        "hash": "9921af04f7370ed2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.dayStreak": {
+        "hash": "97d58522628a4840",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.days": {
+        "hash": "186f397c83ea0d69",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.daysInARow": {
+        "hash": "2b8d1ca461e0043d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.downloadImage": {
+        "hash": "78c63bf8b7a0fddc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.downloadImageLabel": {
+        "hash": "a26bf81ff8ad4eb7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.eyebrow": {
+        "hash": "bff8d82b67b7d2fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.flameCard": {
+        "hash": "92f084367f7ea089",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.flameColor": {
+        "hash": "ea912414a229b2e1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.flameWarm": {
+        "hash": "0973ccb49fa8d264",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.imageCopied": {
+        "hash": "8a4d1e406e736bcb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.imageDownloaded": {
+        "hash": "45c52fc69bffc534",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.imageFailed": {
+        "hash": "3b55c47919376e79",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.lead": {
+        "hash": "05d002c233fc4880",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.posterCard": {
+        "hash": "99d044d7bc1bb58c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.retry": {
+        "hash": "0f5ccff4c294a92b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakDays": {
+        "hash": "6c8b6eac55092dd6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakDescription": {
+        "hash": "7f42f9d196fb38a6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakLoadFailed": {
+        "hash": "14089fec182f449a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakTitle": {
+        "hash": "1457d34688d00b9d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.thisWeek": {
+        "hash": "d5898229999f91fe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.toneAccent": {
+        "hash": "dc6247cb41deb6a3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.toneNeutral": {
+        "hash": "6c8a5babcbe806e0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.toneTint": {
+        "hash": "ee286f9fffcc59c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.toneWhite": {
+        "hash": "d1aedb0dffcd6daa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.upTo": {
+        "hash": "a27d4515cac04202",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.weekCard": {
+        "hash": "627782f1bd49fc60",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "checklist": {
       "checklist.addItem": {
         "hash": "6c9e2335db74f496",
@@ -1045,6 +1267,10 @@
       },
       "navigation.aspects": {
         "hash": "ce221a37f6b30b70",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.buildInPublic": {
+        "hash": "3bb0abaa3f92a65c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.chapter": {

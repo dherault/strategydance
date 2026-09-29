@@ -22,6 +22,7 @@
   "today.save": "Speichern",
   "today.setYourPriority": "Top-Priorität festlegen",
   "today.showPriority": "{name} anzeigen",
+  "today.viewOnly": "Nur Ansicht",
   "today.visibilityDialogDescription": "Wähle aus, wessen Top-Priorität auf deiner Heute-Seite angezeigt wird, und ziehe sie zum Sortieren. Dies ändert nur deine Ansicht.",
   "today.visibilityDialogTitle": "Sichtbare Prioritäten",
   "today.visibilityError": "Deine Ansicht der Prioritäten konnte nicht gespeichert werden. Versuche es erneut.",

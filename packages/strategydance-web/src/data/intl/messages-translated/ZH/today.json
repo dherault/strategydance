@@ -22,6 +22,7 @@
   "today.save": "保存",
   "today.setYourPriority": "设置你的首要事项",
   "today.showPriority": "显示 {name}",
+  "today.viewOnly": "仅查看",
   "today.visibilityDialogDescription": "选择要在你的“今日”页面上显示哪些人的首要事项，并可拖动调整顺序。这仅会影响你自己的视图。",
   "today.visibilityDialogTitle": "可见首要事项",
   "today.visibilityError": "无法保存你的首要事项视图设置，请重试。",

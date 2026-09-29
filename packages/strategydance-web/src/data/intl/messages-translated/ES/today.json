@@ -22,6 +22,7 @@
   "today.save": "Guardar",
   "today.setYourPriority": "Define tu prioridad principal",
   "today.showPriority": "Mostrar a {name}",
+  "today.viewOnly": "Solo lectura",
   "today.visibilityDialogDescription": "Elige qué prioridades principales aparecen en tu página Hoy y arrastra para reordenar. Esto solo afecta a tu vista.",
   "today.visibilityDialogTitle": "Prioridades visibles",
   "today.visibilityError": "No se pudo guardar tu vista de las prioridades. Inténtalo de nuevo.",

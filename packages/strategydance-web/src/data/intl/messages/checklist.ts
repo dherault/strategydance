@@ -12,11 +12,6 @@ const checklistMessages = defineMessages({
     defaultMessage: 'Stay consistent',
     description: 'Line under the title of the checklist section.',
   },
-  viewOnly: {
-    id: 'checklist.viewOnly',
-    defaultMessage: 'View only',
-    description: 'Label beside the checklist when it shows a teammate\'s, which the reader can read but not tick.',
-  },
   showFor: {
     id: 'checklist.showFor',
     defaultMessage: 'Show checklist for',

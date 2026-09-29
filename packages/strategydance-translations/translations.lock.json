@@ -578,10 +578,6 @@
       "checklist.unlockHint": {
         "hash": "7c55e32a829799a0",
         "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "checklist.viewOnly": {
-        "hash": "a0152b233f15b2db",
-        "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
     "explore": {
@@ -1949,6 +1945,10 @@
       },
       "today.showPriority": {
         "hash": "2a821a6a2d6cdf45",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.viewOnly": {
+        "hash": "c8a6b30e5417f675",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.visibilityDialogDescription": {

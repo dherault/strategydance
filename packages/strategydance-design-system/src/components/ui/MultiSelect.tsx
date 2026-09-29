@@ -325,7 +325,8 @@ function MultiSelect({
   /*
     Every chip renders once more out of sight, and so does the count for every number of chips it
     could stand for, since a translated count need not grow with its number. Their widths say how
-    many chips fit on the line beside the count they leave, and one chip always shows
+    many chips fit on the line beside the count they leave. The cap bounds the fit rather than
+    trimming it, so the count it brings in has its room. One chip always shows, unless the cap is 0
   */
   useLayoutEffect(() => {
     const values = valuesRef.current
@@ -340,14 +341,16 @@ function MultiSelect({
       const countWidths = Array.from(countsMeasure.children, child => (child as HTMLElement).offsetWidth)
       const available = values.clientWidth
       const totalWidth = widths.reduce((sum, width) => sum + width, 0) + CHIP_GAP * Math.max(widths.length - 1, 0)
+      const limit = chipCap === undefined ? widths.length : Math.min(widths.length, chipCap)
       let count = widths.length
 
-      if (totalWidth > available) {
+      // Short of every chip, some are hidden, and the count needs its room
+      if (limit < widths.length || totalWidth > available) {
         let usedWidth = 0
 
         count = 0
 
-        for (const [index, width] of widths.entries()) {
+        for (const [index, width] of widths.slice(0, limit).entries()) {
           const nextWidth = usedWidth + (index > 0 ? CHIP_GAP : 0) + width
           // The count beside the first `index + 1` chips stands for the rest
           const countWidth = countWidths[widths.length - index - 2]
@@ -358,10 +361,10 @@ function MultiSelect({
           count = index + 1
         }
 
-        count = Math.max(count, 1)
+        count = Math.max(count, Math.min(limit, 1))
       }
 
-      setFitCount(chipCap === undefined ? count : Math.min(count, chipCap))
+      setFitCount(count)
     }
 
     fitChips()

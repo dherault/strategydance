@@ -11,7 +11,7 @@ const PIXEL_RATIO = 2
 */
 let fontEmbedCss: Promise<string> | null = null
 
-// Each picture a card has shown, as a data URL, or null once it could not be fetched
+// Each picture a card has shown, as a data URL, or null when it could not be fetched
 const imageDataUrls = new Map<string, Promise<string | null>>()
 
 function readAsDataUrl(blob: Blob) {
@@ -42,6 +42,9 @@ function fetchImage(src: string) {
       .then(readAsDataUrl)
       .catch((error: unknown) => {
         console.warn('Drawing a card without one of its pictures', error)
+
+        // The next picture asked for tries again, rather than a blip lasting until the page reloads
+        imageDataUrls.delete(src)
 
         return null
       })

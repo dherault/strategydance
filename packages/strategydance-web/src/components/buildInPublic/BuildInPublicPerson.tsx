@@ -10,7 +10,8 @@ type Props = {
   className?: string
 }
 
-// Who a card is about: their picture, their name, and what they do, when they said
+// Who a card is about: their picture, their name, and what they do, when they said, each on one
+// line, so a long name never takes the room of what the card is about
 function BuildInPublicPerson({ name, imageUrl, jobTitle, className }: Props) {
   return (
     <div className={cn('flex min-w-0 items-center gap-2.5', className)}>
@@ -19,8 +20,8 @@ function BuildInPublicPerson({ name, imageUrl, jobTitle, className }: Props) {
         name={name}
       />
       <span className="flex min-w-0 flex-col text-[13px] leading-[1.3]">
-        <span className="font-semibold">{name}</span>
-        {jobTitle ? <span className={cn('text-xs', CARD_MUTED_CLASS_NAME)}>{jobTitle}</span> : null}
+        <span className="truncate font-semibold">{name}</span>
+        {jobTitle ? <span className={cn('truncate text-xs', CARD_MUTED_CLASS_NAME)}>{jobTitle}</span> : null}
       </span>
     </div>
   )

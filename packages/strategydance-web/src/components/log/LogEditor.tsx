@@ -44,7 +44,11 @@ function LogEditor({
   const { formatMessage } = useIntl()
   const { RichTextEditor, hasFailed } = useRichTextEditor()
 
-  const [change, setChange] = useState<RichTextEditorChange>({ value: initialValue ?? '', isEmpty: !initialValue })
+  const [change, setChange] = useState<RichTextEditorChange>({
+    value: initialValue ?? '',
+    isEmpty: !initialValue,
+    textLength: 0,
+  })
 
   const canSubmit = !change.isEmpty && !isPending && change.value.length <= MAX_LOG_ENTRY_LENGTH
 

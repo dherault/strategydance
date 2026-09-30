@@ -171,7 +171,9 @@ function BuildInPublicCard({
           accentColor={accentColor}
           organizationColor={organizationColor}
         />
-        <div className="mt-auto -ml-2 flex flex-nowrap gap-1 whitespace-nowrap">
+        {/* Each label on one line, the second button wrapping under the first where the two run
+            wider than the column, as they do in French or German */}
+        <div className="mt-auto -ml-2 flex flex-wrap gap-1 whitespace-nowrap">
           <Button
             variant="transparent"
             size="sm"

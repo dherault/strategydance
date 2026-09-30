@@ -2509,6 +2509,10 @@
         "hash": "e7a0f807555d2182",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "today.editPriorityLabel": {
+        "hash": "2cab4491d28bd0ce",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "today.noJobTitle": {
         "hash": "2088ea248044bfb0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2546,11 +2550,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.priorityLength": {
-        "hash": "9ac3ef576fc5f879",
+        "hash": "e642949a9e5c0a13",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.priorityPlaceholder": {
         "hash": "f8238cbfc434a32e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.prioritySaveHint": {
+        "hash": "b582bc2d2e2a04e4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.priorityUpdated": {

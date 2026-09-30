@@ -46,6 +46,12 @@ const todayMessages = defineMessages({
     description:
       "Hint shown on the reader's own priority card when it is hovered or focused, since clicking it edits the priority.",
   },
+  editPriorityLabel: {
+    id: 'today.editPriorityLabel',
+    defaultMessage: 'Edit your top priority',
+    description:
+      "Accessible name of the button laid over the reader's own priority card, which opens the dialog that edits it.",
+  },
   priorityDialogTitle: {
     id: 'today.priorityDialogTitle',
     defaultMessage: 'Your top priority',
@@ -70,7 +76,13 @@ const todayMessages = defineMessages({
     id: 'today.priorityLength',
     defaultMessage: '{length}/{max}',
     description:
-      'Counter under the top priority field, such as "42/140": the characters typed out of the most allowed.',
+      'Counter under the top priority field, such as "42/500": the characters written out of the most allowed.',
+  },
+  prioritySaveHint: {
+    id: 'today.prioritySaveHint',
+    defaultMessage: '{shortcut} to save',
+    description:
+      'Hint under the top priority field, such as "⌘Enter to save": the keyboard shortcut that saves the priority, since Enter starts a new line. {shortcut} is the key combination.',
   },
   priorityUpdated: {
     id: 'today.priorityUpdated',

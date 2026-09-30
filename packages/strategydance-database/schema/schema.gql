@@ -135,8 +135,11 @@ type UserOrganization @table(key: ["user", "organization"]) {
   # it fills, because `role` above is already something else
   jobTitle: String
   # The one thing they are moving forward, in their words, which their team reads on its Today
-  # page. One line of at most 140 characters (`MAX_TOP_PRIORITY_LENGTH` in strategydance-core).
-  # Kept until they change it rather than cleared each day, and null until they first set one
+  # page and the build in public cards draw. Lexical's editor state, serialized, at most 20000
+  # characters (`MAX_TOP_PRIORITY_LENGTH` in strategydance-core). It is somebody else's for every
+  # reader but its author, so it is drawn only through the design system's `RichText`, as
+  # `LogEntry.content` is. Kept until they change it rather than cleared each day, and null until
+  # they first set one
   topPriority: String
   # When `topPriority` was last set, so a priority left for weeks can be told from today's
   topPriorityUpdatedAt: Timestamp

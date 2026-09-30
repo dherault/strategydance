@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_TOP_PRIORITY_LENGTH } from 'strategydance-core'
+import { MAX_TOP_PRIORITY_TEXT_LENGTH } from 'strategydance-core'
 import type { GetOrganizationTeamData } from 'strategydance-database/web'
 import { useUpdateTopPriority } from 'strategydance-database/web/react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -117,9 +117,12 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
               save()
             }}
             placeholder={formatMessage(todayMessages.priorityPlaceholder)}
-            maxLength={MAX_TOP_PRIORITY_LENGTH}
+            maxLength={MAX_TOP_PRIORITY_TEXT_LENGTH}
             rows={3}
-            hint={formatMessage(todayMessages.priorityLength, { length: value.length, max: MAX_TOP_PRIORITY_LENGTH })}
+            hint={formatMessage(todayMessages.priorityLength, {
+              length: value.length,
+              max: MAX_TOP_PRIORITY_TEXT_LENGTH,
+            })}
             error={hasFailed ? formatMessage(todayMessages.priorityError) : undefined}
             // Starts with the cursor after what is there, to carry on from it
             onFocus={event =>

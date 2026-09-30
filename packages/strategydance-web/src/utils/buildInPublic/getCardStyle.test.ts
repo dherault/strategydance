@@ -23,6 +23,11 @@ describe('getCardStyle', () => {
     expect(read(getCardStyle('tint', '#0051A3'), '--card-ring')).toBe('none')
   })
 
+  it('draws a track that shows on the tinted card', () => {
+    expect(read(getCardStyle('tint', '#0051A3'), '--card-track')).toBe('#ffffff')
+    expect(read(getCardStyle('white', '#0051A3'), '--card-track')).toBe('var(--card-accent-100)')
+  })
+
   it('draws a warm flame whatever the tone', () => {
     const accent = getCardStyle('accent', '#0051A3', 'warm')
     const white = getCardStyle('white', '#0051A3', 'warm')

@@ -58,6 +58,8 @@ const TONE_VARIABLES: Record<CardTone, Variables> = {
     ...LIGHT_TONE,
     '--card-background': 'var(--card-accent-50)',
     '--card-panel': 'var(--card-accent-100)',
+    // White, since the shade a lighter tone draws its tracks in hardly shows on this one
+    '--card-track': '#ffffff',
   },
   neutral: {
     ...LIGHT_TONE,

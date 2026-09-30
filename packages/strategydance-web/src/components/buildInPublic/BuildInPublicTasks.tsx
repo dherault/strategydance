@@ -297,10 +297,7 @@ function BuildInPublicTasks({ settings }: Props) {
                   {countDone(taskList)}/{countAll(taskList)}
                 </span>
               </div>
-              <BuildInPublicBar
-                ratio={countDone(taskList) / (countAll(taskList) || 1)}
-                className="bg-white"
-              />
+              <BuildInPublicBar ratio={countDone(taskList) / (countAll(taskList) || 1)} />
             </div>
           ))}
         </div>

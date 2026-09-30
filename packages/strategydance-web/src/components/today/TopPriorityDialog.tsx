@@ -120,7 +120,7 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
                 initialValue={topPriority}
                 placeholder={formatMessage(todayMessages.priorityPlaceholder)}
                 aria-label={formatMessage(todayMessages.priorityLabel)}
-                blocks={['bullet', 'number']}
+                blocks={['list']}
                 autoFocus
                 onChange={setChange}
                 onSubmit={save}

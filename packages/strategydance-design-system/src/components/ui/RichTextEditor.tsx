@@ -75,8 +75,8 @@ type RichTextEditorChange = {
   textLength: number
 }
 
-/** A block the toolbar can turn a paragraph into */
-type RichTextBlock = 'h2' | 'quote' | 'bullet' | 'number'
+/** A block the toolbar can turn a paragraph into, lists being one, bulleted and numbered alike */
+type RichTextBlock = 'h2' | 'quote' | 'list'
 
 type Props = {
   /** A serialized editor state to start from. Read once, on mount: change the `key` to start over */
@@ -90,8 +90,8 @@ type Props = {
   /** The toolbar's words. The defaults are English: a caller with a catalogue passes its own */
   labels?: Partial<RichTextEditorLabels>
   /**
-   * The blocks it writes besides paragraphs, all four unless it says fewer. A heading or quote left
-   * out has no button and is pasted as a paragraph
+   * The blocks it writes besides paragraphs, all three unless it says fewer. One left out has no
+   * button, and pastes as paragraphs
    */
   blocks?: RichTextBlock[]
   className?: string
@@ -134,7 +134,7 @@ const INITIAL_TOOLBAR_STATE: ToolbarState = {
   canRedo: false,
 }
 
-const ALL_BLOCKS: RichTextBlock[] = ['h2', 'quote', 'bullet', 'number']
+const ALL_BLOCKS: RichTextBlock[] = ['h2', 'quote', 'list']
 
 /*
   A rich text field: a toolbar over a Lexical editor, for a post of a few paragraphs. It writes
@@ -159,13 +159,13 @@ function RichTextEditor({
   className,
   'aria-label': ariaLabel,
 }: Props) {
-  // Lists are always registered, since the list plugin needs them. A heading or quote is only when
-  // it is offered, so a pasted one, whose node the editor then does not know, reads as a paragraph
+  // A block's nodes are registered only when it is offered, so a pasted one, whose nodes the editor
+  // then does not know, reads as paragraphs
+  const hasLists = blocks.includes('list')
   const nodes = [
     ...(blocks.includes('h2') ? [HeadingNode] : []),
     ...(blocks.includes('quote') ? [QuoteNode] : []),
-    ListNode,
-    ListItemNode,
+    ...(hasLists ? [ListNode, ListItemNode] : []),
   ]
   const initialConfig = {
     namespace: 'strategydance-rich-text',
@@ -217,7 +217,7 @@ function RichTextEditor({
         </div>
       </div>
       <HistoryPlugin delay={300} />
-      <ListPlugin />
+      {hasLists ? <ListPlugin /> : null}
       <OnChangePlugin
         ignoreSelectionChange
         onChange={handleChange}
@@ -384,21 +384,21 @@ function RichTextToolbar({ labels, blocks }: { labels: RichTextEditorLabels; blo
           onClick={() => setBlock('h2')}
         />
       ) : null}
-      {blocks.includes('bullet') ? (
-        <ToolbarButton
-          label={labels.bulletedList}
-          icon={<ListIcon />}
-          isActive={state.blockType === 'bullet'}
-          onClick={() => toggleList('bullet')}
-        />
-      ) : null}
-      {blocks.includes('number') ? (
-        <ToolbarButton
-          label={labels.numberedList}
-          icon={<ListOrderedIcon />}
-          isActive={state.blockType === 'number'}
-          onClick={() => toggleList('number')}
-        />
+      {blocks.includes('list') ? (
+        <>
+          <ToolbarButton
+            label={labels.bulletedList}
+            icon={<ListIcon />}
+            isActive={state.blockType === 'bullet'}
+            onClick={() => toggleList('bullet')}
+          />
+          <ToolbarButton
+            label={labels.numberedList}
+            icon={<ListOrderedIcon />}
+            isActive={state.blockType === 'number'}
+            onClick={() => toggleList('number')}
+          />
+        </>
       ) : null}
       {blocks.includes('quote') ? (
         <ToolbarButton

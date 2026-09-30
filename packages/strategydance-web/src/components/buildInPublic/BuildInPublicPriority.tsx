@@ -65,7 +65,10 @@ function BuildInPublicPriority({ settings }: Props) {
       member?.topPriority
       || formatMessage(isViewer ? buildInPublicMessages.setPriority : buildInPublicMessages.noPriority)
 
-    return { values: { user: member?.user.id ?? viewerId }, member, priority }
+    // What stands in for a priority not written yet is for the page, never for a posted picture
+    const exportDisabledReason = member?.topPriority ? undefined : formatMessage(buildInPublicMessages.nothingToShare)
+
+    return { values: { user: member?.user.id ?? viewerId }, member, priority, exportDisabledReason }
   }
 
   const focus = readMember('priority-focus')
@@ -107,6 +110,7 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={focus.values}
+        exportDisabledReason={focus.exportDisabledReason}
       >
         <div className="grid h-full grid-cols-[184px_minmax(0,1fr)]">
           <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
@@ -135,6 +139,7 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={statement.values}
+        exportDisabledReason={statement.exportDisabledReason}
       >
         <p className={CARD_EYEBROW_CLASS_NAME}>
           {formatMessage(buildInPublicMessages.priorityOn, {
@@ -154,6 +159,7 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={oneThing.values}
+        exportDisabledReason={oneThing.exportDisabledReason}
       >
         <BuildInPublicOrganization maxSize={13} />
         <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[96px] leading-[0.9] text-(--card-strong)')}>1</p>

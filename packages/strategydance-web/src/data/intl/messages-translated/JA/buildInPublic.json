@@ -91,6 +91,7 @@
   "buildInPublic.members": "メンバー",
   "buildInPublic.moreTasks": "{count, plural, other {他 +# 件のタスク}}",
   "buildInPublic.noPriority": "最優先事項はまだ設定されていません",
+  "buildInPublic.nothingToShare": "最優先事項が設定されるまで共有できるものはありません。",
   "buildInPublic.numberOfTasks": "タスク数",
   "buildInPublic.numberOfUpdates": "更新件数",
   "buildInPublic.oneThingCard": "1つのこと",

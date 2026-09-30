@@ -43,6 +43,8 @@ type Props = {
   fields?: CardField[]
   values?: CardValues
   flameColor?: FlameColor
+  // Why it may not be copied or downloaded yet, such as a card standing in for what is not written
+  exportDisabledReason?: string
   children: ReactNode
 }
 
@@ -65,6 +67,7 @@ function BuildInPublicCard({
   fields = [],
   values = {},
   flameColor,
+  exportDisabledReason,
   children,
 }: Props) {
   const { formatMessage } = useIntl()
@@ -191,13 +194,16 @@ function BuildInPublicCard({
         />
         {/* Each label on one line, the second button wrapping under the first where the two run
             wider than the column, as they do in French or German */}
-        <div className="mt-auto -ml-2 flex flex-wrap gap-1 whitespace-nowrap">
+        {exportDisabledReason ? (
+          <p className="mt-auto mb-0 text-xs text-muted-foreground">{exportDisabledReason}</p>
+        ) : null}
+        <div className={cn('-ml-2 flex flex-wrap gap-1 whitespace-nowrap', !exportDisabledReason && 'mt-auto')}>
           <Button
             variant="transparent"
             size="sm"
             icon={busyAction === 'copy' ? <Spinner tone="current" /> : <CopyIcon />}
             aria-label={formatMessage(buildInPublicMessages.copyImageLabel, { card: label })}
-            disabled={busyAction !== null}
+            disabled={busyAction !== null || !!exportDisabledReason}
             onClick={copy}
           >
             {formatMessage(buildInPublicMessages.copyImage)}
@@ -207,7 +213,7 @@ function BuildInPublicCard({
             size="sm"
             icon={busyAction === 'download' ? <Spinner tone="current" /> : <DownloadIcon />}
             aria-label={formatMessage(buildInPublicMessages.downloadImageLabel, { card: label })}
-            disabled={busyAction !== null}
+            disabled={busyAction !== null || !!exportDisabledReason}
             onClick={download}
           >
             {formatMessage(buildInPublicMessages.downloadImage)}

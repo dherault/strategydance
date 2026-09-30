@@ -364,6 +364,12 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'No top priority set yet',
     description: "Shown on a card in place of a teammate's top priority while they have none.",
   },
+  nothingToShare: {
+    id: 'buildInPublic.nothingToShare',
+    defaultMessage: 'Nothing to share until a top priority is set.',
+    description:
+      'Beside a top priority card whose buttons to copy or download it are turned off, because the person it shows has not set a top priority yet.',
+  },
   tasksTitle: {
     id: 'buildInPublic.tasksTitle',
     defaultMessage: 'Tasks',

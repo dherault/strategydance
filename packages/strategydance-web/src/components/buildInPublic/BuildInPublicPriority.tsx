@@ -35,7 +35,7 @@ type Props = {
   the reader again
 */
 function BuildInPublicPriority({ settings }: Props) {
-  const { formatMessage, formatDate } = useIntl()
+  const { formatMessage, formatDate, formatDateToParts } = useIntl()
   const { data: viewer } = useAuthentication()
   const { data: team, loading, refetch, hasFailed } = useOrganizationTeam()
   const today = useLocalDate()
@@ -43,6 +43,11 @@ function BuildInPublicPriority({ settings }: Props) {
   const viewerId = viewer?.uid ?? ''
   const members = team.userOrganizations
   const date = toCalendarDate(today)
+  // The day of the month alone, which Japanese and Chinese would otherwise write with 日 after it,
+  // twice as wide as the panel it stands in, over the month that says it already
+  const dayOfMonth = formatDateToParts(date, { day: 'numeric', timeZone: 'UTC' }).find(
+    part => part.type === 'day',
+  )?.value
 
   const teammateField: CardField = {
     kind: 'select',
@@ -61,7 +66,10 @@ function BuildInPublicPriority({ settings }: Props) {
     const priority = member?.topPriority || null
     const placeholder = formatMessage(isViewer ? buildInPublicMessages.setPriority : buildInPublicMessages.noPriority)
 
-    return { values: { user: member?.user.id ?? viewerId }, member, priority, placeholder }
+    // What stands in for a priority not written yet is for the page, never for a posted picture
+    const exportDisabledReason = priority ? undefined : formatMessage(buildInPublicMessages.nothingToShare)
+
+    return { values: { user: member?.user.id ?? viewerId }, member, priority, placeholder, exportDisabledReason }
   }
 
   /*
@@ -74,7 +82,11 @@ function BuildInPublicPriority({ settings }: Props) {
     sizeClassName: string,
   ) {
     if (!priority) {
-      return <p className={cn(CARD_DISPLAY_CLASS_NAME, className, 'line-clamp-4', sizeClassName)}>{placeholder}</p>
+      return (
+        <p className={cn(CARD_DISPLAY_CLASS_NAME, className, 'line-clamp-4 wrap-break-word', sizeClassName)}>
+          {placeholder}
+        </p>
+      )
     }
 
     return (
@@ -125,13 +137,14 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={focus.values}
+        exportDisabledReason={focus.exportDisabledReason}
       >
         {/* Its one row as tall as the card, so a long priority fades out rather than growing past it */}
         <div className="grid h-full grid-cols-[184px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)]">
-          <div className="flex flex-col bg-(--card-panel) p-7">
+          <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatDate(date, { weekday: 'long', timeZone: 'UTC' })}</p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[120px] leading-[0.9] text-(--card-strong)')}>
-              {formatDate(date, { day: 'numeric', timeZone: 'UTC' })}
+              {dayOfMonth}
             </p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 text-[28px]/[1.12]')}>
               {formatDate(date, { month: 'long', timeZone: 'UTC' })}
@@ -152,6 +165,7 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={statement.values}
+        exportDisabledReason={statement.exportDisabledReason}
       >
         <p className={CARD_EYEBROW_CLASS_NAME}>
           {formatMessage(buildInPublicMessages.priorityOn, {
@@ -169,6 +183,7 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={oneThing.values}
+        exportDisabledReason={oneThing.exportDisabledReason}
       >
         <BuildInPublicOrganization maxSize={13} />
         <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[96px] leading-[0.9] text-(--card-strong)')}>1</p>

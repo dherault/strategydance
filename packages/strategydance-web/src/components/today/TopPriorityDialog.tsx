@@ -104,8 +104,11 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
       <DialogContent
         closeLabel={formatMessage(todayMessages.close)}
         className="sm:max-w-[560px]"
-        // The editor takes the focus itself once it has loaded, rather than the toolbar's first button
-        onOpenAutoFocus={event => event.preventDefault()}
+        // A loaded editor takes the focus itself, which the dialog would give its toolbar's first
+        // button. One still loading, or failed, leaves the dialog to hold it meanwhile
+        onOpenAutoFocus={event => {
+          if (RichTextEditor) event.preventDefault()
+        }}
       >
         <form
           onSubmit={handleSubmit}

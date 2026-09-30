@@ -11,6 +11,7 @@ import type { CardField, CardFormat, CardTone, CardValues, FlameColor } from '~t
 import { CARD_ACCENT_COLORS } from '~constants'
 
 import type useBuildInPublicSettings from '~hooks/buildInPublic/useBuildInPublicSettings'
+import useCardScale from '~hooks/buildInPublic/useCardScale'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import getCardStyle from '~utils/buildInPublic/getCardStyle'
@@ -23,10 +24,10 @@ import Spinner from '~components/common/Spinner'
 import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 
 // Each format's size in CSS pixels, which its picture doubles, and the ratio its caption names
-const FORMATS: Record<CardFormat, { className: string; ratio: string }> = {
-  landscape: { className: 'h-[338px] w-[600px]', ratio: '16:9' },
-  square: { className: 'size-[338px]', ratio: '1:1' },
-  portrait: { className: 'h-[422px] w-[338px]', ratio: '4:5' },
+const FORMATS: Record<CardFormat, { width: number; height: number; ratio: string }> = {
+  landscape: { width: 600, height: 338, ratio: '16:9' },
+  square: { width: 338, height: 338, ratio: '1:1' },
+  portrait: { width: 338, height: 422, ratio: '4:5' },
 }
 
 type Props = {
@@ -42,6 +43,8 @@ type Props = {
   fields?: CardField[]
   values?: CardValues
   flameColor?: FlameColor
+  // Why it may not be copied or downloaded yet, such as a card standing in for what is not written
+  exportDisabledReason?: string
   children: ReactNode
 }
 
@@ -64,11 +67,13 @@ function BuildInPublicCard({
   fields = [],
   values = {},
   flameColor,
+  exportDisabledReason,
   children,
 }: Props) {
   const { formatMessage } = useIntl()
   const { organization } = useCurrentOrganization()
 
+  const figureRef = useRef<HTMLElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [busyAction, setBusyAction] = useState<'copy' | 'download' | null>(null)
 
@@ -77,7 +82,8 @@ function BuildInPublicCard({
   const accent = look.accent ?? 'organization'
   const organizationColor = organization?.color ?? DEFAULT_ORGANIZATION_COLOR
   const accentColor = accent === 'organization' ? organizationColor : CARD_ACCENT_COLORS[accent]
-  const { className: formatClassName, ratio } = FORMATS[format]
+  const { width, height, ratio } = FORMATS[format]
+  const scale = useCardScale(figureRef, width)
 
   async function download() {
     if (!surfaceRef.current) return
@@ -129,22 +135,37 @@ function BuildInPublicCard({
   }
 
   return (
-    <figure className="group m-0 flex flex-wrap items-start gap-x-8 gap-y-6 self-stretch">
+    <figure
+      ref={figureRef}
+      className="group m-0 flex flex-wrap items-start gap-x-8 gap-y-6 self-stretch"
+    >
       <div className="flex max-w-full min-w-0 flex-none flex-col gap-2">
-        <div className="max-w-full overflow-x-auto">
+        {/*
+          Where the page is narrower than the card, as a phone is than a landscape one, the card is
+          drawn smaller in a box of the size it then takes. The scale is on a wrapper rather than on
+          the card, whose own styles its picture copies, so the picture keeps the card's size
+        */}
+        <div
+          className="overflow-hidden"
+          style={{ width: width * scale, height: height * scale }}
+        >
           <div
-            ref={surfaceRef}
-            className={cn(
-              'relative box-border flex flex-none flex-col overflow-hidden rounded-xs font-sans antialiased',
-              formatClassName,
-              isFlush ? 'p-0' : 'px-7 pt-7 pb-11',
-            )}
-            style={getCardStyle(tone, accentColor, flameColor)}
+            className="origin-top-left"
+            style={scale < 1 ? { transform: `scale(${scale})` } : undefined}
           >
-            {children}
-            <span className="absolute right-5 bottom-4 text-[11px] leading-none font-medium tracking-[0.02em] text-(--card-url)">
-              {PRODUCTION_APP_HOSTNAME}
-            </span>
+            <div
+              ref={surfaceRef}
+              className={cn(
+                'relative box-border flex flex-none flex-col overflow-hidden rounded-xs font-sans antialiased',
+                isFlush ? 'p-0' : 'px-7 pt-7 pb-11',
+              )}
+              style={{ ...getCardStyle(tone, accentColor, flameColor), width, height }}
+            >
+              {children}
+              <span className="absolute right-5 bottom-4 text-[11px] leading-none font-medium tracking-[0.02em] text-(--card-url)">
+                {PRODUCTION_APP_HOSTNAME}
+              </span>
+            </div>
           </div>
         </div>
         <figcaption className="text-xs text-muted-foreground">
@@ -171,13 +192,18 @@ function BuildInPublicCard({
           accentColor={accentColor}
           organizationColor={organizationColor}
         />
-        <div className="mt-auto -ml-2 flex flex-nowrap gap-1 whitespace-nowrap">
+        {/* Each label on one line, the second button wrapping under the first where the two run
+            wider than the column, as they do in French or German */}
+        {exportDisabledReason ? (
+          <p className="mt-auto mb-0 text-xs text-muted-foreground">{exportDisabledReason}</p>
+        ) : null}
+        <div className={cn('-ml-2 flex flex-wrap gap-1 whitespace-nowrap', !exportDisabledReason && 'mt-auto')}>
           <Button
             variant="transparent"
             size="sm"
             icon={busyAction === 'copy' ? <Spinner tone="current" /> : <CopyIcon />}
             aria-label={formatMessage(buildInPublicMessages.copyImageLabel, { card: label })}
-            disabled={busyAction !== null}
+            disabled={busyAction !== null || !!exportDisabledReason}
             onClick={copy}
           >
             {formatMessage(buildInPublicMessages.copyImage)}
@@ -187,7 +213,7 @@ function BuildInPublicCard({
             size="sm"
             icon={busyAction === 'download' ? <Spinner tone="current" /> : <DownloadIcon />}
             aria-label={formatMessage(buildInPublicMessages.downloadImageLabel, { card: label })}
-            disabled={busyAction !== null}
+            disabled={busyAction !== null || !!exportDisabledReason}
             onClick={download}
           >
             {formatMessage(buildInPublicMessages.downloadImage)}

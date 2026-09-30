@@ -91,6 +91,7 @@
   "buildInPublic.members": "Miembros",
   "buildInPublic.moreTasks": "{count, plural, one {+# tarea más} other {+# tareas más}}",
   "buildInPublic.noPriority": "Aún no se ha definido una prioridad principal",
+  "buildInPublic.nothingToShare": "Nada que compartir hasta que se establezca una prioridad principal.",
   "buildInPublic.numberOfTasks": "Número de tareas",
   "buildInPublic.numberOfUpdates": "Número de actualizaciones",
   "buildInPublic.oneThingCard": "Una sola cosa",

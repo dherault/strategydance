@@ -172,7 +172,8 @@ function BuildInPublicLog({ settings }: Props) {
     )
   }
 
-  const quoteAuthorName = quote.author?.user.displayName?.split(/\s+/)[0] ?? null
+  // The name as they gave it, since a first word is not a first name where the family name comes first
+  const quoteAuthorName = quote.author?.user.displayName ?? null
 
   return (
     <BuildInPublicSection
@@ -236,11 +237,14 @@ function BuildInPublicLog({ settings }: Props) {
           >
             “
           </p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-6 text-[22px]/[1.25]')}>{quoteOf(quote.entry)}</p>
+          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-6 wrap-break-word text-[22px]/[1.25]')}>
+            {quoteOf(quote.entry)}
+          </p>
           {quoteAuthorName ? (
-            <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-auto mb-0 text-xs font-medium')}>
+            <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-auto mb-0 line-clamp-2 wrap-break-word text-xs font-medium')}>
               {formatMessage(buildInPublicMessages.fromLog, {
-                name: quoteAuthorName,
+                // Cut short where it runs long, so the date after it always shows
+                name: <span className="inline-block max-w-[60%] truncate align-bottom">{quoteAuthorName}</span>,
                 date: formatShortDate(quote.entry.date),
               })}
             </p>
@@ -273,14 +277,23 @@ function BuildInPublicLog({ settings }: Props) {
           values={{ user: author?.user.id ?? viewerId, count: String(timelineCount) }}
         >
           <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.buildLog)}</p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 mb-5 text-[26px]/[1.12]')}>
+          {/* On one line, shrinking where it runs long, as in Spanish, so four updates of two lines fit */}
+          <FitText
+            as="p"
+            isDisplay
+            max={26}
+            min={20}
+            lineHeight={1.12}
+            className="mt-2"
+          >
             {formatMessage(buildInPublicMessages.lastUpdates, { count: timelineCount })}
-          </p>
-          <ol className="m-0 flex list-none flex-col p-0">
+          </FitText>
+          {/* Spaced from here rather than below the heading, whose margin its fit takes over */}
+          <ol className="m-0 mt-5 flex list-none flex-col p-0">
             {entries.slice(0, timelineCount).map((entry, index) => (
               <li
                 key={entry.id}
-                className="relative grid grid-cols-[20px_minmax(0,1fr)] pb-4"
+                className="relative grid grid-cols-[20px_minmax(0,1fr)] pb-3 last:pb-0"
               >
                 {index < timelineCount - 1 ? (
                   <span
@@ -295,7 +308,9 @@ function BuildInPublicLog({ settings }: Props) {
                   >
                     {formatDay(entry.date)}
                   </span>
-                  <span className="mt-0.5 line-clamp-2 text-[13px] leading-[1.45]">{summaryOf(entry)}</span>
+                  <span className="mt-0.5 line-clamp-2 wrap-break-word text-[13px] leading-[1.45]">
+                    {summaryOf(entry)}
+                  </span>
                 </div>
               </li>
             ))}
@@ -338,7 +353,7 @@ function BuildInPublicLog({ settings }: Props) {
               ),
             })}
           </p>
-          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-4 mb-0 line-clamp-3 text-[15px] leading-[1.5]')}>
+          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-4 mb-0 line-clamp-3 wrap-break-word text-[15px] leading-[1.5]')}>
             {summaryOf(counter.entry)}
           </p>
         </BuildInPublicCard>

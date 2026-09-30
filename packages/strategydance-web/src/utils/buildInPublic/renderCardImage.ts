@@ -1,12 +1,25 @@
 import { getInitials } from 'strategydance-design-system/lib/getInitials'
 
+import repairCardSvg from '~utils/buildInPublic/repairCardSvg'
+
+type HtmlToImage = typeof import('html-to-image')
+type DrawOptions = NonNullable<Parameters<HtmlToImage['toSvg']>[1]>
+
 // Twice the card's CSS size, so a 600px wide card is a 1200px wide picture, sharp on any screen
 const PIXEL_RATIO = 2
 
-// The page's font faces with each font file inlined, read once for every card: it fetches them all
+// How long the pictures inside a card's SVG take to be drawn after the SVG itself, in Safari
+const PICTURES_DELAY = 150
+
+/*
+  The page's font faces with each font file inlined, read once for every card. Read off the whole
+  page, where every card is mounted, since the library inlines only the families of the element it
+  is handed: read off one card, it would leave out the display face for every later card whenever
+  the first had none
+*/
 let fontEmbedCss: Promise<string> | null = null
 
-// Each picture a card has shown, as a data URL, or null once it could not be fetched
+// Each picture a card has shown, as a data URL, or null when it could not be fetched
 const imageDataUrls = new Map<string, Promise<string | null>>()
 
 function readAsDataUrl(blob: Blob) {
@@ -38,6 +51,9 @@ function fetchImage(src: string) {
       .catch((error: unknown) => {
         console.warn('Drawing a card without one of its pictures', error)
 
+        // The next picture asked for tries again, rather than a blip lasting until the page reloads
+        imageDataUrls.delete(src)
+
         return null
       })
 
@@ -47,21 +63,26 @@ function fetchImage(src: string) {
   return dataUrl
 }
 
-// Somebody's initials on the colors of the design system's avatar, for a picture of them that
-// could not be fetched, drawn at the size the picture had
-function drawInitials(name: string, size: number) {
+/*
+  Somebody's initials as their avatar draws them, for a picture of them that could not be fetched:
+  its fill, its color and its initials' size, read off the avatar. With no name it is the fill
+  alone, which is what the avatar shows of somebody who gave none
+*/
+function drawInitials(name: string, avatar: HTMLElement) {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
-  const styles = getComputedStyle(document.documentElement)
+  const styles = getComputedStyle(avatar)
+  const size = avatar.clientWidth || 32
+  const fontRatio = (parseFloat(styles.fontSize) || size * 0.375) / size
 
   canvas.width = canvas.height = Math.max(64, size * PIXEL_RATIO)
 
   if (!context) return null
 
-  context.fillStyle = styles.getPropertyValue('--color-secondary-100').trim() || '#dbe4ee'
+  context.fillStyle = styles.backgroundColor
   context.fillRect(0, 0, canvas.width, canvas.height)
-  context.fillStyle = styles.getPropertyValue('--color-secondary').trim() || '#142a41'
-  context.font = `600 ${Math.round(canvas.width * 0.4)}px "Inter Variable", sans-serif`
+  context.fillStyle = styles.color
+  context.font = `600 ${Math.round(canvas.width * fontRatio)}px "Inter Variable", sans-serif`
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillText(getInitials(name), canvas.width / 2, canvas.height / 2 + 1)
@@ -90,28 +111,68 @@ function keepUsedFontFaces(css: string, element: HTMLElement) {
 }
 
 /*
+  A card drawn onto a canvas twice its size, as a PNG. The library serializes the card's clone to
+  an SVG, whose styles are repaired where it copied them wrong (`repairCardSvg`), and the SVG is
+  drawn here rather than by the library, which would draw it unrepaired.
+
+  It is drawn twice. Safari decodes the pictures inside an SVG only once the SVG is first drawn, so
+  that draw has an empty circle where an avatar goes, and the one after a pause has the picture
+*/
+async function drawCard(toSvg: HtmlToImage['toSvg'], element: HTMLElement, options: DrawOptions) {
+  const image = new Image()
+
+  image.src = repairCardSvg(await toSvg(element, options))
+  await image.decode()
+
+  const canvas = document.createElement('canvas')
+
+  canvas.width = element.offsetWidth * PIXEL_RATIO
+  canvas.height = element.offsetHeight * PIXEL_RATIO
+
+  const context = canvas.getContext('2d')
+
+  context?.drawImage(image, 0, 0, canvas.width, canvas.height)
+  await new Promise(resolve => setTimeout(resolve, PICTURES_DELAY))
+  context?.clearRect(0, 0, canvas.width, canvas.height)
+  context?.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  return new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
+}
+
+/*
   A card as a PNG, twice its size, with the page's fonts and the card's pictures in it.
 
-  Each picture is swapped for its bytes while the card is drawn, then put back. One that cannot be
-  fetched becomes its subject's initials when it names somebody, as an avatar does, and is left out
-  otherwise, so what it covered shows: a logo's initials, a banner's color. When drawing still
-  fails, the card is drawn once more without any picture
+  Each picture is swapped for its bytes while the card is drawn, then put back. An avatar's that
+  cannot be fetched becomes its subject's initials, as the avatar would show them, and any other is
+  left out, so what it covered shows: a logo's initials, a banner's color. When drawing still
+  fails, the card is drawn once more without any picture.
+
+  The picture is square cornered, whatever the card's corners on the page, since a rounded one
+  would leave its corners transparent
 */
 async function renderCardImage(element: HTMLElement) {
   // Imported here rather than at the top, so the library loads with the first picture asked for,
   // and never in the document shell prerendered at build time
-  const { getFontEmbedCSS, toBlob } = await import('html-to-image')
+  const { getFontEmbedCSS, toSvg } = await import('html-to-image')
 
   await document.fonts.ready
 
-  fontEmbedCss ??= getFontEmbedCSS(element).catch(() => '')
+  fontEmbedCss ??= getFontEmbedCSS(document.body).catch((error: unknown) => {
+    console.warn("Drawing a card without the page's fonts", error)
+
+    // The next card tries again, rather than every card going without them until the page reloads
+    fontEmbedCss = null
+
+    return ''
+  })
 
   const fontCss = keepUsedFontFaces(await fontEmbedCss, element)
   const images = [...element.querySelectorAll('img')].filter(image => image.src && !image.src.startsWith('data:'))
   const swaps = await Promise.all(
     images.map(async image => {
       const src = image.src
-      const dataUrl = (await fetchImage(src)) ?? (image.alt ? drawInitials(image.alt, image.clientWidth) : null)
+      const avatar = image.closest<HTMLElement>('[data-slot="avatar"]')
+      const dataUrl = (await fetchImage(src)) ?? (avatar ? drawInitials(image.alt, avatar) : null)
 
       return { image, src, dataUrl }
     }),
@@ -125,14 +186,14 @@ async function renderCardImage(element: HTMLElement) {
   try {
     await Promise.all(swaps.map(swap => swap.image.decode().catch(() => undefined)))
 
-    const options = {
-      pixelRatio: PIXEL_RATIO,
+    const options: DrawOptions = {
       fontEmbedCSS: fontCss,
       cacheBust: false,
+      style: { borderRadius: '0' },
       filter: (node: HTMLElement) => !leftOut.has(node),
     }
-    const blob = await toBlob(element, options).catch(() =>
-      toBlob(element, { ...options, filter: (node: HTMLElement) => node.tagName !== 'IMG' }),
+    const blob = await drawCard(toSvg, element, options).catch(() =>
+      drawCard(toSvg, element, { ...options, filter: (node: HTMLElement) => node.tagName !== 'IMG' }),
     )
 
     if (!blob) throw new Error('Could not draw the card')

@@ -17,6 +17,7 @@ import {
   CARD_EYEBROW_CLASS_NAME,
   CARD_MUTED_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
+import FitText from '~components/buildInPublic/FitText'
 
 import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 
@@ -137,10 +138,20 @@ function BuildInPublicTasks({ settings }: Props) {
           <div className="grid h-full grid-cols-[200px_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.taskList)}</p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 text-[28px]/[1.12]')}>{progressList.name}</p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[64px] leading-[0.9] text-(--card-strong)')}>
-                {progressDone}/{progressTotal}
+              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 wrap-break-word text-[28px]/[1.12]')}>
+                {progressList.name}
               </p>
+              {/* Shrinks once the counts reach three digits, which the panel is not wide enough for */}
+              <FitText
+                as="p"
+                isDisplay
+                max={64}
+                min={32}
+                lineHeight={0.9}
+                className="mt-auto text-(--card-strong)"
+              >
+                {progressDone}/{progressTotal}
+              </FitText>
               <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-2 mb-0 text-sm')}>
                 {formatMessage(buildInPublicMessages.tasksDone, { count: progressDone })}
               </p>
@@ -227,7 +238,10 @@ function BuildInPublicTasks({ settings }: Props) {
         >
           <BuildInPublicOrganization maxSize={13} />
           <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-auto')}>{formatMessage(buildInPublicMessages.upNext)}</p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 text-[30px]/[1.12]')}>{upNextList.name}</p>
+          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 flex-none wrap-break-word text-[30px]/[1.12]')}>
+            {upNextList.name}
+          </p>
+          {/* Four tasks take a line each, since four of two lines run past the card */}
           {openTasks.length ? (
             <ol className="m-0 mt-5 flex list-none flex-col gap-3.5 p-0">
               {openTasks.map((task, index) => (
@@ -238,7 +252,14 @@ function BuildInPublicTasks({ settings }: Props) {
                   <span className={cn(CARD_DISPLAY_CLASS_NAME, 'text-xl/[1.12] text-(--card-strong)')}>
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <span className="line-clamp-2 text-[15px] leading-[1.4]">{task.text}</span>
+                  <span
+                    className={cn(
+                      'wrap-break-word text-[15px] leading-[1.4]',
+                      openTasks.length > 3 ? 'line-clamp-1' : 'line-clamp-2',
+                    )}
+                  >
+                    {task.text}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -276,10 +297,7 @@ function BuildInPublicTasks({ settings }: Props) {
                   {countDone(taskList)}/{countAll(taskList)}
                 </span>
               </div>
-              <BuildInPublicBar
-                ratio={countDone(taskList) / (countAll(taskList) || 1)}
-                className="bg-white"
-              />
+              <BuildInPublicBar ratio={countDone(taskList) / (countAll(taskList) || 1)} />
             </div>
           ))}
         </div>

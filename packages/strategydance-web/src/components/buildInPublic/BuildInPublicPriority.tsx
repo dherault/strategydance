@@ -33,7 +33,7 @@ type Props = {
   the reader again
 */
 function BuildInPublicPriority({ settings }: Props) {
-  const { formatMessage, formatDate } = useIntl()
+  const { formatMessage, formatDate, formatDateToParts } = useIntl()
   const { data: viewer } = useAuthentication()
   const { data: team, loading, refetch, hasFailed } = useOrganizationTeam()
   const today = useLocalDate()
@@ -41,6 +41,11 @@ function BuildInPublicPriority({ settings }: Props) {
   const viewerId = viewer?.uid ?? ''
   const members = team.userOrganizations
   const date = toCalendarDate(today)
+  // The day of the month alone, which Japanese and Chinese would otherwise write with 日 after it,
+  // twice as wide as the panel it stands in, over the month that says it already
+  const dayOfMonth = formatDateToParts(date, { day: 'numeric', timeZone: 'UTC' }).find(
+    part => part.type === 'day',
+  )?.value
 
   const teammateField: CardField = {
     kind: 'select',
@@ -60,7 +65,10 @@ function BuildInPublicPriority({ settings }: Props) {
       member?.topPriority
       || formatMessage(isViewer ? buildInPublicMessages.setPriority : buildInPublicMessages.noPriority)
 
-    return { values: { user: member?.user.id ?? viewerId }, member, priority }
+    // What stands in for a priority not written yet is for the page, never for a posted picture
+    const exportDisabledReason = member?.topPriority ? undefined : formatMessage(buildInPublicMessages.nothingToShare)
+
+    return { values: { user: member?.user.id ?? viewerId }, member, priority, exportDisabledReason }
   }
 
   const focus = readMember('priority-focus')
@@ -102,12 +110,13 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={focus.values}
+        exportDisabledReason={focus.exportDisabledReason}
       >
         <div className="grid h-full grid-cols-[184px_minmax(0,1fr)]">
-          <div className="flex flex-col bg-(--card-panel) p-7">
+          <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatDate(date, { weekday: 'long', timeZone: 'UTC' })}</p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[120px] leading-[0.9] text-(--card-strong)')}>
-              {formatDate(date, { day: 'numeric', timeZone: 'UTC' })}
+              {dayOfMonth}
             </p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 text-[28px]/[1.12]')}>
               {formatDate(date, { month: 'long', timeZone: 'UTC' })}
@@ -115,7 +124,9 @@ function BuildInPublicPriority({ settings }: Props) {
           </div>
           <div className="flex min-w-0 flex-col px-7 pt-7 pb-11">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.focusedOn)}</p>
-            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-4 text-[32px]/[1.12]')}>{focus.priority}</p>
+            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-4 wrap-break-word text-[32px]/[1.12]')}>
+              {focus.priority}
+            </p>
             {renderPerson(focus.member, 'mt-6')}
           </div>
         </div>
@@ -128,13 +139,16 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={statement.values}
+        exportDisabledReason={statement.exportDisabledReason}
       >
         <p className={CARD_EYEBROW_CLASS_NAME}>
           {formatMessage(buildInPublicMessages.priorityOn, {
             date: formatDate(date, { month: 'short', day: 'numeric', timeZone: 'UTC' }),
           })}
         </p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-5 text-[30px]/[1.12]')}>{statement.priority}</p>
+        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-5 wrap-break-word text-[30px]/[1.12]')}>
+          {statement.priority}
+        </p>
         {renderPerson(statement.member, 'mt-6')}
       </BuildInPublicCard>
       <BuildInPublicCard
@@ -145,11 +159,14 @@ function BuildInPublicPriority({ settings }: Props) {
         settings={settings}
         fields={fields}
         values={oneThing.values}
+        exportDisabledReason={oneThing.exportDisabledReason}
       >
         <BuildInPublicOrganization maxSize={13} />
         <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[96px] leading-[0.9] text-(--card-strong)')}>1</p>
         <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-3')}>{formatMessage(buildInPublicMessages.oneThingToday)}</p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-5 text-[30px]/[1.12]')}>{oneThing.priority}</p>
+        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-5 wrap-break-word text-[30px]/[1.12]')}>
+          {oneThing.priority}
+        </p>
         {oneThing.member?.user.displayName ? (
           <>
             <div className={cn(CARD_RULE_CLASS_NAME, 'mt-6 mb-4')} />

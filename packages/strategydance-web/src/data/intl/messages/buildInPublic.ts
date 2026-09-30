@@ -364,6 +364,12 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'No top priority set yet',
     description: "Shown on a card in place of a teammate's top priority while they have none.",
   },
+  nothingToShare: {
+    id: 'buildInPublic.nothingToShare',
+    defaultMessage: 'Nothing to share until a top priority is set.',
+    description:
+      'Beside a top priority card whose buttons to copy or download it are turned off, because the person it shows has not set a top priority yet.',
+  },
   tasksTitle: {
     id: 'buildInPublic.tasksTitle',
     defaultMessage: 'Tasks',
@@ -649,7 +655,7 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.fromLog',
     defaultMessage: "From {name}'s log · {date}",
     description:
-      'Line under a quote from a log entry: whose log it is from, by first name, and its date, such as "Sep 28".',
+      'Line under a quote from a log entry: whose log it is from, by the name they gave, and its date, such as "Sep 28".',
   },
   buildLog: {
     id: 'buildInPublic.buildLog',
@@ -665,7 +671,7 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.dayCounter',
     defaultMessage: '<word>Day</word> <number>{count}</number>',
     description:
-      'Which day of its life the organization is on, as in "Day 12". The word and the number are drawn at different sizes: keep both tags around them.',
+      'Which day of its life the organization is on, as in "Day 12". Translate the word, and place the number where the language puts it, after the word or before it, as in Japanese "12日目". The word and the number are drawn at different sizes: keep both tags around them.',
   },
   companyTitle: {
     id: 'buildInPublic.companyTitle',

@@ -660,7 +660,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayCounter": {
-        "hash": "05d4f6c20d73a7f4",
+        "hash": "10d06db29a3f9ba7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayCounterCard": {
@@ -752,7 +752,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.fromLog": {
-        "hash": "4f9af5875450e3c6",
+        "hash": "044a7a3125aaa6a0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.gridCard": {
@@ -821,6 +821,10 @@
       },
       "buildInPublic.noPriority": {
         "hash": "ccb20c97eb626b0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.nothingToShare": {
+        "hash": "2666d3f10733410a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.numberOfTasks": {

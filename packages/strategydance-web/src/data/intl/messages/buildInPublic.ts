@@ -649,7 +649,7 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.fromLog',
     defaultMessage: "From {name}'s log · {date}",
     description:
-      'Line under a quote from a log entry: whose log it is from, by first name, and its date, such as "Sep 28".',
+      'Line under a quote from a log entry: whose log it is from, by the name they gave, and its date, such as "Sep 28".',
   },
   buildLog: {
     id: 'buildInPublic.buildLog',

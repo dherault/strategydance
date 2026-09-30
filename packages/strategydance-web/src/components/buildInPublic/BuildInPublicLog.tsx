@@ -172,7 +172,8 @@ function BuildInPublicLog({ settings }: Props) {
     )
   }
 
-  const quoteAuthorName = quote.author?.user.displayName?.split(/\s+/)[0] ?? null
+  // The name as they gave it, since a first word is not a first name where the family name comes first
+  const quoteAuthorName = quote.author?.user.displayName ?? null
 
   return (
     <BuildInPublicSection
@@ -240,7 +241,7 @@ function BuildInPublicLog({ settings }: Props) {
             {quoteOf(quote.entry)}
           </p>
           {quoteAuthorName ? (
-            <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-auto mb-0 text-xs font-medium')}>
+            <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-auto mb-0 line-clamp-2 wrap-break-word text-xs font-medium')}>
               {formatMessage(buildInPublicMessages.fromLog, {
                 name: quoteAuthorName,
                 date: formatShortDate(quote.entry.date),

@@ -50,7 +50,7 @@
   "buildInPublic.dailyTasksDone": "のデイリータスクを完了",
   "buildInPublic.dayActive": "{day}: アクティブ",
   "buildInPublic.dayBar": "{day}: {total}件中{done}件完了",
-  "buildInPublic.dayCounter": "<word>Day</word> <number>{count}</number>",
+  "buildInPublic.dayCounter": "<number>{count}</number><word>日目</word>",
   "buildInPublic.dayCounterCard": "日数カウンター",
   "buildInPublic.dayField": "日付",
   "buildInPublic.dayInactive": "{day}: 更新なし",

@@ -665,7 +665,7 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.dayCounter',
     defaultMessage: '<word>Day</word> <number>{count}</number>',
     description:
-      'Which day of its life the organization is on, as in "Day 12". The word and the number are drawn at different sizes: keep both tags around them.',
+      'Which day of its life the organization is on, as in "Day 12". Translate the word, and place the number where the language puts it, after the word or before it, as in Japanese "12日目". The word and the number are drawn at different sizes: keep both tags around them.',
   },
   companyTitle: {
     id: 'buildInPublic.companyTitle',

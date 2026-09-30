@@ -33,7 +33,7 @@ type Props = {
   the reader again
 */
 function BuildInPublicPriority({ settings }: Props) {
-  const { formatMessage, formatDate } = useIntl()
+  const { formatMessage, formatDate, formatDateToParts } = useIntl()
   const { data: viewer } = useAuthentication()
   const { data: team, loading, refetch, hasFailed } = useOrganizationTeam()
   const today = useLocalDate()
@@ -41,6 +41,11 @@ function BuildInPublicPriority({ settings }: Props) {
   const viewerId = viewer?.uid ?? ''
   const members = team.userOrganizations
   const date = toCalendarDate(today)
+  // The day of the month alone, which Japanese and Chinese would otherwise write with 日 after it,
+  // twice as wide as the panel it stands in, over the month that says it already
+  const dayOfMonth = formatDateToParts(date, { day: 'numeric', timeZone: 'UTC' }).find(
+    part => part.type === 'day',
+  )?.value
 
   const teammateField: CardField = {
     kind: 'select',
@@ -104,10 +109,10 @@ function BuildInPublicPriority({ settings }: Props) {
         values={focus.values}
       >
         <div className="grid h-full grid-cols-[184px_minmax(0,1fr)]">
-          <div className="flex flex-col bg-(--card-panel) p-7">
+          <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatDate(date, { weekday: 'long', timeZone: 'UTC' })}</p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[120px] leading-[0.9] text-(--card-strong)')}>
-              {formatDate(date, { day: 'numeric', timeZone: 'UTC' })}
+              {dayOfMonth}
             </p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 text-[28px]/[1.12]')}>
               {formatDate(date, { month: 'long', timeZone: 'UTC' })}

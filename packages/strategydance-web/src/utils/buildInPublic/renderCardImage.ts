@@ -8,6 +8,9 @@ type DrawOptions = NonNullable<Parameters<HtmlToImage['toSvg']>[1]>
 // Twice the card's CSS size, so a 600px wide card is a 1200px wide picture, sharp on any screen
 const PIXEL_RATIO = 2
 
+// How long the pictures inside a card's SVG take to be drawn after the SVG itself, in Safari
+const PICTURES_DELAY = 150
+
 /*
   The page's font faces with each font file inlined, read once for every card. Read off the whole
   page, where every card is mounted, since the library inlines only the families of the element it
@@ -110,7 +113,10 @@ function keepUsedFontFaces(css: string, element: HTMLElement) {
 /*
   A card drawn onto a canvas twice its size, as a PNG. The library serializes the card's clone to
   an SVG, whose styles are repaired where it copied them wrong (`repairCardSvg`), and the SVG is
-  drawn here rather than by the library, which would draw it unrepaired
+  drawn here rather than by the library, which would draw it unrepaired.
+
+  It is drawn twice. Safari decodes the pictures inside an SVG only once the SVG is first drawn, so
+  that draw has an empty circle where an avatar goes, and the one after a pause has the picture
 */
 async function drawCard(toSvg: HtmlToImage['toSvg'], element: HTMLElement, options: DrawOptions) {
   const image = new Image()
@@ -122,7 +128,13 @@ async function drawCard(toSvg: HtmlToImage['toSvg'], element: HTMLElement, optio
 
   canvas.width = element.offsetWidth * PIXEL_RATIO
   canvas.height = element.offsetHeight * PIXEL_RATIO
-  canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  const context = canvas.getContext('2d')
+
+  context?.drawImage(image, 0, 0, canvas.width, canvas.height)
+  await new Promise(resolve => setTimeout(resolve, PICTURES_DELAY))
+  context?.clearRect(0, 0, canvas.width, canvas.height)
+  context?.drawImage(image, 0, 0, canvas.width, canvas.height)
 
   return new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
 }

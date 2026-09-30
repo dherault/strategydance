@@ -17,6 +17,7 @@ import {
   CARD_EYEBROW_CLASS_NAME,
   CARD_MUTED_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
+import FitText from '~components/buildInPublic/FitText'
 
 import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 
@@ -140,9 +141,17 @@ function BuildInPublicTasks({ settings }: Props) {
               <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 wrap-break-word text-[28px]/[1.12]')}>
                 {progressList.name}
               </p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[64px] leading-[0.9] text-(--card-strong)')}>
+              {/* Shrinks once the counts reach three digits, which the panel is not wide enough for */}
+              <FitText
+                as="p"
+                isDisplay
+                max={64}
+                min={32}
+                lineHeight={0.9}
+                className="mt-auto text-(--card-strong)"
+              >
                 {progressDone}/{progressTotal}
-              </p>
+              </FitText>
               <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-2 mb-0 text-sm')}>
                 {formatMessage(buildInPublicMessages.tasksDone, { count: progressDone })}
               </p>

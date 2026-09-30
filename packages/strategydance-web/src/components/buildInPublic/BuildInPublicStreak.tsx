@@ -164,15 +164,17 @@ function BuildInPublicStreak({ settings }: Props) {
               isLit={isLit}
               className="text-(--flame-off)"
             />
-            <p
-              className={cn(
-                CARD_DISPLAY_CLASS_NAME,
-                'mt-auto text-[104px] leading-[0.85]',
-                thisWeek.flameColor !== 'warm' && 'text-(--card-strong)',
-              )}
+            {/* Shrinks past two digits, which the panel is as wide as */}
+            <FitText
+              as="p"
+              isDisplay
+              max={104}
+              min={48}
+              lineHeight={0.85}
+              className={cn('mt-auto', thisWeek.flameColor !== 'warm' && 'text-(--card-strong)')}
             >
               {current}
-            </p>
+            </FitText>
             <p className="mt-2.5 mb-0 text-[15px] font-medium">
               {formatMessage(buildInPublicMessages.dayStreak, { count: current })}
             </p>

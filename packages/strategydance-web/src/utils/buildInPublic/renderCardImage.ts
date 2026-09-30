@@ -55,21 +55,26 @@ function fetchImage(src: string) {
   return dataUrl
 }
 
-// Somebody's initials on the colors of the design system's avatar, for a picture of them that
-// could not be fetched, drawn at the size the picture had
-function drawInitials(name: string, size: number) {
+/*
+  Somebody's initials as their avatar draws them, for a picture of them that could not be fetched:
+  its fill, its color and its initials' size, read off the avatar. With no name it is the fill
+  alone, which is what the avatar shows of somebody who gave none
+*/
+function drawInitials(name: string, avatar: HTMLElement) {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
-  const styles = getComputedStyle(document.documentElement)
+  const styles = getComputedStyle(avatar)
+  const size = avatar.clientWidth || 32
+  const fontRatio = (parseFloat(styles.fontSize) || size * 0.375) / size
 
   canvas.width = canvas.height = Math.max(64, size * PIXEL_RATIO)
 
   if (!context) return null
 
-  context.fillStyle = styles.getPropertyValue('--color-secondary-100').trim() || '#dbe4ee'
+  context.fillStyle = styles.backgroundColor
   context.fillRect(0, 0, canvas.width, canvas.height)
-  context.fillStyle = styles.getPropertyValue('--color-secondary').trim() || '#142a41'
-  context.font = `600 ${Math.round(canvas.width * 0.4)}px "Inter Variable", sans-serif`
+  context.fillStyle = styles.color
+  context.font = `600 ${Math.round(canvas.width * fontRatio)}px "Inter Variable", sans-serif`
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillText(getInitials(name), canvas.width / 2, canvas.height / 2 + 1)
@@ -100,9 +105,9 @@ function keepUsedFontFaces(css: string, element: HTMLElement) {
 /*
   A card as a PNG, twice its size, with the page's fonts and the card's pictures in it.
 
-  Each picture is swapped for its bytes while the card is drawn, then put back. One that cannot be
-  fetched becomes its subject's initials when it names somebody, as an avatar does, and is left out
-  otherwise, so what it covered shows: a logo's initials, a banner's color. When drawing still
+  Each picture is swapped for its bytes while the card is drawn, then put back. An avatar's that
+  cannot be fetched becomes its subject's initials, as the avatar would show them, and any other is
+  left out, so what it covered shows: a logo's initials, a banner's color. When drawing still
   fails, the card is drawn once more without any picture
 */
 async function renderCardImage(element: HTMLElement) {
@@ -126,7 +131,8 @@ async function renderCardImage(element: HTMLElement) {
   const swaps = await Promise.all(
     images.map(async image => {
       const src = image.src
-      const dataUrl = (await fetchImage(src)) ?? (image.alt ? drawInitials(image.alt, image.clientWidth) : null)
+      const avatar = image.closest<HTMLElement>('[data-slot="avatar"]')
+      const dataUrl = (await fetchImage(src)) ?? (avatar ? drawInitials(image.alt, avatar) : null)
 
       return { image, src, dataUrl }
     }),

@@ -123,7 +123,8 @@ function BuildInPublicCompany({ settings }: Props) {
             />
           ) : null}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col px-7 pb-11">
+        {/* Down to just above the address, so a name of two lines and a brief of two fit */}
+        <div className="flex min-h-0 flex-1 flex-col px-7 pb-8">
           {/* Positioned, so its white frame is drawn over the banner it overlaps rather than under it */}
           <div className="relative -mt-9 self-start rounded-xs bg-white p-[3px]">
             <BuildInPublicLogo
@@ -147,7 +148,12 @@ function BuildInPublicCompany({ settings }: Props) {
               {formatMessage(buildInPublicMessages.dayNumber, { count: dayCount })}
             </p>
           </div>
-          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-1.5 mb-0 line-clamp-2 wrap-break-word text-sm leading-[1.5]')}>
+          <p
+            className={cn(
+              CARD_MUTED_CLASS_NAME,
+              'mt-1.5 mb-0 line-clamp-2 flex-none wrap-break-word text-sm leading-[1.5]',
+            )}
+          >
             {organization?.brief || formatMessage(buildInPublicMessages.teamBrief, { count: members.length })}
           </p>
         </div>

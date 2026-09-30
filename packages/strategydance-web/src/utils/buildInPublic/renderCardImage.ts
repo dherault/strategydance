@@ -3,7 +3,12 @@ import { getInitials } from 'strategydance-design-system/lib/getInitials'
 // Twice the card's CSS size, so a 600px wide card is a 1200px wide picture, sharp on any screen
 const PIXEL_RATIO = 2
 
-// The page's font faces with each font file inlined, read once for every card: it fetches them all
+/*
+  The page's font faces with each font file inlined, read once for every card. Read off the whole
+  page, where every card is mounted, since the library inlines only the families of the element it
+  is handed: read off one card, it would leave out the display face for every later card whenever
+  the first had none
+*/
 let fontEmbedCss: Promise<string> | null = null
 
 // Each picture a card has shown, as a data URL, or null once it could not be fetched
@@ -104,7 +109,14 @@ async function renderCardImage(element: HTMLElement) {
 
   await document.fonts.ready
 
-  fontEmbedCss ??= getFontEmbedCSS(element).catch(() => '')
+  fontEmbedCss ??= getFontEmbedCSS(document.body).catch((error: unknown) => {
+    console.warn("Drawing a card without the page's fonts", error)
+
+    // The next card tries again, rather than every card going without them until the page reloads
+    fontEmbedCss = null
+
+    return ''
+  })
 
   const fontCss = keepUsedFontFaces(await fontEmbedCss, element)
   const images = [...element.querySelectorAll('img')].filter(image => image.src && !image.src.startsWith('data:'))

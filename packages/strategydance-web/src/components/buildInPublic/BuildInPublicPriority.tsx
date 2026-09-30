@@ -14,10 +14,12 @@ import getMemberName from '~utils/team/getMemberName'
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicOrganization from '~components/buildInPublic/BuildInPublicOrganization'
 import BuildInPublicPerson from '~components/buildInPublic/BuildInPublicPerson'
+import BuildInPublicRichText from '~components/buildInPublic/BuildInPublicRichText'
 import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
 import {
   CARD_DISPLAY_CLASS_NAME,
   CARD_EYEBROW_CLASS_NAME,
+  CARD_PRIORITY_CLASS_NAME,
   CARD_RULE_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
 
@@ -56,11 +58,32 @@ function BuildInPublicPriority({ settings }: Props) {
       ?? members.find(teamMember => teamMember.user.id === viewerId)
       ?? null
     const isViewer = member?.user.id === viewerId
-    const priority =
-      member?.topPriority
-      || formatMessage(isViewer ? buildInPublicMessages.setPriority : buildInPublicMessages.noPriority)
+    const priority = member?.topPriority || null
+    const placeholder = formatMessage(isViewer ? buildInPublicMessages.setPriority : buildInPublicMessages.noPriority)
 
-    return { values: { user: member?.user.id ?? viewerId }, member, priority }
+    return { values: { user: member?.user.id ?? viewerId }, member, priority, placeholder }
+  }
+
+  /*
+    The priority as it was written, its headline and the steps under it, at the card's size, or
+    what stands in for one not written yet. Either takes the room the card leaves it
+  */
+  function renderPriority(
+    { priority, placeholder }: ReturnType<typeof readMember>,
+    className: string,
+    sizeClassName: string,
+  ) {
+    if (!priority) {
+      return <p className={cn(CARD_DISPLAY_CLASS_NAME, className, 'line-clamp-4', sizeClassName)}>{placeholder}</p>
+    }
+
+    return (
+      <BuildInPublicRichText
+        value={priority}
+        className={className}
+        textClassName={cn(CARD_PRIORITY_CLASS_NAME, sizeClassName)}
+      />
+    )
   }
 
   const focus = readMember('priority-focus')
@@ -103,7 +126,8 @@ function BuildInPublicPriority({ settings }: Props) {
         fields={fields}
         values={focus.values}
       >
-        <div className="grid h-full grid-cols-[184px_minmax(0,1fr)]">
+        {/* Its one row as tall as the card, so a long priority fades out rather than growing past it */}
+        <div className="grid h-full grid-cols-[184px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)]">
           <div className="flex flex-col bg-(--card-panel) p-7">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatDate(date, { weekday: 'long', timeZone: 'UTC' })}</p>
             <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[120px] leading-[0.9] text-(--card-strong)')}>
@@ -113,9 +137,9 @@ function BuildInPublicPriority({ settings }: Props) {
               {formatDate(date, { month: 'long', timeZone: 'UTC' })}
             </p>
           </div>
-          <div className="flex min-w-0 flex-col px-7 pt-7 pb-11">
+          <div className="flex min-h-0 min-w-0 flex-col px-7 pt-7 pb-11">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.focusedOn)}</p>
-            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-4 text-[32px]/[1.12]')}>{focus.priority}</p>
+            {renderPriority(focus, 'mt-auto', 'text-[32px]/[1.12]')}
             {renderPerson(focus.member, 'mt-6')}
           </div>
         </div>
@@ -134,7 +158,7 @@ function BuildInPublicPriority({ settings }: Props) {
             date: formatDate(date, { month: 'short', day: 'numeric', timeZone: 'UTC' }),
           })}
         </p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-5 text-[30px]/[1.12]')}>{statement.priority}</p>
+        {renderPriority(statement, 'mt-auto', 'text-[30px]/[1.12]')}
         {renderPerson(statement.member, 'mt-6')}
       </BuildInPublicCard>
       <BuildInPublicCard
@@ -149,7 +173,7 @@ function BuildInPublicPriority({ settings }: Props) {
         <BuildInPublicOrganization maxSize={13} />
         <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[96px] leading-[0.9] text-(--card-strong)')}>1</p>
         <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-3')}>{formatMessage(buildInPublicMessages.oneThingToday)}</p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-5 text-[30px]/[1.12]')}>{oneThing.priority}</p>
+        {renderPriority(oneThing, 'mt-3', 'text-[30px]/[1.12]')}
         {oneThing.member?.user.displayName ? (
           <>
             <div className={cn(CARD_RULE_CLASS_NAME, 'mt-6 mb-4')} />

@@ -18,10 +18,12 @@ import getMemberName from '~utils/team/getMemberName'
 
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicLogo from '~components/buildInPublic/BuildInPublicLogo'
+import BuildInPublicRichText from '~components/buildInPublic/BuildInPublicRichText'
 import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
 import {
   CARD_DISPLAY_CLASS_NAME,
   CARD_EYEBROW_CLASS_NAME,
+  CARD_PRIORITY_CLASS_NAME,
   CARD_MUTED_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
 import FitText from '~components/buildInPublic/FitText'
@@ -75,7 +77,7 @@ function BuildInPublicCompany({ settings }: Props) {
   const shownMembers = pickedMembers.length ? pickedMembers : members.slice(0, MAX_TEAM_AVATARS)
 
   const viewerMember = members.find(member => member.user.id === viewerId)
-  const priority = viewerMember?.topPriority || formatMessage(buildInPublicMessages.setPriority)
+  const priority = viewerMember?.topPriority || null
   const weekChecks = checklist.checklistItems.reduce(
     (sum, item) =>
       sum + item.completions.filter(completion => completion.date >= weekStart && completion.date <= today).length,
@@ -227,10 +229,23 @@ function BuildInPublicCompany({ settings }: Props) {
             {formatDate(toCalendarDate(today), { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
           </p>
         </div>
-        <div className="mt-auto grid min-h-[170px] grid-cols-[1.5fr_1fr_1fr]">
-          <div className="flex min-w-0 flex-col gap-3 pr-5">
+        {/* Its one row as tall as the room left, so a long priority fades out rather than growing the card */}
+        <div className="mt-auto grid min-h-[170px] grid-cols-[1.5fr_1fr_1fr] grid-rows-[minmax(0,1fr)]">
+          <div className="flex min-h-0 min-w-0 flex-col gap-3 pr-5">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.priorityTitle)}</p>
-            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 text-[22px]/[1.2]')}>{priority}</p>
+            {priority ? (
+              <BuildInPublicRichText
+                value={priority}
+                textClassName={cn(
+                  CARD_PRIORITY_CLASS_NAME,
+                  'text-[22px]/[1.2] [&_ol]:text-sm/[1.45] [&_ul]:text-sm/[1.45]',
+                )}
+              />
+            ) : (
+              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 text-[22px]/[1.2]')}>
+                {formatMessage(buildInPublicMessages.setPriority)}
+              </p>
+            )}
           </div>
           {[
             {

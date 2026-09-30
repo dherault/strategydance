@@ -4,6 +4,22 @@ An AI experiment.
 
 A [Bun](https://bun.com) monorepo. Packages live under `packages/`.
 
+## Vision
+
+Strategy Dance aims to create partly autonomous companies that involve both humans and AIs.
+
+Its first iteration will act as an overseer and companion for solo entrepreneurs, helping them
+build, distribute, stay accountable, stay consistent, and, more generally, act on their projects
+using AI guidance and human wisdom. Progressively, AI guidance will evolve into AI execution,
+performing tasks typically reserved for humans.
+
+In the long term, we would create 100% automated companies. We could also provide existing
+organizations with AI employees across various departments and possibly offer salaries to the
+humans who work for AI-led companies.
+
+The main challenge is to solve company creation and execution by creating a universal system.
+The answer lies in architecture and design.
+
 ## Packages
 
 - [`packages/strategydance-web`](packages/strategydance-web) — TanStack Start (SPA mode) + React + Tailwind CSS v4, built with Vite

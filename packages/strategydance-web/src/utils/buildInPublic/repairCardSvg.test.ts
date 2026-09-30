@@ -22,6 +22,21 @@ describe('repairCardSvg', () => {
     )
   })
 
+  it('gives the size in the font shorthand back its whole pixels, and only the size', () => {
+    const svg =
+      '<p style="font: 400 13.9px / 21px &quot;Inter Variable&quot;, sans-serif; letter-spacing: 0.9px;">a</p>'
+
+    expect(fromDataUrl(repairCardSvg(toDataUrl(svg)))).toBe(
+      '<p style="font: 400 14px / 21px &quot;Inter Variable&quot;, sans-serif; letter-spacing: 0.9px;">a</p>',
+    )
+  })
+
+  it('leaves a line height in the font shorthand alone, even one that looks floored', () => {
+    const svg = '<p style="font: 400 14px / 20.9px sans-serif;">a</p>'
+
+    expect(fromDataUrl(repairCardSvg(toDataUrl(svg)))).toBe(svg)
+  })
+
   it('draws a clamped text as a box again, so the clamp cuts it with an ellipsis', () => {
     const svg =
       '<p style="display: flow-root; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3;">a</p>'

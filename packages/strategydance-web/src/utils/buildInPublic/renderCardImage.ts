@@ -108,7 +108,10 @@ function keepUsedFontFaces(css: string, element: HTMLElement) {
   Each picture is swapped for its bytes while the card is drawn, then put back. An avatar's that
   cannot be fetched becomes its subject's initials, as the avatar would show them, and any other is
   left out, so what it covered shows: a logo's initials, a banner's color. When drawing still
-  fails, the card is drawn once more without any picture
+  fails, the card is drawn once more without any picture.
+
+  The picture is square cornered, whatever the card's corners on the page, since a rounded one
+  would leave its corners transparent
 */
 async function renderCardImage(element: HTMLElement) {
   // Imported here rather than at the top, so the library loads with the first picture asked for,
@@ -150,6 +153,7 @@ async function renderCardImage(element: HTMLElement) {
       pixelRatio: PIXEL_RATIO,
       fontEmbedCSS: fontCss,
       cacheBust: false,
+      style: { borderRadius: '0' },
       filter: (node: HTMLElement) => !leftOut.has(node),
     }
     const blob = await toBlob(element, options).catch(() =>

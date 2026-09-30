@@ -1,5 +1,10 @@
 import { getInitials } from 'strategydance-design-system/lib/getInitials'
 
+import repairCardSvg from '~utils/buildInPublic/repairCardSvg'
+
+type HtmlToImage = typeof import('html-to-image')
+type DrawOptions = NonNullable<Parameters<HtmlToImage['toSvg']>[1]>
+
 // Twice the card's CSS size, so a 600px wide card is a 1200px wide picture, sharp on any screen
 const PIXEL_RATIO = 2
 
@@ -103,6 +108,26 @@ function keepUsedFontFaces(css: string, element: HTMLElement) {
 }
 
 /*
+  A card drawn onto a canvas twice its size, as a PNG. The library serializes the card's clone to
+  an SVG, whose styles are repaired where it copied them wrong (`repairCardSvg`), and the SVG is
+  drawn here rather than by the library, which would draw it unrepaired
+*/
+async function drawCard(toSvg: HtmlToImage['toSvg'], element: HTMLElement, options: DrawOptions) {
+  const image = new Image()
+
+  image.src = repairCardSvg(await toSvg(element, options))
+  await image.decode()
+
+  const canvas = document.createElement('canvas')
+
+  canvas.width = element.offsetWidth * PIXEL_RATIO
+  canvas.height = element.offsetHeight * PIXEL_RATIO
+  canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  return new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
+}
+
+/*
   A card as a PNG, twice its size, with the page's fonts and the card's pictures in it.
 
   Each picture is swapped for its bytes while the card is drawn, then put back. An avatar's that
@@ -116,7 +141,7 @@ function keepUsedFontFaces(css: string, element: HTMLElement) {
 async function renderCardImage(element: HTMLElement) {
   // Imported here rather than at the top, so the library loads with the first picture asked for,
   // and never in the document shell prerendered at build time
-  const { getFontEmbedCSS, toBlob } = await import('html-to-image')
+  const { getFontEmbedCSS, toSvg } = await import('html-to-image')
 
   await document.fonts.ready
 
@@ -149,15 +174,14 @@ async function renderCardImage(element: HTMLElement) {
   try {
     await Promise.all(swaps.map(swap => swap.image.decode().catch(() => undefined)))
 
-    const options = {
-      pixelRatio: PIXEL_RATIO,
+    const options: DrawOptions = {
       fontEmbedCSS: fontCss,
       cacheBust: false,
       style: { borderRadius: '0' },
       filter: (node: HTMLElement) => !leftOut.has(node),
     }
-    const blob = await toBlob(element, options).catch(() =>
-      toBlob(element, { ...options, filter: (node: HTMLElement) => node.tagName !== 'IMG' }),
+    const blob = await drawCard(toSvg, element, options).catch(() =>
+      drawCard(toSvg, element, { ...options, filter: (node: HTMLElement) => node.tagName !== 'IMG' }),
     )
 
     if (!blob) throw new Error('Could not draw the card')

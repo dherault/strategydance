@@ -4,7 +4,7 @@ import { MAX_LOG_ENTRY_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import type { RichTextEditorChange } from 'strategydance-design-system/components/ui/RichTextEditor'
 
-import useRichTextEditor from '~hooks/log/useRichTextEditor'
+import useRichTextEditor from '~hooks/common/useRichTextEditor'
 
 import Spinner from '~components/common/Spinner'
 
@@ -44,7 +44,11 @@ function LogEditor({
   const { formatMessage } = useIntl()
   const { RichTextEditor, hasFailed } = useRichTextEditor()
 
-  const [change, setChange] = useState<RichTextEditorChange>({ value: initialValue ?? '', isEmpty: !initialValue })
+  const [change, setChange] = useState<RichTextEditorChange>({
+    value: initialValue ?? '',
+    isEmpty: !initialValue,
+    textLength: 0,
+  })
 
   const canSubmit = !change.isEmpty && !isPending && change.value.length <= MAX_LOG_ENTRY_LENGTH
 

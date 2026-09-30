@@ -18,10 +18,12 @@ import getMemberName from '~utils/team/getMemberName'
 
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicLogo from '~components/buildInPublic/BuildInPublicLogo'
+import BuildInPublicRichText from '~components/buildInPublic/BuildInPublicRichText'
 import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
 import {
   CARD_DISPLAY_CLASS_NAME,
   CARD_EYEBROW_CLASS_NAME,
+  CARD_PRIORITY_CLASS_NAME,
   CARD_MUTED_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
 import FitText from '~components/buildInPublic/FitText'
@@ -234,13 +236,23 @@ function BuildInPublicCompany({ settings }: Props) {
             {formatDate(toCalendarDate(today), { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
           </p>
         </div>
-        <div className={cn('mt-auto grid min-h-[170px]', priority ? 'grid-cols-[1.5fr_1fr_1fr]' : 'grid-cols-2')}>
+        {/* Its one row as tall as the room left, so a long priority fades out rather than growing the card */}
+        <div
+          className={cn(
+            'mt-auto grid min-h-[170px] grid-rows-[minmax(0,1fr)]',
+            priority ? 'grid-cols-[1.5fr_1fr_1fr]' : 'grid-cols-2',
+          )}
+        >
           {priority ? (
-            <div className="flex min-w-0 flex-col gap-3 pr-5">
+            <div className="flex min-h-0 min-w-0 flex-col gap-3 pr-5">
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.priorityTitle)}</p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 wrap-break-word text-[22px]/[1.2]')}>
-                {priority}
-              </p>
+              <BuildInPublicRichText
+                value={priority}
+                textClassName={cn(
+                  CARD_PRIORITY_CLASS_NAME,
+                  'text-[22px]/[1.2] [&_ol]:text-sm/[1.45] [&_ul]:text-sm/[1.45]',
+                )}
+              />
             </div>
           ) : null}
           {[

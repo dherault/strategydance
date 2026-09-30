@@ -172,10 +172,18 @@ export const MAX_USER_BIO_LENGTH = 200
 --- */
 
 /*
-  How long a member's top priority may be, the one line their team reads on its Today page.
-  Written out again in `UpdateTopPriority`'s check, which cannot import it: change the two together
+  How long a member's top priority may be, the Lexical editor state their team reads on its Today
+  page, serialized: room for 500 characters whose formats change at nearly every one, since each
+  run of text costs about a hundred characters of its own. Written out again in
+  `UpdateTopPriority`'s check, which cannot import it: change the two together
 */
-export const MAX_TOP_PRIORITY_LENGTH = 140
+export const MAX_TOP_PRIORITY_LENGTH = 100000
+
+/*
+  How many characters the words of a top priority may run to, which the dialog counts and holds it
+  to. The server cannot count them in a serialized state, and holds it to the length above instead
+*/
+export const MAX_TOP_PRIORITY_TEXT_LENGTH = 500
 
 /*
   How many task lists one person keeps in an organization, how many tasks a list holds, and how

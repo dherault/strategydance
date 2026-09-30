@@ -71,7 +71,12 @@ type RichTextEditorChange = {
   value: string
   /** No text anywhere: nothing worth saving */
   isEmpty: boolean
+  /** How many characters its text runs to, a line between two blocks counting as two */
+  textLength: number
 }
+
+/** A block the toolbar can turn a paragraph into, lists being one, bulleted and numbered alike */
+type RichTextBlock = 'h2' | 'quote' | 'list'
 
 type Props = {
   /** A serialized editor state to start from. Read once, on mount: change the `key` to start over */
@@ -84,6 +89,11 @@ type Props = {
   autoFocus?: boolean
   /** The toolbar's words. The defaults are English: a caller with a catalogue passes its own */
   labels?: Partial<RichTextEditorLabels>
+  /**
+   * The blocks it writes besides paragraphs, all three unless it says fewer. One left out has no
+   * button, and pastes as paragraphs
+   */
+  blocks?: RichTextBlock[]
   className?: string
   'aria-label'?: string
 }
@@ -124,7 +134,7 @@ const INITIAL_TOOLBAR_STATE: ToolbarState = {
   canRedo: false,
 }
 
-const NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode]
+const ALL_BLOCKS: RichTextBlock[] = ['h2', 'quote', 'list']
 
 /*
   A rich text field: a toolbar over a Lexical editor, for a post of a few paragraphs. It writes
@@ -132,7 +142,8 @@ const NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode]
   and strikethrough, which is everything `RichText` draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the serialized
-  state and whether it holds any text, and a parent that wants it empty again changes its `key`.
+  state, whether it holds any text and how much, and a parent that wants it empty again changes
+  its `key`. `blocks` narrows what it writes, for a text shorter than a post.
 
   What is pasted in keeps only what the toolbar could have made: inline styles are dropped and any
   heading becomes the one level, so nothing is saved that the page would not draw
@@ -144,12 +155,21 @@ function RichTextEditor({
   onSubmit,
   autoFocus = false,
   labels,
+  blocks = ALL_BLOCKS,
   className,
   'aria-label': ariaLabel,
 }: Props) {
+  // A block's nodes are registered only when it is offered, so a pasted one, whose nodes the editor
+  // then does not know, reads as paragraphs
+  const hasLists = blocks.includes('list')
+  const nodes = [
+    ...(blocks.includes('h2') ? [HeadingNode] : []),
+    ...(blocks.includes('quote') ? [QuoteNode] : []),
+    ...(hasLists ? [ListNode, ListItemNode] : []),
+  ]
   const initialConfig = {
     namespace: 'strategydance-rich-text',
-    nodes: NODES,
+    nodes,
     theme: RICH_TEXT_THEME,
     editorState: isSerializedEditorState(initialValue) ? initialValue : undefined,
     onError: (error: Error) => {
@@ -160,9 +180,9 @@ function RichTextEditor({
   function handleChange(editorState: EditorState) {
     if (!onChange) return
 
-    const isEmpty = editorState.read(() => $getRoot().getTextContent().trim() === '')
+    const text = editorState.read(() => $getRoot().getTextContent())
 
-    onChange({ value: JSON.stringify(editorState.toJSON()), isEmpty })
+    onChange({ value: JSON.stringify(editorState.toJSON()), isEmpty: text.trim() === '', textLength: text.length })
   }
 
   return (
@@ -174,7 +194,10 @@ function RichTextEditor({
           className,
         )}
       >
-        <RichTextToolbar labels={{ ...DEFAULT_LABELS, ...labels }} />
+        <RichTextToolbar
+          labels={{ ...DEFAULT_LABELS, ...labels }}
+          blocks={blocks}
+        />
         <div className="relative">
           <RichTextPlugin
             contentEditable={
@@ -194,7 +217,7 @@ function RichTextEditor({
         </div>
       </div>
       <HistoryPlugin delay={300} />
-      <ListPlugin />
+      {hasLists ? <ListPlugin /> : null}
       <OnChangePlugin
         ignoreSelectionChange
         onChange={handleChange}
@@ -222,7 +245,7 @@ function isSerializedEditorState(value: string | null | undefined): value is str
   }
 }
 
-function RichTextToolbar({ labels }: { labels: RichTextEditorLabels }) {
+function RichTextToolbar({ labels, blocks }: { labels: RichTextEditorLabels; blocks: RichTextBlock[] }) {
   const [editor] = useLexicalComposerContext()
   const [state, setState] = useState(INITIAL_TOOLBAR_STATE)
 
@@ -352,31 +375,39 @@ function RichTextToolbar({ labels }: { labels: RichTextEditorLabels }) {
         isActive={state.isStrikethrough}
         onClick={() => formatText('strikethrough')}
       />
-      <ToolbarSeparator />
-      <ToolbarButton
-        label={labels.heading}
-        icon={<Heading2Icon />}
-        isActive={state.blockType === 'h2'}
-        onClick={() => setBlock('h2')}
-      />
-      <ToolbarButton
-        label={labels.bulletedList}
-        icon={<ListIcon />}
-        isActive={state.blockType === 'bullet'}
-        onClick={() => toggleList('bullet')}
-      />
-      <ToolbarButton
-        label={labels.numberedList}
-        icon={<ListOrderedIcon />}
-        isActive={state.blockType === 'number'}
-        onClick={() => toggleList('number')}
-      />
-      <ToolbarButton
-        label={labels.quote}
-        icon={<TextQuoteIcon />}
-        isActive={state.blockType === 'quote'}
-        onClick={() => setBlock('quote')}
-      />
+      {blocks.length ? <ToolbarSeparator /> : null}
+      {blocks.includes('h2') ? (
+        <ToolbarButton
+          label={labels.heading}
+          icon={<Heading2Icon />}
+          isActive={state.blockType === 'h2'}
+          onClick={() => setBlock('h2')}
+        />
+      ) : null}
+      {blocks.includes('list') ? (
+        <>
+          <ToolbarButton
+            label={labels.bulletedList}
+            icon={<ListIcon />}
+            isActive={state.blockType === 'bullet'}
+            onClick={() => toggleList('bullet')}
+          />
+          <ToolbarButton
+            label={labels.numberedList}
+            icon={<ListOrderedIcon />}
+            isActive={state.blockType === 'number'}
+            onClick={() => toggleList('number')}
+          />
+        </>
+      ) : null}
+      {blocks.includes('quote') ? (
+        <ToolbarButton
+          label={labels.quote}
+          icon={<TextQuoteIcon />}
+          isActive={state.blockType === 'quote'}
+          onClick={() => setBlock('quote')}
+        />
+      ) : null}
       <ToolbarSeparator />
       <ToolbarButton
         label={labels.undo}
@@ -475,9 +506,12 @@ function PastedContentPlugin() {
         editor.registerNodeTransform(TextNode, node => {
           if (node.getStyle()) node.setStyle('')
         }),
-        editor.registerNodeTransform(HeadingNode, node => {
-          if (node.getTag() !== 'h2') node.setTag('h2')
-        }),
+        // Where headings are not written, a pasted one is already a paragraph
+        editor.hasNodes([HeadingNode])
+          ? editor.registerNodeTransform(HeadingNode, node => {
+              if (node.getTag() !== 'h2') node.setTag('h2')
+            })
+          : () => {},
       ),
     [editor],
   )
@@ -485,4 +519,4 @@ function PastedContentPlugin() {
   return null
 }
 
-export { RichTextEditor, type RichTextEditorChange, type RichTextEditorLabels }
+export { RichTextEditor, type RichTextBlock, type RichTextEditorChange, type RichTextEditorLabels }

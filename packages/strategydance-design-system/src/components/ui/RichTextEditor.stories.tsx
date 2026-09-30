@@ -25,6 +25,13 @@ export const WithValue: Story = {
   },
 }
 
+// Lists and the four formats, and no heading or quote, as a top priority is written
+export const ListsOnly: Story = {
+  args: {
+    blocks: ['list'],
+  },
+}
+
 export const AutoFocus: Story = {
   args: {
     autoFocus: true,

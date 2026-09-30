@@ -243,7 +243,8 @@ function BuildInPublicLog({ settings }: Props) {
           {quoteAuthorName ? (
             <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-auto mb-0 line-clamp-2 wrap-break-word text-xs font-medium')}>
               {formatMessage(buildInPublicMessages.fromLog, {
-                name: quoteAuthorName,
+                // Cut short where it runs long, so the date after it always shows
+                name: <span className="inline-block max-w-[60%] truncate align-bottom">{quoteAuthorName}</span>,
                 date: formatShortDate(quote.entry.date),
               })}
             </p>

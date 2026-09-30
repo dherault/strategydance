@@ -18,6 +18,7 @@
   "today.priorityLength": "{length}/{max}",
   "today.priorityPlaceholder": "在周五前确定测试版定价",
   "today.prioritySaveHint": "按 {shortcut} 保存",
+  "today.priorityTooFormatted": "此优先事项格式过多，无法保存。请清除部分格式后重试。",
   "today.priorityUpdated": "首要事项已更新",
   "today.reorderPriority": "调整 {name} 的顺序，当前位于第 {position}/{total} 位。使用方向键移动。",
   "today.retry": "重试",

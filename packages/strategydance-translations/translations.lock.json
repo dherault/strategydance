@@ -2565,6 +2565,10 @@
         "hash": "b582bc2d2e2a04e4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "today.priorityTooFormatted": {
+        "hash": "5a2fef343c9372e9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "today.priorityUpdated": {
         "hash": "3623ce5a8fcbd7c9",
         "locales": "DE,ES,FR,JA,PT,ZH"

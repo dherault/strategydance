@@ -54,9 +54,10 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
   const [hasFailed, setHasFailed] = useState(false)
 
   const nextTopPriority = change ? (change.isEmpty ? null : change.value) : topPriority
-  const isTooLong =
-    !!change && (change.textLength > MAX_TOP_PRIORITY_TEXT_LENGTH || change.value.length > MAX_TOP_PRIORITY_LENGTH)
-  const canSave = !!change && nextTopPriority !== topPriority && !isTooLong && !isPending
+  const isTooLong = !!change && change.textLength > MAX_TOP_PRIORITY_TEXT_LENGTH
+  // Within its characters, but formatted run by run until its state outgrows what the server takes
+  const isTooFormatted = !!change && !isTooLong && change.value.length > MAX_TOP_PRIORITY_LENGTH
+  const canSave = !!change && nextTopPriority !== topPriority && !isTooLong && !isTooFormatted && !isPending
 
   async function save() {
     if (!canSave) return
@@ -174,6 +175,9 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
                 </span>
               ) : null}
             </div>
+            {isTooFormatted ? (
+              <p className="m-0 text-sm text-danger">{formatMessage(todayMessages.priorityTooFormatted)}</p>
+            ) : null}
             {hasFailed ? (
               <p
                 role="alert"

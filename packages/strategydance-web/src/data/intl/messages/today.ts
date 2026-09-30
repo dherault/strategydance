@@ -84,6 +84,12 @@ const todayMessages = defineMessages({
     description:
       'Hint under the top priority field, such as "⌘Enter to save": the keyboard shortcut that saves the priority, since Enter starts a new line. {shortcut} is the key combination.',
   },
+  priorityTooFormatted: {
+    id: 'today.priorityTooFormatted',
+    defaultMessage: 'This priority has too much formatting to save. Remove some of it and try again.',
+    description:
+      'Shown under the top priority field when its text is short enough but formatted in so many separate pieces that it cannot be saved.',
+  },
   priorityUpdated: {
     id: 'today.priorityUpdated',
     defaultMessage: 'Top priority updated',

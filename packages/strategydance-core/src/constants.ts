@@ -173,10 +173,11 @@ export const MAX_USER_BIO_LENGTH = 200
 
 /*
   How long a member's top priority may be, the Lexical editor state their team reads on its Today
-  page, serialized: room for the formats and lists of its words. Written out again in
+  page, serialized: room for 500 characters whose formats change at nearly every one, since each
+  run of text costs about a hundred characters of its own. Written out again in
   `UpdateTopPriority`'s check, which cannot import it: change the two together
 */
-export const MAX_TOP_PRIORITY_LENGTH = 20000
+export const MAX_TOP_PRIORITY_LENGTH = 100000
 
 /*
   How many characters the words of a top priority may run to, which the dialog counts and holds it

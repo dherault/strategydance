@@ -276,14 +276,23 @@ function BuildInPublicLog({ settings }: Props) {
           values={{ user: author?.user.id ?? viewerId, count: String(timelineCount) }}
         >
           <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.buildLog)}</p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 mb-5 text-[26px]/[1.12]')}>
+          {/* On one line, shrinking where it runs long, as in Spanish, so four updates of two lines fit */}
+          <FitText
+            as="p"
+            isDisplay
+            max={26}
+            min={20}
+            lineHeight={1.12}
+            className="mt-2"
+          >
             {formatMessage(buildInPublicMessages.lastUpdates, { count: timelineCount })}
-          </p>
-          <ol className="m-0 flex list-none flex-col p-0">
+          </FitText>
+          {/* Spaced from here rather than below the heading, whose margin its fit takes over */}
+          <ol className="m-0 mt-5 flex list-none flex-col p-0">
             {entries.slice(0, timelineCount).map((entry, index) => (
               <li
                 key={entry.id}
-                className="relative grid grid-cols-[20px_minmax(0,1fr)] pb-4"
+                className="relative grid grid-cols-[20px_minmax(0,1fr)] pb-3 last:pb-0"
               >
                 {index < timelineCount - 1 ? (
                   <span
@@ -298,13 +307,7 @@ function BuildInPublicLog({ settings }: Props) {
                   >
                     {formatDay(entry.date)}
                   </span>
-                  {/* Four updates take a line each, since four of two lines run into the address */}
-                  <span
-                    className={cn(
-                      'mt-0.5 wrap-break-word text-[13px] leading-[1.45]',
-                      timelineCount > 3 ? 'line-clamp-1' : 'line-clamp-2',
-                    )}
-                  >
+                  <span className="mt-0.5 line-clamp-2 wrap-break-word text-[13px] leading-[1.45]">
                     {summaryOf(entry)}
                   </span>
                 </div>

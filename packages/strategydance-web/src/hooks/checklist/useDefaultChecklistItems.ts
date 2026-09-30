@@ -40,7 +40,7 @@ function useDefaultChecklistItems() {
 
     createDefaultChecklistItems(dataConnect, {
       organizationId,
-      firstName: formatMessage(checklistMessages.defaultReflexion),
+      firstName: formatMessage(checklistMessages.defaultReflection),
       secondName: formatMessage(checklistMessages.defaultTalkToUsers),
       thirdName: formatMessage(checklistMessages.defaultDistribution),
       fourthName: formatMessage(checklistMessages.defaultBuilding),

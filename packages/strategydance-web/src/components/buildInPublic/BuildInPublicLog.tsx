@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
-import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { CardField, LogEntry, OrganizationMember } from '~types'
@@ -22,6 +21,7 @@ import getMemberName from '~utils/team/getMemberName'
 
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicPerson from '~components/buildInPublic/BuildInPublicPerson'
+import BuildInPublicRichText from '~components/buildInPublic/BuildInPublicRichText'
 import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
 import {
   CARD_DISPLAY_CLASS_NAME,
@@ -36,16 +36,6 @@ import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 const MAX_ENTRY_OPTIONS = 30
 
 const TIMELINE_COUNTS = ['2', '3', '4']
-
-/*
-  The design system's rich text, restyled for a card: in the card's own colors on any tone, its
-  marks and quote bars in the accent, cut off where the card ends
-*/
-const CARD_RICH_TEXT_CLASS_NAME = cn(
-  'max-h-[180px] overflow-hidden text-base/[1.55] text-inherit',
-  '[&_p]:mb-2.5 [&_h2]:text-2xl/[1.2] [&_h2]:text-inherit',
-  '[&_blockquote]:border-(--card-mark) [&_blockquote]:text-(--card-quote) [&_li]:marker:text-(--card-mark)',
-)
 
 type Props = {
   settings: ReturnType<typeof useBuildInPublicSettings>
@@ -211,9 +201,10 @@ function BuildInPublicLog({ settings }: Props) {
               {formatMessage(buildInPublicMessages.logOn, { day: formatDay(logEntry.entry.date) })}
             </p>
           </div>
-          <RichText
+          <BuildInPublicRichText
             value={logEntry.entry.content}
-            className={cn(CARD_RICH_TEXT_CLASS_NAME, 'mt-5')}
+            className="mt-5"
+            textClassName="text-base/[1.55] [&_h2]:text-2xl/[1.2] [&_h2]:text-inherit [&_p]:mb-2.5"
           />
         </BuildInPublicCard>
       ) : null}

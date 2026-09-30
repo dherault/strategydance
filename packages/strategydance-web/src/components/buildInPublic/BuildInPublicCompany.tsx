@@ -176,7 +176,6 @@ function BuildInPublicCompany({ settings }: Props) {
           name={name}
           logoUrl={logoUrl}
           size={56}
-          isInverted
         />
         <FitText
           as="p"

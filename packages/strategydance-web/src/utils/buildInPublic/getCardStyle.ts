@@ -32,6 +32,9 @@ const LIGHT_TONE: Variables = {
   '--card-box-check': 'var(--card-on-accent)',
   '--card-quote': 'var(--color-neutral-600)',
   '--card-ring': 'none',
+  '--card-logo-background': 'var(--card-accent)',
+  '--card-logo-foreground': 'var(--card-on-accent)',
+  '--card-logo-ring': 'none',
 }
 
 // On the two dark ones, marks are drawn in what reads on the background, and the quiet parts fade
@@ -79,6 +82,10 @@ const TONE_VARIABLES: Record<CardTone, Variables> = {
     '--card-muted': 'var(--card-on-accent)',
     '--card-url': 'var(--card-on-accent)',
     '--card-box-check': 'var(--card-accent)',
+    // The logo turned inside out, since in the accent it would vanish into the card
+    '--card-logo-background': '#ffffff',
+    '--card-logo-foreground': 'var(--card-accent)',
+    '--card-logo-ring': 'none',
   },
   dark: {
     ...DARK_TONE,
@@ -92,6 +99,10 @@ const TONE_VARIABLES: Record<CardTone, Variables> = {
     '--card-muted': 'var(--color-neutral-300)',
     '--card-url': 'var(--color-neutral-300)',
     '--card-box-check': 'var(--color-secondary-900)',
+    // Outlined, since an accent as dark as the card would leave nothing of the square
+    '--card-logo-background': 'var(--card-accent)',
+    '--card-logo-foreground': 'var(--card-on-accent)',
+    '--card-logo-ring': 'inset 0 0 0 1px color-mix(in srgb, #ffffff 24%, transparent)',
   },
 }
 

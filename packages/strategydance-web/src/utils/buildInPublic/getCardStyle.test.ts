@@ -28,6 +28,12 @@ describe('getCardStyle', () => {
     expect(read(getCardStyle('white', '#0051A3'), '--card-track')).toBe('var(--card-accent-100)')
   })
 
+  it('draws the logo so that it stands apart from every tone', () => {
+    expect(read(getCardStyle('white', '#0051A3'), '--card-logo-background')).toBe('var(--card-accent)')
+    expect(read(getCardStyle('accent', '#0051A3'), '--card-logo-background')).toBe('#ffffff')
+    expect(read(getCardStyle('dark', '#142A41'), '--card-logo-ring')).not.toBe('none')
+  })
+
   it('draws a warm flame whatever the tone', () => {
     const accent = getCardStyle('accent', '#0051A3', 'warm')
     const white = getCardStyle('white', '#0051A3', 'warm')

@@ -297,7 +297,13 @@ function BuildInPublicLog({ settings }: Props) {
                   >
                     {formatDay(entry.date)}
                   </span>
-                  <span className="mt-0.5 line-clamp-2 wrap-break-word text-[13px] leading-[1.45]">
+                  {/* Four updates take a line each, since four of two lines run into the address */}
+                  <span
+                    className={cn(
+                      'mt-0.5 wrap-break-word text-[13px] leading-[1.45]',
+                      timelineCount > 3 ? 'line-clamp-1' : 'line-clamp-2',
+                    )}
+                  >
                     {summaryOf(entry)}
                   </span>
                 </div>

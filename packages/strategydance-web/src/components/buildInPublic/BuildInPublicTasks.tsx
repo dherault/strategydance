@@ -238,9 +238,10 @@ function BuildInPublicTasks({ settings }: Props) {
         >
           <BuildInPublicOrganization maxSize={13} />
           <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-auto')}>{formatMessage(buildInPublicMessages.upNext)}</p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 wrap-break-word text-[30px]/[1.12]')}>
+          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 flex-none wrap-break-word text-[30px]/[1.12]')}>
             {upNextList.name}
           </p>
+          {/* Four tasks take a line each, since four of two lines run past the card */}
           {openTasks.length ? (
             <ol className="m-0 mt-5 flex list-none flex-col gap-3.5 p-0">
               {openTasks.map((task, index) => (
@@ -251,7 +252,14 @@ function BuildInPublicTasks({ settings }: Props) {
                   <span className={cn(CARD_DISPLAY_CLASS_NAME, 'text-xl/[1.12] text-(--card-strong)')}>
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <span className="line-clamp-2 wrap-break-word text-[15px] leading-[1.4]">{task.text}</span>
+                  <span
+                    className={cn(
+                      'wrap-break-word text-[15px] leading-[1.4]',
+                      openTasks.length > 3 ? 'line-clamp-1' : 'line-clamp-2',
+                    )}
+                  >
+                    {task.text}
+                  </span>
                 </li>
               ))}
             </ol>

@@ -146,7 +146,7 @@ function BuildInPublicCompany({ settings }: Props) {
               {formatMessage(buildInPublicMessages.dayNumber, { count: dayCount })}
             </p>
           </div>
-          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-1.5 mb-0 line-clamp-2 text-sm leading-[1.5]')}>
+          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-1.5 mb-0 line-clamp-2 wrap-break-word text-sm leading-[1.5]')}>
             {organization?.brief || formatMessage(buildInPublicMessages.teamBrief, { count: members.length })}
           </p>
         </div>
@@ -230,7 +230,7 @@ function BuildInPublicCompany({ settings }: Props) {
         <div className="mt-auto grid min-h-[170px] grid-cols-[1.5fr_1fr_1fr]">
           <div className="flex min-w-0 flex-col gap-3 pr-5">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.priorityTitle)}</p>
-            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 text-[22px]/[1.2]')}>{priority}</p>
+            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 wrap-break-word text-[22px]/[1.2]')}>{priority}</p>
           </div>
           {[
             {

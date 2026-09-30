@@ -236,7 +236,9 @@ function BuildInPublicLog({ settings }: Props) {
           >
             “
           </p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-6 text-[22px]/[1.25]')}>{quoteOf(quote.entry)}</p>
+          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-6 wrap-break-word text-[22px]/[1.25]')}>
+            {quoteOf(quote.entry)}
+          </p>
           {quoteAuthorName ? (
             <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-auto mb-0 text-xs font-medium')}>
               {formatMessage(buildInPublicMessages.fromLog, {
@@ -295,7 +297,9 @@ function BuildInPublicLog({ settings }: Props) {
                   >
                     {formatDay(entry.date)}
                   </span>
-                  <span className="mt-0.5 line-clamp-2 text-[13px] leading-[1.45]">{summaryOf(entry)}</span>
+                  <span className="mt-0.5 line-clamp-2 wrap-break-word text-[13px] leading-[1.45]">
+                    {summaryOf(entry)}
+                  </span>
                 </div>
               </li>
             ))}
@@ -338,7 +342,7 @@ function BuildInPublicLog({ settings }: Props) {
               ),
             })}
           </p>
-          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-4 mb-0 line-clamp-3 text-[15px] leading-[1.5]')}>
+          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-4 mb-0 line-clamp-3 wrap-break-word text-[15px] leading-[1.5]')}>
             {summaryOf(counter.entry)}
           </p>
         </BuildInPublicCard>

@@ -34,7 +34,7 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
 
   if (!element.clientWidth) return
 
-  Object.assign(style, { display: '', WebkitLineClamp: '', WebkitBoxOrient: '', textOverflow: '' })
+  Object.assign(style, { display: '', WebkitLineClamp: '', WebkitBoxOrient: '', textOverflow: '', overflowWrap: '' })
 
   function setSize(fontSize: number) {
     const room = fontSize * descenderRoom
@@ -88,8 +88,11 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
   setSize(min)
 
   if (lines > 1) {
+    // A word too long for a line breaks inside it here, rather than running out of the box where
+    // nothing marks it cut: only a clamp across whole lines ends in an ellipsis
     Object.assign(style, {
       whiteSpace: 'normal',
+      overflowWrap: 'break-word',
       display: '-webkit-box',
       WebkitBoxOrient: 'vertical',
       WebkitLineClamp: String(lines),

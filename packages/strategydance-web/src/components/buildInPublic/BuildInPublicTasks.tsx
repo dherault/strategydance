@@ -137,7 +137,9 @@ function BuildInPublicTasks({ settings }: Props) {
           <div className="grid h-full grid-cols-[200px_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.taskList)}</p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 text-[28px]/[1.12]')}>{progressList.name}</p>
+              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 wrap-break-word text-[28px]/[1.12]')}>
+                {progressList.name}
+              </p>
               <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[64px] leading-[0.9] text-(--card-strong)')}>
                 {progressDone}/{progressTotal}
               </p>
@@ -227,7 +229,9 @@ function BuildInPublicTasks({ settings }: Props) {
         >
           <BuildInPublicOrganization maxSize={13} />
           <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-auto')}>{formatMessage(buildInPublicMessages.upNext)}</p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 text-[30px]/[1.12]')}>{upNextList.name}</p>
+          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 wrap-break-word text-[30px]/[1.12]')}>
+            {upNextList.name}
+          </p>
           {openTasks.length ? (
             <ol className="m-0 mt-5 flex list-none flex-col gap-3.5 p-0">
               {openTasks.map((task, index) => (
@@ -238,7 +242,7 @@ function BuildInPublicTasks({ settings }: Props) {
                   <span className={cn(CARD_DISPLAY_CLASS_NAME, 'text-xl/[1.12] text-(--card-strong)')}>
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <span className="line-clamp-2 text-[15px] leading-[1.4]">{task.text}</span>
+                  <span className="line-clamp-2 wrap-break-word text-[15px] leading-[1.4]">{task.text}</span>
                 </li>
               ))}
             </ol>

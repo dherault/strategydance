@@ -236,7 +236,7 @@ function BuildInPublicChecklist({ settings }: Props) {
             <div className="flex min-w-0 flex-col">
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.currentStreak)}</p>
               <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[140px] leading-[0.85]')}>{streakItem.streak}</p>
-              <p className="mt-3 mb-0 line-clamp-2 text-base font-medium">
+              <p className="mt-3 mb-0 line-clamp-2 wrap-break-word text-base font-medium">
                 {formatMessage(buildInPublicMessages.itemStreak, { count: streakItem.streak, item: streakItem.name })}
               </p>
             </div>

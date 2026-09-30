@@ -115,7 +115,9 @@ function BuildInPublicPriority({ settings }: Props) {
           </div>
           <div className="flex min-w-0 flex-col px-7 pt-7 pb-11">
             <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.focusedOn)}</p>
-            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-4 text-[32px]/[1.12]')}>{focus.priority}</p>
+            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-4 wrap-break-word text-[32px]/[1.12]')}>
+              {focus.priority}
+            </p>
             {renderPerson(focus.member, 'mt-6')}
           </div>
         </div>
@@ -134,7 +136,9 @@ function BuildInPublicPriority({ settings }: Props) {
             date: formatDate(date, { month: 'short', day: 'numeric', timeZone: 'UTC' }),
           })}
         </p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-5 text-[30px]/[1.12]')}>{statement.priority}</p>
+        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto line-clamp-5 wrap-break-word text-[30px]/[1.12]')}>
+          {statement.priority}
+        </p>
         {renderPerson(statement.member, 'mt-6')}
       </BuildInPublicCard>
       <BuildInPublicCard
@@ -149,7 +153,9 @@ function BuildInPublicPriority({ settings }: Props) {
         <BuildInPublicOrganization maxSize={13} />
         <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[96px] leading-[0.9] text-(--card-strong)')}>1</p>
         <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-3')}>{formatMessage(buildInPublicMessages.oneThingToday)}</p>
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-5 text-[30px]/[1.12]')}>{oneThing.priority}</p>
+        <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-5 wrap-break-word text-[30px]/[1.12]')}>
+          {oneThing.priority}
+        </p>
         {oneThing.member?.user.displayName ? (
           <>
             <div className={cn(CARD_RULE_CLASS_NAME, 'mt-6 mb-4')} />

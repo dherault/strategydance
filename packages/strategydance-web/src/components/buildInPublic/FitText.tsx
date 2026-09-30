@@ -10,6 +10,13 @@ import { CARD_DISPLAY_CLASS_NAME } from '~components/buildInPublic/cardClassName
 */
 const DISPLAY_DESCENDER_ROOM = 0.25
 
+/*
+  The room below a text clamped to its lines, less than the room a whole text keeps: the lines are
+  set tighter than the face is tall, so the tops of the first line cut off reach up into the full
+  room. This is as far down as the descenders above them go
+*/
+const CLAMPED_DESCENDER_ROOM = 0.12
+
 type Fit = {
   // The largest and smallest font sizes to try, in pixels
   max: number
@@ -36,8 +43,8 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
 
   Object.assign(style, { display: '', WebkitLineClamp: '', WebkitBoxOrient: '', textOverflow: '', overflowWrap: '' })
 
-  function setSize(fontSize: number) {
-    const room = fontSize * descenderRoom
+  function setSize(fontSize: number, roomEms = descenderRoom) {
+    const room = fontSize * roomEms
 
     style.fontSize = `${fontSize}px`
     style.paddingBottom = room ? `${room}px` : ''
@@ -85,9 +92,9 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
     return
   }
 
-  setSize(min)
-
   if (lines > 1) {
+    setSize(min, Math.min(descenderRoom, CLAMPED_DESCENDER_ROOM))
+
     // A word too long for a line breaks inside it here, rather than running out of the box where
     // nothing marks it cut: only a clamp across whole lines ends in an ellipsis
     Object.assign(style, {
@@ -98,6 +105,7 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
       WebkitLineClamp: String(lines),
     })
   } else {
+    setSize(min)
     Object.assign(style, { whiteSpace: 'nowrap', textOverflow: 'ellipsis' })
   }
 }

@@ -4,7 +4,7 @@ import { MAX_LOG_ENTRY_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import type { RichTextEditorChange } from 'strategydance-design-system/components/ui/RichTextEditor'
 
-import useRichTextEditor from '~hooks/log/useRichTextEditor'
+import useRichTextEditor from '~hooks/common/useRichTextEditor'
 
 import Spinner from '~components/common/Spinner'
 

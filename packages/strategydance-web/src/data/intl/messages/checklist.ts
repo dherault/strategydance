@@ -139,9 +139,9 @@ const checklistMessages = defineMessages({
     defaultMessage: 'No tasks on this checklist.',
     description: "What a checklist with no columns says, as a teammate's may.",
   },
-  defaultReflexion: {
-    id: 'checklist.defaultReflexion',
-    defaultMessage: 'Reflexion',
+  defaultReflection: {
+    id: 'checklist.defaultReflection',
+    defaultMessage: 'Reflection',
     description:
       'Name of the first habit every checklist starts with: time spent thinking the company over. Keep it short: it is read slanted above a narrow column.',
   },

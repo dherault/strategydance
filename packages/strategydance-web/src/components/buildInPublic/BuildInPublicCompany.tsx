@@ -198,7 +198,8 @@ function BuildInPublicCompany({ settings }: Props) {
         <p className="mt-1.5 mb-0 text-sm font-medium">
           {formatMessage(buildInPublicMessages.teamDay, { count: members.length, day: dayCount })}
         </p>
-        <AvatarGroup className="mt-auto">
+        {/* Set apart by an outline rather than the group's ring, a shadow Safari draws askew in a picture */}
+        <AvatarGroup className="mt-auto *:ring-0 *:outline-2 *:outline-white">
           {shownMembers.map(member => (
             <Avatar
               key={member.user.id}

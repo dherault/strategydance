@@ -19,7 +19,8 @@ type Props = {
   The design system's rich text in the card's colors on any tone, its list markers, quote bars,
   links and ticked boxes in the accent, and its unticked boxes as the checklist card draws them. A
   list's markers are drawn before each item rather than as the list's own markers, which a card's
-  picture does not copy. A check item draws its box instead.
+  picture does not copy, a numbered list counting from the start `RichText` says it has. A check
+  item draws its box instead.
 
   It takes the room its card leaves it and no more: a long text gives way rather than pushing what
   is under it off the card, and fades out where it is cut rather than ending on half a line. The
@@ -31,7 +32,7 @@ const CARD_RICH_TEXT_CLASS_NAME = cn(
   'text-inherit',
   '[&_blockquote]:border-(--card-mark) [&_blockquote]:text-(--card-quote)',
   '[&_a]:text-(--card-mark)',
-  '[&_ol]:list-none [&_ol]:[counter-reset:card-item] [&_ul]:list-none',
+  '[&_ol]:list-none [&_ol]:[counter-reset:card-item_var(--rich-text-list-reset,0)] [&_ul]:list-none',
   '[&_li]:relative [&_li:not([data-checked])]:before:absolute [&_li:not([data-checked])]:before:right-[calc(100%+0.5em)] [&_li:not([data-checked])]:before:text-(--card-mark)',
   "[&_ul>li:not([data-checked])]:before:content-['•']",
   "[&_ol>li]:[counter-increment:card-item] [&_ol>li]:before:content-[counter(card-item)'.']",

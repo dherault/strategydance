@@ -1,5 +1,5 @@
 import { CheckIcon } from 'lucide-react'
-import { Fragment, type ReactNode } from 'react'
+import { type CSSProperties, Fragment, type ReactNode } from 'react'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 import {
   RICH_TEXT_CLASS_NAME,
@@ -108,10 +108,14 @@ function renderList(items: RichTextBlock[], listDepth: number, key: number) {
   ))
 
   if (first.type === 'numberedListItem') {
+    const start = first.props?.start ?? 1
+
     return (
       <ol
         key={key}
         start={first.props?.start}
+        // The count before its first item, for a stylesheet that numbers the items itself, as a card does
+        style={{ '--rich-text-list-reset': start - 1 } as CSSProperties}
         className={RICH_TEXT_CLASSES.numberedList}
       >
         {listItems}

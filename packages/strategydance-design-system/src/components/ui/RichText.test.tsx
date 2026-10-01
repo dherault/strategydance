@@ -41,6 +41,15 @@ describe('RichText', () => {
     expect(markup.match(/<li /g)).toHaveLength(4)
   })
 
+  it('numbers a list from its start, and says where to count from for a stylesheet that numbers it', () => {
+    expect(render([{ type: 'numberedListItem', props: { start: 3 }, content: [text('c')] }])).toContain(
+      '<ol start="3" style="--rich-text-list-reset:2"',
+    )
+    expect(render([{ type: 'numberedListItem', content: [text('a')] }])).toContain(
+      '<ol style="--rich-text-list-reset:0"',
+    )
+  })
+
   it('draws a check item ticked or not, for the eye and for assistive technology', () => {
     const markup = render([
       { type: 'checkListItem', props: { checked: true }, content: [text('Done')] },

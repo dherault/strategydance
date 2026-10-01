@@ -337,3 +337,38 @@
   border-bottom-width: 1px;
   border-left-width: 1px;
 }
+
+/*
+  The link form's fields, as `Input` draws one: 40px, neutral-50 behind a neutral-200 border at the
+  xs radius, turning white with a secondary border while it has focus. BlockNote frames an input
+  of its own inside, whose border and ring go
+*/
+.rich-text-editor.bn-root .bn-text-input {
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 0 12px;
+  background-color: var(--color-neutral-50);
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  transition:
+    border-color 150ms ease-in-out,
+    background-color 150ms ease-in-out;
+}
+
+.rich-text-editor.bn-root .bn-text-input:focus-within {
+  border-color: var(--secondary);
+  background-color: var(--popover);
+}
+
+.rich-text-editor.bn-root .bn-text-input [data-slot='input'] {
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: none;
+  outline: none;
+  color: var(--foreground);
+  font-size: 14px;
+}

@@ -1,0 +1,83 @@
+/*
+  BlockNote's editor in the design system's look, which is how `RichText` draws what it writes, so
+  a post reads the same while it is written and once it is posted.
+
+  BlockNote's stylesheet is unlayered and loads with the editor, after the app's, so Tailwind's
+  layered utilities lose to it. Each rule here is unlayered too, and a class more specific than the
+  rule it overrides. `rich-text-editor` is the class `RichTextEditor` gives its BlockNote view, which
+  BlockNote copies onto the roots its menus portal into, so `.rich-text-editor.bn-root` reaches both
+*/
+
+.rich-text-editor.bn-root {
+  --bn-font-family: var(--font-sans);
+  --bn-colors-editor-text: var(--color-secondary);
+  --bn-colors-editor-background: transparent;
+  --bn-colors-side-menu: var(--color-neutral-300);
+}
+
+/*
+  The text as `RichText` sets it. The left padding is the side menu's gutter, where the "+" and the
+  drag handle of the block under the pointer appear
+*/
+.rich-text-editor.bn-root .bn-editor {
+  padding: 12px 12px 12px 48px;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-outer {
+  line-height: inherit;
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type='heading'] {
+  padding-top: 4px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.rich-text-editor.bn-root .bn-editor [data-content-type='quote'] blockquote {
+  border-left: 2px solid var(--color-neutral-300);
+  padding-left: 12px;
+  color: var(--color-neutral-600);
+}
+
+.rich-text-editor.bn-root .bn-editor strong {
+  font-weight: 600;
+}
+
+.rich-text-editor.bn-root .bn-editor a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='checkListItem'] > div > input {
+  accent-color: var(--color-primary);
+}
+
+.rich-text-editor.bn-root
+  .bn-editor
+  .bn-block-content[data-content-type='checkListItem'][data-checked='true']
+  .bn-inline-content {
+  opacity: 0.6;
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-content:has(.ProseMirror-trailingBreak:only-child)::after {
+  color: var(--color-neutral-400);
+  font-style: normal;
+}
+
+/*
+  The field's own placeholder on a document with nothing in it. BlockNote's hint that '/' opens the
+  menu, which it shows on the empty line the cursor is in, would otherwise win there, since its rule
+  comes last. The placeholder arrives as `--rich-text-placeholder`, set on the editor's frame
+*/
+.rich-text-editor.bn-root
+  .bn-editor
+  .bn-block-content[data-is-only-empty-block]:has(.ProseMirror-trailingBreak:only-child)::after {
+  content: var(--rich-text-placeholder);
+}

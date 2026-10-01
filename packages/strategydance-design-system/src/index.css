@@ -13,6 +13,13 @@
 @import '@fontsource-variable/oswald';
 
 /*
+  BlockNote's shadcn menus, which `RichTextEditor` draws, are written in Tailwind's utilities and
+  ship without them, so their classes are generated here from the package's bundle. The menus'
+  own stylesheet loads with the editor
+*/
+@source '../node_modules/@blocknote/shadcn/dist/blocknote-shadcn.js';
+
+/*
   Nothing toggles this, and the design has no dark palette. The variant is declared so that a
   `dark:` class in a component added later stays inert instead of following the system theme
 */

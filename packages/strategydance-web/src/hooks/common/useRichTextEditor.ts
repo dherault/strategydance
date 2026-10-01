@@ -17,9 +17,10 @@ function loadRichTextEditor() {
 }
 
 /*
-  The design system's rich text editor, fetched only once a page asks for one, so Lexical stays out
-  of the bundle the Today page first paints with. Null until it has loaded, and `hasFailed` when
-  the download did, which the page says rather than throwing to the route
+  The design system's rich text editor, fetched only once a page asks for one, so BlockNote stays
+  out of the bundle the Today page first paints with, and out of the document shell's prerender,
+  which has no window for it. Null until it has loaded, and `hasFailed` when the download did,
+  which the page says rather than throwing to the route
 */
 function useRichTextEditor() {
   const [editorModule, setEditorModule] = useState<RichTextEditorModule | null>(null)

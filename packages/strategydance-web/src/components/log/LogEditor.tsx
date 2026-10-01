@@ -3,6 +3,7 @@ import { type MessageDescriptor, useIntl } from 'react-intl'
 import { MAX_LOG_ENTRY_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import type { RichTextEditorChange } from 'strategydance-design-system/components/ui/RichTextEditor'
+import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 
 import useRichTextEditor from '~hooks/common/useRichTextEditor'
 
@@ -41,12 +42,12 @@ function LogEditor({
   onCancel,
   autoFocus = false,
 }: Props) {
-  const { formatMessage } = useIntl()
+  const { formatMessage, locale } = useIntl()
   const { RichTextEditor, hasFailed } = useRichTextEditor()
 
   const [change, setChange] = useState<RichTextEditorChange>({
     value: initialValue ?? '',
-    isEmpty: !initialValue,
+    isEmpty: !hasRichText(initialValue),
     textLength: 0,
   })
 
@@ -65,22 +66,11 @@ function LogEditor({
         <RichTextEditor
           initialValue={initialValue}
           placeholder={placeholder}
+          locale={locale}
           autoFocus={autoFocus}
           onChange={setChange}
           onSubmit={submit}
-          labels={{
-            toolbar: formatMessage(logMessages.toolbar),
-            bold: formatMessage(logMessages.bold),
-            italic: formatMessage(logMessages.italic),
-            underline: formatMessage(logMessages.underline),
-            strikethrough: formatMessage(logMessages.strikethrough),
-            heading: formatMessage(logMessages.heading),
-            bulletedList: formatMessage(logMessages.bulletedList),
-            numberedList: formatMessage(logMessages.numberedList),
-            quote: formatMessage(logMessages.quote),
-            undo: formatMessage(logMessages.undo),
-            redo: formatMessage(logMessages.redo),
-          }}
+          labels={{ heading: formatMessage(logMessages.heading) }}
         />
       ) : (
         <div className="flex min-h-34 items-center gap-2 rounded-xs border border-border bg-white p-3 text-sm text-muted-foreground">

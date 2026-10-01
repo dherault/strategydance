@@ -216,3 +216,124 @@
   font-size: 12px;
   font-weight: 500;
 }
+
+/*
+  The toolbars' controls, as a small transparent `Button`: 32px tall, square with only an icon, the
+  xs radius, secondary on neutral-100 under the pointer and neutral-200 pressed, and the button's
+  outline on keyboard focus rather than BlockNote's ring. A style that is on, such as bold, is
+  marked as the sidebar marks its current page, in primary on primary-50. A control renders as the
+  trigger of its tooltip or popover, whose `data-slot` it takes, so `bn-button` is what finds it
+*/
+.rich-text-editor.bn-root .bn-toolbar :is(.bn-button, [data-slot='select-trigger']) {
+  height: 32px;
+  min-width: 32px;
+  border-radius: var(--radius-xs);
+  padding-inline: 8px;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--secondary);
+  cursor: pointer;
+  transition: background-color 150ms ease-in-out;
+}
+
+.rich-text-editor.bn-root
+  .bn-toolbar
+  :is(.bn-button, [data-slot='select-trigger']):not(:disabled):is(:hover, [aria-expanded='true']) {
+  background-color: var(--color-neutral-100);
+  color: var(--secondary);
+}
+
+.rich-text-editor.bn-root .bn-toolbar :is(.bn-button, [data-slot='select-trigger']):not(:disabled):active {
+  background-color: var(--color-neutral-200);
+}
+
+.rich-text-editor.bn-root .bn-toolbar .bn-button[aria-pressed='true'] {
+  background-color: var(--color-primary-50);
+  color: var(--primary);
+}
+
+.rich-text-editor.bn-root .bn-toolbar .bn-button[aria-pressed='true']:not(:disabled):hover {
+  background-color: var(--color-primary-100);
+  color: var(--primary);
+}
+
+.rich-text-editor.bn-root .bn-toolbar :is(.bn-button, [data-slot='select-trigger']):focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}
+
+.rich-text-editor.bn-root .bn-toolbar .bn-button > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/*
+  The tooltip over a control, as `Tooltip` draws it: white, bordered, 12px, its shortcut after the
+  name in a kbd chip rather than on a line of its own. Its arrow is a square straddling the edge,
+  white, with a border on the two sides that face out, so the tooltip's own border runs around it
+*/
+.rich-text-editor.bn-root [data-slot='tooltip-content'] {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 6px 12px;
+  background-color: var(--popover);
+  box-shadow: var(--shadow-xs, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  color: var(--popover-foreground);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rich-text-editor.bn-root [data-slot='tooltip-content'] > span + span {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  margin-left: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 0 4px;
+  background-color: var(--color-neutral-50);
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.rich-text-editor.bn-root [data-slot='tooltip-content'] > [aria-hidden='true'] {
+  width: 8px;
+  height: 8px;
+  border: 0 solid var(--border);
+  border-radius: 0;
+  background-color: var(--popover);
+}
+
+.rich-text-editor.bn-root [data-slot='tooltip-content'] > [aria-hidden='true'][data-side='bottom'] {
+  top: 0;
+  translate: 0 -50%;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.rich-text-editor.bn-root [data-slot='tooltip-content'] > [aria-hidden='true'][data-side='top'] {
+  top: auto;
+  bottom: 0;
+  translate: 0 50%;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.rich-text-editor.bn-root
+  [data-slot='tooltip-content']
+  > [aria-hidden='true']:is([data-side='left'], [data-side='inline-start']) {
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.rich-text-editor.bn-root
+  [data-slot='tooltip-content']
+  > [aria-hidden='true']:is([data-side='right'], [data-side='inline-end']) {
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}

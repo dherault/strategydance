@@ -252,6 +252,7 @@ function BuildInPublicCompany({ settings }: Props) {
                   CARD_PRIORITY_CLASS_NAME,
                   'text-[22px]/[1.2] [&_ol]:text-sm/[1.45] [&_ul]:text-sm/[1.45]',
                 )}
+                isDisplay
               />
             </div>
           ) : null}

@@ -101,6 +101,7 @@ function BuildInPublicPriority({ settings }: Props) {
         value={priority}
         className={className}
         textClassName={cn(CARD_PRIORITY_CLASS_NAME, sizeClassName)}
+        isDisplay
       />
     )
   }

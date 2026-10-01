@@ -53,6 +53,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   catalogues. Node-only: never import it from the frontend
 - `packages/strategydance-emails` — the transactional emails, as
   [React Email](https://react.email) templates. Node-only: the backend renders them. See below
+- `documents/`, at the root — documents written for people rather than for the build, in
+  Markdown and nothing else. `.gitignore` hides any other file put there, so it never reaches a
+  commit. A commit there is scoped `[documents]`
 - [oxlint](https://oxc.rs) for linting and oxfmt, from the same project, for formatting, configured
   in `.oxlintrc.json` and `.oxfmtrc.json`. See [Linting and formatting](#linting-and-formatting)
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,

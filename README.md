@@ -30,6 +30,8 @@ The answer lies in architecture and design.
 - [`packages/strategydance-emails`](packages/strategydance-emails) — the transactional emails, as React Email templates the backend renders. Node-only
 - [`packages/strategydance-backend`](packages/strategydance-backend) — a Bun and Express server on Cloud Run, for what needs a secret or the server's word, like inviting people
 
+Beside them, [`documents/`](documents) holds documents written for people rather than for the build, in Markdown only.
+
 ## Getting started
 
 ```sh

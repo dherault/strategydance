@@ -45,7 +45,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
-  drawn by `RichText` without it. It imports itself by its package name,
+  drawn by `RichText` without it. BlockNote's menus are built from its own Base UI copies of
+  shadcn's components, which the design system's never reach, so `RichTextEditor.css` dresses them
+  in the tokens, found by their `bn-` classes and `data-slot`s. It imports itself by its package name,
   `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
   component resolves the same when another package reads it as source. Its tokens and components
   are ported from the Strategy Dance Design System project in Claude Design and keep that

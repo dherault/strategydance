@@ -18,10 +18,10 @@
 /*
   The text as `RichText` sets it. The left padding is the side menu's gutter, where the "+" and the
   drag handle of the block under the pointer appear: the menu's 52px, which BlockNote sets flush
-  against the text, and the 12px the frame keeps on every other side
+  against the text, and 6px between it and the frame
 */
 .rich-text-editor.bn-root .bn-editor {
-  padding: 12px 12px 12px 64px;
+  padding: 12px 12px 12px 58px;
   font-size: 15px;
   line-height: 1.6;
   overflow-wrap: anywhere;

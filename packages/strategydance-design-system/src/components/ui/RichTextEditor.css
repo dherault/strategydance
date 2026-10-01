@@ -1,11 +1,17 @@
 /*
-  BlockNote's editor in the design system's look, which is how `RichText` draws what it writes, so
-  a post reads the same while it is written and once it is posted.
+  BlockNote's editor and its menus in the design system's look. The text is set as `RichText` draws
+  what it writes, so a post reads the same while it is written and once it is posted, and the menus
+  as the design system's own.
 
   BlockNote's stylesheet is unlayered and loads with the editor, after the app's, so Tailwind's
   layered utilities lose to it. Each rule here is unlayered too, and a class more specific than the
   rule it overrides. `rich-text-editor` is the class `RichTextEditor` gives its BlockNote view, which
-  BlockNote copies onto the roots its menus portal into, so `.rich-text-editor.bn-root` reaches both
+  BlockNote copies onto the roots its menus portal into, so `.rich-text-editor.bn-root` reaches both.
+
+  The menus are drawn here rather than by the design system's components because BlockNote's shadcn
+  flavour brings its own: copies of shadcn's on Base UI, and class strings of its own for the slash
+  menu, the toolbars and the link field. Rules find them by BlockNote's `bn-` classes and shadcn's
+  `data-slot`, never by those class strings, and take their values from the tokens
 */
 
 .rich-text-editor.bn-root {
@@ -81,4 +87,132 @@
   .bn-editor
   .bn-block-content[data-is-only-empty-block]:has(.ProseMirror-trailingBreak:only-child)::after {
   content: var(--rich-text-placeholder);
+}
+
+/*
+  The menus: the slash menu, the block type select's list, the block handle's menu, the link form
+  and the toolbars, as `DropdownMenu` and `Popover` draw their content. White, a neutral-200
+  border, the xs radius and the `md` shadow. BlockNote outlines them with a ring, which goes
+*/
+.rich-text-editor.bn-root
+  :is(
+    .bn-toolbar,
+    .bn-suggestion-menu,
+    [data-slot='select-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='popover-content']
+  ) {
+  --tw-ring-shadow: 0 0 #0000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background-color: var(--popover);
+  font-family: var(--font-sans);
+}
+
+.rich-text-editor.bn-root [data-slot='select-content'] {
+  padding: 4px;
+}
+
+/*
+  A row, as `DropdownMenu`'s: 32px tall at least, the xs radius, highlighted in neutral-100 under
+  the pointer and the keyboard alike, its icons muted unless the row is checked. A slash menu row
+  reports the keyboard's choice as `aria-selected`, and the pointer's only as a hover
+*/
+.rich-text-editor.bn-root
+  :is(.bn-suggestion-menu-item[role='option'], [data-slot='select-item'], [data-slot='dropdown-menu-item']) {
+  min-height: 32px;
+  border-radius: var(--radius-xs);
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rich-text-editor.bn-root :is([data-slot='select-item'], [data-slot='dropdown-menu-item']) {
+  padding-block: 0;
+}
+
+.rich-text-editor.bn-root
+  :is(
+    .bn-suggestion-menu-item[role='option'][aria-selected='true'],
+    .bn-suggestion-menu-item[role='option']:hover,
+    [data-slot='select-item'][data-highlighted],
+    [data-slot='dropdown-menu-item'][data-highlighted]
+  ) {
+  background-color: var(--color-neutral-100);
+  color: var(--secondary);
+}
+
+.rich-text-editor.bn-root [data-slot='select-item'] svg {
+  color: var(--muted-foreground);
+}
+
+/* The block a selection is in, as `Select` marks its value: medium, in secondary, checked in primary */
+.rich-text-editor.bn-root [data-slot='select-item'][data-selected] {
+  color: var(--secondary);
+  font-weight: 500;
+}
+
+.rich-text-editor.bn-root [data-slot='select-item'] > span[data-selected] svg {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
+}
+
+/*
+  The slash menu's rows carry a name and a line under it. The icon sits in a 24px box with a
+  border, as the design's menus draw an icon beside two lines, and the shortcut is muted text, as
+  `DropdownMenuShortcut` sets it, rather than BlockNote's badge
+*/
+.rich-text-editor.bn-root .bn-suggestion-menu-item[role='option'] {
+  gap: 12px;
+  padding-block: 6px;
+}
+
+.rich-text-editor.bn-root .bn-suggestion-menu-item[role='option'] > [data-position='left'] {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 0;
+  background-color: var(--popover);
+  color: var(--muted-foreground);
+}
+
+.rich-text-editor.bn-root .bn-suggestion-menu-item[role='option'] > [data-position='left'] svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rich-text-editor.bn-root .bn-suggestion-menu-item[role='option'] > div:not([data-position]) > :first-child {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.rich-text-editor.bn-root .bn-suggestion-menu-item[role='option'] > div:not([data-position]) > :nth-child(2) {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.rich-text-editor.bn-root .bn-suggestion-menu [data-slot='badge'] {
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background-color: transparent;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+/* A group's name, as `DropdownMenuLabel` sets it */
+.rich-text-editor.bn-root .bn-suggestion-menu-label {
+  padding: 6px 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
 }

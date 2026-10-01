@@ -121,60 +121,11 @@ const logMessages = defineMessages({
     defaultMessage: 'The editor could not load. Check your connection and reload.',
     description: 'What shows in place of the log editor when its code failed to load.',
   },
-  toolbar: {
-    id: 'log.toolbar',
-    defaultMessage: 'Formatting',
-    description: "Accessible name of the log editor's toolbar of formatting buttons.",
-  },
-  bold: {
-    id: 'log.bold',
-    defaultMessage: 'Bold',
-    description: "Button and tooltip of the log editor's toolbar that makes the selection bold.",
-  },
-  italic: {
-    id: 'log.italic',
-    defaultMessage: 'Italic',
-    description: "Button and tooltip of the log editor's toolbar that makes the selection italic.",
-  },
-  underline: {
-    id: 'log.underline',
-    defaultMessage: 'Underline',
-    description: "Button and tooltip of the log editor's toolbar that underlines the selection.",
-  },
-  strikethrough: {
-    id: 'log.strikethrough',
-    defaultMessage: 'Strikethrough',
-    description: "Button and tooltip of the log editor's toolbar that strikes the selection through.",
-  },
   heading: {
     id: 'log.heading',
     defaultMessage: 'Heading',
-    description: "Button and tooltip of the log editor's toolbar that turns the paragraph into a heading.",
-  },
-  bulletedList: {
-    id: 'log.bulletedList',
-    defaultMessage: 'Bulleted list',
-    description: "Button and tooltip of the log editor's toolbar that starts a list with bullets.",
-  },
-  numberedList: {
-    id: 'log.numberedList',
-    defaultMessage: 'Numbered list',
-    description: "Button and tooltip of the log editor's toolbar that starts a numbered list.",
-  },
-  quote: {
-    id: 'log.quote',
-    defaultMessage: 'Quote',
-    description: "Button and tooltip of the log editor's toolbar that turns the paragraph into a quote.",
-  },
-  undo: {
-    id: 'log.undo',
-    defaultMessage: 'Undo',
-    description: "Button and tooltip of the log editor's toolbar that undoes the last change.",
-  },
-  redo: {
-    id: 'log.redo',
-    defaultMessage: 'Redo',
-    description: "Button and tooltip of the log editor's toolbar that redoes the change just undone.",
+    description:
+      "Name of the heading block in the log editor's menus: the one '/' opens, and the toolbar over a selection.",
   },
 })
 

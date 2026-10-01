@@ -13,12 +13,18 @@ catalog's rate on that day: 1 USD = 0.88 EUR.
 
 | | 10 users | 100 users | 1,000 users | 10,000 users |
 | --- | ---: | ---: | ---: | ---: |
-| **Per month, as configured today** | **$9.56** | **$27.58** | **$62.57** | **$1,091.44** |
+| **Per month** | **$9.56** | **$27.58** | **$62.57** | **$1,091.44** |
 | In EUR | €8.41 | €24.27 | €55.06 | €960.46 |
 | Per user | $0.96 | $0.28 | $0.06 | $0.11 |
 | **With a 24-hour App Check token** | $9.56 | $27.58 | $62.57 | **$331.02** |
 
 "Users" means monthly active users, of whom half open the app on a given day.
+
+Each tier is priced the way this document recommends running it: the database sized for it,
+backups on, and a cleanup policy on Artifact Registry, all at standard rates once Data Connect's
+trial has ended. App Check keeps today's 1-hour token, with 24 hours as the alternative. Today's
+invoice is about $0.09 a month: the trial covers the instance, and every other line but Artifact
+Registry rounds to zero.
 
 - **Up to 1,000 users the bill is the database.** Cloud SQL is 99% of it at 100 users and 82% at
   1,000, where the rest comes to $11.43, mostly reCAPTCHA's flat $8.

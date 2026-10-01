@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl'
+import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { CardField, OrganizationMember } from '~types'
@@ -63,7 +64,9 @@ function BuildInPublicPriority({ settings }: Props) {
       ?? members.find(teamMember => teamMember.user.id === viewerId)
       ?? null
     const isViewer = member?.user.id === viewerId
-    const priority = member?.topPriority || null
+    const topPriority = member?.topPriority
+    // One the renderer cannot read, an old Lexical one, is none
+    const priority = topPriority && hasRichText(topPriority) ? topPriority : null
     const placeholder = formatMessage(isViewer ? buildInPublicMessages.setPriority : buildInPublicMessages.noPriority)
 
     // What stands in for a priority not written yet is for the page, never for a posted picture

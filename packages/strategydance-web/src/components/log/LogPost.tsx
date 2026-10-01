@@ -30,7 +30,7 @@ type Props = {
   One entry of the log, under who wrote it and what they do, and whether they edited it since. The
   reader's own opens in the editor from its pencil.
 
-  The entry is drawn by the design system's `RichText`, never by Lexical or as HTML, since it is
+  The entry is drawn by the design system's `RichText`, never by an editor or as HTML, since it is
   somebody else's words for every reader but one
 */
 function LogPost({ organizationId, entry, author, isViewer }: Props) {

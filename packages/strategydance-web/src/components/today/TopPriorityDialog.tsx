@@ -35,17 +35,17 @@ type Props = {
 }
 
 /*
-  Writes the reader's top priority, in the log's rich text editor with lists and the four formats
-  but no heading or quote. Mounted only while open, so it starts from the priority they have every
-  time. ⌘Enter saves, as it posts in the log, since Enter breaks the line, and an editor emptied of
-  text clears it.
+  Writes the reader's top priority, in the log's rich text editor with lists, check lists, the four
+  styles and links but no heading or quote. Mounted only while open, so it starts from the priority
+  they have every time. ⌘Enter saves, as it posts in the log, since Enter breaks the line, and an
+  editor emptied of text clears it.
 
   The editor says nothing until it is edited, so the characters are counted from the first edit.
   The team's live query pushes the change to everybody, the reader included, but the reader's own
   card is written at once rather than after that round trip
 */
 function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: Props) {
-  const { formatMessage } = useIntl()
+  const { formatMessage, locale } = useIntl()
   const queryClient = useQueryClient()
   const { mutateAsync: updateTopPriority, isPending } = useUpdateTopPriority(dataConnect)
   const { RichTextEditor, hasFailed: hasEditorFailed } = useRichTextEditor()
@@ -104,8 +104,8 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
       <DialogContent
         closeLabel={formatMessage(todayMessages.close)}
         className="sm:max-w-[560px]"
-        // A loaded editor takes the focus itself, which the dialog would give its toolbar's first
-        // button. One still loading, or failed, leaves the dialog to hold it meanwhile
+        // A loaded editor takes the focus itself, at the end of the priority, where the dialog would
+        // put it at the start. One still loading, or failed, leaves the dialog to hold it meanwhile
         onOpenAutoFocus={event => {
           if (RichTextEditor) event.preventDefault()
         }}
@@ -124,23 +124,11 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
                 initialValue={topPriority}
                 placeholder={formatMessage(todayMessages.priorityPlaceholder)}
                 aria-label={formatMessage(todayMessages.priorityLabel)}
-                blocks={['list']}
+                blocks={['list', 'checklist']}
+                locale={locale}
                 autoFocus
                 onChange={setChange}
                 onSubmit={save}
-                labels={{
-                  toolbar: formatMessage(logMessages.toolbar),
-                  bold: formatMessage(logMessages.bold),
-                  italic: formatMessage(logMessages.italic),
-                  underline: formatMessage(logMessages.underline),
-                  strikethrough: formatMessage(logMessages.strikethrough),
-                  heading: formatMessage(logMessages.heading),
-                  bulletedList: formatMessage(logMessages.bulletedList),
-                  numberedList: formatMessage(logMessages.numberedList),
-                  quote: formatMessage(logMessages.quote),
-                  undo: formatMessage(logMessages.undo),
-                  redo: formatMessage(logMessages.redo),
-                }}
               />
             ) : (
               // Holds the editor's height while it loads, so the dialog does not jump when it arrives

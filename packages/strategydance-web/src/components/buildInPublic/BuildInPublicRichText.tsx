@@ -24,7 +24,8 @@ type Props = {
   It takes the room its card leaves it and no more: a long text gives way rather than pushing what
   is under it off the card, and fades out where it is cut rather than ending on half a line. The
   box that cuts it is set as its text is, so that the room it keeps below for the display face's
-  descenders is in the text's ems, and the fade is in the page's
+  descenders is in the text's ems. The fade is in rems, as long as it was when the box took the
+  page's 16px
 */
 const CARD_RICH_TEXT_CLASS_NAME = cn(
   'text-inherit',

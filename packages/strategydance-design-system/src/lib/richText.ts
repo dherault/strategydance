@@ -41,3 +41,53 @@ export const RICH_TEXT_FORMAT_BOLD = 1
 export const RICH_TEXT_FORMAT_ITALIC = 2
 export const RICH_TEXT_FORMAT_STRIKETHROUGH = 4
 export const RICH_TEXT_FORMAT_UNDERLINE = 8
+
+/*
+  Rich text as it is stored: BlockNote's blocks, kept to what the editor writes and the renderer
+  draws. A block is BlockNote's partial block, without the id it is given in the editor and without
+  any prop left at its default, so that the same document always serializes to the same string
+*/
+
+/** The blocks rich text is written in, by BlockNote's names */
+export type RichTextBlockType =
+  | 'paragraph'
+  | 'heading'
+  | 'quote'
+  | 'bulletListItem'
+  | 'numberedListItem'
+  | 'checkListItem'
+
+/** The four styles a run of text may carry, each present only when it is on */
+export type RichTextStyles = {
+  bold?: true
+  italic?: true
+  underline?: true
+  strike?: true
+}
+
+export type RichTextRun = {
+  type: 'text'
+  text: string
+  styles?: RichTextStyles
+}
+
+/** A link, only ever to a web or mail address */
+export type RichTextLink = {
+  type: 'link'
+  href: string
+  content: RichTextRun[]
+}
+
+export type RichTextInline = RichTextRun | RichTextLink
+
+export type RichTextBlock = {
+  type: RichTextBlockType
+  /** A numbered list's first number when it is not 1, and a check item's tick */
+  props?: {
+    start?: number
+    checked?: true
+  }
+  content?: RichTextInline[]
+  /** The blocks nested under it, which is how a list is indented */
+  children?: RichTextBlock[]
+}

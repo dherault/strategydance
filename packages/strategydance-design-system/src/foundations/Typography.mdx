@@ -19,7 +19,9 @@ for emphasis, through `font-sans`. Sizes are Tailwind's `text-*` scale.
 
 Set as tight as its headlines are, Oswald's descenders hang below its lines. Where a text in it
 hides what overflows it, as a clamp does, they are cut off unless it takes `descender-room`, which
-keeps the room they need at any line height without moving the layout.
+keeps the room they need, worked out from its line height, without moving the layout. Under a line
+height of 1.05 it keeps less than the deepest descenders need, so that a clamp never shows the top
+of the line it hides.
 
 <Unstyled>
   <div className="flex gap-12">

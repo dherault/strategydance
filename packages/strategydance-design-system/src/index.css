@@ -139,3 +139,19 @@
     @apply text-primary hover:text-primary-800;
   }
 }
+
+/*
+  Room below a text in the display face for its descenders, for a text that hides what overflows
+  it, as a clamp does. Oswald's descenders reach 0.24em below its baseline, but a line L ems tall
+  ends only (L - 0.9) / 2 em below it: a box set under 1.38 cuts them off, by 0.13em at the 1.12
+  its headlines are set at. The room is that much padding, taken back by a negative margin so the
+  layout does not move.
+
+  It stops short of the tops of the next line, which a clamp hides but still paints, and which
+  begin (L / 2 - 0.36) em below the box. That binds only under 1.05, where a clamped text loses the
+  bottom of its deepest descenders rather than show the top of the line it cut
+*/
+@utility descender-room {
+  padding-bottom: max(0px, min(0.69em - 0.5lh, 0.5lh - 0.36em));
+  margin-bottom: min(0px, max(0.5lh - 0.69em, 0.36em - 0.5lh));
+}

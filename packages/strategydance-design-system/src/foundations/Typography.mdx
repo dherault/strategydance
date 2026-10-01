@@ -17,6 +17,23 @@ for emphasis, through `font-sans`. Sizes are Tailwind's `text-*` scale.
   sampleText="Build the company, not the busywork"
 />
 
+Set as tight as its headlines are, Oswald's descenders hang below its lines. Where a text in it
+hides what overflows it, as a clamp does, they are cut off unless it takes `descender-room`, which
+keeps the room they need at any line height without moving the layout.
+
+<div className="flex gap-12">
+  <div>
+    <p className="m-0 mb-2 text-xs text-muted-foreground">Clamped</p>
+    <p className="m-0 line-clamp-2 font-display text-3xl/[1.12] tracking-tight text-secondary">Shipping gjpqy</p>
+  </div>
+  <div>
+    <p className="m-0 mb-2 text-xs text-muted-foreground">Clamped, with `descender-room`</p>
+    <p className="m-0 line-clamp-2 font-display text-3xl/[1.12] tracking-tight text-secondary descender-room">
+      Shipping gjpqy
+    </p>
+  </div>
+</div>
+
 ## Body
 
 <Typeset

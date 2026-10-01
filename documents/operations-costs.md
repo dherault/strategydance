@@ -9,37 +9,39 @@ Every unit price comes from the Cloud Billing Catalog API, read with gcloud's cr
 list prices in USD, before tax and without discounts. The billing account pays in EUR, at the
 catalog's rate on that day: 1 USD = 0.88 EUR.
 
+App Check's token lifetime went from 1 hour to 24 hours on 2026-10-01. Every figure here uses 24
+hours, and [Levers](#levers) shows what the 1-hour token would have cost.
+
 ## Summary
 
 | | 10 users | 100 users | 1,000 users | 10,000 users |
 | --- | ---: | ---: | ---: | ---: |
-| **Per month** | **$9.56** | **$27.58** | **$62.57** | **$1,091.44** |
-| In EUR | €8.41 | €24.27 | €55.06 | €960.46 |
-| Per user | $0.96 | $0.28 | $0.06 | $0.11 |
-| **With a 24-hour App Check token** | $9.56 | $27.58 | $62.57 | **$331.02** |
+| **Per month** | **$9.56** | **$27.58** | **$62.57** | **$331.02** |
+| In EUR | €8.41 | €24.27 | €55.06 | €291.30 |
+| Per user | $0.96 | $0.28 | $0.06 | $0.03 |
 
 "Users" means monthly active users, of whom half open the app on a given day.
 
 Each tier is priced the way this document recommends running it: the database sized for it,
 backups on, and a cleanup policy on Artifact Registry, all at standard rates once Data Connect's
-trial has ended. App Check keeps today's 1-hour token, with 24 hours as the alternative. Today's
-invoice is about $0.09 a month: the trial covers the instance, and every other line but Artifact
-Registry rounds to zero.
+trial has ended. Today's invoice is about $0.09 a month: the trial covers the instance, and every
+other line but Artifact Registry rounds to zero.
 
-- **Up to 1,000 users the bill is the database.** Cloud SQL is 99% of it at 100 users and 82% at
-  1,000, where the rest comes to $11.43, mostly reCAPTCHA's flat $8.
-- **At 10,000 users App Check is three quarters of the bill.** Each App Check token is a reCAPTCHA
-  assessment, and the 1-hour token Firebase defaults to makes every open tab mint one every 35
-  minutes. That is $820.50 of the $1,091.44. Raising the token's lifetime to 24 hours, a console
-  setting, brings the month to $331.02.
-- **Hosting, Storage, the backend, builds and logs cost almost nothing.** The highest of them is
-  Hosting, at $5.73 a month for 10,000 users.
-- Above 1,100 users, each additional user adds about $0.096 a month at today's App Check setting, or
-  $0.020 with a 24-hour token, plus the steps the database takes.
+- **The bill is the database, at every size.** Cloud SQL is 98% of it at 10 users, 99% at 100, 82%
+  at 1,000 and 62% at 10,000.
+- **At 10,000 users the rest comes to $125.86**: App Check $60.08, Data Connect operations $33.99,
+  Resend's Pro plan $20, Hosting $5.73 and Data Connect egress $5.25. Storage, the backend, builds
+  and logs stay under a dollar together.
+- **The 24-hour token is what keeps App Check small.** Each App Check token is a reCAPTCHA
+  assessment. At the 1-hour default every open tab minted one every 35 minutes, which would have made
+  App Check $820.50 of a $1,091.44 month at 10,000 users.
+- Past 6,575 users, where reCAPTCHA's flat band ends, each additional user adds about $0.020 a
+  month, plus the steps the database takes.
 
 ## What runs
 
-Read from the project with `gcloud` on 2026-10-01:
+Read from the project with `gcloud` on 2026-10-01, before App Check's token lifetime changed that
+day:
 
 | Piece | Configuration |
 | --- | --- |
@@ -49,7 +51,7 @@ Read from the project with `gcloud` on 2026-10-01:
 | Hosting | The single-page app. `/assets/*` is cached for a year, the HTML shell is revalidated on every load |
 | Storage | `strategydance.firebasestorage.app`, a dual-region bucket (`NAM4`, Iowa and South Carolina), holding logos, banners and profile pictures. App Check enforced |
 | Auth | Firebase Auth, not Identity Platform: email and password, and Google. App Check enforced |
-| App Check | reCAPTCHA Enterprise, token lifetime 3,600 s, refreshed automatically |
+| App Check | reCAPTCHA Enterprise, refreshed automatically. The token lasts 24 hours, 1 hour until 2026-10-01 |
 | Artifact Registry | `cloud-run-source-deploy`, one backend image per release, no cleanup policy |
 | Email | Resend, outside Google Cloud: one welcome email per account, one email per invitation |
 
@@ -96,7 +98,7 @@ day. A month of `N` users holds `0.5 × N × 30.4` of them, so 10,000 users make
 | Days active | half the month | A daily-habit product's target. See [Sensitivity](#sensitivity) |
 | Data Connect operations | 250 a day | Three sessions a day. A cold load of Today runs about 16 queries, each return to the tab refetches about 8, and an edit runs 2 to 3 operations. Six refocuses and five edits a session, plus Build in public and Team once a day, give 250. The heaviest test day measured 1,161 operations across the few people testing |
 | Bytes per operation | 1,518 B | Measured: 3,405,014 B sent for 2,243 operations |
-| App Check assessments | 6 a day | The SDK refreshes a token at half its lifetime plus 5 minutes: every 35 minutes at 1 hour. Three sessions of about an hour each mint 2. At 24 hours it is about 1 a day |
+| App Check assessments | 1 a day | The SDK refreshes a token at half its lifetime plus 5 minutes, every 12 h 5 min at 24 hours, and keeps it across reloads. The first load of an active day finds it due and mints one, and the day's later sessions reuse it, as long as they fall within 12 hours of the first. A second device mints its own |
 | Hosting | 5.0 MiB a user a month | Releases ship daily, so each active day downloads what changed since the last visit, about 0.3 MiB of the 0.5 MiB that Today loads, and each session revalidates the 10 KiB shell. Nothing downloads on a day the user stays away, and everything under `/assets/` is cached for a year |
 | Database growth | 5.2 KB a day on disk | A log entry (about 1.5 KB of rich text with its indexes), three tasks, four checklist ticks and an activity row make 2.6 KB, doubled for Postgres overhead and dead rows. The data is sized after 12 months |
 | Storage | 1.2 MiB stored, 2 MiB downloaded a user a month | A logo, a banner and a profile picture as uploaded. Organization images are cached as immutable, and the bucket served 6 MB in the nine days measured |
@@ -105,8 +107,8 @@ day. A month of `N` users holds `0.5 × N × 30.4` of them, so 10,000 users make
 
 Two of these rest on behaviour the documentation does not state. Whether Data Connect counts a live
 query's push as an operation is not documented: counting one per push adds under 2% here, since a
-solo user's own log write is most of what pushes. And six assessments a day assumes the tab is
-closed between sessions: a tab left open all day mints about 14.
+solo user's own log write is most of what pushes. And one assessment a day assumes one device: a
+user who also opens the app on a phone, or leaves a tab open past 12 hours, mints two.
 
 ## The database, step by step
 
@@ -143,7 +145,7 @@ hour. The steps are bought for other reasons:
 - **10,000 users: two cores, and a standby.** 1.04 cores at peak needs a second core. 7.5 GiB of RAM
   holds the recent rows a day actually reads, out of 9.3 GiB on disk. High availability doubles the
   instance and its disk, $102.03 a month, so that a zone's failure moves Postgres rather than
-  stopping the product. Without it the month is $995.91
+  stopping the product. Without it the month is $229.00
 
 The heavy case below needs 3.5 cores at 10,000 users: `db-custom-4-15360` with high availability,
 $394.49 for the instance, $197.24 more than the plan.
@@ -159,7 +161,7 @@ In USD a month:
 | Cloud SQL backups | 0.03 | 0.03 | 0.13 | 1.11 |
 | Data Connect operations | 0.00 | 0.12 | 3.20 | 33.99 |
 | Data Connect egress | 0.00 | 0.00 | 0.00 | 5.25 |
-| App Check (reCAPTCHA) | 0.00 | 0.00 | 8.00 | 820.50 |
+| App Check (reCAPTCHA) | 0.00 | 0.00 | 8.00 | 60.08 |
 | Hosting egress | 0.00 | 0.00 | 0.00 | 5.73 |
 | Storage | 0.00 | 0.01 | 0.06 | 0.64 |
 | Cloud Run backend | 0.00 | 0.00 | 0.00 | 0.00 |
@@ -167,20 +169,20 @@ In USD a month:
 | Artifact Registry | 0.17 | 0.17 | 0.17 | 0.17 |
 | Cloud Logging | 0.00 | 0.00 | 0.00 | 0.00 |
 | Resend | 0.00 | 0.00 | 0.00 | 20.00 |
-| **Total** | **9.56** | **27.58** | **62.57** | **1,091.44** |
-| **Total in EUR** | **8.41** | **24.27** | **55.06** | **960.46** |
+| **Total** | **9.56** | **27.58** | **62.57** | **331.02** |
+| **Total in EUR** | **8.41** | **24.27** | **55.06** | **291.30** |
 
 How the larger lines come out at 10,000 users:
 
-- **Data Connect operations**: 152,083 active days × 250 = 38.0 million, minus the free 250,000,
-  at $0.90 a million: $33.99
-- **App Check**: 152,083 × 6 = 912,500 assessments: $8 for the band up to 100,000, then 812,500 at
-  $0.001: $820.50
+- **App Check**: 152,083 active days × 1 = 152,083 assessments: $8 for the band up to 100,000, then
+  52,083 at $0.001: $60.08. At 1,000 users, 15,208 assessments fall in the flat band: $8
+- **Data Connect operations**: 152,083 × 250 = 38.0 million, minus the free 250,000, at $0.90 a
+  million: $33.99
+- **Resend**: 1,500 emails a month is inside the free plan's 3,000, but 49 a day on average is half
+  its daily cap of 100. One launch day or a large invitation would go over, so this tier pays for Pro
 - **Hosting**: 152,083 × 0.33 MiB = 48.9 GiB, or 1.61 GiB a day, of which 0.35 GiB is free:
   1.26 GiB × $0.15 × 30.4 days = $5.73
 - **Data Connect egress**: 38.0 million × 1,518 B = 53.8 GiB, of which 10 GiB is free: $5.25
-- **Resend**: 1,500 emails a month is inside the free plan's 3,000, but 49 a day on average is half
-  its daily cap of 100. One launch day or a large invitation would go over, so this tier pays for Pro
 
 The lines at zero are computed the same way. The backend runs 10,000 requests a month at 10,000
 users, 15,000 vCPU-seconds against 180,000 free. A release builds in 1.7 minutes: 51 minutes a month
@@ -194,11 +196,11 @@ In monthly active users, at the usage above:
 | Free tier | Ends at |
 | --- | ---: |
 | Data Connect operations | 66 |
-| reCAPTCHA, then $8 flat | 110 |
-| reCAPTCHA's flat band, then $0.091 a user | 1,096 |
-| Hosting egress | 2,186 |
+| reCAPTCHA, then $8 flat | 658 |
 | Data Connect egress | 1,860 |
+| Hosting egress | 2,186 |
 | Resend's free plan, while the daily average stays under a quarter of its cap | about 5,000 |
+| reCAPTCHA's flat band, then $0.015 a user | 6,575 |
 | Storage egress | 51,200 |
 | Cloud Run | 120,000 |
 
@@ -211,12 +213,18 @@ in: every operation but the sign-in screen's email lookup still needs the user's
 
 | Lifetime | Refreshed every | Assessments a day | App Check a month | Total a month |
 | --- | --- | ---: | ---: | ---: |
-| 1 hour (now) | 35 min | 6 | $820.50 | $1,091.44 |
+| 1 hour, until 2026-10-01 | 35 min | 6 | $820.50 | $1,091.44 |
 | 12 hours | 6 h 5 min | about 2 | $212.17 | $483.10 |
-| 24 hours | 12 h 5 min | about 1 | $60.08 | $331.02 |
+| **24 hours, now** | 12 h 5 min | about 1 | $60.08 | $331.02 |
+| 7 days | 3 days 12 h 5 min | about 0.5 | $8.00 | $278.94 |
 
-**High availability at 10,000 users.** $102.03 a month. It is the one step taken for resilience
-rather than load, so it is the one to postpone if the money matters more.
+At 1 hour, three sessions of about an hour each minted 2 tokens apiece. At 7 days, a user active
+every other day mints one about every fourth day: 76,042 assessments a month at 10,000 users, inside
+the $8 band. That saves $52.08 a month for a replay window seven times longer.
+
+**High availability at 10,000 users.** $102.03 a month, almost a third of that tier's bill. It is
+the one step taken for resilience rather than load, so it is the one to postpone if the money matters
+more.
 
 **A cleanup policy on Artifact Registry.** Each backend release adds 0.21 GiB of image layers, the
 `COPY . .` and `bun install` steps, and nothing deletes them. At one release a day that is 6.4 GiB
@@ -225,8 +233,9 @@ keeps the 10 newest images holds it at $0.17. The tables assume that policy.
 
 **Refetch on focus.** The query client keeps TanStack Query's defaults, so returning to the tab
 refetches everything mounted, about 8 queries. That is most of the 250 operations a day. At $0.90 a
-million it costs little, but it is most of the database's load: a `staleTime` of a minute would let
-the instance steps come later. The two live queries already keep the team and the log current.
+million it costs $33.99 a month at 10,000 users, but it is also most of the database's load: a
+`staleTime` of a minute would let the instance steps come later. The two live queries already keep
+the team and the log current.
 
 ## What to fix now
 
@@ -240,8 +249,7 @@ Found while measuring, and independent of growth:
   around 2026-12-22. From then the `db-f1-micro` costs $9.37 a month, its disk included
 - **No cleanup policy on Artifact Registry**, as above. It holds 1.5 GiB after seven releases
 - **Budgets could not be read.** The Budget API is off on the project. If the billing account has
-  no budget, one with an alert at, say, twice the expected month would catch a runaway line, App
-  Check above all
+  no budget, one with an alert at, say, twice the expected month would catch a runaway line
 
 ## Sensitivity
 
@@ -249,13 +257,14 @@ Totals a month, with the database kept at each tier's size:
 
 | Case | 10 users | 100 users | 1,000 users | 10,000 users |
 | --- | ---: | ---: | ---: | ---: |
-| Light: 30% active a day, 150 operations, 4 assessments | $9.56 | $27.46 | $60.34 | $514.54 |
-| **Base** | **$9.56** | **$27.58** | **$62.57** | **$1,091.44** |
-| Heavy: 70% active a day, 600 operations, 14 assessments | $9.56 | $36.39 | $269.74 | $3,259.12 |
-| Heavy, with a 24-hour token | $9.56 | $28.39 | $71.66 | $491.20 |
+| Light: 30% active a day, 150 operations | $9.56 | $27.46 | $52.34 | $249.54 |
+| **Base** | **$9.56** | **$27.58** | **$62.57** | **$331.02** |
+| Heavy: 70% active a day, 600 operations, two devices | $9.56 | $28.39 | $71.66 | $704.12 |
 
-Under every assumption App Check's token lifetime moves the 10,000-user bill more than anything
-else. The heavy case also needs the 4-core database described above, $197.24 more.
+Up to 1,000 users the assumptions move the bill by about $10, since the database is nearly all of
+it. At 10,000 they matter more. In the heavy case App Check becomes the largest line, $333.83, since
+two devices mint two tokens a day, and Data Connect operations come to $114.75. That case also needs
+the 4-core database described above, which makes its month $901.36.
 
 ## Not included
 
@@ -289,6 +298,9 @@ gcloud run services describe strategydance-backend --project strategydance --reg
 gcloud artifacts repositories list --project strategydance
 gcloud storage buckets describe gs://strategydance.firebasestorage.app
 ```
+
+App Check's token lifetime is the `tokenTtl` of the web app's `recaptchaEnterpriseConfig`, at
+`https://firebaseappcheck.googleapis.com/v1/projects/strategydance/apps/<app id>/recaptchaEnterpriseConfig`.
 
 Usage, from Cloud Monitoring's `timeSeries` endpoint, summed per day:
 `firebasedataconnect.googleapis.com/service/operation_count` grouped by `operation_name`,

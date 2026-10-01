@@ -24,6 +24,7 @@ import {
   CARD_EYEBROW_CLASS_NAME,
   CARD_MUTED_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
+import FitText from '~components/buildInPublic/FitText'
 
 import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 
@@ -235,8 +236,18 @@ function BuildInPublicChecklist({ settings }: Props) {
           <div className="grid h-full grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-8">
             <div className="flex min-w-0 flex-col">
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.currentStreak)}</p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-auto text-[140px] leading-[0.85]')}>{streakItem.streak}</p>
-              <p className="mt-3 mb-0 line-clamp-2 text-base font-medium">
+              {/* Shrinks past three digits, which its column is as wide as */}
+              <FitText
+                as="p"
+                isDisplay
+                max={140}
+                min={64}
+                lineHeight={0.85}
+                className="mt-auto"
+              >
+                {streakItem.streak}
+              </FitText>
+              <p className="mt-3 mb-0 line-clamp-2 wrap-break-word text-base font-medium">
                 {formatMessage(buildInPublicMessages.itemStreak, { count: streakItem.streak, item: streakItem.name })}
               </p>
             </div>

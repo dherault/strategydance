@@ -660,7 +660,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayCounter": {
-        "hash": "05d4f6c20d73a7f4",
+        "hash": "10d06db29a3f9ba7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.dayCounterCard": {
@@ -752,7 +752,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.fromLog": {
-        "hash": "4f9af5875450e3c6",
+        "hash": "044a7a3125aaa6a0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.gridCard": {
@@ -821,6 +821,10 @@
       },
       "buildInPublic.noPriority": {
         "hash": "ccb20c97eb626b0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.nothingToShare": {
+        "hash": "2666d3f10733410a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.numberOfTasks": {
@@ -1053,8 +1057,8 @@
         "hash": "2553cc3ee5d46cc0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "checklist.defaultReflexion": {
-        "hash": "48ddd89432d81698",
+      "checklist.defaultReflection": {
+        "hash": "7479fbb93ed48cc3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "checklist.defaultTalkToUsers": {
@@ -1407,14 +1411,6 @@
       }
     },
     "log": {
-      "log.bold": {
-        "hash": "e4e69778f4f20ce2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "log.bulletedList": {
-        "hash": "97764ff2bd855ed8",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "log.cancel": {
         "hash": "b5e7f81ed868fc45",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1444,11 +1440,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "log.heading": {
-        "hash": "b39f72db5e196653",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "log.italic": {
-        "hash": "bcee99e2f82b451a",
+        "hash": "b821354a3a198baa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "log.loadError": {
@@ -1471,10 +1463,6 @@
         "hash": "acc6957cb8bc7c6b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "log.numberedList": {
-        "hash": "f3576faf65a3dfe3",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "log.placeholder": {
         "hash": "ae654e7635d59709",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1491,14 +1479,6 @@
         "hash": "e5d782f9ec3e606f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "log.quote": {
-        "hash": "87446c6c6d4ea759",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "log.redo": {
-        "hash": "36cbc815e8344733",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "log.save": {
         "hash": "5a7fc598a25fda25",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1511,28 +1491,12 @@
         "hash": "e3f73fd1a129cc33",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "log.strikethrough": {
-        "hash": "3543619f0b7a8bcc",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "log.title": {
         "hash": "d9e1bdd2b1123c5d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "log.today": {
         "hash": "016c1264cf173d6c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "log.toolbar": {
-        "hash": "63c6a8d2b8d538e0",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "log.underline": {
-        "hash": "fd31c0087d502e50",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "log.undo": {
-        "hash": "91356249365e7cd9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "log.updated": {
@@ -2509,6 +2473,10 @@
         "hash": "e7a0f807555d2182",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "today.editPriorityLabel": {
+        "hash": "2cab4491d28bd0ce",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "today.noJobTitle": {
         "hash": "2088ea248044bfb0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2546,11 +2514,19 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.priorityLength": {
-        "hash": "9ac3ef576fc5f879",
+        "hash": "e642949a9e5c0a13",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.priorityPlaceholder": {
         "hash": "f8238cbfc434a32e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.prioritySaveHint": {
+        "hash": "b582bc2d2e2a04e4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "today.priorityTooFormatted": {
+        "hash": "5a2fef343c9372e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "today.priorityUpdated": {

@@ -162,5 +162,10 @@ packages/strategydance-database/.dataconnect/
 firebase-export-*/
 .claude/worktrees
 
+# documents/ holds Markdown and nothing else, so git never sees any other file put there
+/documents/**
+!/documents/**/
+!/documents/**/*.md
+
 
 .DS_Store

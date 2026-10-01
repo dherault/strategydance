@@ -1,5 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from 'strategydance-design-system/components/ui/Dialog'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 import { RichTextEditor } from 'strategydance-design-system/components/ui/RichTextEditor'
@@ -10,6 +19,13 @@ const meta = {
   args: {
     placeholder: 'What moved forward today?',
     className: 'max-w-xl',
+  },
+  parameters: {
+    docs: {
+      story: {
+        height: '360px',
+      },
+    },
   },
 } satisfies Meta<typeof RichTextEditor>
 
@@ -25,9 +41,25 @@ export const WithValue: Story = {
   },
 }
 
+// Lists and check lists, and no heading or quote, as a top priority is written
+export const PriorityBlocks: Story = {
+  args: {
+    blocks: ['list', 'checklist'],
+  },
+}
+
 export const AutoFocus: Story = {
   args: {
     autoFocus: true,
+  },
+}
+
+// BlockNote's menus in French, with the heading named as a caller's catalogue names it
+export const Localized: Story = {
+  args: {
+    locale: 'FR',
+    placeholder: "Qu'est-ce qui a avancé aujourd'hui ?",
+    labels: { heading: 'Titre' },
   },
 }
 
@@ -52,4 +84,37 @@ function RoundTripExample(props: Parameters<typeof RichTextEditor>[0]) {
       {value ? <RichText value={value} /> : null}
     </div>
   )
+}
+
+/*
+  Inside a modal dialog, as the top priority is written. The slash menu, the toolbar over a
+  selection and the drag handle's menu open inside the dialog, and Escape closes an open one before
+  it closes the dialog
+*/
+export const InDialog: Story = {
+  args: {
+    initialValue: richTextSample,
+    className: undefined,
+  },
+  parameters: {
+    docs: {
+      story: {
+        height: '640px',
+      },
+    },
+  },
+  render: args => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Write the update</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>Write the update</DialogTitle>
+          <DialogDescription>What moved forward today.</DialogDescription>
+        </DialogHeader>
+        <RichTextEditor {...args} />
+      </DialogContent>
+    </Dialog>
+  ),
 }

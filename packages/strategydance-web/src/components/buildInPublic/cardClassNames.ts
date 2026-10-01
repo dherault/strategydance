@@ -13,6 +13,13 @@ export const CARD_EYEBROW_CLASS_NAME =
 */
 export const CARD_DISPLAY_CLASS_NAME = 'm-0 font-display font-normal tracking-tight text-balance'
 
+/*
+  A top priority on a card, set as its headline: its paragraphs in the display face, at the size
+  the card gives them with a class of its own, and its lists under them in the body face, smaller
+*/
+export const CARD_PRIORITY_CLASS_NAME =
+  'font-display font-normal tracking-tight text-balance [&_ol]:font-sans [&_ol]:text-[17px]/[1.45] [&_ol]:tracking-normal [&_ul]:font-sans [&_ul]:text-[17px]/[1.45] [&_ul]:tracking-normal'
+
 // What reads quieter than the rest of the card
 export const CARD_MUTED_CLASS_NAME = 'text-(--card-muted)'
 

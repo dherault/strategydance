@@ -164,26 +164,29 @@ function BuildInPublicStreak({ settings }: Props) {
               isLit={isLit}
               className="text-(--flame-off)"
             />
-            <p
-              className={cn(
-                CARD_DISPLAY_CLASS_NAME,
-                'mt-auto text-[104px] leading-[0.85]',
-                thisWeek.flameColor !== 'warm' && 'text-(--card-strong)',
-              )}
+            {/* Shrinks past two digits, which the panel is as wide as */}
+            <FitText
+              as="p"
+              isDisplay
+              max={104}
+              min={48}
+              lineHeight={0.85}
+              className={cn('mt-auto', thisWeek.flameColor !== 'warm' && 'text-(--card-strong)')}
             >
               {current}
-            </p>
+            </FitText>
             <p className="mt-2.5 mb-0 text-[15px] font-medium">
               {formatMessage(buildInPublicMessages.dayStreak, { count: current })}
             </p>
           </div>
           <div className="flex min-w-0 flex-col px-7 pt-7 pb-11">
+            {/* The week wraps rather than leaving the name no room, as its range runs long in French */}
             <div className="flex items-center justify-between gap-4">
               <BuildInPublicOrganization
                 maxSize={15}
                 lineHeight={1.2}
               />
-              <p className={CARD_EYEBROW_CLASS_NAME}>
+              <p className={cn(CARD_EYEBROW_CLASS_NAME, 'max-w-[55%] text-right text-balance whitespace-normal')}>
                 {formatMessage(buildInPublicMessages.thisWeek, {
                   range: formatDateTimeRange(toCalendarDate(week[0].date), toCalendarDate(week[6].date), {
                     month: 'short',
@@ -275,12 +278,22 @@ function BuildInPublicStreak({ settings }: Props) {
             isLit={isLit}
             className="text-(--flame-off)"
           />
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'flex-1 text-[22px] leading-none whitespace-nowrap')}>
+          {/* The two share the line, the streak shrinking to what the name leaves it, as it runs long
+              in Portuguese or French, rather than squeezing the name out */}
+          <FitText
+            as="p"
+            isDisplay
+            max={22}
+            min={13}
+            lineHeight={1}
+            className="flex-1"
+          >
             {formatMessage(buildInPublicMessages.streakDays, { count: current })}
-          </p>
+          </FitText>
           <BuildInPublicOrganization
             maxSize={15}
             lineHeight={1.2}
+            className="max-w-[45%] flex-none"
           />
         </div>
         <div className="mt-auto grid grid-cols-7 gap-1.5">

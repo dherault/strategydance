@@ -91,6 +91,7 @@
   "buildInPublic.members": "成员",
   "buildInPublic.moreTasks": "{count, plural, other {还有 +# 项任务}}",
   "buildInPublic.noPriority": "暂未设置首要事项",
+  "buildInPublic.nothingToShare": "在设置最高优先级之前，暂无可分享内容。",
   "buildInPublic.numberOfTasks": "任务数量",
   "buildInPublic.numberOfUpdates": "更新数量",
   "buildInPublic.oneThingCard": "今日一事",

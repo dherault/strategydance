@@ -271,19 +271,19 @@ mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: Strin
 # read on its Today page.
 #
 # Keyed by the uid off the token, so a member writes their own and nobody else's. The first step
-# reads that membership and fails for anybody outside the organization. The length and the single
-# line are checked here as well as in the dialog, since the dialog is not the only possible caller,
-# with the pattern the names use: CEL has no standard `trim()`. At most 140 characters,
-# `MAX_TOP_PRIORITY_LENGTH` in strategydance-core. `$organizationId` is also what the team's live
-# query refreshes on
+# reads that membership and fails for anybody outside the organization. The priority is BlockNote's
+# blocks, serialized, whose words nothing here can count, so what is checked is its size, as
+# the log's is: at most 100000 characters, `MAX_TOP_PRIORITY_LENGTH` in strategydance-core, since
+# the dialog is not the only possible caller. `$organizationId` is also what the team's live query
+# refreshes on
 mutation UpdateTopPriority($organizationId: UUID!, $topPriority: String) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can set a top priority in it") {
       role
         @check(
-          expr: "vars.topPriority == null || (size(vars.topPriority) <= 140 && vars.topPriority.matches('^[[:^space:]](.*[[:^space:]])?$'))"
-          message: "A top priority is 1 to 140 characters on one line, with no space at either end"
+          expr: "vars.topPriority == null || (size(vars.topPriority) > 0 && size(vars.topPriority) <= 100000)"
+          message: "A top priority is a serialized editor state of 1 to 100000 characters"
         )
     }
   }

@@ -4,6 +4,22 @@ An AI experiment.
 
 A [Bun](https://bun.com) monorepo. Packages live under `packages/`.
 
+## Vision
+
+Strategy Dance aims to create partly autonomous companies that involve both humans and AIs.
+
+Its first iteration will act as an overseer and companion for solo entrepreneurs, helping them
+build, distribute, stay accountable, stay consistent, and, more generally, act on their projects
+using AI guidance and human wisdom. Progressively, AI guidance will evolve into AI execution,
+performing tasks typically reserved for humans.
+
+In the long term, we would create 100% automated companies. We could also provide existing
+organizations with AI employees across various departments and possibly offer salaries to the
+humans who work for AI-led companies.
+
+The main challenge is to solve company creation and execution by creating a universal system.
+The answer lies in architecture and design.
+
 ## Packages
 
 - [`packages/strategydance-web`](packages/strategydance-web) — TanStack Start (SPA mode) + React + Tailwind CSS v4, built with Vite
@@ -13,6 +29,8 @@ A [Bun](https://bun.com) monorepo. Packages live under `packages/`.
 - [`packages/strategydance-translations`](packages/strategydance-translations) — the Gemini-backed CLI that translates the message catalogues. Node-only
 - [`packages/strategydance-emails`](packages/strategydance-emails) — the transactional emails, as React Email templates the backend renders. Node-only
 - [`packages/strategydance-backend`](packages/strategydance-backend) — a Bun and Express server on Cloud Run, for what needs a secret or the server's word, like inviting people
+
+Beside them, [`documents/`](documents) holds documents written for people rather than for the build, in Markdown only.
 
 ## Getting started
 

@@ -172,10 +172,18 @@ export const MAX_USER_BIO_LENGTH = 200
 --- */
 
 /*
-  How long a member's top priority may be, the one line their team reads on its Today page.
-  Written out again in `UpdateTopPriority`'s check, which cannot import it: change the two together
+  How long a member's top priority may be, the BlockNote blocks their team reads on its Today page,
+  serialized: room to spare for 500 characters whose styles change at nearly every one, since each
+  run of text costs about fifty characters of its own. Written out again in `UpdateTopPriority`'s
+  check, which cannot import it: change the two together
 */
-export const MAX_TOP_PRIORITY_LENGTH = 140
+export const MAX_TOP_PRIORITY_LENGTH = 100000
+
+/*
+  How many characters the words of a top priority may run to, which the dialog counts and holds it
+  to. The server cannot count them in serialized blocks, and holds it to the length above instead
+*/
+export const MAX_TOP_PRIORITY_TEXT_LENGTH = 500
 
 /*
   How many task lists one person keeps in an organization, how many tasks a list holds, and how
@@ -205,7 +213,7 @@ export const MAX_CHECKLIST_ITEM_NAME_LENGTH = 40
 export const MAX_CHECKLIST_HISTORY_DAYS = 3660
 
 /*
-  How long a log entry's serialized editor state may be, which is about a page of formatted text.
+  How long a log entry's serialized blocks may be, which is about a page of formatted text.
   Written out again in `CreateLogEntry`'s and `UpdateLogEntry`'s checks, which cannot import it:
   change the three together
 */

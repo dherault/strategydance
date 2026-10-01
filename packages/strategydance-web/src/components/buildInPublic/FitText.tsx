@@ -10,6 +10,13 @@ import { CARD_DISPLAY_CLASS_NAME } from '~components/buildInPublic/cardClassName
 */
 const DISPLAY_DESCENDER_ROOM = 0.25
 
+/*
+  The room below a text clamped to its lines, less than the room a whole text keeps: the lines are
+  set tighter than the face is tall, so the tops of the first line cut off reach up into the full
+  room. This is as far down as the descenders above them go
+*/
+const CLAMPED_DESCENDER_ROOM = 0.12
+
 type Fit = {
   // The largest and smallest font sizes to try, in pixels
   max: number
@@ -24,17 +31,20 @@ type Fit = {
 /*
   Sizes a text to its box: the largest size from `max` down to `min` at which it fits on one line,
   else the largest at which it fits on `lines`, else `min`, cut with an ellipsis. A search on the
-  element itself, since how wide a name runs depends on its letters, not on how many there are
+  element itself, since how wide a name runs depends on its letters, not on how many there are.
+
+  In whole pixels, since a card's picture floors every font size it draws: a fitted size of 14.75px
+  would come out at 13.9px, a size smaller than the card on the page
 */
 function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderRoom }: Fit) {
   const { style } = element
 
   if (!element.clientWidth) return
 
-  Object.assign(style, { display: '', WebkitLineClamp: '', WebkitBoxOrient: '', textOverflow: '' })
+  Object.assign(style, { display: '', WebkitLineClamp: '', WebkitBoxOrient: '', textOverflow: '', overflowWrap: '' })
 
-  function setSize(fontSize: number) {
-    const room = fontSize * descenderRoom
+  function setSize(fontSize: number, roomEms = descenderRoom) {
+    const room = fontSize * roomEms
 
     style.fontSize = `${fontSize}px`
     style.paddingBottom = room ? `${room}px` : ''
@@ -58,14 +68,14 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
     let low = min
     let high = max
 
-    while (high - low > 0.25) {
+    while (high - low > 1) {
       const middle = (low + high) / 2
 
       if (fits(middle, lineCount)) low = middle
       else high = middle
     }
 
-    return Math.floor(low * 4) / 4
+    return Math.max(min, Math.floor(low))
   }
 
   let lineCount = 1
@@ -82,16 +92,20 @@ function fitText(element: HTMLElement, { max, min, lines, lineHeight, descenderR
     return
   }
 
-  setSize(min)
-
   if (lines > 1) {
+    setSize(min, Math.min(descenderRoom, CLAMPED_DESCENDER_ROOM))
+
+    // A word too long for a line breaks inside it here, rather than running out of the box where
+    // nothing marks it cut: only a clamp across whole lines ends in an ellipsis
     Object.assign(style, {
       whiteSpace: 'normal',
+      overflowWrap: 'break-word',
       display: '-webkit-box',
       WebkitBoxOrient: 'vertical',
       WebkitLineClamp: String(lines),
     })
   } else {
+    setSize(min)
     Object.assign(style, { whiteSpace: 'nowrap', textOverflow: 'ellipsis' })
   }
 }

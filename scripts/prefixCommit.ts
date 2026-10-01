@@ -11,6 +11,7 @@ const COMMIT_PREFIX_TO_PATH = {
   translations: 'packages/strategydance-translations/',
   emails: 'packages/strategydance-emails/',
   'design-system': 'packages/strategydance-design-system/',
+  documents: 'documents/',
 }
 
 const commitMessageFile = process.argv[2]

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
+import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
@@ -18,10 +19,12 @@ import getMemberName from '~utils/team/getMemberName'
 
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicLogo from '~components/buildInPublic/BuildInPublicLogo'
+import BuildInPublicRichText from '~components/buildInPublic/BuildInPublicRichText'
 import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
 import {
   CARD_DISPLAY_CLASS_NAME,
   CARD_EYEBROW_CLASS_NAME,
+  CARD_PRIORITY_CLASS_NAME,
   CARD_MUTED_CLASS_NAME,
 } from '~components/buildInPublic/cardClassNames'
 import FitText from '~components/buildInPublic/FitText'
@@ -75,7 +78,9 @@ function BuildInPublicCompany({ settings }: Props) {
   const shownMembers = pickedMembers.length ? pickedMembers : members.slice(0, MAX_TEAM_AVATARS)
 
   const viewerMember = members.find(member => member.user.id === viewerId)
-  const priority = viewerMember?.topPriority || formatMessage(buildInPublicMessages.setPriority)
+  // Left out rather than standing in for, since a card is posted for anybody to see
+  const topPriority = viewerMember?.topPriority
+  const priority = topPriority && hasRichText(topPriority) ? topPriority : null
   const weekChecks = checklist.checklistItems.reduce(
     (sum, item) =>
       sum + item.completions.filter(completion => completion.date >= weekStart && completion.date <= today).length,
@@ -122,7 +127,8 @@ function BuildInPublicCompany({ settings }: Props) {
             />
           ) : null}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col px-7 pb-11">
+        {/* Down to just above the address, so a name of two lines and a brief of two fit */}
+        <div className="flex min-h-0 flex-1 flex-col px-7 pb-8">
           {/* Positioned, so its white frame is drawn over the banner it overlaps rather than under it */}
           <div className="relative -mt-9 self-start rounded-xs bg-white p-[3px]">
             <BuildInPublicLogo
@@ -146,7 +152,12 @@ function BuildInPublicCompany({ settings }: Props) {
               {formatMessage(buildInPublicMessages.dayNumber, { count: dayCount })}
             </p>
           </div>
-          <p className={cn(CARD_MUTED_CLASS_NAME, 'mt-1.5 mb-0 line-clamp-2 text-sm leading-[1.5]')}>
+          <p
+            className={cn(
+              CARD_MUTED_CLASS_NAME,
+              'mt-1.5 mb-0 line-clamp-2 flex-none wrap-break-word text-sm leading-[1.5]',
+            )}
+          >
             {organization?.brief || formatMessage(buildInPublicMessages.teamBrief, { count: members.length })}
           </p>
         </div>
@@ -176,7 +187,6 @@ function BuildInPublicCompany({ settings }: Props) {
           name={name}
           logoUrl={logoUrl}
           size={56}
-          isInverted
         />
         <FitText
           as="p"
@@ -192,7 +202,8 @@ function BuildInPublicCompany({ settings }: Props) {
         <p className="mt-1.5 mb-0 text-sm font-medium">
           {formatMessage(buildInPublicMessages.teamDay, { count: members.length, day: dayCount })}
         </p>
-        <AvatarGroup className="mt-auto">
+        {/* Set apart by an outline rather than the group's ring, a shadow Safari draws askew in a picture */}
+        <AvatarGroup className="mt-auto *:ring-0 *:outline-2 *:outline-white">
           {shownMembers.map(member => (
             <Avatar
               key={member.user.id}
@@ -227,11 +238,26 @@ function BuildInPublicCompany({ settings }: Props) {
             {formatDate(toCalendarDate(today), { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
           </p>
         </div>
-        <div className="mt-auto grid min-h-[170px] grid-cols-[1.5fr_1fr_1fr]">
-          <div className="flex min-w-0 flex-col gap-3 pr-5">
-            <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.priorityTitle)}</p>
-            <p className={cn(CARD_DISPLAY_CLASS_NAME, 'line-clamp-5 text-[22px]/[1.2]')}>{priority}</p>
-          </div>
+        {/* Its one row as tall as the room left, so a long priority fades out rather than growing the card */}
+        <div
+          className={cn(
+            'mt-auto grid min-h-[170px] grid-rows-[minmax(0,1fr)]',
+            priority ? 'grid-cols-[1.5fr_1fr_1fr]' : 'grid-cols-2',
+          )}
+        >
+          {priority ? (
+            <div className="flex min-h-0 min-w-0 flex-col gap-3 pr-5">
+              <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.priorityTitle)}</p>
+              <BuildInPublicRichText
+                value={priority}
+                textClassName={cn(
+                  CARD_PRIORITY_CLASS_NAME,
+                  'text-[22px]/[1.2] [&_ol]:text-sm/[1.45] [&_ul]:text-sm/[1.45]',
+                )}
+                isDisplay
+              />
+            </div>
+          ) : null}
           {[
             {
               label: formatMessage(buildInPublicMessages.checklistTitle),
@@ -243,10 +269,14 @@ function BuildInPublicCompany({ settings }: Props) {
               count: weekLogs,
               words: formatMessage(buildInPublicMessages.updatesThisWeek, { count: weekLogs }),
             },
-          ].map(stat => (
+          ].map((stat, index) => (
             <div
               key={stat.label}
-              className="flex min-w-0 flex-col gap-3 border-l border-[color-mix(in_srgb,currentColor_18%,transparent)] px-5"
+              className={cn(
+                'flex min-w-0 flex-col gap-3 px-5',
+                // The first opens the card's row when there is no priority before it to set it apart from
+                priority || index > 0 ? 'border-l border-[color-mix(in_srgb,currentColor_18%,transparent)]' : 'pl-0',
+              )}
             >
               <p className={CARD_EYEBROW_CLASS_NAME}>{stat.label}</p>
               <div>

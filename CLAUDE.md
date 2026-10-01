@@ -10,6 +10,22 @@ push, open the pull request or address the review. [Workflow](#workflow) says ho
 
 `AGENTS.md` is a symlink to this file: edit `CLAUDE.md` only.
 
+## Vision
+
+Strategy Dance aims to create partly autonomous companies that involve both humans and AIs.
+
+Its first iteration will act as an overseer and companion for solo entrepreneurs, helping them
+build, distribute, stay accountable, stay consistent, and, more generally, act on their projects
+using AI guidance and human wisdom. Progressively, AI guidance will evolve into AI execution,
+performing tasks typically reserved for humans.
+
+In the long term, we would create 100% automated companies. We could also provide existing
+organizations with AI employees across various departments and possibly offer salaries to the
+humans who work for AI-led companies.
+
+The main challenge is to solve company creation and execution by creating a universal system.
+The answer lies in architecture and design.
+
 ## Stack
 
 A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
@@ -27,7 +43,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
-  UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. It imports itself by its package name,
+  UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
+  editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
+  drawn by `RichText` without it. It imports itself by its package name,
   `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
   component resolves the same when another package reads it as source. Its tokens and components
   are ported from the Strategy Dance Design System project in Claude Design and keep that
@@ -37,6 +55,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   catalogues. Node-only: never import it from the frontend
 - `packages/strategydance-emails` — the transactional emails, as
   [React Email](https://react.email) templates. Node-only: the backend renders them. See below
+- `documents/`, at the root — documents written for people rather than for the build, in
+  Markdown and nothing else. `.gitignore` hides any other file put there, so it never reaches a
+  commit. A commit there is scoped `[documents]`
 - [oxlint](https://oxc.rs) for linting and oxfmt, from the same project, for formatting, configured
   in `.oxlintrc.json` and `.oxfmtrc.json`. See [Linting and formatting](#linting-and-formatting)
 - `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
@@ -179,14 +200,19 @@ them: `FormField` for react-hook-form, `TextDivider`.
 
 Strings stay in the frontend's catalogues. A design-system component that names itself in
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
-it: `~components/common/Spinner` is the design system's spinner with that label.
+it: `~components/common/Spinner` is the design system's spinner with that label. The one
+exception is BlockNote's menus, dozens of strings that BlockNote translates into every locale the
+app speaks: `RichTextEditor` takes the app's `locale` for them, and only its placeholder and its
+heading's name come from a catalogue.
 
 shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
 its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer
 events and hides from assistive technology everything outside itself, and dismisses on any Escape
 that reaches the document. The `MultiSelect` portals its list into the dialog around its trigger
 and claims Escape while the list is open. A Base UI popup added later needs both, and a story
-inside a `Dialog` to show it works there.
+inside a `Dialog` to show it works there. BlockNote's shadcn menus are Base UI's too: they portal
+into the editor, and `RichTextEditor` claims Escape while one is open and floats its toolbar over
+the selection on touch screens too, since BlockNote's mobile toolbar portals to the body.
 
 ### Static files
 
@@ -552,9 +578,9 @@ tree at unpredictable moments, and an unexpected path belongs in `.gitignore`, n
 Write subjects in the imperative mood, saying what the change does rather than which files it
 touches. A husky `commit-msg` hook (`scripts/prefixCommit.ts`) prepends a scope derived from the
 staged paths: `[web]`, `[backend]`, `[core]`, `[database]`, `[design-system]`, `[translations]`,
-`[emails]`, or `[root]` when the change spans more than one. **Write the message without a
-prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong one
-sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
+`[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
+without a prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong
+one sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
 within one package where it is natural.
 
 ### Open the pull request

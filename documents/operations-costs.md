@@ -91,7 +91,8 @@ since the catalog does not carry them. A month is 730 hours, as Google bills it.
 ## Usage
 
 Everything that grows with users is counted per **active user-day**: one user opening the app on one
-day. A month of `N` users holds `0.5 × N × 30.4` of them, so 10,000 users make 152,083 a month.
+day. A month of `N` users holds `0.5 × N × 730 / 24` of them, 730 hours being 30.42 days, so 10,000
+users make 152,083 a month.
 
 | Figure | Value | Where it comes from |
 | --- | --- | --- |
@@ -181,7 +182,7 @@ How the larger lines come out at 10,000 users:
 - **Resend**: 1,500 emails a month is inside the free plan's 3,000, but 49 a day on average is half
   its daily cap of 100. One launch day or a large invitation would go over, so this tier pays for Pro
 - **Hosting**: 152,083 × 0.33 MiB = 48.9 GiB, or 1.61 GiB a day, of which 0.35 GiB is free:
-  1.26 GiB × $0.15 × 30.4 days = $5.73
+  1.256 GiB × $0.15 × 30.42 days = $5.73
 - **Data Connect egress**: 38.0 million × 1,518 B = 53.8 GiB, of which 10 GiB is free: $5.25
 
 The lines at zero are computed the same way. The backend runs 10,000 requests a month at 10,000

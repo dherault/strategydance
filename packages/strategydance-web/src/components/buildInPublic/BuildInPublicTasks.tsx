@@ -138,7 +138,12 @@ function BuildInPublicTasks({ settings }: Props) {
           <div className="grid h-full grid-cols-[200px_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col bg-(--card-panel) p-7">
               <p className={CARD_EYEBROW_CLASS_NAME}>{formatMessage(buildInPublicMessages.taskList)}</p>
-              <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-3 wrap-break-word text-[28px]/[1.12]')}>
+              <p
+                className={cn(
+                  CARD_DISPLAY_CLASS_NAME,
+                  'mt-2 line-clamp-3 wrap-break-word text-[28px]/[1.12] descender-room',
+                )}
+              >
                 {progressList.name}
               </p>
               {/* Shrinks once the counts reach three digits, which the panel is not wide enough for */}
@@ -238,7 +243,12 @@ function BuildInPublicTasks({ settings }: Props) {
         >
           <BuildInPublicOrganization maxSize={13} />
           <p className={cn(CARD_EYEBROW_CLASS_NAME, 'mt-auto')}>{formatMessage(buildInPublicMessages.upNext)}</p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-2 line-clamp-2 flex-none wrap-break-word text-[30px]/[1.12]')}>
+          <p
+            className={cn(
+              CARD_DISPLAY_CLASS_NAME,
+              'mt-2 line-clamp-2 flex-none wrap-break-word text-[30px]/[1.12] descender-room',
+            )}
+          >
             {upNextList.name}
           </p>
           {/* Four tasks take a line each, since four of two lines run past the card */}

@@ -88,8 +88,9 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
 function normalizeProps(type: RichTextBlockType, props: unknown): RichTextBlock['props'] {
   if (!isRecord(props)) return undefined
 
-  // Any whole number but the 1 a list starts at anyway, which BlockNote leaves out too
-  if (type === 'numberedListItem' && Number.isSafeInteger(props.start) && props.start !== 1) {
+  // Any whole number but the 1 a list starts at anyway, which BlockNote leaves out too, and 0,
+  // which BlockNote's editor numbers from 1, as it does a list with no start
+  if (type === 'numberedListItem' && Number.isSafeInteger(props.start) && props.start !== 1 && props.start !== 0) {
     return { start: props.start as number }
   }
 

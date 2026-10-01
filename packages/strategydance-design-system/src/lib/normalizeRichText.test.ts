@@ -147,12 +147,12 @@ describe('normalizeRichText', () => {
     ])
   })
 
-  it('keeps a numbered start only when it is a whole number other than 1', () => {
+  it('keeps a numbered start only when it is a whole number other than 1, or 0, which the editor numbers from 1', () => {
     const starts = [1, 0, 7, 2.5, '4'].map(
       start => normalizeRichText([editorBlock('numberedListItem', [text('a')], { start })])[0]?.props,
     )
 
-    expect(starts).toEqual([undefined, { start: 0 }, { start: 7 }, undefined, undefined])
+    expect(starts).toEqual([undefined, undefined, { start: 7 }, undefined, undefined])
   })
 
   it('drops the empty paragraphs a document ends on, and keeps those between blocks', () => {

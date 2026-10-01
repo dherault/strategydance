@@ -57,18 +57,6 @@ export const Untrusted: Story = {
   },
 }
 
-// What the Lexical editor stored before, which is not drawn
-export const Legacy: Story = {
-  args: {
-    value: JSON.stringify({
-      root: {
-        type: 'root',
-        children: [{ type: 'paragraph', children: [{ type: 'text', format: 0, text: 'Written in Lexical' }] }],
-      },
-    }),
-  },
-}
-
 export const Unreadable: Story = {
   args: {
     value: 'not json',

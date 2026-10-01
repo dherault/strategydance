@@ -63,18 +63,6 @@ export const Localized: Story = {
   },
 }
 
-// What the Lexical editor stored before, which it cannot read and so starts empty on
-export const Legacy: Story = {
-  args: {
-    initialValue: JSON.stringify({
-      root: {
-        type: 'root',
-        children: [{ type: 'paragraph', children: [{ type: 'text', format: 0, text: 'Written in Lexical' }] }],
-      },
-    }),
-  },
-}
-
 // What is typed, drawn back by RichText below as a feed would, with the shortcut counted
 export const RoundTrip: Story = {
   render: args => <RoundTripExample {...args} />,

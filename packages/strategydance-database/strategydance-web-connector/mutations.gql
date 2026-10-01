@@ -271,8 +271,8 @@ mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: Strin
 # read on its Today page.
 #
 # Keyed by the uid off the token, so a member writes their own and nobody else's. The first step
-# reads that membership and fails for anybody outside the organization. The priority is Lexical's
-# editor state, serialized, whose words nothing here can count, so what is checked is its size, as
+# reads that membership and fails for anybody outside the organization. The priority is BlockNote's
+# blocks, serialized, whose words nothing here can count, so what is checked is its size, as
 # the log's is: at most 100000 characters, `MAX_TOP_PRIORITY_LENGTH` in strategydance-core, since
 # the dialog is not the only possible caller. `$organizationId` is also what the team's live query
 # refreshes on

@@ -149,9 +149,14 @@
 
   It stops short of the tops of the next line, which a clamp hides but still paints, and which
   begin (L / 2 - 0.36) em below the box. That binds only under 1.05, where a clamped text loses the
-  bottom of its deepest descenders rather than show the top of the line it cut
+  bottom of its deepest descenders rather than show the top of the line it cut.
+
+  A rule in the utilities layer, after Tailwind's own, rather than an `@utility`, which Tailwind
+  sorts among its margin utilities: an `mb-` or a `p-` beside it would undo half of it
 */
-@utility descender-room {
-  padding-bottom: max(0px, min(0.69em - 0.5lh, 0.5lh - 0.36em));
-  margin-bottom: min(0px, max(0.5lh - 0.69em, 0.36em - 0.5lh));
+@layer utilities {
+  .descender-room {
+    padding-bottom: max(0px, min(0.69em - 0.5lh, 0.5lh - 0.36em));
+    margin-bottom: min(0px, max(0.5lh - 0.69em, 0.36em - 0.5lh));
+  }
 }

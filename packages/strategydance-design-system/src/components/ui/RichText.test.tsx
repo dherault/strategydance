@@ -1,93 +1,142 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, spyOn } from 'bun:test'
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 
-function render(root: unknown) {
-  return renderToStaticMarkup(<RichText value={JSON.stringify({ root })} />)
+function render(blocks: unknown) {
+  return renderToStaticMarkup(<RichText value={JSON.stringify(blocks)} />)
 }
 
-function text(value: string, format = 0, extra: Record<string, unknown> = {}) {
-  return { type: 'text', text: value, format, ...extra }
+function text(value: string, styles: Record<string, unknown> = {}) {
+  return { type: 'text', text: value, styles }
 }
 
 describe('RichText', () => {
-  it('draws every node the editor writes', () => {
+  it('draws every block the editor writes', () => {
     const markup = renderToStaticMarkup(<RichText value={richTextSample} />)
 
     expect(markup).toContain('<p class="mb-2">Task feed p95')
     expect(markup).toContain('<span class="font-semibold">task_assignments</span>')
     expect(markup).toContain('<h2 ')
-    expect(markup).toContain('<ul class="mb-2 list-disc')
+    expect(markup).toContain('<ul class="mb-2 pl-[22px] list-disc">')
+    expect(markup).toContain('<ul class="mb-2 pl-[22px] list-[circle]">')
     expect(markup).toContain('<span class="italic">Remove the N+1 query')
+    expect(markup).toContain('<ol start="3" ')
+    expect(markup).toContain('<li data-checked="true" ')
     expect(markup).toContain('<blockquote ')
+    expect(markup).toContain('morning.<br/>And the last')
+  })
+
+  it('draws the list items that follow each other as one list, each kind its own', () => {
+    const markup = render([
+      { type: 'bulletListItem', content: [text('a')] },
+      { type: 'bulletListItem', content: [text('b')] },
+      { type: 'numberedListItem', content: [text('c')] },
+      { type: 'bulletListItem', content: [text('d')] },
+    ])
+
+    expect(markup.match(/<ul /g)).toHaveLength(2)
+    expect(markup.match(/<ol /g)).toHaveLength(1)
+    expect(markup.match(/<li /g)).toHaveLength(4)
+  })
+
+  it('draws a check item ticked or not, for the eye and for assistive technology', () => {
+    const markup = render([
+      { type: 'checkListItem', props: { checked: true }, content: [text('Done')] },
+      { type: 'checkListItem', content: [text('To do')] },
+    ])
+
+    expect(markup).toContain('<input type="checkbox" disabled="" readOnly="" class="sr-only" checked=""/>')
+    expect(markup).toContain('<input type="checkbox" disabled="" readOnly="" class="sr-only"/>')
+    expect(markup).toContain('<span class="min-w-0 line-through opacity-60">Done</span>')
+    expect(markup).toContain('<span class="min-w-0">To do</span>')
   })
 
   it('draws underline and strikethrough together rather than letting one win', () => {
-    expect(render({ type: 'root', children: [{ type: 'paragraph', children: [text('both', 12)] }] })).toContain(
+    expect(render([{ type: 'paragraph', content: [text('both', { underline: true, strike: true })] }])).toContain(
       '[text-decoration-line:underline_line-through]',
     )
   })
 
-  it('never applies a style a value carries', () => {
-    const markup = render({
-      type: 'root',
-      children: [{ type: 'paragraph', children: [text('plain', 0, { style: 'position: fixed' })] }],
-    })
+  it('never applies a color, an alignment or a style a value carries', () => {
+    const markup = render([
+      {
+        type: 'paragraph',
+        props: { textColor: 'red', backgroundColor: 'blue', textAlignment: 'center' },
+        content: [
+          text('plain', { textColor: 'red', code: true }),
+          { type: 'text', text: '!', style: 'position: fixed' },
+        ],
+      },
+    ])
 
-    expect(markup).not.toContain('style')
-    expect(markup).toContain('plain')
+    expect(markup).toBe(
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0"><p class="mb-2">plain!</p></div>',
+    )
   })
 
   it('draws markup inside text as text', () => {
-    expect(
-      render({ type: 'root', children: [{ type: 'paragraph', children: [text('<img src=x onerror=alert(1)>')] }] }),
-    ).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    expect(render([{ type: 'paragraph', content: [text('<img src=x onerror=alert(1)>')] }])).toContain(
+      '&lt;img src=x onerror=alert(1)&gt;',
+    )
   })
 
-  it('unwraps an element it does not know, and drops anything else', () => {
-    const markup = render({
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            { type: 'link', url: 'javascript:alert(1)', children: [text('words')] },
-            { type: 'image', src: 'x' },
-          ],
-        },
-      ],
-    })
+  it('links only to web and mail addresses, in a new tab that is told nothing', () => {
+    const markup = render([
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'link', href: 'https://example.com', content: [text('site')] },
+          { type: 'link', href: 'javascript:alert(1)', content: [text(' script')] },
+        ],
+      },
+    ])
 
-    expect(markup).toBe(
-      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0"><p class="mb-2">words</p></div>',
+    expect(markup).toContain(
+      '<a href="https://example.com/" target="_blank" rel="noopener noreferrer nofollow" class="text-primary underline',
     )
+    expect(markup).not.toContain('javascript')
+    expect(markup).toContain(' script</p>')
+  })
+
+  it('draws a block it does not know as a paragraph, or as what it holds', () => {
+    expect(
+      render([
+        { type: 'codeBlock', content: [text('let a')] },
+        {
+          type: 'image',
+          props: { url: 'https://example.com/a.png' },
+          children: [{ type: 'paragraph', content: [text('b')] }],
+        },
+      ]),
+    ).toContain('<p class="mb-2">let a</p><p class="mb-2">b</p>')
   })
 
   it('draws any heading at the one level', () => {
-    expect(render({ type: 'root', children: [{ type: 'heading', tag: 'h1', children: [text('Title')] }] })).toContain(
-      '<h2 ',
-    )
+    expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h2 ')
+  })
+
+  it('draws what is nested under a block that is not a list item, indented', () => {
+    expect(
+      render([{ type: 'paragraph', content: [text('a')], children: [{ type: 'paragraph', content: [text('b')] }] }]),
+    ).toContain('<p class="mb-2">a</p><div class="pl-6 [&amp;&gt;:last-child]:mb-0 mb-2"><p class="mb-2">b</p></div>')
   })
 
   it('stops walking past a depth no editor writes', () => {
-    let node: Record<string, unknown> = text('deep')
+    let block: Record<string, unknown> = { type: 'quote', content: [text('deep')] }
 
-    for (let index = 0; index < 100; index++) node = { type: 'quote', children: [node] }
+    for (let index = 0; index < 100; index++) block = { type: 'quote', content: [text('.')], children: [block] }
 
-    expect(render({ type: 'root', children: [node] })).not.toContain('deep')
+    expect(render([block])).not.toContain('deep')
   })
 
-  it('draws nothing for a value that does not parse', () => {
-    const consoleError = console.error
-    console.error = () => {}
+  it('draws nothing for an old Lexical value, nor for one that does not parse', () => {
+    const consoleError = spyOn(console, 'error').mockImplementation(() => {})
 
-    try {
-      expect(renderToStaticMarkup(<RichText value="not json" />)).toBe('')
-      expect(renderToStaticMarkup(<RichText value={JSON.stringify({ root: { type: 'paragraph' } })} />)).toBe('')
-    } finally {
-      console.error = consoleError
-    }
+    expect(renderToStaticMarkup(<RichText value="not json" />)).toBe('')
+    expect(renderToStaticMarkup(<RichText value={JSON.stringify({ root: { type: 'root', children: [] } })} />)).toBe('')
+
+    consoleError.mockRestore()
   })
 })

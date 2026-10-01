@@ -1,169 +1,230 @@
-import type { ReactNode } from 'react'
+import { CheckIcon } from 'lucide-react'
+import { Fragment, type ReactNode } from 'react'
+import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 import {
   RICH_TEXT_CLASS_NAME,
-  RICH_TEXT_FORMAT_BOLD,
-  RICH_TEXT_FORMAT_ITALIC,
-  RICH_TEXT_FORMAT_STRIKETHROUGH,
-  RICH_TEXT_FORMAT_UNDERLINE,
-  RICH_TEXT_THEME,
+  RICH_TEXT_CLASSES,
+  type RichTextBlock,
+  type RichTextInline,
+  type RichTextRun,
 } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-// Deeper than any list anybody indents by hand, and shallow enough that a hostile value nesting
-// thousands of levels cannot exhaust the stack
-const MAX_DEPTH = 32
-
 type Props = {
-  /** A Lexical editor state, serialized as `RichTextEditor` hands it over */
+  /** BlockNote's blocks, serialized as `RichTextEditor` hands them over */
   value: string
   className?: string
 }
 
-type SerializedNode = Record<string, unknown>
-
 /*
-  Draws what `RichTextEditor` wrote, without Lexical.
+  Draws what `RichTextEditor` wrote, without BlockNote.
 
   The value is somebody else's, since a feed shows everybody's posts, and it arrives as JSON a
-  client wrote. So nothing in it is trusted: it is walked node by node and only an allowlist
-  becomes elements, paragraphs, one heading level, quotes, the two kinds of list, line breaks and
-  text with four formats. Every other key is ignored, `style` above all, which Lexical's own
-  `TextNode` would apply as `cssText`. An element this does not know is unwrapped, so its text
-  still reads, and anything else is dropped. Text is text: React escapes it.
+  client wrote. So it is read through `parseRichText`, which keeps six blocks, four styles and
+  links to web and mail addresses, and drops every other key, colors and alignment above all.
+  Those become elements here and nothing else does. Text is text: React escapes it.
 
-  It never instantiates an editor, which keeps a feed of many posts cheap. A value that does not
-  parse draws nothing
+  BlockNote stores a list as its items, one block each, so the items of one kind that follow each
+  other are drawn as one list, and what is nested under an item is drawn inside it. A link opens
+  in a new tab and passes on nothing of the page.
+
+  It never instantiates an editor, which keeps a feed of many posts cheap. A value it cannot read,
+  an old Lexical one included, draws nothing
 */
 function RichText({ value, className }: Props) {
-  const root = parseRichText(value)
+  const blocks = parseRichText(value)
 
-  if (!root) return null
+  if (!blocks.length) return null
 
-  return <div className={cn(RICH_TEXT_CLASS_NAME, className)}>{renderChildren(root, 0)}</div>
+  return <div className={cn(RICH_TEXT_CLASS_NAME, className)}>{renderBlocks(blocks, 0)}</div>
 }
 
-function parseRichText(value: string): SerializedNode | null {
-  try {
-    const parsed: unknown = JSON.parse(value)
-
-    if (!isNode(parsed) || !isNode(parsed.root) || parsed.root.type !== 'root') throw new Error('No root node')
-
-    return parsed.root
-  } catch (error) {
-    console.error('Could not read a rich text value', error)
-
-    return null
-  }
+function isListItem(block: RichTextBlock) {
+  return block.type === 'bulletListItem' || block.type === 'numberedListItem' || block.type === 'checkListItem'
 }
 
-function isNode(value: unknown): value is SerializedNode {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+// The blocks in drawing order, the list items of one kind that follow each other as one group
+function groupBlocks(blocks: RichTextBlock[]) {
+  return blocks.reduce<RichTextBlock[][]>((groups, block) => {
+    const group = groups.at(-1)
+
+    if (group && isListItem(block) && group[0].type === block.type) group.push(block)
+    else groups.push([block])
+
+    return groups
+  }, [])
 }
 
-function renderChildren(node: SerializedNode, depth: number): ReactNode[] {
-  if (depth >= MAX_DEPTH || !Array.isArray(node.children)) return []
-
-  return node.children.map((child: unknown, index) => (isNode(child) ? renderNode(child, depth + 1, index) : null))
-}
-
-function renderNode(node: SerializedNode, depth: number, key: number): ReactNode {
-  switch (node.type) {
-    case 'paragraph': {
-      const children = renderChildren(node, depth)
-
-      return (
-        <p
-          key={key}
-          className={RICH_TEXT_THEME.paragraph}
-        >
-          {/* An empty paragraph is a blank line, as the editor draws it */}
-          {children.length ? children : <br />}
-        </p>
-      )
-    }
-    case 'heading':
-      return (
-        <h2
-          key={key}
-          className={RICH_TEXT_THEME.heading.h2}
-        >
-          {renderChildren(node, depth)}
-        </h2>
-      )
-    case 'quote':
-      return (
-        <blockquote
-          key={key}
-          className={RICH_TEXT_THEME.quote}
-        >
-          {renderChildren(node, depth)}
-        </blockquote>
-      )
-    case 'list':
-      return node.listType === 'number' ? (
-        <ol
-          key={key}
-          className={RICH_TEXT_THEME.list.ol}
-        >
-          {renderChildren(node, depth)}
-        </ol>
-      ) : (
-        <ul
-          key={key}
-          className={RICH_TEXT_THEME.list.ul}
-        >
-          {renderChildren(node, depth)}
-        </ul>
-      )
-    case 'listitem':
-      return (
-        <li
-          key={key}
-          className={isNestedListItem(node) ? RICH_TEXT_THEME.list.nested.listitem : RICH_TEXT_THEME.list.listitem}
-        >
-          {renderChildren(node, depth)}
-        </li>
-      )
-    case 'linebreak':
-      return <br key={key} />
-    case 'text':
-    case 'tab':
-      return renderText(node, key)
-    default:
-      // An element from a newer editor, say: its text still reads, without its wrapper
-      return Array.isArray(node.children) ? renderChildren(node, depth) : null
-  }
-}
-
-// Lexical nests a list inside the item it hangs from
-function isNestedListItem(node: SerializedNode) {
-  return Array.isArray(node.children) && node.children.some(child => isNode(child) && child.type === 'list')
-}
-
-function renderText(node: SerializedNode, key: number): ReactNode {
-  if (typeof node.text !== 'string' || !node.text) return null
-
-  const format = typeof node.format === 'number' ? node.format : 0
-  const isUnderline = (format & RICH_TEXT_FORMAT_UNDERLINE) !== 0
-  const isStrikethrough = (format & RICH_TEXT_FORMAT_STRIKETHROUGH) !== 0
-  const textClassName = cn(
-    (format & RICH_TEXT_FORMAT_BOLD) !== 0 && RICH_TEXT_THEME.text.bold,
-    (format & RICH_TEXT_FORMAT_ITALIC) !== 0 && RICH_TEXT_THEME.text.italic,
-    isUnderline && isStrikethrough
-      ? RICH_TEXT_THEME.text.underlineStrikethrough
-      : cn(isUnderline && RICH_TEXT_THEME.text.underline, isStrikethrough && RICH_TEXT_THEME.text.strikethrough),
+// `listDepth` is how many lists the blocks sit in, which picks a bulleted list's marker
+function renderBlocks(blocks: RichTextBlock[], listDepth: number): ReactNode[] {
+  return groupBlocks(blocks).map((group, index) =>
+    isListItem(group[0]) ? renderList(group, listDepth, index) : renderBlock(group[0], listDepth, index),
   )
+}
 
-  if (!textClassName) return node.text
+function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
+  const content = renderContent(block)
+  const element =
+    block.type === 'heading' ? (
+      <h2 className={RICH_TEXT_CLASSES.heading}>{content}</h2>
+    ) : block.type === 'quote' ? (
+      <blockquote className={RICH_TEXT_CLASSES.quote}>{content}</blockquote>
+    ) : (
+      <p className={RICH_TEXT_CLASSES.paragraph}>{content}</p>
+    )
+
+  return (
+    <Fragment key={key}>
+      {element}
+      {block.children ? (
+        <div className={cn(RICH_TEXT_CLASSES.nested, 'mb-2')}>{renderBlocks(block.children, listDepth)}</div>
+      ) : null}
+    </Fragment>
+  )
+}
+
+function renderList(items: RichTextBlock[], listDepth: number, key: number) {
+  const [first] = items
+
+  if (first.type === 'checkListItem') {
+    return (
+      <ul
+        key={key}
+        className={RICH_TEXT_CLASSES.checkList}
+      >
+        {items.map((item, index) => renderCheckItem(item, listDepth, index))}
+      </ul>
+    )
+  }
+
+  const listItems = items.map((item, index) => (
+    <li
+      key={index}
+      className={RICH_TEXT_CLASSES.listItem}
+    >
+      {renderContent(item)}
+      {item.children ? renderBlocks(item.children, listDepth + 1) : null}
+    </li>
+  ))
+
+  if (first.type === 'numberedListItem') {
+    return (
+      <ol
+        key={key}
+        start={first.props?.start}
+        className={RICH_TEXT_CLASSES.numberedList}
+      >
+        {listItems}
+      </ol>
+    )
+  }
+
+  const markers = RICH_TEXT_CLASSES.bulletMarkers
+
+  return (
+    <ul
+      key={key}
+      className={cn(RICH_TEXT_CLASSES.bulletedList, markers[listDepth % markers.length])}
+    >
+      {listItems}
+    </ul>
+  )
+}
+
+/*
+  A check item, its box drawn for the eye and a native checkbox, visually hidden, saying for
+  assistive technology whether it is ticked. Both sit in a label with its text, which names it
+*/
+function renderCheckItem(item: RichTextBlock, listDepth: number, key: number) {
+  const isChecked = item.props?.checked === true
+
+  return (
+    <li
+      key={key}
+      data-checked={isChecked}
+      className={RICH_TEXT_CLASSES.listItem}
+    >
+      <label className={RICH_TEXT_CLASSES.checkLabel}>
+        <input
+          type="checkbox"
+          checked={isChecked}
+          disabled
+          readOnly
+          className="sr-only"
+        />
+        <span
+          aria-hidden="true"
+          data-check-box
+          className={cn(RICH_TEXT_CLASSES.checkBox, isChecked && RICH_TEXT_CLASSES.checkBoxChecked)}
+        >
+          {isChecked ? <CheckIcon /> : null}
+        </span>
+        <span className={cn('min-w-0', isChecked && RICH_TEXT_CLASSES.checkedText)}>{renderContent(item)}</span>
+      </label>
+      {item.children ? (
+        <div className={RICH_TEXT_CLASSES.nested}>{renderBlocks(item.children, listDepth + 1)}</div>
+      ) : null}
+    </li>
+  )
+}
+
+// A block's text, or a line break holding its line when it has none, as the editor draws it
+function renderContent(block: RichTextBlock): ReactNode {
+  if (!block.content) return <br />
+
+  return block.content.map(renderInline)
+}
+
+function renderInline(item: RichTextInline, key: number): ReactNode {
+  if (item.type === 'text') return renderRun(item, key)
+
+  return (
+    <a
+      key={key}
+      href={item.href}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      className={RICH_TEXT_CLASSES.link}
+    >
+      {item.content.map(renderRun)}
+    </a>
+  )
+}
+
+function renderRun(run: RichTextRun, key: number): ReactNode {
+  const { bold, italic, underline, strike } = run.styles ?? {}
+  const { text: textClasses } = RICH_TEXT_CLASSES
+  const className = cn(
+    bold && textClasses.bold,
+    italic && textClasses.italic,
+    underline && strike
+      ? textClasses.underlineStrikethrough
+      : cn(underline && textClasses.underline, strike && textClasses.strikethrough),
+  )
+  const text = renderLines(run.text)
+
+  if (!className) return <Fragment key={key}>{text}</Fragment>
 
   return (
     <span
       key={key}
-      className={textClassName}
+      className={className}
     >
-      {node.text}
+      {text}
     </span>
   )
+}
+
+// A line broken inside a block, with Shift+Enter, is a newline in its text
+function renderLines(text: string): ReactNode {
+  if (!text.includes('\n')) return text
+
+  return text.split('\n').map((line, index) => (
+    <Fragment key={index}>
+      {index ? <br /> : null}
+      {line}
+    </Fragment>
+  ))
 }
 
 export { RichText }

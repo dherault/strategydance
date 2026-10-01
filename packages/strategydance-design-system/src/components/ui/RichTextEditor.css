@@ -375,3 +375,25 @@
   color: var(--foreground);
   font-size: 14px;
 }
+
+/*
+  The side menu's "+" and drag handle, in the neutral scale rather than Tailwind's gray, and filled
+  as a transparent button is under the pointer and while the block's menu is open
+*/
+.rich-text-editor.bn-root .bn-side-menu .bn-button {
+  border-radius: var(--radius-xs);
+  color: var(--color-neutral-400);
+  transition:
+    background-color 150ms ease-in-out,
+    color 150ms ease-in-out;
+}
+
+.rich-text-editor.bn-root .bn-side-menu .bn-button:is(:hover, [aria-expanded='true']) {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+}
+
+/* Selected text, in a primary tint rather than the browser's blue */
+.rich-text-editor.bn-root .bn-editor ::selection {
+  background-color: var(--color-primary-100);
+}

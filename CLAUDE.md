@@ -568,9 +568,9 @@ tree at unpredictable moments, and an unexpected path belongs in `.gitignore`, n
 Write subjects in the imperative mood, saying what the change does rather than which files it
 touches. A husky `commit-msg` hook (`scripts/prefixCommit.ts`) prepends a scope derived from the
 staged paths: `[web]`, `[backend]`, `[core]`, `[database]`, `[design-system]`, `[translations]`,
-`[emails]`, or `[root]` when the change spans more than one. **Write the message without a
-prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong one
-sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
+`[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
+without a prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong
+one sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
 within one package where it is natural.
 
 ### Open the pull request

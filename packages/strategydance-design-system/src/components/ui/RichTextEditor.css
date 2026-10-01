@@ -109,7 +109,10 @@
   font-family: var(--font-sans);
 }
 
+/* As wide as its longest block's name, which in French outgrows the trigger it would match */
 .rich-text-editor.bn-root [data-slot='select-content'] {
+  width: max-content;
+  min-width: var(--anchor-width);
   padding: 4px;
 }
 

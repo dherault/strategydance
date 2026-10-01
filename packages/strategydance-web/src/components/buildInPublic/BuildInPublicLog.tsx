@@ -228,7 +228,12 @@ function BuildInPublicLog({ settings }: Props) {
           >
             “
           </p>
-          <p className={cn(CARD_DISPLAY_CLASS_NAME, 'mt-3 line-clamp-6 wrap-break-word text-[22px]/[1.25]')}>
+          <p
+            className={cn(
+              CARD_DISPLAY_CLASS_NAME,
+              'mt-3 line-clamp-6 wrap-break-word text-[22px]/[1.25] descender-room',
+            )}
+          >
             {quoteOf(quote.entry)}
           </p>
           {quoteAuthorName ? (

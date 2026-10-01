@@ -11,6 +11,8 @@ type Props = {
   className?: string
   // How its text is set, such as its size, over the card's colors
   textClassName?: string
+  // In the display face, with room below for its descenders
+  isDisplay?: boolean
 }
 
 /*
@@ -20,7 +22,10 @@ type Props = {
   the rich text's theme, draws none.
 
   It takes the room its card leaves it and no more: a long text gives way rather than pushing what
-  is under it off the card, and fades out where it is cut rather than ending on half a line
+  is under it off the card, and fades out where it is cut rather than ending on half a line. The
+  box that cuts it is set as its text is, so that the room it keeps below for the display face's
+  descenders is in the text's ems. The fade is in rems, as long as it was when the box took the
+  page's 16px
 */
 const CARD_RICH_TEXT_CLASS_NAME = cn(
   'text-inherit',
@@ -31,7 +36,7 @@ const CARD_RICH_TEXT_CLASS_NAME = cn(
   "[&_ol>li:not(.list-none)]:[counter-increment:card-item] [&_ol>li:not(.list-none)]:before:content-[counter(card-item)'.']",
 )
 
-function BuildInPublicRichText({ value, className, textClassName }: Props) {
+function BuildInPublicRichText({ value, className, textClassName, isDisplay = false }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const isOverflowing = useIsOverflowing(ref)
 
@@ -40,7 +45,9 @@ function BuildInPublicRichText({ value, className, textClassName }: Props) {
       ref={ref}
       className={cn(
         'min-h-0 overflow-hidden',
-        isOverflowing && '[mask-image:linear-gradient(to_bottom,#000_calc(100%-2.5em),transparent)]',
+        textClassName,
+        isDisplay && 'descender-room',
+        isOverflowing && '[mask-image:linear-gradient(to_bottom,#000_calc(100%-2.5rem),transparent)]',
         className,
       )}
     >

@@ -83,7 +83,14 @@ function BuildInPublicPriority({ settings }: Props) {
   ) {
     if (!priority) {
       return (
-        <p className={cn(CARD_DISPLAY_CLASS_NAME, className, 'line-clamp-4 wrap-break-word', sizeClassName)}>
+        <p
+          className={cn(
+            CARD_DISPLAY_CLASS_NAME,
+            className,
+            'line-clamp-4 wrap-break-word descender-room',
+            sizeClassName,
+          )}
+        >
           {placeholder}
         </p>
       )
@@ -94,6 +101,7 @@ function BuildInPublicPriority({ settings }: Props) {
         value={priority}
         className={className}
         textClassName={cn(CARD_PRIORITY_CLASS_NAME, sizeClassName)}
+        isDisplay
       />
     )
   }

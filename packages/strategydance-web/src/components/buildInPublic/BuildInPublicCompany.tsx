@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
+import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
@@ -78,7 +79,8 @@ function BuildInPublicCompany({ settings }: Props) {
 
   const viewerMember = members.find(member => member.user.id === viewerId)
   // Left out rather than standing in for, since a card is posted for anybody to see
-  const priority = viewerMember?.topPriority || null
+  const topPriority = viewerMember?.topPriority
+  const priority = topPriority && hasRichText(topPriority) ? topPriority : null
   const weekChecks = checklist.checklistItems.reduce(
     (sum, item) =>
       sum + item.completions.filter(completion => completion.date >= weekStart && completion.date <= today).length,

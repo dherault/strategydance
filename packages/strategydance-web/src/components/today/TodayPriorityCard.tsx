@@ -1,6 +1,7 @@
 import { PencilIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
+import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { OrganizationMember } from '~types'
@@ -24,7 +25,8 @@ type Props = {
 function TodayPriorityCard({ member, isViewer, onEdit }: Props) {
   const { formatMessage } = useIntl()
 
-  const priority = member.topPriority
+  // One the renderer cannot read, an old Lexical one, is none
+  const priority = hasRichText(member.topPriority) ? member.topPriority : null
 
   return (
     <div
@@ -40,7 +42,8 @@ function TodayPriorityCard({ member, isViewer, onEdit }: Props) {
       {priority ? (
         <RichText
           value={priority}
-          className="text-lg/[1.45]"
+          // Its links above the button laid over the reader's own card, so they still open
+          className="text-lg/[1.45] [&_a]:relative [&_a]:z-1"
         />
       ) : (
         <p className="m-0 text-lg leading-[1.45] wrap-anywhere text-pretty text-neutral-400">

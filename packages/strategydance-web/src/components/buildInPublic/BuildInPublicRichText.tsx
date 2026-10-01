@@ -5,7 +5,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import useIsOverflowing from '~hooks/buildInPublic/useIsOverflowing'
 
 type Props = {
-  // A Lexical editor state, serialized, which is somebody's to write and so is drawn through `RichText`
+  // BlockNote's blocks, serialized, which are somebody's to write and so are drawn through `RichText`
   value: string
   // Where it sits on the card, such as `mt-auto`
   className?: string
@@ -16,10 +16,10 @@ type Props = {
 }
 
 /*
-  The design system's rich text in the card's colors on any tone, its list markers and quote bars
-  in the accent. A list's markers are drawn before each item rather than as the list's own
-  markers, which a card's picture does not copy. The item Lexical nests a list in, `list-none` in
-  the rich text's theme, draws none.
+  The design system's rich text in the card's colors on any tone, its list markers, quote bars,
+  links and ticked boxes in the accent, and its unticked boxes as the checklist card draws them. A
+  list's markers are drawn before each item rather than as the list's own markers, which a card's
+  picture does not copy. A check item draws its box instead.
 
   It takes the room its card leaves it and no more: a long text gives way rather than pushing what
   is under it off the card, and fades out where it is cut rather than ending on half a line. The
@@ -30,10 +30,13 @@ type Props = {
 const CARD_RICH_TEXT_CLASS_NAME = cn(
   'text-inherit',
   '[&_blockquote]:border-(--card-mark) [&_blockquote]:text-(--card-quote)',
+  '[&_a]:text-(--card-mark)',
   '[&_ol]:list-none [&_ol]:[counter-reset:card-item] [&_ul]:list-none',
-  '[&_li]:relative [&_li:not(.list-none)]:before:absolute [&_li:not(.list-none)]:before:right-[calc(100%+0.5em)] [&_li:not(.list-none)]:before:text-(--card-mark)',
-  "[&_ul>li:not(.list-none)]:before:content-['•']",
-  "[&_ol>li:not(.list-none)]:[counter-increment:card-item] [&_ol>li:not(.list-none)]:before:content-[counter(card-item)'.']",
+  '[&_li]:relative [&_li:not([data-checked])]:before:absolute [&_li:not([data-checked])]:before:right-[calc(100%+0.5em)] [&_li:not([data-checked])]:before:text-(--card-mark)',
+  "[&_ul>li:not([data-checked])]:before:content-['•']",
+  "[&_ol>li]:[counter-increment:card-item] [&_ol>li]:before:content-[counter(card-item)'.']",
+  '[&_[data-check-box]]:border-(--card-box-border) [&_[data-check-box]]:bg-(--card-box) [&_[data-check-box]]:text-(--card-box-check)',
+  '[&_[data-checked=true]>label>[data-check-box]]:border-(--card-mark) [&_[data-checked=true]>label>[data-check-box]]:bg-(--card-mark)',
 )
 
 function BuildInPublicRichText({ value, className, textClassName, isDisplay = false }: Props) {

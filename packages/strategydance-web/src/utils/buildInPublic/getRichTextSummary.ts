@@ -1,67 +1,24 @@
-type SerializedNode = Record<string, unknown>
+import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
+import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 
-// Deep enough for any list indented by hand, as the design system's `RichText` reads
-const MAX_DEPTH = 32
-
-function isNode(value: unknown): value is SerializedNode {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function childrenOf(node: SerializedNode) {
-  return Array.isArray(node.children) ? node.children.filter(isNode) : []
-}
-
-// The nodes that stand on their own lines, whose words are kept apart from their neighbours'
-const BLOCK_TYPES = new Set(['paragraph', 'heading', 'quote', 'list', 'listitem'])
+const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 /*
-  A node's words, with a line break read as a space, and a space around each block, so two list
-  items or two paragraphs do not run into one word. Text runs within a block join as they are,
-  since a word half in bold is two runs
-*/
-function readText(node: SerializedNode, depth = 0): string {
-  if (depth > MAX_DEPTH) return ''
-  if (node.type === 'text' || node.type === 'tab') return typeof node.text === 'string' ? node.text : ''
-  if (node.type === 'linebreak') return ' '
-
-  return childrenOf(node)
-    .map(child => {
-      const text = readText(child, depth + 1)
-
-      return typeof child.type === 'string' && BLOCK_TYPES.has(child.type) ? ` ${text} ` : text
-    })
-    .join('')
-}
-
-/*
-  What a card quotes of a log entry, from the editor state it is stored as: the words of its first
-  paragraph or heading that has any, else all of its words, and the words of its first quote, if
-  it has one. Whitespace is folded, since a card writes them on one line or a few. A value that
-  does not parse says nothing
+  What a card quotes of a log entry, from the blocks it is stored as: the words of its first
+  paragraph or heading that has any, without what is nested under it, else all of its words, and
+  the words of its first quote, if it has one. Whitespace is folded, a line break included, since
+  a card writes them on one line or a few. A value it cannot read says nothing
 */
 function getRichTextSummary(value: string) {
-  let root: SerializedNode | null = null
-
-  try {
-    const parsed: unknown = JSON.parse(value)
-
-    if (isNode(parsed) && isNode(parsed.root)) root = parsed.root
-  } catch {
-    root = null
-  }
-
-  if (!root) return { text: '', quote: null }
-
-  const blocks = childrenOf(root)
-  const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
+  const blocks = parseRichText(value)
   const firstText = blocks
     .filter(block => block.type === 'paragraph' || block.type === 'heading')
-    .map(block => fold(readText(block)))
+    .map(block => fold(getRichTextText([{ type: block.type, content: block.content }])))
     .find(Boolean)
   const quoteBlock = blocks.find(block => block.type === 'quote')
-  const quote = quoteBlock ? fold(readText(quoteBlock)) : ''
+  const quote = quoteBlock ? fold(getRichTextText([quoteBlock])) : ''
 
-  return { text: firstText ?? fold(readText(root)), quote: quote || null }
+  return { text: firstText ?? fold(getRichTextText(blocks)), quote: quote || null }
 }
 
 export default getRichTextSummary

@@ -121,11 +121,11 @@ const logMessages = defineMessages({
     defaultMessage: 'The editor could not load. Check your connection and reload.',
     description: 'What shows in place of the log editor when its code failed to load.',
   },
-  heading: {
-    id: 'log.heading',
-    defaultMessage: 'Heading',
+  editorTurnInto: {
+    id: 'log.editorTurnInto',
+    defaultMessage: 'Turn into',
     description:
-      "Name of the heading block in the log editor's menus: the one '/' opens, and the toolbar over a selection.",
+      "Item of the rich text editor's block menu, opened from the handle beside a block, leading to a list of block types the block can become: paragraph, heading, quote, list.",
   },
 })
 

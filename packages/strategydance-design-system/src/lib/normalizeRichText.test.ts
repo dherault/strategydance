@@ -108,6 +108,26 @@ describe('normalizeRichText', () => {
     ])
   })
 
+  it("keeps a heading's level but the second, and reads one past the third as the third", () => {
+    expect(
+      normalizeRichText([
+        editorBlock('heading', [text('One')], { level: 1 }),
+        editorBlock('heading', [text('Two')], { level: 2 }),
+        editorBlock('heading', [text('Three')], { level: 3 }),
+        editorBlock('heading', [text('Five')], { level: 5 }),
+        editorBlock('heading', [text('Odd')], { level: 1.5 }),
+        editorBlock('heading', [text('Zero')], { level: 0 }),
+      ]),
+    ).toEqual([
+      { type: 'heading', props: { level: 1 }, content: [{ type: 'text', text: 'One' }] },
+      { type: 'heading', content: [{ type: 'text', text: 'Two' }] },
+      { type: 'heading', props: { level: 3 }, content: [{ type: 'text', text: 'Three' }] },
+      { type: 'heading', props: { level: 3 }, content: [{ type: 'text', text: 'Five' }] },
+      { type: 'heading', content: [{ type: 'text', text: 'Odd' }] },
+      { type: 'heading', content: [{ type: 'text', text: 'Zero' }] },
+    ])
+  })
+
   it('makes a paragraph of a block it does not keep, and unwraps one holding no text', () => {
     expect(
       normalizeRichText(

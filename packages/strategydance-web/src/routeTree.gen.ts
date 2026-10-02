@@ -32,6 +32,8 @@ import { Route as AuthenticatedAppAdministrationIndexRouteImport } from './route
 import { Route as AuthenticatedAppAdministrationOrganizationsRouteImport } from './routes/_authenticated/_app/administration/organizations'
 import { Route as AuthenticatedAppAdministrationUsersRouteImport } from './routes/_authenticated/_app/administration/users'
 import { Route as AuthenticatedAppAspectsAspectRouteImport } from './routes/_authenticated/_app/aspects.$aspect'
+import { Route as AuthenticatedAppKnowledgeIndexRouteImport } from './routes/_authenticated/_app/knowledge.index'
+import { Route as AuthenticatedAppKnowledgeDocumentIdRouteImport } from './routes/_authenticated/_app/knowledge.$documentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -156,6 +158,18 @@ const AuthenticatedAppAspectsAspectRoute =
     path: '/aspects/$aspect',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppKnowledgeIndexRoute =
+  AuthenticatedAppKnowledgeIndexRouteImport.update({
+    id: '/knowledge/',
+    path: '/knowledge/',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppKnowledgeDocumentIdRoute =
+  AuthenticatedAppKnowledgeDocumentIdRouteImport.update({
+    id: '/knowledge/$documentId',
+    path: '/knowledge/$documentId',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -177,8 +191,10 @@ export interface FileRoutesByFullPath {
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
   '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/account/': typeof AuthenticatedAppAccountIndexRoute
   '/administration/': typeof AuthenticatedAppAdministrationIndexRoute
+  '/knowledge/': typeof AuthenticatedAppKnowledgeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -197,8 +213,10 @@ export interface FileRoutesByTo {
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
   '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/account': typeof AuthenticatedAppAccountIndexRoute
   '/administration': typeof AuthenticatedAppAdministrationIndexRoute
+  '/knowledge': typeof AuthenticatedAppKnowledgeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -223,8 +241,10 @@ export interface FileRoutesById {
   '/_authenticated/_app/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/_authenticated/_app/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
   '/_authenticated/_app/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/_authenticated/_app/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/_authenticated/_app/account/': typeof AuthenticatedAppAccountIndexRoute
   '/_authenticated/_app/administration/': typeof AuthenticatedAppAdministrationIndexRoute
+  '/_authenticated/_app/knowledge/': typeof AuthenticatedAppKnowledgeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -248,8 +268,10 @@ export interface FileRouteTypes {
     | '/administration/organizations'
     | '/administration/users'
     | '/aspects/$aspect'
+    | '/knowledge/$documentId'
     | '/account/'
     | '/administration/'
+    | '/knowledge/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -268,8 +290,10 @@ export interface FileRouteTypes {
     | '/administration/organizations'
     | '/administration/users'
     | '/aspects/$aspect'
+    | '/knowledge/$documentId'
     | '/account'
     | '/administration'
+    | '/knowledge'
   id:
     | '__root__'
     | '/'
@@ -293,8 +317,10 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/administration/organizations'
     | '/_authenticated/_app/administration/users'
     | '/_authenticated/_app/aspects/$aspect'
+    | '/_authenticated/_app/knowledge/$documentId'
     | '/_authenticated/_app/account/'
     | '/_authenticated/_app/administration/'
+    | '/_authenticated/_app/knowledge/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -469,6 +495,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAspectsAspectRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/_app/knowledge/': {
+      id: '/_authenticated/_app/knowledge/'
+      path: '/knowledge'
+      fullPath: '/knowledge/'
+      preLoaderRoute: typeof AuthenticatedAppKnowledgeIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/_app/knowledge/$documentId': {
+      id: '/_authenticated/_app/knowledge/$documentId'
+      path: '/knowledge/$documentId'
+      fullPath: '/knowledge/$documentId'
+      preLoaderRoute: typeof AuthenticatedAppKnowledgeDocumentIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
   }
 }
 
@@ -518,6 +558,8 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
   AuthenticatedAppAspectsAspectRoute: typeof AuthenticatedAppAspectsAspectRoute
+  AuthenticatedAppKnowledgeDocumentIdRoute: typeof AuthenticatedAppKnowledgeDocumentIdRoute
+  AuthenticatedAppKnowledgeIndexRoute: typeof AuthenticatedAppKnowledgeIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
@@ -530,6 +572,9 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
   AuthenticatedAppAspectsAspectRoute: AuthenticatedAppAspectsAspectRoute,
+  AuthenticatedAppKnowledgeDocumentIdRoute:
+    AuthenticatedAppKnowledgeDocumentIdRoute,
+  AuthenticatedAppKnowledgeIndexRoute: AuthenticatedAppKnowledgeIndexRoute,
 }
 
 const AuthenticatedAppRouteWithChildren =

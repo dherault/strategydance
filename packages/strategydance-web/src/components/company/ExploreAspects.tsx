@@ -71,6 +71,8 @@ function ExploreAspects() {
         eyebrow={formatMessage(exploreMessages.explored, { explored: exploredAspects.length, total: aspects.length })}
         title={formatMessage(navigationMessages.exploreMore)}
         lead={formatMessage(exploreMessages.lead)}
+        // As wide as the grid of aspects under it
+        isFullWidth
       />
       {hasFailed && !chapter ? (
         <Alert

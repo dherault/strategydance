@@ -38,6 +38,12 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Explore more aspects',
     description: 'Sidebar link to the page where the reader adds more aspects of their company to work on.',
   },
+  knowledge: {
+    id: 'navigation.knowledge',
+    defaultMessage: 'Knowledge',
+    description:
+      "Sidebar link to the page that lists everything the team wrote down about its company, such as notes, plans and decisions, and that page's title, and the title of the section of each aspect's page that lists the items tagged with that aspect.",
+  },
   company: {
     id: 'navigation.company',
     defaultMessage: 'Company',

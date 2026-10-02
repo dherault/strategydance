@@ -318,3 +318,45 @@ type ActivityDay @table(key: ["user", "organization", "date"]) {
   date: Date!
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# A piece of what an organization knows, such as a plan, some notes or a decision, which the
+# Knowledge pages list and each aspect's page shows when it is tagged with that aspect. Any member
+# reads, writes, tags, locks and deletes any of its organization's documents: it is the team's,
+# not its author's.
+#
+# Deleted by setting `deletedAt`, so an Undo is one update. `DeleteDocument` prunes the
+# organization's documents deleted over a day ago, as lazily as `DeleteTaskList` prunes lists. One
+# emptied of its title and its text is deleted outright by `DiscardDocument` instead, since there is
+# nothing to undo
+type Document @table @index(fields: ["organizationId", "updatedAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # Who started it. Optional, which Data Connect makes a foreign key that is set to null when the
+  # account goes, so deleting an account keeps its team's documents. Nothing reads it yet
+  createdBy: User
+  # One line of at most 200 characters (`MAX_DOCUMENT_TITLE_LENGTH` in strategydance-core), and
+  # empty until somebody writes one, which the pages read as "Untitled"
+  title: String! @default(value: "")
+  # BlockNote's blocks, serialized, at most 200000 characters (`MAX_DOCUMENT_CONTENT_LENGTH` in
+  # strategydance-core), and an empty string when there is no text, never an empty document.
+  # Another member's for most of its readers, so it reaches the editor only through
+  # `parseRichText`, which keeps an allowlist of blocks, and anything drawing it read-only draws
+  # it through the design system's `RichText`
+  content: String! @default(value: "")
+  # Which aspects of the company it is about, each once, in no particular order. The pages show
+  # them in `COMPANY_ASPECTS`' order
+  aspects: [CompanyAspect!]! @default(sql: "'{}'")
+  # Whether the team asked that no agent change it. Nothing reads it yet: it keeps their choice for
+  # the agents to come
+  isAiLocked: Boolean! @default(value: false)
+  # How many times its content was saved. A save names the revision it was made over and is refused
+  # when it is not the stored one, so two people writing at once are told rather than one of them
+  # silently losing their words
+  revision: Int! @default(value: 0)
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  # When its title, content or aspects last changed, or its lock. Deleting it and taking the
+  # delete back leave it alone, so an Undo puts it back where it was in the list
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

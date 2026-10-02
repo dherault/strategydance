@@ -5,6 +5,7 @@ import {
   RICH_TEXT_CLASS_NAME,
   RICH_TEXT_CLASSES,
   type RichTextBlock,
+  type RichTextHeadingLevel,
   type RichTextInline,
   type RichTextRun,
 } from 'strategydance-design-system/lib/richText'
@@ -62,11 +63,21 @@ function renderBlocks(blocks: RichTextBlock[], listDepth: number): ReactNode[] {
   )
 }
 
+// A heading at its level's tag, as the editor writes it
+function renderHeading(level: RichTextHeadingLevel, content: ReactNode) {
+  const className = RICH_TEXT_CLASSES.headings[level]
+
+  if (level === 1) return <h1 className={className}>{content}</h1>
+  if (level === 3) return <h3 className={className}>{content}</h3>
+
+  return <h2 className={className}>{content}</h2>
+}
+
 function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
   const content = renderContent(block)
   const element =
     block.type === 'heading' ? (
-      <h2 className={RICH_TEXT_CLASSES.heading}>{content}</h2>
+      renderHeading(block.props?.level ?? 2, content)
     ) : block.type === 'quote' ? (
       <blockquote className={RICH_TEXT_CLASSES.quote}>{content}</blockquote>
     ) : (

@@ -1,5 +1,5 @@
 import { Tooltip as TooltipPrimitive } from 'radix-ui'
-import { type ComponentProps, type ReactNode, isValidElement } from 'react'
+import { type ComponentProps, type ReactNode, isValidElement, useRef } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 // The rotated square that draws the arrow, and so how far Radix pushes the tooltip out for it
@@ -27,13 +27,28 @@ type Props = Omit<
   arrow?: boolean
   /** A keyboard hint in a kbd chip after the text, such as "⌘K" */
   shortcut?: ReactNode
+  /**
+   * Stays open when its trigger is pressed, for a toggle whose tooltip says what it does now, such
+   * as a lock: the reader sees the words change. Only for a trigger whose press does nothing by
+   * itself, a `type="button"`, since the press's default is prevented
+   */
+  isKeptOpenOnPress?: boolean
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
   disabled?: boolean
 }
 
-// Opens on hover and keyboard focus, and closes on press or Escape
+// Prevented, a press reaches the trigger's own handler but not Radix's, which closes the tooltip
+function keepOpen(event: { preventDefault: () => void }) {
+  event.preventDefault()
+}
+
+type PointerDownOutsideEvent = Parameters<
+  NonNullable<ComponentProps<typeof TooltipPrimitive.Content>['onPointerDownOutside']>
+>[0]
+
+// Opens on hover and keyboard focus, and closes on press, unless kept open, or Escape
 function Tooltip({
   content,
   children,
@@ -43,17 +58,30 @@ function Tooltip({
   delay = 0,
   arrow = true,
   shortcut,
+  isKeptOpenOnPress = false,
   open,
   defaultOpen,
   onOpenChange,
   disabled = false,
   className,
+  onPointerDownOutside,
   ...props
 }: Props) {
+  const triggerRef = useRef<HTMLButtonElement>(null)
   // Whatever React renders is content, a 0 included, so falsiness is not the test
   const hasContent = content !== undefined && content !== null && typeof content !== 'boolean' && content !== ''
 
   if (disabled || !hasContent) return children
+
+  // The content dismisses on a press anywhere outside it, the trigger included, which a kept tooltip
+  // has to let through
+  function handlePointerDownOutside(event: PointerDownOutsideEvent) {
+    if (isKeptOpenOnPress && event.target instanceof Node && triggerRef.current?.contains(event.target)) {
+      event.preventDefault()
+    }
+
+    onPointerDownOutside?.(event)
+  }
 
   // Text has nothing to focus, so its wrapper takes focus itself and the keyboard still reaches it
   const trigger = isValidElement(children) ? (
@@ -74,7 +102,14 @@ function Tooltip({
         defaultOpen={defaultOpen}
         onOpenChange={onOpenChange}
       >
-        <TooltipPrimitive.Trigger asChild>{trigger}</TooltipPrimitive.Trigger>
+        <TooltipPrimitive.Trigger
+          ref={triggerRef}
+          asChild
+          onPointerDown={isKeptOpenOnPress ? keepOpen : undefined}
+          onClick={isKeptOpenOnPress ? keepOpen : undefined}
+        >
+          {trigger}
+        </TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             data-slot="tooltip"
@@ -83,6 +118,7 @@ function Tooltip({
             // Radix adds the arrow's size to the offset, and the gap is measured without it
             sideOffset={(sideOffset ?? (arrow ? 8 : 4)) - (arrow ? ARROW_SIZE : 0)}
             collisionPadding={8}
+            onPointerDownOutside={handlePointerDownOutside}
             className={cn(
               'z-200 box-border w-max max-w-[min(280px,calc(100vw-16px))] rounded-xs border border-border bg-popover px-3 py-1.5 font-sans text-xs leading-[1.4] font-normal text-pretty text-popover-foreground shadow-xs antialiased',
               'animate-in duration-150 ease-out fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-[2px] data-[side=left]:slide-in-from-right-[2px] data-[side=right]:slide-in-from-left-[2px] data-[side=top]:slide-in-from-bottom-[2px]',

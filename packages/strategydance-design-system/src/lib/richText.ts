@@ -11,7 +11,12 @@ const richTextClassName = 'text-[15px] leading-[1.6] wrap-anywhere text-pretty t
 
 const richTextClasses = {
   paragraph: 'mb-2',
-  heading: 'mt-1 mb-1.5 font-display text-xl/[1.25] font-normal tracking-normal text-secondary',
+  // By level, each a step down the display face's sizes from the first
+  headings: {
+    1: 'mt-1 mb-2 font-display text-2xl/[1.2] font-normal tracking-normal text-secondary',
+    2: 'mt-1 mb-1.5 font-display text-xl/[1.25] font-normal tracking-normal text-secondary',
+    3: 'mt-1 mb-1 font-display text-lg/[1.3] font-normal tracking-normal text-secondary',
+  },
   quote: 'mb-2 border-l-2 border-neutral-300 pl-3 text-neutral-600',
   bulletedList: 'mb-2 pl-[22px]',
   bulletMarkers: ['list-disc', 'list-[circle]', 'list-[square]'],
@@ -44,6 +49,11 @@ export const RICH_TEXT_CLASSES = richTextClasses
   draws. A block is BlockNote's partial block, without the id it is given in the editor and without
   any prop left at its default, so that the same document always serializes to the same string
 */
+
+/** A heading's levels. The second is the default, which a heading at it leaves out */
+export const RICH_TEXT_HEADING_LEVELS = [1, 2, 3] as const
+
+export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
 
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType =
@@ -79,8 +89,9 @@ export type RichTextInline = RichTextRun | RichTextLink
 
 export type RichTextBlock = {
   type: RichTextBlockType
-  /** A numbered list's first number when it is not 1, and a check item's tick */
+  /** A heading's level when it is not the second, a numbered list's first number when it is not 1, and a check item's tick */
   props?: {
+    level?: Exclude<RichTextHeadingLevel, 2>
     start?: number
     checked?: true
   }

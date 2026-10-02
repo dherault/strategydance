@@ -2,6 +2,7 @@ import type { RichTextBlock } from 'strategydance-design-system/lib/richText'
 
 // A post using every block, style and kind of list the editor writes, shared by the stories and the tests
 const richTextSampleBlocks: RichTextBlock[] = [
+  { type: 'heading', props: { level: 1 }, content: [{ type: 'text', text: 'Feed performance' }] },
   {
     type: 'paragraph',
     content: [
@@ -17,6 +18,7 @@ const richTextSampleBlocks: RichTextBlock[] = [
     ],
   },
   { type: 'heading', content: [{ type: 'text', text: 'Left to reach 200ms' }] },
+  { type: 'heading', props: { level: 3 }, content: [{ type: 'text', text: 'This week' }] },
   {
     type: 'bulletListItem',
     content: [{ type: 'text', text: 'Remove the N+1 query on comments', styles: { italic: true } }],

@@ -916,3 +916,218 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
   }
   activityDay_upsert(data: { userId_expr: "auth.uid", organizationId: $organizationId, date: $date })
 }
+
+# Adds a document to an organization's knowledge, which any of its members may do. The id is the
+# page's, which opens a draft at its address and stores it only once it has a title or some text,
+# so a document never starts blank: a page that would add nothing adds nothing.
+#
+# At most 1000 documents an organization (`MAX_DOCUMENTS` in strategydance-core), counted under a
+# lock: the first step writes the organization's row, and finds nothing unless the caller belongs
+# to it, so two members adding at once count one after the other. A title is one line of at most
+# 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is typed,
+# and the content at most 200000 characters of serialized blocks (`MAX_DOCUMENT_CONTENT_LENGTH`).
+# Each aspect is there once. A lock chosen on the draft comes with it
+mutation CreateDocument(
+  $organizationId: UUID!
+  $id: UUID!
+  $title: String!
+  $content: String!
+  $aspects: [CompanyAspect!]!
+  $isAiLocked: Boolean!
+) @auth(level: USER) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "Only a member of an organization can add to its knowledge")
+    @check(
+      expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
+      message: "A document's title is at most 200 characters on one line"
+    )
+    @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
+    @check(
+      expr: "vars.title.matches('[[:^space:]]') || vars.content != ''"
+      message: "A document starts with a title or some text"
+    )
+    @check(
+      expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "A document is tagged with each aspect at most once"
+    )
+  query @redact {
+    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+      id
+    }
+  }
+  document_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      createdById_expr: "auth.uid"
+      title: $title
+      content: $content
+      aspects: $aspects
+      isAiLocked: $isAiLocked
+    }
+  )
+}
+
+# Retitles a document, held to what `CreateDocument` holds a title to. An empty one is allowed,
+# which the pages read as "Untitled".
+#
+# Each of a document's fields is written by an operation of its own, so two members changing two
+# of them at once never write back each other's old value
+mutation RenameDocument($organizationId: UUID!, $id: UUID!, $title: String!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+        @check(
+          expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
+          message: "A document's title is at most 200 characters on one line"
+        )
+    }
+  }
+  document_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { title: $title, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No document by that id in the organization")
+}
+
+# Saves a document's content, held to what `CreateDocument` holds it to, and an empty string when it
+# has no text.
+#
+# `$revision` is the one the page read or last saved, and the save is refused unless it is still
+# the stored one: two members writing at once would otherwise each save their whole document over
+# the other's, and neither would know. The one refused keeps their words on screen and is told to
+# reload
+mutation UpdateDocumentContent($organizationId: UUID!, $id: UUID!, $content: String!, $revision: Int!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
+    }
+  }
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      revision: { eq: $revision }
+    }
+    data: { content: $content, revision_update: { inc: 1 }, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The document was deleted or changed elsewhere since it was read")
+}
+
+# Sets which aspects a document is tagged with, the list written whole, each aspect once. A list of
+# enums has no `add` or `remove` in Data Connect, so two members retagging at once keep whichever
+# list was saved last
+mutation UpdateDocumentAspects($organizationId: UUID!, $id: UUID!, $aspects: [CompanyAspect!]!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+        @check(
+          expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+          message: "A document is tagged with each aspect at most once"
+        )
+    }
+  }
+  document_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { aspects: $aspects, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No document by that id in the organization")
+}
+
+# Asks that no agent change a document, or lets them again
+mutation SetDocumentAiLock($organizationId: UUID!, $id: UUID!, $isAiLocked: Boolean!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+    }
+  }
+  document_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { isAiLocked: $isAiLocked, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No document by that id in the organization")
+}
+
+# Deletes a document by setting `deletedAt`, so `RestoreDocument` can take it back. Deleting one that
+# is gone already changes nothing and succeeds, since the outcome is the one asked for. `updatedAt`
+# is left alone, so a document brought back takes its place in the list again rather than the top.
+#
+# It also prunes the organization's documents deleted more than a day ago, since nothing undoes a
+# delete that old, as lazily as `DeleteTaskList` prunes lists: the ones deleted in the day before
+# the latest delete stay, unread by anything but `RestoreDocument`, until the next one
+mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+    }
+  }
+  document_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time" }
+  )
+  document_deleteMany(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
+}
+
+# Takes back a delete, which the page offers for a few seconds after one. Fails once the document
+# was pruned, a day after it was deleted.
+#
+# A document brought back counts against the 1000 as a new one does, under the same lock on the
+# organization's row: without it, deleting a document at the cap, adding another and taking the
+# delete back would keep 1001
+mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its knowledge")
+  query @redact {
+    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+      id
+    }
+  }
+  document_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The document is gone for good")
+}
+
+# Deletes a document that somebody emptied, title and text both, as they leave its page: there is
+# nothing in it to take back. The emptiness is checked here rather than trusted, so a teammate who
+# wrote in it meanwhile keeps what they wrote. One that is not empty, or gone already, is left as it
+# is, and the call succeeds all the same
+mutation DiscardDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+    }
+  }
+  document_deleteMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      title: { pattern: { regex: "^[[:space:]]*$" } }
+      content: { eq: "" }
+    }
+  )
+}

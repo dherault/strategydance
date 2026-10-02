@@ -2,7 +2,6 @@ import {
   BlockNoteSchema,
   createBulletListItemBlockSpec,
   createCheckListItemBlockSpec,
-  createExtension,
   createHeadingBlockSpec,
   createNumberedListItemBlockSpec,
   createParagraphBlockSpec,
@@ -10,7 +9,7 @@ import {
   defaultInlineContentSpecs,
   defaultStyleSpecs,
 } from '@blocknote/core'
-import type { RichTextBlockType } from 'strategydance-design-system/lib/richText'
+import { RICH_TEXT_HEADING_LEVELS, type RichTextBlockType } from 'strategydance-design-system/lib/richText'
 
 /** A block the editor can write besides paragraphs, lists being one, bulleted and numbered alike */
 type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist'
@@ -37,31 +36,20 @@ function withoutDefaultProps<TSpec extends Spec>(spec: TSpec): TSpec {
   return { ...spec, config: { ...spec.config, propSchema } }
 }
 
-const headingShortcut = createExtension({
-  key: 'rich-text-heading-shortcut',
-  inputRules: [
-    {
-      find: /^#\s$/,
-      replace: () => ({ type: 'heading', props: { level: 2 } }),
-    },
-  ],
-})
-
 /*
-  The one heading level the page draws. A pasted heading of any level comes in at it, rather than
-  at the level its tag says, and `# ` makes one as `## ` does
+  The three heading levels the page draws, the second by default, as the only level there was. A
+  pasted heading keeps its level up to the third, which a deeper one comes in at. `#`, `##` and
+  `###` make each, and so do ⌘⌥1 to ⌘⌥3
 */
 function createRichTextHeadingBlockSpec() {
-  const spec = withoutDefaultProps(createHeadingBlockSpec({ levels: [2], defaultLevel: 2, allowToggleHeadings: false }))
+  const spec = withoutDefaultProps(
+    createHeadingBlockSpec({ levels: RICH_TEXT_HEADING_LEVELS, defaultLevel: 2, allowToggleHeadings: false }),
+  )
 
   const parse: typeof spec.implementation.parse = element =>
-    /^H[1-6]$/.test(element.tagName) ? { level: 2 } : undefined
+    /^H[1-6]$/.test(element.tagName) ? { level: Math.min(Number(element.tagName[1]), 3) } : undefined
 
-  return {
-    ...spec,
-    implementation: { ...spec.implementation, parse },
-    extensions: [...(spec.extensions ?? []), headingShortcut],
-  }
+  return { ...spec, implementation: { ...spec.implementation, parse } }
 }
 
 /*

@@ -185,6 +185,73 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual(['content [2]@0', 'rename Plan 2'])
   })
 
+  it("counts content refused for somebody else's save as unsaved, until paused", async () => {
+    const { writes } = createWrites({ refuseContent: true })
+    const saver = createKnowledgeDocumentSaver({ documentId: 'd14', fields: STORED, revision: 0, writes, delay: DELAY })
+    track(saver)
+
+    saver.change({ content: '[2]' })
+    await saver.flush()
+
+    expect(saver.hasUnsaved()).toBe(true)
+
+    saver.pause()
+
+    expect(saver.hasUnsaved()).toBe(false)
+  })
+
+  it('holds back content too long to send, counting it unsaved, and sends it once short enough', async () => {
+    const { calls, writes } = createWrites()
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd15',
+      fields: STORED,
+      revision: 0,
+      writes,
+      delay: DELAY,
+      maxContentLength: 5,
+    })
+    const { statuses } = track(saver)
+
+    saver.change({ content: '[123456]', title: 'Plan 2' })
+    await saver.flush()
+
+    expect(calls).toEqual(['rename Plan 2'])
+    expect(saver.getStatus()).toBe('tooLong')
+    expect(statuses.at(-1)).toBe('tooLong')
+    expect(saver.hasUnsaved()).toBe(true)
+
+    saver.change({ content: '[12]' })
+    await saver.flush()
+
+    expect(calls).toEqual(['rename Plan 2', 'content [12]@0'])
+    expect(saver.getStatus()).toBe('idle')
+    expect(saver.hasUnsaved()).toBe(false)
+  })
+
+  it('stores a draft without the content too long to send, or not at all when that is all it has', async () => {
+    const { calls, writes } = createWrites()
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd16',
+      fields: BLANK,
+      revision: null,
+      writes,
+      delay: DELAY,
+      maxContentLength: 5,
+    })
+    track(saver)
+
+    saver.change({ content: '[123456]' })
+    await saver.flush()
+
+    expect(calls).toEqual([])
+    expect(saver.getStatus()).toBe('tooLong')
+
+    saver.change({ title: 'Plan' })
+    await saver.flush()
+
+    expect(calls).toEqual(['create Plan|||false'])
+  })
+
   it('says a save failed, and tries again with the next change', async () => {
     const { calls, writes, failNextWrite } = createWrites()
     const saver = createKnowledgeDocumentSaver({ documentId: 'd7', fields: STORED, revision: 0, writes, delay: DELAY })

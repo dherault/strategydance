@@ -1,3 +1,5 @@
+import { MAX_DOCUMENT_CONTENT_LENGTH } from 'strategydance-core'
+
 import type { KnowledgeDocumentFields, KnowledgeDocumentSaveStatus } from '~types'
 
 import runInOrder from '~utils/common/runInOrder'
@@ -35,6 +37,8 @@ type Options = {
   revision: number | null
   writes: KnowledgeDocumentWrites
   delay?: number
+  // The longest content the server accepts, past which it is held back rather than refused
+  maxContentLength?: number
 }
 
 type SavedState = KnowledgeDocumentFields & {
@@ -58,7 +62,9 @@ function isBlank(fields: KnowledgeDocumentFields) {
 
   A content save names the revision it was made over. When the server refuses it, somebody else
   saved first, and the saver stops sending content, whose words stay on the page, and says so. The
-  other fields go on saving.
+  other fields go on saving. Content longer than the server accepts is held back the same way, and
+  goes out once it is short enough again. Held content still counts as unsaved, so leaving the tab
+  asks first.
 
   Built pure, so the page can make one in a state initializer, which StrictMode runs twice: nothing
   starts until `attach`, and `detach` is not the end of it, so a remount attaches the same saver
@@ -66,7 +72,14 @@ function isBlank(fields: KnowledgeDocumentFields) {
   `pause` holds every send while the page deletes the document, and `resume` lets them go again
   should the delete fail
 */
-function createKnowledgeDocumentSaver({ documentId, fields, revision, writes, delay = SAVE_DELAY }: Options) {
+function createKnowledgeDocumentSaver({
+  documentId,
+  fields,
+  revision,
+  writes,
+  delay = SAVE_DELAY,
+  maxContentLength = MAX_DOCUMENT_CONTENT_LENGTH,
+}: Options) {
   const rowKey = `knowledgeDocument:${documentId}`
 
   let current: KnowledgeDocumentFields = fields
@@ -81,22 +94,42 @@ function createKnowledgeDocumentSaver({ documentId, fields, revision, writes, de
   let isChangedHere = false
   let lastStatus: KnowledgeDocumentSaveStatus | null = null
 
+  function isContentTooLong() {
+    return current.content.length > maxContentLength
+  }
+
+  // What can go out now: the fields as they are, but the content as stored while it is held back
+  function getSendable(): KnowledgeDocumentFields {
+    if (!isConflicted && !isContentTooLong()) return current
+
+    return { ...current, content: saved?.content ?? '' }
+  }
+
   function isDirty() {
     if (isPaused) return false
-    if (!saved) return !isBlank(current)
+
+    const sendable = getSendable()
+
+    if (!saved) return !isBlank(sendable)
 
     return (
-      current.title !== saved.title
-      || current.isAiLocked !== saved.isAiLocked
-      || current.aspects.join() !== saved.aspects.join()
-      || (!isConflicted && current.content !== saved.content)
+      sendable.title !== saved.title
+      || sendable.isAiLocked !== saved.isAiLocked
+      || sendable.aspects.join() !== saved.aspects.join()
+      || sendable.content !== saved.content
     )
+  }
+
+  // Content on the page that cannot go out, refused or too long
+  function isContentHeld() {
+    return !isPaused && current.content !== getSendable().content
   }
 
   function getStatus(): KnowledgeDocumentSaveStatus {
     if (isConflicted) return 'conflict'
     if (hasFailed) return 'error'
     if (isSending) return 'saving'
+    if (isContentHeld()) return 'tooLong'
     if (isDirty()) return 'pending'
 
     return 'idle'
@@ -120,7 +153,7 @@ function createKnowledgeDocumentSaver({ documentId, fields, revision, writes, de
 
   // Sends what differs, field by field, recording as saved only what went through
   async function sendChanges(state: SavedState) {
-    const next = current
+    const next = getSendable()
     const sends: Promise<void>[] = []
 
     if (next.title !== state.title) {
@@ -147,7 +180,7 @@ function createKnowledgeDocumentSaver({ documentId, fields, revision, writes, de
       )
     }
 
-    if (!isConflicted && next.content !== state.content) {
+    if (next.content !== state.content) {
       sends.push(
         writes.updateContent(next.content, state.revision).then(isSaved => {
           if (!isSaved) {
@@ -179,7 +212,7 @@ function createKnowledgeDocumentSaver({ documentId, fields, revision, writes, de
 
     try {
       if (!saved) {
-        const fieldsToCreate = current
+        const fieldsToCreate = getSendable()
 
         await writes.create(fieldsToCreate)
 
@@ -278,9 +311,10 @@ function createKnowledgeDocumentSaver({ documentId, fields, revision, writes, de
     report()
   }
 
-  // A change not sent yet, or one on its way, which leaving the page now would lose
+  // A change not sent yet, one on its way, or content held back, which leaving the page now would
+  // lose. Nothing while paused, as the page is deleting the document or reloading on purpose
   function hasUnsaved() {
-    return isSending || isDirty()
+    return !isPaused && (isSending || isDirty() || isContentHeld())
   }
 
   return { change, flush, attach, detach, pause, resume, hasUnsaved, getStatus }

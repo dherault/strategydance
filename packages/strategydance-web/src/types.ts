@@ -150,10 +150,10 @@ export type KnowledgeDocumentFields = {
 
 /*
   Where the document page's saving stands: nothing to save, a change waiting for the reader to
-  pause, one on its way, one that failed and waits for the next try, or content refused because
-  somebody else saved theirs first
+  pause, one on its way, one that failed and waits for the next try, content too long to send, or
+  content refused because somebody else saved theirs first
 */
-export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'conflict'
+export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'conflict'
 
 // How a build in public card is laid out: 16:9, 1:1 or 4:5
 export type CardFormat = 'landscape' | 'square' | 'portrait'

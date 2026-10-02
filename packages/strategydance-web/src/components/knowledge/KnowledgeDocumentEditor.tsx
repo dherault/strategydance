@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { LockIcon, LockOpenIcon } from 'lucide-react'
 import { type FocusEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_DOCUMENT_CONTENT_LENGTH, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
+import { MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
 import {
   type CompanyAspect,
   type GetOrganizationDocumentsData,
@@ -84,7 +84,6 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const [aspects, setAspects] = useState(initial.fields.aspects)
   const [isAiLocked, setIsAiLocked] = useState(initial.fields.isAiLocked)
   const [isStored, setIsStored] = useState(knowledgeDocument !== null)
-  const [isTooLong, setIsTooLong] = useState(false)
   const [isPickingAspects, setIsPickingAspects] = useState(false)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const editorRef = useRef<RichTextEditorHandle>(null)
@@ -125,14 +124,18 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     saver.change({ title: next })
   }
 
+  // Empty has one spelling, the one the server checks a discarded document for. Content too long
+  // to save is the saver's to hold back, and the page says so
   function changeContent({ value, isEmpty }: RichTextEditorChange) {
-    // Empty has one spelling, the one the server checks a discarded document for
-    const content = isEmpty ? '' : value
-    const isOver = content.length > MAX_DOCUMENT_CONTENT_LENGTH
+    saver.change({ content: isEmpty ? '' : value })
+  }
 
-    setIsTooLong(isOver)
-
-    if (!isOver) saver.change({ content })
+  // What else is left goes first. The words the server refused are given up on purpose, so leaving
+  // does not ask
+  async function reload() {
+    await saver.flush()
+    saver.pause()
+    window.location.reload()
   }
 
   function saveAspects(next: CompanyAspect[]) {
@@ -206,7 +209,9 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
   function renderMeta() {
     if (status === 'pending' || status === 'saving') return formatMessage(knowledgeMessages.saving)
-    if (status === 'error' || status === 'conflict') return formatMessage(knowledgeMessages.notSaved)
+    if (status === 'error' || status === 'tooLong' || status === 'conflict') {
+      return formatMessage(knowledgeMessages.notSaved)
+    }
     if (!isStored || !updatedAt) return formatMessage(knowledgeMessages.draft)
 
     return (
@@ -238,7 +243,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.reload()}
+              onClick={reload}
             >
               {formatMessage(knowledgeMessages.reload)}
             </Button>
@@ -305,7 +310,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           />
         </Tooltip>
       </div>
-      {isTooLong ? (
+      {status === 'tooLong' ? (
         <p
           role="alert"
           className="m-0 text-sm text-danger"

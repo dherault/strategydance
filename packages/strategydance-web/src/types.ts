@@ -156,6 +156,13 @@ export type KnowledgeDocumentFields = {
 */
 export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full' | 'conflict'
 
+/*
+  Where the sending of a document's text stands, once it is stored: nothing to send, edits waiting
+  for the next push, a push on its way, one that failed and waits for the next try, a text too
+  long to send, or a document somebody deleted
+*/
+export type KnowledgeDocumentSyncStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'gone'
+
 // How a build in public card is laid out: 16:9, 1:1 or 4:5
 export type CardFormat = 'landscape' | 'square' | 'portrait'
 

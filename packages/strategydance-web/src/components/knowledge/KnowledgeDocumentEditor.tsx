@@ -26,6 +26,7 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useNow from '~hooks/common/useNow'
 import useRichTextEditor from '~hooks/common/useRichTextEditor'
 import useKnowledgeDocumentAwareness from '~hooks/knowledge/useKnowledgeDocumentAwareness'
+import useKnowledgeDocumentPresence from '~hooks/knowledge/useKnowledgeDocumentPresence'
 import useKnowledgeDocumentSaver from '~hooks/knowledge/useKnowledgeDocumentSaver'
 import useKnowledgeDocumentSync from '~hooks/knowledge/useKnowledgeDocumentSync'
 import useLiveKnowledgeDocument from '~hooks/knowledge/useLiveKnowledgeDocument'
@@ -40,6 +41,7 @@ import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumen
 import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
+import KnowledgeDocumentPresences from '~components/knowledge/KnowledgeDocumentPresences'
 import KnowledgeEditedAt from '~components/knowledge/KnowledgeEditedAt'
 import KnowledgeLeaveDialog from '~components/knowledge/KnowledgeLeaveDialog'
 
@@ -158,6 +160,13 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
       .sort((a, b) => Date.parse(a) - Date.parse(b))
       .at(-1) ?? null
   const isGone = isDeletedElsewhere || syncStatus === 'gone'
+  const people = useKnowledgeDocumentPresence({
+    organizationId,
+    documentId,
+    awareness,
+    isEnabled: isStored && isTextReady && !isGone,
+    viewerId: viewer?.uid ?? null,
+  })
 
   // A new document starts in its title, as one opened to read starts nowhere
   useEffect(() => {
@@ -295,6 +304,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
         >
           {renderMeta()}
         </span>
+        <KnowledgeDocumentPresences people={people} />
         {isStored && !isGone ? <KnowledgeDocumentMoreMenu onDelete={handleDelete} /> : null}
       </div>
       {isGone ? (

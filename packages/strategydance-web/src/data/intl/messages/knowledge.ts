@@ -100,6 +100,18 @@ const knowledgeMessages = defineMessages({
     defaultMessage: 'Your changes could not be saved. They will be sent again with your next change.',
     description: 'Notification when what was written in an item of knowledge could not be saved.',
   },
+  alsoHere: {
+    id: 'knowledge.alsoHere',
+    defaultMessage: 'Also here: {names}',
+    description:
+      "Accessible name of the faces at the top of an item of knowledge, one per teammate who has it open at the same time. {names} lists their names, as in 'Ana and Ben'.",
+  },
+  moreHere: {
+    id: 'knowledge.moreHere',
+    defaultMessage: '+{count, number}',
+    description:
+      'Small round badge after the faces at the top of an item of knowledge, counting the other teammates who have it open and have no face shown.',
+  },
   deletedElsewhere: {
     id: 'knowledge.deletedElsewhere',
     defaultMessage: 'Somebody deleted this item. What is written here is no longer saved.',

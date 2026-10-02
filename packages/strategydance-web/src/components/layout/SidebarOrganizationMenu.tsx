@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from 'strategydance-design-system/components/ui/DropdownMenu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from 'strategydance-design-system/components/ui/Sidebar'
+import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
@@ -24,6 +25,7 @@ function SidebarOrganizationMenu() {
   const { formatMessage } = useIntl()
   const { data: userOrganizations } = useUserOrganizations()
   const { organization, setOrganizationId } = useCurrentOrganization()
+  const { isMobile } = useSidebar()
 
   const [isAdding, setIsAdding] = useState(false)
 
@@ -46,10 +48,11 @@ function SidebarOrganizationMenu() {
                 <ChevronsUpDownIcon />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
+            {/* On a narrow screen the sidebar fills most of the width, so the menu drops below its trigger instead */}
             <DropdownMenuContent
-              side="right"
+              side={isMobile ? 'bottom' : 'right'}
               align="start"
-              sideOffset={14}
+              sideOffset={isMobile ? 4 : 14}
               className="w-60"
             >
               {userOrganizations.length ? (

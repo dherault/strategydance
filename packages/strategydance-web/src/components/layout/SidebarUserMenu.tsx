@@ -50,10 +50,11 @@ function SidebarUserMenu() {
               <ChevronsUpDownIcon />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
+          {/* On a narrow screen the sidebar fills most of the width, so the menu rises above its trigger instead */}
           <DropdownMenuContent
-            side="right"
-            align="end"
-            sideOffset={14}
+            side={isMobile ? 'top' : 'right'}
+            align={isMobile ? 'start' : 'end'}
+            sideOffset={isMobile ? 4 : 14}
             className="w-44"
           >
             <DropdownMenuItem

@@ -24,6 +24,7 @@ export const MESSAGE_TYPES = [
   'explore',
   'global',
   'invitation',
+  'knowledge',
   'landing',
   'log',
   'navigation',

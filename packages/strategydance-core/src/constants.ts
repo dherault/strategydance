@@ -233,3 +233,20 @@ export const MAX_LOG_ENTRY_LENGTH = 50000
 export const MAX_DOCUMENTS = 1000
 export const MAX_DOCUMENT_TITLE_LENGTH = 200
 export const MAX_DOCUMENT_CONTENT_LENGTH = 200000
+
+/*
+  A document's text is a Yjs document, stored as a snapshot in base64 with the updates made since
+  it pending beside it. A snapshot keeps what was deleted as tombstones, so it runs longer than the
+  content it holds, and one update is at most a paste of the whole content, encoded. Written out
+  again in `CreateDocument`'s, `SeedDocumentState`'s, `PushDocumentUpdate`'s and
+  `CompactDocument`'s checks and in `GetDocument`'s and `GetLiveDocument`'s limits: change them
+  together.
+
+  Once this many updates are pending, the tab whose push brought them there folds them into the
+  snapshot. The live query reads at most `DOCUMENT_UPDATES_LIMIT`, and a tab that finds the list
+  that long folds it at once, since the newest would be cut off
+*/
+export const MAX_DOCUMENT_STATE_LENGTH = 1000000
+export const MAX_DOCUMENT_UPDATE_LENGTH = 400000
+export const DOCUMENT_COMPACTION_THRESHOLD = 50
+export const DOCUMENT_UPDATES_LIMIT = 1000

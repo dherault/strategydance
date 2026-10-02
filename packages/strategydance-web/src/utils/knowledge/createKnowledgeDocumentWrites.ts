@@ -11,8 +11,8 @@ import type { KnowledgeDocumentWrites } from '~utils/knowledge/createKnowledgeDo
 
 import { dataConnect } from '~data/firebase'
 
-// Part of the message `UpdateDocumentContent`'s check refuses a save with when the document is not
-// at the revision it names any more, or is gone: change the two together
+// Part of the message `UpdateDocumentContent`'s check gives when it refuses a save, the document
+// being at another revision than the one the save names, or gone: change the two together
 const REVISION_REFUSAL = 'changed elsewhere since it was read'
 
 // The operations a document's saver sends, bound to the document and its organization

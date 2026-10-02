@@ -288,6 +288,47 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual(['rename A', 'rename ABC'])
   })
 
+  it('settles: sends what arrives while a send is out, then pauses', async () => {
+    const { calls, writes } = createWrites({ latency: DELAY })
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd17',
+      fields: STORED,
+      revision: 0,
+      writes,
+      delay: DELAY * 10,
+    })
+    track(saver)
+
+    saver.change({ title: 'A' })
+    const settled = saver.settle()
+    await wait(DELAY / 2)
+    saver.change({ aspects: ['LEGAL'] as KnowledgeDocumentFields['aspects'] })
+
+    expect(await settled).toBe(true)
+    expect(calls).toEqual(['rename A', 'aspects LEGAL'])
+    expect(saver.hasUnsaved()).toBe(false)
+
+    saver.change({ title: 'B' })
+    await wait(DELAY * 12)
+
+    expect(calls).toEqual(['rename A', 'aspects LEGAL'])
+  })
+
+  it('answers false and stays unpaused when a send fails, so nothing is given up', async () => {
+    const { calls, writes, failNextWrite } = createWrites()
+    const saver = createKnowledgeDocumentSaver({ documentId: 'd18', fields: STORED, revision: 0, writes, delay: DELAY })
+    track(saver)
+
+    failNextWrite()
+    saver.change({ title: 'A' })
+
+    expect(await saver.settle()).toBe(false)
+    expect(saver.hasUnsaved()).toBe(true)
+
+    expect(await saver.flush()).toBe(true)
+    expect(calls).toEqual(['rename A', 'rename A'])
+  })
+
   it('discards a document the page emptied as it leaves', async () => {
     const { calls, writes } = createWrites()
     const saver = createKnowledgeDocumentSaver({ documentId: 'd9', fields: STORED, revision: 0, writes, delay: DELAY })

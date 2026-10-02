@@ -69,8 +69,8 @@ function isBlank(fields: KnowledgeDocumentFields) {
   Built pure, so the page can make one in a state initializer, which StrictMode runs twice: nothing
   starts until `attach`, and `detach` is not the end of it, so a remount attaches the same saver
   again. `detach` flushes, and deletes the document if this page emptied it, title and text both.
-  `pause` holds every send while the page deletes the document, and `resume` lets them go again
-  should the delete fail
+  `settle` sends everything and then pauses, for a page about to delete the document or reload,
+  and `resume` lets sends go again should the delete fail
 */
 function createKnowledgeDocumentSaver({
   documentId,
@@ -267,10 +267,30 @@ function createKnowledgeDocumentSaver({
     report()
   }
 
-  function flush() {
+  // Sends what is left now, and says whether everything sent went through
+  async function flush() {
     clearTimer()
+    await enqueue()
 
-    return enqueue()
+    return !hasFailed
+  }
+
+  /*
+    Sends everything, then pauses, for a page about to give the document up: deleting it or
+    reloading. A change made while a send is out goes in the next, until one finds nothing left,
+    and the pause follows that check in the same tick, so no keystroke lands between the two. A
+    send that fails leaves it unpaused and answers false, and the page goes no further
+  */
+  async function settle() {
+    for (;;) {
+      if (!(await flush())) return false
+
+      if (!isDirty()) {
+        pause()
+
+        return true
+      }
+    }
   }
 
   function attach(nextListeners: KnowledgeDocumentSaverListeners) {
@@ -317,7 +337,7 @@ function createKnowledgeDocumentSaver({
     return !isPaused && (isSending || isDirty() || isContentHeld())
   }
 
-  return { change, flush, attach, detach, pause, resume, hasUnsaved, getStatus }
+  return { change, flush, settle, attach, detach, pause, resume, hasUnsaved, getStatus }
 }
 
 export type KnowledgeDocumentSaver = ReturnType<typeof createKnowledgeDocumentSaver>

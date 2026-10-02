@@ -130,12 +130,10 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     saver.change({ content: isEmpty ? '' : value })
   }
 
-  // What else is left goes first. The words the server refused are given up on purpose, so leaving
-  // does not ask
+  // What else is left goes first, and a send that fails keeps the page. The words the server
+  // refused are given up on purpose, so leaving does not ask
   async function reload() {
-    await saver.flush()
-    saver.pause()
-    window.location.reload()
+    if (await saver.settle()) window.location.reload()
   }
 
   function saveAspects(next: CompanyAspect[]) {
@@ -163,9 +161,9 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     const rowKey = `knowledgeDocument:${documentId}`
     const deletedTitle = title.trim() || formatMessage(knowledgeMessages.untitled)
 
-    // What was typed goes first, so an Undo brings it back
-    await saver.flush()
-    saver.pause()
+    // What was typed goes first, so an Undo brings it back, and a send that fails keeps the
+    // document, which the failed send has already said
+    if (!(await saver.settle())) return
 
     try {
       await writeOptimistically({

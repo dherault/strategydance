@@ -21,26 +21,37 @@ type Props = {
 
   Whether it is a draft is read once, as the page mounts. Storing the draft takes `isNew` off the
   address, and the page stays mounted through that: the editor goes on as it was, and nothing
-  reads the document it has just stored
+  reads the document it has just stored.
+
+  So is the organization, which the document belongs to whatever the sidebar switches to: the page
+  stays on it until the navigation `KnowledgeOrganizationBouncer` starts has gone through the
+  editor's, which sends what is left first
 */
 function KnowledgeDocumentPage({ documentId, isNew, aspect }: Props) {
   const { organization } = useCurrentOrganization()
   const [isDraft] = useState(isNew)
-  const { data: knowledgeDocument } = useKnowledgeDocument(documentId, { isEnabled: !isDraft })
+  const [organizationId] = useState(organization?.id ?? null)
+  const { data: knowledgeDocument } = useKnowledgeDocument({
+    organizationId: organizationId ?? '',
+    documentId,
+    isEnabled: !isDraft && Boolean(organizationId),
+  })
 
-  if (!organization) return null
+  if (!organizationId) return null
 
   return (
     <KnowledgeDocumentWait
+      organizationId={organizationId}
       documentId={documentId}
       isEnabled={!isDraft}
     >
       <KnowledgeDocumentBouncer
+        organizationId={organizationId}
         documentId={documentId}
         isEnabled={!isDraft}
       >
         <KnowledgeDocumentEditor
-          organizationId={organization.id}
+          organizationId={organizationId}
           documentId={documentId}
           knowledgeDocument={isDraft ? null : knowledgeDocument}
           draftAspect={aspect}

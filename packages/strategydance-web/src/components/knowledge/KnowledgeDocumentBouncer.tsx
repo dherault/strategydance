@@ -21,6 +21,7 @@ import KnowledgeLoadFailed from '~components/knowledge/KnowledgeLoadFailed'
 import knowledgeMessages from '~data/intl/messages/knowledge'
 
 type Props = PropsWithChildren<{
+  organizationId: string
   documentId: string
   // False for a draft, which is let through: there is nothing stored to judge
   isEnabled: boolean
@@ -31,9 +32,14 @@ type Props = PropsWithChildren<{
   gets a way to try again, one that does not exist says so, in this page's frame rather than the
   app's not found screen, since the address was a document's, and anything else is the page
 */
-function KnowledgeDocumentBouncer({ documentId, isEnabled, children }: Props) {
+function KnowledgeDocumentBouncer({ organizationId, documentId, isEnabled, children }: Props) {
   const { formatMessage } = useIntl()
-  const { data: knowledgeDocument, loading, refetch, hasFailed } = useKnowledgeDocument(documentId, { isEnabled })
+  const {
+    data: knowledgeDocument,
+    loading,
+    refetch,
+    hasFailed,
+  } = useKnowledgeDocument({ organizationId, documentId, isEnabled })
 
   if (!isEnabled) return children
 

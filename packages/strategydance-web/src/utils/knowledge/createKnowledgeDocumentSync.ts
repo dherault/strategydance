@@ -264,14 +264,15 @@ function createKnowledgeDocumentSync({
     return null
   }
 
+  /*
+    A snapshot that cannot be merged throws, and is never taken as merged: the page would open on
+    part of the text, and a fold from it would write over the only stored copy of the rest. On
+    opening, the page then says the editor could not load, and a read again tries later
+  */
   function applyState(state: string | null) {
     if (!state) return
 
-    try {
-      Y.applyUpdate(doc, decodeBase64(state), remote)
-    } catch (error) {
-      console.error('A document snapshot could not be merged', error)
-    }
+    Y.applyUpdate(doc, decodeBase64(state), remote)
   }
 
   // Merges the updates not seen yet. One that cannot be read counts as seen, and stays pending
@@ -353,10 +354,11 @@ function createKnowledgeDocumentSync({
     } else {
       const text = await seed(stored)
 
+      if (text) applyStored(text)
+
       isStored = true
 
-      if (text) applyStored(text)
-      else markGone()
+      if (!text) markGone()
     }
 
     isReady = true
@@ -592,7 +594,7 @@ function createKnowledgeDocumentSync({
     one `isCarrying` them goes with no update pending: an edit too long to push
   */
   async function compact(isCarrying = false) {
-    if (!isStored || isGone || isPaused || isRereading || knownRevision > mergedRevision) return
+    if (!isReady || !isStored || isGone || isPaused || isRereading || knownRevision > mergedRevision) return
 
     const updateIds = [...new Set([...pendingIds, ...ownIds.keys()])]
 

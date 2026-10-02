@@ -190,6 +190,14 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
       stored = null
       notify()
     },
+    // A snapshot nothing can merge, folded in by a broken tab
+    corrupt: () => {
+      if (!stored) return
+
+      stored.state = encodeBase64(new Uint8Array([255, 255, 255, 255, 255]))
+      stored.revision += 1
+      notify()
+    },
     restore: (document: StoredDocument) => {
       stored = document
       notify()
@@ -625,6 +633,36 @@ describe('createKnowledgeDocumentSync', () => {
     expect(server.compactions).toEqual([true, true])
     expect(server.compactionIds[1]).toEqual([server.pushes[2].id])
     expect(server.readText()).toBe('Hello a b c')
+  })
+
+  it('refuses to open on a snapshot it cannot merge, and folds nothing over it', async () => {
+    const server = createServer({ state: encodeBase64(new Uint8Array([255, 255, 255, 255, 255])), revision: 1 })
+    const { sync, writes } = createTab(server)
+
+    await expect(sync.start(await writes.read())).rejects.toThrow()
+
+    await wait(10)
+    await sync.flushAndCompact()
+
+    expect(server.compactions).toEqual([])
+  })
+
+  it('reads again, rather than fold over it, a snapshot it cannot merge', async () => {
+    const server = createServer(seeded('Hello'))
+    const error = spyOn(console, 'error').mockImplementation(() => {})
+    const { sync } = await openTab(server)
+
+    type(sync, 'end', '!')
+    await sync.flush()
+    server.corrupt()
+    await wait(10)
+    await sync.flushAndCompact()
+
+    expect(server.compactions).toEqual([])
+    expect(readText(sync.doc)).toBe('Hello!')
+    expect(error).toHaveBeenCalled()
+
+    error.mockRestore()
   })
 
   it('counts only its own edits as changed here, never what arrived', async () => {

@@ -2,11 +2,12 @@
 
 Guidance for Claude Code when working in this repository.
 
-**Every change to a tracked file ships without asking.** It is made in its own worktree,
-committed granularly as each piece passes CI's checks, pushed, opened as a pull request into
-`dev` and taken through the Copilot review loop, until all that is left for a human is the
-merge. That is the person's standing request in every session, so never ask whether to commit,
-push, open the pull request or address the review. [Workflow](#workflow) says how.
+**Every change to a tracked file ships without asking.** It is made on its own branch, in a
+worktree or in the main checkout when the session holds it, committed granularly as each piece
+passes CI's checks, pushed, opened as a pull request into `dev` and taken through the Copilot
+review loop, until all that is left for a human is the merge. That is the person's standing
+request in every session, so never ask whether to commit, push, open the pull request or address
+the review. [Workflow](#workflow) says how.
 
 `AGENTS.md` is a symlink to this file: edit `CLAUDE.md` only.
 
@@ -478,7 +479,7 @@ on the backend's side.
 ## Workflow
 
 **This section is the person's own request, standing in every session.** Any task that changes a
-tracked file, however small, goes worktree → granular commits → push → pull request into `dev` →
+tracked file, however small, goes branch → granular commits → push → pull request into `dev` →
 Copilot review loop → handed to a human, in one go, without stopping to ask. "Should I commit?",
 "Want me to open a pull request?" and "Shall I address the review?" all have the answer yes, and
 a turn that ends on one of them has failed: the person then has to come back and say what this
@@ -499,12 +500,30 @@ This section reads the same in sunshine and strategydance, apart from each repos
 commands, and `scripts/copilotReview.sh` and `scripts/ship.sh` are the same file in both. An
 improvement to one goes to the other.
 
-### Work in a worktree
+### Where to work
 
-Create the worktree **before the first edit**, and do every edit, test, commit and push in it.
-Never edit, switch branches or commit in the main checkout, unless the person asks for a
-checkout there (below): other sessions are running in it at the same time, the person's dev
-servers serve it, and a `git switch` there changes the ground under all of them.
+One session at a time works in the main checkout, on a branch of its own: the **primary**. The
+person's dev servers serve that checkout, so its edits show on the stack they already run as
+each one lands, and it needs no server of its own. Every other session works in a worktree and
+never edits, switches branches or commits in the main checkout: what is there is the primary's
+work in progress, and a `git switch` changes the ground under the primary and the person's
+servers alike. Only a handover, below, moves it from one session to another.
+
+Which one you are is settled **before the first edit**. When the main checkout is on `dev` and
+clean (`git -C <main checkout> status --porcelain` prints nothing), nobody holds it, so you
+become the primary. Branch there, then tell the other sessions, as a handover's last step does:
+
+```sh
+git fetch origin dev
+git switch --no-track -c <branch> origin/dev
+```
+
+Read `git branch --show-current` before every commit there: a switch that did not stick leaves
+the commit on `dev`.
+
+On any other branch, or with anything uncommitted, the main checkout is somebody else's, a
+session's or the person's. Create a worktree instead, and do every edit, test, commit and push
+in it:
 
 ```sh
 git fetch origin dev
@@ -535,36 +554,76 @@ ln -s <main checkout>/packages/strategydance-translations/.env packages/strategy
 - Keep the worktree until the pull request merges, since the review rounds are fixed in it, then
   `git worktree remove .claude/worktrees/<branch>`
 
-**A checkout in the main checkout, when the person asks for one.** This is the one exception to
-the rule above, typically so they can try a branch on the stack they already run there ("check
-it out", "put it on my checkout"). Only their request counts, never your own convenience:
+**Handing the main checkout over.** At the end of the review loop, a session in a worktree asks
+the person whether they want its branch checked out to see the work (see
+[Hand the pull request to a human](#hand-the-pull-request-to-a-human)), and a request of theirs
+to check a branch out ("check it out", "put it on my checkout") is the same yes. Only their word
+hands the main checkout over, never a session's own convenience. On a yes:
 
-- The main checkout must be clean first (`git -C <main checkout> status --porcelain` prints
-  nothing). When it is not, say what is there and stop. Never stash it, since the stash stack is
-  shared by every worktree and session, and never discard it
-- Note the branch it is on before the switch and tell the person, so it can be put back. Put it
-  back only when they ask
-- Check the branch out **detached**: `git -C <main checkout> switch --detach <branch>`. A plain
-  `git switch <branch>` fails with "already used by worktree", because git lets a branch be
-  checked out in one place at a time, and the worktree keeps it on purpose: the review rounds
-  are still committed there. After pushing a round's fixes, run the same command again to bring
-  the main checkout along, as long as it is still clean and still on the branch's previous
-  commit
-- When the person wants the branch itself there, to commit on it themselves, the worktree lets
-  go first (`git switch --detach` inside it), then `git -C <main checkout> switch <branch>`. The
-  branch's remaining work, review rounds included, then happens in the main checkout, where they
-  put it. Never use `--ignore-other-worktrees`: with one branch checked out twice, a commit in
-  either leaves the other's files behind, and the stale one then shows that commit reversed as
-  staged changes
+1. **Ask for it**, unless it is on `dev` and clean. `ListAgents` names this repository's other
+   sessions after it (`strategydance-…`): send each one message saying that you are taking the
+   main checkout for `<your branch>`, that the session working on `<its branch>` there moves to
+   a worktree and says when it is free, and that any other answers it is not theirs. Wait for
+   the answers, since silence is not consent: a session in another permission mode holds the
+   message for its person. When no session claims the branch, the person put it there, or a
+   session that has since ended did: go on if the checkout is clean, telling the person which
+   branch it was on, and when it is not, say what is there and stop
+2. **The primary moves to a worktree** when asked, and takes its uncommitted work along rather
+   than committing it half done:
+
+   ```sh
+   git switch --detach  # in the main checkout: lets go of the branch, keeps the uncommitted work
+   git worktree add .claude/worktrees/<branch> <branch>
+   cd .claude/worktrees/<branch>
+   git -C <main checkout> diff HEAD | git apply  # plus any untracked files, by hand
+   bun install --frozen-lockfile
+   ln -s <main checkout>/packages/strategydance-translations/.env packages/strategydance-translations/.env  # if the main checkout has one
+   ```
+
+   Once the worktree's `git diff HEAD` shows all of it, it takes that work out of the main
+   checkout (`git -C <main checkout> restore --staged --worktree .`, then deletes the untracked
+   files it carried), answers that the main checkout is free, and carries on in the worktree.
+   Only its own work comes out: when something else is there too, it leaves the checkout as it
+   is and tells the asking session and the person. Never stash, since the stash stack is shared
+   by every worktree and session
+3. **The new primary moves in.** Its worktree lets go of the branch first, since git checks a
+   branch out in one place at a time, and anything uncommitted there comes across the same way,
+   with `git -C <its worktree> diff HEAD | git apply` from the main checkout:
+
+   ```sh
+   git switch --detach  # in the worktree
+   cd <main checkout>
+   git switch <branch>
+   git worktree remove .claude/worktrees/<branch>
+   ```
+
+   Every further edit, commit and review round happens in the main checkout
+4. **Tell every other session** of the repository that you are the primary now, and on which
+   branch
+
+Around every switch in the main checkout, the first one off `dev` included:
+
 - The switch moves the code, not what is built from it. Run `bun install --frozen-lockfile`
-  there when the branch changed dependencies or the database package, whose SDK its postinstall
+  there when it changed dependencies or the database package, whose SDK its postinstall
   regenerates: an install that is not frozen can rewrite `bun.lock`, which leaves the checkout
-  dirty and stops the next refresh
+  dirty
 - The Data Connect emulator watches the main checkout's `schema.gql` and connectors, and
   migrates the moment they change on disk, dropping every table it cannot migrate additively.
-  Before a switch that changes the database package, check whether it runs (`lsof -nP -iTCP:9399
-  -sTCP:LISTEN`). When it does, say so and let the person stop it, or export its data first
-  (`bunx firebase emulators:export ./firebase-export-<date>-backup`)
+  Before a switch or a restore that changes the database package, check whether it runs
+  (`lsof -nP -iTCP:9399 -sTCP:LISTEN`). When it does, say so and let the person stop it, or
+  export its data first (`bunx firebase emulators:export ./firebase-export-<date>-backup`)
+- Never use `--ignore-other-worktrees`: with one branch checked out twice, a commit in either
+  leaves the other's files behind, and the stale one then shows that commit reversed as staged
+  changes
+- A session inside `EnterWorktree` leaves it first (`ExitWorktree`, keeping the worktree): its
+  isolation guard refuses every command aimed at the main checkout
+
+**When the primary's pull request merges**, which `bun run review open` reports as `MERGED`, and
+its branch holds nothing more (`git log origin/dev..HEAD` lists nothing), the primary puts the
+main checkout back on `dev`, as long as it is clean: `git fetch origin dev && git switch dev &&
+git merge --ff-only origin/dev`. That frees it for the next session to start, so it tells the
+other sessions, and it answers a request for the checkout the same way rather than moving to a
+worktree.
 
 `dev` is the integration branch: every pull request starts from it and goes back into it. The
 one exception is the release that takes `dev` to `main`, which is a human's call (see below).
@@ -688,7 +747,10 @@ reopening it or opening another.
 ### Hand the pull request to a human
 
 Never merge a pull request: that is a human decision, taken on GitHub after a human approval.
-Once CI is green and review is clean, say so, link the pull request and stop there.
+Once CI is green and review is clean, say so and link the pull request. Unless you are the
+primary already, ask in the same message whether the person wants the branch checked out on the
+main checkout to see the work: a yes is a handover (see [Where to work](#where-to-work)). Then
+stop there.
 
 Humans merge with a merge commit, not a squash, and the repository allows nothing else: the
 granular commits are the point, and squashing collapses them into one.

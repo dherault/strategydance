@@ -32,6 +32,7 @@ import useKnowledgeDocumentSync from '~hooks/knowledge/useKnowledgeDocumentSync'
 import useLiveKnowledgeDocument from '~hooks/knowledge/useLiveKnowledgeDocument'
 import useUser from '~hooks/user/useUser'
 
+import createId from '~utils/common/createId'
 import writeOptimistically from '~utils/common/writeOptimistically'
 import getPresenceColor from '~utils/knowledge/getPresenceColor'
 
@@ -94,6 +95,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     knowledgeDocument,
   })
   const awareness = useKnowledgeDocumentAwareness(sync.doc)
+  // This tab, as its presence row names it, and as a discard leaves its own row out
+  const [sessionId] = useState(createId)
 
   const [initial] = useState(() => ({
     fields: {
@@ -118,6 +121,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const { saver, status, syncStatus, savedAt, leave } = useKnowledgeDocumentSaver({
     organizationId,
     documentId,
+    sessionId,
     fields: initial.fields,
     isStored,
     sync,
@@ -163,6 +167,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const people = useKnowledgeDocumentPresence({
     organizationId,
     documentId,
+    sessionId,
     awareness,
     isEnabled: isStored && isTextReady && !isGone,
     viewerId: viewer?.uid ?? null,

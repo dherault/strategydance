@@ -3,7 +3,6 @@ import type { Awareness } from 'y-protocols/awareness'
 
 import useKnowledgeDocumentPresences from '~hooks/knowledge/useKnowledgeDocumentPresences'
 
-import createId from '~utils/common/createId'
 import createKnowledgeDocumentPresence, {
   type KnowledgeDocumentPresence,
   type KnowledgeDocumentPresent,
@@ -14,6 +13,8 @@ import getPresenceColor from '~utils/knowledge/getPresenceColor'
 type Options = {
   organizationId: string
   documentId: string
+  // The page's, which its presence row is keyed by
+  sessionId: string
   // The editor's, which draws the others' carets. Null until it is made
   awareness: Awareness | null
   // False until the document is stored and its editor open
@@ -25,10 +26,16 @@ type Options = {
   Who else has a document open, for its page's avatars, and their carets, which the bridge gives
   the editor's awareness. The page's tab says it is there while it is in view, with where its caret
   is, and leaves when it is hidden or the page goes, closing the tab included. The session is the
-  page's, made once, so a remount speaks for the same tab
+  page's, so a remount speaks for the same tab
 */
-function useKnowledgeDocumentPresence({ organizationId, documentId, awareness, isEnabled, viewerId }: Options) {
-  const [sessionId] = useState(createId)
+function useKnowledgeDocumentPresence({
+  organizationId,
+  documentId,
+  sessionId,
+  awareness,
+  isEnabled,
+  viewerId,
+}: Options) {
   const [people, setPeople] = useState<KnowledgeDocumentPresent[]>([])
   // The bridge the live query's pushes go to, while the effect below keeps one
   const presenceRef = useRef<KnowledgeDocumentPresence | null>(null)

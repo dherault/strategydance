@@ -16,8 +16,13 @@ import { dataConnect } from '~data/firebase'
 // as it may: change the two together
 const CAPACITY_REFUSAL = 'An organization keeps at most'
 
-// The operations a document's saver sends, bound to the document and its organization
-function createKnowledgeDocumentWrites(organizationId: string, documentId: string): KnowledgeDocumentWrites {
+// The operations a document's saver sends, bound to the document, its organization, and the page's
+// session, whose own presence does not keep a document it emptied
+function createKnowledgeDocumentWrites(
+  organizationId: string,
+  documentId: string,
+  sessionId: string,
+): KnowledgeDocumentWrites {
   const key = { organizationId, id: documentId }
 
   return {
@@ -46,7 +51,7 @@ function createKnowledgeDocumentWrites(organizationId: string, documentId: strin
     rename: title => renameDocument(dataConnect, { ...key, title }),
     updateAspects: aspects => updateDocumentAspects(dataConnect, { ...key, aspects }),
     setAiLock: isAiLocked => setDocumentAiLock(dataConnect, { ...key, isAiLocked }),
-    discard: () => discardDocument(dataConnect, key),
+    discard: () => discardDocument(dataConnect, { ...key, sessionId }),
   }
 }
 

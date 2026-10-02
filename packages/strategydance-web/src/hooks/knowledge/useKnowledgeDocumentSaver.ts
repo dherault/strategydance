@@ -10,6 +10,8 @@ import createKnowledgeDocumentWrites from '~utils/knowledge/createKnowledgeDocum
 type Options = {
   organizationId: string
   documentId: string
+  // The page's, as its presence row has it
+  sessionId: string
   // What the page opens with: the stored document's fields, or a draft's
   fields: KnowledgeDocumentFields
   // False for a draft
@@ -48,6 +50,7 @@ type Options = {
 function useKnowledgeDocumentSaver({
   organizationId,
   documentId,
+  sessionId,
   fields,
   isStored,
   sync,
@@ -59,7 +62,7 @@ function useKnowledgeDocumentSaver({
       documentId,
       fields,
       isStored,
-      writes: createKnowledgeDocumentWrites(organizationId, documentId),
+      writes: createKnowledgeDocumentWrites(organizationId, documentId, sessionId),
       text: {
         encodeForCreate: () => sync.encodeForCreate(),
         markCreated: () => sync.markCreated(),

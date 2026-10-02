@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
 import type { Locale } from 'strategydance-core'
 import type {
+  CompanyAspect,
   GetAdministrationOrganizationsData,
   GetAdministrationUsersData,
   GetChecklistData,
   GetCurrentUserData,
   GetCurrentUserOrganizationsData,
+  GetDocumentData,
+  GetOrganizationDocumentsData,
   GetOrganizationInvitationData,
   GetOrganizationLogData,
   GetOrganizationTeamData,
@@ -125,6 +128,33 @@ export type ChecklistItem = GetChecklistData['checklistItems'][number]
 
 // One entry of an organization's log, by the id of whoever wrote it
 export type LogEntry = GetOrganizationLogData['logEntries'][number]
+
+/*
+  One document of an organization's knowledge as its lists read it: its title, aspects and when it
+  last changed, without its content. Named apart from the DOM's `Document`, which a bare name would
+  hide in every file that imports it
+*/
+export type KnowledgeDocumentSummary = GetOrganizationDocumentsData['documents'][number]
+
+// One document whole, as its own page reads it once to seed the editor
+export type KnowledgeDocument = GetDocumentData['documents'][number]
+
+// What the document page saves of a document, each field by an operation of its own. The content
+// is an empty string when there is no text, never an empty document
+export type KnowledgeDocumentFields = {
+  title: string
+  content: string
+  aspects: CompanyAspect[]
+  isAiLocked: boolean
+}
+
+/*
+  Where the document page's saving stands: nothing to save, a change waiting for the reader to
+  pause, one on its way, one that failed and waits for the next try, content too long to send, a
+  draft the organization has no room for, or content refused because somebody else saved theirs
+  first
+*/
+export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full' | 'conflict'
 
 // How a build in public card is laid out: 16:9, 1:1 or 4:5
 export type CardFormat = 'landscape' | 'square' | 'portrait'

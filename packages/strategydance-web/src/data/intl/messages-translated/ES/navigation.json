@@ -30,6 +30,7 @@
   "navigation.githubStar": "Destacar",
   "navigation.githubStarLabel": "Destacar {repository} en GitHub",
   "navigation.githubStargazers": "{count, plural, one {# persona que destacó} other {# personas que destacaron}} en GitHub",
+  "navigation.knowledge": "Conocimiento",
   "navigation.logOut": "Cerrar sesión",
   "navigation.organizationBrief": "Descripción breve",
   "navigation.organizationBriefHint": "Puedes editar esto más adelante en el perfil de tu empresa.",

@@ -48,6 +48,17 @@
   line-height: inherit;
 }
 
+/*
+  A document's body, under its page's title: its text starts where the title's does, and the side
+  menu hangs in the page's margin to its left, as it does in a notebook. A size up from a post's,
+  since a page of it is read at length
+*/
+[data-appearance='document'] .rich-text-editor.bn-root .bn-editor {
+  padding: 16px 0 0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
 .rich-text-editor.bn-root .bn-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type='heading'] {
   padding-top: 4px;
   font-family: var(--font-display);

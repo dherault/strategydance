@@ -30,6 +30,7 @@
   "navigation.githubStar": "Star",
   "navigation.githubStarLabel": "{repository} auf GitHub einen Stern geben",
   "navigation.githubStargazers": "{count, plural, one {# Stargazer} other {# Stargazer}} auf GitHub",
+  "navigation.knowledge": "Wissen",
   "navigation.logOut": "Abmelden",
   "navigation.organizationBrief": "Kurzbeschreibung",
   "navigation.organizationBriefHint": "Du kannst dies später in deinem Unternehmensprofil bearbeiten.",

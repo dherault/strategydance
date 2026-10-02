@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { SearchIcon } from 'lucide-react'
+import { LockIcon, LockOpenIcon, SearchIcon } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
@@ -70,4 +71,31 @@ export const OnText: Story = {
     content: 'Monthly recurring revenue',
     children: 'MRR',
   },
+}
+
+// A toggle whose tooltip says what it does now: pressing it keeps the tooltip open, in its new words
+export const KeptOpenOnPress: Story = {
+  render: args => <KeptOpenOnPressExample {...args} />,
+}
+
+function KeptOpenOnPressExample(props: Parameters<typeof Tooltip>[0]) {
+  const [isLocked, setIsLocked] = useState(false)
+
+  return (
+    <Tooltip
+      {...props}
+      isKeptOpenOnPress
+      side="bottom"
+      content={isLocked ? 'AI modification prevented. Click to allow.' : 'Prevent AI modification'}
+    >
+      <Button
+        variant="transparent"
+        size="sm"
+        icon={isLocked ? <LockIcon /> : <LockOpenIcon />}
+        aria-label={isLocked ? 'Allow AI modification' : 'Prevent AI modification'}
+        aria-pressed={isLocked}
+        onClick={() => setIsLocked(current => !current)}
+      />
+    </Tooltip>
+  )
 }

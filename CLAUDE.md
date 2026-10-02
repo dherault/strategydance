@@ -510,16 +510,18 @@ work in progress, and a `git switch` changes the ground under the primary and th
 servers alike. Only a handover, below, moves it from one session to another.
 
 Which one you are is settled **before the first edit**. When the main checkout is on `dev` and
-clean (`git -C <main checkout> status --porcelain` prints nothing), nobody holds it, so you
-become the primary. Branch there, then tell the other sessions, as a handover's last step does:
+clean, nobody holds it, so you become the primary: check and branch in one command, then tell
+the other sessions, as a handover's last step does.
 
 ```sh
 git fetch origin dev
-git switch --no-track -c <branch> origin/dev
+test "$(git branch --show-current)" = dev && test -z "$(git status --porcelain)" && git switch --no-track -c <branch> origin/dev
 ```
 
-Read `git branch --show-current` before every commit there: a switch that did not stick leaves
-the commit on `dev`.
+Read `git branch --show-current` again before the first edit, and before every commit there.
+Two sessions that check at the same moment can both switch, and the later switch takes the
+checkout from the earlier: when it prints another branch, work in a worktree instead. When it
+prints `dev`, the switch did not stick, and a commit would land on `dev`.
 
 On any other branch, or with anything uncommitted, the main checkout is somebody else's, a
 session's or the person's. Create a worktree instead, and do every edit, test, commit and push
@@ -587,14 +589,15 @@ hands the main checkout over, never a session's own convenience. On a yes:
    is and tells the asking session and the person. Never stash, since the stash stack is shared
    by every worktree and session
 3. **The new primary moves in.** Its worktree lets go of the branch first, since git checks a
-   branch out in one place at a time, and anything uncommitted there comes across the same way,
-   with `git -C <its worktree> diff HEAD | git apply` from the main checkout:
+   branch out in one place at a time, and anything uncommitted there comes across before the
+   worktree goes:
 
    ```sh
    git switch --detach  # in the worktree
    cd <main checkout>
    git switch <branch>
-   git worktree remove .claude/worktrees/<branch>
+   git -C .claude/worktrees/<branch> diff HEAD | git apply  # plus any untracked files, by hand
+   git worktree remove .claude/worktrees/<branch>  # with --force if it held uncommitted work, once `git diff HEAD` here shows all of it
    ```
 
    Every further edit, commit and review round happens in the main checkout
@@ -618,12 +621,12 @@ Around every switch in the main checkout, the first one off `dev` included:
 - A session inside `EnterWorktree` leaves it first (`ExitWorktree`, keeping the worktree): its
   isolation guard refuses every command aimed at the main checkout
 
-**When the primary's pull request merges**, which `bun run review open` reports as `MERGED`, and
-its branch holds nothing more (`git log origin/dev..HEAD` lists nothing), the primary puts the
-main checkout back on `dev`, as long as it is clean: `git fetch origin dev && git switch dev &&
-git merge --ff-only origin/dev`. That frees it for the next session to start, so it tells the
-other sessions, and it answers a request for the checkout the same way rather than moving to a
-worktree.
+**When the primary's pull request merges**, which `bun run review open` reports as `MERGED`, the
+primary fetches `origin/dev` (`git fetch origin dev`). When its branch then holds nothing more
+(`git log origin/dev..HEAD` lists nothing) and the checkout is clean, it puts the main checkout
+back on `dev`: `git switch dev && git merge --ff-only origin/dev`. That frees it for the next
+session to start, so it tells the other sessions, and it answers a request for the checkout the
+same way rather than moving to a worktree.
 
 `dev` is the integration branch: every pull request starts from it and goes back into it. The
 one exception is the release that takes `dev` to `main`, which is a human's call (see below).

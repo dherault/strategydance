@@ -62,8 +62,10 @@ export, port the styles from `conversations.css` onto the design system's compon
 - Header "Conversations", lead "Chats with Strategy Dance. Get ready to be challenged. Only you can
   see your conversations.", and a primary "New conversation" button.
 - A search field ("Search conversations", Escape clears it). Every word has to appear in the title
-  or in a message, ignoring case (the first five words, see `SearchConversations`). No match: "No
-  conversations match “query”", "Search looks at titles and messages.", and a "Clear search" button.
+  or in one message, ignoring case. (The prototype also matched words spread over several messages;
+  the full-text search `SearchConversations` uses matches within one title or one message.) No match:
+  "No conversations match “query”", "Search looks at titles and messages.", and a "Clear search"
+  button.
 - A table, latest activity first. Columns: Conversation (the title as a link, a "Needs your answer"
   badge when a question waits, and a one-line preview), Aspects (their icons, in `COMPANY_ASPECTS`
   order), Updated (relative time), and actions: "Open in dock" on desktop, and Delete, which asks to
@@ -295,10 +297,11 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     query only, not the thread or the list.
   - `GetConversationToolCall($organizationId, $messageId)`: one call's input and output, read once
     when "View output" opens.
-  - `SearchConversations($organizationId, $term1, … $term5)`: the ids whose title or member and
-    agent text match every term, with `pattern: { like: "%term%", ignoreCase: true }` (the web
-    escapes `%`, `_` and `\`, and passes `%` for an unused term). An operation's shape is fixed, so
-    the first five words count and the field says so past five.
+  - `SearchConversations($organizationId, $query)`: Data Connect's full-text search, through an index
+    rather than a scan. `Conversation.title` and `ConversationMessage.text` are `@searchable`, with
+    the `simple` text search configuration since conversations come in seven languages, and the query
+    reads `conversations_search` and `conversationMessages_search` (member and agent text only) with
+    `queryFormat: PLAIN`, which requires every word; the web merges the two lists of conversations.
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note). A web mutation takes `$userId` so the list's
@@ -360,7 +363,10 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   writes its note there.
 - **Concurrency.** These are not usage limits, which wait for credits, but bounds on how much runs
   at once: at most three runs in flight per member (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with
-  `ERROR_CODE_CONVERSATION_BUSY`), and the queue dispatches at most 50 tasks at a time.
+  `ERROR_CODE_CONVERSATION_BUSY`), and the queue dispatches at most 50 tasks at a time. Every
+  mutation that starts a run first locks the member's membership row, the one creating and restoring
+  lock, then counts their active runs and inserts, so two sends from two conversations at once
+  cannot both find room.
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
   flag; build the request from the transcript and check it (see The transcript); stream it, writing
@@ -403,6 +409,10 @@ the worker swaps the bytes in.
    `tool_result` per id, in order, before any text, image or document block.
 4. Only the last entry may hold unanswered `tool_use` blocks.
 
+The rules hold for what is stored. A request may end with one more `SYSTEM` entry, the run's context
+message before it is stored, directly after a `USER` entry, which Claude accepts as a last message.
+`checkTranscript` checks the request as it is sent, that trailing message included.
+
 **How each flow keeps them:**
 
 - **A run's context message** is built when the run starts and kept on the run. Every request of the
@@ -418,11 +428,13 @@ the worker swaps the bytes in.
   cancelled), then the member's text and files. Waiting questions are marked skipped.
 - **Answer** (`POST …/answers`): records the answer on its question. Once every question of the
   waiting run has one, a `USER` entry with all the waiting turn's results (the answers as JSON, and
-  `pendingToolResults`) is stored and a run starts. Answers are serialized on the waiting run: each
-  one's mutation first locks that run's row, then records the answer and counts what is left, so two
-  answers sent at once cannot both see the other missing. Starting the next run moves the waiting run
-  out of `WAITING` under `@check(this == 1)`, so exactly one request starts it, a retry included. An
-  approval (M19) is answered the same way.
+  `pendingToolResults`) is stored and a run starts. Answers are serialized on the conversation: each
+  one's mutation first locks the conversation's row, then records the answer on its question's row
+  and counts what is left, so two answers sent at once cannot both see the other missing. The request
+  that sees none left starts the next run in a second mutation, whose only write to the waiting run
+  moves it out of `WAITING` under `@check(this == 1)`, so exactly one request starts it, a retry
+  included: a mutation writes each row once, so the lock and the move are never on the same row in
+  one mutation. An approval (M19) is answered the same way.
 - **Stop** (`POST …/stop`) sets `stopRequestedAt`. The worker aborts the stream (the turn being
   written is dropped), or lets the calls already running finish and records them, so nothing is left
   in doubt, and cancels the ones not started: they become `CANCELLED`, a `STOPPED` note is added, the
@@ -456,12 +468,19 @@ the worker swaps the bytes in.
   rather than holding it in memory. The quota counts only unsent rows younger than two days, and the
   route first deletes the member's unsent rows older than that, whose files the lifecycle rule below
   has removed, so abandoned uploads never use up the quota for good.
-- **Uploads are create-only**, since every replay depends on the bytes never changing: the object is
-  written with a generation-match-zero precondition, so a second `PUT` with the same id is refused,
-  and the row's name, type and size never change. Its one update is its association with the message
-  that sends it, `message` going from null to set once, guarded on it being null. A retry after a lost
-  answer finds the row and the object already there, with the same size and type, and answers as the
-  first did.
+- **Uploads are create-only**, since every replay depends on the bytes never changing. The object
+  comes first, written with a generation-match-zero precondition: Storage finalizes an upload
+  atomically, so a failed stream leaves no object, and a second `PUT` with the same id cannot replace
+  one. The row comes second; if inserting it fails, the route deletes the object, and the lifecycle
+  rule below takes any it misses. A retry with the same id that finds the object answers as the first
+  did when the row is there too, and inserts the row when only the object is (same member, by its
+  path, and same size and type). The row's name, type and size never change; its one update is its
+  association with the message that sends it, `message` going from null to set once, guarded on it
+  being null. Tests cover a failure between the two steps.
+- **Claude's limits are checked here, not in the browser**, whose shrinking is a convenience: an
+  image over 5 MB or 8000 pixels on a side (read from its header), or in a format Claude does not
+  take, is refused, since a stored file Claude refuses would fail every later request of its
+  conversation.
 - An upload lands under `pending/{organizationId}/{userId}/{attachmentId}`, outside `organizations/`,
   where a bucket lifecycle rule deletes what is two days old: a draft never sent costs nothing for
   long, whether or not its author comes back. Sending copies each file into the conversation's
@@ -478,8 +497,9 @@ the worker swaps the bytes in.
   leaving room for the text; and before each request the worker measures the serialized body. Past
   30 MB, or once a request has read more than 800000 input tokens, the worker marks the conversation
   full: the send route refuses new messages with `ERROR_CODE_CONVERSATION_FULL`, and the thread says
-  to start a new one. The service gets `--memory 2Gi` (or a lower `--concurrency`) for those
-  requests.
+  to start a new one. The service gets both `--memory 2Gi` and a low `--concurrency` (20 to start,
+  measured on the heaviest conversation), since a request can hold its files several times over
+  (bytes, base64, the SDK's copy) and Cloud Run's default of 80 would put too many on one instance.
 
 ### The agent
 
@@ -676,8 +696,10 @@ adds a section on it to `operations-costs.md`.
 
 The data model and the web connector's operations, with nothing yet using them.
 
-- The five tables and their enums, as The data describes, commented in `schema.gql`'s style. All
-  additive, so the release migrates by itself.
+- The five tables and their enums, as The data describes, commented in `schema.gql`'s style, with
+  `@searchable(language: "simple")` on `Conversation.title` and `ConversationMessage.text` (check
+  that the emulator takes `simple`, and fall back to `english` otherwise). All additive, so the
+  release migrates by itself.
 - The web connector's operations, as Who writes what lists them. No backend operation yet: each
   milestone adds the ones it calls.
 - The limits, error codes and gate in strategydance-core, and `buildConversationPreview` there,
@@ -713,7 +735,7 @@ The data model and the web connector's operations, with nothing yet using them.
 - The list: header (New conversation arrives in M5), search (debounced, through
   `SearchConversations`), table, previews worded from `preview`, empty states, Delete with confirm
   and Undo through `DeleteConversation` and `RestoreConversation`.
-- Utilities with tests: wording a preview, splitting and escaping search terms.
+- Utilities with tests: wording a preview, merging the two search results.
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
@@ -771,7 +793,9 @@ heavy.
   `isNew` leaves the address as knowledge's does.
 - Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
   busy, an unclear and a definite queueing failure, a dead run finalized, a send retried with the
-  same `messageId`, a fourth run refused, a conversation without room for a run refused.
+  same `messageId`, a fourth run refused, a conversation without room for a run refused. Against the
+  emulators, a script under `scripts/` sends from two conversations at once with two runs already in
+  flight, and exactly one goes through.
 - Verify: locally, send in two tabs and watch the reply arrive; restart the backend mid-run, see the
   run shown interrupted a minute later, and send again. Setup steps 2 to 4 before the release; then,
   as staff in production, the same with the task in Cloud Tasks' logs.
@@ -902,9 +926,10 @@ A refactor and two pure functions, no visible change.
 ### M15: Attachments: storing them and sending them to Claude
 
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
-  and the member's quota of unsent files (after deleting their unsent rows older than two days), then
-  create-only: the row inserted, the object streamed under `pending/` with a generation-match-zero
-  precondition; deleting a pruned conversation's folder.
+  and the member's quota of unsent files (after deleting their unsent rows older than two days),
+  Claude's image limits, then create-only: the object streamed under `pending/` with a
+  generation-match-zero precondition, then the row, with the object deleted if the row fails;
+  deleting a pruned conversation's folder.
 - The bucket's lifecycle rule deleting `pending/` objects older than two days, applied with gcloud
   like the CORS rule (a human step, written down beside `storage.cors.json`).
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
@@ -912,10 +937,10 @@ A refactor and two pure functions, no visible change.
 - `POST …/messages` accepts attachment ids, checks the conversation's budget, copies each file into
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
-- `deploy:backend` gains `--memory 2Gi` (or a lower `--concurrency`).
-- Tests: blocks built from each type; the budget refused; a second upload with the same id refused, a
-  retried one answered as the first; a placeholder replayed byte for byte; a conversation marked
-  full.
+- `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, both measured before the release.
+- Tests: blocks built from each type; the budget refused; an oversized image refused; a second upload
+  with the same id refused, a retried one answered as the first, one that failed between the object
+  and the row recovered; a placeholder replayed byte for byte; a conversation marked full.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
 ### M16: Attachments in the composer and the thread
@@ -945,7 +970,12 @@ A refactor and two pure functions, no visible change.
   check repeated on every connection and redirect, so a rebinding or a redirect cannot slip past it;
   timeouts and a cap on the response's size. Cloud Run can reach the metadata server, which hands out
   the service account's tokens, so this is not optional. OAuth discovery and token requests (M18) go
-  through the same guard.
+  through the same guard. The connection is made to the address the guard checked, never to a name
+  resolved again.
+- The guard ships with deterministic tests, a fake resolver and transport standing in for the
+  network: IPv4 and IPv6 private, loopback, link-local and unique local ranges, IPv4-mapped IPv6
+  forms, `0.0.0.0`, the metadata names, a resolver whose answer changes between the check and the
+  connection, a redirect to a blocked address, a timeout, and a response past the size cap.
 - The Integrations page as designed (table, server dialog, gallery with marks in
   `public/assets/images/mcp/`), staff gated, and its sidebar item. Check each catalogue address is a
   real remote MCP server before shipping it.

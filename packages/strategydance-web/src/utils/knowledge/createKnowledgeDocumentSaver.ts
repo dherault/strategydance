@@ -56,14 +56,30 @@ function isBlank(fields: KnowledgeDocumentFields) {
 }
 
 /*
+  Whether a stored document is the one a create sent: its fields, never saved over. Anything else
+  under the id was there before, as at a draft's address with `isNew` added by hand, and is
+  somebody's document rather than this create's lost answer
+*/
+function isCreatedFrom(stored: StoredKnowledgeDocument, fields: KnowledgeDocumentFields) {
+  return (
+    stored.revision === 0
+    && stored.title === fields.title
+    && stored.content === fields.content
+    && stored.isAiLocked === fields.isAiLocked
+    && stored.aspects.join() === fields.aspects.join()
+  )
+}
+
+/*
   Saves one document as it is edited, which its page does without a button: each change waits for
   the reader to pause, then what differs from what the server holds goes out, one operation per
   field, so two members changing two fields never write back each other's.
 
   A draft is stored the first time it has a title or some text, and its first send creates it with
   everything it has by then. A create that fails may still have gone through, its answer lost on
-  the way back, so the document is read: when it is there, the saver goes on from it rather than
-  retry a create the server would refuse as a second one. One refused because the organization is
+  the way back, so the document is read: when it is there as the create sent it, the saver goes on
+  from it rather than retry a create the server would refuse as a second one. A different document
+  under the id is never taken for it, nor written over. One refused because the organization is
   full says so, and is tried again with the next change, as a teammate may have deleted one. Sends to one document run one after the other through `runInOrder`, at
   most one waiting, and a send reads the latest fields when it starts rather than when it was
   asked for, so typing while one is out, a second create and a retried one all come out right.
@@ -274,7 +290,7 @@ function createKnowledgeDocumentSaver({
     } catch (error) {
       const stored = await writes.read().catch(() => null)
 
-      if (!stored) throw error
+      if (!stored || !isCreatedFrom(stored, fields)) throw error
 
       created = stored
     }

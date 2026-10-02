@@ -21,10 +21,16 @@ function wait(ms: number) {
   create for the organization's cap. `losesCreateAnswer` stores the first create and then throws,
   as a create whose answer the network lost does, which `read` then finds
 */
-function createWrites({ latency = 0, refuseContent = false, isFull = false, losesCreateAnswer = false } = {}) {
+function createWrites({
+  latency = 0,
+  refuseContent = false,
+  isFull = false,
+  losesCreateAnswer = false,
+  existing = null as (KnowledgeDocumentFields & { revision: number }) | null,
+} = {}) {
   const calls: string[] = []
   let failNext = false
-  let stored: (KnowledgeDocumentFields & { revision: number }) | null = null
+  let stored = existing
 
   async function answer(call: string) {
     calls.push(call)
@@ -159,6 +165,29 @@ describe('createKnowledgeDocumentSaver', () => {
 
     expect(calls).toEqual(['create Plan|||false', 'read', 'content [1]@0'])
     expect(saver.getStatus()).toBe('idle')
+  })
+
+  it('never takes another document under the id for its lost create, nor writes over it', async () => {
+    const { calls, writes } = createWrites({ existing: { ...STORED, revision: 3 } })
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd23',
+      fields: BLANK,
+      revision: null,
+      writes,
+      delay: DELAY,
+    })
+    const { getCreatedCount } = track(saver)
+
+    saver.change({ title: 'Mine' })
+
+    expect(await saver.flush()).toBe(false)
+    expect(saver.getStatus()).toBe('error')
+    expect(getCreatedCount()).toBe(0)
+
+    saver.change({ content: '[2]' })
+    await saver.flush()
+
+    expect(calls).toEqual(['create Mine|||false', 'read', 'create Mine|[2]||false', 'read'])
   })
 
   it('says the organization is full, and tries again with the next change', async () => {

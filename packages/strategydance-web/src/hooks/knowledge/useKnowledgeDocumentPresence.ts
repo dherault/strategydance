@@ -46,6 +46,7 @@ function useKnowledgeDocumentPresence({
 
     const presence = createKnowledgeDocumentPresence({
       awareness,
+      sessionId,
       viewerId,
       writes: createKnowledgeDocumentPresenceWrites(organizationId, documentId, sessionId),
       getColor: getPresenceColor,
@@ -65,10 +66,13 @@ function useKnowledgeDocumentPresence({
     handleVisibilityChange()
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('pagehide', handlePageHide)
+    // A page back from the back and forward cache is shown without a `visibilitychange`
+    window.addEventListener('pageshow', handleVisibilityChange)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('pageshow', handleVisibilityChange)
       presence.detach()
       presenceRef.current = null
     }

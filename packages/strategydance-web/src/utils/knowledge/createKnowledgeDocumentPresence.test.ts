@@ -23,18 +23,28 @@ function row(sessionId: string, userId: string, { cursor = null as string | null
   } satisfies KnowledgeDocumentPresenceRow
 }
 
-// A page with a document open: its awareness, the bridge, what it sent and who it lists
-function createPage({ heartbeatDelay = 1_000_000, staleAfter = 45000 } = {}) {
+let pageCount = 0
+
+// A page with a document open: its awareness, the bridge, what it sent and who it lists. Its writes
+// answer after `latency`, and are recorded as they start
+function createPage({ heartbeatDelay = 1_000_000, staleAfter = 45000, latency = 0 } = {}) {
   const awareness = new Awareness(new Y.Doc())
   const calls: string[] = []
   let time = 0
   let people: KnowledgeDocumentPresent[] = []
   const presence = createKnowledgeDocumentPresence({
     awareness,
+    sessionId: `mine${(pageCount += 1)}`,
     viewerId: 'ana',
     writes: {
-      update: async cursor => calls.push(`update ${cursor}`),
-      leave: async () => calls.push('leave'),
+      update: async cursor => {
+        calls.push(`update ${cursor}`)
+        await wait(latency)
+      },
+      leave: async () => {
+        calls.push('leave')
+        await wait(latency)
+      },
     },
     getColor: userId => (userId === 'ben' ? '#0a61b5' : '#c2410c'),
     heartbeatDelay,
@@ -72,6 +82,7 @@ describe('createKnowledgeDocumentPresence', () => {
     awareness.setLocalStateField('cursor', { anchor: 1 })
     awareness.setLocalStateField('cursor', { anchor: 2 })
     awareness.setLocalStateField('cursor', { anchor: 3 })
+    await wait(5)
 
     expect(calls).toEqual(['update null', 'update {"anchor":1}'])
 
@@ -92,10 +103,12 @@ describe('createKnowledgeDocumentPresence', () => {
     presence.show()
     awareness.setLocalStateField('cursor', { anchor: 1 })
     awareness.setLocalStateField('cursor', { anchor: 2 })
+    await wait(5)
 
     expect(calls).toEqual(['update null'])
 
     presence.receive([row('b1', 'ben')])
+    await wait(5)
 
     expect(calls).toEqual(['update null', 'update {"anchor":2}'])
     presence.detach()
@@ -111,6 +124,7 @@ describe('createKnowledgeDocumentPresence', () => {
 
     presence.hide()
     awareness.setLocalStateField('cursor', { anchor: 1 })
+    await wait(5)
     const count = calls.length
     await wait(40)
 
@@ -176,12 +190,28 @@ describe('createKnowledgeDocumentPresence', () => {
     presence.detach()
   })
 
-  it('leaves and forgets the others as the page goes', () => {
+  it('sends a leave only once the updates before it are done', async () => {
+    const { presence, calls } = createPage({ latency: 10 })
+
+    presence.show()
+    presence.hide()
+    await wait(5)
+
+    expect(calls).toEqual(['update null'])
+
+    await wait(30)
+
+    expect(calls).toEqual(['update null', 'leave'])
+    presence.detach()
+  })
+
+  it('leaves and forgets the others as the page goes', async () => {
     const { presence, calls, readOthers } = createPage()
 
     presence.show()
     presence.receive([row('b1', 'ben')])
     presence.detach()
+    await wait(5)
 
     expect(calls.at(-1)).toBe('leave')
     expect(readOthers()).toEqual([])

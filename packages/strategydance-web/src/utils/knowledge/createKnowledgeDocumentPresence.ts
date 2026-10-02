@@ -1,5 +1,7 @@
 import { type Awareness, removeAwarenessStates } from 'y-protocols/awareness'
 
+import runInOrder from '~utils/common/runInOrder'
+
 // How often a visible tab says it is still there, well inside the 45 seconds readers wait
 const HEARTBEAT_DELAY = 15000
 // How often a moving caret is sent at most, the latest each time
@@ -47,6 +49,8 @@ export type KnowledgeDocumentPresenceListeners = {
 
 type Options = {
   awareness: Awareness
+  // The page's tab, whose writes go one after the other, a remount's included
+  sessionId: string
   // The reader, whose tabs, this one and any other, are never drawn
   viewerId: string | null
   writes: KnowledgeDocumentPresenceWrites
@@ -111,6 +115,7 @@ function parseCursor(cursor: string | null | undefined) {
 */
 function createKnowledgeDocumentPresence({
   awareness,
+  sessionId,
   viewerId,
   writes,
   getColor,
@@ -121,6 +126,7 @@ function createKnowledgeDocumentPresence({
 }: Options) {
   // The origin of the states this bridge gives the awareness, which it never sends back
   const remote = Symbol('presence')
+  const queueKey = `knowledgeDocumentPresence:${sessionId}`
   const sessions = new Map<string, Session>()
   // The `updatedAt` of each row forgotten for going quiet, which stays forgotten until it moves
   const quietAt = new Map<string, string>()
@@ -152,10 +158,16 @@ function createKnowledgeDocumentPresence({
     return cursor ? JSON.stringify(cursor) : null
   }
 
+  // In order, so that a leave never lands before an update sent ahead of it, which would bring the
+  // row back, and the carets land as they moved
   function send() {
-    sentCursor = readCursor()
+    const cursor = readCursor()
+
+    sentCursor = cursor
     isCursorChanged = false
-    writes.update(sentCursor).catch(error => console.error('Where the caret is could not be sent', error))
+    runInOrder(queueKey, () => writes.update(cursor)).catch(error =>
+      console.error('Where the caret is could not be sent', error),
+    )
   }
 
   // Sends the caret now, then waits a second, after which it sends it again if it moved meanwhile
@@ -204,7 +216,7 @@ function createKnowledgeDocumentPresence({
 
     heartbeatTimer = null
     cursorTimer = null
-    writes.leave().catch(error => console.error('Leaving the document could not be sent', error))
+    runInOrder(queueKey, writes.leave).catch(error => console.error('Leaving the document could not be sent', error))
   }
 
   function notifyPeople() {

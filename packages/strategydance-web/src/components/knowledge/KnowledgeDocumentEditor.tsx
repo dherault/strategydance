@@ -266,7 +266,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           event.preventDefault()
           editorRef.current?.focus()
         }}
-        className="h-auto overflow-hidden rounded-none border-0 bg-transparent p-0 font-heading text-5xl leading-[1.1] font-normal tracking-tight text-secondary placeholder:text-neutral-400 focus:bg-transparent"
+        // Its full size on a touch screen too, where a field's text is otherwise 16px
+        className="h-auto overflow-hidden rounded-none border-0 bg-transparent p-0 font-heading text-5xl pointer-coarse:text-5xl leading-[1.1] font-normal tracking-tight text-secondary placeholder:text-neutral-400 focus:bg-transparent"
       />
       <div className="-mt-3 mb-0.5 flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
         <button

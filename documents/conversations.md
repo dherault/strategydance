@@ -238,9 +238,12 @@ New tables in `schema.gql`, each commented as the existing ones are:
   `anchorPosition` (the transcript entry that started it, which Retry goes back to), `context`
   (`Any`: the run's context message, until it is stored), `stopRequestedAt`,
   `leaseExpiresAt`, `attempts`, `pendingToolResults` (`Any`: results held while questions wait),
-  `failure` (a reason for the logs, never shown), `startedAt`, `endedAt`, and `usage` (`Any`: input,
-  cache and output tokens and web searches, per model, since a refusal fallback bills another model).
-  Usage is what the credit system will bill from.
+  `failure` (a reason for the logs, never shown), `createdAt` (set by the server when the run is
+  queued), `startedAt` (when a worker claims it, so null while queued and for a run that never
+  started), `endedAt`, and `usage` (`Any`: input, cache and output tokens and web searches, per model,
+  since a refusal fallback bills another model). Usage is what the credit system will bill from.
+  Indexed on `conversationId`, `createdAt`: "the latest run" is the newest by `createdAt`, then `id`,
+  never by `startedAt`.
 - **`ConversationTranscriptEntry`**: what Claude is sent, kept apart from what the thread draws.
   `conversation`, `run`, `position` (dense from 0, unique per conversation), `role` (`USER`,
   `ASSISTANT`, `SYSTEM`), `content` (`Any`: the exact content blocks, thinking blocks and their
@@ -285,8 +288,10 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     `createdAt` then `id`, and the cursor carries both, since an aspects note written from the browser
     can share a worker message's instant. History does not change, apart from retry's deletions,
     which only ever touch the tail.
-  - `GetConversationRun($organizationId, $conversationId)`, live: the latest run's status, trigger,
-    step, `startedAt` and `leaseExpiresAt`. Progress lines and lease renewals refresh this small
+  - `GetConversationRun($organizationId, $conversationId)`, live: the latest run (ordered by
+    `createdAt`, then `id`), with its status, trigger, step, `createdAt`, `startedAt` and
+    `leaseExpiresAt`; the indicator times a queued run from `createdAt`. Progress lines and lease
+    renewals refresh this small
     query only, not the thread or the list.
   - `GetConversationToolCall($organizationId, $messageId)`: one call's input and output, read once
     when "View output" opens.

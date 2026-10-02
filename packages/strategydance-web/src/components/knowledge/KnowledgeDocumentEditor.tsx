@@ -340,8 +340,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           className="border-t border-neutral-200"
         />
       ) : (
-        // Holds the editor's height while it loads, so the page does not jump when it arrives
-        <div className="flex min-h-[360px] items-start gap-2 border-t border-neutral-200 pt-4 text-sm text-muted-foreground">
+        // Holds the editor's height and its gutter while it loads, so the page does not jump when it arrives
+        <div className="flex min-h-[360px] items-start gap-2 border-t border-neutral-200 pt-4 text-sm text-muted-foreground max-md:pl-[52px]">
           {hasEditorFailed ? (
             formatMessage(knowledgeMessages.editorError)
           ) : (

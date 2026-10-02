@@ -7,7 +7,9 @@ import { cn } from 'strategydance-design-system/lib/utils'
   A gutter on either side is as wide as the editor's side menu, its 52px and the 6px between it and
   the text that `RichTextEditor.css` leaves. The menu shows in the left one when a block is hovered,
   and the right one mirrors it, so the text, the title over it and the rule between them sit in the
-  middle of the column whether the menu shows or not. A phone has no hover, and no room for them.
+  middle of the column whether the menu shows or not. A phone has no room for them, so below `md`
+  the column runs nearly to the screen's edges and the editor keeps a gutter of its own on the
+  left, where a tap on a block shows its menu.
 
   The column, gutters and all, centers on the window as `ContainerLayout`'s does, with its own
   width in the margin: once there is room for it and a sidebar's width to its right, the margin

@@ -366,8 +366,9 @@ caret is, and `GetDocumentPresences` keeps them live for the carets and the face
   text. A new block type reaches every tab before anybody can write one
 - A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's
   database stuck in its transaction, refusing every mutation after until the emulator restarts.
-  A document's page sends nothing as it goes away but what `beforeunload` flushes, and
-  `LeaveDocument`, which it does send, is not a transaction
+  A document's page sends nothing as it goes away but what `beforeunload` flushes, and the writes
+  a closing tab may still have out, `PushDocumentUpdate`, `UpdateDocumentPresence` and
+  `LeaveDocument`, are not transactions
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task

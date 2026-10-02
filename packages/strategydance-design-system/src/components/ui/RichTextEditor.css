@@ -136,8 +136,12 @@
   height: 16px;
 }
 
-/* The block menu's "Turn into" list, as wide as its longest block's name */
+/*
+  The block menu's "Turn into" list, as wide as its longest block's name, with the `md` shadow of
+  the other menus rather than the `lg` one BlockNote gives a submenu
+*/
 .rich-text-editor.bn-root [data-slot='dropdown-menu-sub-content'] {
+  --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a);
   width: max-content;
 }
 

@@ -5,6 +5,7 @@ import {
   CompassIcon,
   ContactRoundIcon,
   LighthouseIcon,
+  LightbulbIcon,
   StoreIcon,
   UsersRoundIcon,
 } from 'lucide-react'
@@ -34,20 +35,23 @@ import navigationMessages from '~data/intl/messages/navigation'
 type NavigationLinkProps = {
   // Matched against the current path to mark the row active
   path: string
+  // Active on the pages under the path too, as the knowledge's row is on each document's
+  isNested?: boolean
   label: string
   icon: ReactNode
   link: LinkProps
 }
 
-function NavigationLink({ path, label, icon, link }: NavigationLinkProps) {
+function NavigationLink({ path, isNested = false, label, icon, link }: NavigationLinkProps) {
   const { isMobile, setOpenMobile } = useSidebar()
   const pathname = useRouterState({ select: state => state.location.pathname })
+  const isActive = pathname === path || (isNested && pathname.startsWith(`${path}/`))
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        isActive={pathname === path}
+        isActive={isActive}
       >
         <Link
           {...link}
@@ -118,6 +122,13 @@ function SidebarNavigation() {
               link={{ to: '/explore' }}
             />
           ) : null}
+          <NavigationLink
+            path="/knowledge"
+            isNested
+            label={formatMessage(navigationMessages.knowledge)}
+            icon={<LightbulbIcon />}
+            link={{ to: '/knowledge' }}
+          />
         </SidebarMenu>
       </SidebarGroup>
       <SidebarGroup>

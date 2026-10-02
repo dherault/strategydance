@@ -1,11 +1,11 @@
-import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
+import type { PartialBlock } from '@blocknote/core'
 import { blocksToYDoc } from '@blocknote/core/yjs'
+import { getHeadlessRichTextEditor } from 'strategydance-design-system/lib/getHeadlessRichTextEditor'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
   type RichTextEditorBlock,
-  createRichTextSchema,
   getRichTextBlockTypes,
 } from 'strategydance-design-system/lib/richTextEditorSchema'
 import * as Y from 'yjs'
@@ -18,7 +18,7 @@ type Options = {
 /*
   Rich text as it is stored, turned into the first update of a Yjs document that a shared editor
   opens on: a text stored before it was shared, or a draft about to be. BlockNote lays blocks into
-  Yjs through an editor of the same schema, which is made here and never mounted.
+  Yjs through an editor of the same schema, one never mounted.
 
   A text with no blocks is one empty paragraph rather than nothing. A shared editor opening on an
   empty document writes its first paragraph itself, and two tabs opening it at once would each
@@ -27,9 +27,8 @@ type Options = {
 */
 function createRichTextYUpdate(value: string | null | undefined, { blocks = RICH_TEXT_EDITOR_BLOCKS }: Options = {}) {
   const parsed = parseRichText(value, { blockTypes: getRichTextBlockTypes(blocks) })
-  const editor = BlockNoteEditor.create({ schema: createRichTextSchema(blocks), trailingBlock: false })
   const doc = blocksToYDoc(
-    editor,
+    getHeadlessRichTextEditor(blocks),
     (parsed.length ? parsed : [{ type: 'paragraph' }]) as PartialBlock[],
     RICH_TEXT_YJS_FRAGMENT,
   )

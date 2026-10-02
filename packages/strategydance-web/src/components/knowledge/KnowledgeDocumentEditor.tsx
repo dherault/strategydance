@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { LockIcon, LockOpenIcon } from 'lucide-react'
 import { type FocusEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
+import { MAX_DOCUMENTS, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
 import {
   type CompanyAspect,
   type GetOrganizationDocumentsData,
@@ -208,7 +208,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
   function renderMeta() {
     if (status === 'pending' || status === 'saving') return formatMessage(knowledgeMessages.saving)
-    if (status === 'error' || status === 'tooLong' || status === 'conflict') {
+    if (status === 'error' || status === 'tooLong' || status === 'full' || status === 'conflict') {
       return formatMessage(knowledgeMessages.notSaved)
     }
     if (!isStored || !updatedAt) return formatMessage(knowledgeMessages.draft)
@@ -311,6 +311,14 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           />
         </Tooltip>
       </div>
+      {status === 'full' ? (
+        <p
+          role="alert"
+          className="m-0 text-sm text-danger"
+        >
+          {formatMessage(knowledgeMessages.draftFull, { max: MAX_DOCUMENTS })}
+        </p>
+      ) : null}
       {status === 'tooLong' ? (
         <p
           role="alert"

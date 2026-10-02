@@ -1411,6 +1411,10 @@
         "hash": "e83e8207e3b19600",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.addFull": {
+        "hash": "d2a272d05c287f5e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.allKnowledge": {
         "hash": "7ba49bc4779b6d0b",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1477,6 +1481,10 @@
       },
       "knowledge.draft": {
         "hash": "3eb57c047d8c6730",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.draftFull": {
+        "hash": "5b66eedd88c53db7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.editAspects": {

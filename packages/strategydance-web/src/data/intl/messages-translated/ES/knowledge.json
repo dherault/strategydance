@@ -1,6 +1,7 @@
 {
   "knowledge.add": "Añadir conocimiento",
   "knowledge.addAspects": "Añadir aspectos",
+  "knowledge.addFull": "Tu organización conserva como máximo {max, number} elementos de conocimiento. Elimina uno para añadir otro.",
   "knowledge.allKnowledge": "Todo el conocimiento",
   "knowledge.aspectEmptyText": "Los elementos etiquetados con {aspect} aparecerán aquí.",
   "knowledge.aspectEmptyTitle": "Aún no hay conocimientos sobre {aspect}",
@@ -18,6 +19,7 @@
   "knowledge.deleted": "Se eliminó {title}",
   "knowledge.documentLoadError": "No se pudo cargar este elemento. Comprueba tu conexión e inténtalo de nuevo.",
   "knowledge.draft": "No se guardará hasta que añadas un título o contenido",
+  "knowledge.draftFull": "Este elemento no se puede guardar: tu organización conserva como máximo {max, number} elementos de conocimiento. Elimina uno y se guardará con tu próximo cambio.",
   "knowledge.editAspects": "Editar aspectos: {aspects}",
   "knowledge.editedAgo": "Editado {time}",
   "knowledge.editedJustNow": "Editado hace un momento",

@@ -111,6 +111,19 @@ const knowledgeMessages = defineMessages({
     defaultMessage: 'Reload',
     description: "Button beside the message saying a teammate changed the item, which opens the teammate's version.",
   },
+  addFull: {
+    id: 'knowledge.addFull',
+    defaultMessage: 'Your organization keeps at most {max, number} items of knowledge. Delete one to add another.',
+    description:
+      'Notification when adding an item of knowledge to an organization that already keeps as many as it may.',
+  },
+  draftFull: {
+    id: 'knowledge.draftFull',
+    defaultMessage:
+      'This item cannot be saved: your organization keeps at most {max, number} items of knowledge. Delete one, and it saves with your next change.',
+    description:
+      'Message on a new item of knowledge that cannot be stored because the organization already keeps as many items as it may.',
+  },
   tooLong: {
     id: 'knowledge.tooLong',
     defaultMessage: 'This item is too long to save. Shorten it to keep your changes.',

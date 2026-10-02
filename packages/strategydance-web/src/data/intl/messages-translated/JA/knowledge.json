@@ -1,6 +1,7 @@
 {
   "knowledge.add": "ナレッジを追加",
   "knowledge.addAspects": "アスペクトを追加",
+  "knowledge.addFull": "組織で保持できるナレッジは最大{max, number}件です。新しく追加するには、1件削除してください。",
   "knowledge.allKnowledge": "すべてのナレッジ",
   "knowledge.aspectEmptyText": "{aspect}のタグが付いたアイテムがここに表示されます。",
   "knowledge.aspectEmptyTitle": "{aspect}のナレッジはまだありません",
@@ -18,6 +19,7 @@
   "knowledge.deleted": "{title}を削除しました",
   "knowledge.documentLoadError": "この項目を読み込めませんでした。接続を確認して、もう一度お試しください。",
   "knowledge.draft": "タイトルまたは内容を入力するまで保存されません",
+  "knowledge.draftFull": "このアイテムは保存できません。組織で保持できるナレッジは最大{max, number}件です。1件削除すると、次回の変更時に保存されます。",
   "knowledge.editAspects": "アスペクトを編集: {aspects}",
   "knowledge.editedAgo": "{time}に編集",
   "knowledge.editedJustNow": "たった今編集",

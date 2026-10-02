@@ -1,6 +1,7 @@
 {
   "knowledge.add": "Wissen hinzufügen",
   "knowledge.addAspects": "Aspekte hinzufügen",
+  "knowledge.addFull": "Ihre Organisation speichert maximal {max, number} Wissenselemente. Löschen Sie eines, um ein weiteres hinzuzufügen.",
   "knowledge.allKnowledge": "Gesamtes Wissen",
   "knowledge.aspectEmptyText": "Mit {aspect} getaggte Elemente erscheinen hier.",
   "knowledge.aspectEmptyTitle": "Noch kein Wissen zu {aspect}",
@@ -18,6 +19,7 @@
   "knowledge.deleted": "{title} gelöscht",
   "knowledge.documentLoadError": "Dieser Eintrag konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
   "knowledge.draft": "Wird erst gespeichert, wenn du einen Titel oder Inhalt hinzufügst",
+  "knowledge.draftFull": "Dieses Element kann nicht gespeichert werden: Ihre Organisation speichert maximal {max, number} Wissenselemente. Löschen Sie eines, und es wird mit Ihrer nächsten Änderung gespeichert.",
   "knowledge.editAspects": "Aspekte bearbeiten: {aspects}",
   "knowledge.editedAgo": "Bearbeitet {time}",
   "knowledge.editedJustNow": "Gerade bearbeitet",

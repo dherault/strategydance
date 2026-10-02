@@ -1,6 +1,7 @@
 {
   "knowledge.add": "添加知识",
   "knowledge.addAspects": "添加业务方面",
+  "knowledge.addFull": "您的组织最多可保留 {max, number} 条知识。请删除一条以添加新知识。",
   "knowledge.allKnowledge": "所有知识",
   "knowledge.aspectEmptyText": "标记为 {aspect} 的内容将显示在此处。",
   "knowledge.aspectEmptyTitle": "暂无 {aspect} 相关知识",
@@ -18,6 +19,7 @@
   "knowledge.deleted": "已删除 {title}",
   "knowledge.documentLoadError": "无法加载该条目。请检查网络连接并重试。",
   "knowledge.draft": "添加标题或内容后才会保存",
+  "knowledge.draftFull": "无法保存此项：您的组织最多可保留 {max, number} 条知识。删除一条后，它将在您下次更改时保存。",
   "knowledge.editAspects": "编辑业务方面：{aspects}",
   "knowledge.editedAgo": "编辑于 {time}",
   "knowledge.editedJustNow": "刚刚编辑",

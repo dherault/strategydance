@@ -3,7 +3,7 @@ import { FormattingToolbarExtension, SideMenuExtension, SuggestionMenu } from '@
 import { DesktopFormattingToolbarController, SuggestionMenuController } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
-import { type CSSProperties, type KeyboardEvent, useEffect, useState } from 'react'
+import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
 import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
@@ -25,6 +25,18 @@ type RichTextEditorLabels = {
   /** The block menu's item that turns a block into another, which BlockNote has no words for */
   turnInto: string
 }
+
+/** What a parent can do to the editor from outside it */
+type RichTextEditorHandle = {
+  /** Puts the caret in the text, as a field's Enter moves on to the one after it */
+  focus: () => void
+}
+
+/**
+ * `field` is a box among others, a post's or a priority's, which scrolls past a few paragraphs.
+ * `document` is a page's body: no frame, and as tall as its text
+ */
+type RichTextEditorAppearance = 'field' | 'document'
 
 type RichTextEditorChange = {
   /** BlockNote's blocks, serialized, which is what `RichText` draws and `initialValue` takes back */
@@ -53,12 +65,22 @@ type Props = {
    * offered, and pastes as paragraphs
    */
   blocks?: RichTextEditorBlock[]
+  appearance?: RichTextEditorAppearance
   className?: string
   'aria-label'?: string
+  ref?: Ref<RichTextEditorHandle>
 }
 
 type EditorOptions = Pick<Props, 'initialValue' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'aria-label'> & {
   blocks: RichTextEditorBlock[]
+  appearance: RichTextEditorAppearance
+}
+
+// The editable area's height, which BlockNote sets on the element it makes rather than on anything
+// a class from outside reaches
+const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
+  field: 'min-h-[134px] max-h-[420px] overflow-auto',
+  document: 'min-h-[360px]',
 }
 
 const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
@@ -77,6 +99,10 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
   wants it empty again changes its `key`. `blocks` narrows what it writes, for a text shorter than
   a post. A value it cannot read, an old Lexical one included, starts it empty.
 
+  It is a framed field unless `appearance` makes it a document, the body of a page under its own
+  title, which has no frame and grows with its text, its side menu hanging in the page's margin.
+  `ref` takes a handle that focuses it from outside.
+
   Its menus portal into the editor itself, so inside a modal dialog they are inside the dialog, and
   while one is open Escape closes it rather than the dialog. The toolbar floats over the selection
   on touch screens too, since BlockNote's mobile toolbar would portal outside the dialog
@@ -90,13 +116,17 @@ function RichTextEditor({
   locale,
   labels,
   blocks = ALL_BLOCKS,
+  appearance = 'field',
   className,
   'aria-label': ariaLabel,
+  ref,
 }: Props) {
   const [editor] = useState(() =>
-    createEditor({ initialValue, placeholder, autoFocus, locale, labels, blocks, 'aria-label': ariaLabel }),
+    createEditor({ initialValue, placeholder, autoFocus, locale, labels, blocks, appearance, 'aria-label': ariaLabel }),
   )
   const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor))
+
+  useImperativeHandle(ref, () => ({ focus: () => editor.focus() }), [editor])
 
   /*
     A Radix dialog dismisses on an Escape that reaches the document, which it hears before
@@ -146,8 +176,10 @@ function RichTextEditor({
   return (
     <div
       data-slot="rich-text-editor"
+      data-appearance={appearance}
       className={cn(
-        'rounded-xs border border-border bg-white transition-colors duration-150 ease-in-out focus-within:border-secondary',
+        appearance === 'field'
+          && 'rounded-xs border border-border bg-white transition-colors duration-150 ease-in-out focus-within:border-secondary',
         className,
       )}
       style={{ '--rich-text-placeholder': JSON.stringify(placeholder) } as CSSProperties}
@@ -184,6 +216,7 @@ function createEditor({
   locale,
   labels,
   blocks,
+  appearance,
   'aria-label': ariaLabel,
 }: EditorOptions) {
   // BlockNote throws on an empty document, which it makes itself when given none
@@ -194,11 +227,18 @@ function createEditor({
     initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,
     dictionary: getRichTextDictionary(locale, { placeholder, turnInto: labels?.turnInto }),
     domAttributes: {
-      editor: { 'aria-label': ariaLabel ?? placeholder, class: 'min-h-[134px] max-h-[420px] overflow-auto' },
+      editor: { 'aria-label': ariaLabel ?? placeholder, class: EDITOR_CLASS_NAMES[appearance] },
     },
     autofocus: autoFocus ? 'end' : false,
     trailingBlock: false,
   })
 }
 
-export { RichTextEditor, type RichTextEditorBlock, type RichTextEditorChange, type RichTextEditorLabels }
+export {
+  RichTextEditor,
+  type RichTextEditorAppearance,
+  type RichTextEditorBlock,
+  type RichTextEditorChange,
+  type RichTextEditorHandle,
+  type RichTextEditorLabels,
+}

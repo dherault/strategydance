@@ -235,22 +235,34 @@ function link(from: Writer, to: Writer) {
 }
 
 function CollaborativeExample(props: Parameters<typeof RichTextEditor>[0]) {
-  // Both open on the same first update, so they hold one copy of the text
-  const [writers] = useState(() => {
-    const seed = createRichTextYUpdate(richTextSample)
+  const [writers, setWriters] = useState<{ ana: Writer; ben: Writer } | null>(null)
 
-    return { ana: createWriter(seed), ben: createWriter(seed) }
-  })
-
+  /*
+    Each awareness keeps a timer, so both are made in the effect that destroys them, and StrictMode's
+    extra cycle makes a second pair. They reach the story a microtask later, from the effect still
+    running. Both open on the same first update, so they hold one copy of the text
+  */
   useEffect(() => {
-    const unlinkAna = link(writers.ana, writers.ben)
-    const unlinkBen = link(writers.ben, writers.ana)
+    const seed = createRichTextYUpdate(richTextSample)
+    const next = { ana: createWriter(seed), ben: createWriter(seed) }
+    const unlinkAna = link(next.ana, next.ben)
+    const unlinkBen = link(next.ben, next.ana)
+    let isActive = true
+
+    queueMicrotask(() => {
+      if (isActive) setWriters(next)
+    })
 
     return () => {
+      isActive = false
       unlinkAna()
       unlinkBen()
+      next.ana.awareness.destroy()
+      next.ben.awareness.destroy()
     }
-  }, [writers])
+  }, [])
+
+  if (!writers) return null
 
   return (
     <div className="grid grid-cols-2 gap-12 px-16">

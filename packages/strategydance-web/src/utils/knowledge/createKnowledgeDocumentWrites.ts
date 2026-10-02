@@ -6,16 +6,11 @@ import {
   renameDocument,
   setDocumentAiLock,
   updateDocumentAspects,
-  updateDocumentContent,
 } from 'strategydance-database/web'
 
 import type { KnowledgeDocumentWrites } from '~utils/knowledge/createKnowledgeDocumentSaver'
 
 import { dataConnect } from '~data/firebase'
-
-// Part of the message `UpdateDocumentContent`'s check gives when it refuses a save, the document
-// being at another revision than the one the save names, or gone: change the two together
-const REVISION_REFUSAL = 'changed elsewhere since it was read'
 
 // Part of the message `CreateDocument`'s check gives when the organization keeps as many documents
 // as it may: change the two together
@@ -26,9 +21,9 @@ function createKnowledgeDocumentWrites(organizationId: string, documentId: strin
   const key = { organizationId, id: documentId }
 
   return {
-    create: async fields => {
+    create: async (fields, state) => {
       try {
-        await createDocument(dataConnect, { ...key, ...fields })
+        await createDocument(dataConnect, { ...key, ...fields, state })
 
         return 'created'
       } catch (error) {
@@ -44,22 +39,11 @@ function createKnowledgeDocumentWrites(organizationId: string, documentId: strin
 
       if (!stored) return null
 
-      const { title, content, aspects, isAiLocked, revision } = stored
+      const { title, content, aspects, isAiLocked, revision, state } = stored
 
-      return { title, content, aspects, isAiLocked, revision }
+      return { title, content, aspects, isAiLocked, revision, state: state ?? null }
     },
     rename: title => renameDocument(dataConnect, { ...key, title }),
-    updateContent: async (content, revision) => {
-      try {
-        await updateDocumentContent(dataConnect, { ...key, content, revision })
-
-        return true
-      } catch (error) {
-        if (error instanceof Error && error.message.includes(REVISION_REFUSAL)) return false
-
-        throw error
-      }
-    },
     updateAspects: aspects => updateDocumentAspects(dataConnect, { ...key, aspects }),
     setAiLock: isAiLocked => setDocumentAiLock(dataConnect, { ...key, isAiLocked }),
     discard: () => discardDocument(dataConnect, key),

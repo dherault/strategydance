@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import type { KnowledgeDocumentFields, KnowledgeDocumentSaveStatus } from '~types'
 
 import createKnowledgeDocumentSaver, {
+  type KnowledgeDocumentSaverText,
   type KnowledgeDocumentWrites,
 } from '~utils/knowledge/createKnowledgeDocumentSaver'
 
@@ -12,9 +13,13 @@ const BLANK: KnowledgeDocumentFields = { title: '', content: '', aspects: [], is
 
 const STORED: KnowledgeDocumentFields = { title: 'Plan', content: '[1]', aspects: [], isAiLocked: false }
 
+const LEGAL = ['LEGAL'] as KnowledgeDocumentFields['aspects']
+
 function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
+
+type StoredDocument = KnowledgeDocumentFields & { revision: number; state: string | null }
 
 /*
   Writes that record what they were sent, each answering after `latency`. `isFull` refuses every
@@ -23,10 +28,9 @@ function wait(ms: number) {
 */
 function createWrites({
   latency = 0,
-  refuseContent = false,
   isFull = false,
   losesCreateAnswer = false,
-  existing = null as (KnowledgeDocumentFields & { revision: number }) | null,
+  existing = null as StoredDocument | null,
 } = {}) {
   const calls: string[] = []
   let failNext = false
@@ -43,13 +47,13 @@ function createWrites({
   }
 
   const writes: KnowledgeDocumentWrites = {
-    create: async fields => {
+    create: async (fields, state) => {
       await answer(`create ${fields.title}|${fields.content}|${fields.aspects.join()}|${fields.isAiLocked}`)
 
       if (isFull) return 'full'
       if (stored) throw new Error('A document by that id exists')
 
-      stored = { ...fields, revision: 0 }
+      stored = { ...fields, revision: 0, state }
 
       if (losesCreateAnswer) throw new Error('The connection dropped')
 
@@ -61,11 +65,6 @@ function createWrites({
       return stored
     },
     rename: title => answer(`rename ${title}`),
-    updateContent: async (content, revision) => {
-      await answer(`content ${content}@${revision}`)
-
-      return !refuseContent
-    },
     updateAspects: aspects => answer(`aspects ${aspects.join()}`),
     setAiLock: isAiLocked => answer(`lock ${isAiLocked}`),
     discard: () => answer('discard'),
@@ -80,8 +79,40 @@ function createWrites({
   }
 }
 
+// The document's text as the sync keeps it: a snapshot for the create, and whether it was edited
+function createText({ isChangedHere = false } = {}) {
+  let markedCount = 0
+  let isTextChangedHere = isChangedHere
+
+  const text: KnowledgeDocumentSaverText = {
+    encodeForCreate: () => 'snapshot',
+    markCreated: () => {
+      markedCount += 1
+    },
+    isChangedHere: () => isTextChangedHere,
+  }
+
+  return {
+    text,
+    getMarkedCount: () => markedCount,
+    editHere: () => {
+      isTextChangedHere = true
+    },
+  }
+}
+
+function createSaver(
+  options: Omit<Parameters<typeof createKnowledgeDocumentSaver>[0], 'text' | 'delay'> & {
+    text?: KnowledgeDocumentSaverText
+    delay?: number
+  },
+) {
+  return createKnowledgeDocumentSaver({ text: createText().text, delay: DELAY, ...options })
+}
+
 function track(saver: ReturnType<typeof createKnowledgeDocumentSaver>) {
   const statuses: KnowledgeDocumentSaveStatus[] = []
+  const remoteChanges: Partial<KnowledgeDocumentFields>[] = []
   let createdCount = 0
   let savedCount = 0
 
@@ -93,21 +124,17 @@ function track(saver: ReturnType<typeof createKnowledgeDocumentSaver>) {
     onSaved: () => {
       savedCount += 1
     },
+    onRemoteChange: fields => remoteChanges.push(fields),
   })
 
-  return { statuses, getCreatedCount: () => createdCount, getSavedCount: () => savedCount }
+  return { statuses, remoteChanges, getCreatedCount: () => createdCount, getSavedCount: () => savedCount }
 }
 
 describe('createKnowledgeDocumentSaver', () => {
   it('stores nothing of a draft until it has a title or some text', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd1',
-      fields: BLANK,
-      revision: null,
-      writes,
-      delay: DELAY,
-    })
+    const { text, getMarkedCount } = createText()
+    const saver = createSaver({ documentId: 'd1', fields: BLANK, isStored: false, writes, text })
     const { getCreatedCount } = track(saver)
 
     saver.change({ title: '   ', aspects: ['STRATEGY'] as KnowledgeDocumentFields['aspects'] })
@@ -121,18 +148,24 @@ describe('createKnowledgeDocumentSaver', () => {
 
     expect(calls).toEqual(['create Plan||STRATEGY|true'])
     expect(getCreatedCount()).toBe(1)
+    expect(getMarkedCount()).toBe(1)
     expect(saver.getStatus()).toBe('idle')
   })
 
-  it('sends what was typed while the draft was being created once it is', async () => {
+  it('creates a draft with its text and the snapshot of it', async () => {
+    const { writes } = createWrites()
+    const saver = createSaver({ documentId: 'd24', fields: BLANK, isStored: false, writes })
+    track(saver)
+
+    saver.change({ content: '[1]' })
+    await saver.flush()
+
+    expect(await writes.read()).toMatchObject({ content: '[1]', state: 'snapshot', revision: 0 })
+  })
+
+  it('sends what was typed while the draft was being created once it is, and leaves the text to the sync', async () => {
     const { calls, writes } = createWrites({ latency: DELAY * 2 })
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd2',
-      fields: BLANK,
-      revision: null,
-      writes,
-      delay: DELAY,
-    })
+    const saver = createSaver({ documentId: 'd2', fields: BLANK, isStored: false, writes })
     const { getCreatedCount } = track(saver)
 
     saver.change({ title: 'P' })
@@ -140,42 +173,33 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ title: 'Plan', content: '[1]' })
     await saver.flush()
 
-    expect(calls).toEqual(['create P|||false', 'rename Plan', 'content [1]@0'])
+    expect(calls).toEqual(['create P|||false', 'rename Plan'])
     expect(getCreatedCount()).toBe(1)
   })
 
   it('goes on from a create that went through though its answer was lost', async () => {
     const { calls, writes } = createWrites({ losesCreateAnswer: true })
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd21',
-      fields: BLANK,
-      revision: null,
-      writes,
-      delay: DELAY,
-    })
+    const { text, getMarkedCount } = createText()
+    const saver = createSaver({ documentId: 'd21', fields: BLANK, isStored: false, writes, text })
     const { getCreatedCount } = track(saver)
 
     saver.change({ title: 'Plan' })
 
     expect(await saver.flush()).toBe(true)
     expect(getCreatedCount()).toBe(1)
+    expect(getMarkedCount()).toBe(1)
 
-    saver.change({ content: '[1]' })
+    saver.change({ title: 'Plans' })
     await saver.flush()
 
-    expect(calls).toEqual(['create Plan|||false', 'read', 'content [1]@0'])
+    expect(calls).toEqual(['create Plan|||false', 'read', 'rename Plans'])
     expect(saver.getStatus()).toBe('idle')
   })
 
   it('never takes another document under the id for its lost create, nor writes over it', async () => {
-    const { calls, writes } = createWrites({ existing: { ...STORED, revision: 3 } })
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd23',
-      fields: BLANK,
-      revision: null,
-      writes,
-      delay: DELAY,
-    })
+    const { calls, writes } = createWrites({ existing: { ...STORED, revision: 3, state: 'theirs' } })
+    const { text, getMarkedCount } = createText()
+    const saver = createSaver({ documentId: 'd23', fields: BLANK, isStored: false, writes, text })
     const { getCreatedCount } = track(saver)
 
     saver.change({ title: 'Mine' })
@@ -188,17 +212,12 @@ describe('createKnowledgeDocumentSaver', () => {
     await saver.flush()
 
     expect(calls).toEqual(['create Mine|||false', 'read', 'create Mine|[2]||false', 'read'])
+    expect(getMarkedCount()).toBe(0)
   })
 
   it('says the organization is full, and tries again with the next change', async () => {
     const { calls, writes } = createWrites({ isFull: true })
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd22',
-      fields: BLANK,
-      revision: null,
-      writes,
-      delay: DELAY,
-    })
+    const saver = createSaver({ documentId: 'd22', fields: BLANK, isStored: false, writes })
     const { getCreatedCount } = track(saver)
 
     saver.change({ title: 'Plan' })
@@ -218,28 +237,21 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(saver.getStatus()).toBe('idle')
   })
 
-  it('names the revision each content save is made over', async () => {
+  it('sends nothing for the text of a stored document, which its sync pushes', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd3', fields: STORED, revision: 4, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd3', fields: STORED, isStored: true, writes })
     track(saver)
 
     saver.change({ content: '[2]' })
     await saver.flush()
-    saver.change({ content: '[3]' })
-    await saver.flush()
 
-    expect(calls).toEqual(['content [2]@4', 'content [3]@5'])
+    expect(calls).toEqual([])
+    expect(saver.hasUnsaved()).toBe(false)
   })
 
   it('waits for the reader to pause, and sends only the latest', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd4',
-      fields: STORED,
-      revision: 0,
-      writes,
-      delay: DELAY * 3,
-    })
+    const saver = createSaver({ documentId: 'd4', fields: STORED, isStored: true, writes, delay: DELAY * 3 })
     track(saver)
 
     saver.change({ title: 'Pl' })
@@ -259,7 +271,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('sends a field that went back to what is stored not at all', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd5', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd5', fields: STORED, isStored: true, writes })
     track(saver)
 
     saver.change({ title: 'Plan 2' })
@@ -269,54 +281,59 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual([])
   })
 
-  it('stops saving content once somebody else saved theirs, and goes on with the rest', async () => {
-    const { calls, writes } = createWrites({ refuseContent: true })
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd6', fields: STORED, revision: 0, writes, delay: DELAY })
-    const { statuses } = track(saver)
+  it("takes another member's change to a field it has no change of its own to", async () => {
+    const { calls, writes } = createWrites()
+    const saver = createSaver({ documentId: 'd6', fields: STORED, isStored: true, writes })
+    const { remoteChanges } = track(saver)
 
-    saver.change({ content: '[2]' })
+    saver.receive({ title: 'Their plan', aspects: LEGAL, isAiLocked: false })
     await saver.flush()
 
-    expect(saver.getStatus()).toBe('conflict')
-    expect(statuses.at(-1)).toBe('conflict')
-
-    saver.change({ content: '[3]', title: 'Plan 2' })
-    await saver.flush()
-
-    expect(calls).toEqual(['content [2]@0', 'rename Plan 2'])
-  })
-
-  it("counts content refused for somebody else's save as unsaved, until paused", async () => {
-    const { writes } = createWrites({ refuseContent: true })
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd14', fields: STORED, revision: 0, writes, delay: DELAY })
-    track(saver)
-
-    saver.change({ content: '[2]' })
-    await saver.flush()
-
-    expect(saver.hasUnsaved()).toBe(true)
-
-    saver.pause()
-
+    expect(remoteChanges).toEqual([{ title: 'Their plan', aspects: LEGAL }])
+    expect(calls).toEqual([])
     expect(saver.hasUnsaved()).toBe(false)
   })
 
-  it('holds back content too long to send, counting it unsaved, and sends it once short enough', async () => {
+  it("keeps its own waiting change over another member's, and sends it", async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd15',
-      fields: STORED,
-      revision: 0,
-      writes,
-      delay: DELAY,
-      maxContentLength: 5,
-    })
-    const { statuses } = track(saver)
+    const saver = createSaver({ documentId: 'd14', fields: STORED, isStored: true, writes })
+    const { remoteChanges } = track(saver)
 
-    saver.change({ content: '[123456]', title: 'Plan 2' })
+    saver.change({ title: 'My plan' })
+    saver.receive({ title: 'Their plan', aspects: [], isAiLocked: true })
     await saver.flush()
 
+    expect(remoteChanges).toEqual([{ isAiLocked: true }])
+    expect(calls).toEqual(['rename My plan'])
+  })
+
+  it('takes its own save coming back as nothing new', async () => {
+    const { calls, writes } = createWrites({ latency: DELAY })
+    const saver = createSaver({ documentId: 'd25', fields: STORED, isStored: true, writes })
+    const { remoteChanges } = track(saver)
+
+    saver.change({ title: 'Plan 2' })
+    const flushed = saver.flush()
+    // The live query pushes the rename before its answer is back
+    await wait(DELAY / 2)
+    saver.receive({ title: 'Plan 2', aspects: [], isAiLocked: false })
+    await flushed
+    saver.receive({ title: 'Plan 2', aspects: [], isAiLocked: false })
+    await saver.flush()
+
+    expect(remoteChanges).toEqual([])
     expect(calls).toEqual(['rename Plan 2'])
+  })
+
+  it('holds a draft back whole while its text is too long, and stores it once short enough', async () => {
+    const { calls, writes } = createWrites()
+    const saver = createSaver({ documentId: 'd15', fields: BLANK, isStored: false, writes, maxContentLength: 5 })
+    const { statuses } = track(saver)
+
+    saver.change({ content: '[123456]', title: 'Plan' })
+    await saver.flush()
+
+    expect(calls).toEqual([])
     expect(saver.getStatus()).toBe('tooLong')
     expect(statuses.at(-1)).toBe('tooLong')
     expect(saver.hasUnsaved()).toBe(true)
@@ -324,38 +341,14 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ content: '[12]' })
     await saver.flush()
 
-    expect(calls).toEqual(['rename Plan 2', 'content [12]@0'])
+    expect(calls).toEqual(['create Plan|[12]||false'])
     expect(saver.getStatus()).toBe('idle')
     expect(saver.hasUnsaved()).toBe(false)
   })
 
-  it('stores a draft without the content too long to send, or not at all when that is all it has', async () => {
-    const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd16',
-      fields: BLANK,
-      revision: null,
-      writes,
-      delay: DELAY,
-      maxContentLength: 5,
-    })
-    track(saver)
-
-    saver.change({ content: '[123456]' })
-    await saver.flush()
-
-    expect(calls).toEqual([])
-    expect(saver.getStatus()).toBe('tooLong')
-
-    saver.change({ title: 'Plan' })
-    await saver.flush()
-
-    expect(calls).toEqual(['create Plan|||false'])
-  })
-
   it('says a save failed, and tries again with the next change', async () => {
     const { calls, writes, failNextWrite } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd7', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd7', fields: STORED, isStored: true, writes })
     track(saver)
 
     failNextWrite()
@@ -365,7 +358,7 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(saver.getStatus()).toBe('error')
     expect(saver.hasUnsaved()).toBe(true)
 
-    saver.change({ aspects: ['LEGAL'] as KnowledgeDocumentFields['aspects'] })
+    saver.change({ aspects: LEGAL })
     await saver.flush()
 
     expect(calls).toEqual(['rename Plan 2', 'rename Plan 2', 'aspects LEGAL'])
@@ -374,7 +367,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('forgets a failure once the failed change is taken back', async () => {
     const { calls, writes, failNextWrite } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd19', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd19', fields: STORED, isStored: true, writes })
     track(saver)
 
     failNextWrite()
@@ -392,13 +385,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('forgets a failure whose change was taken back while its send was out', async () => {
     const { writes, failNextWrite } = createWrites({ latency: DELAY })
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd20',
-      fields: STORED,
-      revision: 0,
-      writes,
-      delay: DELAY * 10,
-    })
+    const saver = createSaver({ documentId: 'd20', fields: STORED, isStored: true, writes, delay: DELAY * 10 })
     track(saver)
 
     failNextWrite()
@@ -413,7 +400,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('queues at most one send behind the one out', async () => {
     const { calls, writes } = createWrites({ latency: DELAY })
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd8', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd8', fields: STORED, isStored: true, writes })
     track(saver)
 
     saver.change({ title: 'A' })
@@ -430,19 +417,13 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('settles: sends what arrives while a send is out, then pauses', async () => {
     const { calls, writes } = createWrites({ latency: DELAY })
-    const saver = createKnowledgeDocumentSaver({
-      documentId: 'd17',
-      fields: STORED,
-      revision: 0,
-      writes,
-      delay: DELAY * 10,
-    })
+    const saver = createSaver({ documentId: 'd17', fields: STORED, isStored: true, writes, delay: DELAY * 10 })
     track(saver)
 
     saver.change({ title: 'A' })
     const settled = saver.settle()
     await wait(DELAY / 2)
-    saver.change({ aspects: ['LEGAL'] as KnowledgeDocumentFields['aspects'] })
+    saver.change({ aspects: LEGAL })
 
     expect(await settled).toBe(true)
     expect(calls).toEqual(['rename A', 'aspects LEGAL'])
@@ -456,7 +437,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('answers false and stays unpaused when a send fails, so nothing is given up', async () => {
     const { calls, writes, failNextWrite } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd18', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd18', fields: STORED, isStored: true, writes })
     track(saver)
 
     failNextWrite()
@@ -471,18 +452,42 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('discards a document the page emptied as it leaves', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd9', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd9', fields: STORED, isStored: true, writes })
     track(saver)
 
     saver.change({ title: ' ', content: '' })
     await saver.detach()
 
-    expect(calls).toEqual(['rename  ', 'content @0', 'discard'])
+    expect(calls).toEqual(['rename  ', 'discard'])
+  })
+
+  it('discards a document whose text was emptied here, once the sync is done with it', async () => {
+    const { calls, writes } = createWrites()
+    const { text, editHere } = createText()
+    const saver = createSaver({ documentId: 'd26', fields: { ...BLANK, content: '[1]' }, isStored: true, writes, text })
+    track(saver)
+
+    editHere()
+    saver.change({ content: '' })
+    await saver.detach(wait(DELAY).then(() => calls.push('sync done')))
+
+    expect(calls).toEqual(['sync done', 'discard'])
+  })
+
+  it('leaves alone a document somebody else emptied', async () => {
+    const { calls, writes } = createWrites()
+    const saver = createSaver({ documentId: 'd27', fields: { ...BLANK, content: '[1]' }, isStored: true, writes })
+    track(saver)
+
+    saver.change({ content: '' })
+    await saver.detach()
+
+    expect(calls).toEqual([])
   })
 
   it('leaves an empty document alone when the page changed nothing, as StrictMode remounts it', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd10', fields: BLANK, revision: 3, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd10', fields: BLANK, isStored: true, writes })
     track(saver)
 
     await saver.detach()
@@ -494,7 +499,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('holds every send while paused, and sends what was held once resumed', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd11', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd11', fields: STORED, isStored: true, writes })
     track(saver)
 
     saver.change({ title: 'Plan 2' })
@@ -509,12 +514,12 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.resume()
     await wait(DELAY * 3)
 
-    expect(calls).toEqual(['rename ', 'content @0'])
+    expect(calls).toEqual(['rename '])
   })
 
   it('sends nothing once paused for a delete, nor discards on the way out', async () => {
     const { calls, writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd12', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd12', fields: STORED, isStored: true, writes })
     track(saver)
 
     saver.change({ title: '', content: '' })
@@ -526,7 +531,7 @@ describe('createKnowledgeDocumentSaver', () => {
 
   it('says a send went through, but not one with nothing in it', async () => {
     const { writes } = createWrites()
-    const saver = createKnowledgeDocumentSaver({ documentId: 'd13', fields: STORED, revision: 0, writes, delay: DELAY })
+    const saver = createSaver({ documentId: 'd13', fields: STORED, isStored: true, writes })
     const { getSavedCount } = track(saver)
 
     await saver.flush()

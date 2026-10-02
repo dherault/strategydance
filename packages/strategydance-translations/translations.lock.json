@@ -1459,10 +1459,6 @@
         "hash": "4fffbcd7bae76009",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "knowledge.conflict": {
-        "hash": "0607f3d25575a173",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "knowledge.delete": {
         "hash": "76a7cb691647a668",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1473,6 +1469,10 @@
       },
       "knowledge.deleted": {
         "hash": "39c84cc834fe4688",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.deletedElsewhere": {
+        "hash": "c08a3865f8bfeb00",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.documentLoadError": {
@@ -1577,10 +1577,6 @@
       },
       "knowledge.notSaved": {
         "hash": "9484f03077f13ac6",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.reload": {
-        "hash": "6106ddcd55393276",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.restoreError": {

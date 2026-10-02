@@ -136,7 +136,7 @@ export type LogEntry = GetOrganizationLogData['logEntries'][number]
 */
 export type KnowledgeDocumentSummary = GetOrganizationDocumentsData['documents'][number]
 
-// One document whole, as its own page reads it once to seed the editor
+// One document whole, as its own page reads it once to start its text from
 export type KnowledgeDocument = GetDocumentData['documents'][number]
 
 // What the document page saves of a document, each field by an operation of its own. The content
@@ -149,12 +149,11 @@ export type KnowledgeDocumentFields = {
 }
 
 /*
-  Where the document page's saving stands: nothing to save, a change waiting for the reader to
-  pause, one on its way, one that failed and waits for the next try, content too long to send, a
-  draft the organization has no room for, or content refused because somebody else saved theirs
-  first
+  Where the saving of a document's title, aspects and lock stands, and a draft's: nothing to save,
+  a change waiting for the reader to pause, one on its way, one that failed and waits for the next
+  try, a draft whose text is too long to store, or a draft the organization has no room for
 */
-export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full' | 'conflict'
+export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full'
 
 /*
   Where the sending of a document's text stands, once it is stored: nothing to send, edits waiting

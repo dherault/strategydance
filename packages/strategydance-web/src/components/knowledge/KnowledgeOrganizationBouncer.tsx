@@ -27,7 +27,8 @@ function KnowledgeOrganizationBouncer({ children }: PropsWithChildren) {
   const isElsewhere = organizationId !== openedIn
 
   useEffect(() => {
-    if (isElsewhere) navigate({ to: '/knowledge' })
+    // In place of the document, which Back would only open in the wrong organization
+    if (isElsewhere) navigate({ to: '/knowledge', replace: true })
   }, [isElsewhere, navigate])
 
   if (isElsewhere) return null

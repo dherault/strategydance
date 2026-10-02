@@ -785,8 +785,14 @@ query GetOrganizationDocuments($organizationId: UUID!)
 }
 
 # One document of an organization's knowledge, whole, for its own page. Read only by a member, and
-# only while it is not deleted. Read once rather than live: the page's editor is seeded from it and
-# takes nothing in afterwards, and `revision` is what tells a save that somebody else saved first
+# only while it is not deleted.
+#
+# Read once as the page opens, and again whenever `GetLiveDocument` says the revision moved: the
+# snapshot and the updates pending beside it come in one answer, so a tab merging both has every
+# edit, those a compaction deleted before their push reached it included. The live query leaves
+# the snapshot out, which would otherwise go to every open tab at each keystroke. A document stored
+# before the editor was shared has no `state`, and the page seeds it from `content`. Read up to
+# 1000 pending updates (`DOCUMENT_UPDATES_LIMIT`), oldest first, far more than a compaction leaves
 query GetDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
   documents(
     where: {
@@ -805,5 +811,134 @@ query GetDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
     revision
     createdAt
     updatedAt
+    state
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 1000) {
+      id
+      payload
+    }
+  }
+}
+
+# One document's fields and the edits to its text not folded into its snapshot yet, kept live for
+# its page: each `@refresh` names a mutation that changes one of them, a push or a compaction above
+# all, with the condition that it is this document. The snapshot stays out, read through
+# `GetDocument` when `revision` moves, so a keystroke pushes a few small rows rather than the whole
+# text to every tab. Deleting the document, or the caller leaving the organization, empties it, and
+# taking a delete back fills it again. Up to 1000 pending updates, as `GetDocument` reads
+query GetLiveDocument($organizationId: UUID!, $id: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "PushDocumentUpdate"
+    condition: "mutation.variables.documentId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: { operation: "CompactDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "SeedDocumentState", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "CreateDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "RenameDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "UpdateDocumentAspects", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "SetDocumentAiLock", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "DeleteDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "RestoreDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "DiscardDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  documents(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    title
+    aspects
+    isAiLocked
+    revision
+    updatedAt
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 1000) {
+      id
+      payload
+    }
+  }
+}
+
+# Who else has a document open, one row per tab, and where their caret is: the rows written in the
+# last 45 seconds, since a tab writes its own every 15 while it is visible. Live, refreshed by each
+# write and each leave on this document, and emptied for a member removed from the organization
+query GetDocumentPresences($organizationId: UUID!, $id: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateDocumentPresence"
+    condition: "mutation.variables.documentId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: { operation: "LeaveDocument", condition: "mutation.variables.documentId == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  documentPresences(
+    where: {
+      documentId: { eq: $id }
+      updatedAt: { ge_time: { now: true, sub: { seconds: 45 } } }
+      document: {
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    limit: 200
+  ) {
+    sessionId
+    cursor
+    updatedAt
+    user {
+      id
+      email
+      displayName
+      imageUrl
+    }
   }
 }

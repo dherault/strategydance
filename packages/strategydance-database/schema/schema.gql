@@ -340,23 +340,72 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   title: String! @default(value: "")
   # BlockNote's blocks, serialized, at most 200000 characters (`MAX_DOCUMENT_CONTENT_LENGTH` in
   # strategydance-core), and an empty string when there is no text, never an empty document.
-  # Another member's for most of its readers, so it reaches the editor only through
-  # `parseRichText`, which keeps an allowlist of blocks, and anything drawing it read-only draws
-  # it through the design system's `RichText`
+  # Once `state` is set it is a copy of it, written with each compaction, for what reads the text
+  # without an editor: anything drawing it draws it through the design system's `RichText`, and
+  # `DiscardDocument` reads it for emptiness. The editor reads `state` instead
   content: String! @default(value: "")
+  # The text as a Yjs document, every edit folded in, in base64 and at most 1000000 characters
+  # (`MAX_DOCUMENT_STATE_LENGTH`). It is what the editor opens on, merged with the `DocumentUpdate`
+  # rows pending since, and what a compaction rewrites with them folded in. Null for a document
+  # stored before the editor was shared, until somebody opens it and `SeedDocumentState` converts
+  # its `content`. Another member's for most of its readers, and it reaches the editor without
+  # `parseRichText`: the editor's schema is what keeps it to the blocks it knows, and a tab on an
+  # older bundle deletes a block its schema lacks, so a new block reaches every tab before anybody
+  # writes one
+  state: String
   # Which aspects of the company it is about, each once, in no particular order. The pages show
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")
   # Whether the team asked that no agent change it. Nothing reads it yet: it keeps their choice for
   # the agents to come
   isAiLocked: Boolean! @default(value: false)
-  # How many times its content was saved. A save names the revision it was made over and is refused
-  # when it is not the stored one, so two people writing at once are told rather than one of them
-  # silently losing their words
+  # How many times its `state` or its `content` was written. A compaction names the revision of the
+  # snapshot it folded the pending updates into and is refused when it is not the stored one, so it
+  # never writes over a newer snapshot, and a tab that sees it move reads the snapshot again. A
+  # page from before the editor was shared saves `content` the same way, which a document with a
+  # `state` refuses
   revision: Int! @default(value: 0)
   deletedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   # When its title, content or aspects last changed, or its lock. Deleting it and taking the
   # delete back leave it alone, so an Undo puts it back where it was in the list
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# An edit to a document's text not folded into its `state` yet: a Yjs update, as one tab pushed it
+# while somebody typed. Every open tab reads the document's pending ones live and applies those it
+# has not seen, and applying one twice, or out of order, comes to the same text, so a tab's own
+# echo and a retried push change nothing.
+#
+# The tab names the id, and a retry sends the same id with the same bytes, so a push whose answer
+# was lost is stored once. Keyed with its document, so an id cannot move a row to another one.
+# `CompactDocument` deletes the ones it folded into the snapshot, which keeps a document's few
+type DocumentUpdate @table(key: ["document", "id"]) @index(fields: ["documentId", "createdAt"]) {
+  # Implies a `documentId: UUID!` column, cascade deleting
+  document: Document!
+  id: UUID!
+  # Who pushed it. Optional, set to null when the account goes. Nothing reads it yet
+  createdBy: User
+  # The update, in base64, at most 400000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`). Not named
+  # `update`, which SQL reserves
+  payload: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# Somebody with a document open, one row per tab, so the others draw their caret and their face.
+# A tab writes its row as its caret moves and every 15 seconds while it is visible, and deletes it
+# when it hides or leaves the page. A tab that went without a word ages out: readers list the rows
+# written in the last 45 seconds, and each write prunes the document's rows older than a minute.
+# Keyed with the user, so nobody writes over another member's row
+type DocumentPresence @table(key: ["document", "user", "sessionId"]) {
+  # Implies a `documentId: UUID!` column, cascade deleting
+  document: Document!
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # The tab's, made when its page opens
+  sessionId: UUID!
+  # Where their caret and selection are, as the JSON of two Yjs relative positions, which follow
+  # the text typed in front of them. Null while their focus is out of the text
+  cursor: String
   updatedAt: Timestamp! @default(expr: "request.time")
 }

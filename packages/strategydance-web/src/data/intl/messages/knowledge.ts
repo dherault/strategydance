@@ -255,6 +255,18 @@ const knowledgeMessages = defineMessages({
     defaultMessage: 'The item could not be brought back.',
     description: 'Notification when taking back the delete of an item of knowledge failed.',
   },
+  aspectEmptyTitle: {
+    id: 'knowledge.aspectEmptyTitle',
+    defaultMessage: 'No knowledge for {aspect} yet',
+    description:
+      "Title of what the Knowledge section of an aspect's page shows while no item is tagged with that aspect. {aspect} is its name, such as Strategy.",
+  },
+  aspectEmptyText: {
+    id: 'knowledge.aspectEmptyText',
+    defaultMessage: 'Items tagged with {aspect} appear here.',
+    description:
+      "Line under the title of the empty Knowledge section of an aspect's page. {aspect} is the aspect's name, such as Strategy.",
+  },
   notFoundTitle: {
     id: 'knowledge.notFoundTitle',
     defaultMessage: 'This item no longer exists',

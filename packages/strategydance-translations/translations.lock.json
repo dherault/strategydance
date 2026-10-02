@@ -312,6 +312,44 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "aspect": {
+      "aspect.punchlineDesign": {
+        "hash": "dc709c3afee3f01e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineEngineering": {
+        "hash": "92f2fa1d60c62104",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineFinances": {
+        "hash": "ebe9823a794a6358",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineLegal": {
+        "hash": "bf7a7a8ba8bc0857",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineMarketing": {
+        "hash": "78629e2d044f5e51",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlinePeople": {
+        "hash": "48c59e435dbca2d7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineProduct": {
+        "hash": "e2f25966320194ab",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineSales": {
+        "hash": "d1c841b23d0986ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "aspect.punchlineStrategy": {
+        "hash": "4dd863e2391737fb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "authentication": {
       "authentication.action.back": {
         "hash": "bec7784f62bdddd7",
@@ -1375,6 +1413,14 @@
       },
       "knowledge.allKnowledge": {
         "hash": "7ba49bc4779b6d0b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectEmptyText": {
+        "hash": "3db00d7058ec5e0a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectEmptyTitle": {
+        "hash": "5837447ca17c4ff4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.aspectsDescription": {

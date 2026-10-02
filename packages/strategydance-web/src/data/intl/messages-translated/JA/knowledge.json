@@ -2,6 +2,8 @@
   "knowledge.add": "ナレッジを追加",
   "knowledge.addAspects": "アスペクトを追加",
   "knowledge.allKnowledge": "すべてのナレッジ",
+  "knowledge.aspectEmptyText": "{aspect}のタグが付いたアイテムがここに表示されます。",
+  "knowledge.aspectEmptyTitle": "{aspect}のナレッジはまだありません",
   "knowledge.aspectsDescription": "タグ付けされた各アスペクトのページに表示されます。",
   "knowledge.aspectsSelected": "{count}件選択中",
   "knowledge.aspectsTitle": "アスペクト",

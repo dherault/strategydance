@@ -2,6 +2,8 @@
   "knowledge.add": "添加知识",
   "knowledge.addAspects": "添加业务方面",
   "knowledge.allKnowledge": "所有知识",
+  "knowledge.aspectEmptyText": "标记为 {aspect} 的内容将显示在此处。",
+  "knowledge.aspectEmptyTitle": "暂无 {aspect} 相关知识",
   "knowledge.aspectsDescription": "标记后，条目会显示在对应业务方面的页面上。",
   "knowledge.aspectsSelected": "已选择 {count} 项",
   "knowledge.aspectsTitle": "业务方面",

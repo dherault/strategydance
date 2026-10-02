@@ -2,6 +2,8 @@
   "knowledge.add": "Ajouter une connaissance",
   "knowledge.addAspects": "Ajouter des aspects",
   "knowledge.allKnowledge": "Toutes les connaissances",
+  "knowledge.aspectEmptyText": "Les éléments associés à {aspect} apparaîtront ici.",
+  "knowledge.aspectEmptyTitle": "Pas encore de connaissances pour {aspect}",
   "knowledge.aspectsDescription": "Il apparaît sur la page de chaque aspect auquel il est associé.",
   "knowledge.aspectsSelected": "{count} sélectionné(s)",
   "knowledge.aspectsTitle": "Aspects",

@@ -18,6 +18,7 @@ import type { CardTone } from '~types'
 export const MESSAGE_TYPES = [
   'account',
   'administration',
+  'aspect',
   'authentication',
   'buildInPublic',
   'checklist',

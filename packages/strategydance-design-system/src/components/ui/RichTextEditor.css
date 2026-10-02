@@ -24,7 +24,11 @@
 /*
   The text as `RichText` sets it. The left padding is the side menu's gutter, where the "+" and the
   drag handle of the block under the pointer appear: the menu's 52px, which BlockNote sets flush
-  against the text, and 6px between it and the frame
+  against the text, and 6px between it and the frame.
+
+  On a touch screen the text is 16px instead, as every field's is there: iOS zooms the page into an
+  editable element whose text is smaller when it takes focus. `RichText` keeps its 15px, since its
+  callers lay sizes of their own over it, so there a post reads a pixel larger while it is written
 */
 .rich-text-editor.bn-root .bn-editor {
   padding: 12px 12px 12px 58px;
@@ -32,6 +36,12 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
   text-wrap: pretty;
+}
+
+@media (pointer: coarse) {
+  .rich-text-editor.bn-root .bn-editor {
+    font-size: 16px;
+  }
 }
 
 .rich-text-editor.bn-root .bn-editor .bn-block-outer {
@@ -454,6 +464,13 @@
   outline: none;
   color: var(--foreground);
   font-size: 14px;
+}
+
+/* 16px on a touch screen, as `Input` is, or iOS zooms into it */
+@media (pointer: coarse) {
+  .rich-text-editor.bn-root .bn-text-input [data-slot='input'] {
+    font-size: 16px;
+  }
 }
 
 /*

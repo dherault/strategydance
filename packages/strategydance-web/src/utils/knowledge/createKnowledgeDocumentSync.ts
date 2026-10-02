@@ -1,4 +1,9 @@
-import { DOCUMENT_COMPACTION_THRESHOLD, DOCUMENT_UPDATES_LIMIT, MAX_DOCUMENT_CONTENT_LENGTH } from 'strategydance-core'
+import {
+  DOCUMENT_COMPACTION_THRESHOLD,
+  DOCUMENT_UPDATES_LIMIT,
+  MAX_DOCUMENT_CONTENT_LENGTH,
+  MAX_DOCUMENT_STATE_LENGTH,
+} from 'strategydance-core'
 import * as Y from 'yjs'
 
 import type { KnowledgeDocumentSyncStatus } from '~types'
@@ -22,6 +27,9 @@ const RETRY_INITIAL_DELAY = 1000
 const RETRY_MAX_DELAY = 30000
 // How many times opening a document stored before the editor was shared tries to seed it
 const MAX_SEED_ATTEMPTS = 3
+// How close to the most a read takes the pending updates may come before this tab stops pushing,
+// so that the newest are never the ones a read cuts off
+const UPDATES_MARGIN = 10
 
 // An edit to a document's text, as stored: a Yjs update in base64
 export type KnowledgeDocumentUpdate = {
@@ -82,6 +90,10 @@ type Options = {
   random?: () => number
   // The longest content the server keeps, past which this tab's edits are held back
   maxContentLength?: number
+  // The longest snapshot the server keeps, in base64, past which nothing folds
+  maxStateLength?: number
+  // The most pending updates a read takes
+  updatesLimit?: number
 }
 
 function isSameBytes(a: Uint8Array, b: Uint8Array) {
@@ -121,7 +133,9 @@ function isSameBytes(a: Uint8Array, b: Uint8Array) {
   saver creates it with, after which `markCreated` pushes only what was typed since.
 
   This tab's edits are held back while its text is longer than the server keeps, and go once it is
-  short enough again, as the saver holds back a draft. Built pure, like the saver: `attach` and
+  short enough again, as the saver holds back a draft. So are they while the pending updates are
+  nearly as many as a read takes, which only happens when nothing could fold them, as when the
+  snapshot grew longer than the server keeps: the fold that makes room lets them go. Built pure, like the saver: `attach` and
   `detach` leave the document as it is, so a StrictMode remount attaches the same sync again
 */
 function createKnowledgeDocumentSync({
@@ -138,6 +152,8 @@ function createKnowledgeDocumentSync({
   idleCompactionJitter = IDLE_COMPACTION_JITTER,
   random = Math.random,
   maxContentLength = MAX_DOCUMENT_CONTENT_LENGTH,
+  maxStateLength = MAX_DOCUMENT_STATE_LENGTH,
+  updatesLimit = DOCUMENT_UPDATES_LIMIT,
 }: Options) {
   const queueKey = `knowledgeDocumentText:${documentId}`
   const doc = new Y.Doc()
@@ -157,6 +173,8 @@ function createKnowledgeDocumentSync({
   let isRereading = false
   let isChangedHere = false
   let isShared = false
+  // Whether the last fold found the snapshot longer than the server keeps
+  let isOversized = false
   let latestContent = ''
   // The revision of the snapshot merged into `doc`, and the newest one a push spoke of
   let mergedRevision = -1
@@ -201,13 +219,18 @@ function createKnowledgeDocumentSync({
     return latestContent.length > maxContentLength
   }
 
+  // So many updates pending, none folded, that another push could go past what a read takes
+  function isCrowded() {
+    return pendingIds.length >= updatesLimit - UPDATES_MARGIN
+  }
+
   function getStatus(): KnowledgeDocumentSyncStatus {
     if (isGone) return 'gone'
     // A draft's text goes with its create, which the saver reports
     if (!isStored) return 'idle'
     if (hasFailed) return 'error'
     if (isSending) return 'saving'
-    if (isHeld()) return 'tooLong'
+    if (isHeld() || isOversized || (isCrowded() && buffer)) return 'tooLong'
     if (buffer || inFlight) return 'pending'
 
     return 'idle'
@@ -401,12 +424,15 @@ function createKnowledgeDocumentSync({
     knownRevision = Math.max(knownRevision, live.revision)
 
     const latest = live.updates.at(-1)
-    const isCutOff = live.updates.length >= DOCUMENT_UPDATES_LIMIT
+    const isCutOff = live.updates.length >= updatesLimit
     const isOwnPushOverThreshold =
       live.updates.length >= DOCUMENT_COMPACTION_THRESHOLD && latest !== undefined && ownIds.has(latest.id)
 
     if (isCutOff || isOwnPushOverThreshold) enqueueCompaction()
     else scheduleIdleCompaction()
+
+    // A fold elsewhere may have made room for what this tab held back
+    if (buffer) schedulePush()
 
     maybeReread()
     report()
@@ -466,7 +492,7 @@ function createKnowledgeDocumentSync({
     if (!isStored || isGone || isPaused) return
 
     if (!inFlight) {
-      if (!buffer || isHeld()) return
+      if (!buffer || isHeld() || isCrowded()) return
 
       inFlight = { id: createId(), payload: encodeBase64(buffer) }
       buffer = null
@@ -533,12 +559,24 @@ function createKnowledgeDocumentSync({
 
     if (content.length > maxContentLength) return
 
+    /*
+      A snapshot keeps what was deleted as small tombstones, so it can outgrow what the server keeps
+      while the content stays short enough. Nothing folds then, which the page says as it says a
+      text too long, and shortening the text, whose freed content Yjs drops, lets the next fold go
+    */
+    const state = encodeBase64(Y.encodeStateAsUpdate(doc))
+
+    isOversized = state.length > maxStateLength
+    report()
+
+    if (isOversized) return
+
     const revision = mergedRevision
 
     isCompacting = true
 
     try {
-      if (await writes.compact(encodeBase64(Y.encodeStateAsUpdate(doc)), content, revision, updateIds)) {
+      if (await writes.compact(state, content, revision, updateIds)) {
         mergedRevision = revision + 1
         knownRevision = Math.max(knownRevision, mergedRevision)
         pendingIds = pendingIds.filter(id => !updateIds.includes(id))
@@ -546,6 +584,9 @@ function createKnowledgeDocumentSync({
         for (const id of updateIds) ownIds.delete(id)
 
         listeners?.onSaved()
+
+        // Room again for what was held back while too many updates were pending
+        if (buffer) schedulePush()
       } else {
         // Somebody folded first, or the document is gone, which the read says
         knownRevision = Math.max(knownRevision, revision + 1)

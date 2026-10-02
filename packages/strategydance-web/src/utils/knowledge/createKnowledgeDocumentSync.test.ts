@@ -46,9 +46,8 @@ function countBlocks(doc: Y.Doc) {
   return (doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0) as Y.XmlElement).length
 }
 
-// Types into the first block's text, as an editor would: an edit of this tab's own. An empty
-// paragraph has no text yet, and gets one
-function type(sync: KnowledgeDocumentSync, at: number | 'end', text: string) {
+// The first block's text, where a writer types. An empty paragraph has no text yet, and gets one
+function readFirstText(sync: KnowledgeDocumentSync) {
   let node: Y.XmlElement | Y.XmlText = sync.doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0) as Y.XmlElement
 
   while (!(node instanceof Y.XmlText)) {
@@ -56,6 +55,13 @@ function type(sync: KnowledgeDocumentSync, at: number | 'end', text: string) {
 
     node = node.get(0) as Y.XmlElement | Y.XmlText
   }
+
+  return node
+}
+
+// Types into the first block's text, as an editor would: an edit of this tab's own
+function type(sync: KnowledgeDocumentSync, at: number | 'end', text: string) {
+  const node = readFirstText(sync)
 
   node.insert(at === 'end' ? node.length : at, text)
 }
@@ -218,11 +224,15 @@ function createTab(
     compactionDelay = 1_000_000,
     idleCompactionDelay = 1_000_000,
     maxContentLength,
+    maxStateLength,
+    updatesLimit,
   }: {
     writes?: KnowledgeDocumentSyncWrites
     compactionDelay?: number
     idleCompactionDelay?: number
     maxContentLength?: number
+    maxStateLength?: number
+    updatesLimit?: number
   } = {},
 ) {
   tabCount += 1
@@ -239,6 +249,8 @@ function createTab(
     idleCompactionDelay,
     idleCompactionJitter: 0,
     maxContentLength,
+    maxStateLength,
+    updatesLimit,
   })
   const statuses: KnowledgeDocumentSyncStatus[] = []
   let savedCount = 0
@@ -510,6 +522,48 @@ describe('createKnowledgeDocumentSync', () => {
 
     expect(server.pushes).toHaveLength(1)
     expect(sync.getStatus()).toBe('idle')
+  })
+
+  it('says a snapshot outgrew what the server keeps, and folds again once the text is shortened', async () => {
+    const server = createServer(seeded('Hello'))
+    const { sync } = await openTab(server, { maxStateLength: 600 })
+
+    type(sync, 'end', 'x'.repeat(600))
+    await sync.flushAndCompact()
+
+    expect(sync.getStatus()).toBe('tooLong')
+    expect(server.compactions).toEqual([])
+
+    readFirstText(sync).delete(5, 600)
+    await sync.flushAndCompact()
+
+    expect(sync.getStatus()).toBe('idle')
+    expect(server.compactions).toEqual([true])
+    expect(server.readText()).toBe('Hello')
+  })
+
+  it('stops pushing just short of what a read takes, and goes on once a fold makes room', async () => {
+    const server = createServer(seeded('Hello'))
+    const { sync: ana } = await openTab(server, { updatesLimit: 12 })
+    const { sync: ben } = await openTab(server)
+
+    type(ben, 'end', ' a')
+    await ben.flush()
+    type(ben, 'end', ' b')
+    await ben.flush()
+    await wait(10)
+    type(ana, 0, 'Ana: ')
+    await ana.flush()
+
+    expect(server.pushes).toHaveLength(2)
+    expect(ana.getStatus()).toBe('tooLong')
+
+    await ben.flushAndCompact()
+    await wait(PUSH_DELAY * 4)
+
+    expect(server.pushes).toHaveLength(3)
+    expect(ana.getStatus()).toBe('idle')
+    expect(server.readText()).toBe('Ana: Hello a b')
   })
 
   it('counts only its own edits as changed here, never what arrived', async () => {

@@ -955,8 +955,8 @@ mutation CreateDocument(
     )
     @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
     @check(
-      expr: "!has(vars.state) || vars.state == null || size(vars.state) <= 1000000"
-      message: "A document's state is at most 1000000 characters"
+      expr: "!has(vars.state) || vars.state == null || size(vars.state) <= 2000000"
+      message: "A document's state is at most 2000000 characters"
     )
     @check(
       expr: "vars.title.matches('[[:^space:]]') || vars.content != ''"
@@ -1177,7 +1177,7 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
-      role @check(expr: "size(vars.state) <= 1000000", message: "A document's state is at most 1000000 characters")
+      role @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
     }
   }
   document_updateMany(
@@ -1207,8 +1207,8 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
       role
         @check(
-          expr: "size(vars.payload) > 0 && size(vars.payload) <= 400000"
-          message: "A document update is at most 400000 characters"
+          expr: "size(vars.payload) > 0 && size(vars.payload) <= 2000000"
+          message: "A document update is at most 2000000 characters"
         )
     }
     documents(
@@ -1247,7 +1247,7 @@ mutation CompactDocument(
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
       role
-        @check(expr: "size(vars.state) <= 1000000", message: "A document's state is at most 1000000 characters")
+        @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
         @check(expr: "size(vars.updateIds) > 0", message: "A compaction folds at least one update")
     }

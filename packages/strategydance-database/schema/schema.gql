@@ -344,7 +344,7 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   # without an editor: anything drawing it draws it through the design system's `RichText`, and
   # `DiscardDocument` reads it for emptiness. The editor reads `state` instead
   content: String! @default(value: "")
-  # The text as a Yjs document, every edit folded in, in base64 and at most 1000000 characters
+  # The text as a Yjs document, every edit folded in, in base64 and at most 2000000 characters
   # (`MAX_DOCUMENT_STATE_LENGTH`). It is what the editor opens on, merged with the `DocumentUpdate`
   # rows pending since, and what a compaction rewrites with them folded in. Null for a document
   # stored before the editor was shared, until somebody opens it and `SeedDocumentState` converts
@@ -386,7 +386,7 @@ type DocumentUpdate @table(key: ["document", "id"]) @index(fields: ["documentId"
   id: UUID!
   # Who pushed it. Optional, set to null when the account goes. Nothing reads it yet
   createdBy: User
-  # The update, in base64, at most 400000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`). Not named
+  # The update, in base64, at most 2000000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`). Not named
   # `update`, which SQL reserves
   payload: String!
   createdAt: Timestamp! @default(expr: "request.time")

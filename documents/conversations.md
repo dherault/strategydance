@@ -433,8 +433,9 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   so a crash can fall between the two. Each drawn message's id derives from its transcript entry and
   block index, so drawing it twice is a conflict rather than a duplicate, and the entry keeps a
   cursor, `drawnBlocks`, advanced in the same mutation as each message it draws. A worker that claims
-  a run after a crash finishes drawing the last entry from its cursor, then carries on, with calls
-  drawn but never started run as Recovery says and calls never drawn drawn and run.
+  a run after a crash first draws the rest of the last entry, from its cursor. It then deals with the
+  entry's tool calls: a call whose message exists but which never started is handled as Recovery and
+  side effects says, and a call that had no message yet gets one and runs like any other.
 - **Ending.** One mutation: the fenced write gives the run its status, `endedAt` and usage, and the
   conversation's `activeRunId` is cleared, only where it still names this run.
 
@@ -623,10 +624,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | Tool | What it does | Milestone |
 | --- | --- | --- |
 | `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M6 |
-| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt. Candidates come from a case-insensitive pattern on the title or content, then are ranked in memory on their plain text | M9 |
-| `read_knowledge` | `{ id }`: a document with its content as Markdown and its `revision` | M9 |
+| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt. A bounded candidate query first: at most 20 documents matching a case-insensitive pattern on the title or content, titles first, then the latest; only those 20 bring their content (4 MB at most), which is ranked in memory on its plain text. A searchable plain-text column replaces the pattern if knowledge grows past what that serves | M9 |
+| `read_knowledge` | `{ id, fromBlock? }`: a document's title, aspects, `revision` and content as Markdown, read in whole blocks up to 40000 characters at a time, with `nextBlock` when more remains, since a document can hold 200000 and a tool result is cut at 50000 | M9 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M9 |
-| `update_knowledge` | `{ id, revision, title?, aspects?, content?, append? }`. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M9 |
+| `update_knowledge` | `{ id, revision, title?, aspects?, content?, append?, replaceBlocks? }`: `content` replaces a document small enough to read whole, `append` adds to the end, and `replaceBlocks: { from, to, content }` replaces a range of blocks, so a large document is edited without being rewritten. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M9 |
 | `get_team` | Every member: id, name, job title, role, bio, top priority as text and when it was set | M11 |
 | `read_log` | `{ from, to, memberId? }`, at most 31 days: entries as text, with author and date | M11 |
 | `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M11 |
@@ -689,7 +690,8 @@ in-process runs):
    `claude-opus-5-5` on `global`. Raise it before M20.
 2. `gcloud services enable aiplatform.googleapis.com cloudtasks.googleapis.com --project strategydance`.
 3. Grant the runtime service account (the Compute Engine default one, see `CLAUDE.md`)
-   `roles/aiplatform.user` and `roles/cloudtasks.enqueuer`, and `roles/iam.serviceAccountUser` on
+   `roles/aiplatform.user`, `roles/cloudtasks.enqueuer`, `roles/cloudtasks.viewer` (the queued-run
+   check reads tasks, which the enqueuer role does not allow), and `roles/iam.serviceAccountUser` on
    itself, since it signs its tasks' OIDC tokens. If dispatches fail on the token, also grant the
    Cloud Tasks service agent `roles/iam.serviceAccountTokenCreator` on it.
 4. `gcloud tasks queues create conversation-runs --location us-central1 --max-attempts 5
@@ -929,8 +931,9 @@ A refactor and two pure functions, no visible change.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted.
 - Tests: a locked document refuses; a stale revision refuses; a create retried with the same
-  `tool_use` id makes one document; a create in a full organization refuses; Markdown in, the
-  document draws as written.
+  `tool_use` id makes one document; a create in a full organization refuses; a 200000-character
+  document read in pages that join back whole; a block range replaced without touching the rest;
+  search loading content for 20 candidates at most; Markdown in, the document draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.
 

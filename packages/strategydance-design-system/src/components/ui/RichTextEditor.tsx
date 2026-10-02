@@ -1,10 +1,11 @@
 import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
 import { FormattingToolbarExtension, SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
-import { DesktopFormattingToolbarController, SuggestionMenuController } from '@blocknote/react'
+import { DesktopFormattingToolbarController } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
+import { RichTextEditorSlashMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSlashMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
 import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
@@ -106,7 +107,8 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
 
   Its menus portal into the editor itself, so inside a modal dialog they are inside the dialog, and
   while one is open Escape closes it rather than the dialog. The toolbar floats over the selection
-  on touch screens too, since BlockNote's mobile toolbar would portal outside the dialog
+  on touch screens too, since BlockNote's mobile toolbar would portal outside the dialog. The slash
+  menu opens on the side of the caret with room for it, above an on-screen keyboard included
 */
 function RichTextEditor({
   initialValue,
@@ -199,10 +201,7 @@ function RichTextEditor({
         comments={false}
         onChange={handleChange}
       >
-        <SuggestionMenuController
-          triggerCharacter="/"
-          getItems={getSlashMenuItems}
-        />
+        <RichTextEditorSlashMenuController getItems={getSlashMenuItems} />
         <RichTextEditorSideMenuController />
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
       </BlockNoteView>

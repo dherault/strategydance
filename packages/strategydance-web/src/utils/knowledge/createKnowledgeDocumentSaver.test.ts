@@ -271,6 +271,45 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(saver.getStatus()).toBe('idle')
   })
 
+  it('forgets a failure once the failed change is taken back', async () => {
+    const { calls, writes, failNextWrite } = createWrites()
+    const saver = createKnowledgeDocumentSaver({ documentId: 'd19', fields: STORED, revision: 0, writes, delay: DELAY })
+    track(saver)
+
+    failNextWrite()
+    saver.change({ title: 'Plan 2' })
+    await saver.flush()
+
+    expect(saver.getStatus()).toBe('error')
+
+    saver.change({ title: 'Plan' })
+
+    expect(saver.getStatus()).toBe('idle')
+    expect(await saver.settle()).toBe(true)
+    expect(calls).toEqual(['rename Plan 2'])
+  })
+
+  it('forgets a failure whose change was taken back while its send was out', async () => {
+    const { writes, failNextWrite } = createWrites({ latency: DELAY })
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd20',
+      fields: STORED,
+      revision: 0,
+      writes,
+      delay: DELAY * 10,
+    })
+    track(saver)
+
+    failNextWrite()
+    saver.change({ title: 'Plan 2' })
+    const flushed = saver.flush()
+    await wait(DELAY / 2)
+    saver.change({ title: 'Plan' })
+
+    expect(await flushed).toBe(true)
+    expect(saver.getStatus()).toBe('idle')
+  })
+
   it('queues at most one send behind the one out', async () => {
     const { calls, writes } = createWrites({ latency: DELAY })
     const saver = createKnowledgeDocumentSaver({ documentId: 'd8', fields: STORED, revision: 0, writes, delay: DELAY })

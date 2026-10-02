@@ -201,7 +201,13 @@ function createKnowledgeDocumentSaver({
   }
 
   async function send() {
-    if (!isDirty()) return
+    // Nothing left to send, so nothing has failed, a failed change taken back included
+    if (!isDirty()) {
+      hasFailed = false
+      report()
+
+      return
+    }
 
     isSending = true
     hasFailed = false
@@ -231,7 +237,9 @@ function createKnowledgeDocumentSaver({
     }
 
     isSending = false
-    hasFailed = !isOk
+    // A failure counts only while something is left to send: a change taken back while its send
+    // was out leaves nothing to retry
+    hasFailed = !isOk && isDirty()
 
     if (isOk && hasSent) listeners?.onSaved()
 
@@ -254,6 +262,8 @@ function createKnowledgeDocumentSaver({
 
     current = { ...current, ...fields }
     isChangedHere = true
+
+    if (!isDirty()) hasFailed = false
 
     clearTimer()
 

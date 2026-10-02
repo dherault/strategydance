@@ -1131,8 +1131,11 @@ mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
 # is, and the call succeeds all the same.
 #
 # `content` is only as recent as the last compaction, so a document with updates pending is not
-# empty as far as this knows, and one another member has open is theirs to write in: both are left
-mutation DiscardDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+# empty as far as this knows, and one open in any other tab, another member's or the caller's own,
+# may have words on their way: both are left. `$sessionId` is the tab asking, whose own presence row
+# does not count. Optional, since a page from before the editor was shared sends none, and keeps no
+# row, so any fresh row leaves the document then
+mutation DiscardDocument($organizationId: UUID!, $id: UUID!, $sessionId: UUID) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
@@ -1153,7 +1156,7 @@ mutation DiscardDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
         {
           _not: {
             documentPresences_on_document: {
-              exist: { userId: { ne_expr: "auth.uid" }, updatedAt: { ge_time: { now: true, sub: { seconds: 45 } } } }
+              exist: { sessionId: { ne: $sessionId }, updatedAt: { ge_time: { now: true, sub: { seconds: 45 } } } }
             }
           }
         }

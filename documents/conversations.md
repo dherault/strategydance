@@ -303,6 +303,11 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     message inserts, and on create, delete, restore, aspects and read, with the condition
     `mutation.variables.userId == request.auth.uid && mutation.variables.organizationId ==
     request.variables.organizationId`.
+  - Every live conversation query, this one, `GetConversation` and `GetConversationRun`, also
+    refreshes on `RemoveOrganizationMember` and `DeleteOrganization`, on their `organizationId`, as
+    `GetOrganizationDocuments` does: filtering on current membership only protects the next read, so
+    an open subscription must re-run, and come back empty, the moment its reader is removed or the
+    organization is deleted.
   - `GetConversation($organizationId, $id)`, live: one conversation and its latest 150 messages,
     more than one run can draw (see Room at the cap), so Retry's deletions always fall inside it,
     newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
@@ -562,8 +567,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   their unsent rows, so a member at the cap is refused before anything reaches Storage, and two
   requests with one id end with one row. Then the object, then the row turned `READY` with the size
   and type confirmed. A reservation still `UPLOADING` after ten minutes is pruned with the expired
-  unsent rows, so a failed upload holds its slot only that long, and Storage never holds more than
-  the quota's worth of a member's unsent files.
+  unsent rows, its object first: the pending object at its path is deleted, and only then the row,
+  which stays, still counted, when the delete fails, to be tried again on the next prune. So a failed
+  upload holds its slot only that long, and Storage never holds more than the quota's worth of a
+  member's unsent files.
 - **Uploads are create-only**, since every replay depends on the bytes never changing: the object is
   written with a generation-match-zero precondition, Storage finalizes an upload atomically so a
   failed stream leaves no object, and a second `PUT` with the same id cannot replace one. A retry
@@ -954,12 +961,19 @@ A refactor and two pure functions, no visible change.
 
 - **A searchable plain text for documents.** `Document` gains `contentText`, the content's plain
   text (`getRichTextText`), `@searchable(language: "simple")` beside a searchable `title`, so
-  `search_knowledge` reads an index rather than scanning stored JSON. Whoever writes content writes
-  it too: the backend's knowledge writes, and the web's `CreateDocument` and `UpdateDocumentContent`
-  through a new optional `$contentText` variable, which old bundles leave out without breaking. A
-  script under `scripts/` backfills existing documents once, run by hand against production. If the
-  collaborative documents branch has changed how content is stored by then, `contentText` follows
-  its writes instead.
+  `search_knowledge` reads an index rather than scanning stored JSON. A null `contentText` means
+  "not indexed yet", and nothing else may leave it stale:
+  - The backend's knowledge writes set it with the content.
+  - The web moves to new operations, `CreateDocumentWithText` and `UpdateDocumentContentWithText`,
+    which take `$contentText` as required. The old `CreateDocument` and `UpdateDocumentContent` stay
+    for bundles still open from before, with the same variables, and now write `contentText: null`
+    alongside the content (their data block is the server's, so the change reaches old bundles too).
+  - Before `search_knowledge` reads the index, the backend reindexes the organization's documents
+    whose `contentText` is null, from their content, a bounded batch at a time, so a write from an
+    old bundle is indexed by the next search rather than left stale. The same pass backfills
+    existing documents, which start null.
+  - If the collaborative documents branch has changed how content is stored by then, `contentText`
+    follows its writes instead.
 - Creating keeps the knowledge cap as `CreateDocument` does: the backend's create locks the
   organization's row and counts fewer than `MAX_DOCUMENTS` live documents before inserting, so the
   agent and the browser cannot race past it, and a full organization comes back to the model as a
@@ -975,8 +989,9 @@ A refactor and two pure functions, no visible change.
   document read in pages that join back whole, and one made of a single 200000-character paragraph
   too; a block range replaced without touching the rest; a unique piece of text replaced inside that
   paragraph, and a text that occurs twice refused;
-  search reading the index and loading the plain text of 20 candidates at most; `contentText` kept in
-  step by every content write; Markdown in, the document draws as written.
+  search reading the index and loading the plain text of 20 candidates at most; a write through the
+  old operations nulling `contentText`, and the next search reindexing it; Markdown in, the document
+  draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.
 

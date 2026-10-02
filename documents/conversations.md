@@ -40,7 +40,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Attachments | Images, PDFs and text files, read by Claude natively |
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
-| Integrations (MCP) | The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. A call to a tool its server does not mark read-only waits for the member's approval |
+| Integrations (MCP) | The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it |
 | Usage limits | None yet: a credit system comes later. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member, fifty dispatches across the queue), which cap concurrency rather than usage |
 | Agent-started conversations | Not in this plan. Orchestration comes later |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone |
@@ -413,7 +413,11 @@ the worker swaps the bytes in.
   cancelled), then the member's text and files. Waiting questions are marked skipped.
 - **Answer** (`POST …/answers`): records the answer on its question. Once every question of the
   waiting run has one, a `USER` entry with all the waiting turn's results (the answers as JSON, and
-  `pendingToolResults`) is stored and a run starts.
+  `pendingToolResults`) is stored and a run starts. Answers are serialized on the waiting run: each
+  one's mutation first locks that run's row, then records the answer and counts what is left, so two
+  answers sent at once cannot both see the other missing. Starting the next run moves the waiting run
+  out of `WAITING` under `@check(this == 1)`, so exactly one request starts it, a retry included. An
+  approval (M19) is answered the same way.
 - **Stop** (`POST …/stop`) sets `stopRequestedAt`. The worker aborts the stream (the turn being
   written is dropped), or lets the calls already running finish and records them, so nothing is left
   in doubt, and cancels the ones not started: they become `CANCELLED`, a `STOPPED` note is added, the
@@ -444,7 +448,9 @@ the worker swaps the bytes in.
 - The browser shrinks an image to at most 1568px on its long side before sending it. A file goes up
   through the backend (`PUT …/attachments/:attachmentId`), which checks membership, the type (sniffed
   from the bytes) and size, and the member's quota of unsent files (30), and streams it into Storage
-  rather than holding it in memory.
+  rather than holding it in memory. The quota counts only unsent rows younger than two days, and the
+  route first deletes the member's unsent rows older than that, whose files the lifecycle rule below
+  has removed, so abandoned uploads never use up the quota for good.
 - **Uploads are create-only**, since every replay depends on the bytes never changing: the object is
   written with a generation-match-zero precondition, so a second `PUT` with the same id is refused,
   and the row's name, type and size never change. Its one update is its association with the message
@@ -532,7 +538,7 @@ the worker swaps the bytes in.
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers | M12 |
 | `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M19 |
 | `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M19 |
-| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless the tool is read-only | M19 |
+| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M19 |
 
 - Each tool's description says when to call it, which is what Opus reads to decide.
 - A result goes back as JSON, cut to 50000 characters with a note saying so. A failure goes back
@@ -847,10 +853,12 @@ A refactor and two pure functions, no visible change.
 ### M12: Questions
 
 - `ask_user`, its `QUESTION` messages, `WAITING` runs with their `pendingToolResults`.
-- `POST …/answers` with `{ messageId, selected, other }`, and skipping on send.
+- `POST …/answers` with `{ messageId, selected, other }`, serialized on the waiting run as The
+  transcript describes, and skipping on send.
 - The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
   sidebar badge, and questions in previews.
-- Tests: two questions in one turn wait for both answers; a skipped question's result; the other
+- Tests: two questions in one turn wait for both answers, and two answers sent at once start exactly
+  one run; a skipped question's result; the other
   tools' results go back with the answers, in order.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
@@ -889,8 +897,9 @@ A refactor and two pure functions, no visible change.
 ### M15: Attachments: storing them and sending them to Claude
 
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
-  and the member's quota of unsent files, then create-only: the row inserted, the object streamed
-  under `pending/` with a generation-match-zero precondition; deleting a pruned conversation's folder.
+  and the member's quota of unsent files (after deleting their unsent rows older than two days), then
+  create-only: the row inserted, the object streamed under `pending/` with a generation-match-zero
+  precondition; deleting a pruned conversation's folder.
 - The bucket's lifecycle rule deleting `pending/` objects older than two days, applied with gcloud
   like the CORS rule (a human step, written down beside `storage.cors.json`).
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
@@ -915,8 +924,12 @@ A refactor and two pure functions, no visible change.
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, the key encrypted with Cloud KMS and its last four characters, the OAuth
-  client it registered, its tools as last listed (annotations included), `lastError`, `lastUsedAt`,
-  `deletedAt`. The web connector's live list never selects a secret.
+  client it registered, its tools as last listed (annotations included), `autoApprovedTools` (the
+  tools an administrator lets run without the member's approval, empty to begin with), `lastError`,
+  `lastUsedAt`, `deletedAt`. The web connector's live list never selects a secret.
+- The server dialog lists its tools with a switch each for running without approval. A tool's
+  `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
+  one: the MCP specification calls annotations untrusted.
 - Backend routes for administrators: add (connects with `@modelcontextprotocol/sdk` over Streamable
   HTTP and lists the tools), edit, delete, turn on and off, retry. Deleting sets `deletedAt`, keeping
   the secrets for Undo, and the next delete prunes what was deleted over a day ago, as documents do.
@@ -949,18 +962,22 @@ A refactor and two pure functions, no visible change.
 
 - The three integration tools; calls with the member's own connection or the organization's key,
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
-- **Approval.** A call to a tool its server does not annotate as read-only (`readOnlyHint`) waits for
-  the member: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind, appended to
+- **Approval.** Every integration call waits for the member, unless its tool is in the server's
+  `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind, appended to
   `ConversationMessageKind`) showing the server, the tool and its arguments, with Allow and Deny.
-  Allow runs the call in the next run; Deny answers it as refused. Text that knowledge, the web, a
-  file or another integration slipped into the conversation can then propose an action, never take
-  one. Read-only calls run straight away, as the design shows.
+  Allow runs the call in the next run; Deny answers it as refused. Approvals are answered as
+  questions are, serialized on the waiting run. A server's annotations decide nothing: a server can
+  call a tool that writes read-only, and even a read can carry private text out in its arguments.
+  Text that knowledge, the web, a file or another integration slipped into the conversation can
+  then propose an action, never take one. An administrator who trusts a tool can let it run straight
+  away, as the design shows.
 - A call that started before a crash is never run again by itself (see A run).
 - In the thread, integration calls show the server and the tool, and the warning strip when the
   server is missing, off, or not connected for the viewer, with what fixes it: administrators get
   "Add" or "Turn on", every member gets "Connect" for their own account, others read "Ask an
   administrator…". The Integrations page handles `?open=`, `?connect=`, `?enable=` and `?add=`.
-- Verify: ask something that needs a connected server; turn it off and ask again.
+- Verify: ask something that needs a connected server, then allow the call and deny another; let an
+  administrator allow one tool and see it run straight away; turn the server off and ask again.
 
 ### M20: Launch
 
@@ -990,7 +1007,7 @@ A refactor and two pure functions, no visible change.
 - **Prompt injection**: knowledge, the log, the web, files and integrations carry text others wrote,
   and a system prompt is no boundary. The boundaries are what the tools allow: built-in writes reach
   only knowledge, where the AI lock holds, and the member's own top priority; from M19, an integration
-  call that is not read-only waits for the member's approval, and every request to an integration
-  passes the outbound guard.
+  call waits for the member's approval unless an administrator allowed its tool, and every request to
+  an integration passes the outbound guard.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta on Vertex) if it comes to that.

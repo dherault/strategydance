@@ -23,11 +23,13 @@ export type KnowledgeDocumentWrites = {
 }
 
 /*
-  The document's text, which its sync keeps once the document is stored: the Yjs snapshot a
-  draft's create carries, read as the create is sent, word that the create went through, and
-  whether the text was edited on this page rather than only by others
+  The document's text, which its sync keeps once the document is stored: when it is ready, seeded
+  as a draft's is with its one empty paragraph, the Yjs snapshot a draft's create carries, read as
+  the create is sent, word that the create went through, and whether the text was edited on this
+  page rather than only by others
 */
 export type KnowledgeDocumentSaverText = {
+  whenReady: () => Promise<unknown>
   encodeForCreate: () => string
   markCreated: () => void
   isChangedHere: () => boolean
@@ -333,6 +335,10 @@ function createKnowledgeDocumentSaver({
   // Stores the draft, or finds it stored by a create whose answer was lost. Null when the
   // organization is full, or the draft's snapshot too long
   async function create(): Promise<SavedState | null> {
+    // A title typed before the editor loaded waits for the text, whose snapshot would otherwise
+    // lack the paragraph that keeps two tabs from each writing a first one
+    await text.whenReady()
+
     const fields = current
     const state = text.encodeForCreate()
 

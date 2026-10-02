@@ -79,12 +79,14 @@ function createWrites({
   }
 }
 
-// The document's text as the sync keeps it: a snapshot for the create, and whether it was edited
-function createText({ isChangedHere = false } = {}) {
+// The document's text as the sync keeps it: when it is ready, a snapshot for the create, and
+// whether it was edited
+function createText({ isChangedHere = false, ready = Promise.resolve() as Promise<unknown> } = {}) {
   let markedCount = 0
   let isTextChangedHere = isChangedHere
 
   const text: KnowledgeDocumentSaverText = {
+    whenReady: () => ready,
     encodeForCreate: () => 'snapshot',
     markCreated: () => {
       markedCount += 1
@@ -150,6 +152,24 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(getCreatedCount()).toBe(1)
     expect(getMarkedCount()).toBe(1)
     expect(saver.getStatus()).toBe('idle')
+  })
+
+  it('creates a draft only once its text is ready', async () => {
+    const { calls, writes } = createWrites()
+    let markReady = () => {}
+    const { text } = createText({ ready: new Promise<void>(resolve => (markReady = resolve)) })
+    const saver = createSaver({ documentId: 'd33', fields: BLANK, isStored: false, writes, text })
+    track(saver)
+
+    saver.change({ title: 'Plan' })
+    await wait(DELAY * 3)
+
+    expect(calls).toEqual([])
+
+    markReady()
+    await saver.flush()
+
+    expect(calls).toEqual(['create Plan|||false'])
   })
 
   it('creates a draft with its text and the snapshot of it', async () => {

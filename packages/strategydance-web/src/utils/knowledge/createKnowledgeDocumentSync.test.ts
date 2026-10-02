@@ -497,8 +497,10 @@ describe('createKnowledgeDocumentSync', () => {
   it('stores a draft with what it has, then pushes only what was typed since', async () => {
     const server = createServer(null)
     const { sync } = createTab(server)
+    const ready = sync.whenReady()
 
     await sync.start(null)
+    await ready
     type(sync, 0, 'Draft')
 
     expect(sync.hasUnsaved()).toBe(false)

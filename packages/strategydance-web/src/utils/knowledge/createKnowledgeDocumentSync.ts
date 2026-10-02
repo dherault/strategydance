@@ -190,6 +190,11 @@ function createKnowledgeDocumentSync({
   let createdVector: Uint8Array | null = null
   // A push that arrived before the document was ready, merged once it is
   let earlyLive: LiveKnowledgeDocumentText | null | undefined
+  // Settled once the document is ready, for a draft's create to wait on
+  let markReady = () => {}
+  const ready = new Promise<void>(resolve => {
+    markReady = resolve
+  })
   const appliedIds = new Set<string>()
   // The updates the server holds beside the snapshot, as last read or pushed
   let pendingIds: string[] = []
@@ -355,6 +360,7 @@ function createKnowledgeDocumentSync({
     }
 
     isReady = true
+    markReady()
     report()
 
     if (earlyLive !== undefined) receive(earlyLive)
@@ -775,6 +781,7 @@ function createKnowledgeDocumentSync({
   return {
     doc,
     start,
+    whenReady: () => ready,
     receive,
     setContent,
     setShared,

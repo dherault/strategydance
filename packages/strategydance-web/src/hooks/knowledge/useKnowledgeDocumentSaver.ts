@@ -64,6 +64,7 @@ function useKnowledgeDocumentSaver({
       isStored,
       writes: createKnowledgeDocumentWrites(organizationId, documentId, sessionId),
       text: {
+        whenReady: () => sync.whenReady(),
         encodeForCreate: () => sync.encodeForCreate(),
         markCreated: () => sync.markCreated(),
         isChangedHere: () => sync.isChangedHere(),

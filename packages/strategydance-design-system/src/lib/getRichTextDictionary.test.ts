@@ -13,14 +13,18 @@ describe('getRichTextDictionary', () => {
     expect(getRichTextDictionary(undefined, { placeholder: 'Write' }).slash_menu.quote.title).toBe('Quote')
   })
 
-  it("lays the field's placeholder and heading name over BlockNote's, and keeps its '/' hint", () => {
-    const dictionary = getRichTextDictionary('EN', { placeholder: 'What moved forward today?', heading: 'Heading' })
+  it('adds the block menu\'s "Turn into", in English unless the caller names it', () => {
+    expect(getRichTextDictionary('FR', { placeholder: 'Écrire' }).drag_handle.turn_into_menuitem).toBe('Turn into')
+    expect(
+      getRichTextDictionary('FR', { placeholder: 'Écrire', turnInto: 'Transformer en' }).drag_handle.turn_into_menuitem,
+    ).toBe('Transformer en')
+    expect(getRichTextDictionary('FR', { placeholder: 'Écrire' }).drag_handle.delete_menuitem).toBe('Supprimer')
+  })
+
+  it("lays the field's placeholder over BlockNote's, and keeps its '/' hint", () => {
+    const dictionary = getRichTextDictionary('EN', { placeholder: 'What moved forward today?' })
 
     expect(dictionary.placeholders.emptyDocument).toBe('What moved forward today?')
     expect(dictionary.placeholders.default).toContain('/')
-    expect(dictionary.slash_menu.heading_2.title).toBe('Heading')
-    expect(dictionary.slash_menu.heading_2.subtext).toBe(
-      getRichTextDictionary('EN', { placeholder: '' }).slash_menu.heading_2.subtext,
-    )
   })
 })

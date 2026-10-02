@@ -37,8 +37,8 @@ type UnknownRecord = Record<string, unknown>
   A stored value is somebody else's, since a feed shows everybody's posts, and it is JSON a client
   wrote, so nothing in it is trusted. A block keeps its type when it is one the options allow, and
   becomes a paragraph otherwise when it holds text. One holding none, such as a table or an image,
-  gives way to its children. Ids, colors, alignment and every other prop go, but a numbered list's
-  first number and a check item's tick. Text keeps four styles. A link keeps its address when it is
+  gives way to its children. Ids, colors, alignment and every other prop go, but a heading's level,
+  a numbered list's first number and a check item's tick. Text keeps four styles. A link keeps its address when it is
   a web or mail one, written as the URL parser writes it, and is its text otherwise.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
@@ -87,6 +87,13 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
 
 function normalizeProps(type: RichTextBlockType, props: unknown): RichTextBlock['props'] {
   if (!isRecord(props)) return undefined
+
+  // The second level is the default and goes unsaid, and one past the third reads as the third
+  if (type === 'heading' && Number.isSafeInteger(props.level)) {
+    const level = Math.min(props.level as number, 3)
+
+    return level === 1 || level === 3 ? { level } : undefined
+  }
 
   // Any whole number but the 1 a list starts at anyway, which BlockNote leaves out too, and 0,
   // which BlockNote's editor numbers from 1, as it does a list with no start

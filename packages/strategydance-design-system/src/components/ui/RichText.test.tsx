@@ -18,7 +18,9 @@ describe('RichText', () => {
 
     expect(markup).toContain('<p class="mb-2">Task feed p95')
     expect(markup).toContain('<span class="font-semibold">task_assignments</span>')
+    expect(markup).toContain('<h1 ')
     expect(markup).toContain('<h2 ')
+    expect(markup).toContain('<h3 ')
     expect(markup).toContain('<ul class="mb-2 pl-[22px] list-disc">')
     expect(markup).toContain('<ul class="mb-2 pl-[22px] list-[circle]">')
     expect(markup).toContain('<span class="italic">Remove the N+1 query')
@@ -122,8 +124,12 @@ describe('RichText', () => {
     ).toContain('<p class="mb-2">let a</p><p class="mb-2">b</p>')
   })
 
-  it('draws any heading at the one level', () => {
-    expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h2 ')
+  it("draws a heading at its level's tag, the second when it has none or one past the third", () => {
+    expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h1 ')
+    expect(render([{ type: 'heading', content: [text('Title')] }])).toContain('<h2 ')
+    expect(render([{ type: 'heading', props: { level: 3 }, content: [text('Title')] }])).toContain('<h3 ')
+    expect(render([{ type: 'heading', props: { level: 5 }, content: [text('Title')] }])).toContain('<h3 ')
+    expect(render([{ type: 'heading', props: { level: 'big' }, content: [text('Title')] }])).toContain('<h2 ')
   })
 
   it('draws what is nested under a block that is not a list item, indented', () => {

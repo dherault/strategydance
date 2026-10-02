@@ -129,6 +129,7 @@ function TopPriorityDialog({ organizationId, viewerId, topPriority, onClose }: P
                 autoFocus
                 onChange={setChange}
                 onSubmit={save}
+                labels={{ turnInto: formatMessage(logMessages.editorTurnInto) }}
               />
             ) : (
               // Holds the editor's height while it loads, so the dialog does not jump when it arrives

@@ -4,6 +4,7 @@ import { DesktopFormattingToolbarController, SuggestionMenuController } from '@b
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, useEffect, useState } from 'react'
+import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
 import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
@@ -21,8 +22,8 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import './RichTextEditor.css'
 
 type RichTextEditorLabels = {
-  /** The heading's name in the menus. BlockNote's own names its one level "Heading 2" */
-  heading: string
+  /** The block menu's item that turns a block into another, which BlockNote has no words for */
+  turnInto: string
 }
 
 type RichTextEditorChange = {
@@ -45,6 +46,7 @@ type Props = {
   autoFocus?: boolean
   /** The app's locale code, such as 'FR', which BlockNote's menus speak, or English where they cannot */
   locale?: string
+  /** The menus' words BlockNote lacks, in English unless the caller's catalogue says otherwise */
   labels?: Partial<RichTextEditorLabels>
   /**
    * The blocks it writes besides paragraphs, all four unless it says fewer. One left out is not
@@ -63,11 +65,12 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
 
 /*
   A rich text field: BlockNote's block editor, for a post of a few paragraphs. "/" opens a menu of
-  the blocks it writes, the handle beside a block drags it or deletes it, and a selection raises a
-  toolbar of the four styles, a link and the block it is in. Markdown's shortcuts work as typed.
-  It writes paragraphs, one heading level, quotes, bulleted, numbered and check lists, nested by
-  Tab, text in bold, italic, underline and strikethrough, and links, which is everything `RichText`
-  draws back.
+  the blocks it writes, the handle beside a block drags it, turns it into another or deletes it, and
+  a selection raises a toolbar of the four styles, a link and the block it is in. Markdown's
+  shortcuts work as typed.
+  It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
+  nested by Tab, text in bold, italic, underline and strikethrough, and links, which is everything
+  `RichText` draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
   `normalizeRichText` keeps, serialized, whether they hold any text and how much, and a parent that
@@ -155,6 +158,7 @@ function RichTextEditor({
         theme="light"
         className="rich-text-editor"
         slashMenu={false}
+        sideMenu={false}
         formattingToolbar={false}
         emojiPicker={false}
         filePanel={false}
@@ -166,6 +170,7 @@ function RichTextEditor({
           triggerCharacter="/"
           getItems={getSlashMenuItems}
         />
+        <RichTextEditorSideMenuController />
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
       </BlockNoteView>
     </div>
@@ -187,7 +192,7 @@ function createEditor({
   return BlockNoteEditor.create({
     schema: createRichTextSchema(blocks),
     initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,
-    dictionary: getRichTextDictionary(locale, { placeholder, heading: labels?.heading }),
+    dictionary: getRichTextDictionary(locale, { placeholder, turnInto: labels?.turnInto }),
     domAttributes: {
       editor: { 'aria-label': ariaLabel ?? placeholder, class: 'min-h-[134px] max-h-[420px] overflow-auto' },
     },

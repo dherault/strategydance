@@ -200,6 +200,13 @@ rest come from `strategydance-design-system`, and a primitive it lacks is added 
 story, rather than to `src/components/ui/`. That folder holds only the frontend's glue around
 them: `FormField` for react-hook-form, `TextDivider`.
 
+A field's text is 16px on a touch screen, whatever it is elsewhere. iOS zooms the page into a
+focused input, textarea or editable element whose text is smaller, and leaves it zoomed.
+`inputClassName` carries `pointer-coarse:text-base`, so a field built on it has it; one that is
+not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, and so does
+text a field opens over, as a task's does. Never put `maximum-scale=1` in the viewport instead:
+Android then refuses the pinch zoom people read by.
+
 Strings stay in the frontend's catalogues. A design-system component that names itself in
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
 it: `~components/common/Spinner` is the design system's spinner with that label. The one

@@ -313,6 +313,10 @@ only way the app talks to them.
 - Server values over variables wherever the server knows better: `id_expr: "auth.uid"`,
   `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`. A client that fills these
   in can write a row as somebody else
+- An operation gains a variable without a breaking connector change by making it optional, which
+  a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
+  vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses
+  every call from that older page
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
@@ -342,6 +346,28 @@ A query that a waiter and the page under it both read sets `retryOnMount: false`
 failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With nothing cached,
 a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
 the read fails, and its mount retries it, forever.
+
+A knowledge document's text is live in another way: it is a Yjs document, so several members
+write it at once and their edits merge as they type. `Document.state` holds it as a snapshot in
+base64, the source of truth for the text, and each `DocumentUpdate` row an edit pushed since;
+`content` is a copy of the text each compaction writes, for what reads it without an editor. The
+page's sync, `createKnowledgeDocumentSync`, pushes the reader's edits as updates, merges those
+`GetLiveDocument` pushes, and folds the pending ones into the snapshot through `CompactDocument`,
+guarded by `revision`, and a tab that sees `revision` move reads the snapshot again through
+`GetDocument`. `GetLiveDocument` leaves the snapshot out, so a keystroke pushes a few small rows
+rather than the whole text to every tab. `DocumentPresence` rows, one per open tab, say where each
+caret is, and `GetDocumentPresences` keeps them live for the carets and the faces.
+
+- Anything that writes a document's text, an agent included, writes it through Yjs. Once a
+  document has a snapshot, a write to `content` alone is refused, and the next compaction would
+  write over it anyway
+- The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
+  the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
+  text. A new block type reaches every tab before anybody can write one
+- A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's
+  database stuck in its transaction, refusing every mutation after until the emulator restarts.
+  A document's page sends nothing as it goes away but what `beforeunload` flushes, and
+  `LeaveDocument`, which it does send, is not a transaction
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task

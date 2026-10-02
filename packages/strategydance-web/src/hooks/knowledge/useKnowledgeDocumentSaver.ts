@@ -36,10 +36,10 @@ type Options = {
 
   What is left also goes out when the tab is hidden, which is the last moment a phone or a closed
   laptop gives, with the text's pending updates folded, and leaving the tab with something unsent
-  asks first. A page that is going away, closed or reloaded, sends nothing of its text here, a
-  fold least of all: a write cut off with the page leaves the Data Connect emulator's database
-  stuck in its transaction. What is left to push went with the `beforeunload` prompt, while the
-  page was still there, and the next tab to see the pending updates folds them. `pagehide` comes before the `visibilitychange`
+  asks first. A page that is going away, closed, reloaded or kept in the back and forward cache,
+  pushes what is left of its text but folds nothing: a fold is a transaction, and one cut off
+  with the page leaves the Data Connect emulator's database stuck in it, where a push is not. The
+  next tab to see the pending updates folds them. `pagehide` comes before the `visibilitychange`
   of a page going away, and `pageshow` takes back one kept in the back and forward cache.
 
   Leaving the page for another in the app waits for what is left to go out, since a send that
@@ -106,8 +106,10 @@ function useKnowledgeDocumentSaver({
 
     let isPageGoing = false
 
+    // A page kept in the cache may be dropped later without another word, so what is left goes now
     function handlePageHide() {
       isPageGoing = true
+      sync.flush()
     }
 
     function handlePageShow() {
@@ -119,7 +121,8 @@ function useKnowledgeDocumentSaver({
 
       saver.flush()
 
-      if (!isPageGoing) sync.flushAndCompact()
+      if (isPageGoing) sync.flush()
+      else sync.flushAndCompact()
     }
 
     function handleBeforeUnload(event: BeforeUnloadEvent) {

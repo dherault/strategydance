@@ -215,7 +215,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
   started from), `activeRunId`, `preview`, `unreadCount` (replies since the member last looked),
-  `nextMessagePosition` (see `ConversationMessage`), `isFull` (set by the worker once the
+  `nextMessagePosition` (see `ConversationMessage`), `messageCount` (the messages it holds, which
+  Retry's deletions bring down, as the sequence never does), `isFull` (set by the worker once the
   conversation no longer fits a request, see Attachments), `deletedAt`, `createdAt`, `updatedAt` (its
   last activity). Indexed on `userId`, `organizationId`, `updatedAt`.
   - `activeRunId` is the run in flight, null when idle: a plain UUID rather than a reference,
@@ -262,8 +263,9 @@ New tables in `schema.gql`, each commented as the existing ones are:
   reads or writes it.
 - **`ConversationAttachment`**: `id` (made by the client, also the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
-  uploaded before the conversation exists), `message` (optional, set when sent), `name`,
-  `contentType`, `size`, `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
+  uploaded before the conversation exists), `message` (optional, set when sent), `status`
+  (`UPLOADING` while its slot is reserved, `READY` once its file is stored), `name`, `contentType`,
+  `size`, `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`, so
   deleting the organization sweeps it with the rest (see Attachments).
 
@@ -328,7 +330,7 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note at a position claimed on the counter, the claim
-    refused at `MAX_CONVERSATION_MESSAGES`, so a full conversation's aspects no longer change and the
+    refused once `messageCount` is at `MAX_CONVERSATION_MESSAGES`, so a full conversation's aspects no longer change and the
     dialog says it is full; the web
     retrying with the new counter when the worker got there first). A web mutation takes `$userId` so the list's
     refresh condition can match it, and checks `vars.userId == auth.uid`.
@@ -403,8 +405,11 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   before storing a turn, the worker checks the turn's entries fit what the run has left, keeping one
   for the note, and otherwise stops the run there with a note saying the response grew too long. The
   send route refuses a message with `ERROR_CODE_CONVERSATION_FULL` once a conversation's
-  `nextMessagePosition` reaches `MAX_CONVERSATION_MESSAGES` minus `CONVERSATION_RUN_ROOM`, so a run
-  always has room for everything it may draw, and the live tail (150) always holds a whole run.
+  `messageCount` reaches `MAX_CONVERSATION_MESSAGES` minus `CONVERSATION_RUN_ROOM`, so a run always
+  has room for everything it may draw, and the live tail (150) always holds a whole run. The cap
+  counts the messages a conversation holds, never the sequence: every insert raises `messageCount`
+  in the write that claims its position, and Retry lowers it by the messages it deletes, in the same
+  mutation, so retrying never fills a conversation.
 - **Concurrency.** These are not usage limits, which wait for credits, but bounds on how much runs
   at once: at most three runs in flight per member in each organization
   (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the queue
@@ -539,17 +544,20 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   has removed, so abandoned uploads never use up the quota for good. The count and the row's insert
   share one mutation that first locks the member's membership row, so uploads sent at once at the
   cap cannot all pass; an object whose row is refused ages out under the lifecycle rule.
-- **Uploads are create-only**, since every replay depends on the bytes never changing. The object
-  comes first, written with a generation-match-zero precondition: Storage finalizes an upload
-  atomically, so a failed stream leaves no object, and a second `PUT` with the same id cannot replace
-  one. The row comes second, inserted with the client's id, so two requests with one id end with one
-  row. Nothing deletes the object when the row fails: another request with the same id may have just
-  inserted it, and an object without a row costs nothing, since the quota counts rows and the
-  lifecycle rule below removes it in two days. A retry with the same id that finds the object answers
-  as the first did when the row is there too, and inserts the row when only the object is (same
-  member, by its path, and same size and type). The row's name, type and size never change; its one
-  update is its association with the message that sends it, `message` going from null to set once,
-  guarded on it being null.
+- **The quota is reserved before any byte is accepted.** The route first inserts the row, with the
+  client's id, as `UPLOADING`, in the mutation that locks the member's membership row and counts
+  their unsent rows, so a member at the cap is refused before anything reaches Storage, and two
+  requests with one id end with one row. Then the object, then the row turned `READY` with the size
+  and type confirmed. A reservation still `UPLOADING` after ten minutes is pruned with the expired
+  unsent rows, so a failed upload holds its slot only that long, and Storage never holds more than
+  the quota's worth of a member's unsent files.
+- **Uploads are create-only**, since every replay depends on the bytes never changing: the object is
+  written with a generation-match-zero precondition, Storage finalizes an upload atomically so a
+  failed stream leaves no object, and a second `PUT` with the same id cannot replace one. A retry
+  with the same id finds its row: `READY`, it answers as the first did; `UPLOADING`, it turns it
+  `READY` when the object is there with the same size and type, and writes the object otherwise. The
+  row's name, type and size never change once `READY`; its other update is its association with the
+  message that sends it, `message` going from null to set once, guarded on it being null.
 - **Claude's limits are checked here, not in the browser**, whose shrinking is a convenience: an
   image over 5 MB or 8000 pixels on a side (read from its header), or in a format Claude does not
   take, is refused, since a stored file Claude refuses would fail every later request of its
@@ -911,7 +919,8 @@ heavy.
   its lease shown as interrupted.
 - Tests: a stop mid-stream drops the turn and stores no context message; resume runs the unanswered
   `tool_use` blocks; retry goes back to the run's anchor, for a files-only message and for an
-  answer, and its cut passes `checkTranscript`; sending after a stop answers the open blocks; a turn
+  answer, and its cut passes `checkTranscript`; retrying many times lowers `messageCount` by what it
+  deletes, so it never fills the conversation; sending after a stop answers the open blocks; a turn
   with a `fallback` block is stored without the blocks before its boundary.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
 
@@ -1019,9 +1028,10 @@ A refactor and two pure functions, no visible change.
 
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
-  Claude's image limits and a PDF's page count, then create-only: the object streamed under `pending/` with a
-  generation-match-zero precondition, then the row, an object left without one being the lifecycle
-  rule's; deleting a pruned conversation's folder.
+  Claude's image limits and a PDF's page count: the row reserved `UPLOADING` under the membership
+  lock, the object streamed under `pending/` with a generation-match-zero precondition, the row
+  turned `READY`; stale reservations pruned after ten minutes; deleting a pruned conversation's
+  folder.
 - The bucket's lifecycle rule deleting `pending/` objects older than two days, applied with gcloud
   like the CORS rule (a human step, written down beside `storage.cors.json`).
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
@@ -1033,10 +1043,10 @@ A refactor and two pure functions, no visible change.
 - `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, both measured before the release.
 - Tests: blocks built from each type; the budget refused; a text file over its length refused, and a
   message whose counted tokens pass 700000; an oversized image refused; a PDF over 100
-  pages refused, and one that would pass 300 in the conversation; a second upload
-  with the same id refused, a retried one answered as the first, one that failed between the object
-  and the row recovered, two sent at once with one id ending with one row and the object kept; a
-  placeholder replayed byte for byte; a conversation marked full.
+  pages refused, and one that would pass 300 in the conversation; a member at the cap refused before
+  any byte is stored, again and again with new ids; a stale reservation pruned; a retried upload
+  finishing its reservation; two sent at once with one id ending with one row; a placeholder replayed
+  byte for byte; a conversation marked full.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
 ### M16: Attachments in the composer and the thread

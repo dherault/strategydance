@@ -1439,10 +1439,6 @@
         "hash": "e6f518b75c2baa64",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "log.heading": {
-        "hash": "b821354a3a198baa",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "log.loadError": {
         "hash": "329817319321d3eb",
         "locales": "DE,ES,FR,JA,PT,ZH"

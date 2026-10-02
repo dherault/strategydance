@@ -54,12 +54,11 @@ export const AutoFocus: Story = {
   },
 }
 
-// BlockNote's menus in French, with the heading named as a caller's catalogue names it
+// BlockNote's menus in French
 export const Localized: Story = {
   args: {
     locale: 'FR',
     placeholder: "Qu'est-ce qui a avancé aujourd'hui ?",
-    labels: { heading: 'Titre' },
   },
 }
 

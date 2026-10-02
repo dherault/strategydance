@@ -13,14 +13,10 @@ describe('getRichTextDictionary', () => {
     expect(getRichTextDictionary(undefined, { placeholder: 'Write' }).slash_menu.quote.title).toBe('Quote')
   })
 
-  it("lays the field's placeholder and heading name over BlockNote's, and keeps its '/' hint", () => {
-    const dictionary = getRichTextDictionary('EN', { placeholder: 'What moved forward today?', heading: 'Heading' })
+  it("lays the field's placeholder over BlockNote's, and keeps its '/' hint", () => {
+    const dictionary = getRichTextDictionary('EN', { placeholder: 'What moved forward today?' })
 
     expect(dictionary.placeholders.emptyDocument).toBe('What moved forward today?')
     expect(dictionary.placeholders.default).toContain('/')
-    expect(dictionary.slash_menu.heading_2.title).toBe('Heading')
-    expect(dictionary.slash_menu.heading_2.subtext).toBe(
-      getRichTextDictionary('EN', { placeholder: '' }).slash_menu.heading_2.subtext,
-    )
   })
 })

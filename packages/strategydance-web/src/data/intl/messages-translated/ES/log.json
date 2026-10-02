@@ -6,7 +6,6 @@
   "log.edited": "Editado",
   "log.editorError": "No se pudo cargar el editor. Revisa tu conexión y vuelve a cargar.",
   "log.empty": "Aún no se ha registrado nada esta semana.",
-  "log.heading": "Encabezado",
   "log.loadError": "No se pudo cargar el registro.",
   "log.loadPrevious": "Cargar semana anterior",
   "log.loadingEditor": "Cargando editor",

@@ -31,10 +31,21 @@ describe('createRichTextSchema', () => {
     expect(Object.keys(inlineContentSchema).sort()).toEqual(['link', 'text'])
   })
 
-  it('writes the one heading level', () => {
+  it('writes three heading levels, the second by default', () => {
     expect(readBlockSchema(['heading']).heading.propSchema.level).toMatchObject({
       default: 2,
-      values: [2],
+      values: [1, 2, 3],
     })
+  })
+
+  it("pastes a heading at its tag's level, and one past the third at the third", () => {
+    const parse = createRichTextSchema(['heading']).blockSpecs.heading?.implementation.parse
+    const read = (tagName: string) => parse?.({ tagName } as HTMLElement)
+
+    expect(read('H1')).toEqual({ level: 1 })
+    expect(read('H2')).toEqual({ level: 2 })
+    expect(read('H3')).toEqual({ level: 3 })
+    expect(read('H6')).toEqual({ level: 3 })
+    expect(read('P')).toBeUndefined()
   })
 })

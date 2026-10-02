@@ -70,7 +70,6 @@ function LogEditor({
           autoFocus={autoFocus}
           onChange={setChange}
           onSubmit={submit}
-          labels={{ heading: formatMessage(logMessages.heading) }}
         />
       ) : (
         <div className="flex min-h-34 items-center gap-2 rounded-xs border border-border bg-white p-3 text-sm text-muted-foreground">

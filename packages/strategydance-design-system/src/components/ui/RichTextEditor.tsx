@@ -1,5 +1,6 @@
 import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
 import { FormattingToolbarExtension, SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
+import { withCollaboration } from '@blocknote/core/yjs'
 import { DesktopFormattingToolbarController, SuggestionMenuController } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
@@ -10,13 +11,17 @@ import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTe
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
+import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
 import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 import {
+  RICH_TEXT_EDITOR_BLOCKS,
   createRichTextSchema,
   getRichTextBlockTypes,
   type RichTextEditorBlock,
 } from 'strategydance-design-system/lib/richTextEditorSchema'
 import { cn } from 'strategydance-design-system/lib/utils'
+import type { Awareness } from 'y-protocols/awareness'
+import type * as Y from 'yjs'
 
 // Relative, since the package's `components/*` export resolves to `.tsx` modules only
 import './RichTextEditor.css'
@@ -47,9 +52,27 @@ type RichTextEditorChange = {
   textLength: number
 }
 
+/** A text several people write at once, shared through Yjs */
+type RichTextEditorCollaboration = {
+  /**
+   * The text, which the editor opens on and writes to rather than `initialValue`. The caller's, so
+   * it merges into it what the others wrote, and sends them what this reader writes
+   */
+  doc: Y.Doc
+  /** Where each writer's caret is, this reader's included, which the editor draws for the others */
+  awareness: Awareness
+  /**
+   * How this reader shows to the others: a name, and a color in six-digit hex, which BlockNote
+   * reads to choose the label's text color
+   */
+  user: { name: string; color: string }
+}
+
 type Props = {
   /** Blocks as `onChange` serialized them, to start from. Read once, as everything is but the callbacks: change the `key` to start over */
   initialValue?: string | null
+  /** A text written together, which the editor takes in place of `initialValue`. Read once too */
+  collaboration?: RichTextEditorCollaboration
   /** What the empty document says, and its accessible name unless `aria-label` says otherwise */
   placeholder: string
   onChange?: (change: RichTextEditorChange) => void
@@ -64,15 +87,18 @@ type Props = {
    * The blocks it writes besides paragraphs, all four unless it says fewer. One left out is not
    * offered, and pastes as paragraphs
    */
-  blocks?: RichTextEditorBlock[]
+  blocks?: readonly RichTextEditorBlock[]
   appearance?: RichTextEditorAppearance
   className?: string
   'aria-label'?: string
   ref?: Ref<RichTextEditorHandle>
 }
 
-type EditorOptions = Pick<Props, 'initialValue' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'aria-label'> & {
-  blocks: RichTextEditorBlock[]
+type EditorOptions = Pick<
+  Props,
+  'initialValue' | 'collaboration' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'aria-label'
+> & {
+  blocks: readonly RichTextEditorBlock[]
   appearance: RichTextEditorAppearance
 }
 
@@ -82,8 +108,6 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   field: 'min-h-[134px] max-h-[420px] overflow-auto',
   document: 'min-h-[360px]',
 }
-
-const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
 
 /*
   A rich text field: BlockNote's block editor, for a post of a few paragraphs. "/" opens a menu of
@@ -99,6 +123,13 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
   wants it empty again changes its `key`. `blocks` narrows what it writes, for a text shorter than
   a post. A value it cannot read, an old Lexical one included, starts it empty.
 
+  Or it is shared: `collaboration` gives it a Yjs document to write in, where others' edits land as
+  they arrive, and the caret and the name of each of them, from the awareness. The document is the
+  value then, and `initialValue` goes unread. Undo takes back this reader's own edits only, and
+  `onChange` reports others' edits too, so the text it reports is always the whole of it. Whatever
+  arrives through the document skips `parseRichText`: the schema is what keeps the text to the
+  blocks the editor writes, and a block it lacks is deleted from the document.
+
   It is a framed field unless `appearance` makes it a document, the body of a page under its own
   title, which has no frame and grows with its text, its side menu hanging in the page's margin.
   `ref` takes a handle that focuses it from outside.
@@ -109,20 +140,31 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
 */
 function RichTextEditor({
   initialValue,
+  collaboration,
   placeholder,
   onChange,
   onSubmit,
   autoFocus = false,
   locale,
   labels,
-  blocks = ALL_BLOCKS,
+  blocks = RICH_TEXT_EDITOR_BLOCKS,
   appearance = 'field',
   className,
   'aria-label': ariaLabel,
   ref,
 }: Props) {
   const [editor] = useState(() =>
-    createEditor({ initialValue, placeholder, autoFocus, locale, labels, blocks, appearance, 'aria-label': ariaLabel }),
+    createEditor({
+      initialValue,
+      collaboration,
+      placeholder,
+      autoFocus,
+      locale,
+      labels,
+      blocks,
+      appearance,
+      'aria-label': ariaLabel,
+    }),
   )
   const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor))
 
@@ -211,6 +253,7 @@ function RichTextEditor({
 
 function createEditor({
   initialValue,
+  collaboration,
   placeholder,
   autoFocus,
   locale,
@@ -219,18 +262,37 @@ function createEditor({
   appearance,
   'aria-label': ariaLabel,
 }: EditorOptions) {
-  // BlockNote throws on an empty document, which it makes itself when given none
-  const initialContent = parseRichText(initialValue, { blockTypes: getRichTextBlockTypes(blocks) })
-
-  return BlockNoteEditor.create({
+  const options = {
     schema: createRichTextSchema(blocks),
-    initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,
     dictionary: getRichTextDictionary(locale, { placeholder, turnInto: labels?.turnInto }),
     domAttributes: {
       editor: { 'aria-label': ariaLabel ?? placeholder, class: EDITOR_CLASS_NAMES[appearance] },
     },
-    autofocus: autoFocus ? 'end' : false,
+    autofocus: autoFocus ? ('end' as const) : false,
     trailingBlock: false,
+  }
+
+  // A shared text opens on its document, so nothing seeds it, and its history is Yjs' own, which
+  // `withCollaboration` puts in place of BlockNote's
+  if (collaboration) {
+    return BlockNoteEditor.create(
+      withCollaboration({
+        ...options,
+        collaboration: {
+          fragment: collaboration.doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT),
+          provider: { awareness: collaboration.awareness },
+          user: collaboration.user,
+        },
+      }),
+    )
+  }
+
+  // BlockNote throws on an empty document, which it makes itself when given none
+  const initialContent = parseRichText(initialValue, { blockTypes: getRichTextBlockTypes(blocks) })
+
+  return BlockNoteEditor.create({
+    ...options,
+    initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,
   })
 }
 
@@ -239,6 +301,7 @@ export {
   type RichTextEditorAppearance,
   type RichTextEditorBlock,
   type RichTextEditorChange,
+  type RichTextEditorCollaboration,
   type RichTextEditorHandle,
   type RichTextEditorLabels,
 }

@@ -86,6 +86,9 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
   })
 }
 
+/** Every block an editor can write besides paragraphs, which it writes unless told fewer */
+const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
+
 // The stored block types an editor writing `blocks` keeps, which `normalizeRichText` holds a value to
 function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): RichTextBlockType[] {
   return [
@@ -97,4 +100,4 @@ function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): RichText
   ]
 }
 
-export { createRichTextSchema, getRichTextBlockTypes, type RichTextEditorBlock }
+export { RICH_TEXT_EDITOR_BLOCKS, createRichTextSchema, getRichTextBlockTypes, type RichTextEditorBlock }

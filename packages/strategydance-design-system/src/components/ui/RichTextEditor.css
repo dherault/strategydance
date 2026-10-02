@@ -507,3 +507,20 @@
 .rich-text-editor.bn-root .bn-editor ::selection {
   background-color: var(--color-primary-100);
 }
+
+/*
+  Another writer's caret in a shared text, in their color, and the label with their name that
+  BlockNote shows over it while they type or move it, in the design system's face and radius.
+  BlockNote colors both and picks the label's text color from the background
+*/
+.rich-text-editor.bn-root .bn-editor .bn-collaboration-cursor__base .bn-collaboration-cursor__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-collaboration-cursor__base[data-active] .bn-collaboration-cursor__label {
+  padding: 1px 5px;
+  border-radius: var(--radius-xs) var(--radius-xs) var(--radius-xs) 0;
+}

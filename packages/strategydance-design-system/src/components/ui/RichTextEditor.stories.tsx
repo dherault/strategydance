@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -12,6 +12,9 @@ import {
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 import { RichTextEditor, type RichTextEditorHandle } from 'strategydance-design-system/components/ui/RichTextEditor'
+import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRichTextYUpdate'
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 
 const meta = {
   title: 'Components/RichTextEditor',
@@ -159,6 +162,108 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
       <RichTextEditor
         {...props}
         ref={editorRef}
+        className="border-t border-neutral-200"
+      />
+    </div>
+  )
+}
+
+/*
+  One text written by two people at once, as a shared knowledge document is: what either types
+  lands in the other's editor, and each shows the other's caret and name while they type. Each
+  editor has a Yjs document of its own, linked to the other's here as the server links them, since
+  two editors on one document would be one writer to Yjs, and neither would draw the other's caret
+*/
+export const Collaborative: Story = {
+  args: {
+    appearance: 'document',
+    placeholder: 'Start writing',
+    className: undefined,
+  },
+  parameters: {
+    docs: {
+      story: {
+        height: '720px',
+      },
+    },
+  },
+  render: args => <CollaborativeExample {...args} />,
+}
+
+// What one writer's document and awareness say, as received by the other
+const REMOTE = Symbol('remote')
+
+type Writer = {
+  doc: Y.Doc
+  awareness: Awareness
+}
+
+function createWriter(seed: Uint8Array): Writer {
+  const doc = new Y.Doc()
+
+  Y.applyUpdate(doc, seed, REMOTE)
+
+  return { doc, awareness: new Awareness(doc) }
+}
+
+// Sends what one writer does to the other, and leaves alone what arrived from the other
+function link(from: Writer, to: Writer) {
+  function sendUpdate(update: Uint8Array, origin: unknown) {
+    if (origin !== REMOTE) Y.applyUpdate(to.doc, update, REMOTE)
+  }
+
+  function sendAwareness(
+    { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+    origin: unknown,
+  ) {
+    if (origin === REMOTE) return
+
+    applyAwarenessUpdate(
+      to.awareness,
+      encodeAwarenessUpdate(from.awareness, [...added, ...updated, ...removed]),
+      REMOTE,
+    )
+  }
+
+  from.doc.on('update', sendUpdate)
+  from.awareness.on('update', sendAwareness)
+
+  return () => {
+    from.doc.off('update', sendUpdate)
+    from.awareness.off('update', sendAwareness)
+  }
+}
+
+function CollaborativeExample(props: Parameters<typeof RichTextEditor>[0]) {
+  // Both open on the same first update, so they hold one copy of the text
+  const [writers] = useState(() => {
+    const seed = createRichTextYUpdate(richTextSample)
+
+    return { ana: createWriter(seed), ben: createWriter(seed) }
+  })
+
+  useEffect(() => {
+    const unlinkAna = link(writers.ana, writers.ben)
+    const unlinkBen = link(writers.ben, writers.ana)
+
+    return () => {
+      unlinkAna()
+      unlinkBen()
+    }
+  }, [writers])
+
+  return (
+    <div className="grid grid-cols-2 gap-12 px-16">
+      <RichTextEditor
+        {...props}
+        aria-label="Ana's editor"
+        collaboration={{ ...writers.ana, user: { name: 'Ana', color: '#0a61b5' } }}
+        className="border-t border-neutral-200"
+      />
+      <RichTextEditor
+        {...props}
+        aria-label="Ben's editor"
+        collaboration={{ ...writers.ben, user: { name: 'Ben', color: '#c2410c' } }}
         className="border-t border-neutral-200"
       />
     </div>

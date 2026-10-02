@@ -50,6 +50,13 @@ export const RICH_TEXT_CLASSES = richTextClasses
   any prop left at its default, so that the same document always serializes to the same string
 */
 
+/**
+ * The name of the Yjs type a shared text lives in, inside its Yjs document: the editor opens on it,
+ * and a text converted for sharing is written to it. A document written under another name reads
+ * as empty, so it never changes
+ */
+export const RICH_TEXT_YJS_FRAGMENT = 'prosemirror'
+
 /** A heading's levels. The second is the default, which a heading at it leaves out */
 export const RICH_TEXT_HEADING_LEVELS = [1, 2, 3] as const
 

@@ -12,6 +12,10 @@ const SEED_REFUSAL = 'seeded or changed elsewhere since it was read'
 // Part of the message `PushDocumentUpdate`'s check gives when the document is gone
 const GONE_REFUSAL = 'No document by that id in the organization'
 
+// The message Data Connect gives an insert under a key that is taken, as `PushDocumentUpdate`'s is
+// when it is sent again after its answer was lost
+const DUPLICATE_REFUSAL = 'violates SQL unique constraint: document_update_pkey'
+
 // Part of the message `CompactDocument`'s check gives when the snapshot is at another revision, or
 // the document is gone
 const COMPACTION_REFUSAL = 'compacted or deleted elsewhere since it was read'
@@ -57,6 +61,9 @@ function createKnowledgeDocumentSyncWrites(organizationId: string, documentId: s
         return true
       } catch (error) {
         if (isRefusal(error, GONE_REFUSAL)) return false
+
+        // Stored already: the id is this push's own, fresh, so only its earlier send can hold it
+        if (isRefusal(error, DUPLICATE_REFUSAL)) return true
 
         throw error
       }

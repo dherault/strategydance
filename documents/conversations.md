@@ -280,7 +280,10 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
   membership, with the predicate `GetTaskLists` uses, and every mutation checking that membership in
   its transaction: conversations outlive a member's removal, so ownership alone would leave a former
   member reading them):
-  - `GetConversations($organizationId)`, live: the list, the dock and the sidebar badge. Each
+  - `GetConversations($organizationId)`, live: the list, the dock and the sidebar badge, with
+    `limit: 1000` (`MAX_CONVERSATIONS`) and `orderBy: [{ updatedAt: DESC }, { id: ASC }]`, since a
+    query left without a limit stops at 100 and older conversations, and their waiting questions,
+    would drop out of the list and the badge. Each
     conversation's fields, `preview` included, and whether a question waits:
     `conversationMessages_on_conversation(where: { kind: { eq: QUESTION }, answeredAt: { isNull:
     true }, run: { status: { eq: WAITING } } }, limit: 1) { id }`, so a question stranded by a failed
@@ -306,6 +309,8 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     the `simple` text search configuration since conversations come in seven languages, and the query
     reads `conversations_search` and `conversationMessages_search` (member and agent text only) with
     `queryFormat: PLAIN`, which requires every word; the web merges the two lists of conversations.
+    Each list says its limit (`limit: 1000` for titles, `limit: 2000` for messages, most relevant
+    first), so neither stops at the default 100.
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note at a position claimed on the counter, the web
@@ -481,12 +486,14 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Uploads are create-only**, since every replay depends on the bytes never changing. The object
   comes first, written with a generation-match-zero precondition: Storage finalizes an upload
   atomically, so a failed stream leaves no object, and a second `PUT` with the same id cannot replace
-  one. The row comes second; if inserting it fails, the route deletes the object, and the lifecycle
-  rule below takes any it misses. A retry with the same id that finds the object answers as the first
-  did when the row is there too, and inserts the row when only the object is (same member, by its
-  path, and same size and type). The row's name, type and size never change; its one update is its
-  association with the message that sends it, `message` going from null to set once, guarded on it
-  being null. Tests cover a failure between the two steps.
+  one. The row comes second, inserted with the client's id, so two requests with one id end with one
+  row. Nothing deletes the object when the row fails: another request with the same id may have just
+  inserted it, and an object without a row costs nothing, since the quota counts rows and the
+  lifecycle rule below removes it in two days. A retry with the same id that finds the object answers
+  as the first did when the row is there too, and inserts the row when only the object is (same
+  member, by its path, and same size and type). The row's name, type and size never change; its one
+  update is its association with the message that sends it, `message` going from null to set once,
+  guarded on it being null.
 - **Claude's limits are checked here, not in the browser**, whose shrinking is a convenience: an
   image over 5 MB or 8000 pixels on a side (read from its header), or in a format Claude does not
   take, is refused, since a stored file Claude refuses would fail every later request of its
@@ -572,7 +579,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | `update_knowledge` | `{ id, revision, title?, aspects?, content?, append? }`. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M9 |
 | `get_team` | Every member: id, name, job title, role, bio, top priority as text and when it was set | M11 |
 | `read_log` | `{ from, to, memberId? }`, at most 31 days: entries as text, with author and date | M11 |
-| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown of at most `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text, stored as rich text. Records the day's activity, as every change to Today data does | M11 |
+| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M11 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers | M12 |
 | `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M19 |
 | `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M19 |
@@ -882,8 +889,10 @@ A refactor and two pure functions, no visible change.
   converted with `richTextToMarkdown`.
 - `set_top_priority`, through one backend mutation `SetTopPriorityForAgent($organizationId,
   $userId, $topPriority, $date)`: it checks membership, writes the member's own membership row
-  (`topPriority` through `markdownToRichText`, refused past `MAX_TOP_PRIORITY_TEXT_LENGTH` characters
-  of text, and `topPriorityUpdatedAt`) and upserts their `activityDay` row, two rows written once
+  (`topPriority` through `markdownToRichText`, then held to both limits the Today page holds it to:
+  at most `MAX_TOP_PRIORITY_TEXT_LENGTH` characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized,
+  since formatting and long link addresses can pass the second with little text; and
+  `topPriorityUpdatedAt`) and upserts their `activityDay` row, two rows written once
   each, with `RecordActivity`'s check that `$date` is the member's today, which the backend computes
   from their stored time zone. Its `$organizationId` matches `GetOrganizationTeam`'s refresh, so an
   open Today page updates at once. `CLAUDE.md` asks every new way of changing Today data to record
@@ -940,8 +949,8 @@ A refactor and two pure functions, no visible change.
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
   Claude's image limits and a PDF's page count, then create-only: the object streamed under `pending/` with a
-  generation-match-zero precondition, then the row, with the object deleted if the row fails;
-  deleting a pruned conversation's folder.
+  generation-match-zero precondition, then the row, an object left without one being the lifecycle
+  rule's; deleting a pruned conversation's folder.
 - The bucket's lifecycle rule deleting `pending/` objects older than two days, applied with gcloud
   like the CORS rule (a human step, written down beside `storage.cors.json`).
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
@@ -954,7 +963,8 @@ A refactor and two pure functions, no visible change.
 - Tests: blocks built from each type; the budget refused; an oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a second upload
   with the same id refused, a retried one answered as the first, one that failed between the object
-  and the row recovered; a placeholder replayed byte for byte; a conversation marked full.
+  and the row recovered, two sent at once with one id ending with one row and the object kept; a
+  placeholder replayed byte for byte; a conversation marked full.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
 ### M16: Attachments in the composer and the thread
@@ -970,7 +980,13 @@ A refactor and two pure functions, no visible change.
   or `NONE`), `isEnabled`, the key encrypted with Cloud KMS and its last four characters, the OAuth
   client it registered, its tools as last listed (annotations included), `autoApprovedTools` (the
   tools an administrator lets run without the member's approval, empty to begin with), `lastError`,
-  `lastUsedAt`, `deletedAt`. The web connector's live list never selects a secret.
+  `lastUsedAt`, `deletedAt`. The web connector's live list never selects a secret, and says its
+  limit (`MAX_INTEGRATIONS`, 50 per organization, refused past that) rather than stopping at the
+  default 100 unannounced.
+- **The address and the authentication are bound to the credentials.** Changing either clears, in the
+  same mutation, everything issued for the old ones: the API key, the OAuth client registered with
+  the old server, every member's connection and the pending authorizations. Members reconnect, so no
+  credential issued for one origin is ever sent to another.
 - The server dialog lists its tools with a switch each for running without approval. A tool's
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.

@@ -121,7 +121,9 @@ knowledge."
 - A "+" menu: "Files and images", and "Mention knowledge", which inserts an `@`.
 - Typing `@` opens a "Knowledge" list of up to six documents whose title matches, latest first,
   driven by the arrows, Enter or Tab to pick, Escape to close; "No knowledge matches “query”" when
-  none does. A pick inserts `@Title`, sent as `[Title](doc:<id>)`.
+  none does. A pick inserts `@Title`, sent as `[Title](doc:<id>)` with `[`, `]` and `\` in the title
+  escaped, since a title may hold any character; the link draws the document's current title from
+  its id anyway.
 - Attachments: up to ten per message, picked or pasted, shown in a tray above the field with a
   remove button each.
 - Send is disabled when there is nothing to send. While a run goes, a Stop button replaces it.
@@ -255,7 +257,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
 - **`ConversationTranscriptEntry`**: what Claude is sent, kept apart from what the thread draws.
   `conversation`, `run`, `position` (dense from 0, unique per conversation), `role` (`USER`,
   `ASSISTANT`, `SYSTEM`), `content` (`Any`: the exact content blocks, thinking blocks and their
-  signatures included), `contextHash` (on a context message, see The transcript). Only the backend
+  signatures included), `contextHash` (on a context message, see The transcript), `drawnBlocks` (how
+  many of its blocks the thread has drawn, see Drawing survives a crash). Only the backend
   reads or writes it.
 - **`ConversationAttachment`**: `id` (made by the client, also the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
@@ -272,7 +275,8 @@ conversation, see Attachments), `MAX_PENDING_CONVERSATION_ATTACHMENTS` (30 unsen
 member), `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, `MAX_QUESTION_OPTIONS` (6),
 `CONVERSATION_RUN_ROOM` (100), `MAX_ACTIVE_RUNS_PER_MEMBER` (3 per organization),
 `MAX_CONVERSATION_PDF_PAGES` (100 per file) and `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300 per
-conversation), `CONVERSATION_SUGGESTION_IDS` (M13),
+conversation), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000 characters per text file),
+`CONVERSATION_SUGGESTION_IDS` (M13),
 and the release gate `ARE_CONVERSATIONS_STAFF_ONLY`. New error
 codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_CONVERSATION_FULL`.
 
@@ -296,7 +300,8 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     message inserts, and on create, delete, restore, aspects and read, with the condition
     `mutation.variables.userId == request.auth.uid && mutation.variables.organizationId ==
     request.variables.organizationId`.
-  - `GetConversation($organizationId, $id)`, live: one conversation and its latest 100 messages,
+  - `GetConversation($organizationId, $id)`, live: one conversation and its latest 150 messages,
+    more than one run can draw (see Room at the cap), so Retry's deletions always fall inside it,
     newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
     live, so a new entry never sends a long thread again.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
@@ -322,7 +327,9 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     conversations.
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
-    aspects as the member's, and the aspects note at a position claimed on the counter, the web
+    aspects as the member's, and the aspects note at a position claimed on the counter, the claim
+    refused at `MAX_CONVERSATION_MESSAGES`, so a full conversation's aspects no longer change and the
+    dialog says it is full; the web
     retrying with the new counter when the worker got there first). A web mutation takes `$userId` so the list's
     refresh condition can match it, and checks `vars.userId == auth.uid`.
   - `RestoreConversation` holds `MAX_CONVERSATIONS` as creating does: both lock the member's
@@ -330,7 +337,9 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     creating and undoing cannot pass the cap.
 - **The backend** does everything else, through backend-connector operations that are `NO_ACCESS`
   and take the verified `$userId`: creating a conversation, every message and transcript entry,
-  runs and their leases, uploads, and pruning, when it creates a conversation, the member's
+  runs and their leases, uploads, and pruning (rows, the conversation's `ConversationAttachment` rows
+  by `conversationId`, which no reference cascades to, and its Storage folder), when it creates a
+  conversation, the member's
   conversations deleted over a day ago, with their files. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
@@ -358,7 +367,10 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   never created, the run is dead. Send, answer, stop, resume and retry first finalize a dead active
   run as `INTERRUPTED` (running calls `CANCELLED`, an `INTERRUPTED` note, `activeRunId` cleared). The
   web shows a claimed run past its lease as interrupted, with Resume and Retry, and a queued one as
-  still waiting.
+  still waiting. A page that only watches needs no action from the member for that: when it sees a
+  queued run past its lease it calls `POST …/runs/:runId/reconcile`, and again every two minutes
+  while it stays so, and that route does the task lookup and finalizes a dead run, so a run whose
+  task ran out of attempts or vanished never spins forever.
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
@@ -383,10 +395,12 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the Cloud Run timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note.
-- **Room at the cap.** The send route refuses a message with `ERROR_CODE_CONVERSATION_FULL` once a
-  conversation's `nextMessagePosition` reaches `MAX_CONVERSATION_MESSAGES` minus
-  `CONVERSATION_RUN_ROOM` (100), so a run always has room for what it draws. A run that still reaches
-  the cap's last position stops and writes its note there.
+- **Room at the cap.** A run draws at most `CONVERSATION_RUN_ROOM` (100) entries, its note included:
+  before storing a turn, the worker checks the turn's entries fit what the run has left, keeping one
+  for the note, and otherwise stops the run there with a note saying the response grew too long. The
+  send route refuses a message with `ERROR_CODE_CONVERSATION_FULL` once a conversation's
+  `nextMessagePosition` reaches `MAX_CONVERSATION_MESSAGES` minus `CONVERSATION_RUN_ROOM`, so a run
+  always has room for everything it may draw, and the live tail (150) always holds a whole run.
 - **Concurrency.** These are not usage limits, which wait for credits, but bounds on how much runs
   at once: at most three runs in flight per member in each organization
   (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the queue
@@ -415,6 +429,12 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   search (`server_tool_use` with its `web_search_tool_result`) becomes a finished `TOOL_CALL` whose
   output lists the results' titles and addresses. Each `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
+- **Drawing survives a crash.** A turn is stored in the transcript first, then drawn block by block,
+  so a crash can fall between the two. Each drawn message's id derives from its transcript entry and
+  block index, so drawing it twice is a conflict rather than a duplicate, and the entry keeps a
+  cursor, `drawnBlocks`, advanced in the same mutation as each message it draws. A worker that claims
+  a run after a crash finishes drawing the last entry from its cursor, then carries on, with calls
+  drawn but never started run as Recovery says and calls never drawn drawn and run.
 - **Ending.** One mutation: the fenced write gives the run its status, `endedAt` and usage, and the
   conversation's `activeRunId` is cleared, only where it still names this run.
 
@@ -543,7 +563,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   leaving room for the text; and before each request the worker measures the serialized body. Past
   30 MB, or once a request has read more than 800000 input tokens, the worker marks the conversation
   full: the send route refuses new messages with `ERROR_CODE_CONVERSATION_FULL`, and the thread says
-  to start a new one. The service gets both `--memory 2Gi` and a low `--concurrency` (20 to start,
+  to start a new one. Files are checked before that can happen, since one large file could pass the
+  model's context on the very first request: a text file is held to 200000 characters
+  (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message carrying files is sent only after the
+  send route counts the next request's tokens with the token-counting endpoint, which Vertex offers,
+  and refuses it past 700000. The service gets both `--memory 2Gi` and a low `--concurrency` (20 to start,
   measured on the heaviest conversation), since a request can hold its files several times over
   (bytes, base64, the SDK's copy) and Cloud Run's default of 80 would put too many on one instance.
 
@@ -830,8 +854,9 @@ heavy.
 - `enqueueRun`: a named task (`run-<runId>`, so a repeat does not queue twice), an OIDC token, a
   15-minute dispatch deadline; in development, `runConversation` in-process without waiting.
 - `POST /internal/conversation-runs` and `runConversation`: claiming, leases, fencing, the 200 and
-  503 answers, finishing, and a placeholder agent that writes one `AGENT_TEXT` through the code paths
-  M6 uses. The backend operations for all of it.
+  503 answers, finishing, drawing with its cursor and deterministic ids, and a placeholder agent that
+  writes one `AGENT_TEXT` through the code paths M6 uses. `POST …/runs/:runId/reconcile`, which the
+  page calls for a queued run past its lease. The backend operations for all of it.
 - `deploy:backend` gains `--timeout 900`. The welcome email's lease goes from ten minutes to twenty
   (`ClaimWelcomeEmail` and its comment in the backend connector, the `schema.gql` comment,
   `sendWelcomeEmail.ts`), since a request may now run fifteen.
@@ -993,7 +1018,8 @@ A refactor and two pure functions, no visible change.
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
 - `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, both measured before the release.
-- Tests: blocks built from each type; the budget refused; an oversized image refused; a PDF over 100
+- Tests: blocks built from each type; the budget refused; a text file over its length refused, and a
+  message whose counted tokens pass 700000; an oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a second upload
   with the same id refused, a retried one answered as the first, one that failed between the object
   and the row recovered, two sent at once with one id ending with one row and the object kept; a
@@ -1034,7 +1060,10 @@ A refactor and two pure functions, no visible change.
   timeouts and a cap on the response's size. Cloud Run can reach the metadata server, which hands out
   the service account's tokens, so this is not optional. OAuth discovery and token requests (M18) go
   through the same guard. The connection is made to the address the guard checked, never to a name
-  resolved again.
+  resolved again. A request that carries a credential (an API key, a member's token, a refresh
+  token, the registered client's secret) never follows a redirect to another origin: it fails, so no
+  secret reaches a host it was not issued for. Only unauthenticated discovery follows redirects, each
+  hop guarded.
 - The guard ships with deterministic tests, a fake resolver and transport standing in for the
   network: IPv4 and IPv6 private, loopback, link-local and unique local ranges, IPv4-mapped IPv6
   forms, `0.0.0.0`, the metadata names, a resolver whose answer changes between the check and the

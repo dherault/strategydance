@@ -93,7 +93,7 @@ type Options = {
   maxContentLength?: number
   // The longest snapshot the server keeps, in base64, past which nothing folds
   maxStateLength?: number
-  // The longest update the server keeps, in base64, past which a push is held back
+  // The longest update the server keeps, in base64, past which an edit is folded rather than pushed
   maxUpdateLength?: number
   // The most pending updates a read takes
   updatesLimit?: number
@@ -177,10 +177,8 @@ function createKnowledgeDocumentSync({
   let isRereading = false
   let isChangedHere = false
   let isShared = false
-  // Whether the last fold found the snapshot longer than the server keeps, and the last push its
-  // update, which only gathering far more than the content holds, offline say, can come to
+  // Whether the last fold found the snapshot longer than the server keeps
   let isOversized = false
-  let isUpdateOversized = false
   let latestContent = ''
   // The revision of the snapshot merged into `doc`, and the newest one a push spoke of
   let mergedRevision = -1
@@ -240,7 +238,7 @@ function createKnowledgeDocumentSync({
     if (!isStored) return 'idle'
     if (hasFailed) return 'error'
     if (isSending) return 'saving'
-    if (isHeld() || isOversized || isUpdateOversized || (isCrowded() && buffer)) return 'tooLong'
+    if (isHeld() || isOversized || (isCrowded() && buffer)) return 'tooLong'
     if (buffer || inFlight) return 'pending'
 
     return 'idle'
@@ -398,6 +396,10 @@ function createKnowledgeDocumentSync({
 
         applyStored(stored)
         scheduleIdleCompaction()
+
+        // A push that waited for this snapshot, as a fold of an edit too long to push does, goes now
+        if (buffer) schedulePush()
+
         maybeReread()
       })
       .catch(error => {
@@ -517,11 +519,10 @@ function createKnowledgeDocumentSync({
 
       const payload = encodeBase64(buffer)
 
-      // Refused for its length every time it went, so it does not go, and the page says so
-      isUpdateOversized = payload.length > maxUpdateLength
-
-      if (isUpdateOversized) {
-        report()
+      // Too long to push, a long paste say: folded into the snapshot instead, which the others read
+      // when the revision moves
+      if (payload.length > maxUpdateLength) {
+        await compact(true)
 
         return
       }
@@ -579,13 +580,17 @@ function createKnowledgeDocumentSync({
     return queuedPush
   }
 
-  // Folds the updates pending into the snapshot, when this tab holds the latest snapshot
-  async function compact() {
+  /*
+    Folds the updates pending into the snapshot, when this tab holds the latest snapshot. The
+    snapshot holds this tab's edits not pushed yet too, so a fold that goes through takes them, and
+    one `isCarrying` them goes with no update pending: an edit too long to push
+  */
+  async function compact(isCarrying = false) {
     if (!isStored || isGone || isPaused || isRereading || knownRevision > mergedRevision) return
 
     const updateIds = [...new Set([...pendingIds, ...ownIds.keys()])]
 
-    if (!updateIds.length) return
+    if (!updateIds.length && !isCarrying) return
 
     const content = readContent(doc)
 
@@ -604,6 +609,7 @@ function createKnowledgeDocumentSync({
     if (isOversized) return
 
     const revision = mergedRevision
+    const carried = buffer
 
     isCompacting = true
 
@@ -614,6 +620,10 @@ function createKnowledgeDocumentSync({
         pendingIds = pendingIds.filter(id => !updateIds.includes(id))
 
         for (const id of updateIds) ownIds.delete(id)
+
+        // The snapshot took what was not pushed yet, unless more was typed while the fold was out,
+        // which goes in the next push, the part folded with it
+        if (buffer === carried) buffer = null
 
         listeners?.onSaved()
 
@@ -675,15 +685,23 @@ function createKnowledgeDocumentSync({
   }
 
   /*
-    Sends everything, then pauses, for a page about to delete the document. Edits held back for
-    their length are given up with it, as are those of a document somebody deleted already. A send
-    that fails leaves it unpaused and answers false
+    Sends everything, then pauses, for a page about to delete the document. Edits held back, for
+    their length or as too many updates are pending, are given up with it, as are those of a
+    document somebody deleted already, and so is whatever a flush could not send. A send that fails
+    leaves it unpaused and answers false
   */
   async function settle() {
     for (;;) {
+      const bufferBefore = buffer
+      const inFlightBefore = inFlight
+
       if (!(await flush())) return false
 
-      if (!isStored || isGone || (!buffer && !inFlight) || isHeld()) {
+      const isLeft = buffer !== null || inFlight !== null
+      const hasMoved = buffer !== bufferBefore || inFlight !== inFlightBefore
+      const isStuck = !hasMoved || isHeld() || isOversized || isCrowded()
+
+      if (!isStored || isGone || !isLeft || isStuck) {
         pause()
 
         return true

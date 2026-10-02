@@ -573,17 +573,34 @@ describe('createKnowledgeDocumentSync', () => {
     expect(server.readText()).toBe('Ana: Hello a b')
   })
 
-  it('holds back an update longer than the server keeps, and says so rather than sending it again', async () => {
+  it('folds an edit too long to push into the snapshot instead, with no update pending', async () => {
     const server = createServer(seeded('Hello'))
     const { sync } = await openTab(server, { maxUpdateLength: 100 })
 
     type(sync, 'end', 'x'.repeat(200))
     await sync.flush()
-    await sync.flush()
 
     expect(server.pushes).toEqual([])
-    expect(sync.getStatus()).toBe('tooLong')
-    expect(sync.hasUnsaved()).toBe(true)
+    expect(server.compactions).toEqual([true])
+    expect(server.compactionIds).toEqual([[]])
+    expect(server.readText()).toBe(`Hello${'x'.repeat(200)}`)
+    expect(sync.hasUnsaved()).toBe(false)
+    expect(sync.getStatus()).toBe('idle')
+  })
+
+  it('settles rather than waits forever while too many updates are pending to push', async () => {
+    const server = createServer(seeded('Hello'))
+    const { sync: ana } = await openTab(server, { updatesLimit: 12 })
+    const { sync: ben } = await openTab(server)
+
+    type(ben, 'end', ' a')
+    await ben.flush()
+    type(ben, 'end', ' b')
+    await ben.flush()
+    await wait(10)
+    type(ana, 0, 'Ana: ')
+
+    expect(await Promise.race([ana.settle(), wait(500).then(() => 'stuck')])).toBe(true)
   })
 
   it('forgets its pushes once another tab folded them, so its own folds name only what is pending', async () => {

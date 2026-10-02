@@ -218,3 +218,18 @@ export const MAX_CHECKLIST_HISTORY_DAYS = 3660
   change the three together
 */
 export const MAX_LOG_ENTRY_LENGTH = 50000
+
+/* ---
+  KNOWLEDGE
+--- */
+
+/*
+  How many documents an organization keeps in its knowledge, how long a document's title may be,
+  on one line, and how long its serialized blocks may run, which is room for a long plan in
+  formatted text. Written out again in `CreateDocument`'s, `RestoreDocument`'s, `RenameDocument`'s
+  and `UpdateDocumentContent`'s checks and in `GetOrganizationDocuments`' limit, which cannot import
+  them: change them together
+*/
+export const MAX_DOCUMENTS = 1000
+export const MAX_DOCUMENT_TITLE_LENGTH = 200
+export const MAX_DOCUMENT_CONTENT_LENGTH = 200000

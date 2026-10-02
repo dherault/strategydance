@@ -235,8 +235,24 @@ keeps the 10 newest images holds it at $0.17. The tables assume that policy.
 **Refetch on focus.** The query client keeps TanStack Query's defaults, so returning to the tab
 refetches everything mounted, about 8 queries. That is most of the 250 operations a day. At $0.90 a
 million it costs $33.99 a month at 10,000 users, but it is also most of the database's load: a
-`staleTime` of a minute would let the instance steps come later. The two live queries already keep
-the team and the log current.
+`staleTime` of a minute would let the instance steps come later. Five live queries already keep
+the team, the log, the knowledge list and an open document, its text and who is in it, current.
+
+**Writing a document.** A knowledge document's text is pushed as it is typed, so writing costs by
+the second rather than by the save. Not in the 250 operations a day above, since nobody writes
+documents yet:
+
+| While somebody types | Mutations | Live query re-runs | Database time |
+| --- | ---: | ---: | ---: |
+| Alone: a push every 1.5 s, a heartbeat every 15 s, a fold after each pause | about 0.8 a second | 0.8 a second | 3% of a core |
+| Two at once: a push every 0.5 s and the caret once a second, each | 6 a second | 12 a second | 36% of a core |
+
+Ten minutes of writing alone is about 500 mutations, twice a day's worth in the model, and $0.0005 at
+$0.90 a million. Two people writing together keep a third of a core busy while they do, at 20 ms an
+operation, more than the shared core of the `db-f1-micro` is sized for: a team that writes
+together for long is a reason to take the 100-user step sooner. Each further reader of the document
+adds a re-run of both live queries per mutation. Whether a re-run counts as a billed operation is not
+documented, as for the other live queries.
 
 ## What to fix now
 

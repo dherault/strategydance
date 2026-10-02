@@ -234,6 +234,7 @@ function createTab(
     readContent,
     createId,
     pushDelay: PUSH_DELAY,
+    alonePushDelay: PUSH_DELAY * 10,
     compactionDelay,
     idleCompactionDelay,
     idleCompactionJitter: 0,
@@ -242,6 +243,8 @@ function createTab(
   const statuses: KnowledgeDocumentSyncStatus[] = []
   let savedCount = 0
 
+  // Somebody else has it open, as the tests have it, unless one says otherwise
+  sync.setShared(true)
   sync.attach({
     onStatus: status => statuses.push(status),
     onSaved: () => {
@@ -297,6 +300,22 @@ describe('createKnowledgeDocumentSync', () => {
     expect(server.pushes).toHaveLength(1)
     expect(sync.hasUnsaved()).toBe(false)
     expect(server.readText()).toBe('Hello world')
+  })
+
+  it('pushes less often while nobody else has the document open, and sooner once somebody does', async () => {
+    const server = createServer(seeded('Hello'))
+    const { sync } = await openTab(server)
+
+    sync.setShared(false)
+    type(sync, 'end', '!')
+    await wait(PUSH_DELAY * 4)
+
+    expect(server.pushes).toEqual([])
+
+    sync.setShared(true)
+    await wait(PUSH_DELAY * 4)
+
+    expect(server.pushes).toHaveLength(1)
   })
 
   it('merges its own echo, and a push twice, without changing a word', async () => {

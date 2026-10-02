@@ -7,8 +7,10 @@ import decodeBase64 from '~utils/common/decodeBase64'
 import encodeBase64 from '~utils/common/encodeBase64'
 import runInOrder from '~utils/common/runInOrder'
 
-// How long typing gathers into one push
+// How long typing gathers into one push while somebody else has the document open, and while
+// nobody does, when it only has to be stored, as often as a save used to be
 const PUSH_DELAY = 500
+const ALONE_PUSH_DELAY = 1500
 // How long after this tab's last edit it folds the pending updates into the snapshot
 const COMPACTION_DELAY = 5000
 // How long a tab waits after the last push it saw before it folds what is pending, plus up to the
@@ -73,6 +75,7 @@ type Options = {
   // The queues a push waits behind: the saver's, whose create has to land first
   after?: string[]
   pushDelay?: number
+  alonePushDelay?: number
   compactionDelay?: number
   idleCompactionDelay?: number
   idleCompactionJitter?: number
@@ -92,7 +95,8 @@ function isSameBytes(a: Uint8Array, b: Uint8Array) {
   nobody's are lost.
 
   An edit made here, whatever the editor's origin, is gathered for half a second and pushed as one
-  update under a fresh id. Once a push is sent its id and its bytes stay as they are until the
+  update under a fresh id, or for a second and a half while nobody else has the document open, when
+  the push only has to store it. Once a push is sent its id and its bytes stay as they are until the
   server takes it, so a push whose answer was lost goes again exactly as it went, and the server,
   which upserts by id, stores it once. What is typed meanwhile waits for the next push. Pushes run
   one after the other through `runInOrder`, behind the saver's queue, so none goes before the
@@ -128,6 +132,7 @@ function createKnowledgeDocumentSync({
   createId,
   after = [],
   pushDelay = PUSH_DELAY,
+  alonePushDelay = ALONE_PUSH_DELAY,
   compactionDelay = COMPACTION_DELAY,
   idleCompactionDelay = IDLE_COMPACTION_DELAY,
   idleCompactionJitter = IDLE_COMPACTION_JITTER,
@@ -151,6 +156,7 @@ function createKnowledgeDocumentSync({
   let isCompacting = false
   let isRereading = false
   let isChangedHere = false
+  let isShared = false
   let latestContent = ''
   // The revision of the snapshot merged into `doc`, and the newest one a push spoke of
   let mergedRevision = -1
@@ -409,10 +415,26 @@ function createKnowledgeDocumentSync({
   function schedulePush() {
     if (pushTimer !== null || retryTimer !== null || !isAttached) return
 
-    pushTimer = setTimeout(() => {
-      pushTimer = null
-      enqueuePush()
-    }, pushDelay)
+    pushTimer = setTimeout(
+      () => {
+        pushTimer = null
+        enqueuePush()
+      },
+      isShared ? pushDelay : alonePushDelay,
+    )
+  }
+
+  // Whether somebody else has the document open, who waits on each push to see the words
+  function setShared(nextIsShared: boolean) {
+    if (nextIsShared === isShared) return
+
+    isShared = nextIsShared
+
+    // A push waiting the longer delay goes at the shorter one
+    if (isShared && pushTimer !== null) {
+      pushTimer = clearTimer(pushTimer)
+      schedulePush()
+    }
   }
 
   function scheduleCompaction() {
@@ -664,6 +686,7 @@ function createKnowledgeDocumentSync({
     start,
     receive,
     setContent,
+    setShared,
     flush,
     flushAndCompact,
     settle,

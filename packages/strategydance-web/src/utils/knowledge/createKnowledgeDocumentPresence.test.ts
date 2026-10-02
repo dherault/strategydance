@@ -68,6 +68,7 @@ describe('createKnowledgeDocumentPresence', () => {
     const { awareness, presence, calls } = createPage()
 
     presence.show()
+    presence.receive([row('b1', 'ben')])
     awareness.setLocalStateField('cursor', { anchor: 1 })
     awareness.setLocalStateField('cursor', { anchor: 2 })
     awareness.setLocalStateField('cursor', { anchor: 3 })
@@ -82,6 +83,21 @@ describe('createKnowledgeDocumentPresence', () => {
     await wait(CURSOR_DELAY * 3)
 
     expect(calls.at(-1)).toBe('update null')
+    presence.detach()
+  })
+
+  it('sends no caret while alone, and the caret at once when somebody arrives', async () => {
+    const { awareness, presence, calls } = createPage()
+
+    presence.show()
+    awareness.setLocalStateField('cursor', { anchor: 1 })
+    awareness.setLocalStateField('cursor', { anchor: 2 })
+
+    expect(calls).toEqual(['update null'])
+
+    presence.receive([row('b1', 'ben')])
+
+    expect(calls).toEqual(['update null', 'update {"anchor":2}'])
     presence.detach()
   })
 

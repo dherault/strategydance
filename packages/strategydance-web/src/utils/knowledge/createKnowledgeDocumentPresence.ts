@@ -93,8 +93,9 @@ function parseCursor(cursor: string | null | undefined) {
 
   The caret is what y-prosemirror writes into the awareness' local `cursor` field, two Yjs relative
   positions, which follow the text typed in front of them. It is sent as it moves, at most once a
-  second and the latest each time, and again every 15 seconds while the tab is visible, which is
-  what keeps the row fresh. Hiding the tab sends `leave`, and showing it again sends the caret.
+  second and the latest each time, while somebody else has the document open, and with every
+  heartbeat, every 15 seconds while the tab is visible, which is what keeps the row fresh. Alone,
+  the tab sends only the heartbeat, and somebody arriving has the caret sent at once. Hiding the tab sends `leave`, and showing it again sends the caret.
 
   Each other tab's row becomes a state of the awareness, `{ user: { name, color }, cursor }`, under
   an id this page gives it, so the editor draws their caret, labelled with their name. A row that
@@ -173,8 +174,9 @@ function createKnowledgeDocumentPresence({
     }, cursorDelay)
   }
 
+  // Nobody else to show the caret to, so it waits for the heartbeat, or for somebody to arrive
   function handleAwarenessChange({ added, updated }: Changes, origin: unknown) {
-    if (origin === remote || !isVisible) return
+    if (origin === remote || !isVisible || !sessions.size) return
     if (!added.includes(awareness.clientID) && !updated.includes(awareness.clientID)) return
     if (readCursor() === sentCursor) return
 
@@ -253,6 +255,7 @@ function createKnowledgeDocumentPresence({
     const time = now()
     const present = new Set<string>()
     const changes: Changes = { added: [], updated: [], removed: [] }
+    const wasAlone = !sessions.size
 
     // A quiet row the list no longer holds is forgotten for good
     for (const id of quietAt.keys()) {
@@ -300,6 +303,9 @@ function createKnowledgeDocumentPresence({
 
     prune(present)
     notifyPeople()
+
+    // Somebody arrived to a tab that sent no caret while it was alone: they see it at once
+    if (wasAlone && sessions.size && isVisible && readCursor() !== sentCursor) sendCursor()
   }
 
   function attach(nextListeners: KnowledgeDocumentPresenceListeners) {

@@ -167,6 +167,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     isEnabled: isStored && isTextReady && !isGone,
     viewerId: viewer?.uid ?? null,
   })
+  const isShared = people.length > 0
+
+  // Typing goes out sooner while somebody else is there to see it
+  useEffect(() => {
+    sync.setShared(isShared)
+  }, [sync, isShared])
 
   // A new document starts in its title, as one opened to read starts nowhere
   useEffect(() => {

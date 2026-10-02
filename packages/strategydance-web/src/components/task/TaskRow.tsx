@@ -94,7 +94,8 @@ function TaskRow({
           title={formatMessage(taskMessages.editTask)}
           className={cn(
             EDITABLE_BOX_CLASS_NAME,
-            'flex min-h-8 min-w-0 flex-1 cursor-text items-center border-transparent bg-transparent py-[5px] text-left font-sans text-sm wrap-anywhere transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary',
+            // 16px on a touch screen, as the field that replaces it is there, on a 20px line that keeps it 32px tall
+            'flex min-h-8 min-w-0 flex-1 cursor-text items-center border-transparent bg-transparent py-[5px] text-left font-sans text-sm pointer-coarse:text-base/5 wrap-anywhere transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-secondary',
             task.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
           )}
           onClick={onEdit}

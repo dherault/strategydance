@@ -635,7 +635,8 @@ function MultiSelect({
                 autoComplete="off"
                 spellCheck={false}
                 onKeyDown={handleSearchKeyDown}
-                className="h-full min-w-0 flex-1 bg-transparent p-0 font-sans text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                // 16px on a touch screen, as `Input` is, or iOS zooms into it
+                className="h-full min-w-0 flex-1 bg-transparent p-0 font-sans text-sm pointer-coarse:text-base text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
             <Combobox.Empty className="px-2 text-center text-sm text-muted-foreground not-empty:py-5">

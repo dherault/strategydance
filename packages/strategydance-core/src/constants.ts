@@ -236,8 +236,10 @@ export const MAX_DOCUMENT_CONTENT_LENGTH = 200000
 
 /*
   A document's text is a Yjs document, stored as a snapshot in base64 with the updates made since
-  it pending beside it. A snapshot keeps what was deleted as tombstones, so it runs longer than the
-  content it holds, and one update is at most a paste of the whole content, encoded. Written out
+  it pending beside it. Yjs encodes text as UTF-8, three bytes a character in Chinese or Japanese,
+  so the 200000 characters of content can come to 600000 bytes, 800000 characters of base64, before
+  Yjs' own structure. A snapshot also keeps what was deleted as small tombstones, and one update is
+  at most a paste of the whole content, so both are held to well past that worst case. Written out
   again in `CreateDocument`'s, `SeedDocumentState`'s, `PushDocumentUpdate`'s and
   `CompactDocument`'s checks and in `GetDocument`'s and `GetLiveDocument`'s limits: change them
   together.
@@ -246,7 +248,7 @@ export const MAX_DOCUMENT_CONTENT_LENGTH = 200000
   snapshot. The live query reads at most `DOCUMENT_UPDATES_LIMIT`, and a tab that finds the list
   that long folds it at once, since the newest would be cut off
 */
-export const MAX_DOCUMENT_STATE_LENGTH = 1000000
-export const MAX_DOCUMENT_UPDATE_LENGTH = 400000
+export const MAX_DOCUMENT_STATE_LENGTH = 2000000
+export const MAX_DOCUMENT_UPDATE_LENGTH = 2000000
 export const DOCUMENT_COMPACTION_THRESHOLD = 50
 export const DOCUMENT_UPDATES_LIMIT = 1000

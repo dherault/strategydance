@@ -164,7 +164,8 @@ with a title and an opener.
 
 - **Title**: the first message's plain text, whitespace collapsed, cut at a word boundary to 48
   characters with "…"; a suggestion's title for a conversation started from one; the first file's
-  name for a message with only files.
+  name for a message with only files, cut the same way (at a word or separator boundary, 48
+  characters and "…"), so no title ever nears `MAX_CONVERSATION_TITLE_LENGTH`.
 - **Preview** (the list, the cards): "Thinking…" while a run goes; otherwise the last entry that is
   not an aspects note: a note's text; "Question: …", "Skipped: …" or "Answered: a, b"; "Called
   Stripe" or a tool's label, with " · Failed" or " · Cancelled"; a message's plain text without its
@@ -280,7 +281,10 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
 - **The web connector** (`USER`, every operation keyed by `auth.uid` and by the caller's current
   membership, with the predicate `GetTaskLists` uses, and every mutation checking that membership in
   its transaction: conversations outlive a member's removal, so ownership alone would leave a former
-  member reading them):
+  member reading them. Every read also filters the conversation on `deletedAt: { isNull: true }`, as
+  `GetOrganizationDocuments` does, the list, the conversation, its history, its run, a tool call and
+  both searches alike; only `RestoreConversation` reaches a deleted one. The backend's routes refuse a
+  deleted conversation too, and its worker stops at its next write once the conversation is deleted):
   - `GetConversations($organizationId)`, live: the list, the dock and the sidebar badge, with
     `limit: 1000` (`MAX_CONVERSATIONS`) and `orderBy: [{ updatedAt: DESC }, { id: ASC }]`, since a
     query left without a limit stops at 100 and older conversations, and their waiting questions,

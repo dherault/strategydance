@@ -3,6 +3,7 @@ import {
   DOCUMENT_UPDATES_LIMIT,
   MAX_DOCUMENT_CONTENT_LENGTH,
   MAX_DOCUMENT_STATE_LENGTH,
+  MAX_DOCUMENT_UPDATE_LENGTH,
 } from 'strategydance-core'
 import * as Y from 'yjs'
 
@@ -92,6 +93,8 @@ type Options = {
   maxContentLength?: number
   // The longest snapshot the server keeps, in base64, past which nothing folds
   maxStateLength?: number
+  // The longest update the server keeps, in base64, past which a push is held back
+  maxUpdateLength?: number
   // The most pending updates a read takes
   updatesLimit?: number
 }
@@ -153,6 +156,7 @@ function createKnowledgeDocumentSync({
   random = Math.random,
   maxContentLength = MAX_DOCUMENT_CONTENT_LENGTH,
   maxStateLength = MAX_DOCUMENT_STATE_LENGTH,
+  maxUpdateLength = MAX_DOCUMENT_UPDATE_LENGTH,
   updatesLimit = DOCUMENT_UPDATES_LIMIT,
 }: Options) {
   const queueKey = `knowledgeDocumentText:${documentId}`
@@ -173,8 +177,10 @@ function createKnowledgeDocumentSync({
   let isRereading = false
   let isChangedHere = false
   let isShared = false
-  // Whether the last fold found the snapshot longer than the server keeps
+  // Whether the last fold found the snapshot longer than the server keeps, and the last push its
+  // update, which only gathering far more than the content holds, offline say, can come to
   let isOversized = false
+  let isUpdateOversized = false
   let latestContent = ''
   // The revision of the snapshot merged into `doc`, and the newest one a push spoke of
   let mergedRevision = -1
@@ -189,10 +195,14 @@ function createKnowledgeDocumentSync({
   const appliedIds = new Set<string>()
   // The updates the server holds beside the snapshot, as last read or pushed
   let pendingIds: string[] = []
-  // The updates this tab pushed and the server took, which a fold includes whether or not a push
-  // has listed them yet, and which say whether this tab's push brought the pending ones to the
-  // threshold. One folded away by another tab meanwhile matches nothing when this one folds it
-  const ownIds = new Set<string>()
+  /*
+    The updates this tab pushed and the server took, with the revision known as it did, which a fold
+    includes until a read or a push lists them, and which say whether this tab's push brought the
+    pending ones to the threshold. One a list names is pending, and folded as the rest are. One a
+    list leaves out once the revision passed the one it was taken at was folded by another tab: it
+    goes either way, so a tab that keeps losing folds keeps none
+  */
+  const ownIds = new Map<string, number>()
   let queuedPush: Promise<void> | null = null
   let queuedCompaction: Promise<void> | null = null
   let pushTimer: ReturnType<typeof setTimeout> | null = null
@@ -230,7 +240,7 @@ function createKnowledgeDocumentSync({
     if (!isStored) return 'idle'
     if (hasFailed) return 'error'
     if (isSending) return 'saving'
-    if (isHeld() || isOversized || (isCrowded() && buffer)) return 'tooLong'
+    if (isHeld() || isOversized || isUpdateOversized || (isCrowded() && buffer)) return 'tooLong'
     if (buffer || inFlight) return 'pending'
 
     return 'idle'
@@ -277,12 +287,21 @@ function createKnowledgeDocumentSync({
     }
   }
 
+  function retireOwnIds(listedIds: string[], revision: number) {
+    const listed = new Set(listedIds)
+
+    for (const [id, takenAt] of ownIds) {
+      if (listed.has(id) || revision > takenAt) ownIds.delete(id)
+    }
+  }
+
   function applyStored(stored: StoredKnowledgeDocumentText) {
     applyState(stored.state)
     applyUpdates(stored.updates)
     pendingIds = stored.updates.map(({ id }) => id)
     mergedRevision = stored.revision
     knownRevision = Math.max(knownRevision, stored.revision)
+    retireOwnIds(pendingIds, stored.revision)
   }
 
   function markGone() {
@@ -428,6 +447,8 @@ function createKnowledgeDocumentSync({
     const isOwnPushOverThreshold =
       live.updates.length >= DOCUMENT_COMPACTION_THRESHOLD && latest !== undefined && ownIds.has(latest.id)
 
+    retireOwnIds(pendingIds, live.revision)
+
     if (isCutOff || isOwnPushOverThreshold) enqueueCompaction()
     else scheduleIdleCompaction()
 
@@ -494,7 +515,18 @@ function createKnowledgeDocumentSync({
     if (!inFlight) {
       if (!buffer || isHeld() || isCrowded()) return
 
-      inFlight = { id: createId(), payload: encodeBase64(buffer) }
+      const payload = encodeBase64(buffer)
+
+      // Refused for its length every time it went, so it does not go, and the page says so
+      isUpdateOversized = payload.length > maxUpdateLength
+
+      if (isUpdateOversized) {
+        report()
+
+        return
+      }
+
+      inFlight = { id: createId(), payload }
       buffer = null
     }
 
@@ -510,7 +542,7 @@ function createKnowledgeDocumentSync({
         return
       }
 
-      ownIds.add(sent.id)
+      ownIds.set(sent.id, knownRevision)
       appliedIds.add(sent.id)
       inFlight = null
       hasFailed = false
@@ -551,7 +583,7 @@ function createKnowledgeDocumentSync({
   async function compact() {
     if (!isStored || isGone || isPaused || isRereading || knownRevision > mergedRevision) return
 
-    const updateIds = [...new Set([...pendingIds, ...ownIds])]
+    const updateIds = [...new Set([...pendingIds, ...ownIds.keys()])]
 
     if (!updateIds.length) return
 

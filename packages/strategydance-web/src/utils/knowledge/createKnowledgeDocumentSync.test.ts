@@ -86,6 +86,8 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
   const muted = new Set<KnowledgeDocumentSync>()
   const pushes: KnowledgeDocumentUpdate[] = []
   const compactions: boolean[] = []
+  // The update ids each fold named, whether or not it went through
+  const compactionIds: string[][] = []
   let seedCount = 0
 
   function readStored(): StoredKnowledgeDocumentText | null {
@@ -151,6 +153,7 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
         const isCompacted = Boolean(stored && stored.revision === revision)
 
         compactions.push(isCompacted)
+        compactionIds.push(updateIds)
 
         if (!stored || !isCompacted) return false
 
@@ -206,6 +209,7 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
     getSeedCount: () => seedCount,
     pushes,
     compactions,
+    compactionIds,
   }
 }
 
@@ -225,6 +229,7 @@ function createTab(
     idleCompactionDelay = 1_000_000,
     maxContentLength,
     maxStateLength,
+    maxUpdateLength,
     updatesLimit,
   }: {
     writes?: KnowledgeDocumentSyncWrites
@@ -232,6 +237,7 @@ function createTab(
     idleCompactionDelay?: number
     maxContentLength?: number
     maxStateLength?: number
+    maxUpdateLength?: number
     updatesLimit?: number
   } = {},
 ) {
@@ -250,6 +256,7 @@ function createTab(
     idleCompactionJitter: 0,
     maxContentLength,
     maxStateLength,
+    maxUpdateLength,
     updatesLimit,
   })
   const statuses: KnowledgeDocumentSyncStatus[] = []
@@ -564,6 +571,41 @@ describe('createKnowledgeDocumentSync', () => {
     expect(server.pushes).toHaveLength(3)
     expect(ana.getStatus()).toBe('idle')
     expect(server.readText()).toBe('Ana: Hello a b')
+  })
+
+  it('holds back an update longer than the server keeps, and says so rather than sending it again', async () => {
+    const server = createServer(seeded('Hello'))
+    const { sync } = await openTab(server, { maxUpdateLength: 100 })
+
+    type(sync, 'end', 'x'.repeat(200))
+    await sync.flush()
+    await sync.flush()
+
+    expect(server.pushes).toEqual([])
+    expect(sync.getStatus()).toBe('tooLong')
+    expect(sync.hasUnsaved()).toBe(true)
+  })
+
+  it('forgets its pushes once another tab folded them, so its own folds name only what is pending', async () => {
+    const server = createServer(seeded('Hello'))
+    const { sync: ana } = await openTab(server)
+    const { sync: ben } = await openTab(server)
+
+    type(ana, 'end', ' a')
+    await ana.flush()
+    type(ana, 'end', ' b')
+    await ana.flush()
+    await wait(10)
+    await ben.flushAndCompact()
+    await wait(10)
+
+    type(ana, 'end', ' c')
+    await ana.flush()
+    await ana.flushAndCompact()
+
+    expect(server.compactions).toEqual([true, true])
+    expect(server.compactionIds[1]).toEqual([server.pushes[2].id])
+    expect(server.readText()).toBe('Hello a b c')
   })
 
   it('counts only its own edits as changed here, never what arrived', async () => {

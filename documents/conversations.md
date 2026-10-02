@@ -374,7 +374,10 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
-  seconds) outlasts the lease.
+  seconds) outlasts the lease. The claim, and every fenced write after it, also require the member's
+  current membership in the conversation's organization, so removing a member stops their runs at
+  the next step: no more of the organization's context goes to Claude, and no tool runs for them.
+  Such a run is left to expire, and is finalized as interrupted if they are ever invited back.
 - **Fencing.** Every mutation of the worker starts with `conversationRun_updateMany(where: { id,
   status: { eq: RUNNING }, attempts: { eq: $attempt } })` and `@check(this == 1)`, so a worker whose
   run was finalized or claimed again writes nothing more. That fenced write is the run row's only
@@ -388,10 +391,11 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   its task gone (see Leases), then is finalized as interrupted.
 - **Recovery and side effects.** A call's message is written `RUNNING`, with `toolStartedAt`, before
   the call is made. A worker that claims a run after a crash finds calls that started and have no
-  result. The built-in tools run again, since each is safe to repeat: reads, a create keyed by its
-  `tool_use` id, an update guarded by its revision, a top priority set to the same text. An
-  integration call is never run again by itself, since it may have happened: it is marked failed,
-  and its result tells the model it was interrupted and may have run, so the model checks or asks.
+  result. The built-in tools that are safe to repeat run again: reads, a create keyed by its
+  `tool_use` id, an update guarded by its revision. `set_top_priority` is not one of them, since the
+  member may have set a newer priority since, which a replay would overwrite, and neither is an
+  integration call, since it may have happened: each is marked failed, and its result tells the
+  model it was interrupted and may have run, so the model checks or asks.
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the Cloud Run timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note.
@@ -487,6 +491,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
   mutation. An approval (M19) is answered the same way.
+- **The continuation survives a crash between the two.** Starting it is idempotent (see Consuming a
+  waiting turn) and reachable from three places: the answer route right after the answer, the same
+  answer sent again (it finds the answer recorded, counts none left and starts it), and the reconcile
+  route, which the page also calls when it sees a waiting run whose questions are all answered. A
+  backend that stops between the two mutations leaves a state the next of those finishes.
 - **Consuming a waiting turn.** A send and the last answer can race for the same waiting turn, so
   every mutation that starts a run on one (the answer's continuation, or a send) moves the waiting
   run out of `WAITING` under `@check(this == 1)`, as its only write to that run, together with taking
@@ -970,8 +979,9 @@ A refactor and two pure functions, no visible change.
 - The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
   sidebar badge, and questions in previews.
 - Tests: two questions in one turn wait for both answers, and two answers sent at once start exactly
-  one run; a skipped question's result; the other
-  tools' results go back with the answers, in order.
+  one run; a skipped question's result; the other tools' results go back with the answers, in
+  order; a backend stopping between the last answer and its continuation, finished by the answer
+  sent again and by the reconcile route.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
 

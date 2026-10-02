@@ -34,7 +34,11 @@ type Options = {
 
   What is left also goes out when the tab is hidden, which is the last moment a phone or a closed
   laptop gives, with the text's pending updates folded, and leaving the tab with something unsent
-  asks first.
+  asks first. A page that is going away, closed or reloaded, sends nothing of its text here, a
+  fold least of all: a write cut off with the page leaves the Data Connect emulator's database
+  stuck in its transaction. What is left to push went with the `beforeunload` prompt, while the
+  page was still there, and the next tab to see the pending updates folds them. `pagehide` comes before the `visibilitychange`
+  of a page going away, and `pageshow` takes back one kept in the back and forward cache.
 
   Leaving the page for another in the app waits for what is left to go out, since a send that
   fails once the page is gone has nobody left to tell. When something still cannot be saved,
@@ -96,11 +100,22 @@ function useKnowledgeDocumentSaver({
     })
     sync.attach({ onStatus: setSyncStatus, onSaved: markSaved })
 
+    let isPageGoing = false
+
+    function handlePageHide() {
+      isPageGoing = true
+    }
+
+    function handlePageShow() {
+      isPageGoing = false
+    }
+
     function handleVisibilityChange() {
       if (document.visibilityState !== 'hidden') return
 
       saver.flush()
-      sync.flushAndCompact()
+
+      if (!isPageGoing) sync.flushAndCompact()
     }
 
     function handleBeforeUnload(event: BeforeUnloadEvent) {
@@ -112,10 +127,14 @@ function useKnowledgeDocumentSaver({
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pagehide', handlePageHide)
+    window.addEventListener('pageshow', handlePageShow)
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('pageshow', handlePageShow)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       // The text's last push and fold go before the saver deletes a document the page emptied
       saver.detach(sync.detach())

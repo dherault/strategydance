@@ -408,7 +408,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.resume()
     await wait(DELAY * 3)
 
-    expect(calls).toEqual(['rename Plan 2'])
+    expect(calls).toEqual(['rename ', 'content @0'])
   })
 
   it('sends nothing once paused for a delete, nor discards on the way out', async () => {

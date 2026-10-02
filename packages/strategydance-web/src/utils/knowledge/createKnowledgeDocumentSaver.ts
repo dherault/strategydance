@@ -257,9 +257,9 @@ function createKnowledgeDocumentSaver({
     return queued
   }
 
+  // Recorded even while paused, unsent until a resume, so a change made while a delete is out is
+  // not lost should the delete fail
   function change(fields: Partial<KnowledgeDocumentFields>) {
-    if (isPaused) return
-
     current = { ...current, ...fields }
     isChangedHere = true
 

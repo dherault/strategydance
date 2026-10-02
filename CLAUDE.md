@@ -545,8 +545,9 @@ ln -s <main checkout>/packages/strategydance-translations/.env packages/strategy
 - The translations `.env` is gitignored, so a new worktree has none, and `bun run translate`
   needs its key. A link rather than a copy, so a rotated key reaches every worktree
 - When what should ship is uncommitted work already sitting in the main checkout, copy it across
-  rather than committing it there: `git -C <main checkout> diff HEAD | git apply` from the
-  worktree, plus any untracked files by hand. Leave the original for the person to discard
+  rather than committing it there: `git -C <main checkout> diff HEAD --binary | git apply` from
+  the worktree, plus any untracked files by hand. Leave the original for the person to discard.
+  `--binary` is what carries an edited image: a plain diff only says it differs
 - The person's stack usually holds ports 5173 and 3003 from the main checkout, and other
   sessions run worktree servers of their own. To look at the worktree's frontend, start it on
   the first port from 5174 that nothing listens on (`lsof -nP -iTCP:<port> -sTCP:LISTEN` prints
@@ -577,14 +578,15 @@ hands the main checkout over, never a session's own convenience. On a yes:
    git switch --detach  # in the main checkout: lets go of the branch, keeps the uncommitted work
    git worktree add .claude/worktrees/<branch> <branch>
    cd .claude/worktrees/<branch>
-   git -C <main checkout> diff HEAD | git apply  # plus any untracked files, by hand
+   git -C <main checkout> diff HEAD --binary | git apply  # plus any untracked files, by hand
    bun install --frozen-lockfile
    ln -s <main checkout>/packages/strategydance-translations/.env packages/strategydance-translations/.env  # if the main checkout has one
    ```
 
-   Once the worktree's `git diff HEAD` shows all of it, it takes that work out of the main
-   checkout (`git -C <main checkout> restore --staged --worktree .`, then deletes the untracked
-   files it carried), answers that the main checkout is free, and carries on in the worktree.
+   Once `git status --short` lists the same paths in the worktree as in the main checkout,
+   untracked files included, it takes that work out of the main checkout
+   (`git -C <main checkout> restore --staged --worktree .`, then deletes the untracked files it
+   carried), answers that the main checkout is free, and carries on in the worktree.
    Only its own work comes out: when something else is there too, it leaves the checkout as it
    is and tells the asking session and the person. Never stash, since the stash stack is shared
    by every worktree and session
@@ -596,8 +598,8 @@ hands the main checkout over, never a session's own convenience. On a yes:
    git switch --detach  # in the worktree
    cd <main checkout>
    git switch <branch>
-   git -C .claude/worktrees/<branch> diff HEAD | git apply  # plus any untracked files, by hand
-   git worktree remove .claude/worktrees/<branch>  # with --force if it held uncommitted work, once `git diff HEAD` here shows all of it
+   git -C .claude/worktrees/<branch> diff HEAD --binary | git apply  # plus any untracked files, by hand
+   git worktree remove .claude/worktrees/<branch>  # with --force if it held uncommitted work, once `git status --short` lists the same paths here as there
    ```
 
    Every further edit, commit and review round happens in the main checkout

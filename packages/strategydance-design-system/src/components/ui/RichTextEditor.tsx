@@ -100,7 +100,8 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
   a post. A value it cannot read, an old Lexical one included, starts it empty.
 
   It is a framed field unless `appearance` makes it a document, the body of a page under its own
-  title, which has no frame and grows with its text, its side menu hanging in the page's margin.
+  title, which has no frame and grows with its text, its side menu hanging in the page's margin,
+  or below `md`, where a page has none, in a gutter of its own on the left.
   `ref` takes a handle that focuses it from outside.
 
   Its menus portal into the editor itself, so inside a modal dialog they are inside the dialog, and

@@ -54,7 +54,7 @@ function SidebarUserMenu() {
           <DropdownMenuContent
             side={isMobile ? 'top' : 'right'}
             align={isMobile ? 'start' : 'end'}
-            sideOffset={isMobile ? 4 : 14}
+            sideOffset={isMobile ? 8 : 14}
             className="w-44"
           >
             <DropdownMenuItem

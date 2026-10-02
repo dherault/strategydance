@@ -52,7 +52,7 @@ function SidebarOrganizationMenu() {
             <DropdownMenuContent
               side={isMobile ? 'bottom' : 'right'}
               align="start"
-              sideOffset={isMobile ? 4 : 14}
+              sideOffset={isMobile ? 8 : 14}
               className="w-60"
             >
               {userOrganizations.length ? (

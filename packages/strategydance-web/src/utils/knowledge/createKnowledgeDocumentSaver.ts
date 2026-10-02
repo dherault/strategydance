@@ -157,6 +157,9 @@ function createKnowledgeDocumentSaver({
   let isPaused = false
   let isChangedHere = false
   let lastStatus: KnowledgeDocumentSaveStatus | null = null
+  // The fields with a save out, and what a push said of each while it was
+  const sendingFields = new Set<LiveField>()
+  const pushedWhileSending = new Map<LiveField, KnowledgeDocumentFields[LiveField]>()
 
   function isContentTooLong() {
     return current.content.length > maxContentLength
@@ -203,32 +206,70 @@ function createKnowledgeDocumentSaver({
   }
 
   // Sends what differs, field by field, recording as saved only what went through
+  /*
+    A field's save came back. Without a push for the field while it was out, the server holds what
+    it sent. With one, the push is the server's word, whichever way round the save and the other
+    write landed: the last push for the field comes after both. So the page takes it, unless the
+    reader changed the field again meanwhile, which goes out next. A save that failed changed
+    nothing, and the page keeps its change to send again
+  */
+  function settleField(
+    state: SavedState,
+    field: LiveField,
+    value: KnowledgeDocumentFields[LiveField],
+    isSaved: boolean,
+  ) {
+    // A field's value is never undefined, so undefined is no push
+    const pushed = pushedWhileSending.get(field)
+
+    sendingFields.delete(field)
+    pushedWhileSending.delete(field)
+
+    if (pushed === undefined) {
+      if (isSaved) Object.assign(state, { [field]: value })
+
+      return
+    }
+
+    Object.assign(state, { [field]: pushed })
+
+    if (!isSaved || !isSameField(field, current[field], value) || isSameField(field, current[field], pushed)) return
+
+    current = { ...current, [field]: pushed }
+    listeners?.onRemoteChange({ [field]: pushed })
+  }
+
+  function sendField(
+    state: SavedState,
+    field: LiveField,
+    value: KnowledgeDocumentFields[LiveField],
+    write: () => Promise<unknown>,
+  ) {
+    sendingFields.add(field)
+    pushedWhileSending.delete(field)
+
+    return write().then(
+      () => settleField(state, field, value, true),
+      error => {
+        settleField(state, field, value, false)
+
+        throw error
+      },
+    )
+  }
+
   async function sendChanges(state: SavedState) {
     const next = current
     const sends: Promise<void>[] = []
 
-    if (next.title !== state.title) {
-      sends.push(
-        writes.rename(next.title).then(() => {
-          state.title = next.title
-        }),
-      )
-    }
+    if (next.title !== state.title) sends.push(sendField(state, 'title', next.title, () => writes.rename(next.title)))
 
     if (next.aspects.join() !== state.aspects.join()) {
-      sends.push(
-        writes.updateAspects(next.aspects).then(() => {
-          state.aspects = next.aspects
-        }),
-      )
+      sends.push(sendField(state, 'aspects', next.aspects, () => writes.updateAspects(next.aspects)))
     }
 
     if (next.isAiLocked !== state.isAiLocked) {
-      sends.push(
-        writes.setAiLock(next.isAiLocked).then(() => {
-          state.isAiLocked = next.isAiLocked
-        }),
-      )
+      sends.push(sendField(state, 'isAiLocked', next.isAiLocked, () => writes.setAiLock(next.isAiLocked)))
     }
 
     const results = await Promise.allSettled(sends)
@@ -389,6 +430,12 @@ function createKnowledgeDocumentSaver({
     const remote: Partial<KnowledgeDocumentFields> = {}
 
     for (const field of LIVE_FIELDS) {
+      // A field with a save out waits for it, which then knows which came last
+      if (sendingFields.has(field)) {
+        pushedWhileSending.set(field, stored[field])
+        continue
+      }
+
       if (isSameField(field, stored[field], state[field])) continue
 
       const hasOwnChange = !isSameField(field, current[field], state[field])

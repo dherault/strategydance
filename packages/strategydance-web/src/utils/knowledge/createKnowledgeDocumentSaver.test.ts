@@ -325,6 +325,56 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual(['rename Plan 2'])
   })
 
+  it('ends on what another member saved while its own save was out', async () => {
+    const { calls, writes } = createWrites({ latency: DELAY })
+    const saver = createSaver({ documentId: 'd28', fields: STORED, isStored: true, writes })
+    const { remoteChanges } = track(saver)
+
+    saver.change({ title: 'Mine' })
+    const flushed = saver.flush()
+    await wait(DELAY / 2)
+    // Their rename landed after this one, so its push is the last
+    saver.receive({ title: 'Theirs', aspects: [], isAiLocked: false })
+    await flushed
+    await saver.flush()
+
+    expect(remoteChanges).toEqual([{ title: 'Theirs' }])
+    expect(calls).toEqual(['rename Mine'])
+    expect(saver.hasUnsaved()).toBe(false)
+  })
+
+  it('ends on a push that set the field back while its save was out', async () => {
+    const { writes } = createWrites({ latency: DELAY })
+    const saver = createSaver({ documentId: 'd29', fields: STORED, isStored: true, writes })
+    const { remoteChanges } = track(saver)
+
+    saver.change({ title: 'Mine' })
+    const flushed = saver.flush()
+    await wait(DELAY / 2)
+    saver.receive({ title: 'Plan', aspects: [], isAiLocked: false })
+    await flushed
+
+    expect(remoteChanges).toEqual([{ title: 'Plan' }])
+    expect(saver.hasUnsaved()).toBe(false)
+  })
+
+  it('sends a change made while its save was out, whatever a push said meanwhile', async () => {
+    const { calls, writes } = createWrites({ latency: DELAY })
+    const saver = createSaver({ documentId: 'd30', fields: STORED, isStored: true, writes })
+    const { remoteChanges } = track(saver)
+
+    saver.change({ title: 'Mine' })
+    const flushed = saver.flush()
+    await wait(DELAY / 2)
+    saver.change({ title: 'Mine, again' })
+    saver.receive({ title: 'Theirs', aspects: [], isAiLocked: false })
+    await flushed
+    await saver.flush()
+
+    expect(remoteChanges).toEqual([])
+    expect(calls).toEqual(['rename Mine', 'rename Mine, again'])
+  })
+
   it('holds a draft back whole while its text is too long, and stores it once short enough', async () => {
     const { calls, writes } = createWrites()
     const saver = createSaver({ documentId: 'd15', fields: BLANK, isStored: false, writes, maxContentLength: 5 })

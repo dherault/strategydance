@@ -204,8 +204,9 @@ Strings stay in the frontend's catalogues. A design-system component that names 
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
 it: `~components/common/Spinner` is the design system's spinner with that label. The one
 exception is BlockNote's menus, dozens of strings that BlockNote translates into every locale the
-app speaks: `RichTextEditor` takes the app's `locale` for them, and only its placeholder comes from a
-catalogue.
+app speaks: `RichTextEditor` takes the app's `locale` for them, and only its placeholder and the
+block menu's "Turn into", which BlockNote has no words for, come from a catalogue. Every caller
+passes both: `log.editorTurnInto` is the label's.
 
 shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
 its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer

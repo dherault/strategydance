@@ -276,6 +276,7 @@ organization), `MAX_CONVERSATION_MESSAGES` (2000 per conversation), `MAX_CONVERS
 conversation, see Attachments), `MAX_PENDING_CONVERSATION_ATTACHMENTS` (30 unsent files per
 member), `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, `MAX_QUESTION_OPTIONS` (6),
 `CONVERSATION_RUN_ROOM` (100), `MAX_ACTIVE_RUNS_PER_MEMBER` (3 per organization),
+`MAX_TOOL_CALLS_PER_TURN` (10) and `MAX_TOOL_CALLS_PER_RUN` (50),
 `MAX_CONVERSATION_PDF_PAGES` (100 per file) and `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300 per
 conversation), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000 characters per text file),
 `CONVERSATION_SUGGESTION_IDS` (M13),
@@ -388,9 +389,11 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   usage.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
-  is retried with the same name. Only a definite refusal finishes the run `FAILED`, clears
-  `activeRunId` and answers 503. A run whose task never arrives stays `QUEUED` until a route finds
-  its task gone (see Leases), then is finalized as interrupted.
+  is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so the send stays
+  idempotent: the route answers 503, and the browser's retry with the same `messageId` finds the
+  queued run and creates the same named task again. A run whose task never comes to exist, because
+  the retry never came, is found by the reconcile route once its lease passes (see Leases) and
+  finalized as interrupted, with Retry.
 - **Recovery and side effects.** A call's message is written `RUNNING`, with `toolStartedAt`, before
   the call is made. A worker that claims a run after a crash finds calls that started and have no
   result. The built-in tools that are safe to repeat run again: reads, a create keyed by its
@@ -430,9 +433,12 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   each progress line to `run.step` at most once a second and checking the stop flag every two
   seconds; store the finished assistant turn; draw it as messages; then by `stop_reason`:
   - `end_turn`: done, `COMPLETED`.
-  - `tool_use`: run the turn's tools concurrently, record each result on its message, store one
-    user entry holding every `tool_result` in order, and go round again. A turn with `ask_user` runs
-    its other tools, keeps their results in `pendingToolResults`, and ends the run `WAITING`.
+  - `tool_use`: run the turn's tools, four at a time, record each result on its message, store one
+    user entry holding every `tool_result` in order, and go round again. A turn runs at most ten
+    calls and a run at most fifty (`MAX_TOOL_CALLS_PER_TURN`, `MAX_TOOL_CALLS_PER_RUN`): a call past
+    either is not run, and its result tells the model so, so one turn cannot fan out into thousands
+    of requests across the dispatched runs. A turn with `ask_user` runs its other tools, keeps their
+    results in `pendingToolResults`, and ends the run `WAITING`.
   - `pause_turn` (web search's server-side loop paused): send the turn back as it is, up to five
     times, keeping the pieces in memory.
   - `max_tokens`: run nothing, fail with a note.
@@ -648,7 +654,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | Tool | What it does | Milestone |
 | --- | --- | --- |
 | `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M6 |
-| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt. A bounded candidate query first: at most 20 documents matching a case-insensitive pattern on the title or content, titles first, then the latest; only those 20 bring their content (4 MB at most), which is ranked in memory on its plain text. A searchable plain-text column replaces the pattern if knowledge grows past what that serves | M9 |
+| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M9), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M9 |
 | `read_knowledge` | `{ id, from? }`: a document's title, aspects, `revision` and content as Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The cursor is a block and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would | M9 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M9 |
 | `update_knowledge` | `{ id, revision, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { from, to, content }` replaces a range of blocks, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M9 |
@@ -890,7 +896,8 @@ heavy.
   conversation" opens `/conversations/<createId()>?isNew=true`, the first send creates it, then
   `isNew` leaves the address as knowledge's does.
 - Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
-  busy, an unclear and a definite queueing failure, a dead run finalized, a send retried with the
+  busy, an unclear and a definite queueing failure, both leaving the run queued for the retry to
+  enqueue, a dead run finalized, a send retried with the
   same `messageId`, a fourth run refused, a conversation without room for a run refused. Against the
   emulators, a script under `scripts/` sends from two conversations at once with two runs already in
   flight, and exactly one goes through.
@@ -945,6 +952,14 @@ A refactor and two pure functions, no visible change.
 
 ### M9: Knowledge tools and knowledge links
 
+- **A searchable plain text for documents.** `Document` gains `contentText`, the content's plain
+  text (`getRichTextText`), `@searchable(language: "simple")` beside a searchable `title`, so
+  `search_knowledge` reads an index rather than scanning stored JSON. Whoever writes content writes
+  it too: the backend's knowledge writes, and the web's `CreateDocument` and `UpdateDocumentContent`
+  through a new optional `$contentText` variable, which old bundles leave out without breaking. A
+  script under `scripts/` backfills existing documents once, run by hand against production. If the
+  collaborative documents branch has changed how content is stored by then, `contentText` follows
+  its writes instead.
 - Creating keeps the knowledge cap as `CreateDocument` does: the backend's create locks the
   organization's row and counts fewer than `MAX_DOCUMENTS` live documents before inserting, so the
   agent and the browser cannot race past it, and a full organization comes back to the model as a
@@ -960,7 +975,8 @@ A refactor and two pure functions, no visible change.
   document read in pages that join back whole, and one made of a single 200000-character paragraph
   too; a block range replaced without touching the rest; a unique piece of text replaced inside that
   paragraph, and a text that occurs twice refused;
-  search loading content for 20 candidates at most; Markdown in, the document draws as written.
+  search reading the index and loading the plain text of 20 candidates at most; `contentText` kept in
+  step by every content write; Markdown in, the document draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.
 

@@ -298,6 +298,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
         <Tooltip
           content={formatMessage(isAiLocked ? knowledgeMessages.lockedTooltip : knowledgeMessages.lock)}
           side="bottom"
+          // Open through the press, so the reader sees the words change with the lock
+          isKeptOpenOnPress
         >
           <Button
             variant="transparent"

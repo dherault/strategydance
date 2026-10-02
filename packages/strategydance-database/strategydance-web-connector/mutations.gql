@@ -1303,8 +1303,12 @@ mutation UpdateDocumentPresence($organizationId: UUID!, $documentId: UUID!, $ses
 }
 
 # Says that the caller closed a document in one tab, or hid it, so the others stop drawing them.
-# Their own row only. One that is gone already changes nothing and succeeds
-mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: UUID!) @auth(level: USER) @transaction {
+# Their own row only. One that is gone already changes nothing and succeeds.
+#
+# Not a transaction: deleting one's own row needs none, and a tab sends this as it closes, which can
+# cut the request off midway. The Data Connect emulator then fails to roll the transaction back and
+# leaves its database stuck in it, refusing every mutation after
+mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: UUID!) @auth(level: USER) {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can open its knowledge") {

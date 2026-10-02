@@ -11,7 +11,7 @@ import {
   useExtensionState,
   usePortalElement,
 } from '@blocknote/react'
-import { CheckIcon, GripVerticalIcon, PlusIcon } from 'lucide-react'
+import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextBlockTypeItems } from 'strategydance-design-system/lib/richTextEditorMenus'
@@ -158,8 +158,9 @@ function DragHandleButton() {
 
 /*
   The block's menu: "Turn into", a submenu of the blocks the editor writes, which the toolbar's
-  select offers too, with the block's own checked, then BlockNote's delete. Over a selection holding
-  the block, both act on every block it holds
+  select offers too, then BlockNote's delete. Over a selection holding the block, both act on every
+  block it holds. The block's own type is a checked item, so it is announced as the current one; the
+  others stay plain items, since a checkbox item would keep the menu open once it is chosen
 */
 function BlockMenu() {
   const Components = useComponentsContext()!
@@ -218,10 +219,10 @@ function BlockMenu() {
                   key={item.name}
                   className="bn-menu-item"
                   icon={<Icon size={16} />}
+                  checked={isCurrent(item) || undefined}
                   onClick={() => turnInto(item)}
                 >
                   {item.name}
-                  {isCurrent(item) ? <CheckIcon className="ml-auto size-4 text-primary" /> : null}
                 </Components.Generic.Menu.Item>
               )
             })}

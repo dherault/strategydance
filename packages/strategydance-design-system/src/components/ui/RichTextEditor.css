@@ -145,7 +145,9 @@
   width: max-content;
 }
 
-.rich-text-editor.bn-root [data-slot='dropdown-menu-sub-content'] [data-slot='dropdown-menu-item'] {
+.rich-text-editor.bn-root
+  [data-slot='dropdown-menu-sub-content']
+  :is([data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-checkbox-item']) {
   white-space: nowrap;
 }
 
@@ -166,6 +168,7 @@
     .bn-suggestion-menu-item[role='option'],
     [data-slot='select-item'],
     [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
     [data-slot='dropdown-menu-sub-trigger']
   ) {
   min-height: 32px;
@@ -176,7 +179,12 @@
 }
 
 .rich-text-editor.bn-root
-  :is([data-slot='select-item'], [data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-sub-trigger']) {
+  :is(
+    [data-slot='select-item'],
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
+    [data-slot='dropdown-menu-sub-trigger']
+  ) {
   padding-block: 0;
 }
 
@@ -186,6 +194,7 @@
     .bn-suggestion-menu-item[role='option']:hover,
     [data-slot='select-item'][data-highlighted],
     [data-slot='dropdown-menu-item'][data-highlighted],
+    [data-slot='dropdown-menu-checkbox-item'][data-highlighted],
     [data-slot='dropdown-menu-sub-trigger']:is([data-highlighted], [data-popup-open])
   ) {
   background-color: var(--color-neutral-100);
@@ -193,9 +202,31 @@
 }
 
 .rich-text-editor.bn-root
-  :is([data-slot='select-item'], [data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-sub-trigger'])
+  :is(
+    [data-slot='select-item'],
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
+    [data-slot='dropdown-menu-sub-trigger']
+  )
   svg:not([class*='text-']) {
   color: var(--muted-foreground);
+}
+
+/*
+  The block's own type in the "Turn into" list, checked in primary as `DropdownMenu` checks, its
+  icon as far from its name as the other rows', where BlockNote draws a checked row tighter
+*/
+.rich-text-editor.bn-root [data-slot='dropdown-menu-checkbox-item'] {
+  gap: 8px;
+}
+
+.rich-text-editor.bn-root
+  [data-slot='dropdown-menu-checkbox-item']
+  > [data-slot='dropdown-menu-checkbox-item-indicator']
+  svg {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
 }
 
 /* The block a selection is in, as `Select` marks its value: medium, in secondary, checked in primary */

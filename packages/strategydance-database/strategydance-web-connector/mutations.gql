@@ -1194,8 +1194,8 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
 
 # Adds an edit to a document's text, a Yjs update a tab pushes as somebody types, which every tab
 # with the document open reads through `GetLiveDocument` and merges. The tab names the id, and a
-# retry sends the same id with the same bytes, so an upsert stores a push whose answer was lost
-# once. Only for a document with a `state`, which a tab seeds before it pushes anything.
+# retry sends the same id with the same bytes, so a push whose answer was lost is stored once. Only
+# for a document with a `state`, which a tab seeds before it pushes anything.
 #
 # It leaves the document's row alone, `updatedAt` included, so a keystroke writes one small row:
 # the compaction that folds it in moves `updatedAt`.
@@ -1208,10 +1208,11 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
 # reads' limit allows for. A retry of a push already stored is not counted against it.
 #
 # An update is never changed once stored: every tab dedupes them by id, so one rewritten under its
-# id would reach the tabs that had not merged it yet and none of the others. A retry sends the same
-# bytes and changes nothing; other bytes under a stored id are refused.
+# id would reach the tabs that had not merged it yet and none of the others. So it is inserted, and
+# a push under a stored id is refused as a duplicate, which a retry, whose answer was lost, takes
+# as stored: its id is fresh, so only its own earlier send can hold it.
 #
-# Not a transaction: its one write is an upsert that a retry repeats, so a push cut off midway, as
+# Not a transaction: its one write is an insert, so a push cut off midway, as
 # a closing tab cuts one off, is stored or not, and never half. As a transaction the cutoff leaves
 # the Data Connect emulator's database stuck in it, refusing every mutation after
 mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUID!, $payload: String!)
@@ -1243,13 +1244,8 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
         id
       }
     }
-    documentUpdate(key: { documentId: $documentId, id: $id }) {
-      # Absent for a new id, which the check passes as `optional`
-      payload
-        @check(expr: "this == vars.payload", message: "An update by that id holds another payload", optional: true)
-    }
   }
-  documentUpdate_upsert(data: { documentId: $documentId, id: $id, createdById_expr: "auth.uid", payload: $payload })
+  documentUpdate_insert(data: { documentId: $documentId, id: $id, createdById_expr: "auth.uid", payload: $payload })
 }
 
 # Folds a document's pending updates into its snapshot: the tab sends the snapshot it holds with

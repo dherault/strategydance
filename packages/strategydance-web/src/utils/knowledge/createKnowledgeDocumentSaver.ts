@@ -1,4 +1,4 @@
-import { MAX_DOCUMENT_CONTENT_LENGTH } from 'strategydance-core'
+import { MAX_DOCUMENT_CONTENT_LENGTH, MAX_DOCUMENT_STATE_LENGTH } from 'strategydance-core'
 
 import type { KnowledgeDocumentFields, KnowledgeDocumentSaveStatus } from '~types'
 
@@ -54,6 +54,8 @@ type Options = {
   delay?: number
   // The longest content the server accepts, past which a draft is held back rather than refused
   maxContentLength?: number
+  // The longest snapshot the server accepts, in base64, past which a draft is held back too
+  maxStateLength?: number
 }
 
 type StoredKnowledgeDocument = KnowledgeDocumentFields & {
@@ -141,6 +143,7 @@ function createKnowledgeDocumentSaver({
   text,
   delay = SAVE_DELAY,
   maxContentLength = MAX_DOCUMENT_CONTENT_LENGTH,
+  maxStateLength = MAX_DOCUMENT_STATE_LENGTH,
 }: Options) {
   const rowKey = getKnowledgeDocumentSaverKey(documentId)
 
@@ -154,6 +157,8 @@ function createKnowledgeDocumentSaver({
   let isSending = false
   let hasFailed = false
   let isFull = false
+  // Whether the last create found the draft's snapshot longer than the server keeps
+  let isStateTooLong = false
   let isPaused = false
   let isChangedHere = false
   let lastStatus: KnowledgeDocumentSaveStatus | null = null
@@ -181,6 +186,7 @@ function createKnowledgeDocumentSaver({
 
   function getStatus(): KnowledgeDocumentSaveStatus {
     if (isFull) return 'full'
+    if (isStateTooLong) return 'tooLong'
     if (hasFailed) return 'error'
     if (isSending) return 'saving'
     if (isContentHeld()) return 'tooLong'
@@ -325,10 +331,15 @@ function createKnowledgeDocumentSaver({
   }
 
   // Stores the draft, or finds it stored by a create whose answer was lost. Null when the
-  // organization is full
+  // organization is full, or the draft's snapshot too long
   async function create(): Promise<SavedState | null> {
     const fields = current
     const state = text.encodeForCreate()
+
+    // Refused for its length every time it went, so it does not go, and the page says so
+    isStateTooLong = state.length > maxStateLength
+
+    if (isStateTooLong) return null
 
     try {
       if ((await writes.create(fields, state)) === 'full') {

@@ -325,6 +325,20 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual(['rename Plan 2'])
   })
 
+  it('holds a draft back while its snapshot is longer than the server keeps, and says so', async () => {
+    const { calls, writes } = createWrites()
+    const saver = createSaver({ documentId: 'd31', fields: BLANK, isStored: false, writes, maxStateLength: 5 })
+    const { statuses } = track(saver)
+
+    saver.change({ title: 'Plan' })
+    await saver.flush()
+
+    expect(calls).toEqual([])
+    expect(saver.getStatus()).toBe('tooLong')
+    expect(statuses.at(-1)).toBe('tooLong')
+    expect(saver.hasUnsaved()).toBe(true)
+  })
+
   it('ends on what another member saved while its own save was out', async () => {
     const { calls, writes } = createWrites({ latency: DELAY })
     const saver = createSaver({ documentId: 'd28', fields: STORED, isStored: true, writes })

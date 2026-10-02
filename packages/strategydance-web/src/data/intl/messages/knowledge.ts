@@ -267,6 +267,29 @@ const knowledgeMessages = defineMessages({
     description:
       "Line under the title of the empty Knowledge section of an aspect's page. {aspect} is the aspect's name, such as Strategy.",
   },
+  leaveTitle: {
+    id: 'knowledge.leaveTitle',
+    defaultMessage: 'Leave without saving?',
+    description:
+      'Title of the dialog asked when leaving the page of an item of knowledge whose latest changes could not be saved.',
+  },
+  leaveText: {
+    id: 'knowledge.leaveText',
+    defaultMessage: 'Some of your changes could not be saved. If you leave now, they are lost.',
+    description:
+      'Line under the title of the dialog asked when leaving an item of knowledge with changes that could not be saved.',
+  },
+  stay: {
+    id: 'knowledge.stay',
+    defaultMessage: 'Stay',
+    description: 'Button of the leave dialog that keeps the reader on the item of knowledge, with their changes.',
+  },
+  leave: {
+    id: 'knowledge.leave',
+    defaultMessage: 'Leave',
+    description:
+      'Button of the leave dialog that leaves the item of knowledge, giving up the changes that could not be saved.',
+  },
   notFoundTitle: {
     id: 'knowledge.notFoundTitle',
     defaultMessage: 'This item no longer exists',

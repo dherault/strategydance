@@ -35,6 +35,7 @@ import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocum
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
 import KnowledgeEditedAt from '~components/knowledge/KnowledgeEditedAt'
+import KnowledgeLeaveDialog from '~components/knowledge/KnowledgeLeaveDialog'
 
 import { dataConnect } from '~data/firebase'
 import aspectMessages from '~data/intl/aspectMessages'
@@ -88,7 +89,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const editorRef = useRef<RichTextEditorHandle>(null)
 
-  const { saver, status, savedAt } = useKnowledgeDocumentSaver({
+  const { saver, status, savedAt, leave } = useKnowledgeDocumentSaver({
     organizationId,
     documentId,
     fields: initial.fields,
@@ -344,6 +345,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           )}
         </div>
       )}
+      {leave.status === 'blocked' ? (
+        <KnowledgeLeaveDialog
+          onStay={leave.reset}
+          onLeave={leave.proceed}
+        />
+      ) : null}
       {isPickingAspects ? (
         <KnowledgeDocumentAspectsDialog
           aspects={aspects}

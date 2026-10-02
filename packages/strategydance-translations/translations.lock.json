@@ -1523,6 +1523,18 @@
         "hash": "37c6edbbe5b19ffb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.leave": {
+        "hash": "6db8e3e4b9d9897b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.leaveText": {
+        "hash": "e407ce52c7b92ebb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.leaveTitle": {
+        "hash": "9a369b1545161330",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.loadError": {
         "hash": "61f56ef3a4b48162",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1581,6 +1593,10 @@
       },
       "knowledge.saving": {
         "hash": "e1c88c25f4be6ca6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.stay": {
+        "hash": "e93736ca0e2457b2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.titleLabel": {

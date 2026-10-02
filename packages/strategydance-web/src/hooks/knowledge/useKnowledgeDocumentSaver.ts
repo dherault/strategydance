@@ -1,3 +1,4 @@
+import { useBlocker } from '@tanstack/react-router'
 import { useEffect, useEffectEvent, useState } from 'react'
 
 import type { KnowledgeDocumentFields, KnowledgeDocumentSaveStatus } from '~types'
@@ -26,7 +27,13 @@ type Options = {
   same saver, which neither sends nor deletes anything.
 
   What is left also goes out when the tab is hidden, which is the last moment a phone or a closed
-  laptop gives, and leaving the tab with something unsent asks first
+  laptop gives, and leaving the tab with something unsent asks first.
+
+  Leaving the page for another in the app waits for what is left to go out, since a send that
+  fails once the page is gone has nobody left to tell. When something still cannot be saved,
+  failed, too long or refused, the navigation is held and `leave` says so, for the page to ask
+  whether to go anyway. A navigation within the document, as a stored draft losing `isNew`, is
+  never held
 */
 function useKnowledgeDocumentSaver({ organizationId, documentId, fields, revision, onCreated }: Options) {
   const [saver] = useState(() =>
@@ -41,6 +48,19 @@ function useKnowledgeDocumentSaver({ organizationId, documentId, fields, revisio
   // When a send last went through whole, for the page to say it changed just now
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const handleCreated = useEffectEvent(onCreated)
+
+  const leave = useBlocker({
+    shouldBlockFn: async ({ current, next }) => {
+      if (next.pathname === current.pathname || !saver.hasUnsaved()) return false
+
+      await saver.flush()
+
+      return saver.hasUnsaved()
+    },
+    // The tab's own warning is the effect's below, which also sends what is left
+    enableBeforeUnload: false,
+    withResolver: true,
+  })
 
   useEffect(() => {
     saver.attach({
@@ -70,7 +90,7 @@ function useKnowledgeDocumentSaver({ organizationId, documentId, fields, revisio
     }
   }, [saver])
 
-  return { saver, status, savedAt }
+  return { saver, status, savedAt, leave }
 }
 
 export default useKnowledgeDocumentSaver

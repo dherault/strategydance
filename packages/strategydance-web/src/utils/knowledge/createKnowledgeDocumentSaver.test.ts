@@ -16,10 +16,15 @@ function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// Writes that record what they were sent, each answering after `latency`
-function createWrites({ latency = 0, refuseContent = false } = {}) {
+/*
+  Writes that record what they were sent, each answering after `latency`. `isFull` refuses every
+  create for the organization's cap. `losesCreateAnswer` stores the first create and then throws,
+  as a create whose answer the network lost does, which `read` then finds
+*/
+function createWrites({ latency = 0, refuseContent = false, isFull = false, losesCreateAnswer = false } = {}) {
   const calls: string[] = []
   let failNext = false
+  let stored: (KnowledgeDocumentFields & { revision: number }) | null = null
 
   async function answer(call: string) {
     calls.push(call)
@@ -32,7 +37,23 @@ function createWrites({ latency = 0, refuseContent = false } = {}) {
   }
 
   const writes: KnowledgeDocumentWrites = {
-    create: fields => answer(`create ${fields.title}|${fields.content}|${fields.aspects.join()}|${fields.isAiLocked}`),
+    create: async fields => {
+      await answer(`create ${fields.title}|${fields.content}|${fields.aspects.join()}|${fields.isAiLocked}`)
+
+      if (isFull) return 'full'
+      if (stored) throw new Error('A document by that id exists')
+
+      stored = { ...fields, revision: 0 }
+
+      if (losesCreateAnswer) throw new Error('The connection dropped')
+
+      return 'created'
+    },
+    read: async () => {
+      calls.push('read')
+
+      return stored
+    },
     rename: title => answer(`rename ${title}`),
     updateContent: async (content, revision) => {
       await answer(`content ${content}@${revision}`)
@@ -115,6 +136,57 @@ describe('createKnowledgeDocumentSaver', () => {
 
     expect(calls).toEqual(['create P|||false', 'rename Plan', 'content [1]@0'])
     expect(getCreatedCount()).toBe(1)
+  })
+
+  it('goes on from a create that went through though its answer was lost', async () => {
+    const { calls, writes } = createWrites({ losesCreateAnswer: true })
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd21',
+      fields: BLANK,
+      revision: null,
+      writes,
+      delay: DELAY,
+    })
+    const { getCreatedCount } = track(saver)
+
+    saver.change({ title: 'Plan' })
+
+    expect(await saver.flush()).toBe(true)
+    expect(getCreatedCount()).toBe(1)
+
+    saver.change({ content: '[1]' })
+    await saver.flush()
+
+    expect(calls).toEqual(['create Plan|||false', 'read', 'content [1]@0'])
+    expect(saver.getStatus()).toBe('idle')
+  })
+
+  it('says the organization is full, and tries again with the next change', async () => {
+    const { calls, writes } = createWrites({ isFull: true })
+    const saver = createKnowledgeDocumentSaver({
+      documentId: 'd22',
+      fields: BLANK,
+      revision: null,
+      writes,
+      delay: DELAY,
+    })
+    const { getCreatedCount } = track(saver)
+
+    saver.change({ title: 'Plan' })
+
+    expect(await saver.flush()).toBe(false)
+    expect(saver.getStatus()).toBe('full')
+    expect(saver.hasUnsaved()).toBe(true)
+
+    saver.change({ title: 'Plans' })
+    await saver.flush()
+
+    expect(calls).toEqual(['create Plan|||false', 'create Plans|||false'])
+    expect(getCreatedCount()).toBe(0)
+
+    saver.change({ title: '' })
+
+    expect(saver.getStatus()).toBe('idle')
   })
 
   it('names the revision each content save is made over', async () => {

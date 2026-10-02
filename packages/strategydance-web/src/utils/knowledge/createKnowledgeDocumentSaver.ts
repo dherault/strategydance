@@ -9,11 +9,14 @@ const SAVE_DELAY = 1500
 
 /*
   The operations a saver sends, bound to its organization and its document, so this module knows
-  nothing of Data Connect. `updateContent` answers false when the server refused the save because
-  the document is not at `revision` any more, and throws on any other failure
+  nothing of Data Connect. `create` answers 'full' when the server refused it because the
+  organization keeps as many documents as it may, and `updateContent` false when it refused the
+  save because the document is not at `revision` any more. Both throw on any other failure. `read`
+  is the document as stored, or null, for a create whose answer was lost
 */
 export type KnowledgeDocumentWrites = {
-  create: (fields: KnowledgeDocumentFields) => Promise<unknown>
+  create: (fields: KnowledgeDocumentFields) => Promise<'created' | 'full'>
+  read: () => Promise<StoredKnowledgeDocument | null>
   rename: (title: string) => Promise<unknown>
   updateContent: (content: string, revision: number) => Promise<boolean>
   updateAspects: (aspects: KnowledgeDocumentFields['aspects']) => Promise<unknown>
@@ -41,9 +44,11 @@ type Options = {
   maxContentLength?: number
 }
 
-type SavedState = KnowledgeDocumentFields & {
+type StoredKnowledgeDocument = KnowledgeDocumentFields & {
   revision: number
 }
+
+type SavedState = StoredKnowledgeDocument
 
 // A title of spaces is no title, as the server's checks read it
 function isBlank(fields: KnowledgeDocumentFields) {
@@ -56,7 +61,10 @@ function isBlank(fields: KnowledgeDocumentFields) {
   field, so two members changing two fields never write back each other's.
 
   A draft is stored the first time it has a title or some text, and its first send creates it with
-  everything it has by then. Sends to one document run one after the other through `runInOrder`, at
+  everything it has by then. A create that fails may still have gone through, its answer lost on
+  the way back, so the document is read: when it is there, the saver goes on from it rather than
+  retry a create the server would refuse as a second one. One refused because the organization is
+  full says so, and is tried again with the next change, as a teammate may have deleted one. Sends to one document run one after the other through `runInOrder`, at
   most one waiting, and a send reads the latest fields when it starts rather than when it was
   asked for, so typing while one is out, a second create and a retried one all come out right.
 
@@ -89,6 +97,7 @@ function createKnowledgeDocumentSaver({
   let queued: Promise<void> | null = null
   let isSending = false
   let hasFailed = false
+  let isFull = false
   let isConflicted = false
   let isPaused = false
   let isChangedHere = false
@@ -127,6 +136,7 @@ function createKnowledgeDocumentSaver({
 
   function getStatus(): KnowledgeDocumentSaveStatus {
     if (isConflicted) return 'conflict'
+    if (isFull) return 'full'
     if (hasFailed) return 'error'
     if (isSending) return 'saving'
     if (isContentHeld()) return 'tooLong'
@@ -204,6 +214,7 @@ function createKnowledgeDocumentSaver({
     // Nothing left to send, so nothing has failed, a failed change taken back included
     if (!isDirty()) {
       hasFailed = false
+      isFull = false
       report()
 
       return
@@ -211,6 +222,7 @@ function createKnowledgeDocumentSaver({
 
     isSending = true
     hasFailed = false
+    isFull = false
     report()
 
     let isOk = true
@@ -218,19 +230,18 @@ function createKnowledgeDocumentSaver({
 
     try {
       if (!saved) {
-        const fieldsToCreate = getSendable()
-
-        await writes.create(fieldsToCreate)
-
-        saved = { ...fieldsToCreate, revision: 0 }
-        hasSent = true
-        listeners?.onCreated()
+        saved = await create()
+        hasSent = saved !== null
       }
 
-      const result = await sendChanges(saved)
+      if (saved) {
+        const result = await sendChanges(saved)
 
-      isOk = result.isOk
-      hasSent ||= result.hasSent
+        isOk = result.isOk
+        hasSent ||= result.hasSent
+      } else {
+        isOk = false
+      }
     } catch (error) {
       console.error('A document could not be saved', error)
       isOk = false
@@ -244,6 +255,33 @@ function createKnowledgeDocumentSaver({
     if (isOk && hasSent) listeners?.onSaved()
 
     report()
+  }
+
+  // Stores the draft, or finds it stored by a create whose answer was lost. Null when the
+  // organization is full
+  async function create(): Promise<SavedState | null> {
+    const fields = getSendable()
+    let created: SavedState
+
+    try {
+      if ((await writes.create(fields)) === 'full') {
+        isFull = true
+
+        return null
+      }
+
+      created = { ...fields, revision: 0 }
+    } catch (error) {
+      const stored = await writes.read().catch(() => null)
+
+      if (!stored) throw error
+
+      created = stored
+    }
+
+    listeners?.onCreated()
+
+    return created
   }
 
   // Queues a send behind the one out, unless one is waiting already, which will read the latest
@@ -263,7 +301,10 @@ function createKnowledgeDocumentSaver({
     current = { ...current, ...fields }
     isChangedHere = true
 
-    if (!isDirty()) hasFailed = false
+    if (!isDirty()) {
+      hasFailed = false
+      isFull = false
+    }
 
     clearTimer()
 

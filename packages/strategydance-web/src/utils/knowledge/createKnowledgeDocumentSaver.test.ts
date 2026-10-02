@@ -410,6 +410,26 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(saver.hasUnsaved()).toBe(false)
   })
 
+  it('tries a failed change again once a push says the document is back', async () => {
+    const { calls, writes, failNextWrite } = createWrites()
+    const saver = createSaver({ documentId: 'd32', fields: STORED, isStored: true, writes })
+    track(saver)
+
+    // Refused, as a rename is while the document is deleted
+    failNextWrite()
+    saver.change({ title: 'Plan 2' })
+    await saver.flush()
+
+    expect(saver.getStatus()).toBe('error')
+
+    // An Undo brought it back, and the live query says so
+    saver.receive({ title: 'Plan', aspects: [], isAiLocked: false })
+    await wait(DELAY * 3)
+
+    expect(calls).toEqual(['rename Plan 2', 'rename Plan 2'])
+    expect(saver.getStatus()).toBe('idle')
+  })
+
   it('says a save failed, and tries again with the next change', async () => {
     const { calls, writes, failNextWrite } = createWrites()
     const saver = createSaver({ documentId: 'd7', fields: STORED, isStored: true, writes })

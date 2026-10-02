@@ -462,6 +462,15 @@ function createKnowledgeDocumentSaver({
       listeners?.onRemoteChange(remote)
     }
 
+    // A change of this page's left unsent, as one that failed while the document was deleted is
+    // when an Undo brings it back, goes after the usual pause
+    if (timer === null && !isSending && isDirty()) {
+      timer = setTimeout(() => {
+        timer = null
+        enqueue()
+      }, delay)
+    }
+
     report()
   }
 

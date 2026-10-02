@@ -110,8 +110,9 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
     The writes of one tab. `losePushAnswers` stores that many pushes and then throws, as a push
     whose answer the network lost does. `latency` holds each answer back
   */
-  function createWrites({ losePushAnswers = 0, latency = 0 } = {}): KnowledgeDocumentSyncWrites {
+  function createWrites({ losePushAnswers = 0, latency = 0, failCompactions = 0 } = {}): KnowledgeDocumentSyncWrites {
     let answersToLose = losePushAnswers
+    let compactionsToFail = failCompactions
 
     return {
       read: async () => {
@@ -149,6 +150,11 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
       },
       compact: async (state, content, revision, updateIds) => {
         await wait(latency)
+
+        if (compactionsToFail > 0) {
+          compactionsToFail -= 1
+          throw new Error('The connection dropped')
+        }
 
         const isCompacted = Boolean(stored && stored.revision === revision)
 
@@ -596,6 +602,28 @@ describe('createKnowledgeDocumentSync', () => {
     expect(server.readText()).toBe(`Hello${'x'.repeat(200)}`)
     expect(sync.hasUnsaved()).toBe(false)
     expect(sync.getStatus()).toBe('idle')
+  })
+
+  it('counts a fold of an edit too long to push that failed as a failed save, which settling does not pass', async () => {
+    const server = createServer(seeded('Hello'))
+    const error = spyOn(console, 'error').mockImplementation(() => {})
+    const { sync } = await openTab(server, {
+      maxUpdateLength: 100,
+      writes: server.createWrites({ failCompactions: 2 }),
+    })
+
+    type(sync, 'end', 'x'.repeat(200))
+
+    expect(await sync.flush()).toBe(false)
+    expect(sync.getStatus()).toBe('error')
+    expect(await sync.settle()).toBe(false)
+    expect(sync.hasUnsaved()).toBe(true)
+
+    expect(await sync.flush()).toBe(true)
+    expect(sync.hasUnsaved()).toBe(false)
+    expect(server.readText()).toBe(`Hello${'x'.repeat(200)}`)
+
+    error.mockRestore()
   })
 
   it('settles rather than waits forever while too many updates are pending to push', async () => {

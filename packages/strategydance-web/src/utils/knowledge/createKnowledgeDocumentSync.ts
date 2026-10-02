@@ -207,7 +207,7 @@ function createKnowledgeDocumentSync({
   */
   const ownIds = new Map<string, number>()
   let queuedPush: Promise<void> | null = null
-  let queuedCompaction: Promise<void> | null = null
+  let queuedCompaction: Promise<boolean> | null = null
   let pushTimer: ReturnType<typeof setTimeout> | null = null
   let compactionTimer: ReturnType<typeof setTimeout> | null = null
   let idleCompactionTimer: ReturnType<typeof setTimeout> | null = null
@@ -518,6 +518,15 @@ function createKnowledgeDocumentSync({
     )
   }
 
+  function scheduleRetry() {
+    retryTimer = clearTimer(retryTimer)
+    retryTimer = setTimeout(() => {
+      retryTimer = null
+      enqueuePush()
+    }, retryDelay)
+    retryDelay = Math.min(retryDelay * 2, RETRY_MAX_DELAY)
+  }
+
   // Sends the push on its way, or this tab's edits as a new one
   async function push() {
     if (!isStored || isGone || isPaused) return
@@ -528,9 +537,18 @@ function createKnowledgeDocumentSync({
       const payload = encodeBase64(buffer)
 
       // Too long to push, a long paste say: folded into the snapshot instead, which the others read
-      // when the revision moves
+      // when the revision moves. A fold that does not go through is a push that failed, retried as
+      // one, unless the snapshot is too long to keep, which the page says instead
       if (payload.length > maxUpdateLength) {
-        await compact(true)
+        if (await compact(true)) {
+          hasFailed = false
+          retryDelay = RETRY_INITIAL_DELAY
+        } else if (!isOversized) {
+          hasFailed = true
+          scheduleRetry()
+        }
+
+        report()
 
         return
       }
@@ -560,12 +578,7 @@ function createKnowledgeDocumentSync({
     } catch (error) {
       console.error('A document update could not be sent', error)
       hasFailed = true
-      retryTimer = clearTimer(retryTimer)
-      retryTimer = setTimeout(() => {
-        retryTimer = null
-        enqueuePush()
-      }, retryDelay)
-      retryDelay = Math.min(retryDelay * 2, RETRY_MAX_DELAY)
+      scheduleRetry()
     } finally {
       isSending = false
       report()
@@ -591,18 +604,19 @@ function createKnowledgeDocumentSync({
   /*
     Folds the updates pending into the snapshot, when this tab holds the latest snapshot. The
     snapshot holds this tab's edits not pushed yet too, so a fold that goes through takes them, and
-    one `isCarrying` them goes with no update pending: an edit too long to push
+    one `isCarrying` them goes with no update pending: an edit too long to push. Says whether it
+    went through
   */
   async function compact(isCarrying = false) {
-    if (!isReady || !isStored || isGone || isPaused || isRereading || knownRevision > mergedRevision) return
+    if (!isReady || !isStored || isGone || isPaused || isRereading || knownRevision > mergedRevision) return false
 
     const updateIds = [...new Set([...pendingIds, ...ownIds.keys()])]
 
-    if (!updateIds.length && !isCarrying) return
+    if (!updateIds.length && !isCarrying) return false
 
     const content = readContent(doc)
 
-    if (content.length > maxContentLength) return
+    if (content.length > maxContentLength) return false
 
     /*
       A snapshot keeps what was deleted as small tombstones, so it can outgrow what the server keeps
@@ -614,7 +628,7 @@ function createKnowledgeDocumentSync({
     isOversized = state.length > maxStateLength
     report()
 
-    if (isOversized) return
+    if (isOversized) return false
 
     const revision = mergedRevision
     const carried = buffer
@@ -637,12 +651,18 @@ function createKnowledgeDocumentSync({
 
         // Room again for what was held back while too many updates were pending
         if (buffer) schedulePush()
-      } else {
-        // Somebody folded first, or the document is gone, which the read says
-        knownRevision = Math.max(knownRevision, revision + 1)
+
+        return true
       }
+
+      // Somebody folded first, or the document is gone, which the read says
+      knownRevision = Math.max(knownRevision, revision + 1)
+
+      return false
     } catch (error) {
       console.error('A document could not be compacted', error)
+
+      return false
     } finally {
       isCompacting = false
       maybeReread()

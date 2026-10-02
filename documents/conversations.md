@@ -410,6 +410,13 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   counts the messages a conversation holds, never the sequence: every insert raises `messageCount`
   in the write that claims its position, and Retry lowers it by the messages it deletes, in the same
   mutation, so retrying never fills a conversation.
+- **The cap holds on every claim**, in the claim's own condition, since a run can also start from an
+  answer or Resume, and an aspects note can land mid-run. An entry a run draws claims only while
+  `messageCount` plus its entries stays below `MAX_CONVERSATION_MESSAGES`, keeping the last position
+  for a note; a run's closing note may take that last position; an aspects note claims only while
+  at least `CONVERSATION_RUN_ROOM` positions stay free. Every run start, the send, the answer's
+  continuation, Resume and Retry alike, requires that much room, so a run that starts always has
+  its hundred, and a conversation without it shows full.
 - **Concurrency.** These are not usage limits, which wait for credits, but bounds on how much runs
   at once: at most three runs in flight per member in each organization
   (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the queue
@@ -642,11 +649,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | --- | --- | --- |
 | `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M6 |
 | `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt. A bounded candidate query first: at most 20 documents matching a case-insensitive pattern on the title or content, titles first, then the latest; only those 20 bring their content (4 MB at most), which is ranked in memory on its plain text. A searchable plain-text column replaces the pattern if knowledge grows past what that serves | M9 |
-| `read_knowledge` | `{ id, fromBlock? }`: a document's title, aspects, `revision` and content as Markdown, read in whole blocks up to 40000 characters at a time, with `nextBlock` when more remains, since a document can hold 200000 and a tool result is cut at 50000 | M9 |
+| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `revision` and content as Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The cursor is a block and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would | M9 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M9 |
-| `update_knowledge` | `{ id, revision, title?, aspects?, content?, append?, replaceBlocks? }`: `content` replaces a document small enough to read whole, `append` adds to the end, and `replaceBlocks: { from, to, content }` replaces a range of blocks, so a large document is edited without being rewritten. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M9 |
+| `update_knowledge` | `{ id, revision, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { from, to, content }` replaces a range of blocks, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M9 |
 | `get_team` | Every member: id, name, job title, role, bio, top priority as text and when it was set | M11 |
-| `read_log` | `{ from, to, memberId? }`, at most 31 days: entries as text, with author and date | M11 |
+| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full | M11 |
 | `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M11 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers | M12 |
 | `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M19 |
@@ -950,7 +957,9 @@ A refactor and two pure functions, no visible change.
   title, or struck through when deleted.
 - Tests: a locked document refuses; a stale revision refuses; a create retried with the same
   `tool_use` id makes one document; a create in a full organization refuses; a 200000-character
-  document read in pages that join back whole; a block range replaced without touching the rest;
+  document read in pages that join back whole, and one made of a single 200000-character paragraph
+  too; a block range replaced without touching the rest; a unique piece of text replaced inside that
+  paragraph, and a text that occurs twice refused;
   search loading content for 20 candidates at most; Markdown in, the document draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.
@@ -1112,6 +1121,15 @@ A refactor and two pure functions, no visible change.
 
 - The three integration tools; calls with the member's own connection or the organization's key,
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
+- **The schema change.** `ConversationMessage` gains, for integration calls and approvals:
+  `integration` (an optional reference to `OrganizationIntegration`, set to null if the server is
+  pruned), `integrationName` (the server's name when the call was made), `integrationToolName`,
+  `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), and `argumentsPreview` (the arguments rendered
+  for display, cut to 2000 characters, secrets never included since none reach the model). The live
+  tail selects these, so a thread draws the server, the tool and the arguments without the full
+  `toolInput`, which stays behind "View output". The warning strip is computed against the live
+  integrations list matched by `integration`, never by name. All additive, with `APPROVAL` appended
+  to the kinds.
 - **Approval.** Every integration call waits for the member, unless its tool is in the server's
   `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind, appended to
   `ConversationMessageKind`) showing the server, the tool and its arguments, with Allow and Deny.
@@ -1149,7 +1167,7 @@ A refactor and two pure functions, no visible change.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 100 entries and the member's list. Fine at today's scale.
+  refreshes the open thread's tail of 150 entries and the member's list. Fine at today's scale.
 - **The member's open editor**: when the agent changes a document the member has open, their next
   save meets the revision check and asks them to reload, as two people editing do today.
 - **Collaborative documents**: the `live-documents` branch, in progress on 2026-10-02, makes

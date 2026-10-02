@@ -5,6 +5,7 @@
   "log.editPlaceholder": "Was ist vorangekommen?",
   "log.edited": "Bearbeitet",
   "log.editorError": "Der Editor konnte nicht geladen werden. Prüfe deine Verbindung und lade die Seite neu.",
+  "log.editorTurnInto": "Umwandeln in",
   "log.empty": "Diese Woche wurde noch nichts eingetragen.",
   "log.loadError": "Das Log konnte nicht geladen werden.",
   "log.loadPrevious": "Vorherige Woche laden",

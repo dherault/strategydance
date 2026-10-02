@@ -5,6 +5,7 @@
   "log.editPlaceholder": "有哪些进展？",
   "log.edited": "已编辑",
   "log.editorError": "编辑器无法加载。请检查网络连接并重新加载。",
+  "log.editorTurnInto": "转换为",
   "log.empty": "本周暂无记录。",
   "log.loadError": "无法加载日志。",
   "log.loadPrevious": "加载上一周",

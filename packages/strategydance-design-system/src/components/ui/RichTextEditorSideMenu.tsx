@@ -1,6 +1,8 @@
+import type { PartialBlock } from '@blocknote/core'
 import { SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
 import {
-  DragHandleMenu,
+  type BlockTypeSelectItem,
+  RemoveBlockItem,
   SideMenuController,
   useBlockNoteEditor,
   useComponentsContext,
@@ -9,8 +11,10 @@ import {
   useExtensionState,
   usePortalElement,
 } from '@blocknote/react'
-import { GripVerticalIcon, PlusIcon } from 'lucide-react'
+import { CheckIcon, GripVerticalIcon, PlusIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
+import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
+import { getRichTextBlockTypeItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 
 // Lucide's, at the stroke the design's icons are drawn with rather than BlockNote's heavier ones
 const ICON_SIZE = 18
@@ -147,8 +151,85 @@ function DragHandleButton() {
           onDragEnd={() => sideMenu.blockDragEnd()}
         />
       </Components.Generic.Menu.Trigger>
-      <DragHandleMenu />
+      <BlockMenu />
     </Components.Generic.Menu.Root>
+  )
+}
+
+/*
+  The block's menu: "Turn into", a submenu of the blocks the editor writes, which the toolbar's
+  select offers too, with the block's own checked, then BlockNote's delete. Over a selection holding
+  the block, both act on every block it holds
+*/
+function BlockMenu() {
+  const Components = useComponentsContext()!
+  const portalElement = usePortalElement()
+  const dictionary = useDictionary() as RichTextDictionary
+  const editor = useBlockNoteEditor()
+  const block = useExtensionState(SideMenuExtension, { editor, selector: state => state?.block })
+
+  const items = getRichTextBlockTypeItems(editor)
+
+  function isCurrent(item: BlockTypeSelectItem) {
+    if (!block || item.type !== block.type) return false
+
+    const props = block.props as Record<string, unknown>
+
+    return Object.entries(item.props ?? {}).every(([name, value]) => props[name] === value)
+  }
+
+  function turnInto(item: BlockTypeSelectItem) {
+    if (!block) return
+
+    const selectedBlocks = editor.getSelection()?.blocks
+    const blocks = selectedBlocks?.some(selected => selected.id === block.id) ? selectedBlocks : [block]
+    const update = { type: item.type, props: item.props } as PartialBlock
+
+    editor.transact(() => {
+      for (const each of blocks) editor.updateBlock(each, update)
+    })
+  }
+
+  return (
+    <Components.Generic.Menu.Dropdown className="bn-menu-dropdown bn-drag-handle-menu">
+      {block ? (
+        <Components.Generic.Menu.Root
+          position="right"
+          sub
+          portalElement={portalElement}
+        >
+          <Components.Generic.Menu.Trigger sub>
+            <Components.Generic.Menu.Item
+              className="bn-menu-item"
+              subTrigger
+            >
+              {dictionary.drag_handle.turn_into_menuitem}
+            </Components.Generic.Menu.Item>
+          </Components.Generic.Menu.Trigger>
+          <Components.Generic.Menu.Dropdown
+            sub
+            className="bn-menu-dropdown"
+          >
+            {items.map(item => {
+              const Icon = item.icon
+
+              return (
+                <Components.Generic.Menu.Item
+                  key={item.name}
+                  className="bn-menu-item"
+                  icon={<Icon size={16} />}
+                  onClick={() => turnInto(item)}
+                >
+                  {item.name}
+                  {isCurrent(item) ? <CheckIcon className="ml-auto size-4 text-primary" /> : null}
+                </Components.Generic.Menu.Item>
+              )
+            })}
+          </Components.Generic.Menu.Dropdown>
+        </Components.Generic.Menu.Root>
+      ) : null}
+      <RemoveBlockItem>{dictionary.drag_handle.delete_menuitem}</RemoveBlockItem>
+    </Components.Generic.Menu.Dropdown>
   )
 }
 

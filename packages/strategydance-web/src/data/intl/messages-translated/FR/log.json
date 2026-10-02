@@ -5,6 +5,7 @@
   "log.editPlaceholder": "Qu'est-ce qui a avancé ?",
   "log.edited": "Modifié",
   "log.editorError": "Impossible de charger l'éditeur. Vérifiez votre connexion et actualisez la page.",
+  "log.editorTurnInto": "Transformer en",
   "log.empty": "Aucune entrée cette semaine pour l'instant.",
   "log.loadError": "Impossible de charger le journal.",
   "log.loadPrevious": "Charger la semaine précédente",

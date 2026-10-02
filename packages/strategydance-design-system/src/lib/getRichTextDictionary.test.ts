@@ -13,6 +13,14 @@ describe('getRichTextDictionary', () => {
     expect(getRichTextDictionary(undefined, { placeholder: 'Write' }).slash_menu.quote.title).toBe('Quote')
   })
 
+  it('adds the block menu\'s "Turn into", in English unless the caller names it', () => {
+    expect(getRichTextDictionary('FR', { placeholder: 'Écrire' }).drag_handle.turn_into_menuitem).toBe('Turn into')
+    expect(
+      getRichTextDictionary('FR', { placeholder: 'Écrire', turnInto: 'Transformer en' }).drag_handle.turn_into_menuitem,
+    ).toBe('Transformer en')
+    expect(getRichTextDictionary('FR', { placeholder: 'Écrire' }).drag_handle.delete_menuitem).toBe('Supprimer')
+  })
+
   it("lays the field's placeholder over BlockNote's, and keeps its '/' hint", () => {
     const dictionary = getRichTextDictionary('EN', { placeholder: 'What moved forward today?' })
 

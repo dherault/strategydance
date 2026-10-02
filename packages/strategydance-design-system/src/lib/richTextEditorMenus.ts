@@ -1,4 +1,11 @@
-import type { BlockNoteEditor, BlockSchema, Dictionary, InlineContentSchema, StyleSchema } from '@blocknote/core'
+import {
+  type BlockNoteEditor,
+  type BlockSchema,
+  type Dictionary,
+  editorHasBlockWithType,
+  type InlineContentSchema,
+  type StyleSchema,
+} from '@blocknote/core'
 import { filterSuggestionItems } from '@blocknote/core/extensions'
 import { type BlockTypeSelectItem, blockTypeSelectItems, getDefaultReactSlashMenuItems } from '@blocknote/react'
 import { RICH_TEXT_HEADING_LEVELS, type RichTextHeadingLevel } from 'strategydance-design-system/lib/richText'
@@ -44,8 +51,27 @@ function getRichTextBlockTypeSelectItems(dictionary: Dictionary): BlockTypeSelec
   })
 }
 
+/*
+  The block types an editor can turn a block into, those of the select's the editor's schema holds,
+  as BlockNote's select keeps them. Each names its props' types, which is what the schema is asked
+*/
+function getRichTextBlockTypeItems<B extends BlockSchema, I extends InlineContentSchema, S extends StyleSchema>(
+  editor: BlockNoteEditor<B, I, S>,
+): BlockTypeSelectItem[] {
+  return getRichTextBlockTypeSelectItems(editor.dictionary).filter(item =>
+    editorHasBlockWithType(
+      editor,
+      item.type,
+      Object.fromEntries(Object.entries(item.props ?? {}).map(([name, value]) => [name, typeof value])) as Record<
+        string,
+        'string' | 'number' | 'boolean'
+      >,
+    ),
+  )
+}
+
 function isRichTextHeadingLevel(level: unknown): level is RichTextHeadingLevel {
   return RICH_TEXT_HEADING_LEVELS.some(headingLevel => headingLevel === level)
 }
 
-export { getRichTextBlockTypeSelectItems, getRichTextSlashMenuItems }
+export { getRichTextBlockTypeItems, getRichTextBlockTypeSelectItems, getRichTextSlashMenuItems }

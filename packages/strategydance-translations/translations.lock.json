@@ -1435,6 +1435,10 @@
         "hash": "7ccce6ac14142b72",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "log.editorTurnInto": {
+        "hash": "5ec56d5ad4433055",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "log.empty": {
         "hash": "e6f518b75c2baa64",
         "locales": "DE,ES,FR,JA,PT,ZH"

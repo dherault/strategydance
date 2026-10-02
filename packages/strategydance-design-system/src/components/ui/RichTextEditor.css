@@ -109,9 +109,10 @@
 }
 
 /*
-  The menus: the slash menu, the block type select's list, the block handle's menu, the link form
-  and the toolbars, as `DropdownMenu` and `Popover` draw their content. White, a neutral-200
-  border, the xs radius and the `md` shadow. BlockNote outlines them with a ring, which goes
+  The menus: the slash menu, the block type select's list, the block handle's menu and its "Turn
+  into" list, the link form and the toolbars, as `DropdownMenu` and `Popover` draw their content.
+  White, a neutral-200 border, the xs radius and the `md` shadow. BlockNote outlines them with a
+  ring, which goes
 */
 .rich-text-editor.bn-root
   :is(
@@ -119,6 +120,7 @@
     .bn-suggestion-menu,
     [data-slot='select-content'],
     [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
     [data-slot='popover-content']
   ) {
   --tw-ring-shadow: 0 0 #0000;
@@ -126,6 +128,21 @@
   border-radius: var(--radius-xs);
   background-color: var(--popover);
   font-family: var(--font-sans);
+}
+
+/* The chevron that opens the "Turn into" list, at the size of the menu's other icons */
+.rich-text-editor.bn-root [data-slot='dropdown-menu-sub-trigger'] > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The block menu's "Turn into" list, as wide as its longest block's name */
+.rich-text-editor.bn-root [data-slot='dropdown-menu-sub-content'] {
+  width: max-content;
+}
+
+.rich-text-editor.bn-root [data-slot='dropdown-menu-sub-content'] [data-slot='dropdown-menu-item'] {
+  white-space: nowrap;
 }
 
 /* As wide as its longest block's name, which in French outgrows the trigger it would match */
@@ -141,7 +158,12 @@
   reports the keyboard's choice as `aria-selected`, and the pointer's only as a hover
 */
 .rich-text-editor.bn-root
-  :is(.bn-suggestion-menu-item[role='option'], [data-slot='select-item'], [data-slot='dropdown-menu-item']) {
+  :is(
+    .bn-suggestion-menu-item[role='option'],
+    [data-slot='select-item'],
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-sub-trigger']
+  ) {
   min-height: 32px;
   border-radius: var(--radius-xs);
   color: var(--foreground);
@@ -149,7 +171,8 @@
   cursor: pointer;
 }
 
-.rich-text-editor.bn-root :is([data-slot='select-item'], [data-slot='dropdown-menu-item']) {
+.rich-text-editor.bn-root
+  :is([data-slot='select-item'], [data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-sub-trigger']) {
   padding-block: 0;
 }
 
@@ -158,13 +181,16 @@
     .bn-suggestion-menu-item[role='option'][aria-selected='true'],
     .bn-suggestion-menu-item[role='option']:hover,
     [data-slot='select-item'][data-highlighted],
-    [data-slot='dropdown-menu-item'][data-highlighted]
+    [data-slot='dropdown-menu-item'][data-highlighted],
+    [data-slot='dropdown-menu-sub-trigger']:is([data-highlighted], [data-popup-open])
   ) {
   background-color: var(--color-neutral-100);
   color: var(--secondary);
 }
 
-.rich-text-editor.bn-root [data-slot='select-item'] svg {
+.rich-text-editor.bn-root
+  :is([data-slot='select-item'], [data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-sub-trigger'])
+  svg:not([class*='text-']) {
   color: var(--muted-foreground);
 }
 

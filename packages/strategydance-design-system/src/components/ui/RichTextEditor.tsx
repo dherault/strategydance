@@ -21,6 +21,11 @@ import { cn } from 'strategydance-design-system/lib/utils'
 // Relative, since the package's `components/*` export resolves to `.tsx` modules only
 import './RichTextEditor.css'
 
+type RichTextEditorLabels = {
+  /** The block menu's item that turns a block into another, which BlockNote has no words for */
+  turnInto: string
+}
+
 type RichTextEditorChange = {
   /** BlockNote's blocks, serialized, which is what `RichText` draws and `initialValue` takes back */
   value: string
@@ -41,6 +46,8 @@ type Props = {
   autoFocus?: boolean
   /** The app's locale code, such as 'FR', which BlockNote's menus speak, or English where they cannot */
   locale?: string
+  /** The menus' words BlockNote lacks, in English unless the caller's catalogue says otherwise */
+  labels?: Partial<RichTextEditorLabels>
   /**
    * The blocks it writes besides paragraphs, all four unless it says fewer. One left out is not
    * offered, and pastes as paragraphs
@@ -50,7 +57,7 @@ type Props = {
   'aria-label'?: string
 }
 
-type EditorOptions = Pick<Props, 'initialValue' | 'placeholder' | 'autoFocus' | 'locale' | 'aria-label'> & {
+type EditorOptions = Pick<Props, 'initialValue' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'aria-label'> & {
   blocks: RichTextEditorBlock[]
 }
 
@@ -58,8 +65,9 @@ const ALL_BLOCKS: RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklis
 
 /*
   A rich text field: BlockNote's block editor, for a post of a few paragraphs. "/" opens a menu of
-  the blocks it writes, the handle beside a block drags it or deletes it, and a selection raises a
-  toolbar of the four styles, a link and the block it is in. Markdown's shortcuts work as typed.
+  the blocks it writes, the handle beside a block drags it, turns it into another or deletes it, and
+  a selection raises a toolbar of the four styles, a link and the block it is in. Markdown's
+  shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline and strikethrough, and links, which is everything
   `RichText` draws back.
@@ -80,12 +88,13 @@ function RichTextEditor({
   onSubmit,
   autoFocus = false,
   locale,
+  labels,
   blocks = ALL_BLOCKS,
   className,
   'aria-label': ariaLabel,
 }: Props) {
   const [editor] = useState(() =>
-    createEditor({ initialValue, placeholder, autoFocus, locale, blocks, 'aria-label': ariaLabel }),
+    createEditor({ initialValue, placeholder, autoFocus, locale, labels, blocks, 'aria-label': ariaLabel }),
   )
   const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor))
 
@@ -173,6 +182,7 @@ function createEditor({
   placeholder,
   autoFocus,
   locale,
+  labels,
   blocks,
   'aria-label': ariaLabel,
 }: EditorOptions) {
@@ -182,7 +192,7 @@ function createEditor({
   return BlockNoteEditor.create({
     schema: createRichTextSchema(blocks),
     initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,
-    dictionary: getRichTextDictionary(locale, { placeholder }),
+    dictionary: getRichTextDictionary(locale, { placeholder, turnInto: labels?.turnInto }),
     domAttributes: {
       editor: { 'aria-label': ariaLabel ?? placeholder, class: 'min-h-[134px] max-h-[420px] overflow-auto' },
     },
@@ -191,4 +201,4 @@ function createEditor({
   })
 }
 
-export { RichTextEditor, type RichTextEditorBlock, type RichTextEditorChange }
+export { RichTextEditor, type RichTextEditorBlock, type RichTextEditorChange, type RichTextEditorLabels }

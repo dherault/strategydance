@@ -224,7 +224,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
     in the reader's language. The list then selects no message text.
 - **`ConversationMessage`**: what the thread draws. `conversation`, `run` (optional), `kind`
   (`ConversationMessageKind`: `MEMBER_TEXT`, `AGENT_TEXT`, `TOOL_CALL`, `QUESTION`, `ASPECTS`, `NOTE`),
-  `text` (Markdown, for the two text kinds), the tool call's `toolUseId`, `toolName`, `toolStatus`
+  `text` (Markdown, for the two text kinds), `citations` (`Any`, on agent text, see Drawing a turn),
+  the tool call's `toolUseId`, `toolName`, `toolStatus`
   (`RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), `toolInput` and `toolOutput` (`Any`),
   `toolStartedAt`, `toolDurationMs`, the question's `questionPrompt`, `questionOptions`, `isMultipleChoice`,
   `answerSelected`, `answerOther`, `isAnswerSkipped`, `answeredAt`, the aspects note's `aspects` and
@@ -309,8 +310,12 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     the `simple` text search configuration since conversations come in seven languages, and the query
     reads `conversations_search` and `conversationMessages_search` (member and agent text only) with
     `queryFormat: PLAIN`, which requires every word; the web merges the two lists of conversations.
-    Each list says its limit (`limit: 1000` for titles, `limit: 2000` for messages, most relevant
-    first), so neither stops at the default 100.
+    The message search groups by conversation before its limit: it selects `conversationId` with an
+    aggregate, which Data Connect groups by the selected field, so one conversation with many matching
+    messages cannot crowd the others out, and each list says its limit (`limit: 1000`), so neither
+    stops at the default 100. M3 checks the emulator groups a search that way; if it does not, the
+    search moves behind a backend route that pages through the message matches collecting distinct
+    conversations.
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note at a position claimed on the counter, the web
@@ -354,9 +359,12 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
   seconds) outlasts the lease.
-- **Fencing.** Every write of the worker starts with `conversationRun_updateMany(where: { id,
-  status: { eq: RUNNING }, attempts: { eq: $attempt } })` and `@check(this == 1)`, carrying the lease
-  renewal or the step, so a worker whose run was finalized or claimed again writes nothing more.
+- **Fencing.** Every mutation of the worker starts with `conversationRun_updateMany(where: { id,
+  status: { eq: RUNNING }, attempts: { eq: $attempt } })` and `@check(this == 1)`, so a worker whose
+  run was finalized or claimed again writes nothing more. That fenced write is the run row's only
+  write in the mutation, since a later one would be skipped: it carries whatever the mutation changes
+  on the run, a lease renewal, a step, or, when the run ends, its terminal status, `endedAt` and
+  usage.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Only a definite refusal finishes the run `FAILED`, clears
@@ -396,12 +404,15 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   - `max_tokens`: run nothing, fail with a note.
   - `refusal`: see The agent.
 - **Drawing a turn.** Thinking blocks are never drawn. Consecutive text blocks become one
-  `AGENT_TEXT`. A `tool_use` becomes a `TOOL_CALL` (`RUNNING`), or a `QUESTION` for `ask_user`. A web
+  `AGENT_TEXT`, and the citations web search attaches to them are kept: each cited span is stored
+  with its sources in the message's `citations` (`Any`: the span's offsets in `text`, and each
+  source's address, title and quoted text), and the thread draws a small numbered link after the span
+  and the sources under the message. A `tool_use` becomes a `TOOL_CALL` (`RUNNING`), or a `QUESTION` for `ask_user`. A web
   search (`server_tool_use` with its `web_search_tool_result`) becomes a finished `TOOL_CALL` whose
   output lists the results' titles and addresses. Each `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
-- **Ending.** The run gets its status, `endedAt` and usage; the conversation's `activeRunId` is
-  cleared, only where it still names this run.
+- **Ending.** One mutation: the fenced write gives the run its status, `endedAt` and usage, and the
+  conversation's `activeRunId` is cleared, only where it still names this run.
 
 ### The transcript
 
@@ -409,7 +420,9 @@ Claude Opus 5.5's thinking blocks are bound to the conversation that produced th
 prompt, the tools and every earlier message have to come back byte for byte. On accounts created
 after 2026-08-31, which this project probably is, the API refuses a request that edited them, and
 the plan treats it as enforced either way. So the transcript is stored as sent, blocks and signatures
-untouched, and replayed as stored; the thread's messages are a separate drawing of it. The system
+untouched, and replayed as stored; the thread's messages are a separate drawing of it. It is
+append-only with one exception: Retry cuts the tail back to a run's anchor, which leaves a prefix
+the remaining thinking blocks were made with. Nothing else ever edits or deletes an entry. The system
 prompt is the same text for every conversation and the tools the same list. Files go in as base64
 of the stored bytes, which never change: the transcript holds a placeholder naming the file, and
 the worker swaps the bytes in.
@@ -438,18 +451,25 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **`pause_turn` pieces** stay in memory, and are stored as consecutive `ASSISTANT` entries once the
   turn ends on another stop reason; a stop in between drops them.
 - **Send**: the new `USER` entry carries a result for every unanswered `tool_use` of the last turn
-  first ("The member skipped this question." for a waiting question, the results in
-  `pendingToolResults`, "The member stopped the response before this ran." for a call a stop
-  cancelled), then the member's text and files. Waiting questions are marked skipped.
+  first, each built from its question's stored state: a question already answered sends its answer,
+  one still waiting sends "The member skipped this question." and is marked skipped; then the
+  results in `pendingToolResults`, and "The member stopped the response before this ran." for a call
+  a stop cancelled; then the member's text and files.
 - **Answer** (`POST …/answers`): records the answer on its question. Once every question of the
   waiting run has one, a `USER` entry with all the waiting turn's results (the answers as JSON, and
   `pendingToolResults`) is stored and a run starts. Answers are serialized on the conversation: each
-  one's mutation first locks the conversation's row, then records the answer on its question's row
-  and counts what is left, so two answers sent at once cannot both see the other missing. The request
-  that sees none left starts the next run in a second mutation, whose only write to the waiting run
-  moves it out of `WAITING` under `@check(this == 1)`, so exactly one request starts it, a retry
-  included: a mutation writes each row once, so the lock and the move are never on the same row in
-  one mutation. An approval (M19) is answered the same way.
+  one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
+  records the answer on its question's row and counts what is left, so two answers sent at once
+  cannot both see the other missing. The request that sees none left starts the next run in a second
+  mutation. An approval (M19) is answered the same way.
+- **Consuming a waiting turn.** A send and the last answer can race for the same waiting turn, so
+  every mutation that starts a run on one (the answer's continuation, or a send) moves the waiting
+  run out of `WAITING` under `@check(this == 1)`, as its only write to that run, together with taking
+  the conversation's `activeRunId`. Whichever commits first starts the run and builds the results
+  from the questions' states at that moment; the other finds the turn consumed: a send gets
+  `ERROR_CODE_CONVERSATION_BUSY` and is retried by the browser, an answer's continuation does nothing,
+  its answer already sent with the winner's results. A script under `scripts/` races an answer
+  against a send in the emulators.
 - **Stop** (`POST …/stop`) sets `stopRequestedAt`. The worker aborts the stream (the turn being
   written is dropped), or lets the calls already running finish and records them, so nothing is left
   in doubt, and cancels the ones not started: they become `CANCELLED`, a `STOPPED` note is added, the
@@ -482,7 +502,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   from the bytes) and size, and the member's quota of unsent files (30), and streams it into Storage
   rather than holding it in memory. The quota counts only unsent rows younger than two days, and the
   route first deletes the member's unsent rows older than that, whose files the lifecycle rule below
-  has removed, so abandoned uploads never use up the quota for good.
+  has removed, so abandoned uploads never use up the quota for good. The count and the row's insert
+  share one mutation that first locks the member's membership row, so uploads sent at once at the
+  cap cannot all pass; an object whose row is refused ages out under the lifecycle rule.
 - **Uploads are create-only**, since every replay depends on the bytes never changing. The object
   comes first, written with a generation-match-zero precondition: Storage finalizes an upload
   atomically, so a failed stream leaves no object, and a second `PUT` with the same id cannot replace
@@ -724,7 +746,8 @@ The data model and the web connector's operations, with nothing yet using them.
   milestone adds the ones it calls.
 - The limits, error codes and gate in strategydance-core, and `buildConversationPreview` there,
   with tests.
-- In `CLAUDE.md` § The database: the transcript is backend-only and append-only, the thread is a
+- In `CLAUDE.md` § The database: the transcript is backend-only and append-only, with one exception
+  (Retry cuts the tail back to a run's anchor; nothing else ever edits or deletes an entry), the thread is a
   drawing of it, and messages are ordered by a `position` claimed on the conversation's counter.
 - Verify: `bun run generate:database` writes both SDKs; the four checks pass; in the emulators, a
   script under `scripts/` runs each operation once.
@@ -830,10 +853,11 @@ heavy.
   `run.step`), drawing a turn with each insert claiming its positions, `web_search`, usage per model, `preview` and
   `unreadCount`.
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
-  listing the results).
+  listing the results); citations drawn as numbered links after their spans, with the sources under
+  the message.
 - Tests (scripted client): consecutive requests share a byte-identical prefix; `checkTranscript`
-  accepts every flow so far and rejects each broken shape; text blocks merge; a web search becomes
-  one finished call; usage adds up.
+  accepts every flow so far and rejects each broken shape; text blocks merge with their citations'
+  offsets kept right; a web search becomes one finished call; usage adds up.
 - Verify: setup step 1 and, for development, step 5; ask a question that needs the web and one that
   does not; watch progress lines; check the logs show `input_transformations` empty across turns.
 
@@ -865,6 +889,10 @@ A refactor and two pure functions, no visible change.
 
 ### M9: Knowledge tools and knowledge links
 
+- Creating keeps the knowledge cap as `CreateDocument` does: the backend's create locks the
+  organization's row and counts fewer than `MAX_DOCUMENTS` live documents before inserting, so the
+  agent and the browser cannot race past it, and a full organization comes back to the model as a
+  failure it can explain.
 - Backend-connector operations: search candidates, read one, create, update (title, aspects, content
   by revision), each guarded on membership, `deletedAt` and, for writes, `isAiLocked`, and named in
   `GetOrganizationDocuments`' refreshes.
@@ -872,7 +900,8 @@ A refactor and two pure functions, no visible change.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted.
 - Tests: a locked document refuses; a stale revision refuses; a create retried with the same
-  `tool_use` id makes one document; Markdown in, the document draws as written.
+  `tool_use` id makes one document; a create in a full organization refuses; Markdown in, the
+  document draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.
 
@@ -1034,8 +1063,11 @@ A refactor and two pure functions, no visible change.
   questions are, serialized on the waiting run. A server's annotations decide nothing: a server can
   call a tool that writes read-only, and even a read can carry private text out in its arguments.
   Text that knowledge, the web, a file or another integration slipped into the conversation can
-  then propose an action, never take one. An administrator who trusts a tool can let it run straight
-  away, as the design shows.
+  then propose an action, never take one, except through an auto-approved tool. An administrator who
+  trusts a tool can let it run straight away, as the design shows, and that is exactly the exception:
+  injected text can make the model call an auto-approved tool at once, with any arguments, including
+  private text it carries out. The switch says so beside it, and the page's help asks administrators
+  to allow only tools whose effects and reach they accept from anything the agent reads.
 - A call that started before a crash is never run again by itself (see A run).
 - In the thread, integration calls show the server and the tool, and the warning strip when the
   server is missing, off, or not connected for the viewer, with what fixes it: administrators get
@@ -1073,6 +1105,7 @@ A refactor and two pure functions, no visible change.
   and a system prompt is no boundary. The boundaries are what the tools allow: built-in writes reach
   only knowledge, where the AI lock holds, and the member's own top priority; from M19, an integration
   call waits for the member's approval unless an administrator allowed its tool, and every request to
-  an integration passes the outbound guard.
+  an integration passes the outbound guard. An auto-approved tool is the stated exception: anything
+  the agent reads can get it called at once, so allowing one is an administrator's acceptance of that.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta on Vertex) if it comes to that.

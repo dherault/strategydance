@@ -1200,6 +1200,13 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
 # It leaves the document's row alone, `updatedAt` included, so a keystroke writes one small row:
 # the compaction that folds it in moves `updatedAt`.
 #
+# An update is at most 50000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`), and a document keeps at
+# most 100 pending (`DOCUMENT_UPDATES_LIMIT`), which `GetLiveDocument` sends whole to every open tab
+# at each push: a tab folds an edit too long to push into the snapshot instead, and folds the
+# pending ones long before there are 100. A push is refused once 99 are pending, counted before the
+# write, as a step after an upsert does not see it, so two pushes at once can make 100, which the
+# reads' limit allows for.
+#
 # Not a transaction: its one write is an upsert that a retry repeats, so a push cut off midway, as
 # a closing tab cuts one off, is stored or not, and never half. As a transaction the cutoff leaves
 # the Data Connect emulator's database stuck in it, refusing every mutation after
@@ -1210,8 +1217,8 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
       role
         @check(
-          expr: "size(vars.payload) > 0 && size(vars.payload) <= 2000000"
-          message: "A document update is at most 2000000 characters"
+          expr: "size(vars.payload) > 0 && size(vars.payload) <= 50000"
+          message: "A document update is at most 50000 characters"
         )
     }
     documents(
@@ -1224,6 +1231,10 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No document by that id in the organization") {
       id
+      documentUpdates_on_document(limit: 100)
+        @check(expr: "size(this) < 99", message: "A document has too many updates pending") {
+        id
+      }
     }
   }
   documentUpdate_upsert(data: { documentId: $documentId, id: $id, createdById_expr: "auth.uid", payload: $payload })
@@ -1236,8 +1247,8 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
 # `$revision` is the revision of the snapshot the tab merged, and the fold is refused unless it is
 # still the stored one, so it never writes over a snapshot somebody folded more into. A push that
 # lands while it is out is not among the ids and stays pending. Every tab reads the snapshot again
-# when the revision moves, which brings back an update deleted before it reached them. At least one
-# id: a fold with none has nothing to do
+# when the revision moves, which brings back an update deleted before it reached them. A fold may
+# name none, to store an edit of the tab's own too long to push as an update, and then deletes none
 mutation CompactDocument(
   $organizationId: UUID!
   $id: UUID!
@@ -1252,7 +1263,6 @@ mutation CompactDocument(
       role
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
-        @check(expr: "size(vars.updateIds) > 0", message: "A compaction folds at least one update")
     }
   }
   document_updateMany(

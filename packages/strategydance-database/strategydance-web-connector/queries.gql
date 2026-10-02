@@ -792,7 +792,8 @@ query GetOrganizationDocuments($organizationId: UUID!)
 # edit, those a compaction deleted before their push reached it included. The live query leaves
 # the snapshot out, which would otherwise go to every open tab at each keystroke. A document stored
 # before the editor was shared has no `state`, and the page seeds it from `content`. Read up to
-# 1000 pending updates (`DOCUMENT_UPDATES_LIMIT`), oldest first, far more than a compaction leaves
+# 100 pending updates (`DOCUMENT_UPDATES_LIMIT`), oldest first, twice what a compaction leaves and
+# as many as `PushDocumentUpdate` lets pile up, so the read is never cut short
 query GetDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
   documents(
     where: {
@@ -812,7 +813,7 @@ query GetDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
     createdAt
     updatedAt
     state
-    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 1000) {
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
       id
       payload
     }
@@ -824,7 +825,8 @@ query GetDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
 # all, with the condition that it is this document. The snapshot stays out, read through
 # `GetDocument` when `revision` moves, so a keystroke pushes a few small rows rather than the whole
 # text to every tab. Deleting the document, or the caller leaving the organization, empties it, and
-# taking a delete back fills it again. Up to 1000 pending updates, as `GetDocument` reads
+# taking a delete back fills it again. Up to 100 pending updates, as `GetDocument` reads, of at most
+# 50000 characters each, so a push never sends more than a few megabytes to a tab
 query GetLiveDocument($organizationId: UUID!, $id: UUID!)
 @auth(level: USER)
 @refresh(
@@ -886,7 +888,7 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
     isAiLocked
     revision
     updatedAt
-    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 1000) {
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
       id
       payload
     }

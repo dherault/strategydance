@@ -386,8 +386,8 @@ type DocumentUpdate @table(key: ["document", "id"]) @index(fields: ["documentId"
   id: UUID!
   # Who pushed it. Optional, set to null when the account goes. Nothing reads it yet
   createdBy: User
-  # The update, in base64, at most 2000000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`). Not named
-  # `update`, which SQL reserves
+  # The update, in base64, at most 50000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`), and never
+  # changed once stored. Not named `update`, which SQL reserves
   payload: String!
   createdAt: Timestamp! @default(expr: "request.time")
 }

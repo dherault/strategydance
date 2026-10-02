@@ -1205,7 +1205,11 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
 # at each push: a tab folds an edit too long to push into the snapshot instead, and folds the
 # pending ones long before there are 100. A push is refused once 99 are pending, counted before the
 # write, as a step after an upsert does not see it, so two pushes at once can make 100, which the
-# reads' limit allows for.
+# reads' limit allows for. A retry of a push already stored is not counted against it.
+#
+# An update is never changed once stored: every tab dedupes them by id, so one rewritten under its
+# id would reach the tabs that had not merged it yet and none of the others. A retry sends the same
+# bytes and changes nothing; other bytes under a stored id are refused.
 #
 # Not a transaction: its one write is an upsert that a retry repeats, so a push cut off midway, as
 # a closing tab cuts one off, is stored or not, and never half. As a transaction the cutoff leaves
@@ -1232,9 +1236,17 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
     ) @check(expr: "size(this) == 1", message: "No document by that id in the organization") {
       id
       documentUpdates_on_document(limit: 100)
-        @check(expr: "size(this) < 99", message: "A document has too many updates pending") {
+        @check(
+          expr: "size(this) < 99 || this.exists(update, update.id == vars.id)"
+          message: "A document has too many updates pending"
+        ) {
         id
       }
+    }
+    documentUpdate(key: { documentId: $documentId, id: $id }) {
+      # Absent for a new id, which the check passes as `optional`
+      payload
+        @check(expr: "this == vars.payload", message: "An update by that id holds another payload", optional: true)
     }
   }
   documentUpdate_upsert(data: { documentId: $documentId, id: $id, createdById_expr: "auth.uid", payload: $payload })

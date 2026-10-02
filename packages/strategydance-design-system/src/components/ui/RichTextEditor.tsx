@@ -4,6 +4,7 @@ import { DesktopFormattingToolbarController, SuggestionMenuController } from '@b
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, useEffect, useState } from 'react'
+import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
 import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
@@ -148,6 +149,7 @@ function RichTextEditor({
         theme="light"
         className="rich-text-editor"
         slashMenu={false}
+        sideMenu={false}
         formattingToolbar={false}
         emojiPicker={false}
         filePanel={false}
@@ -159,6 +161,7 @@ function RichTextEditor({
           triggerCharacter="/"
           getItems={getSlashMenuItems}
         />
+        <RichTextEditorSideMenuController />
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
       </BlockNoteView>
     </div>

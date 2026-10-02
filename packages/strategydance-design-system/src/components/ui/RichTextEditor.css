@@ -397,9 +397,11 @@
 
 /*
   The side menu's "+" and drag handle, in the neutral scale rather than Tailwind's gray, and filled
-  as a transparent button is under the pointer and while the block's menu is open
+  as a transparent button is under the pointer and while the block's menu is open. Each is 26px
+  wide around its 18px icon, which keeps the menu at the 52px the editor's gutter leaves it
 */
 .rich-text-editor.bn-root .bn-side-menu .bn-button {
+  width: 26px;
   border-radius: var(--radius-xs);
   color: var(--color-neutral-400);
   transition:

@@ -1204,8 +1204,10 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
 # most 100 pending (`DOCUMENT_UPDATES_LIMIT`), which `GetLiveDocument` sends whole to every open tab
 # at each push: a tab folds an edit too long to push into the snapshot instead, and folds the
 # pending ones long before there are 100. A push is refused once 99 are pending, counted before the
-# write, as a step after an upsert does not see it, so two pushes at once can make 100, which the
-# reads' limit allows for. A retry of a push already stored is not counted against it.
+# write, as a step after an insert does not see it, and a retry of a push already stored is not
+# counted against it. Without a transaction the count is not a lock, so pushes at once can pass it
+# together, and only a caller pushing on purpose ever would: what holds every push to a few
+# megabytes is the reads' limit of 100, which a tab that finds the list that long folds at once.
 #
 # An update is never changed once stored: every tab dedupes them by id, so one rewritten under its
 # id would reach the tabs that had not merged it yet and none of the others. So it is inserted, and
@@ -1290,7 +1292,8 @@ mutation CompactDocument(
 # visible, and `GetDocumentPresences` lists what was written in the last 45.
 #
 # The row is the caller's, keyed with their uid, so nobody writes over another member's. Then the
-# document's rows older than a minute go, left by tabs that closed without a word. In that order:
+# rows older than a minute go, left by tabs that closed without a word, on every document of the
+# organization, so a document nobody opens again keeps none for long either. In that order:
 # the upsert has moved this row's `updatedAt`, and a mutation that wrote the row once would skip a
 # second write to it.
 #
@@ -1325,7 +1328,10 @@ mutation UpdateDocumentPresence($organizationId: UUID!, $documentId: UUID!, $ses
     }
   )
   documentPresence_deleteMany(
-    where: { documentId: { eq: $documentId }, updatedAt: { lt_time: { now: true, sub: { minutes: 1 } } } }
+    where: {
+      document: { organizationId: { eq: $organizationId } }
+      updatedAt: { lt_time: { now: true, sub: { minutes: 1 } } }
+    }
   )
 }
 

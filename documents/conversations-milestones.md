@@ -63,8 +63,9 @@ The data model and the web connector's operations, with nothing yet using them.
 
 - The five tables and their enums, as The data describes, commented in `schema.gql`'s style, with
   `@searchable(language: "simple")` on `Conversation.title` and `ConversationMessage.text` (check
-  that the emulator takes `simple`, and fall back to `english` otherwise). All additive, so the
-  release migrates by itself.
+  that the emulator takes `simple`, and fall back to `english` otherwise); Chinese and Japanese go
+  through the substring path conversations.md describes, since no text search configuration splits
+  them. All additive, so the release migrates by itself.
 - The web connector's operations, as Who writes what lists them. No backend operation yet: each
   milestone adds the ones it calls.
 - The limits, error codes and gate in strategydance-core, and `buildConversationPreview` there,
@@ -103,7 +104,8 @@ The data model and the web connector's operations, with nothing yet using them.
   and its backend-connector search operations), table, previews worded from `preview`, empty states,
   Delete with confirm and Undo through `DeleteConversation` and `RestoreConversation`.
 - Tests: wording a preview; the search route merging titles and messages, deduplicating by
-  conversation, and stopping at 1000 conversations or ten pages (database mocked).
+  conversation, and stopping at 1000 conversations or ten pages; a Chinese and a Japanese query
+  taking the substring path (database mocked).
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
@@ -130,8 +132,7 @@ The data model and the web connector's operations, with nothing yet using them.
 ### M5: Sending, and the run pipeline without a model
 
 The member can send, and a placeholder agent answers through the real pipeline. The largest
-milestone: its web part (the composer and drafts) can be its own pull request if the review gets
-heavy.
+milestone, kept whole: the composer is the only way to exercise the pipeline it ships with.
 
 - Dependencies: `@google-cloud/tasks` (the same google-gax stack `@google-cloud/secret-manager`
   already runs under Bun) and `google-auth-library`, declared directly since Bun's isolated install
@@ -210,7 +211,8 @@ heavy.
 - Tests: a stop mid-stream drops the turn and stores no context message; resume runs the unanswered
   `tool_use` blocks; retry goes back to the run's anchor, for a files-only message and for an
   answer, and its cut passes `checkTranscript`; retrying many times lowers `messageCount` by what it
-  deletes, so it never fills the conversation; sending after a stop answers the open blocks; a turn
+  deletes, so it never fills the conversation, and so does stopping and resuming many times;
+  sending after a stop answers the open blocks; a turn
   with a `fallback` block is stored without the blocks before its boundary.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
 
@@ -266,7 +268,8 @@ A refactor and two pure functions, no visible change.
   too; a block range replaced without touching the rest; a unique piece of text replaced inside that
   paragraph, and a text that occurs twice refused;
   search reading the index and loading the plain text of 20 candidates at most; a write through the
-  old operations nulling `contentText`, and the next search reindexing it; Markdown in, the document
+  old operations nulling `contentText`, and the next search reindexing it; a Chinese and a Japanese
+  search finding a word inside a document's sentence; Markdown in, the document
   draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.

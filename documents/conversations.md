@@ -364,6 +364,12 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   not a guaranteed full set: a few conversations with thousands of matching messages can use up the
   pages, so when the pages run out the list says it shows the best matches and invites a narrower
   search.
+- **Chinese and Japanese need another path.** The `simple` configuration splits words on spaces and
+  punctuation, which Chinese and Japanese text does not use, so it cannot find a word inside a
+  sentence. A query holding CJK characters runs as a case-insensitive substring match instead
+  (`pattern: { like: "%…%", ignoreCase: true }`, escaped), on the same fields, scoped to the
+  member's own conversations, under the same page and result limits; knowledge search does the same
+  on `title` and `contentText` within its 20 candidates. Tests run a search in both languages.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
   knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
   `GetOrganizationTeam`'s.
@@ -545,7 +551,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   at once and conditionally on its still being queued, so the member can send again straight away;
   its task, if it is delivered later, finds the run finished and does nothing.
 - **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note: the
-  note goes and a run starts. When the transcript's last entry holds unanswered `tool_use` blocks,
+  note goes, lowering `messageCount` in the same mutation, and a run starts. When the transcript's last entry holds unanswered `tool_use` blocks,
   the run executes the calls that never started and the built-in ones that did (their messages go
   back to `RUNNING`), answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the

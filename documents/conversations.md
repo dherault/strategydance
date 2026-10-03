@@ -252,7 +252,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), `toolInput` and `toolOutput` (`Any`),
   `toolStartedAt`, `toolDurationMs`, the question's `questionPrompt`, `questionOptions`, `isMultipleChoice`,
   `answerSelected`, `answerOther`, `isAnswerSkipped`, `answeredAt`, the aspects note's `aspects` and
-  `aspectsSetBy`, the note's `noteKind` (`STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`), `position`,
+  `aspectsSetBy`, the note's `noteKind` (`STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`, `FULL`),
+  `position`,
   `createdAt`. One wide table rather than one per kind, so the thread is one query. Unique on
   `conversation` and `position`.
   - **Ordered by `position`**, not by time: two mutations can share an instant, and only an explicit
@@ -346,8 +347,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     refreshed only by what sets or clears it (a run ending, a waiting turn consumed) and by delete
     and restore; `GetDockConversations($organizationId, $ids)`, live, for the dock, the conversations
     its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
-    `isAwaitingAnswer`, refreshed by message inserts too, since a minimized window counts unread
-    replies; and `GetAspectConversations($organizationId, $aspect)`, live, for the aspect page's
+    `isAwaitingAnswer`, refreshed by message inserts and read too, since a minimized window counts
+    unread replies and clears them; and `GetAspectConversations($organizationId, $aspect)`, live, for the aspect page's
     section, its latest four, three drawn and the fourth saying older ones exist, refreshed as the
     list is.
   - Every live conversation query, this one, `GetConversation` and `GetConversationRun`, also
@@ -523,23 +524,28 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note.
-- **Size.** Two caps, checked where they are cheap, with nothing reserved ahead:
-  - A run draws at most `MAX_CONVERSATION_RUN_ENTRIES` (100) entries. A turn that would take it
-    past that, or take the conversation past `MAX_CONVERSATION_MESSAGES` (2000), is neither stored
-    nor drawn, as a turn cut off mid-stream is not: the run stops there with a note saying the
-    conversation is full, and the note always gets its
-    position, so a conversation can end a note or two past the cap. The live tail (150) holds a
-    whole run.
+- **Size.** One cap on the conversation, beside the run's own limits, with nothing reserved ahead.
+  Both are checked before each request to Claude, never after it, so no paid turn is thrown away:
+  - A run sends no further request once it has drawn `MAX_CONVERSATION_RUN_ENTRIES` (100) entries,
+    and ends `FAILED` with a note, as at its other limits (see Limits).
+  - A run sends no request once the conversation holds `MAX_CONVERSATION_MESSAGES` (2000) entries,
+    and ends `FAILED` with a `FULL` note, "This conversation is full. Start a new one to go on.",
+    which offers Retry and not Resume. A run that starts at the cap, from an answer, Resume or a
+    Retry that freed too little, ends so at once and costs nothing, which is how a question waiting
+    in a full conversation is still answered and its badge cleared.
+  - The turn in flight is always drawn whole, so a run can end one turn and its note past either
+    bound: a turn draws at most ten calls, five searches and the pieces of one reply, and the live
+    tail of 150 still holds a whole run.
   - The send route refuses with `ERROR_CODE_CONVERSATION_FULL` once `messageCount` has reached
-    `MAX_CONVERSATION_MESSAGES`, or once the worker has set `isFull` (see Attachments). An aspects
-    note is refused at the same count. Nothing else is: an answer, Resume and Retry always start
-    their run, which stops at its first turn with the note when there is no room left, so a
-    waiting question or approval can always be answered and a question is never refused for
-    room.
+    `MAX_CONVERSATION_MESSAGES`, or once the worker has set `isFull` (see Attachments), and an
+    aspects note is refused at the same count. Retry is never refused: it deletes what the retried
+    runs drew, so it gives that room back.
   - `messageCount` counts what a conversation holds, not the sequence: each insert raises it as it
-    claims its position, and Retry lowers it by what it deletes, so Retry gives room back.
-  - The cap bounds storage and the history a reader pages through, nothing else. What fills a
-    conversation in practice is its context, which `isFull` measures before each request.
+    claims its position, and Retry lowers it by what it deletes.
+  - The cap bounds storage and the history a reader pages through. What fills a conversation in
+    practice is its context, which the worker measures before each request, from M9: a request past
+    the limits Attachments gives is not sent, the conversation is marked `isFull`, and the run ends
+    with the same `FULL` note.
 - **Concurrency**, bounded rather than metered: at most three runs in flight per member in each
   organization (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the
   queue dispatches at most 50 tasks at once. A run-start mutation locks the member's membership row
@@ -668,15 +674,14 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   at once and conditionally on its still being queued, so the member can send again straight away;
   its task, if it is delivered later, finds the run finished and does nothing.
 - **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note: the
-  note goes, lowering `messageCount` in the same mutation, and a run starts, which stops at its
-  first turn with the full note when the conversation has no room left (see Size), where Retry is
-  what gives room back. When the transcript's last entry holds unanswered `tool_use` blocks, the
+  note goes, lowering `messageCount` in the same mutation, and a run starts, which ends at once
+  with the full note when the conversation is at its cap (see Size). When the transcript's last entry holds unanswered `tool_use` blocks, the
   run executes the calls that never started and the built-in ones that have no result (their
   messages go back to `RUNNING`),
   answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the
   stream was cut), it sends its context and the request straight away.
-- **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed or refused note: every run
+- **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed, refused or full note: every run
   records `anchorPosition` when it is created, before anything runs: the `USER` entry that started
   it (a message, files only included, or answers), and for a resumed run the anchor of the run it
   resumes, since it carries that run's response on and its own results entry may never be stored
@@ -766,10 +771,12 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
   files is sent only while the next request stays under 700000 input tokens. Building that request
   to count it would put every earlier file in the backend's memory, so each file is counted once,
-  alone, when it is stored (Vertex has the count endpoint), into `tokenCount` on its row as its
-  pages go into `pageCount`; the send route adds the stored counts of the conversation's files and
-  the new ones to the last request's input tokens. The upload route counts at most two files at
-  once per instance, so the backend's memory stays bounded however many arrive. Before each request the worker measures the body: past 30 MB, or 800000
+  alone, once it is stored (Vertex has the count endpoint), into `tokenCount` on its row as its
+  pages go into `pageCount`; the send route adds the new files' stored counts and its text's to the
+  last request's input tokens, which already carried every earlier file, or to the context's
+  estimate for a first message. The upload streams into Storage as before, and the count reads the
+  stored object back, at most two at once per instance, so the backend's memory stays bounded
+  however many arrive. Before each request the worker measures the body: past 30 MB, or 800000
   input tokens, it marks the conversation full, and the send route refuses new messages with
   `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and the worker measures
   again before the retried request, setting it back only if the shortened request is still too
@@ -838,9 +845,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | --- | --- | --- |
 | `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M9 |
 | `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M14 |
-| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text as Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction. `version` is a hash of the text read. The cursor is a block and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would; it carries the version it was cut from, and a page asked for after the text changed says so, so the model starts again | M14 |
+| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed; only a cursor whose block was deleted sends the model back to the start | M14 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, in the mutation that records the call's result. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M14 |
-| `update_knowledge` | `{ id, version?, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { from, to, content }` replaces a range of blocks, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead."), and, for `content` and `replaceBlocks`, whose block numbers come from a read, when the text is no longer the `version` read ("The document changed since you read it. Read it again first."). `append` and `replaceText` find their place afresh, so they take no version and go through while somebody types | M14 |
+| `update_knowledge` | `{ id, version?, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead."); for `content`, which rewrites everything the model read, when the text is no longer the `version` read; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | M14 |
 | `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M16 |
 | `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M16 |
 | `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M16 |
@@ -888,10 +895,12 @@ keeps all four styles through an agent's edit.
   no `state` yet, and its `content` is its text.
 - **Writing** applies the edit to that Yjs document as a difference, never by building a new one:
   a document built from the edited blocks shares no history with the stored one, so merging it
-  would add the text a second time. The edited blocks become a ProseMirror node of the editor's
-  schema, and y-prosemirror's `updateYFragment` writes only what differs into the shared fragment,
-  so blocks the edit leaves alone keep their identity, and what a member types in them meanwhile
-  merges.
+  would add the text a second time. The edit works on the document's own blocks as BlockNote reads
+  them (`yDocToBlocks`), ids included, rather than on the stored model, which has no ids: the blocks
+  it replaces go, new ones come without an id and get a fresh one, and every other block keeps its
+  id. The result becomes a ProseMirror node of the editor's schema, and y-prosemirror's
+  `updateYFragment` writes only what differs into the shared fragment, so blocks the edit leaves
+  alone keep their identity, and what a member types in them meanwhile merges.
 - **Storing** is a fold, as a tab's compaction is: one backend mutation writes the new `state`,
   `content` and `contentText` under the `revision` it read, deletes the updates it merged, and
   records the call's result (see Recovery and side effects). A push that lands meanwhile is not
@@ -948,17 +957,19 @@ and in-process runs):
    which both services run as, `roles/aiplatform.user`, `roles/cloudtasks.enqueuer` and
    `roles/cloudtasks.viewer` (the queued-run check reads tasks, which the enqueuer role does not
    allow). Create `conversation-tasks@strategydance.iam.gserviceaccount.com`, the identity Cloud
-   Tasks and Cloud Scheduler call the worker as, grant it `roles/run.invoker` on
-   `strategydance-worker` once the first deploy has made it, and grant the runtime account
-   `roles/iam.serviceAccountUser` on it, which creating a task that carries its token needs. If
+   Tasks and Cloud Scheduler call the worker as, grant it `roles/run.invoker` on the project, which
+   can be done before the worker exists and reaches no other private service, since the worker is
+   the only one, and grant the runtime account `roles/iam.serviceAccountUser` on it, which creating
+   a task that carries its token needs. If
    dispatches fail on the token, also grant the Cloud Tasks service agent
    `roles/iam.serviceAccountTokenCreator` on it.
 4. For M8: `gcloud tasks queues create conversation-runs --location us-central1 --max-attempts 5
    --min-backoff 90s --max-concurrent-dispatches 50 --project strategydance`.
 5. Developers: `gcloud auth application-default login` as an account with `roles/aiplatform.user`, so
    `bun run dev:backend` reaches Vertex. Development calls the real model and costs money.
-6. For M8: a Cloud Scheduler job calling the worker's `POST /internal/sweep` daily with an OIDC
-   token for `conversation-tasks` (`gcloud scheduler jobs create http`).
+6. For M8, once its release has deployed the worker, whose address the job names: a Cloud Scheduler
+   job calling the worker's `POST /internal/sweep` daily with an OIDC token for
+   `conversation-tasks` (`gcloud scheduler jobs create http`).
 7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
 8. A budget alert on Vertex spend, since nothing caps usage yet, and staff runs in production and

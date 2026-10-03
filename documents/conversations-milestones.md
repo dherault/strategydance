@@ -39,7 +39,7 @@ write its pull request number in the table below.
 ## Milestones
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
-M3 and M13 from the start, M12, M18 and M21 well before their neighbours.
+M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well before their neighbours.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -56,13 +56,13 @@ M3 and M13 from the start, M12, M18 and M21 well before their neighbours.
 | M11 | Questions | backend, database, web | M10 | |
 | M12 | Searching conversations | backend, database, web | M9 | |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |
-| M14 | Knowledge tools and knowledge links | backend, database, web | M9, M13 | |
+| M14 | Knowledge tools and knowledge links | backend, database, web | M9, M12, M13 | |
 | M15 | Mentioning knowledge in the composer | web | M7, M14 | |
 | M16 | Team, log and top priority tools | backend, database, web | M9, M13 | |
 | M17 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
 | M18 | The dock | web | M7 | |
-| M19 | Attachments: storing them and sending them to Claude | backend, database, root | M9, setup 7 | |
-| M20 | Attachments in the composer and the thread | web | M7, M19 | |
+| M19 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
+| M20 | Attachments in the composer and the thread | web | M15, M19 | |
 | M21 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
 | M22 | Integrations: members connect their accounts | database, backend, web | M21 | |
 | M23 | Integrations in conversations | database, backend, web | M11, M22 | |
@@ -85,20 +85,23 @@ starts.
     `block_binding`, both betas, explicit effort, a strict tool with eager input streaming, web
     search, top-level cache control, and the context message last as a mid-conversation system
     message; progress lines arrive as thinking blocks with text;
-  - a second request replaying the first turn after it went through a `String` column of the Data
-    Connect emulator and `JSON.parse`, with a `tool_use` whose input has keys out of alphabetical
-    order: `input_transformations` comes back empty and `cache_read_input_tokens` is not zero;
+  - a second request replaying the first turn from its JSON text, with a `tool_use` whose input has
+    keys out of alphabetical order: `input_transformations` comes back empty and
+    `cache_read_input_tokens` is not zero; and a third replaying it with that input's keys
+    reordered as `jsonb` would reorder them, to see whether the API counts that as an edit;
   - `count_tokens` on one PDF and one image, as the upload route will call it;
   - the refusal middleware wired to `claude-opus-5` with the same body, through a request the
     fallback serves: whether Opus 5 takes `display: "updates"` and `block_binding`, and what to
     strip when it does not.
-- `updateRichTextYDoc(doc, blocks)` in the design system's `lib/`, the half of M13 that has no
-  network to wait on: it writes `blocks` into a document's shared fragment as a difference, through
-  y-prosemirror's `updateYFragment` on the node the headless editor builds from them. Tests: a
-  document forked into two, a block typed into on one and another range replaced through
-  `updateRichTextYDoc` on the other, merged both ways, read the same blocks with both edits and
-  nothing doubled; a block the edit leaves alone keeps its identity, so a relative position in it
-  survives; a document seeded from `content` and edited reads back the edit.
+- `updateRichTextYDoc(doc, edit)` in the design system's `lib/`, the half of M13 that has no
+  network to wait on: it reads the document's own blocks with `yDocToBlocks`, ids included, since
+  the stored model has none, applies the edit to them (a range replaced between two ids, blocks
+  appended, one piece of text replaced), and writes the result into the shared fragment as a
+  difference, through y-prosemirror's `updateYFragment` on the node the headless editor builds from
+  it. Tests: a document forked into two, a block typed into on one and another range replaced
+  through `updateRichTextYDoc` on the other, merged both ways, read the same blocks with both edits
+  and nothing doubled; every block the edit leaves alone keeps its id, and a relative position in
+  it survives; a document seeded from `content` and edited reads back the edit.
 - Verify: `probeVertex.ts` passes, or each failure has a decision written into the plan; the four
   checks pass.
 
@@ -216,8 +219,8 @@ process. No queue and no composer yet: a script sends, and the page from M5 show
 - Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
   a removed member's run finalized by the worker at its next step, and one whose member was invited
   back before its delivery never resuming, busy, a dead run finalized, a send retried with the same
-  `messageId`, a fourth run refused, a send to a full conversation refused, a run reaching either
-  cap stopping with its note, an empty, a blank and an over-long message refused; a transcript entry
+  `messageId`, a fourth run refused, a send to a full conversation refused, a run at either cap
+  sending no further request and ending with its note, an empty, a blank and an over-long message refused; a transcript entry
   whose `tool_use` input has its keys out of alphabetical order and whose text holds U+0000, stored
   and read back as the same bytes.
   Against the emulators, a script under `scripts/` sends from two conversations at once with two
@@ -269,9 +272,10 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   task is gone; the sweeper claiming a conversation before deleting it, a restore refused once it is
   claimed, and a prune that failed after claiming finished by the next sweep; the backend answering
   404 on `/internal/*` and the worker on everything else.
-- Verify: setup steps 3, 4 and 6 before the release; then, as staff in production, send and watch
-  the task in Cloud Tasks' logs and the reply arrive; call the worker's URL without a token and see
-  Cloud Run refuse it; the sweeper's first run in Cloud Scheduler's logs.
+- Verify: setup steps 3 and 4 before the release, and step 6 once it has deployed the worker; then,
+  as staff in production, send and watch the task in Cloud Tasks' logs and the reply arrive; call
+  the worker's address without a token and see Cloud Run refuse it; the sweeper's first run in
+  Cloud Scheduler's logs.
 
 ### M9: Claude replies, with web search
 
@@ -279,7 +283,10 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   context message and its hash, `checkTranscript` and its tests, storing the transcript (the context
   message with the first assistant turn), the request, the streamed turn (progress lines to
   `run.step`), drawing a turn with each insert claiming its positions, `web_search`, usage per model
-  and per request, cache reads and writes included, `preview` and `unreadCount`.
+  and per request, cache reads and writes included, `preview` and `unreadCount`; and `isFull`, set
+  before a request whose input would pass 800000 tokens, the last request's input plus what was
+  appended, so a long conversation shows full rather than failing every request (M19 adds the
+  body's size).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
   listing the results); citations drawn as numbered links after their spans, with the sources under
   the message.
@@ -290,7 +297,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   with no space at grapheme boundaries, an emoji sequence across the bound kept whole, every piece
   within 20000 characters and the pieces rejoining to the original; citations rebased to their piece, one unread count, and a
   crash between two pieces drawing the rest once; a web search becomes one finished call; usage
-  adds up.
+  adds up; a request that would pass 800000 input tokens never sent, the conversation marked full
+  and the send route refusing.
 - Verify: ask a question that needs the web and one that does not; watch progress lines; check the
   logs show `input_transformations` empty across turns, and cache reads on every request after a
   run's first.
@@ -311,8 +319,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   task again and answers with the same run; Retry setting `unreadCount` to 0, with a
   `MarkConversationRead` in flight across it leaving the count right; retrying many times lowers
   `messageCount` by what it deletes, so it never fills the conversation, and so does stopping and
-  resuming many times; Resume at the cap starting a run that stops at its first turn with the full
-  note, and Retry giving the room back; sending after a stop answers the open blocks; a turn with a
+  resuming many times; Resume at the cap starting a run that ends at once with the full note and
+  sends no request, and Retry giving the room back; sending after a stop answers the open blocks; a turn with a
   `fallback` block is stored without the blocks before its boundary, and the fallback's request
   shaped as M1 found Opus 5 takes it.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
@@ -339,7 +347,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
   sent again and by the reconcile route; a question waiting in a conversation at the cap, answered,
-  starting a run that stops at its first turn with the full note, so the badge clears; a member
+  starting a run that ends at once with the full note and sends no request, so the badge clears; a
+  member
   with three runs in flight answering, the continuation starting once one ends.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
@@ -372,28 +381,31 @@ plan's one open question about Data Connect.
 
 ### M13: Rich text, Markdown and shared documents on the backend
 
-Two pure functions and the backend's way into a document's shared text, no visible change.
+Two pure functions and the backend's way into a document's shared text, no visible change and no
+database: the operations that read and fold a document arrive with the tools that call them, in
+M14.
 
 - The backend gains `strategydance-design-system` as a workspace dependency and imports its
   `lib/` modules as the web does, by their exported `strategydance-design-system/lib/*` paths,
   never a component. Those import `@blocknote/core`, `y-prosemirror` and `yjs`, not React and not
-  the DOM, and the image already installs the whole workspace. strategydance-core stays without
+  the DOM, and the image already installs the whole workspace. The backend's `tsc` follows those
+  imports into the design system's sources, so the two tsconfigs' options that matter to them
+  agree, as `CLAUDE.md` asks of the emails package's. strategydance-core stays without
   dependencies.
 - `richTextToMarkdown(blocks)` and `markdownToRichText(markdown)` in the design system's `lib/`, for
   the subset, with tests: round trips of all four styles, underline through `<u>…</u>` included,
   alone and nested in the others; another tag kept as literal text; nesting, check items, links,
   what degrades to paragraphs, lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
-- `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`: reading a document's shared
-  text, its snapshot merged with its pending updates, or its `content` before it has a snapshot;
-  and applying an edit to it as a difference and folding the result, as Rich text and Markdown
-  describes, with the retry when another fold moved the revision.
-- Tests (database mocked): a document with pending updates read with them; one without a snapshot
-  read from its `content`, and its first edit seeding it; an edit folded while a push lands, the
-  push left pending and not folded; a fold refused on a moved revision read again and reapplied,
-  and given up after three; the folded text read back through `readRichTextYDoc` equal to the
-  edited blocks; an edit longer than an update may be folded whole.
-- Verify: the four checks; in the emulators, a script folds an edit into a document open in a
-  browser tab, and the tab shows it without a reload while its caret stays where it was.
+- `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`, working on rows rather than
+  calling the database: reading a document's shared text from its snapshot and pending updates, or
+  from its `content` before it has a snapshot, as top-level blocks with their ids and Markdown; and
+  turning an edit into a fold, the new `state`, `content` and `contentText` and the ids of the
+  updates it merged, as Rich text and Markdown describes.
+- Tests: a document with pending updates read with them; one without a snapshot read from its
+  `content`, and its first edit seeding it; a fold's state merged into a tab's document that typed
+  meanwhile, keeping both; a fold read back through `readRichTextYDoc` equal to the edited blocks;
+  an edit longer than an update may be folded whole.
+- Verify: the four checks; knowledge, the log, priorities and build in public cards draw as before.
 
 ### M14: Knowledge tools and knowledge links
 
@@ -404,7 +416,8 @@ Two pure functions and the backend's way into a document's shared text, no visib
   the shared text. A null `contentText` means "not indexed yet", and nothing may leave it stale:
   - Every write of `content` writes it: the backend's folds and creates, and the web's through new
     operations, `CompactDocumentWithText` and `CreateDocumentWithText`, which take `$contentText` as
-    required. The old `CompactDocument`, `CreateDocument` and `UpdateDocumentContent` stay for
+    required, and join every refresh that names the operations they replace: `GetLiveDocument`'s
+    for both, `GetOrganizationDocuments`' for the create. The old `CompactDocument`, `CreateDocument` and `UpdateDocumentContent` stay for
     bundles still open from before, with the same variables, and now write `contentText: null`
     beside the content (their data block is the server's, so the change reaches old bundles too).
     If the emulator shows that an omitted optional variable writes null, an optional
@@ -424,8 +437,9 @@ Two pure functions and the backend's way into a document's shared text, no visib
   organization's row and counts fewer than `MAX_DOCUMENTS` live documents before inserting, so the
   agent and the browser cannot race past it, and a full organization comes back to the model as a
   failure it can explain.
-- Backend-connector operations: search candidates, read one (title, aspects, lock, `revision`,
-  `state`, its pending updates and `content`), create, and fold (the shared text with `content` and
+- Backend-connector operations, on M13's `domain/knowledge/`: search candidates, read one (title,
+  aspects, lock, `revision`, `state`, its pending updates and `content`), create, and fold, retried
+  on a moved revision three times at most (the shared text with `content` and
   `contentText`, the title and the aspects, in one write of the row), each guarded on membership,
   `deletedAt` and, for writes, `isAiLocked`, each write recording its call's result beside the
   fenced run write (see Recovery and side effects), and named in `GetOrganizationDocuments`'
@@ -438,15 +452,17 @@ Two pure functions and the backend's way into a document's shared text, no visib
   create retried with the same `tool_use` id makes one document; a crash between a fold and the
   next step leaving the edit applied once, `append` included; a create in a full organization
   refuses; a 200000-character document read in pages that join back whole, and one made of a
-  single 200000-character paragraph too; a page asked for after the text changed saying so; a block
-  range replaced without touching the rest; a unique piece of text replaced inside that paragraph,
+  single 200000-character paragraph too; a page asked for after somebody typed elsewhere carrying
+  on from its block, and one whose block was deleted starting again; a fold refused on a moved
+  revision read again and reapplied, and a push landing during a fold left pending; a block range
+  replaced between two ids without touching the rest, and refused once one of them is gone; a unique piece of text replaced inside that paragraph,
   and a text that occurs twice refused; search reading the index and loading the plain text of 20
   candidates at most; a fold through the old operations nulling `contentText`, and the next search
   reindexing it; a Chinese and a Japanese search finding a word inside a document's sentence,
   reading the content of the 100 latest documents at most; Markdown in, the document draws as
   written.
 - Verify: with a document open in another tab, ask the agent to write a decision into it and watch
-  the edit arrive while you type elsewhere in it; ask it to create one; open both in Knowledge; lock
+  the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it to create one; open both in Knowledge; lock
   one and ask again.
 
 ### M15: Mentioning knowledge in the composer
@@ -521,7 +537,8 @@ Two pure functions and the backend's way into a document's shared text, no visib
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
   Claude's image limits, a PDF's page count kept in `pageCount`, and the file's tokens counted
-  alone and kept in `tokenCount`, two counts at once per instance: the row reserved `UPLOADING`
+  alone once it is stored, read back from Storage two at once per instance, and kept in
+  `tokenCount`: the row reserved `UPLOADING`
   under the membership lock, the object streamed under `pending/` with a generation-match-zero
   precondition, the row turned `READY`; stale reservations pruned after ten minutes; deleting a
   pruned conversation's folder. `DELETE …/attachments/:attachmentId` for the caller's own unsent
@@ -531,8 +548,8 @@ Two pure functions and the backend's way into a document's shared text, no visib
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
   with private cache headers. `storage.rules` stays as it is.
 - `POST …/messages` accepts attachment ids, checks the conversation's budget, its PDFs' total pages
-  and its next request's tokens from the stored counts, without building that request, copies each
-  file into
+  and its next request's tokens, the last request's input plus the new files' stored counts,
+  without building that request, copies each file into
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
 - A load test runs four maximum-size requests on one worker instance at once, the concurrency M8
@@ -669,8 +686,7 @@ Two pure functions and the backend's way into a document's shared text, no visib
   propose an action, never take one, except through an auto-approved tool, which it can get called
   at once with any arguments: the switch says so, and administrators allow only tools whose effects
   and reach they accept from anything the agent reads. Like a question, an approval is never
-  refused for room: one waiting in a full conversation is answered, and skipped by a send, as
-  Size says.
+  refused for room: one waiting in a full conversation can still be answered, as Size says.
 - **An approval is bound to the server, the tool and the credential it showed.** The entry records
   the integration's `configRevision`, the hash of the tool's definition (as `autoApprovedTools`
   hashes it) and `approvalCredentialGeneration`, the generation of what will make the call: the

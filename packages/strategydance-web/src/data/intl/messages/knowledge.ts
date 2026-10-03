@@ -100,16 +100,23 @@ const knowledgeMessages = defineMessages({
     defaultMessage: 'Your changes could not be saved. They will be sent again with your next change.',
     description: 'Notification when what was written in an item of knowledge could not be saved.',
   },
-  conflict: {
-    id: 'knowledge.conflict',
-    defaultMessage: 'Somebody else changed this item. Reload to see their changes.',
+  alsoHere: {
+    id: 'knowledge.alsoHere',
+    defaultMessage: 'Also here: {names}',
     description:
-      'Message on an item of knowledge when a teammate saved its text while the reader was writing in it, so what the reader writes there is no longer saved.',
+      "Accessible name of the faces at the top of an item of knowledge, one per teammate who has it open at the same time. {names} lists their names, as in 'Ana and Ben'.",
   },
-  reload: {
-    id: 'knowledge.reload',
-    defaultMessage: 'Reload',
-    description: "Button beside the message saying a teammate changed the item, which opens the teammate's version.",
+  moreHere: {
+    id: 'knowledge.moreHere',
+    defaultMessage: '+{count, number}',
+    description:
+      'Small round badge after the faces at the top of an item of knowledge, counting the other teammates who have it open and have no face shown.',
+  },
+  deletedElsewhere: {
+    id: 'knowledge.deletedElsewhere',
+    defaultMessage: 'Somebody deleted this item. What is written here is no longer saved.',
+    description:
+      'Message on an item of knowledge that a teammate deleted while the reader had it open, which the reader can no longer change.',
   },
   addFull: {
     id: 'knowledge.addFull',

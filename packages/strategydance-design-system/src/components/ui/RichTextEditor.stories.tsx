@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -12,6 +12,9 @@ import {
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 import { RichTextEditor, type RichTextEditorHandle } from 'strategydance-design-system/components/ui/RichTextEditor'
+import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRichTextYUpdate'
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 
 const meta = {
   title: 'Components/RichTextEditor',
@@ -120,7 +123,9 @@ export const InDialog: Story = {
 
 /*
   A page's body under its title, as a knowledge document is written: no frame, as tall as its text,
-  the side menu in the margin to its left. Enter in the title moves the caret into the body
+  the side menu in the margin to its left. Below `md` the page leaves no margin, as a phone's does,
+  and the side menu sits in the body's own gutter instead. Enter in the title moves the caret into
+  the body
 */
 export const Document: Story = {
   args: {
@@ -143,7 +148,7 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
   const editorRef = useRef<RichTextEditorHandle>(null)
 
   return (
-    <div className="mx-auto flex max-w-[768px] flex-col gap-6 px-16">
+    <div className="mx-auto flex max-w-[768px] flex-col gap-6 px-2 md:px-16">
       <input
         aria-label="Title"
         placeholder="Untitled"
@@ -159,6 +164,120 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
       <RichTextEditor
         {...props}
         ref={editorRef}
+        className="border-t border-neutral-200"
+      />
+    </div>
+  )
+}
+
+/*
+  One text written by two people at once, as a shared knowledge document is: what either types
+  lands in the other's editor, and each shows the other's caret and name while they type. Each
+  editor has a Yjs document of its own, linked to the other's here as the server links them, since
+  two editors on one document would be one writer to Yjs, and neither would draw the other's caret
+*/
+export const Collaborative: Story = {
+  args: {
+    appearance: 'document',
+    placeholder: 'Start writing',
+    className: undefined,
+  },
+  parameters: {
+    docs: {
+      story: {
+        height: '720px',
+      },
+    },
+  },
+  render: args => <CollaborativeExample {...args} />,
+}
+
+// What one writer's document and awareness say, as received by the other
+const REMOTE = Symbol('remote')
+
+type Writer = {
+  doc: Y.Doc
+  awareness: Awareness
+}
+
+function createWriter(seed: Uint8Array): Writer {
+  const doc = new Y.Doc()
+
+  Y.applyUpdate(doc, seed, REMOTE)
+
+  return { doc, awareness: new Awareness(doc) }
+}
+
+// Sends what one writer does to the other, and leaves alone what arrived from the other
+function link(from: Writer, to: Writer) {
+  function sendUpdate(update: Uint8Array, origin: unknown) {
+    if (origin !== REMOTE) Y.applyUpdate(to.doc, update, REMOTE)
+  }
+
+  function sendAwareness(
+    { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+    origin: unknown,
+  ) {
+    if (origin === REMOTE) return
+
+    applyAwarenessUpdate(
+      to.awareness,
+      encodeAwarenessUpdate(from.awareness, [...added, ...updated, ...removed]),
+      REMOTE,
+    )
+  }
+
+  from.doc.on('update', sendUpdate)
+  from.awareness.on('update', sendAwareness)
+
+  return () => {
+    from.doc.off('update', sendUpdate)
+    from.awareness.off('update', sendAwareness)
+  }
+}
+
+function CollaborativeExample(props: Parameters<typeof RichTextEditor>[0]) {
+  const [writers, setWriters] = useState<{ ana: Writer; ben: Writer } | null>(null)
+
+  /*
+    Each awareness keeps a timer, so both are made in the effect that destroys them, and StrictMode's
+    extra cycle makes a second pair. They reach the story a microtask later, from the effect still
+    running. Both open on the same first update, so they hold one copy of the text
+  */
+  useEffect(() => {
+    const seed = createRichTextYUpdate(richTextSample)
+    const next = { ana: createWriter(seed), ben: createWriter(seed) }
+    const unlinkAna = link(next.ana, next.ben)
+    const unlinkBen = link(next.ben, next.ana)
+    let isActive = true
+
+    queueMicrotask(() => {
+      if (isActive) setWriters(next)
+    })
+
+    return () => {
+      isActive = false
+      unlinkAna()
+      unlinkBen()
+      next.ana.awareness.destroy()
+      next.ben.awareness.destroy()
+    }
+  }, [])
+
+  if (!writers) return null
+
+  return (
+    <div className="grid grid-cols-2 gap-12 px-16">
+      <RichTextEditor
+        {...props}
+        aria-label="Ana's editor"
+        collaboration={{ ...writers.ana, user: { name: 'Ana', color: '#0a61b5' } }}
+        className="border-t border-neutral-200"
+      />
+      <RichTextEditor
+        {...props}
+        aria-label="Ben's editor"
+        collaboration={{ ...writers.ben, user: { name: 'Ben', color: '#c2410c' } }}
         className="border-t border-neutral-200"
       />
     </div>

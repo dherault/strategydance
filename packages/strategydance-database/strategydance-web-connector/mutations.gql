@@ -926,7 +926,11 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
 # to it, so two members adding at once count one after the other. A title is one line of at most
 # 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is typed,
 # and the content at most 200000 characters of serialized blocks (`MAX_DOCUMENT_CONTENT_LENGTH`).
-# Each aspect is there once. A lock chosen on the draft comes with it
+# Each aspect is there once. A lock chosen on the draft comes with it.
+#
+# `$state` is the draft's text as a Yjs document, the same text as `$content`, so the document is
+# shared from its first save and nobody seeds a second copy of it. Optional, since a page from
+# before the editor was shared sends none, and its document is seeded once somebody opens it
 mutation CreateDocument(
   $organizationId: UUID!
   $id: UUID!
@@ -934,6 +938,7 @@ mutation CreateDocument(
   $content: String!
   $aspects: [CompanyAspect!]!
   $isAiLocked: Boolean!
+  $state: String
 ) @auth(level: USER) @transaction {
   organization_updateMany(
     where: {
@@ -949,6 +954,10 @@ mutation CreateDocument(
       message: "A document's title is at most 200 characters on one line"
     )
     @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
+    @check(
+      expr: "!has(vars.state) || vars.state == null || size(vars.state) <= 2000000"
+      message: "A document's state is at most 2000000 characters"
+    )
     @check(
       expr: "vars.title.matches('[[:^space:]]') || vars.content != ''"
       message: "A document starts with a title or some text"
@@ -972,6 +981,7 @@ mutation CreateDocument(
       content: $content
       aspects: $aspects
       isAiLocked: $isAiLocked
+      state: $state
     }
   )
 }
@@ -1004,7 +1014,11 @@ mutation RenameDocument($organizationId: UUID!, $id: UUID!, $title: String!) @au
 # `$revision` is the one the page read or last saved, and the save is refused unless it is still
 # the stored one: two members writing at once would otherwise each save their whole document over
 # the other's, and neither would know. The one refused keeps their words on screen and is told to
-# reload
+# reload.
+#
+# Only a page from before the editor was shared calls it. A document with a `state` is edited
+# through its Yjs updates, and `content` is a copy the next compaction writes over, so a save here
+# is refused like one made over another revision, and that page reloads into the shared editor
 mutation UpdateDocumentContent($organizationId: UUID!, $id: UUID!, $content: String!, $revision: Int!)
 @auth(level: USER)
 @transaction {
@@ -1020,6 +1034,7 @@ mutation UpdateDocumentContent($organizationId: UUID!, $id: UUID!, $content: Str
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
       revision: { eq: $revision }
+      state: { isNull: true }
     }
     data: { content: $content, revision_update: { inc: 1 }, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The document was deleted or changed elsewhere since it was read")
@@ -1113,8 +1128,14 @@ mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
 # Deletes a document that somebody emptied, title and text both, as they leave its page: there is
 # nothing in it to take back. The emptiness is checked here rather than trusted, so a teammate who
 # wrote in it meanwhile keeps what they wrote. One that is not empty, or gone already, is left as it
-# is, and the call succeeds all the same
-mutation DiscardDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+# is, and the call succeeds all the same.
+#
+# `content` is only as recent as the last compaction, so a document with updates pending is not
+# empty as far as this knows, and one open in any other tab, another member's or the caller's own,
+# may have words on their way: both are left. `$sessionId` is the tab asking, whose own presence row
+# does not count. Optional, since a page from before the editor was shared sends none, and keeps no
+# row, so any fresh row leaves the document then
+mutation DiscardDocument($organizationId: UUID!, $id: UUID!, $sessionId: UUID) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
@@ -1123,11 +1144,209 @@ mutation DiscardDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
   }
   document_deleteMany(
     where: {
+      _and: [
+        {
+          id: { eq: $id }
+          organizationId: { eq: $organizationId }
+          deletedAt: { isNull: true }
+          title: { pattern: { regex: "^[[:space:]]*$" } }
+          content: { eq: "" }
+          documentUpdates_on_document: { count: { eq: 0 } }
+        }
+        {
+          _not: {
+            documentPresences_on_document: {
+              exist: { sessionId: { ne: $sessionId }, updatedAt: { ge_time: { now: true, sub: { seconds: 45 } } } }
+            }
+          }
+        }
+      ]
+    }
+  )
+}
+
+# Stores the first Yjs snapshot of a document stored before the editor was shared, which the first
+# tab to open it converts from its `content`. Written only while there is none, and while the
+# document is still at the revision that tab read: two tabs opening it at once store one snapshot,
+# and the other takes it rather than merge in a second copy of the text, and a page from before the
+# editor was shared that saved content meanwhile has the tab convert that instead. `content` holds
+# the same text, so it is left alone, and so is `updatedAt`
+mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, $revision: Int!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+    }
+  }
+  document_updateMany(
+    where: {
       id: { eq: $id }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
-      title: { pattern: { regex: "^[[:space:]]*$" } }
-      content: { eq: "" }
+      state: { isNull: true }
+      revision: { eq: $revision }
+    }
+    data: { state: $state, revision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The document was seeded or changed elsewhere since it was read")
+}
+
+# Adds an edit to a document's text, a Yjs update a tab pushes as somebody types, which every tab
+# with the document open reads through `GetLiveDocument` and merges. The tab names the id, and a
+# retry sends the same id with the same bytes, so a push whose answer was lost is stored once. Only
+# for a document with a `state`, which a tab seeds before it pushes anything.
+#
+# It leaves the document's row alone, `updatedAt` included, so a keystroke writes one small row:
+# the compaction that folds it in moves `updatedAt`.
+#
+# An update is at most 50000 characters (`MAX_DOCUMENT_UPDATE_LENGTH`), and a document keeps at
+# most 100 pending (`DOCUMENT_UPDATES_LIMIT`), which `GetLiveDocument` sends whole to every open tab
+# at each push: a tab folds an edit too long to push into the snapshot instead, and folds the
+# pending ones long before there are 100. A push is refused once 99 are pending, counted before the
+# write, as a step after an insert does not see it, and a retry of a push already stored is not
+# counted against it. Without a transaction the count is not a lock, so pushes at once can pass it
+# together, and only a caller pushing on purpose ever would: what holds every push to a few
+# megabytes is the reads' limit of 100, which a tab that finds the list that long folds at once.
+#
+# An update is never changed once stored: every tab dedupes them by id, so one rewritten under its
+# id would reach the tabs that had not merged it yet and none of the others. So it is inserted, and
+# a push under a stored id is refused as a duplicate, which a retry, whose answer was lost, takes
+# as stored: its id is fresh, so only its own earlier send can hold it.
+#
+# Not a transaction: its one write is an insert, so a push cut off midway, as
+# a closing tab cuts one off, is stored or not, and never half. As a transaction the cutoff leaves
+# the Data Connect emulator's database stuck in it, refusing every mutation after
+mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUID!, $payload: String!)
+@auth(level: USER) {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+        @check(
+          expr: "size(vars.payload) > 0 && size(vars.payload) <= 50000"
+          message: "A document update is at most 50000 characters"
+        )
+    }
+    documents(
+      where: {
+        id: { eq: $documentId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        state: { isNull: false }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No document by that id in the organization") {
+      id
+      documentUpdates_on_document(limit: 100)
+        @check(
+          expr: "size(this) < 99 || this.exists(update, update.id == vars.id)"
+          message: "A document has too many updates pending"
+        ) {
+        id
+      }
+    }
+  }
+  documentUpdate_insert(data: { documentId: $documentId, id: $id, createdById_expr: "auth.uid", payload: $payload })
+}
+
+# Folds a document's pending updates into its snapshot: the tab sends the snapshot it holds with
+# them merged in, the text it reads as `content`, and the ids of the updates it folded, which are
+# deleted. Any tab may, once it has seen the updates, which is what keeps a document's few.
+#
+# `$revision` is the revision of the snapshot the tab merged, and the fold is refused unless it is
+# still the stored one, so it never writes over a snapshot somebody folded more into. A push that
+# lands while it is out is not among the ids and stays pending. Every tab reads the snapshot again
+# when the revision moves, which brings back an update deleted before it reached them. A fold may
+# name none, to store an edit of the tab's own too long to push as an update, and then deletes none
+mutation CompactDocument(
+  $organizationId: UUID!
+  $id: UUID!
+  $state: String!
+  $content: String!
+  $revision: Int!
+  $updateIds: [UUID!]!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+        @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+        @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
+    }
+  }
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      revision: { eq: $revision }
+    }
+    data: { state: $state, content: $content, revision_update: { inc: 1 }, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The document was compacted or deleted elsewhere since it was read")
+  documentUpdate_deleteMany(where: { documentId: { eq: $id }, id: { in: $updateIds } })
+}
+
+# Says that the caller has a document open in one tab, and where their caret is, or null while
+# their focus is out of the text. A tab sends it as the caret moves and every 15 seconds while it is
+# visible, and `GetDocumentPresences` lists what was written in the last 45.
+#
+# The row is the caller's, keyed with their uid, so nobody writes over another member's. Then the
+# rows older than a minute go, left by tabs that closed without a word, on every document of the
+# organization, so a document nobody opens again keeps none for long either. In that order:
+# the upsert has moved this row's `updatedAt`, and a mutation that wrote the row once would skip a
+# second write to it.
+#
+# Not a transaction, as a heartbeat can be out when its tab closes: cut off midway, the row is
+# written or not and the stale ones pruned or not, which the next write and the readers' 45 seconds
+# make up for, where a transaction would leave the Data Connect emulator stuck in it
+mutation UpdateDocumentPresence($organizationId: UUID!, $documentId: UUID!, $sessionId: UUID!, $cursor: String)
+@auth(level: USER) {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can open its knowledge") {
+      role
+        @check(
+          expr: "!has(vars.cursor) || vars.cursor == null || size(vars.cursor) <= 2000"
+          message: "A cursor is at most 2000 characters"
+        )
+    }
+    documents(
+      where: { id: { eq: $documentId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No document by that id in the organization") {
+      id
+    }
+  }
+  documentPresence_upsert(
+    data: {
+      documentId: $documentId
+      userId_expr: "auth.uid"
+      sessionId: $sessionId
+      cursor: $cursor
+      updatedAt_expr: "request.time"
     }
   )
+  documentPresence_deleteMany(
+    where: {
+      document: { organizationId: { eq: $organizationId } }
+      updatedAt: { lt_time: { now: true, sub: { minutes: 1 } } }
+    }
+  )
+}
+
+# Says that the caller closed a document in one tab, or hid it, so the others stop drawing them.
+# Their own row only. One that is gone already changes nothing and succeeds.
+#
+# Not a transaction: deleting one's own row needs none, and a tab sends this as it closes, which can
+# cut the request off midway. The Data Connect emulator then fails to roll the transaction back and
+# leaves its database stuck in it, refusing every mutation after
+mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: UUID!) @auth(level: USER) {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can open its knowledge") {
+      role
+    }
+  }
+  documentPresence_delete(key: { documentId: $documentId, userId_expr: "auth.uid", sessionId: $sessionId })
 }

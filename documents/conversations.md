@@ -611,7 +611,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   where a bucket lifecycle rule deletes what is two days old: a draft never sent costs nothing for
   long, whether or not its author comes back. Sending copies each file into the conversation's
   folder, `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/`, checking
-  the conversation's budget.
+  the conversation's budget. The copies come before the mutation that sends the message, each under
+  a generation-match-zero precondition, a collision with an object of the same size counting as
+  done, so a retried send (same `messageId`) copies only what is missing and then commits. If no
+  retry comes, the row stays unsent, and its pruning deletes both its pending object and any copy
+  at its destination, so a failed send leaves nothing behind in either folder.
 - **Reading a file goes through the backend too**: `GET …/attachments/:attachmentId` checks that the
   caller is still a member and owns the conversation, and streams the bytes with private cache
   headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
@@ -924,7 +928,9 @@ heavy.
   `MAX_ACTIVE_RUNS_PER_MEMBER` and finalize a dead run; then the task is queued and the route answers
   202 with the run's id. `messageId` is made by the client, and the route is idempotent on it: a retry after a lost
   answer or a partial failure completes what is missing and answers with the same run, never
-  sending twice.
+  sending twice. The body is validated on the server, whatever the browser allowed: `text` is
+  trimmed, at most `MAX_CONVERSATION_MESSAGE_LENGTH` characters, and not empty (M15 allows an empty
+  text when the message carries files); anything else is a 400.
 - `enqueueRun`: a named task (`run-<runId>`, so a repeat does not queue twice), an OIDC token, a
   15-minute dispatch deadline; in development, `runConversation` in-process without waiting.
 - `POST /internal/conversation-runs` and `runConversation`: claiming, leases, fencing, the 200 and
@@ -940,7 +946,8 @@ heavy.
 - Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
   busy, an unclear and a definite queueing failure, both leaving the run queued for the retry to
   enqueue, a dead run finalized, a send retried with the
-  same `messageId`, a fourth run refused, a conversation without room for a run refused. Against the
+  same `messageId`, a fourth run refused, a conversation without room for a run refused, an empty, a
+  blank and an over-long message refused. Against the
   emulators, a script under `scripts/` sends from two conversations at once with two runs already in
   flight, and exactly one goes through.
 - Verify: locally, send in two tabs and watch the reply arrive; restart the backend mid-run, see the
@@ -1224,6 +1231,14 @@ A refactor and two pure functions, no visible change.
   injected text can make the model call an auto-approved tool at once, with any arguments, including
   private text it carries out. The switch says so beside it, and the page's help asks administrators
   to allow only tools whose effects and reach they accept from anything the agent reads.
+- **A waiting approval counts as a waiting question everywhere**: `GetConversations`' attention check
+  also matches an `APPROVAL` whose `approvalState` is `PENDING` on a `WAITING` run, so it raises
+  "Needs your answer", the sidebar badge and the minimized window's dot; inserting one adds to
+  `unreadCount`; and its preview reads "Approval: Stripe · create_payment_link".
+- **Sending while an approval waits denies it**: the new user entry first answers the pending call
+  with "The member did not approve this call and wrote instead.", the approval is marked denied, and
+  the send consumes the waiting turn under the same check as a question's, with the same
+  answer-against-send race covered in the emulators.
 - A call that started before a crash is never run again by itself (see A run).
 - In the thread, integration calls show the server and the tool, and the warning strip when the
   server is missing, off, or not connected for the viewer, with what fixes it: administrators get

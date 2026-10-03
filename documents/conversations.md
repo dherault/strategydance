@@ -63,7 +63,7 @@ export, port the styles from `conversations.css` onto the design system's compon
   see your conversations.", and a primary "New conversation" button.
 - A search field ("Search conversations", Escape clears it). Every word has to appear in the title
   or in one message, ignoring case. (The prototype also matched words spread over several messages;
-  the full-text search `SearchConversations` uses matches within one title or one message.) No match:
+  the full-text search matches within one title or one message.) No match:
   "No conversations match “query”", "Search looks at titles and messages.", and a "Clear search"
   button.
 - A table, latest activity first. Columns: Conversation (the title as a link, a "Needs your answer"
@@ -317,13 +317,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     query only, not the thread or the list.
   - `GetConversationToolCall($organizationId, $messageId)`: one call's input and output, read once
     when "View output" opens.
-  - `SearchConversations($organizationId, $query)`: full-text search through an index.
-    `Conversation.title` and `ConversationMessage.text` are `@searchable` (the `simple`
-    configuration, for seven languages); the query reads `conversations_search` and
-    `conversationMessages_search` (member and agent text) with `queryFormat: PLAIN`, which requires
-    every word, each with `limit: 1000`, the message search grouped by conversation (selecting
-    `conversationId` with an aggregate) so one conversation cannot crowd out the rest. M3 checks the
-    emulator groups it so; otherwise the search moves behind a backend route paging through matches.
+  - Search is not a web operation: a search field returns message rows, which cannot be grouped by
+    conversation, so it goes through the backend (see the next point and M3).
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note at a position claimed on the counter, the claim
@@ -342,6 +337,13 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   conversations deleted over a day ago, with their files. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
+- **Search** is the backend's too: `GET …/conversations/search?q=` runs Data Connect's full-text
+  search through an index. `Conversation.title` and `ConversationMessage.text` are `@searchable`
+  (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
+  every word: titles in one query (`limit: 1000`), and member and agent messages paged 500 at a
+  time by relevance, collecting distinct conversations until there are 1000 or ten pages have been
+  read, so one conversation's many matches cannot crowd out the rest. Both filter on the caller,
+  their membership and `deletedAt`, as the web's reads do.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
   knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
   `GetOrganizationTeam`'s.
@@ -423,7 +425,10 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   dispatches at most 50 tasks at a time, which also bounds a member of several organizations. Every
   mutation that starts a run first locks the member's membership row in that organization, the one
   creating and restoring lock, then counts their active runs there and inserts, so two sends from
-  two conversations at once cannot both find room.
+  two conversations at once cannot both find room. Before counting, the route reconciles every run
+  the member has in flight in that organization, not only the target conversation's, finalizing the
+  dead ones as Leases says, so runs that crashed elsewhere, deleted conversations' included, never
+  lock the member out.
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
   flag; build the request from the transcript and check it (see The transcript); stream it, writing
@@ -787,7 +792,7 @@ adds a section on it to `operations-costs.md`.
 | --- | --- | --- | --- |
 | M1 | The conversation tables and the web's operations | database, core | |
 | M2 | The Markdown component | design-system | |
-| M3 | Navigation, the list, search and delete, from seeded data | web, backend, root | |
+| M3 | Navigation, the list, search and delete, from seeded data | web, backend, database, root | |
 | M4 | The conversation page and its thread, read-only | web | |
 | M5 | Sending, and the run pipeline without a model | backend, database, web, root | |
 | M6 | Claude replies, with web search | backend, database, web | |
@@ -847,10 +852,12 @@ The data model and the web connector's operations, with nothing yet using them.
 - `_app/conversations.index.tsx` behind the release bouncer, its waiter keyed on the organization's
   id, `useConversations` copying `useOrganizationTeam`'s live pattern (`retryOnMount: false`,
   `hasFailed`).
-- The list: header (New conversation arrives in M5), search (debounced, through
-  `SearchConversations`), table, previews worded from `preview`, empty states, Delete with confirm
-  and Undo through `DeleteConversation` and `RestoreConversation`.
-- Utilities with tests: wording a preview, merging the two search results.
+- The list: header (New conversation arrives in M5), search (debounced, through the backend's
+  search route, which lands here with the conversations router, its member and staff middleware
+  and its backend-connector search operations), table, previews worded from `preview`, empty states,
+  Delete with confirm and Undo through `DeleteConversation` and `RestoreConversation`.
+- Tests: wording a preview; the search route merging titles and messages, deduplicating by
+  conversation, and stopping at 1000 conversations or ten pages (database mocked).
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
@@ -883,9 +890,10 @@ heavy.
 - Dependencies: `@google-cloud/tasks` (the same google-gax stack `@google-cloud/secret-manager`
   already runs under Bun) and `google-auth-library`, declared directly since Bun's isolated install
   does not expose firebase-admin's copy.
-- The conversations router; `organizationMember`, `staffOnly` and `cloudTasks` middlewares, the last
-  verifying the OIDC token's audience (`PRODUCTION_API_URL` + `/internal/conversation-runs`) and its
-  service account, both backend constants, since Cloud Run tells the service neither.
+- The `cloudTasks` middleware (the conversations router and the member and staff middleware arrived
+  with M3's search), verifying the OIDC token's audience (`PRODUCTION_API_URL` +
+  `/internal/conversation-runs`) and its service account, both backend constants, since Cloud Run
+  tells the service neither.
 - `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
   suggestion and attachments), validated on the server: `text` trimmed, not empty (M15 allows that
   with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the

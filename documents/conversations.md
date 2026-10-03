@@ -269,8 +269,10 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`UPLOADING` while its slot is reserved, `READY` once its file is stored, `PRUNING` once a prune
   has claimed it), `name`, `contentType`,
   `size`, `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
-  `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`, so
-  deleting the organization sweeps it with the rest (see Attachments). Indexed on `conversationId`,
+  `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`,
+  where `organizations/{organizationId}` is `buildOrganizationStoragePrefix`'s canonical form (hyphens
+  removed, as `deleteOrganization` sweeps it), never the route's raw parameter, so deleting the
+  organization sweeps it with the rest (see Attachments). Indexed on `conversationId`,
   for pruning and the conversation's budget, and on `userId`, `organizationId`, `createdAt`, for the
   quota's count of unsent rows and their pruning.
 
@@ -612,14 +614,17 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
   rule could check only the uid, which stays true after a member is removed, so `storage.rules` keeps
   granting clients nothing under `organizations/`, as it does today.
-- Claude receives images as `image` blocks, PDFs as `document` blocks and text files as text
-  `document` blocks, all base64, since Vertex has no Files API. A request takes about 32 MB, every
+- Claude receives images as `image` blocks and PDFs as `document` blocks, both base64 since Vertex
+  has no Files API, and text files as `document` blocks with a `text` source, decoded, so the model
+  reads the text rather than its encoding. A request takes about 32 MB, every
   earlier file included, so a conversation's files are capped at 15 MiB (about 20 MB encoded) and a
   text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
   files is sent only once the send route has counted the next request's tokens (Vertex has the
   endpoint) under 700000. Before each request the worker measures the body: past 30 MB, or 800000
   input tokens, it marks the conversation full, and the send route refuses new messages with
-  `ERROR_CODE_CONVERSATION_FULL`. The service gets `--memory 2Gi` and `--concurrency 20`, measured on
+  `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and the worker measures
+  again before the retried request, setting it back only if the shortened request is still too
+  large, so a retry that brings it under the limits frees the conversation. The service gets `--memory 2Gi` and `--concurrency 20`, measured on
   the heaviest conversation, since a request holds its files several times over.
 
 ### The agent

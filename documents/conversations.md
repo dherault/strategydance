@@ -289,10 +289,11 @@ New tables in `schema.gql`, each commented as the existing ones are:
     sent, which escapes U+0000, and are parsed again only to be sent. A call's `toolInput` and
     `toolOutput` are JSON text the same way, lossless, since an approval (M23) shows the member
     the exact arguments that will run: the dialog draws them with control characters escaped, so
-    `acct\u0000admin` reads as such rather than as `acctadmin`. Every other string column that
-    holds what the model or the member wrote drops U+0000 before it is written, since a Postgres
-    `text` refuses it: `text`, `citations`, a question's prompt and options, an answer's own words,
-    the preview. A question or an answer reads the same without it, and the transcript keeps it.
+    `acct\u0000admin` reads as such rather than as `acctadmin`. A question's prompt and options and
+    an answer's own words go back into the transcript from their columns, so they are refused at
+    the door when they hold a control character, as their length bounds are refused (see M11), and
+    are never altered. The drawn prose, `text`, `citations` and the preview, drops U+0000 before it
+    is written, since a Postgres `text` refuses it; the transcript keeps it.
 - **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are

@@ -351,8 +351,10 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   sidebar badge, and questions in previews, all read from `isAwaitingAnswer`, which ending a run
   `WAITING` sets and consuming its turn clears.
 - Tests: an `ask_user` call whose prompt or one option is a character past its bound refused before
-  anything is drawn, and one at the bounds drawn; a prompt, an option and an answer's own words
-  holding U+0000 stored and drawn without it, the transcript keeping it; an unknown, repeated or second option for a
+  anything is drawn, and one at the bounds drawn; a prompt or an option holding a control
+  character, U+0000 included, refused the same way, and an answer's own words holding one refused
+  before anything is recorded, so a continuation built later, after a restart or another answer,
+  sends exactly what was answered; an unknown, repeated or second option for a
   single-choice question refused, an empty answer refused, a long `other` refused, an option and own words together on a single-choice
   question refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
   one run; the waiting run moved to `CONTINUED` by the winner, and a delayed answer or send, arriving

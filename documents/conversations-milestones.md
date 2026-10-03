@@ -252,7 +252,8 @@ with an OIDC token. Sends work in production from here.
   its lease shown as interrupted.
 - Tests: a stop mid-stream drops the turn and stores no context message; resume runs the unanswered
   `tool_use` blocks; retry goes back to the run's anchor, for a files-only message and for an
-  answer, and its cut passes `checkTranscript`; retrying many times lowers `messageCount` by what it
+  answer, and from a resumed run that crashed before storing its results, back to the anchor it
+  shares with the run it resumed, deleting what both drew; every cut passes `checkTranscript`; retrying many times lowers `messageCount` by what it
   deletes, so it never fills the conversation, and so does stopping and resuming many times;
   Resume hidden, and refused, when removing the note would leave less than a run's room, while
   Retry still frees it; sending after a stop answers the open blocks; a turn
@@ -468,7 +469,11 @@ A refactor and two pure functions, no visible change.
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.
 - Backend routes for administrators: add (connects with `@modelcontextprotocol/sdk` over Streamable
-  HTTP and lists the tools), edit, delete, turn on and off, retry. Deleting sets `deletedAt`, keeping
+  HTTP and lists the tools), edit, delete, turn on and off, retry. An OAuth server answers 401
+  before any member has connected, so adding one runs only its discovery here, the protected
+  resource metadata and the issuer it names, and its tools wait for the first connection in M20:
+  until then the dialog says to connect an account to list them, and its auto-approval switches
+  wait with them. Deleting sets `deletedAt`, keeping
   the secrets for Undo; the daily sweeper (M7) removes it a day later, with its connections, pending
   authorizations and encrypted credentials, if it is still deleted.
   Encryption through Cloud KMS, and a local key in development.
@@ -490,7 +495,8 @@ A refactor and two pure functions, no visible change.
   `public/assets/images/mcp/`), staff gated, and its sidebar item. Check each catalogue address is a
   real remote MCP server before shipping it.
 - Tests: a key sent as a bearer token and in a named header, and a reserved header name refused.
-- Verify: add a key-based server and an OAuth one, turn one off, delete and undo.
+- Verify: add a key-based server and see its tools; add an OAuth one and see its discovery pass and
+  its tools wait for a connection; turn one off, delete and undo.
 
 ### M20: Integrations: members connect their accounts
 
@@ -511,8 +517,16 @@ A refactor and two pure functions, no visible change.
   registration only as the fallback; authorization code with PKCE and the `resource` parameter; the
   callback at `https://api.strategydance.com/integrations/oauth/callback` redirecting to a web page
   that closes the popup, refresh before expiry, disconnect.
+- The first connection to an OAuth server lists its tools with that member's token, and retry
+  lists them again with the token of whoever asks; the tools are taken to be the same for every
+  account, as remote MCP servers expose them, and a call an account may not make fails when made.
 - The page shows each OAuth server's status for the viewer, with Connect and Disconnect for
   themselves, and the design's waiting dialog.
+- Tests (database and server mocked): two concurrent callbacks with one `state` making exactly one
+  exchange, and a replayed one making none; an unknown and an expired `state` refused; a pending
+  authorization cleared by a change of address, authentication or issuer, its callback then
+  refused; two concurrent refreshes spending a rotating refresh token once, the second reading the
+  first's tokens; a lapsed refresh lease taken over; the first connection listing the tools.
 - Verify: connect two members to the same server as different accounts; disconnect one.
 
 ### M21: Integrations in conversations

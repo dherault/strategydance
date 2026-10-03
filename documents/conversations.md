@@ -316,7 +316,7 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   - `GetConversation($organizationId, $id)`, live: one conversation and its latest 150 messages,
     more than one run can draw (see Room at the cap), so Retry's deletions usually fall inside it;
     when aspects notes written during a run push its first entries into a history page, the page
-    drops the retried run's messages there by run id (see Retry),
+    drops the retried runs' messages there by run id (see Retry),
     newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
     live, so a new entry never sends a long thread again. The page merges each pushed tail into
     what it holds rather than replacing it: an entry that slides out of the tail stays in its cache
@@ -616,13 +616,15 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   stores the results, then sends its context and the request; when the last entry is `USER` (the
   stream was cut), it sends its context and the request straight away.
 - **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed or refused note: every run
-  records `anchorPosition`, the `USER` entry that started it (a message, files only included,
-  answers, or resumed results). Retry cuts the transcript after the last run's anchor, its context
-  message included, deletes the messages that run drew, and starts a run on that anchor with a
-  fresh context message; the remaining prefix is what the thinking blocks were made with, and what
-  the cut part wrote stays written. The route answers with the removed run's id, and the page drops
-  its messages from every page it holds, history included, since aspects notes can push a run's
-  first entries out of the live tail.
+  records `anchorPosition` when it is created, before anything runs: the `USER` entry that started
+  it (a message, files only included, or answers), and for a resumed run the anchor of the run it
+  resumes, since it carries that run's response on and its own results entry may never be stored
+  if it crashes first. Retry cuts the transcript after the last run's anchor, its context message
+  included, deletes the messages drawn by every run on that anchor (the last run and the runs it
+  resumed), and starts a run on that anchor with a fresh context message; the remaining prefix is
+  what the thinking blocks were made with, and what the cut part wrote stays written. The route
+  answers with the removed runs' ids, and the page drops their messages from every page it holds,
+  history included, since aspects notes can push a run's first entries out of the live tail.
 - **The context message's profile part** (the member, the organization, the conversation's aspects)
   is included when its hash differs from the `contextHash` of the last context message still in the
   transcript, so a retry that cut one sends it again.

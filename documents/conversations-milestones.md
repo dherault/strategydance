@@ -436,8 +436,8 @@ M14.
     for both, `GetOrganizationDocuments`' for the create. The old `CompactDocument`, `CreateDocument` and `UpdateDocumentContent` stay for
     bundles still open from before, with the same variables, and now write `contentText: null`
     beside the content (their data block is the server's, so the change reaches old bundles too).
-    If the emulator shows that an omitted optional variable writes null, an optional
-    `$contentText` on the existing operations does the same without new ones.
+    An optional `$contentText` on the existing operations would not do: an omitted optional variable
+    leaves its column alone in an update, so an old bundle's fold would leave stale text indexed.
   - Existing documents, which start null, are filled by a backfill script under `scripts/`, run by
     hand after the release: it pages through null rows in batches and can stop and resume at any
     point, so no request ever carries it.

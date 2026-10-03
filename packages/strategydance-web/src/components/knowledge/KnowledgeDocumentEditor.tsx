@@ -171,7 +171,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     awareness,
     isEnabled: isStored && isTextReady && !isGone,
     viewerId: viewer?.uid ?? null,
-    flushText: sync.flush,
+    flushText: sync.flushStored,
   })
   const isShared = people.length > 0
 

@@ -714,6 +714,12 @@ function createKnowledgeDocumentSync({
     return !hasFailed
   }
 
+  // Sends what is left now, and says whether everything this tab wrote is stored: nothing held back
+  // for its length or as too many updates are pending, which `flush` does not count as failing
+  async function flushStored() {
+    return (await flush()) && !hasUnsaved()
+  }
+
   // Sends what is left, then folds what is pending, as the tab hides or the page goes
   async function flushAndCompact() {
     await flush()
@@ -816,6 +822,7 @@ function createKnowledgeDocumentSync({
     setContent,
     setShared,
     flush,
+    flushStored,
     flushAndCompact,
     settle,
     pause,

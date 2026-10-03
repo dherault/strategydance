@@ -536,6 +536,7 @@ describe('createKnowledgeDocumentSync', () => {
     sync.setContent('x'.repeat(41))
     await sync.flush()
 
+    expect(await sync.flushStored()).toBe(false)
     expect(server.pushes).toEqual([])
     expect(statuses.at(-1)).toBe('tooLong')
     expect(sync.hasUnsaved()).toBe(true)
@@ -543,6 +544,7 @@ describe('createKnowledgeDocumentSync', () => {
     sync.setContent('x'.repeat(40))
     await wait(PUSH_DELAY * 4)
 
+    expect(await sync.flushStored()).toBe(true)
     expect(server.pushes).toHaveLength(1)
     expect(sync.getStatus()).toBe('idle')
   })

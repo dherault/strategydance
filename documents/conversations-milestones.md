@@ -104,14 +104,16 @@ The data model and the web connector's operations, with nothing yet using them.
   id, `useConversations` copying `useOrganizationTeam`'s live pattern (`retryOnMount: false`,
   `hasFailed`).
 - The list: header (New conversation arrives in M6), search (debounced, through the backend's
-  search route, which lands here with the conversations router, its member and staff middleware
-  and its backend-connector search operations), table, previews worded from `preview`, empty states,
+  search route, which lands here with the conversations router, its member and staff middleware,
+  its backend-connector search operations, and the `ConversationSearch` table its shared quota
+  counts, additive), table, previews worded from `preview`, empty states,
   Delete with confirm and Undo through `DeleteConversation` and `RestoreConversation`.
 - Tests: wording a preview; the search route merging titles and messages, deduplicating by
   conversation, and stopping at 1000 conversations or ten pages; a Chinese and a Japanese query
   taking the substring path, which reads at most 20000 messages, newest conversations first; a query
-  past 100 characters or 8 terms refused; the 121st search from one caller in ten minutes refused
-  (database mocked).
+  past 100 characters or 8 terms refused; the 121st search from one caller in ten minutes refused by
+  the in-memory limiter and, with a fresh limiter as another instance would have, by the shared
+  count (database mocked).
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
@@ -200,7 +202,8 @@ with an OIDC token. Sends work in production from here.
   token (the shared verifier takes each endpoint's own URL as its audience, Cloud Scheduler's
   default), removes what is still deleted past its Undo window
   whether or not anybody comes back: conversations deleted over a day ago, with their attachment
-  rows and Storage folders; later milestones add stale upload reservations and unsent files (M17)
+  rows and Storage folders, and `ConversationSearch` rows over a day old; later milestones add
+  stale upload reservations and unsent files (M17)
   and deleted integrations with their credentials (M19). The prunes done on the way through stay as a
   fast path; every step is idempotent.
 - `deploy:backend` gains `--timeout 900`. The welcome email's lease goes from ten minutes to twenty
@@ -324,7 +327,10 @@ A refactor and two pure functions, no visible change.
 
 - Backend-connector operations reading the team (as `GetOrganizationTeam` does, without emails) and
   the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
-  converted with `richTextToMarkdown`.
+  converted with `richTextToMarkdown`, both paged with a cursor as Tools describes.
+- Tests: a team of 60 read in three pages with `total` right; a single 50000-character log entry
+  read across pages that join back whole, and one made of a single 50000-character paragraph too;
+  a page continuing an entry saying so.
 - The three tools' labels in the `conversation` catalogue, running and done ("Reading your team",
   "Reading the log", "Setting your top priority"), and `bun run translate`.
 - `set_top_priority`, through one backend mutation `SetTopPriorityForAgent($organizationId,
@@ -351,8 +357,9 @@ A refactor and two pure functions, no visible change.
   words, as the radios draw it.
 - The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
   sidebar badge, and questions in previews.
-- Tests: an unknown, repeated or second option for a single-choice question refused, an empty
-  answer refused, a long `other` refused, an option and own words together on a single-choice
+- Tests: an `ask_user` call whose prompt or one option is a character past its bound refused before
+  anything is drawn, and one at the bounds drawn; an unknown, repeated or second option for a
+  single-choice question refused, an empty answer refused, a long `other` refused, an option and own words together on a single-choice
   question refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
   one run; the preview following an answer to the last question shown, and staying put for an
   answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in

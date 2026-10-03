@@ -286,7 +286,8 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `CONVERSATION_RUN_ROOM`
 `MAX_CONVERSATION_TITLE_LENGTH` (120), `MAX_CONVERSATION_MESSAGE_LENGTH` (20000),
 `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE` (10), `MAX_CONVERSATION_ATTACHMENT_SIZE` (10 MiB),
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
-`MAX_QUESTION_OPTIONS` (6), `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
+`MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
+`MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
 `CONVERSATION_SUGGESTION_IDS` (M15), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
 codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 
@@ -383,12 +384,17 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 - **Every search is bounded at the door**: a query of at most 100 characters and 8 terms
   (`MAX_SEARCH_QUERY_LENGTH`, `MAX_SEARCH_TERMS`), refused with a 400 past either, which the field
   enforces as the member types and `search_knowledge`'s schema enforces for the agent. The field
-  waits 300 ms after the last keystroke and aborts the request it replaces, and since a caller can
-  skip the field, the route is metered on the server as the invite and picture routes are:
-  `conversationSearchRateLimitMiddleware`, 120 searches per caller in ten minutes, keyed by the
-  verified caller (the address only if there is none), counted in the instance's memory, and
-  refused with `ERROR_CODE_TOO_MANY_REQUESTS`: somebody searching never reaches it, a script does.
-  The agent's searches are bounded by its tool calls per run instead.
+  waits 300 ms after the last keystroke and aborts the request it replaces. Since a caller can
+  skip the field, the route is metered on the server in two layers, as invitations are:
+  `conversationSearchRateLimitMiddleware` (120 searches per caller in ten minutes, keyed by the
+  verified caller, the address only if there is none, counted in the instance's memory) turns a
+  script away cheaply, and the database holds the bound across instances, which autoscaling would
+  otherwise multiply: the route's first mutation inserts a `ConversationSearch` row (the caller,
+  the organization, `createdAt`, indexed on the caller and time) only while fewer than 120 of the
+  caller's rows are younger than ten minutes, a read of at most 120 under `@check`, so every
+  instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
+  searching never reaches, and the daily sweeper deletes rows over a day old. The agent's searches
+  are bounded by its tool calls per run instead.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
   knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
   `GetOrganizationTeam`'s.
@@ -741,10 +747,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | `read_knowledge` | `{ id, from? }`: a document's title, aspects, `revision` and content as Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The cursor is a block and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would | M11 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M11 |
 | `update_knowledge` | `{ id, revision, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { from, to, content }` replaces a range of blocks, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M11 |
-| `get_team` | Every member: id, name, job title, role, bio, top priority as text and when it was set | M13 |
-| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full | M13 |
+| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M13 |
+| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M13 |
 | `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M13 |
-| `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers | M14 |
+| `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M14 |
 | `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M21 |
 | `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M21 |
 | `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M21 |

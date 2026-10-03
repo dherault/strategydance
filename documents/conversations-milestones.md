@@ -474,7 +474,10 @@ M14.
   on from its block, one after an edit inside the block it stopped in starting that block again,
   and one whose block was deleted starting the document again; a fold refused on a moved
   revision read again and reapplied, and a push landing during a fold left pending; a block range
-  replaced between two ids without touching the rest, and refused once one of them is gone; a unique piece of text replaced inside that paragraph,
+  replaced between two ids without touching the rest, and refused once one of them is gone; an
+  append and a replacement that would take the document past 200000 characters of content
+  refused, its text and its pending updates left as they were, and the same on a retry after
+  somebody else's fold; a unique piece of text replaced inside that paragraph,
   and a text that occurs twice refused; search reading the index and loading the plain text of 20
   candidates at most; a fold through the old operations nulling `contentText`, and the next search
   reindexing it; a Chinese and a Japanese search finding a word inside a document's sentence,

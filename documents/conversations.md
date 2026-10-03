@@ -938,7 +938,11 @@ keeps all four styles through an agent's edit.
   backend reads again and reapplies, three times at most. Every tab with the document open sees the
   revision move and reads the snapshot again, as after any fold, so the agent's edit appears in
   open editors without a reload. A fold has no 50000-character bound, as a pushed update has, so a
-  large edit goes through whole. A document with no `state` is seeded in the same write, under
+  large edit goes through whole; it has the bounds `CompactDocument` holds the result to instead,
+  `MAX_DOCUMENT_CONTENT_LENGTH` for the new `content` and `MAX_DOCUMENT_STATE_LENGTH` for the new
+  `state`, checked on the merged and edited document, again on every retry, so a small append to a
+  nearly full document is refused with a result the model can explain, and nothing is written or
+  deleted. A document with no `state` is seeded in the same write, under
   `SeedDocumentState`'s condition.
 
 The thread draws the agent's Markdown with a new design-system `Markdown` component (M3:

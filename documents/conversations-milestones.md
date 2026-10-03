@@ -181,7 +181,8 @@ The data model, with nothing yet using it.
 - The live tail and the older pages (`GetConversationMessagesBefore`) loaded as the reader scrolls
   up, merged into one thread by a utility with tests: a tail that slides past the pages it meets
   keeps every entry, a gap between them is fetched, and a `historyRevision` change from another
-  tab's Retry drops the retried run's entries kept from an older tail. Each message's body is read once by id
+  tab's Retry drops the retried run's entries kept from an older tail, including those of a run
+  longer than the tail, whose first entries sit in a history page. Each message's body is read once by id
   through `GetConversationMessageBodies` and kept by id, a placeholder line standing in meanwhile.
 - `MarkConversationRead` when the page shows a conversation with unread replies.
 - The web operations the page reads and writes, as Who writes what describes them:
@@ -302,7 +303,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   within 20000 characters and the pieces rejoining to the original; citations rebased to their piece, one unread count, and a
   crash between two pieces drawing the rest once; a web search becomes one finished call; usage
   adds up; a request that would pass 800000 input tokens never sent, the conversation marked full
-  and the send route refusing.
+  and the send route refusing, and a `pause_turn` continuation counted from the paused request, so
+  pieces held in memory that take it past the limit stop it too.
 - Verify: ask a question that needs the web and one that does not; watch progress lines; check the
   logs show `input_transformations` empty across turns, and cache reads on every request after a
   run's first.
@@ -316,7 +318,9 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
 - The composer's Stop button; the notes with Resume and Retry as the design offers them; a run past
   its lease shown as interrupted.
 - Tests: a stop mid-stream drops the turn and stores no context message; resume runs the unanswered
-  `tool_use` blocks; retry goes back to the run's anchor, for a files-only message and for an
+  `tool_use` blocks; a turn of more tool calls than the tail holds drawn whole, and its run retried
+  from a thread whose tail no longer reaches its first entry; retry goes back to the run's anchor,
+  for a files-only message and for an
   answer, and from a resumed run that crashed before storing its results, back to the anchor it
   shares with the run it resumed, deleting what both drew; every cut passes `checkTranscript`; a
   Resume and a Retry whose queueing failed finished by their own retry, which creates the named
@@ -692,8 +696,10 @@ M14.
   `GetConversationMessageBodies` the rest, both extended here; the
   warning strip matches the live integrations list by `integration`, never by name. A preview
   authorizes nothing, since what matters can sit past its cut: Allow opens a dialog showing the
-  complete stored `toolInput` (`GetConversationToolCall` reads a pending call too), whose own Allow
-  approves; arguments past 100000 characters are refused before an approval is drawn.
+  complete stored `toolInput`, lossless JSON text drawn with control characters escaped, keys and
+  nested values alike (`GetConversationToolCall` reads a pending call too), whose own Allow
+  approves; arguments past 100000 characters are refused before an approval is drawn. Tested with
+  arguments holding U+0000 in a nested key and a value, shown escaped and run as shown.
 - **Approval.** Every integration call waits for the member unless its tool is in the server's
   `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind) showing the
   server, the tool and its arguments, with Allow (the call runs in the next run) and Deny (answered

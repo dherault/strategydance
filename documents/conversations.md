@@ -249,7 +249,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`ConversationMessageKind`: `MEMBER_TEXT`, `AGENT_TEXT`, `TOOL_CALL`, `QUESTION`, `ASPECTS`, `NOTE`),
   `text` (Markdown, for the two text kinds), `citations` (`Any`, on agent text, see Drawing a turn),
   the tool call's `toolUseId`, `toolName`, `toolStatus`
-  (`RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), `toolInput` and `toolOutput` (`Any`),
+  (`RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), `toolInput` and `toolOutput` (JSON text),
   `toolStartedAt`, `toolDurationMs`, the question's `questionPrompt`, `questionOptions`, `isMultipleChoice`,
   `answerSelected`, `answerOther`, `isAnswerSkipped`, `answeredAt`, the aspects note's `aspects` and
   `aspectsSetBy`, the note's `noteKind` (`STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`, `FULL`),
@@ -286,9 +286,11 @@ New tables in `schema.gql`, each commented as the existing ones are:
     which is an edit of the history its thinking blocks were made with, and a text file or a tool
     result holding a NUL character could not be stored at all. So `content`, the run's `context`
     and `pendingToolResults` are `String` columns holding `JSON.stringify` of exactly what was
-    sent, which escapes U+0000, and are parsed again only to be sent. The drawn copies (`text`,
-    `toolInput`, `toolOutput`, `citations`) drop U+0000 before they are written, since a Postgres
-    `text` refuses it too.
+    sent, which escapes U+0000, and are parsed again only to be sent. A call's `toolInput` and
+    `toolOutput` are JSON text the same way, lossless, since an approval (M23) shows the member
+    the exact arguments that will run: the dialog draws them with control characters escaped, so
+    `acct\u0000admin` reads as such rather than as `acctadmin`. Only the drawn prose, `text` and
+    `citations`, drops U+0000 before it is written, since a Postgres `text` refuses it.
 - **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
@@ -357,7 +359,7 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     an open subscription must re-run, and come back empty, the moment its reader is removed or the
     organization is deleted.
   - `GetConversation($organizationId, $id)`, live: one conversation and its latest 150 messages,
-    more than one run can draw (see Size), so Retry's deletions usually fall inside it;
+    more than a run usually draws (see Size), so Retry's deletions usually fall inside it;
     when aspects notes written during a run push its first entries into a history page, the page
     drops the retried runs' messages there by run id (see Retry),
     newest first, with only what changes in place or is small: kind, position, run, a tool's name,
@@ -534,8 +536,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     Retry that freed too little, ends so at once and costs nothing, which is how a question waiting
     in a full conversation is still answered and its badge cleared.
   - The turn in flight is always drawn whole, so a run can end one turn and its note past either
-    bound: a turn draws at most ten calls, five searches and the pieces of one reply, and the live
-    tail of 150 still holds a whole run.
+    bound. Nothing bounds how many blocks one turn returns: the ten-call limit bounds what runs,
+    not what is drawn, so a run usually fits the live tail of 150 but need not. One that spills
+    into the history pages is handled where Retry already handles aspects notes pushing a run's
+    first entries out (see Retry and `GetConversation`).
   - The send route refuses with `ERROR_CODE_CONVERSATION_FULL` once `messageCount` has reached
     `MAX_CONVERSATION_MESSAGES`, or once the worker has set `isFull` (see Attachments), and an
     aspects note is refused at the same count. Retry is never refused: it deletes what the retried
@@ -780,7 +784,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   adds what the transcript holds after that turn and what the send appends, the text counted by the
   endpoint on a request holding only that text, which is small and holds no estimate a script or an
   emoji could beat, and the files by their stored counts. Usage stays in the ledger whatever Retry
-  cuts; only which request serves as the starting point changes. A first
+  cuts; only which request serves as the starting point changes. Mid-turn, after `pause_turn`,
+  the worker starts from the paused request itself instead: its whole input and output are exactly
+  what the continuation resends, the pieces held in memory included, so nothing is left out or
+  counted twice. A first
   message counts its context and text the same way. The worker's check before each request sums
   the same way. The upload streams into Storage as before, and the count reads the
   stored object back, at most two at once per instance, so the backend's memory stays bounded

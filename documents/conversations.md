@@ -63,8 +63,9 @@ export, port the styles from `conversations.css` onto the design system's compon
 - Header "Conversations", lead "Chats with Strategy Dance. Get ready to be challenged. Only you can
   see your conversations.", and a primary "New conversation" button.
 - A search field ("Search conversations", Escape clears it). Every word has to appear in the title
-  or in one message, ignoring case. (The prototype also matched words spread over several messages;
-  the full-text search matches within one title or one message.) No match:
+  or in one message's text, the member's or Strategy Dance's, ignoring case. (The prototype also
+  matched words spread over several messages, and in questions and notes; the full-text search
+  matches within one title or one message's text.) No match:
   "No conversations match “query”", "Search looks at titles and messages.", and a "Clear search"
   button.
 - A table, latest activity first. Columns: Conversation (the title as a link, a "Needs your answer"
@@ -216,7 +217,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
   started from), `activeRunId`, `preview` and `previewMessageId`, `unreadCount`, `nextRunNumber`,
-  `nextMessagePosition`, `messageCount` (what it holds, lowered by Retry), `isFull` (see
+  `nextMessagePosition`, `messageCount` (what it holds, lowered by Retry), `historyRevision` (bumped
+  by Retry), `isFull` (see
   Attachments), `deletedAt`, `pruneClaimedAt`, `createdAt`, `updatedAt` (its last activity). Indexed on `userId`,
   `organizationId`, `updatedAt`.
   - `activeRunId` is the run in flight, null when idle: a plain UUID rather than a reference,
@@ -313,8 +315,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
     live, so a new entry never sends a long thread again.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
-    position, read once when the reader scrolls up to them. History does not change, apart from
-    retry's deletions, which only ever touch the tail.
+    position, read once when the reader scrolls up to them. History changes only by Retry's
+    deletions, and every Retry bumps the conversation's `historyRevision`, which the live
+    `GetConversation` carries: each tab seeing it change refetches the history pages it holds, so a
+    deleted run disappears in every tab, not only the one that retried.
   - `GetConversationRun($organizationId, $conversationId)`, live: the latest run (the highest
     `number`), with its status, trigger, step, `createdAt`, `startedAt` and
     `leaseExpiresAt`; the indicator times a queued run from `createdAt`. Progress lines and lease
@@ -348,7 +352,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   is completed by the next. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
-- **Search** is the backend's too: `GET …/conversations/search?q=` runs Data Connect's full-text
+- **Search** is the backend's too: `POST …/conversations/search`, the query in the JSON body so
+  private search terms never sit in a logged URL, runs Data Connect's full-text
   search through an index. `Conversation.title` and `ConversationMessage.text` are `@searchable`
   (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
   every word: titles in one query (`limit: 1000`), and member and agent messages paged 500 at a

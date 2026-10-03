@@ -398,8 +398,9 @@ A refactor and two pure functions, no visible change.
 - **The address, the authentication and the authorization server are bound to the credentials.**
   The integration keeps the issuer it validated; changing the address or the authentication, or a
   discovery that resolves a different issuer, clears in one mutation everything issued for the old
-  ones (the key, the registered client, members' connections, pending authorizations), and members
-  reconnect, so no credential reaches a server it was not issued by.
+  ones (the key, the registered client, members' connections, pending authorizations, and every
+  auto-approval, since a different server could advertise identical definitions), and members
+  reconnect, so no credential or approval reaches a server it was not given for.
 - The server dialog lists its tools with a switch each for running without approval. A tool's
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.
@@ -434,7 +435,12 @@ A refactor and two pure functions, no visible change.
   unauthenticated callback has is `code` and `state`), a unique, random 256-bit `state`, the PKCE
   verifier encrypted, an expiry. The callback consumes the authorization first, deleting it by
   `state` under `@check(this == 1)`, before exchanging the code, so a replayed or concurrent callback
-  finds nothing and writes nothing.
+  finds nothing and writes nothing. Starting a Connect replaces the member's earlier pending
+  authorization for that server, and the daily sweeper deletes expired ones.
+- A token refresh is serialized per connection: a refresh first takes a short lease on the
+  connection's row (`refreshingUntil`, set only where it has lapsed), writes the new tokens in one
+  update, and releases it; a call that finds the lease taken waits briefly and reads the refreshed
+  tokens, so concurrent runs never spend a rotating refresh token twice.
 - The OAuth flow MCP servers expect: discovery from the server's protected resource metadata;
   client registration in the specification's order, a Client ID Metadata Document first (Strategy
   Dance hosts its client metadata at an `https` URL that serves as its client id) and dynamic client

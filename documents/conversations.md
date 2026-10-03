@@ -252,7 +252,9 @@ New tables in `schema.gql`, each commented as the existing ones are:
     counter only grows, so a retry's deleted messages leave gaps, never reuse.
 - **`ConversationRun`**: one go of the agent, from a member's action to its end. `conversation`,
   `trigger` (`MESSAGE`, `ANSWER`, `RESUME`, `RETRY`), `status` (`QUEUED`, `RUNNING`, `WAITING`,
-  `COMPLETED`, `STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`), `step` (the latest progress line),
+  `COMPLETED`, `STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`, `CONTINUED`: a waiting run whose turn
+  was consumed, see Consuming a waiting turn), `membershipCreatedAt` (the `createdAt` of the
+  membership it was started under, see The worker), `step` (the latest progress line),
   `anchorPosition` (where Retry goes back to), `context` (`Any`: its context message until stored),
   `stopRequestedAt`, `leaseExpiresAt`, `attempts`, `pendingToolResults` (`Any`), `failure` (for the
   logs), `usage` (`Any`: tokens and web searches per model, the credit system's ledger), `createdAt`
@@ -313,7 +315,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     request.variables.organizationId`, as the next three do.
   - The app-wide reads stay small, so a message insert never sends a thousand rows to every tab:
     `GetConversationsAwaitingAnswer($organizationId)`, live, for the sidebar's badge and the dock's
-    "+N" dot, the ids of the member's conversations with `isAwaitingAnswer` (`limit: 100`),
+    "+N" dot, the ids of the member's conversations with `isAwaitingAnswer` (`limit: 1000`, as many
+    as a member can have, so the count is exact; ids alone, at most 36 KB),
     refreshed only by what sets or clears it (a run ending, a waiting turn consumed) and by delete
     and restore; `GetDockConversations($organizationId, $ids)`, live, for the dock, the conversations
     its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
@@ -331,7 +334,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     newest first, with only what changes in place or is small: kind, position, run, a tool's name,
     status and duration, a question's answer, an approval's state. Never the bodies,
     which never change once written: `text`, `citations`, a question's prompt and options,
-    `argumentsPreview`, attachments, nor `toolInput` and `toolOutput`. The page reads each
+    `argumentsPreview`, attachments. `toolInput` and `toolOutput` stay out of both, since a call's
+    output arrives after its message: the dialog reads their current values through
+    `GetConversationToolCall` each time it opens. The page reads each
     message's body once, as its id first appears, through `GetConversationMessageBodies($organizationId,
     $id, $messageIds)` (not live, up to 50 ids a call), and keeps it by id, so a refresh carries a
     few hundred bytes a message, about 45 KB for a full tail however long the replies, and a
@@ -416,9 +421,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   script away cheaply, and the database holds the bound across instances, which autoscaling would
   otherwise multiply: the route's first mutation locks the caller's membership row, as a run start
   does, then inserts a `ConversationSearch` row (the caller, the organization, `createdAt`, indexed
-  on the caller and time) only while fewer than 120 of the caller's rows are younger than ten
-  minutes, a read of at most 120 under `@check`. The lock serializes the count and the insert, so
-  two instances at once cannot both see 119, and every instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
+  on the three) only while fewer than 120 of the caller's rows in that organization are younger
+  than ten minutes, a read of at most 120 under `@check`. The allowance is per organization, the
+  scope the locked row has, so the lock serializes exactly what it counts: two instances at once
+  cannot both see 119, and every instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
   searching never reaches, and the daily sweeper deletes rows over a day old. The agent's searches
   are bounded by its tool calls per run instead.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
@@ -431,6 +437,7 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 member action ─▶ backend route ─▶ run QUEUED, activeRunId set, task queued ─▶ 202
 worker: claim (RUNNING, lease) ─▶ loop: request Claude ▸ record the turn ▸ run the tools ─▶ end
 end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ INTERRUPTED, activeRunId cleared
+later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
 ```
 
 - **One run at a time per conversation.** The first send inserts the conversation with
@@ -621,8 +628,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   backend that stops between the two mutations leaves a state the next of those finishes.
 - **Consuming a waiting turn.** A send and the last answer can race for the same waiting turn, so
   every mutation that starts a run on one (the answer's continuation, or a send) moves the waiting
-  run out of `WAITING` under `@check(this == 1)`, as its only write to that run, together with taking
-  the conversation's `activeRunId` and clearing its `isAwaitingAnswer`, in one write to that row. Whichever commits first starts the run and builds the results
+  run from `WAITING` to `CONTINUED`, with `conversationRun_updateMany(where: { id, status: { eq:
+  WAITING } })` under `@check(this == 1)`, as its only write to that run, together with taking the
+  conversation's `activeRunId` and clearing its `isAwaitingAnswer`, in one write to that row.
+  `CONTINUED` never waits again, so a delayed loser, even one arriving after the winner's run has
+  finished and cleared `activeRunId`, finds nothing to consume. Whichever commits first starts the run and builds the results
   from the questions' states at that moment; the other finds the turn consumed: a send gets
   `ERROR_CODE_CONVERSATION_BUSY` and is retried by the browser, an answer's continuation does nothing,
   its answer already sent with the winner's results. A script under `scripts/` races an answer
@@ -650,7 +660,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   if it crashes first. Retry cuts the transcript after the last run's anchor, its context message
   included, deletes the messages drawn by every run on that anchor (the last run and the runs it
   resumed), and starts a run on that anchor with a fresh context message; the remaining prefix is
-  what the thinking blocks were made with, and what the cut part wrote stays written. The route
+  what the thinking blocks were made with, and what the cut part wrote stays written. The same
+  mutation lowers `messageCount` by what it deletes, bumps `historyRevision`, rebuilds the preview
+  from the last entry kept, and sets `unreadCount` to 0: the member is looking at the conversation
+  they retry, and the replies it counted are gone, so a `MarkConversationRead` still in flight,
+  whose guard then fails, leaves nothing stale and the next reply counts from 0. The route
   answers with the removed runs' ids, and the page drops their messages from every page it holds,
   history included, since aspects notes can push a run's first entries out of the live tail.
 - **The context message's profile part** (the member, the organization, the conversation's aspects)

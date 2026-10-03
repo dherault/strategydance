@@ -118,7 +118,7 @@ The data model and the web connector's operations, with nothing yet using them.
   taking the substring path, which reads at most 20000 messages, newest conversations first; a query
   past 100 characters or 8 terms refused; the 121st search from one caller in ten minutes refused by
   the in-memory limiter and, with a fresh limiter as another instance would have, by the shared
-  count (database mocked); against the emulators, a script running two searches at once at 119
+  count, which is per organization (database mocked); against the emulators, a script running two searches at once at 119
   lets exactly one through.
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
@@ -265,7 +265,8 @@ with an OIDC token. Sends work in production from here.
   answer, and from a resumed run that crashed before storing its results, back to the anchor it
   shares with the run it resumed, deleting what both drew; every cut passes `checkTranscript`; a
   Resume and a Retry whose queueing failed finished by their own retry, which creates the named
-  task again and answers with the same run; retrying many times lowers `messageCount` by what it
+  task again and answers with the same run; Retry setting `unreadCount` to 0, with a
+  `MarkConversationRead` in flight across it leaving the count right; retrying many times lowers `messageCount` by what it
   deletes, so it never fills the conversation, and so does stopping and resuming many times;
   Resume hidden, and refused, when removing the note would leave less than a run's room, while
   Retry still frees it; sending after a stop answers the open blocks; a turn
@@ -377,7 +378,8 @@ A refactor and two pure functions, no visible change.
   anything is drawn, and one at the bounds drawn; an unknown, repeated or second option for a
   single-choice question refused, an empty answer refused, a long `other` refused, an option and own words together on a single-choice
   question refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
-  one run; the preview following an answer to the last question shown, and staying put for an
+  one run; the waiting run moved to `CONTINUED` by the winner, and a delayed answer or send, arriving
+  after the winner's run has finished, consuming nothing; the preview following an answer to the last question shown, and staying put for an
   answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
   sent again and by the reconcile route; at the cap, a turn whose question would leave less than a

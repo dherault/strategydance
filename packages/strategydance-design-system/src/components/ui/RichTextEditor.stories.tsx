@@ -120,7 +120,9 @@ export const InDialog: Story = {
 
 /*
   A page's body under its title, as a knowledge document is written: no frame, as tall as its text,
-  the side menu in the margin to its left. Enter in the title moves the caret into the body
+  the side menu in the margin to its left. Below `md` the page leaves no margin, as a phone's does,
+  and the side menu sits in the body's own gutter instead. Enter in the title moves the caret into
+  the body
 */
 export const Document: Story = {
   args: {
@@ -143,7 +145,7 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
   const editorRef = useRef<RichTextEditorHandle>(null)
 
   return (
-    <div className="mx-auto flex max-w-[768px] flex-col gap-6 px-16">
+    <div className="mx-auto flex max-w-[768px] flex-col gap-6 px-2 md:px-16">
       <input
         aria-label="Title"
         placeholder="Untitled"

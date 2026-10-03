@@ -215,7 +215,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
   started from), `activeRunId`, `preview`, `unreadCount` (replies since the member last looked),
-  `nextMessagePosition` (see `ConversationMessage`), `messageCount` (the messages it holds, which
+  `previewMessageId`, `nextRunNumber` (see `ConversationRun`), `nextMessagePosition` (see
+  `ConversationMessage`), `messageCount` (the messages it holds, which
   Retry's deletions bring down, as the sequence never does), `isFull` (set by the worker once the
   conversation no longer fits a request, see Attachments), `deletedAt`, `createdAt`, `updatedAt` (its
   last activity). Indexed on `userId`, `organizationId`, `updatedAt`.
@@ -225,7 +226,10 @@ New tables in `schema.gql`, each commented as the existing ones are:
   - `preview` (`Any`) is what the list and the cards show of the last entry: its kind, up to 200
     characters of plain text, a tool's name and status, a question's state. A core helper,
     `buildConversationPreview`, builds it, whoever inserts the entry writes it, and the web words it
-    in the reader's language. The list then selects no message text.
+    in the reader's language. The list then selects no message text. Since a question, a tool call
+    or an approval changes in place, `previewMessageId` names the entry shown, and whatever changes
+    an entry rebuilds the preview after it, conditionally on `previewMessageId` still naming that
+    entry, so answering the last question shown turns the list's "Question: …" into "Answered: …".
 - **`ConversationMessage`**: what the thread draws. `conversation`, `run` (optional), `kind`
   (`ConversationMessageKind`: `MEMBER_TEXT`, `AGENT_TEXT`, `TOOL_CALL`, `QUESTION`, `ASPECTS`, `NOTE`),
   `text` (Markdown, for the two text kinds), `citations` (`Any`, on agent text, see Drawing a turn),
@@ -249,8 +253,9 @@ New tables in `schema.gql`, each commented as the existing ones are:
   `anchorPosition` (where Retry goes back to), `context` (`Any`: its context message until stored),
   `stopRequestedAt`, `leaseExpiresAt`, `attempts`, `pendingToolResults` (`Any`), `failure` (for the
   logs), `usage` (`Any`: tokens and web searches per model, the credit system's ledger), `createdAt`
-  (when queued), `startedAt` (when claimed), `endedAt`. Indexed on `conversationId`, `createdAt`: the
-  latest run is the newest by `createdAt`, then `id`.
+  (when queued), `startedAt` (when claimed), `endedAt`, and `number`, unique per conversation and
+  claimed on the conversation's `nextRunNumber` in the write that starts the run, so the latest run
+  is the one with the highest number, never decided by a timestamp tie.
 - **`ConversationTranscriptEntry`**: what Claude is sent, kept apart from what the thread draws.
   `conversation`, `run`, `position` (dense from 0, unique per conversation), `role` (`USER`,
   `ASSISTANT`, `SYSTEM`), `content` (`Any`: the exact content blocks, thinking blocks and their
@@ -310,8 +315,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
     position, read once when the reader scrolls up to them. History does not change, apart from
     retry's deletions, which only ever touch the tail.
-  - `GetConversationRun($organizationId, $conversationId)`, live: the latest run (ordered by
-    `createdAt`, then `id`), with its status, trigger, step, `createdAt`, `startedAt` and
+  - `GetConversationRun($organizationId, $conversationId)`, live: the latest run (the highest
+    `number`), with its status, trigger, step, `createdAt`, `startedAt` and
     `leaseExpiresAt`; the indicator times a queued run from `createdAt`. Progress lines and lease
     renewals refresh this small
     query only, not the thread or the list.
@@ -1047,7 +1052,8 @@ A refactor and two pure functions, no visible change.
   sidebar badge, and questions in previews.
 - Tests: an unknown, repeated or second option for a single-choice question refused, an empty
   answer refused, a long `other` refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
-  one run; a skipped question's result; the other tools' results go back with the answers, in
+  one run; the preview following an answer to the last question shown, and staying put for an
+  answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
   sent again and by the reconcile route.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
@@ -1158,7 +1164,11 @@ A refactor and two pure functions, no visible change.
 ### M18: Integrations: members connect their accounts
 
 - `IntegrationConnection`, one per member and server: the account's label, tokens encrypted, expiry,
-  status. Pending authorizations: state, PKCE verifier, expiry.
+  status. Pending authorizations: references to the initiating member and integration (all the
+  unauthenticated callback has is `code` and `state`), a unique, random 256-bit `state`, the PKCE
+  verifier encrypted, an expiry. The callback consumes the authorization first, deleting it by
+  `state` under `@check(this == 1)`, before exchanging the code, so a replayed or concurrent callback
+  finds nothing and writes nothing.
 - The OAuth flow MCP servers expect: discovery from the server's protected resource metadata,
   dynamic client registration, authorization code with PKCE and the `resource` parameter, the
   callback at `https://api.strategydance.com/integrations/oauth/callback` redirecting to a web page
@@ -1179,7 +1189,10 @@ A refactor and two pure functions, no visible change.
   tail selects these, so a thread draws the server, the tool and the arguments without the full
   `toolInput`, which stays behind "View output". The warning strip is computed against the live
   integrations list matched by `integration`, never by name. All additive, with `APPROVAL` appended
-  to the kinds.
+  to the kinds. The preview cannot authorize anything, since what matters can sit past its cut: Allow
+  first opens a dialog that loads the complete stored `toolInput` (`GetConversationToolCall` reads a
+  pending call too) and shows it whole, and only that dialog's Allow approves. Arguments too large
+  to show in it (past 100000 characters) are refused before the approval is ever drawn.
 - **Approval.** Every integration call waits for the member unless its tool is in the server's
   `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind) showing the
   server, the tool and its arguments, with Allow (the call runs in the next run) and Deny (answered

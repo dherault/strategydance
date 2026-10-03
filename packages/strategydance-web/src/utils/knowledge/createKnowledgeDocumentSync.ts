@@ -112,10 +112,11 @@ function isSameBytes(a: Uint8Array, b: Uint8Array) {
   An edit made here, whatever the editor's origin, is gathered for half a second and pushed as one
   update under a fresh id, or for a second and a half while nobody else has the document open, when
   the push only has to store it. Once a push is sent its id and its bytes stay as they are until the
-  server takes it, so a push whose answer was lost goes again exactly as it went, and the server,
-  which upserts by id, stores it once. What is typed meanwhile waits for the next push. Pushes run
-  one after the other through `runInOrder`, behind the saver's queue, so none goes before the
-  create of a draft.
+  server takes it, so a push whose answer was lost goes again exactly as it went. The server only
+  inserts, so an update never changes under its id, which every tab dedupes by, and refuses the
+  retry as a duplicate, which the writes take as stored. What is typed meanwhile waits for the next
+  push. Pushes run one after the other through `runInOrder`, behind the saver's queue, so none goes
+  before the create of a draft.
 
   The server keeps a snapshot and the updates pushed since. `receive` takes what the live query
   pushes, the snapshot's revision and the pending updates, and merges each update it has not seen:

@@ -343,7 +343,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   conversation, the member's conversations deleted over a day ago, with their files. A prune first
   claims each conversation, setting `pruneClaimedAt` only where it is still deleted past the window
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
-  win; files and rows go only after the claim. Each milestone adds the operations it
+  win; files and rows go only after the claim, and every sweep also finishes the conversations
+  claimed before and still present, its deletions idempotent, so a prune that failed after claiming
+  is completed by the next. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
 - **Search** is the backend's too: `GET …/conversations/search?q=` runs Data Connect's full-text

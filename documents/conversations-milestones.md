@@ -169,7 +169,8 @@ heavy.
   conversation" opens `/conversations/<createId()>?isNew=true`, the first send creates it, then
   `isNew` leaves the address as knowledge's does.
 - Tests (database mocked): the sweeper claiming a conversation before deleting it, and a restore
-  refused once it is claimed; claiming twice, an expired lease, fencing, finishing only the active run,
+  refused once it is claimed, and a prune that failed after claiming finished by the next sweep;
+  claiming twice, an expired lease, fencing, finishing only the active run,
   busy, an unclear and a definite queueing failure, both leaving the run queued for the retry to
   enqueue, a dead run finalized, a send retried with the
   same `messageId`, a fourth run refused, a conversation without room for a run refused, an empty, a
@@ -301,12 +302,14 @@ A refactor and two pure functions, no visible change.
   transcript describes, and skipping on send. The answer is checked against its stored question
   before anything is recorded, since it goes into Claude's transcript: `selected` holds distinct
   options of that question only, at most one for a single-choice question; `other` is one trimmed
-  line of at most 500 characters (`MAX_ANSWER_OTHER_LENGTH`); and an answer chooses at least one
-  option or writes something.
+  line of at most 500 characters (`MAX_ANSWER_OTHER_LENGTH`); an answer chooses at least one option
+  or writes something; and a single-choice answer is exactly one of the two, an option or its own
+  words, as the radios draw it.
 - The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
   sidebar badge, and questions in previews.
 - Tests: an unknown, repeated or second option for a single-choice question refused, an empty
-  answer refused, a long `other` refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
+  answer refused, a long `other` refused, an option and own words together on a single-choice
+  question refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
   one run; the preview following an answer to the last question shown, and staying put for an
   answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
@@ -347,6 +350,11 @@ A refactor and two pure functions, no visible change.
 
 ### M15: Attachments: storing them and sending them to Claude
 
+- The upload's transport: `PUT /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId`,
+  the conversation's id in the path (a draft's, made by the browser, before the conversation
+  exists), the raw bytes as the body with their `Content-Type`, and the file's name in an
+  `X-File-Name` header, URL-encoded, one line of at most 200 characters, all validated before the
+  reservation.
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
   Claude's image limits and a PDF's page count: the row reserved `UPLOADING` under the membership

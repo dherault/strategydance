@@ -345,8 +345,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
   every word: titles in one query (`limit: 1000`), and member and agent messages paged 500 at a
   time by relevance, collecting distinct conversations until there are 1000 or ten pages have been
-  read, so one conversation's many matches cannot crowd out the rest. Both filter on the caller,
-  their membership and `deletedAt`, as the web's reads do.
+  read. Both filter on the caller, their membership and `deletedAt`. Results are the best matches,
+  not a guaranteed full set: a few conversations with thousands of matching messages can use up the
+  pages, so when the pages run out the list says it shows the best matches and invites a narrower
+  search.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
   knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
   `GetOrganizationTeam`'s.
@@ -741,10 +743,12 @@ in-process runs):
    --min-backoff 90s --max-concurrent-dispatches 50 --project strategydance`.
 5. Developers: `gcloud auth application-default login` as an account with `roles/aiplatform.user`, so
    `bun run dev:backend` reaches Vertex. Development calls the real model and costs money.
-6. For M15: the bucket's lifecycle rule deleting objects under `pending/` older than two days
+6. For M5: a Cloud Scheduler job calling `POST /internal/sweep` daily with an OIDC token for the
+   runtime service account (`gcloud scheduler jobs create http`).
+7. For M15: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
-7. Before M20: a budget alert on Vertex spend, since nothing caps usage yet.
-8. For M17 to M19: a Cloud KMS key for integration secrets, with
+8. Before M20: a budget alert on Vertex spend, since nothing caps usage yet.
+9. For M17 to M19: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
 
 ### Cost
@@ -905,6 +909,12 @@ heavy.
   503 answers, finishing, drawing with its cursor and deterministic ids, and a placeholder agent that
   writes one `AGENT_TEXT` through the code paths M6 uses. `POST …/runs/:runId/reconcile`, which the
   page calls for a queued run past its lease. The backend operations for all of it.
+- **The daily sweeper**: `POST /internal/sweep`, called once a day by Cloud Scheduler with an OIDC
+  token (checked as the task endpoint's is), removes what is still deleted past its Undo window
+  whether or not anybody comes back: conversations deleted over a day ago, with their attachment
+  rows and Storage folders; later milestones add stale upload reservations and unsent files (M15)
+  and deleted integrations with their credentials (M17). The prunes done on the way through stay as a
+  fast path; every step is idempotent.
 - `deploy:backend` gains `--timeout 900`. The welcome email's lease goes from ten minutes to twenty
   (`ClaimWelcomeEmail` and its comment in the backend connector, the `schema.gql` comment,
   `sendWelcomeEmail.ts`), since a request may now run fifteen.
@@ -919,7 +929,7 @@ heavy.
   emulators, a script under `scripts/` sends from two conversations at once with two runs already in
   flight, and exactly one goes through.
 - Verify: locally, send in two tabs and watch the reply arrive; restart the backend mid-run, see the
-  run shown interrupted a minute later, and send again. Setup steps 2 to 4 before the release; then,
+  run shown interrupted a minute later, and send again. Setup steps 2 to 4 and 6 before the release; then,
   as staff in production, the same with the task in Cloud Tasks' logs.
 
 ### M6: Claude replies, with web search
@@ -1131,7 +1141,8 @@ A refactor and two pure functions, no visible change.
   one: the MCP specification calls annotations untrusted.
 - Backend routes for administrators: add (connects with `@modelcontextprotocol/sdk` over Streamable
   HTTP and lists the tools), edit, delete, turn on and off, retry. Deleting sets `deletedAt`, keeping
-  the secrets for Undo, and the next delete prunes what was deleted over a day ago, as documents do.
+  the secrets for Undo; the daily sweeper (M5) removes it a day later, with its connections, pending
+  authorizations and encrypted credentials, if it is still deleted.
   Encryption through Cloud KMS, and a local key in development.
 - **Every request to a server's address goes through an outbound guard**, since an administrator
   types it: `https` only; every address the host resolves to must be globally routable unicast, an

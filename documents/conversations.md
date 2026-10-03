@@ -393,7 +393,13 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   on the run, a lease renewal, a step, or, when the run ends, its terminal status and `endedAt`.
   Usage is checkpointed, not totted up at the end: the mutation that stores an assistant turn writes
   the run's cumulative `usage` through that fenced write, so a worker that takes a run over after a
-  crash starts from what was already spent, and the credit system bills every request made.
+  crash starts from what was already spent. A request Claude served before the process died, and
+  before its turn was stored, would still go unrecorded, so each request is reserved first: the
+  fenced write before a request records it as started, with its estimated input tokens (the last
+  request's input plus what was appended since), and the write that stores its turn settles it with
+  the real usage. A worker that takes over finds an unsettled reservation and charges its estimate,
+  with a conservative output allowance, marked as estimated. The credit system then bills every
+  request made, and knows which figures are estimates.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so the send stays
@@ -707,7 +713,11 @@ links).
 
 ### Release gate
 
-Until M20, conversations exist for Strategy Dance administrators only:
+Until M20, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
+role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
+backend's routes, checked on every action, stop them starting or continuing runs, and the
+worker's claim checks the role again, so a queued run stops too:
 
 - The sidebar item, the aspect page section and the dock show for `user.isAdministrator` only. The
   sidebar's `useConversations` runs for staff only and never behind a waiter.

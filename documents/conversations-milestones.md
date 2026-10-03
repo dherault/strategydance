@@ -135,7 +135,8 @@ The data model and the web connector's operations, with nothing yet using them.
   own one-second timer (`useNow` ticks once a minute), and the missing conversation's state.
 - The live tail and the older pages (`GetConversationMessagesBefore`) loaded as the reader scrolls
   up, merged into one thread by a utility with tests: a tail that slides past the pages it meets
-  keeps every entry, and a gap between them is fetched.
+  keeps every entry, and a gap between them is fetched. Each message's body is read once by id
+  through `GetConversationMessageBodies` and kept by id, a placeholder line standing in meanwhile.
 - `MarkConversationRead` when the page shows a conversation with unread replies.
 - Verify: the seeded conversations against the design at both widths; switching organization on a
   conversation's page goes back to the list; a non-staff account sent to a conversation's address
@@ -236,7 +237,9 @@ with an OIDC token. Sends work in production from here.
 - Tests (scripted client): consecutive requests share a byte-identical prefix; `checkTranscript`
   accepts every flow so far and rejects each broken shape; text blocks merge with their citations'
   offsets kept right; a reply past 20000 characters drawn as pieces split between blocks, a single
-  long block split at a line break, citations rebased to their piece, one unread count, and a
+  long block split at a line break, a 50000-character line with no break split at spaces, and one
+  with no space at grapheme boundaries, an emoji sequence across the bound kept whole, every piece
+  within 20000 characters and the pieces rejoining to the original; citations rebased to their piece, one unread count, and a
   crash between two pieces drawing the rest once; a web search becomes one finished call; usage
   adds up.
 - Verify: setup step 1 and, for development, step 5; ask a question that needs the web and one that
@@ -253,7 +256,9 @@ with an OIDC token. Sends work in production from here.
 - Tests: a stop mid-stream drops the turn and stores no context message; resume runs the unanswered
   `tool_use` blocks; retry goes back to the run's anchor, for a files-only message and for an
   answer, and from a resumed run that crashed before storing its results, back to the anchor it
-  shares with the run it resumed, deleting what both drew; every cut passes `checkTranscript`; retrying many times lowers `messageCount` by what it
+  shares with the run it resumed, deleting what both drew; every cut passes `checkTranscript`; a
+  Resume and a Retry whose queueing failed finished by their own retry, which creates the named
+  task again and answers with the same run; retrying many times lowers `messageCount` by what it
   deletes, so it never fills the conversation, and so does stopping and resuming many times;
   Resume hidden, and refused, when removing the note would leave less than a run's room, while
   Retry still frees it; sending after a stop answers the open blocks; a turn

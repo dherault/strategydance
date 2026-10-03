@@ -317,14 +317,21 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     more than one run can draw (see Room at the cap), so Retry's deletions usually fall inside it;
     when aspects notes written during a run push its first entries into a history page, the page
     drops the retried runs' messages there by run id (see Retry),
-    newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
-    live, so a new entry never sends a long thread again. The page merges each pushed tail into
+    newest first, with only what changes in place or is small: kind, position, run, a tool's name,
+    status and duration, a question's answer, an approval's state. Never the bodies,
+    which never change once written: `text`, `citations`, a question's prompt and options,
+    `argumentsPreview`, attachments, nor `toolInput` and `toolOutput`. The page reads each
+    message's body once, as its id first appears, through `GetConversationMessageBodies($organizationId,
+    $id, $messageIds)` (not live, up to 50 ids a call), and keeps it by id, so a refresh carries a
+    few hundred bytes a message, about 45 KB for a full tail however long the replies, and a
+    reply's text crosses the network once. Only this tail is live, so a new entry never sends a long
+    thread again. The page merges each pushed tail into
     what it holds rather than replacing it: an entry that slides out of the tail stays in its cache
     as history, where only Retry's deletions change it, and whenever the oldest position of the
     tail does not meet the newest it holds (after a long disconnect, say), it fetches the gap with
     `GetConversationMessagesBefore`, so no entry ever falls between the two.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
-    position, read once when the reader scrolls up to them. History changes only by Retry's
+    position, bodies included, read once when the reader scrolls up to them. History changes only by Retry's
     deletions, and every Retry bumps the conversation's `historyRevision`, which the live
     `GetConversation` carries: each tab seeing it change refetches the history pages it holds, so a
     deleted run disappears in every tab, not only the one that retried.
@@ -445,10 +452,14 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   the credit system knows which figures are estimates.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
-  is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so the send stays
-  idempotent: the route answers 503, and the browser's retry with the same `messageId` finds the
-  queued run and creates the same named task again. A run whose task never comes to exist, because
-  the retry never came, is found by the reconcile route once its lease passes (see Leases) and
+  is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so every run
+  start stays idempotent: the route answers 503 and the browser retries. Any route that meets the
+  conversation's active run still `QUEUED` first creates its named task again, then answers with
+  that run's id when the same action started it (a send's `messageId`, or the same trigger for
+  Resume, Retry and an answer's continuation) and `ERROR_CODE_CONVERSATION_BUSY` otherwise, so a
+  Resume whose note is already gone, or a Retry whose cut is already made, is finished by its own
+  retry rather than by the reconcile route. A run whose task never comes to exist, because the
+  retry never came, is found by the reconcile route once its lease passes (see Leases) and
   finalized as interrupted, with Retry.
 - **Recovery and side effects.** A call's message is written `RUNNING`, with `toolStartedAt`, before
   the call is made. A worker that claims a run after a crash finds calls that started and have no
@@ -519,14 +530,14 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
 - **A long reply is drawn in pieces.** Agent text keeps the bound every message keeps,
   `MAX_CONVERSATION_MESSAGE_LENGTH` (20000 characters), though one turn may write far more: a longer
   text is drawn as several `AGENT_TEXT` pieces, split between top-level Markdown blocks (between
-  the model's text blocks first), and at a line break only for a single block past the bound. Each
+  the model's text blocks first), at a line break only for a single block past the bound, and, for
+  a single line past it, at the last space before the bound, else at the last grapheme boundary
+  (`Intl.Segmenter`), so a piece never splits a character or a cluster and every piece fits. Each
   citation stays with the piece its span starts in, its offsets rebased to that piece and its span
   clipped at the piece's end. The thread draws consecutive pieces as one reply, and only the first
   adds to `unreadCount`. The transcript keeps the model's blocks as they came, since pieces are only
   a drawing, and each piece's id adds its index to the entry and block it derives from. The live
-  tail's worst case is then 150 messages of at most 20000 characters each, the bound the member's
-  own messages already set; typical replies are a few thousand characters, and a smaller tail is the
-  lever if refresh traffic grows (see Risks).
+  tail carries no text (see Who writes what), so a long reply costs the network once.
 - **Drawing survives a crash.** A turn is stored in the transcript first, then drawn block by block,
   so a crash can fall between the two. Each drawn message's id derives from its transcript entry and
   block index, so drawing it twice is a conflict rather than a duplicate, and the entry keeps a
@@ -866,9 +877,9 @@ adds a section on it to `operations-costs.md`.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 150 entries and the member's list. A tail is at most 150
-  messages of 20000 characters, typically a few hundred kilobytes: fine at today's scale, and a
-  smaller live tail, with older entries in history pages, is the lever if refreshes grow heavy.
+  refreshes the open thread's tail of 150 entries and the member's list. The tail carries no
+  bodies, about 45 KB at most, and each body is read once by id, so a run of 100 entries sends an
+  open reader a few megabytes of refreshes at most, not hundreds.
 - **The member's open editor**: when the agent changes a document the member has open, their next
   save meets the revision check and asks them to reload, as two people editing do today.
 - **Collaborative documents**: the `live-documents` branch, in progress on 2026-10-02, makes

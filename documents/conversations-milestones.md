@@ -287,7 +287,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   `run.step`), drawing a turn with each insert claiming its positions, `web_search`, usage per model
   and per request, cache reads and writes included, `preview` and `unreadCount`; and `isFull`, set
   before a request whose input would pass 800000 tokens, counted as Attachments says, from the
-  last request's whole input, cached included, and output, plus what was appended since, so a long
+  latest request whose input and turn the transcript still holds, its whole input, cached
+  included, and its output, plus what the transcript holds after it, so a long
   conversation shows full rather than failing every request (M19 adds the body's size and the
   files' stored counts).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
@@ -323,7 +324,9 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   `MarkConversationRead` in flight across it leaving the count right; retrying many times lowers
   `messageCount` by what it deletes, so it never fills the conversation, and so does stopping and
   resuming many times; Resume at the cap starting a run that ends at once with the full note and
-  sends no request, and Retry giving the room back; sending after a stop answers the open blocks; a turn with a
+  sends no request, and Retry giving the room back; a conversation marked full by its context,
+  retried back under the limit, counted from a request the cut left whole and no longer full;
+  sending after a stop answers the open blocks; a turn with a
   `fallback` block is stored without the blocks before its boundary, and the fallback's request
   shaped as M1 found Opus 5 takes it.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
@@ -557,8 +560,9 @@ M14.
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
   with private cache headers. `storage.rules` stays as it is.
 - `POST …/messages` accepts attachment ids, checks the conversation's budget, its PDFs' total pages
-  and its next request's tokens as Attachments counts them (the last request's whole input and its
-  output, the appended text's count, the new files' stored counts), without building that request,
+  and its next request's tokens as Attachments counts them (the latest kept request's whole input
+  and output, the text after it counted, the files after it by their stored counts), without
+  building that request,
   copies each file into
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.

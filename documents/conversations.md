@@ -772,13 +772,15 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   files is sent only while the next request stays under 700000 input tokens. Building that request
   to count it would put every earlier file in the backend's memory, so each file is counted once,
   alone, once it is stored (Vertex has the count endpoint), into `tokenCount` on its row as its
-  pages go into `pageCount`. The send route starts from the last request's whole input, from its
+  pages go into `pageCount`. Each request's usage records the transcript position its input ended
+  at and whether its turn was stored. The send route starts from the latest request whose input and
+  turn both still lie in the transcript, so a turn Retry cut never counts: its whole input, from its
   stored usage (`input_tokens` with `cache_read_input_tokens` and `cache_creation_input_tokens`,
-  which the API reports apart although they fill the context alike), and its `output_tokens`, since
-  its input already carried every earlier file and its output is in the transcript now; adds
-  everything appended since that holds no file (tool results, the next context message, the
-  member's text), counted by the endpoint on a request holding only that text, which is small and
-  holds no estimate a script or an emoji could beat; and adds the new files' stored counts. A first
+  which the API reports apart although they fill the context alike), and its `output_tokens`. It
+  adds what the transcript holds after that turn and what the send appends, the text counted by the
+  endpoint on a request holding only that text, which is small and holds no estimate a script or an
+  emoji could beat, and the files by their stored counts. Usage stays in the ledger whatever Retry
+  cuts; only which request serves as the starting point changes. A first
   message counts its context and text the same way. The worker's check before each request sums
   the same way. The upload streams into Storage as before, and the count reads the
   stored object back, at most two at once per instance, so the backend's memory stays bounded

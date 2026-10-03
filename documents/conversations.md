@@ -1,13 +1,15 @@
 # Conversations
 
 How Strategy Dance's conversation agents get built: what the design asks for, the decisions taken,
-and the architecture. The twenty-two milestones that take the feature from nothing to launch, each one
+and the architecture. The twenty-four milestones that take the feature from nothing to launch, each one
 pull request into `dev` that a Claude Code session can implement, are in
 [conversations-milestones.md](conversations-milestones.md), with the conventions every one of them
 follows.
 
 Written on 2026-10-02 against `dev` at `4def3a6`, from the Claude Design project "Strategy Dance
-Conversations". When a decision changes, change it here first.
+Conversations". Reviewed on 2026-10-03 against `dev` at `db4df41`, once live documents had merged:
+the agent's knowledge writes, the rich text milestone, the worker and the message cap changed then.
+When a decision changes, change it here first.
 
 ## The design
 
@@ -34,15 +36,16 @@ export, port the styles from `conversations.css` onto the design system's compon
 | --- | --- |
 | Model | Claude Opus 5.5, `claude-opus-5-5` |
 | Where it runs | Gemini Enterprise Agent Platform (Vertex AI), through `@anthropic-ai/vertex-sdk`, region `global`, with Application Default Credentials: nothing stored, billed through Google Cloud |
-| How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on the backend, writing each step to Data Connect. Locally it runs in-process |
+| How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on a private worker service, the backend's image deployed a second time, writing each step to Data Connect. Locally it runs in the backend's process |
 | What the agent reads | Knowledge, the organization's profile (name, brief), the whole team (names, job titles, roles, bios, top priorities) and the log. Not tasks or the checklist, which are going away |
-| What the agent writes | Knowledge documents, never one whose AI lock is on, and the member's own top priority. Not the log, the checklist or tasks |
+| What the agent writes | Knowledge documents, through their shared Yjs text as an editor would, so its edits reach open editors live, never one whose AI lock is on; and the member's own top priority. Not the log, the checklist or tasks |
 | Web search | Claude's built-in web search, `web_search_20250305` (the version Vertex offers), from the first agent milestone |
 | Attachments | Images, PDFs and text files, read by Claude natively |
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
 | Integrations (MCP) | The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it |
-| Usage limits | None yet: a credit system comes later. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage |
+| Usage limits | None yet: a credit system comes later, and a budget alert on Vertex spend, set before the first request, is the guard until then. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage |
+| Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Agent-started conversations | Not in this plan. Orchestration comes later |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone |
 | Pull requests | Small, one concern each |
@@ -189,9 +192,9 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
                                                      │ queues a task
                                                      ▼
                                              Cloud Tasks `conversation-runs`
-                                                     │ OIDC-signed POST
+                                                     │ OIDC-signed POST, checked by Cloud Run
                                                      ▼
-                                 Backend `/internal/conversation-runs` (the worker)
+                         Worker (Cloud Run, private) `/internal/conversation-runs`
                                     ├──▶ Claude Opus 5.5 on Vertex (stream)
                                     ├──▶ tools: knowledge, team, log, top priority, integrations
                                     └──▶ Data Connect (backend connector) ──refresh──▶ Browser
@@ -205,8 +208,17 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
   whole run, so the CPU stays, and the run survives the member closing the tab. Tasks retry when a
   request fails. In development there is no queue: the backend runs the worker in its own process,
   which nothing throttles.
-- **Why the backend.** It already verifies callers, holds the Admin SDK and runs on Google Cloud's
-  credentials, which is all calling Vertex needs.
+- **Why the backend's code.** It already verifies callers, holds the Admin SDK and runs on Google
+  Cloud's credentials, which is all calling Vertex needs.
+- **Why a second service.** The backend is public (`--no-invoker-iam-check`), so an internal route
+  there would have to verify Cloud Tasks' and Cloud Scheduler's tokens itself, and a 15-minute run
+  holding 32 MB requests would share its instances, timeout and memory with every interactive
+  route. `strategydance-worker` is the same image started with `SERVICE=worker`, which mounts the
+  internal routes and nothing else, while the backend mounts everything but them. Its invoker check
+  stays on, and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses
+  any other caller before the code runs and no token verification is written by hand. It has its own
+  15-minute timeout, a low concurrency (4) and the memory that concurrency needs, and scales to zero
+  between runs. The backend keeps its defaults.
 
 ### The data
 
@@ -255,24 +267,35 @@ New tables in `schema.gql`, each commented as the existing ones are:
   `COMPLETED`, `STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`, `CONTINUED`: a waiting run whose turn
   was consumed, see Consuming a waiting turn), `membershipCreatedAt` (the `createdAt` of the
   membership it was started under, see The worker), `step` (the latest progress line),
-  `anchorPosition` (where Retry goes back to), `context` (`Any`: its context message until stored),
-  `stopRequestedAt`, `leaseExpiresAt`, `attempts`, `pendingToolResults` (`Any`), `failure` (for the
-  logs), `usage` (`Any`: tokens and web searches per model, the credit system's ledger), `createdAt`
+  `anchorPosition` (where Retry goes back to), `context` (JSON text: its context message until
+  stored), `stopRequestedAt`, `leaseExpiresAt`, `attempts`, `pendingToolResults` (JSON text),
+  `failure` (for the logs), `usage` (`Any`: tokens and web searches per model, the credit system's ledger), `createdAt`
   (when queued), `startedAt` (when claimed), `endedAt`, and `number`, unique per conversation and
   claimed on the conversation's `nextRunNumber` in the write that starts the run, so the latest run
   is the one with the highest number, never decided by a timestamp tie.
 - **`ConversationTranscriptEntry`**: what Claude is sent, kept apart from what the thread draws.
   `conversation`, `run`, `position` (dense from 0, unique per conversation), `role` (`USER`,
-  `ASSISTANT`, `SYSTEM`), `content` (`Any`: the exact content blocks, thinking blocks and their
-  signatures included), `contextHash` (on a context message, see The transcript), `drawnBlocks` (how
-  many of its blocks the thread has drawn, see Drawing survives a crash). Only the backend
+  `ASSISTANT`, `SYSTEM`), `content` (the exact content blocks, thinking blocks and their signatures
+  included, as JSON text), `contextHash` (on a context message, see The transcript), `drawnBlocks`
+  (how many of its blocks the thread has drawn, see Drawing survives a crash). Only the backend
   reads or writes it.
-- **`ConversationAttachment`**: `id` (made by the client, also the file's name in Storage), `user`,
+  - **JSON text, never `Any`.** Data Connect stores `Any` as Postgres `jsonb`, which reorders an
+    object's keys (shorter keys first), keeps one of two duplicate keys, and refuses a string
+    holding U+0000. A `tool_use` block's `input` would come back with its keys in another order,
+    which is an edit of the history its thinking blocks were made with, and a text file or a tool
+    result holding a NUL character could not be stored at all. So `content`, the run's `context`
+    and `pendingToolResults` are `String` columns holding `JSON.stringify` of exactly what was
+    sent, which escapes U+0000, and are parsed again only to be sent. The drawn copies (`text`,
+    `toolInput`, `toolOutput`, `citations`) drop U+0000 before they are written, since a Postgres
+    `text` refuses it too.
+- **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
+  the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
   uploaded before the conversation exists), `message` (optional, set when sent), `status`
   (`UPLOADING` while its slot is reserved, `READY` once its file is stored, `PRUNING` once a prune
   has claimed it), `name`, `contentType`,
-  `size`, `pageCount` (a PDF's pages, counted when it is stored, null for other files), `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
+  `size`, `pageCount` (a PDF's pages, counted when it is stored, null for other files), `tokenCount`
+  (its input tokens alone, counted when it is stored, see Attachments), `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`,
   where `organizations/{organizationId}` is `buildOrganizationStoragePrefix`'s canonical form (hyphens
   removed, as `deleteOrganization` sweeps it), never the route's raw parameter, so deleting the
@@ -286,7 +309,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
 Limits go in strategydance-core beside the others. Per member and organization:
 `MAX_CONVERSATIONS` (1000), `MAX_ACTIVE_RUNS_PER_MEMBER` (3), `MAX_PENDING_CONVERSATION_ATTACHMENTS`
 (30). Per conversation: `MAX_CONVERSATION_MESSAGES` (2000), `MAX_CONVERSATION_ATTACHMENTS_SIZE` (15
-MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `CONVERSATION_RUN_ROOM` (100),
+MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_ENTRIES` (100),
 `MAX_TOOL_CALLS_PER_RUN` (50), and `MAX_TOOL_CALLS_PER_TURN` (10). Per search:
 `MAX_SEARCH_QUERY_LENGTH` (100), `MAX_SEARCH_TERMS` (8), `MAX_SUBSTRING_SEARCH_MESSAGES` (20000) and
 `MAX_SUBSTRING_SEARCH_DOCUMENTS` (100). Per item:
@@ -295,7 +318,7 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `CONVERSATION_RUN_ROOM`
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
 `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
-`CONVERSATION_SUGGESTION_IDS` (M15), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
+`CONVERSATION_SUGGESTION_IDS` (M17), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
 codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 
 ### Who writes what
@@ -310,9 +333,12 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   - `GetConversations($organizationId)`, live, read by the conversations page alone: the list,
     `limit: 1000`, ordered by `updatedAt` then `id` (a query without a limit stops at 100), each
     conversation's fields, `preview` and `isAwaitingAnswer` included. It refreshes on run start and
-    finish, message inserts, create, delete, restore, aspects and read, on
-    `mutation.variables.userId == request.auth.uid && mutation.variables.organizationId ==
-    request.variables.organizationId`, as the next three do.
+    end, answers, create, delete, restore and aspects, on `mutation.variables.userId ==
+    request.auth.uid && mutation.variables.organizationId == request.variables.organizationId`, as
+    the next three do. Not on the messages a run inserts, nor on read: while a run goes the list
+    shows "Thinking…" from `activeRunId`, and it shows no unread count, so the hundred inserts of a
+    long run would each resend up to a thousand rows, about 400 KB, to a list that draws the same
+    thing. The run's last write sets the preview it then shows.
   - The app-wide reads stay small, so a message insert never sends a thousand rows to every tab:
     `GetConversationsAwaitingAnswer($organizationId)`, live, for the sidebar's badge and the dock's
     "+N" dot, the ids of the member's conversations with `isAwaitingAnswer` (`limit: 1000`, as many
@@ -320,15 +346,17 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     refreshed only by what sets or clears it (a run ending, a waiting turn consumed) and by delete
     and restore; `GetDockConversations($organizationId, $ids)`, live, for the dock, the conversations
     its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
-    `isAwaitingAnswer`; and `GetAspectConversations($organizationId, $aspect)`, live, for the aspect
-    page's section, its latest four, three drawn and the fourth saying older ones exist.
+    `isAwaitingAnswer`, refreshed by message inserts too, since a minimized window counts unread
+    replies; and `GetAspectConversations($organizationId, $aspect)`, live, for the aspect page's
+    section, its latest four, three drawn and the fourth saying older ones exist, refreshed as the
+    list is.
   - Every live conversation query, this one, `GetConversation` and `GetConversationRun`, also
     refreshes on `RemoveOrganizationMember` and `DeleteOrganization`, on their `organizationId`, as
     `GetOrganizationDocuments` does: filtering on current membership only protects the next read, so
     an open subscription must re-run, and come back empty, the moment its reader is removed or the
     organization is deleted.
   - `GetConversation($organizationId, $id)`, live: one conversation and its latest 150 messages,
-    more than one run can draw (see Room at the cap), so Retry's deletions usually fall inside it;
+    more than one run can draw (see Size), so Retry's deletions usually fall inside it;
     when aspects notes written during a run push its first entries into a history page, the page
     drops the retried runs' messages there by run id (see Retry),
     newest first, with only what changes in place or is small: kind, position, run, a tool's name,
@@ -361,16 +389,14 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   - `GetConversationToolCall($organizationId, $messageId)`: one call's input and output, read once
     when "View output" opens.
   - Search is not a web operation: a search field returns message rows, which cannot be grouped by
-    conversation, so it goes through the backend (see the next point and M3).
+    conversation, so it goes through the backend (see the next point and M12).
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead` (passing the `previewMessageId` it rendered,
     and clearing `unreadCount` only while that is still current, so a reply that lands meanwhile
     stays unread), and `UpdateConversationAspects` (the
-    aspects as the member's, and the aspects note at a position claimed on the counter, the claim
-    refused unless `CONVERSATION_RUN_ROOM` + 1 positions stay free after the note, the boundary A
-    run sets for every aspects note, so aspects stop changing a whole send before the cap, and the
-    dialog says the conversation is full; the web
-    retrying with the new counter when the worker got there first). A web mutation takes `$userId` so the list's
+    aspects as the member's, and the aspects note at a position claimed on the counter, refused
+    once `messageCount` has reached `MAX_CONVERSATION_MESSAGES`, when the dialog says the
+    conversation is full; the web retrying with the new counter when the worker got there first). A web mutation takes `$userId` so the list's
     refresh condition can match it, and checks `vars.userId == auth.uid`.
   - `RestoreConversation` holds `MAX_CONVERSATIONS` as creating does: both lock the member's
     membership row first and recount, as `RestoreDocument` locks the organization's, so deleting,
@@ -428,8 +454,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   searching never reaches, and the daily sweeper deletes rows over a day old. The agent's searches
   are bounded by its tool calls per run instead.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
-  knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
-  `GetOrganizationTeam`'s.
+  knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its folds to
+  `GetLiveDocument`'s, on the document's id, so an open editor sees the revision move; its top
+  priority writes go to `GetOrganizationTeam`'s.
 
 ### A run
 
@@ -486,36 +513,33 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   finalized as interrupted, with Retry.
 - **Recovery and side effects.** A call's message is written `RUNNING`, with `toolStartedAt`, before
   the call is made. A worker that claims a run after a crash finds calls that started and have no
-  result. The built-in tools that are safe to repeat run again: reads, a create keyed by its
-  `tool_use` id, an update guarded by its revision. `set_top_priority` is not one of them, since the
-  member may have set a newer priority since, which a replay would overwrite, and neither is an
-  integration call, since it may have happened: each is marked failed, and its result tells the
-  model it was interrupted and may have run, so the model checks or asks.
+  result. Every built-in write (creating or editing knowledge, setting the top priority) stores its
+  effect and its call's result in one mutation, beside the fenced run write, so after a crash it
+  has either happened, and its message holds its result, or not happened at all: a call with no
+  result runs again, a read like any other, and nothing is applied twice, not even an `append`. An
+  integration call is the exception, since it happens on another server: one that started and has
+  no result is marked failed, and its result tells the model it was interrupted and may have run, so
+  the model checks or asks.
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
-  the Cloud Run timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
+  the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note.
-- **Room at the cap.** A run draws at most `CONVERSATION_RUN_ROOM` (100) entries, its note included:
-  a turn that would not fit, keeping one for the note, stops the run there with a note. The send
-  route refuses with `ERROR_CODE_CONVERSATION_FULL` once `messageCount` reaches
-  `MAX_CONVERSATION_MESSAGES` minus that room, so a run always fits, and the live tail (150) holds a
-  whole run. `messageCount` counts what a conversation holds, not the sequence: each insert raises it
-  as it claims its position, and Retry lowers it by what it deletes, so retrying never fills one.
-- **The cap holds on every claim**, in the claim's own condition, since a run can also start from an
-  answer or Resume, and an aspects note can land mid-run. An entry a run draws claims only while
-  `messageCount` plus its entries stays below `MAX_CONVERSATION_MESSAGES`, keeping the last position
-  for a note; a run's closing note may take that last position; an aspects note claims only while
-  `CONVERSATION_RUN_ROOM` + 1 positions stay free after it, what a send needs for its message and
-  its run. Every run start, the send, the answer's
-  continuation, Resume and Retry alike, requires that much room, so a run that starts always has
-  its hundred, and a conversation without it shows full.
-- **A waiting run keeps its continuation's room.** The run an answer starts needs that room like
-  any other, and a send that skips the wait needs one more, for the member's message, so a run ends
-  `WAITING` only while `CONVERSATION_RUN_ROOM` + 1 positions stay free after its turn, which an
-  aspects note cannot take. A turn whose questions, or M21's approvals, would leave
-  less has them refused, as a call past a limit is: each is drawn as a failed call ("Asking you" for
-  a question), and its result tells the model the conversation is too full to ask the member
-  anything more, so it answers without asking and suggests a new conversation. The run goes on
-  instead of waiting, so every waiting question or approval can be answered, or skipped by a send.
+- **Size.** Two caps, checked where they are cheap, with nothing reserved ahead:
+  - A run draws at most `MAX_CONVERSATION_RUN_ENTRIES` (100) entries. A turn that would take it
+    past that, or take the conversation past `MAX_CONVERSATION_MESSAGES` (2000), is neither stored
+    nor drawn, as a turn cut off mid-stream is not: the run stops there with a note saying the
+    conversation is full, and the note always gets its
+    position, so a conversation can end a note or two past the cap. The live tail (150) holds a
+    whole run.
+  - The send route refuses with `ERROR_CODE_CONVERSATION_FULL` once `messageCount` has reached
+    `MAX_CONVERSATION_MESSAGES`, or once the worker has set `isFull` (see Attachments). An aspects
+    note is refused at the same count. Nothing else is: an answer, Resume and Retry always start
+    their run, which stops at its first turn with the note when there is no room left, so a
+    waiting question or approval can always be answered and a question is never refused for
+    room.
+  - `messageCount` counts what a conversation holds, not the sequence: each insert raises it as it
+    claims its position, and Retry lowers it by what it deletes, so Retry gives room back.
+  - The cap bounds storage and the history a reader pages through, nothing else. What fills a
+    conversation in practice is its context, which `isFull` measures before each request.
 - **Concurrency**, bounded rather than metered: at most three runs in flight per member in each
   organization (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the
   queue dispatches at most 50 tasks at once. A run-start mutation locks the member's membership row
@@ -620,7 +644,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
-  mutation. An approval (M21) is answered the same way.
+  mutation. An approval (M23) is answered the same way.
 - **The continuation survives a crash between the two.** Starting it is idempotent (see Consuming a
   waiting turn) and reachable from three places: the answer route right after the answer, the same
   answer sent again (it finds the answer recorded, counts none left and starts it), and the reconcile
@@ -643,14 +667,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   run ends `STOPPED`. A dead run is finalized by the route itself, and so is a run still `QUEUED`,
   at once and conditionally on its still being queued, so the member can send again straight away;
   its task, if it is delivered later, finds the run finished and does nothing.
-- **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note and the
-  conversation would have a run's room once that note goes (see A run): the note goes, lowering
-  `messageCount` in the same mutation, and a run starts. A stopped run may have used most of its
-  room, so without that much the note offers Retry alone, whose cut gives back the room the stopped
-  run started with, and the route refuses a Resume sent anyway with `ERROR_CODE_CONVERSATION_FULL`.
-  When the transcript's last entry holds unanswered `tool_use` blocks,
-  the run executes the calls that never started and the built-in ones that did (their messages go
-  back to `RUNNING`), answers an integration call that had started as interrupted (see A run),
+- **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note: the
+  note goes, lowering `messageCount` in the same mutation, and a run starts, which stops at its
+  first turn with the full note when the conversation has no room left (see Size), where Retry is
+  what gives room back. When the transcript's last entry holds unanswered `tool_use` blocks, the
+  run executes the calls that never started and the built-in ones that have no result (their
+  messages go back to `RUNNING`),
+  answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the
   stream was cut), it sends its context and the request straight away.
 - **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed or refused note: every run
@@ -741,18 +764,21 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   reads the text rather than its encoding. A request takes about 32 MB, every
   earlier file included, so a conversation's files are capped at 15 MiB (about 20 MB encoded) and a
   text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
-  files is sent only once the send route has counted the next request's tokens (Vertex has the
-  endpoint) under 700000. Before each request the worker measures the body: past 30 MB, or 800000
+  files is sent only while the next request stays under 700000 input tokens. Building that request
+  to count it would put every earlier file in the backend's memory, so each file is counted once,
+  alone, when it is stored (Vertex has the count endpoint), into `tokenCount` on its row as its
+  pages go into `pageCount`; the send route adds the stored counts of the conversation's files and
+  the new ones to the last request's input tokens. The upload route counts at most two files at
+  once per instance, so the backend's memory stays bounded however many arrive. Before each request the worker measures the body: past 30 MB, or 800000
   input tokens, it marks the conversation full, and the send route refuses new messages with
   `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and the worker measures
   again before the retried request, setting it back only if the shortened request is still too
   large, so a retry that brings it under the limits frees the conversation. A request holds its
-  files about four times over (the bytes, their base64, the JSON body, the SDK's copy), and twenty
-  at once at the limit would pass any sensible instance, so memory is bounded per instance rather
-  than sized from one conversation: before building a request, the worker reserves four times its
-  measured body from a budget of 1 GiB per instance, and waits for budget when it is spent,
-  renewing its lease meanwhile. With `--memory 2Gi` and `--concurrency 20`, that leaves the rest
-  for the runtime and the other routes, however many heavy requests arrive at once.
+  files about four times over (the bytes, their base64, the JSON body, the SDK's copy), about
+  130 MB at the limit, so the worker service is sized for its concurrency rather than budgeting
+  memory in code: four runs an instance (`--concurrency 4`) at the limit hold about 520 MB, which
+  `--memory 2Gi` holds with room for the runtime. The backend's own routes never build a request,
+  so its instances keep their defaults.
 
 ### The agent
 
@@ -775,8 +801,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Refusals** come back as `stop_reason: "refusal"`. Vertex has no server-side fallback, so the
   client uses the SDK's client-side refusal fallback to `claude-opus-5`, with one `BetaFallbackState`
   per run, since it scopes the pinning. `display: "updates"` is documented for Opus 5.5, not Opus 5,
-  and the middleware sends the fallback the same body: M9 checks with a real call that it is
-  accepted, and retries by hand without `display` otherwise. Before storing a turn that holds a
+  and the middleware sends the fallback the same body: M1's probe checks with a real call what Opus 5
+  accepts, and the fallback strips what it does not. Before storing a turn that holds a
   `fallback` block, the worker drops the thinking, redacted thinking, `tool_use` and unpaired
   `server_tool_use` blocks before the boundary, and draws only what it stores. A refusal that survives
   the fallback ends `REFUSED` with a note.
@@ -810,18 +836,18 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 
 | Tool | What it does | Milestone |
 | --- | --- | --- |
-| `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M8 |
-| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M11), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M11 |
-| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `revision` and content as Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The cursor is a block and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would | M11 |
-| `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M11 |
-| `update_knowledge` | `{ id, revision, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { from, to, content }` replaces a range of blocks, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead.") or the revision moved ("The document changed since you read it. Read it again first.") | M11 |
-| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M13 |
-| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M13 |
-| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M13 |
-| `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M14 |
-| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M21 |
-| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M21 |
-| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M21 |
+| `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M9 |
+| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M14 |
+| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text as Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction. `version` is a hash of the text read. The cursor is a block and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would; it carries the version it was cut from, and a page asked for after the text changed says so, so the model starts again | M14 |
+| `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, in the mutation that records the call's result. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M14 |
+| `update_knowledge` | `{ id, version?, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { from, to, content }` replaces a range of blocks, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead."), and, for `content` and `replaceBlocks`, whose block numbers come from a read, when the text is no longer the `version` read ("The document changed since you read it. Read it again first."). `append` and `replaceText` find their place afresh, so they take no version and go through while somebody types | M14 |
+| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M16 |
+| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M16 |
+| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M16 |
+| `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M11 |
+| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M23 |
+| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M23 |
+| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M23 |
 
 - Each tool's description says when to call it, which is what Opus reads to decide.
 - A result goes back as JSON, cut to 50000 characters with a note saying so. A failure goes back
@@ -829,7 +855,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - The thread labels each tool from the `conversation` catalogue, running and done: "Searching
   knowledge" and "Searched knowledge", "Opening knowledge" and "Opened knowledge", "Creating
   knowledge", "Updating knowledge", "Reading your team", "Reading the log", "Setting your top
-  priority", "Searching the web", and "Asking you" for a question refused at the cap (see A run).
+  priority" and "Searching the web".
 - Integrations go through three fixed tools rather than one tool per server tool, so the tools list
   never changes with what an organization connects, which keeps the transcript valid and the cache
   warm.
@@ -840,19 +866,49 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 
 Documents, top priorities and log entries are stored as BlockNote blocks (paragraphs, headings 1 to
 3, quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and
-mail links); the agent reads and writes Markdown. M10 moves the stored model (`richText.ts`'s types,
-`normalizeRichText`, `parseRichText`, `getRichTextText`) into strategydance-core, which the backend
-can import, and adds a dependency-free `richTextToMarkdown` and `markdownToRichText` for exactly
-that subset: anything else becomes paragraphs. Markdown has no underline, so the pair writes and
-reads it as `<u>…</u>`, the one tag `markdownToRichText` understands; any other tag stays literal
-text, nothing is ever rendered as HTML, and the system prompt says underline belongs in documents,
-never in replies. A document then keeps all four styles through an agent's edit. The thread draws the agent's Markdown with a new
-design-system `Markdown` component (M2: `react-markdown` and `remark-gfm`, no raw HTML, an element
-allowlist, and a `renderLink` prop for `doc:` links).
+mail links); the agent reads and writes Markdown. The stored model lives in the design system's
+`lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`), beside
+the conversions between blocks and a document's shared text (`createRichTextYUpdate`,
+`readRichTextYDoc`), which go through a headless BlockNote editor and so need `@blocknote/core`
+and `yjs`. strategydance-core has no runtime dependency and keeps none, so the model does not move
+there: the backend imports those `lib/` modules from the design system instead, which import
+neither React nor the DOM, and whose tests already run them under Bun. M13 adds a pure
+`richTextToMarkdown` and `markdownToRichText` there for exactly that subset: anything else becomes
+paragraphs. Markdown has no underline, so the pair writes and reads it as `<u>…</u>`, the one tag
+`markdownToRichText` understands; any other tag stays literal text, nothing is ever rendered as
+HTML, and the system prompt says underline belongs in documents, never in replies. A document then
+keeps all four styles through an agent's edit.
+
+**A document's text is shared**, so the agent reads and writes it as an editor does (see
+`CLAUDE.md` § The database):
+
+- **Reading** merges the snapshot, `state`, with the pending `DocumentUpdate` rows into a Yjs
+  document and reads its blocks with `readRichTextYDoc`. `content` is only the last compaction's
+  copy, and lags whenever somebody typed since. A document stored before the editor was shared has
+  no `state` yet, and its `content` is its text.
+- **Writing** applies the edit to that Yjs document as a difference, never by building a new one:
+  a document built from the edited blocks shares no history with the stored one, so merging it
+  would add the text a second time. The edited blocks become a ProseMirror node of the editor's
+  schema, and y-prosemirror's `updateYFragment` writes only what differs into the shared fragment,
+  so blocks the edit leaves alone keep their identity, and what a member types in them meanwhile
+  merges.
+- **Storing** is a fold, as a tab's compaction is: one backend mutation writes the new `state`,
+  `content` and `contentText` under the `revision` it read, deletes the updates it merged, and
+  records the call's result (see Recovery and side effects). A push that lands meanwhile is not
+  among them and stays pending; a fold somebody else made meanwhile moves the revision, and the
+  backend reads again and reapplies, three times at most. Every tab with the document open sees the
+  revision move and reads the snapshot again, as after any fold, so the agent's edit appears in
+  open editors without a reload. A fold has no 50000-character bound, as a pushed update has, so a
+  large edit goes through whole. A document with no `state` is seeded in the same write, under
+  `SeedDocumentState`'s condition.
+
+The thread draws the agent's Markdown with a new design-system `Markdown` component (M3:
+`react-markdown` and `remark-gfm`, no raw HTML, an element allowlist, and a `renderLink` prop for
+`doc:` links).
 
 ### Release gate
 
-Until M22, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M24, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -865,43 +921,49 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M19 and M20, the OAuth initiation included: an authorization's state only exists once a staff
+  M21 and M22, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M22.
+  caller being staff until M24.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M22 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M24 removes.
   Locally, `bun run grant:administrator <email>` makes an account staff.
 
 ### Google Cloud setup
 
-Done once by a human, before M7 and M8 reach production (development uses the developer's ADC and
-in-process runs):
+Done once by a human. Steps 1, 2, 5 and 8 come before M1, whose spike is the first request to
+Vertex; the rest before the milestone each names (development otherwise uses the developer's ADC
+and in-process runs):
 
 1. Enable Claude Opus 5.5, and Claude Opus 5 for the refusal fallback, for project `strategydance`
    in Agent Platform's Model Garden (accept Anthropic's terms), and check the quota for
-   `claude-opus-5-5` on `global`. Raise it before M22.
+   `claude-opus-5-5` on `global`. Raise it before M24.
 2. `gcloud services enable aiplatform.googleapis.com cloudtasks.googleapis.com
-   cloudscheduler.googleapis.com --project strategydance`.
-   Before M8, allow web search for partner models in the organization policy
-   (`constraints/vertexai.allowedPartnerModelFeatures`, which leaves `web-search` off by default), an
-   organization administrator's change, or every request carrying the tool fails.
-3. Grant the runtime service account (the Compute Engine default one, see `CLAUDE.md`)
-   `roles/aiplatform.user`, `roles/cloudtasks.enqueuer`, `roles/cloudtasks.viewer` (the queued-run
-   check reads tasks, which the enqueuer role does not allow), and `roles/iam.serviceAccountUser` on
-   itself, since it signs its tasks' OIDC tokens. If dispatches fail on the token, also grant the
-   Cloud Tasks service agent `roles/iam.serviceAccountTokenCreator` on it.
-4. `gcloud tasks queues create conversation-runs --location us-central1 --max-attempts 5
+   cloudscheduler.googleapis.com --project strategydance`, and allow web search for partner models
+   in the organization policy (`constraints/vertexai.allowedPartnerModelFeatures`, which leaves
+   `web-search` off by default), an organization administrator's change, or every request carrying
+   the tool fails.
+3. For M8: grant the runtime service account (the Compute Engine default one, see `CLAUDE.md`),
+   which both services run as, `roles/aiplatform.user`, `roles/cloudtasks.enqueuer` and
+   `roles/cloudtasks.viewer` (the queued-run check reads tasks, which the enqueuer role does not
+   allow). Create `conversation-tasks@strategydance.iam.gserviceaccount.com`, the identity Cloud
+   Tasks and Cloud Scheduler call the worker as, grant it `roles/run.invoker` on
+   `strategydance-worker` once the first deploy has made it, and grant the runtime account
+   `roles/iam.serviceAccountUser` on it, which creating a task that carries its token needs. If
+   dispatches fail on the token, also grant the Cloud Tasks service agent
+   `roles/iam.serviceAccountTokenCreator` on it.
+4. For M8: `gcloud tasks queues create conversation-runs --location us-central1 --max-attempts 5
    --min-backoff 90s --max-concurrent-dispatches 50 --project strategydance`.
 5. Developers: `gcloud auth application-default login` as an account with `roles/aiplatform.user`, so
    `bun run dev:backend` reaches Vertex. Development calls the real model and costs money.
-6. For M7: a Cloud Scheduler job calling `POST /internal/sweep` daily with an OIDC token for the
-   runtime service account (`gcloud scheduler jobs create http`).
-7. For M17: the bucket's lifecycle rule deleting objects under `pending/` older than two days
+6. For M8: a Cloud Scheduler job calling the worker's `POST /internal/sweep` daily with an OIDC
+   token for `conversation-tasks` (`gcloud scheduler jobs create http`).
+7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
-8. Before M22: a budget alert on Vertex spend, since nothing caps usage yet.
-9. For M19 to M21: a Cloud KMS key for integration secrets, with
+8. A budget alert on Vertex spend, since nothing caps usage yet, and staff runs in production and
+   every development run cost money from the first request.
+9. For M21 to M23: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
 
 ### Cost
@@ -910,8 +972,15 @@ At first-party list prices ($4 per million input tokens, $20 per million output,
 cache writes $5; check Vertex's partner prices) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M8, and M22
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M24
 adds a section on it to `operations-costs.md`.
+
+That figure assumes the cache holds between requests, which it does within a run. Between a
+member's messages it holds only for five minutes, the default lifetime: a reply sent after a longer
+pause writes the whole conversation to the cache again, at $5 a million, which for a 100000-token
+conversation is $0.50 a message. A one-hour lifetime on the conversation's breakpoint costs $8 a
+million to write and survives a coffee break. M9 records cache reads and writes per request, and
+the lifetime is chosen from what members' pauses turn out to be.
 
 ## Risks and open questions
 
@@ -921,17 +990,20 @@ adds a section on it to `operations-costs.md`.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 150 entries, the dock's few rows, and the list of 1000 only
-  while the conversations page is open; the badge reruns only when a run starts or stops waiting.
+  refreshes the open thread's tail of 150 entries and the dock's few rows; the list of 1000 and the
+  aspect page's cards rerun only when a run starts or ends, and the badge only when a run starts or
+  stops waiting.
   The tail carries no bodies, about 45 KB at most, and each body is read once by id, so a run of
   100 entries sends an open reader a few megabytes of refreshes at most, not hundreds.
-- **The member's open editor**: when the agent changes a document the member has open, their next
-  save meets the revision check and asks them to reload, as two people editing do today.
-- **Collaborative documents**: the `live-documents` branch, in progress on 2026-10-02, makes
-  knowledge documents collaborative with Yjs over Data Connect live queries, and changes the
-  `Document` schema and its operations. If it lands before M11, the agent's knowledge writes go
-  through its update model rather than replacing `content` under a `revision`; M11 starts by
-  reading what is on `dev` then.
+- **Editing the shared text from the backend**: nothing in the repository does it yet. BlockNote's
+  helpers build a document from blocks rather than diff one, and a diff written wrong duplicates or
+  loses a member's text in every open tab. M1's spike proves `updateYFragment` with the editor's
+  schema under Bun, against a concurrent edit, before M13 and M14 depend on it; if it fails, the
+  agent creates documents only and suggests edits to existing ones in its reply until a way is
+  found.
+- **Processing location**: Vertex's `global` endpoint may process a request in any region. The
+  legal review before M24 says so, and names Google and Anthropic as processors of what members
+  write and attach.
 - **Prompt injection**: knowledge, the log, the web, files and integrations carry text others wrote,
   and a system prompt is no boundary; what the tools allow is. Integration calls wait for the
   member's approval, except auto-approved tools, which anything the agent reads can get called at
@@ -939,7 +1011,7 @@ adds a section on it to `operations-costs.md`.
   passes the outbound guard.
 - **Built-in writes run without approval, by David's decision**, as the design shows, so injected
   text could get the agent to change an unlocked document or the member's priority. The AI lock, the
-  tool call row each write leaves in the thread, and the revision check limit it; if that proves too
-  loose, M21's approval entry can gate built-in writes too.
+  tool call row each write leaves in the thread, and the version check limit it; if that proves too
+  loose, M23's approval entry can gate built-in writes too.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta on Vertex) if it comes to that.

@@ -230,7 +230,10 @@ with an OIDC token. Sends work in production from here.
   the message.
 - Tests (scripted client): consecutive requests share a byte-identical prefix; `checkTranscript`
   accepts every flow so far and rejects each broken shape; text blocks merge with their citations'
-  offsets kept right; a web search becomes one finished call; usage adds up.
+  offsets kept right; a reply past 20000 characters drawn as pieces split between blocks, a single
+  long block split at a line break, citations rebased to their piece, one unread count, and a
+  crash between two pieces drawing the rest once; a web search becomes one finished call; usage
+  adds up.
 - Verify: setup step 1 and, for development, step 5; ask a question that needs the web and one that
   does not; watch progress lines; check the logs show `input_transformations` empty across turns.
 
@@ -259,8 +262,9 @@ A refactor and two pure functions, no visible change.
   keeps its class names, gains `strategydance-core` as a workspace dependency and imports the rest
   from it; re-point the web's imports.
 - `richTextToMarkdown(blocks)` and `markdownToRichText(markdown)` for the subset, with tests: round
-  trips, nesting, check items, links, what degrades to paragraphs, lengths against
-  `MAX_DOCUMENT_CONTENT_LENGTH`.
+  trips of all four styles, underline through `<u>…</u>` included, alone and nested in the others;
+  another tag kept as literal text; nesting, check items, links, what degrades to paragraphs,
+  lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
 - Verify: the four checks; knowledge, the log, priorities and build in public cards draw as before.
 
 ### M11: Knowledge tools and knowledge links
@@ -354,8 +358,9 @@ A refactor and two pure functions, no visible change.
   answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
   sent again and by the reconcile route; at the cap, a turn whose question would leave less than a
-  run's room has it refused, drawn as a failed call, and the run goes on, while one leaving exactly
-  that room waits, and its answer starts the continuation.
+  run's room and one more has it refused, drawn as a failed call, and the run goes on, while one
+  leaving exactly that much waits, and both its answer and a typed skip start a run; a member with
+  three runs in flight answering, the continuation starting once one ends.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
 
@@ -515,7 +520,8 @@ A refactor and two pure functions, no visible change.
   propose an action, never take one, except through an auto-approved tool, which it can get called
   at once with any arguments: the switch says so, and administrators allow only tools whose effects
   and reach they accept from anything the agent reads. At the cap, an approval that would leave
-  less than a run's room is refused as a question is (see A run), tested at the same boundary.
+  less than a run's room and one more is refused as a question is (see A run), tested at the same
+  boundary, answered and skipped by a send.
 - **An approval is bound to the server and the tool it showed.** The entry records the integration's
   `configRevision` and the hash of the tool's definition (as `autoApprovedTools` hashes it) when it
   is drawn. Allow checks both against the integration as it is, and so does the continuation right

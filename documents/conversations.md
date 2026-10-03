@@ -458,21 +458,26 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   answer or Resume, and an aspects note can land mid-run. An entry a run draws claims only while
   `messageCount` plus its entries stays below `MAX_CONVERSATION_MESSAGES`, keeping the last position
   for a note; a run's closing note may take that last position; an aspects note claims only while
-  at least `CONVERSATION_RUN_ROOM` positions stay free. Every run start, the send, the answer's
+  `CONVERSATION_RUN_ROOM` + 1 positions stay free after it, what a send needs for its message and
+  its run. Every run start, the send, the answer's
   continuation, Resume and Retry alike, requires that much room, so a run that starts always has
   its hundred, and a conversation without it shows full.
 - **A waiting run keeps its continuation's room.** The run an answer starts needs that room like
-  any other, so a run ends `WAITING` only while `CONVERSATION_RUN_ROOM` positions stay free after its
-  turn, which an aspects note cannot take. A turn whose questions, or M21's approvals, would leave
+  any other, and a send that skips the wait needs one more, for the member's message, so a run ends
+  `WAITING` only while `CONVERSATION_RUN_ROOM` + 1 positions stay free after its turn, which an
+  aspects note cannot take. A turn whose questions, or M21's approvals, would leave
   less has them refused, as a call past a limit is: each is drawn as a failed call ("Asking you" for
   a question), and its result tells the model the conversation is too full to ask the member
   anything more, so it answers without asking and suggests a new conversation. The run goes on
-  instead of waiting, so every waiting question or approval can be answered.
+  instead of waiting, so every waiting question or approval can be answered, or skipped by a send.
 - **Concurrency**, bounded rather than metered: at most three runs in flight per member in each
   organization (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the
   queue dispatches at most 50 tasks at once. A run-start mutation locks the member's membership row
-  (as creating and restoring do), counts their active runs and inserts, so two sends at once cannot
-  both find room; before counting, the route finalizes every dead run the member has in that
+  (as creating and restoring do), counts their runs holding a dispatch, `QUEUED` or `RUNNING`, and
+  inserts, so two sends at once cannot both find room. A `WAITING` run has ended and cleared
+  `activeRunId`, so unanswered questions never use the allowance; the run an answer starts is
+  counted like any other, and when the allowance is full it starts later, through the answer sent
+  again or the reconcile route, as after a crash (see The transcript); before counting, the route finalizes every dead run the member has in that
   organization, so crashes elsewhere never lock them out.
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
@@ -499,10 +504,22 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   search (`server_tool_use` with its `web_search_tool_result`) becomes a finished `TOOL_CALL` whose
   output lists the results' titles and addresses. Each `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
+- **A long reply is drawn in pieces.** Agent text keeps the bound every message keeps,
+  `MAX_CONVERSATION_MESSAGE_LENGTH` (20000 characters), though one turn may write far more: a longer
+  text is drawn as several `AGENT_TEXT` pieces, split between top-level Markdown blocks (between
+  the model's text blocks first), and at a line break only for a single block past the bound. Each
+  citation stays with the piece its span starts in, its offsets rebased to that piece and its span
+  clipped at the piece's end. The thread draws consecutive pieces as one reply, and only the first
+  adds to `unreadCount`. The transcript keeps the model's blocks as they came, since pieces are only
+  a drawing, and each piece's id adds its index to the entry and block it derives from. The live
+  tail's worst case is then 150 messages of at most 20000 characters each, the bound the member's
+  own messages already set; typical replies are a few thousand characters, and a smaller tail is the
+  lever if refresh traffic grows (see Risks).
 - **Drawing survives a crash.** A turn is stored in the transcript first, then drawn block by block,
   so a crash can fall between the two. Each drawn message's id derives from its transcript entry and
   block index, so drawing it twice is a conflict rather than a duplicate, and the entry keeps a
-  cursor, `drawnBlocks`, advanced in the same mutation as each message it draws. A worker that claims
+  cursor, `drawnBlocks` (with the piece, within a long text), advanced in the same mutation as each
+  message it draws. A worker that claims
   a run after a crash first draws the rest of the last entry, from its cursor. It then deals with the
   entry's tool calls: a call whose message exists but which never started is handled as Recovery and
   side effects says, and a call that had no message yet gets one and runs like any other.
@@ -752,7 +769,10 @@ Documents, top priorities and log entries are stored as BlockNote blocks (paragr
 mail links); the agent reads and writes Markdown. M10 moves the stored model (`richText.ts`'s types,
 `normalizeRichText`, `parseRichText`, `getRichTextText`) into strategydance-core, which the backend
 can import, and adds a dependency-free `richTextToMarkdown` and `markdownToRichText` for exactly
-that subset: anything else becomes paragraphs. The thread draws the agent's Markdown with a new
+that subset: anything else becomes paragraphs. Markdown has no underline, so the pair writes and
+reads it as `<u>…</u>`, the one tag `markdownToRichText` understands; any other tag stays literal
+text, nothing is ever rendered as HTML, and the system prompt says underline belongs in documents,
+never in replies. A document then keeps all four styles through an agent's edit. The thread draws the agent's Markdown with a new
 design-system `Markdown` component (M2: `react-markdown` and `remark-gfm`, no raw HTML, an element
 allowlist, and a `renderLink` prop for `doc:` links).
 
@@ -827,7 +847,9 @@ adds a section on it to `operations-costs.md`.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 150 entries and the member's list. Fine at today's scale.
+  refreshes the open thread's tail of 150 entries and the member's list. A tail is at most 150
+  messages of 20000 characters, typically a few hundred kilobytes: fine at today's scale, and a
+  smaller live tail, with older entries in history pages, is the lever if refreshes grow heavy.
 - **The member's open editor**: when the agent changes a document the member has open, their next
   save meets the revision check and asks them to reload, as two people editing do today.
 - **Collaborative documents**: the `live-documents` branch, in progress on 2026-10-02, makes

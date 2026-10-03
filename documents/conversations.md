@@ -275,6 +275,7 @@ organization), `MAX_CONVERSATION_MESSAGES` (2000 per conversation), `MAX_CONVERS
 `MAX_CONVERSATION_ATTACHMENT_SIZE` (10 MiB), `MAX_CONVERSATION_ATTACHMENTS_SIZE` (15 MiB per
 conversation, see Attachments), `MAX_PENDING_CONVERSATION_ATTACHMENTS` (30 unsent files per
 member), `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, `MAX_QUESTION_OPTIONS` (6),
+`MAX_ANSWER_OTHER_LENGTH` (500),
 `CONVERSATION_RUN_ROOM` (100), `MAX_ACTIVE_RUNS_PER_MEMBER` (3 per organization),
 `MAX_TOOL_CALLS_PER_TURN` (10) and `MAX_TOOL_CALLS_PER_RUN` (50),
 `MAX_CONVERSATION_PDF_PAGES` (100 per file) and `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300 per
@@ -555,7 +556,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   cuts the transcript after the last run's anchor (its context message goes too), deletes the
   messages that run drew, and starts a run on the same anchor with a fresh context message. Cutting
   the tail leaves a prefix the thinking blocks were made with. What the cut part wrote to knowledge
-  or the top priority stays written.
+  or the top priority stays written. Aspects notes written during the run can push its first
+  entries out of the live tail into a loaded history page, so the route answers with the id of the
+  run it removed, and the page drops that run's messages from every page it holds, and refetches
+  its history pages when it cannot tell.
 - **The context message's profile part** (the member, the organization, the conversation's aspects)
   is included when its hash differs from the `contextHash` of the last context message still in the
   transcript, so a retry that cut one sends it again.
@@ -1046,10 +1050,15 @@ A refactor and two pure functions, no visible change.
 
 - `ask_user`, its `QUESTION` messages, `WAITING` runs with their `pendingToolResults`.
 - `POST …/answers` with `{ messageId, selected, other }`, serialized on the waiting run as The
-  transcript describes, and skipping on send.
+  transcript describes, and skipping on send. The answer is checked against its stored question
+  before anything is recorded, since it goes into Claude's transcript: `selected` holds distinct
+  options of that question only, at most one for a single-choice question; `other` is one trimmed
+  line of at most 500 characters (`MAX_ANSWER_OTHER_LENGTH`); and an answer chooses at least one
+  option or writes something.
 - The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
   sidebar badge, and questions in previews.
-- Tests: two questions in one turn wait for both answers, and two answers sent at once start exactly
+- Tests: an unknown, repeated or second option for a single-choice question refused, an empty
+  answer refused, a long `other` refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
   one run; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
   sent again and by the reconcile route.

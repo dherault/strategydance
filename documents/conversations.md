@@ -289,8 +289,10 @@ New tables in `schema.gql`, each commented as the existing ones are:
     sent, which escapes U+0000, and are parsed again only to be sent. A call's `toolInput` and
     `toolOutput` are JSON text the same way, lossless, since an approval (M23) shows the member
     the exact arguments that will run: the dialog draws them with control characters escaped, so
-    `acct\u0000admin` reads as such rather than as `acctadmin`. Only the drawn prose, `text` and
-    `citations`, drops U+0000 before it is written, since a Postgres `text` refuses it.
+    `acct\u0000admin` reads as such rather than as `acctadmin`. Every other string column that
+    holds what the model or the member wrote drops U+0000 before it is written, since a Postgres
+    `text` refuses it: `text`, `citations`, a question's prompt and options, an answer's own words,
+    the preview. A question or an answer reads the same without it, and the transcript keeps it.
 - **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
@@ -784,7 +786,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   adds what the transcript holds after that turn and what the send appends, the text counted by the
   endpoint on a request holding only that text, which is small and holds no estimate a script or an
   emoji could beat, and the files by their stored counts. Usage stays in the ledger whatever Retry
-  cuts; only which request serves as the starting point changes. Mid-turn, after `pause_turn`,
+  cuts; only which request serves as the starting point changes. A release can change the system
+  prompt and the tools, which neither the old usage nor the transcript after it accounts for, so
+  each request also records the tokens its system prompt and tools took, counted once per process
+  by the endpoint, and the check adds the current configuration's count less the starting
+  request's. Mid-turn, after `pause_turn`,
   the worker starts from the paused request itself instead: its whole input and output are exactly
   what the continuation resends, the pieces held in memory included, so nothing is left out or
   counted twice. A first
@@ -996,7 +1002,9 @@ and in-process runs):
    job calling the worker's `POST /internal/sweep` daily with an OIDC token for
    `conversation-tasks` (`gcloud scheduler jobs create http`), its `--oidc-token-audience` the
    worker's base `run.app` address without the path, which is what Cloud Run checks the token
-   against.
+   against. Whoever creates the job needs `iam.serviceAccounts.actAs` on `conversation-tasks`: a
+   project owner has it, and anybody else takes `roles/iam.serviceAccountUser` on that one account
+   first.
 7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
 8. A budget alert on Vertex spend, since nothing caps usage yet, and staff runs in production and

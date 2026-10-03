@@ -305,7 +305,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   crash between two pieces drawing the rest once; a web search becomes one finished call; usage
   adds up; a request that would pass 800000 input tokens never sent, the conversation marked full
   and the send route refusing, and a `pause_turn` continuation counted from the paused request, so
-  pieces held in memory that take it past the limit stop it too.
+  pieces held in memory that take it past the limit stop it too; a conversation near the limit
+  whose tools list grew in a release counted with the growth, and stopped by it.
 - Verify: ask a question that needs the web and one that does not; watch progress lines; check the
   logs show `input_transformations` empty across turns, and cache reads on every request after a
   run's first.
@@ -350,7 +351,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   sidebar badge, and questions in previews, all read from `isAwaitingAnswer`, which ending a run
   `WAITING` sets and consuming its turn clears.
 - Tests: an `ask_user` call whose prompt or one option is a character past its bound refused before
-  anything is drawn, and one at the bounds drawn; an unknown, repeated or second option for a
+  anything is drawn, and one at the bounds drawn; a prompt, an option and an answer's own words
+  holding U+0000 stored and drawn without it, the transcript keeping it; an unknown, repeated or second option for a
   single-choice question refused, an empty answer refused, a long `other` refused, an option and own words together on a single-choice
   question refused; two questions in one turn wait for both answers, and two answers sent at once start exactly
   one run; the waiting run moved to `CONTINUED` by the winner, and a delayed answer or send, arriving

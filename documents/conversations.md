@@ -246,15 +246,11 @@ New tables in `schema.gql`, each commented as the existing ones are:
 - **`ConversationRun`**: one go of the agent, from a member's action to its end. `conversation`,
   `trigger` (`MESSAGE`, `ANSWER`, `RESUME`, `RETRY`), `status` (`QUEUED`, `RUNNING`, `WAITING`,
   `COMPLETED`, `STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`), `step` (the latest progress line),
-  `anchorPosition` (the transcript entry that started it, which Retry goes back to), `context`
-  (`Any`: the run's context message, until it is stored), `stopRequestedAt`,
-  `leaseExpiresAt`, `attempts`, `pendingToolResults` (`Any`: results held while questions wait),
-  `failure` (a reason for the logs, never shown), `createdAt` (set by the server when the run is
-  queued), `startedAt` (when a worker claims it, so null while queued and for a run that never
-  started), `endedAt`, and `usage` (`Any`: input, cache and output tokens and web searches, per model,
-  since a refusal fallback bills another model). Usage is what the credit system will bill from.
-  Indexed on `conversationId`, `createdAt`: "the latest run" is the newest by `createdAt`, then `id`,
-  never by `startedAt`.
+  `anchorPosition` (where Retry goes back to), `context` (`Any`: its context message until stored),
+  `stopRequestedAt`, `leaseExpiresAt`, `attempts`, `pendingToolResults` (`Any`), `failure` (for the
+  logs), `usage` (`Any`: tokens and web searches per model, the credit system's ledger), `createdAt`
+  (when queued), `startedAt` (when claimed), `endedAt`. Indexed on `conversationId`, `createdAt`: the
+  latest run is the newest by `createdAt`, then `id`.
 - **`ConversationTranscriptEntry`**: what Claude is sent, kept apart from what the thread draws.
   `conversation`, `run`, `position` (dense from 0, unique per conversation), `role` (`USER`,
   `ASSISTANT`, `SYSTEM`), `content` (`Any`: the exact content blocks, thinking blocks and their
@@ -271,20 +267,17 @@ New tables in `schema.gql`, each commented as the existing ones are:
   for pruning and the conversation's budget, and on `userId`, `organizationId`, `createdAt`, for the
   quota's count of unsent rows and their pruning.
 
-Limits go in strategydance-core beside the others: `MAX_CONVERSATIONS` (1000 per member and
-organization), `MAX_CONVERSATION_MESSAGES` (2000 per conversation), `MAX_CONVERSATION_TITLE_LENGTH`
-(120), `MAX_CONVERSATION_MESSAGE_LENGTH` (20000), `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE` (10),
-`MAX_CONVERSATION_ATTACHMENT_SIZE` (10 MiB), `MAX_CONVERSATION_ATTACHMENTS_SIZE` (15 MiB per
-conversation, see Attachments), `MAX_PENDING_CONVERSATION_ATTACHMENTS` (30 unsent files per
-member), `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, `MAX_QUESTION_OPTIONS` (6),
-`MAX_ANSWER_OTHER_LENGTH` (500),
-`CONVERSATION_RUN_ROOM` (100), `MAX_ACTIVE_RUNS_PER_MEMBER` (3 per organization),
-`MAX_TOOL_CALLS_PER_TURN` (10) and `MAX_TOOL_CALLS_PER_RUN` (50),
-`MAX_CONVERSATION_PDF_PAGES` (100 per file) and `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300 per
-conversation), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000 characters per text file),
-`CONVERSATION_SUGGESTION_IDS` (M13),
-and the release gate `ARE_CONVERSATIONS_STAFF_ONLY`. New error
-codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_CONVERSATION_FULL`.
+Limits go in strategydance-core beside the others. Per member and organization:
+`MAX_CONVERSATIONS` (1000), `MAX_ACTIVE_RUNS_PER_MEMBER` (3), `MAX_PENDING_CONVERSATION_ATTACHMENTS`
+(30). Per conversation: `MAX_CONVERSATION_MESSAGES` (2000), `MAX_CONVERSATION_ATTACHMENTS_SIZE` (15
+MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `CONVERSATION_RUN_ROOM` (100),
+`MAX_TOOL_CALLS_PER_RUN` (50), and `MAX_TOOL_CALLS_PER_TURN` (10). Per item:
+`MAX_CONVERSATION_TITLE_LENGTH` (120), `MAX_CONVERSATION_MESSAGE_LENGTH` (20000),
+`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE` (10), `MAX_CONVERSATION_ATTACHMENT_SIZE` (10 MiB),
+`MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
+`MAX_QUESTION_OPTIONS` (6), `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
+`CONVERSATION_SUGGESTION_IDS` (M13), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
+codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 
 ### Who writes what
 
@@ -295,17 +288,14 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
   `GetOrganizationDocuments` does, the list, the conversation, its history, its run, a tool call and
   both searches alike; only `RestoreConversation` reaches a deleted one. The backend's routes refuse a
   deleted conversation too, and its worker stops at its next write once the conversation is deleted):
-  - `GetConversations($organizationId)`, live: the list, the dock and the sidebar badge, with
-    `limit: 1000` (`MAX_CONVERSATIONS`) and `orderBy: [{ updatedAt: DESC }, { id: ASC }]`, since a
-    query left without a limit stops at 100 and older conversations, and their waiting questions,
-    would drop out of the list and the badge. Each
-    conversation's fields, `preview` included, and whether a question waits:
+  - `GetConversations($organizationId)`, live: the list, the dock and the badge, `limit: 1000`,
+    ordered by `updatedAt` then `id` (a query without a limit stops at 100). Each conversation's
+    fields, `preview` included, and whether a question waits:
     `conversationMessages_on_conversation(where: { kind: { eq: QUESTION }, answeredAt: { isNull:
     true }, run: { status: { eq: WAITING } } }, limit: 1) { id }`, so a question stranded by a failed
-    run does not count and the badge needs no counter. It refreshes on run start and finish, on
-    message inserts, and on create, delete, restore, aspects and read, with the condition
-    `mutation.variables.userId == request.auth.uid && mutation.variables.organizationId ==
-    request.variables.organizationId`.
+    run does not count. It refreshes on run start and finish, message inserts, create, delete,
+    restore, aspects and read, on `mutation.variables.userId == request.auth.uid &&
+    mutation.variables.organizationId == request.variables.organizationId`.
   - Every live conversation query, this one, `GetConversation` and `GetConversationRun`, also
     refreshes on `RemoveOrganizationMember` and `DeleteOrganization`, on their `organizationId`, as
     `GetOrganizationDocuments` does: filtering on current membership only protects the next read, so
@@ -327,17 +317,13 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     query only, not the thread or the list.
   - `GetConversationToolCall($organizationId, $messageId)`: one call's input and output, read once
     when "View output" opens.
-  - `SearchConversations($organizationId, $query)`: Data Connect's full-text search, through an index
-    rather than a scan. `Conversation.title` and `ConversationMessage.text` are `@searchable`, with
-    the `simple` text search configuration since conversations come in seven languages, and the query
-    reads `conversations_search` and `conversationMessages_search` (member and agent text only) with
-    `queryFormat: PLAIN`, which requires every word; the web merges the two lists of conversations.
-    The message search groups by conversation before its limit: it selects `conversationId` with an
-    aggregate, which Data Connect groups by the selected field, so one conversation with many matching
-    messages cannot crowd the others out, and each list says its limit (`limit: 1000`), so neither
-    stops at the default 100. M3 checks the emulator groups a search that way; if it does not, the
-    search moves behind a backend route that pages through the message matches collecting distinct
-    conversations.
+  - `SearchConversations($organizationId, $query)`: full-text search through an index.
+    `Conversation.title` and `ConversationMessage.text` are `@searchable` (the `simple`
+    configuration, for seven languages); the query reads `conversations_search` and
+    `conversationMessages_search` (member and agent text) with `queryFormat: PLAIN`, which requires
+    every word, each with `limit: 1000`, the message search grouped by conversation (selecting
+    `conversationId` with an aggregate) so one conversation cannot crowd out the rest. M3 checks the
+    emulator groups it so; otherwise the search moves behind a backend route paging through matches.
   - `DeleteConversation` (sets `deletedAt` and asks the active run to stop: two rows, each written
     once), `RestoreConversation`, `MarkConversationRead`, and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note at a position claimed on the counter, the claim
@@ -372,18 +358,15 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   `activeRunId` already set. A later action locks it with `conversation_updateMany(where: { id,
   userId, activeRunId: { isNull: true } })` and `@check(this == 1)`, then inserts the run; a
   conversation already running answers `ERROR_CODE_CONVERSATION_BUSY`.
-- **Leases.** A claimed run's `leaseExpiresAt` is sixty seconds out, renewed every twenty; a claimed
-  run past its lease is dead. A queued run is not judged by the clock alone, since a backlog can keep
-  a task waiting longer than any fixed deadline: its lease (twenty minutes) only says when to ask
-  Cloud Tasks about it again. A route that finds a queued run past that lease looks its named task
-  up: while the task exists the run waits on, its lease pushed back; once the task is gone, or was
-  never created, the run is dead. Send, answer, stop, resume and retry first finalize a dead active
-  run as `INTERRUPTED` (running calls `CANCELLED`, an `INTERRUPTED` note, `activeRunId` cleared). The
-  web shows a claimed run past its lease as interrupted, with Resume and Retry, and a queued one as
-  still waiting. A page that only watches needs no action from the member for that: when it sees a
-  queued run past its lease it calls `POST …/runs/:runId/reconcile`, and again every two minutes
-  while it stays so, and that route does the task lookup and finalizes a dead run, so a run whose
-  task ran out of attempts or vanished never spins forever.
+- **Leases.** A claimed run's `leaseExpiresAt` is sixty seconds out, renewed every twenty; past it,
+  the run is dead. A queued run's lease (twenty minutes) only says when to ask Cloud Tasks again,
+  since a backlog can outlast any deadline: past it, a route looks the named task up and pushes the
+  lease back while the task exists; once it is gone, or never existed, the run is dead. Send,
+  answer, stop, resume and retry first finalize a dead active run as `INTERRUPTED` (running calls
+  `CANCELLED`, a note, `activeRunId` cleared). The web shows a claimed run past its lease as
+  interrupted, with Resume and Retry, and a queued one as waiting, calling `POST
+  …/runs/:runId/reconcile` every two minutes meanwhile, so a run whose task vanished never spins
+  forever, with nothing asked of the member.
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
@@ -391,20 +374,16 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   current membership in the conversation's organization, so removing a member stops their runs at
   the next step: no more of the organization's context goes to Claude, and no tool runs for them.
   Such a run is left to expire, and is finalized as interrupted if they are ever invited back.
-- **Fencing.** Every mutation of the worker starts with `conversationRun_updateMany(where: { id,
-  status: { eq: RUNNING }, attempts: { eq: $attempt } })` and `@check(this == 1)`, so a worker whose
-  run was finalized or claimed again writes nothing more. That fenced write is the run row's only
-  write in the mutation, since a later one would be skipped: it carries whatever the mutation changes
-  on the run, a lease renewal, a step, or, when the run ends, its terminal status and `endedAt`.
-  Usage is checkpointed, not totted up at the end: the mutation that stores an assistant turn writes
-  the run's cumulative `usage` through that fenced write, so a worker that takes a run over after a
-  crash starts from what was already spent. A request Claude served before the process died, and
-  before its turn was stored, would still go unrecorded, so each request is reserved first: the
-  fenced write before a request records it as started, with its estimated input tokens (the last
-  request's input plus what was appended since), and the write that stores its turn settles it with
-  the real usage. A worker that takes over finds an unsettled reservation and charges its estimate,
-  with a conservative output allowance, marked as estimated. The credit system then bills every
-  request made, and knows which figures are estimates.
+- **Fencing.** Every worker mutation starts with `conversationRun_updateMany(where: { id, status: {
+  eq: RUNNING }, attempts: { eq: $attempt } })` under `@check(this == 1)`, so a worker whose run was
+  finalized or claimed again writes nothing more. It is the run row's only write in the mutation (a
+  later one would be skipped), carrying whatever changes on the run: a lease renewal, a step, usage,
+  the terminal status and `endedAt`.
+- **Usage is a ledger.** The fenced write before each request reserves it, with its estimated input
+  (the last request's input plus what was appended); the write that stores its turn settles it with
+  the real usage. A worker taking over after a crash charges an unsettled reservation at its
+  estimate, with a conservative output allowance, marked as estimated: every request is billed, and
+  the credit system knows which figures are estimates.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so the send stays
@@ -451,16 +430,13 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   each progress line to `run.step` at most once a second and checking the stop flag every two
   seconds; store the finished assistant turn; draw it as messages; then by `stop_reason`:
   - `end_turn`: done, `COMPLETED`.
-  - `tool_use`: run the turn's tools in transcript order: a run of consecutive read-only built-in
-    calls (`search_knowledge`, `read_knowledge`, `get_team`, `read_log`) goes four at a time, and every
-    write (`create_knowledge`, `update_knowledge`, `set_top_priority`) and every integration call,
-    whose annotations prove nothing, goes alone, in order, so two writes never land in the wrong
-    order. Record each result on its message, store one
-    user entry holding every `tool_result` in order, and go round again. A turn runs at most ten
-    calls and a run at most fifty (`MAX_TOOL_CALLS_PER_TURN`, `MAX_TOOL_CALLS_PER_RUN`): a call past
-    either is not run, and its result tells the model so, so one turn cannot fan out into thousands
-    of requests across the dispatched runs. A turn with `ask_user` runs its other tools, keeps their
-    results in `pendingToolResults`, and ends the run `WAITING`.
+  - `tool_use`: run the turn's tools in transcript order, consecutive read-only built-in calls
+    (`search_knowledge`, `read_knowledge`, `get_team`, `read_log`) four at a time, and each write and
+    integration call alone, so writes land in order; record each result on its message, store one
+    user entry with every `tool_result` in order, and go round again. A turn runs at most ten calls
+    and a run fifty (`MAX_TOOL_CALLS_PER_TURN`, `MAX_TOOL_CALLS_PER_RUN`); a call past either is not
+    run, and its result says so. A turn with `ask_user` runs its other tools, keeps their results in
+    `pendingToolResults`, and ends the run `WAITING`.
   - `pause_turn` (web search's server-side loop paused): send the turn back as it is, up to five
     times, keeping the pieces in memory.
   - `max_tokens`: run nothing, fail with a note.
@@ -557,15 +533,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   stores the results, then sends its context and the request; when the last entry is `USER` (the
   stream was cut), it sends its context and the request straight away.
 - **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed or refused note: every run
-  records its anchor, `anchorPosition`, the transcript position of the `USER` entry that started it
-  (the member's message, files only included, the answers, or the resumed calls' results). Retry
-  cuts the transcript after the last run's anchor (its context message goes too), deletes the
-  messages that run drew, and starts a run on the same anchor with a fresh context message. Cutting
-  the tail leaves a prefix the thinking blocks were made with. What the cut part wrote to knowledge
-  or the top priority stays written. Aspects notes written during the run can push its first
-  entries out of the live tail into a loaded history page, so the route answers with the id of the
-  run it removed, and the page drops that run's messages from every page it holds, and refetches
-  its history pages when it cannot tell.
+  records `anchorPosition`, the `USER` entry that started it (a message, files only included,
+  answers, or resumed results). Retry cuts the transcript after the last run's anchor, its context
+  message included, deletes the messages that run drew, and starts a run on that anchor with a
+  fresh context message; the remaining prefix is what the thinking blocks were made with, and what
+  the cut part wrote stays written. The route answers with the removed run's id, and the page drops
+  its messages from every page it holds, history included, since aspects notes can push a run's
+  first entries out of the live tail.
 - **The context message's profile part** (the member, the organization, the conversation's aspects)
   is included when its hash differs from the `contextHash` of the last context message still in the
   transcript, so a retry that cut one sends it again.
@@ -609,31 +583,26 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   ones), which leaves a margin.
 - An upload lands under `pending/{organizationId}/{userId}/{attachmentId}`, outside `organizations/`,
   where a bucket lifecycle rule deletes what is two days old: a draft never sent costs nothing for
-  long, whether or not its author comes back. Sending copies each file into the conversation's
-  folder, `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/`, checking
-  the conversation's budget. The copies come before the mutation that sends the message, each under
-  a generation-match-zero precondition, a collision with an object of the same size counting as
-  done, so a retried send (same `messageId`) copies only what is missing and then commits. If no
-  retry comes, the row stays unsent, and its pruning deletes both its pending object and any copy
-  at its destination, so a failed send leaves nothing behind in either folder.
+  long, whether or not its author comes back. Sending checks the conversation's budget and copies
+  each file into the conversation's folder,
+  `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/`, before the
+  mutation that sends the message, each copy under a generation-match-zero precondition (a
+  collision of the same size counts as done), so a retried send copies only what is missing. With
+  no retry, the row stays unsent, and its pruning deletes its pending object and any copy.
 - **Reading a file goes through the backend too**: `GET …/attachments/:attachmentId` checks that the
   caller is still a member and owns the conversation, and streams the bytes with private cache
   headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
   rule could check only the uid, which stays true after a member is removed, so `storage.rules` keeps
   granting clients nothing under `organizations/`, as it does today.
 - Claude receives images as `image` blocks, PDFs as `document` blocks and text files as text
-  `document` blocks, all base64. Vertex has no Files API, and a request takes about 32 MB, every
-  earlier file included. So a conversation's files are capped at 15 MiB, about 20 MB once encoded,
-  leaving room for the text; and before each request the worker measures the serialized body. Past
-  30 MB, or once a request has read more than 800000 input tokens, the worker marks the conversation
-  full: the send route refuses new messages with `ERROR_CODE_CONVERSATION_FULL`, and the thread says
-  to start a new one. Files are checked before that can happen, since one large file could pass the
-  model's context on the very first request: a text file is held to 200000 characters
-  (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message carrying files is sent only after the
-  send route counts the next request's tokens with the token-counting endpoint, which Vertex offers,
-  and refuses it past 700000. The service gets both `--memory 2Gi` and a low `--concurrency` (20 to start,
-  measured on the heaviest conversation), since a request can hold its files several times over
-  (bytes, base64, the SDK's copy) and Cloud Run's default of 80 would put too many on one instance.
+  `document` blocks, all base64, since Vertex has no Files API. A request takes about 32 MB, every
+  earlier file included, so a conversation's files are capped at 15 MiB (about 20 MB encoded) and a
+  text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
+  files is sent only once the send route has counted the next request's tokens (Vertex has the
+  endpoint) under 700000. Before each request the worker measures the body: past 30 MB, or 800000
+  input tokens, it marks the conversation full, and the send route refuses new messages with
+  `ERROR_CODE_CONVERSATION_FULL`. The service gets `--memory 2Gi` and `--concurrency 20`, measured on
+  the heaviest conversation, since a request holds its files several times over.
 
 ### The agent
 
@@ -646,10 +615,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   "drop_block" } }` with the betas `thinking-display-updates-2026-08-18` and
   `thinking-binding-controls-2026-08-01`; `output_config.effort` set explicitly to `medium` (Opus
   5.5's default, and the first lever to tune); the static system prompt with a cache breakpoint, plus
-  top-level automatic caching for the conversation's tail; the tools with strict schemas and, as the
-  skill recommends for streamed requests, `eager_input_streaming: true` on the ones defined here,
-  which means the API no longer validates their input, so every input is validated with zod before it
-  runs; `tool_choice` left at `auto` (Opus 5.5 refuses forced tool use).
+  top-level automatic caching for the conversation's tail; the tools with strict schemas and
+  `eager_input_streaming: true`, as the skill recommends for streamed requests, so every input is
+  validated with zod before it runs; `tool_choice` left at `auto` (Opus 5.5 refuses forced tool use).
 - **Thinking cannot be turned off** on Opus 5.5. Under `display: "updates"`, a thinking block with
   text is a short progress line ("Comparing revenue with September"): it becomes `run.step`, which
   the thinking indicator shows, which is what the design's rotating steps are. Without one, the
@@ -720,16 +688,14 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 
 ### Rich text and Markdown
 
-Documents, top priorities and log entries are stored as BlockNote blocks: paragraphs, headings 1 to
-3, quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, and
-links to web and mail addresses. The agent reads and writes Markdown. M8 moves the stored model
-(`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`) from the design
-system into strategydance-core, which the backend can import, and adds `richTextToMarkdown` and
-`markdownToRichText` there, dependency-free, for exactly that subset: anything else (code, tables,
-images) becomes paragraphs, and links keep only web and mail addresses. The thread draws the
-agent's Markdown with a new design-system `Markdown` component (M2: `react-markdown` and
-`remark-gfm`, no raw HTML, an allowlist of elements, a `renderLink` prop the web uses for `doc:`
-links).
+Documents, top priorities and log entries are stored as BlockNote blocks (paragraphs, headings 1 to
+3, quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and
+mail links); the agent reads and writes Markdown. M8 moves the stored model (`richText.ts`'s types,
+`normalizeRichText`, `parseRichText`, `getRichTextText`) into strategydance-core, which the backend
+can import, and adds a dependency-free `richTextToMarkdown` and `markdownToRichText` for exactly
+that subset: anything else becomes paragraphs. The thread draws the agent's Markdown with a new
+design-system `Markdown` component (M2: `react-markdown` and `remark-gfm`, no raw HTML, an element
+allowlist, and a `renderLink` prop for `doc:` links).
 
 ### Release gate
 
@@ -921,16 +887,14 @@ heavy.
   verifying the OIDC token's audience (`PRODUCTION_API_URL` + `/internal/conversation-runs`) and its
   service account, both backend constants, since Cloud Run tells the service neither.
 - `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
-  suggestion and attachments): the first message creates the conversation (title rule,
-  `MAX_CONVERSATIONS` under the membership lock, pruning what the member deleted over a day ago) with
-  its message, its queued run and its first transcript entry, in one mutation; a later one locks the
-  conversation and refuses one without room for a run; both hold the member to
-  `MAX_ACTIVE_RUNS_PER_MEMBER` and finalize a dead run; then the task is queued and the route answers
-  202 with the run's id. `messageId` is made by the client, and the route is idempotent on it: a retry after a lost
-  answer or a partial failure completes what is missing and answers with the same run, never
-  sending twice. The body is validated on the server, whatever the browser allowed: `text` is
-  trimmed, at most `MAX_CONVERSATION_MESSAGE_LENGTH` characters, and not empty (M15 allows an empty
-  text when the message carries files); anything else is a 400.
+  suggestion and attachments), validated on the server: `text` trimmed, not empty (M15 allows that
+  with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the
+  conversation (title rule, `MAX_CONVERSATIONS` under the membership lock, pruning what the member
+  deleted over a day ago) with its message, queued run and first transcript entry, in one mutation;
+  a later one locks the conversation and needs room for a run; both hold
+  `MAX_ACTIVE_RUNS_PER_MEMBER` and finalize a dead run; then the task is queued: 202 with the run's
+  id. Idempotent on the client-made `messageId`: a retry completes what is missing and answers with
+  the same run.
 - `enqueueRun`: a named task (`run-<runId>`, so a repeat does not queue twice), an OIDC token, a
   15-minute dispatch deadline; in development, `runConversation` in-process without waiting.
 - `POST /internal/conversation-runs` and `runConversation`: claiming, leases, fencing, the 200 and
@@ -1052,15 +1016,12 @@ A refactor and two pure functions, no visible change.
   the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
   converted with `richTextToMarkdown`.
 - `set_top_priority`, through one backend mutation `SetTopPriorityForAgent($organizationId,
-  $userId, $topPriority, $date)`: it checks membership, writes the member's own membership row
-  (`topPriority` through `markdownToRichText`, then held to both limits the Today page holds it to:
-  at most `MAX_TOP_PRIORITY_TEXT_LENGTH` characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized,
-  since formatting and long link addresses can pass the second with little text; and
-  `topPriorityUpdatedAt`) and upserts their `activityDay` row, two rows written once
-  each, with `RecordActivity`'s check that `$date` is the member's today, which the backend computes
-  from their stored time zone. Its `$organizationId` matches `GetOrganizationTeam`'s refresh, so an
-  open Today page updates at once. `CLAUDE.md` asks every new way of changing Today data to record
-  the day.
+  $userId, $topPriority, $date)`: it checks membership, writes the member's own `topPriority`
+  (through `markdownToRichText`, held to the Today page's two limits, `MAX_TOP_PRIORITY_TEXT_LENGTH`
+  of text and `MAX_TOP_PRIORITY_LENGTH` serialized) and `topPriorityUpdatedAt`, and upserts their
+  `activityDay` row, as `CLAUDE.md` asks of every change to Today data, with `RecordActivity`'s check
+  that `$date`, computed from the member's time zone, is their today. Its `$organizationId` matches
+  `GetOrganizationTeam`'s refresh, so an open Today page updates at once.
 - Verify: "What is everybody working on?", "What did I log this week?", and "Make shipping the
   pricing page my priority": the Today page updates without a reload, and the build in public streak
   counts the day once the page is reloaded (`GetActivityDays` is not live).
@@ -1151,15 +1112,11 @@ A refactor and two pure functions, no visible change.
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, the key encrypted with Cloud KMS and its last four characters, the OAuth
-  client it registered, its tools as last listed (annotations included), `autoApprovedTools` (the
-  tools an administrator lets run without the member's approval, empty to begin with, each bound to
-  a fingerprint of the definition the administrator reviewed: a hash of its name, description,
-  input schema and annotations; when a refresh of the server's tools changes a definition, its
-  approval is cleared and the tool asks again, so a server cannot keep a name and change what it
-  does), `lastError`,
-  `lastUsedAt`, `deletedAt`. The web connector's live list never selects a secret, and says its
-  limit (`MAX_INTEGRATIONS`, 50 per organization, refused past that) rather than stopping at the
-  default 100 unannounced.
+  client it registered, its tools as last listed (annotations included), `autoApprovedTools` (tools
+  an administrator lets run without approval, each bound to a hash of the definition reviewed:
+  name, description, input schema, annotations; a refresh that changes a definition clears its
+  approval), `lastError`, `lastUsedAt`, `deletedAt`. The live list never selects a secret, and says
+  its limit (`MAX_INTEGRATIONS`, 50 per organization).
 - **The address and the authentication are bound to the credentials.** Changing either clears, in the
   same mutation, everything issued for the old ones: the API key, the OAuth client registered with
   the old server, every member's connection and the pending authorizations. Members reconnect, so no
@@ -1172,18 +1129,14 @@ A refactor and two pure functions, no visible change.
   the secrets for Undo, and the next delete prunes what was deleted over a day ago, as documents do.
   Encryption through Cloud KMS, and a local key in development.
 - **Every request to a server's address goes through an outbound guard**, since an administrator
-  types it: `https` only; the host resolved, and every address it resolves to allowed only when it is
-  a globally routable unicast address, an allowlist rather than a list of what to refuse, so
-  loopback, private, link-local, carrier-grade NAT, multicast, unspecified (`0.0.0.0`, `::`), other
-  special-use ranges and the metadata server (`169.254.169.254`, `metadata.google.internal`) are all
-  refused; the check repeated on every connection and redirect, so a rebinding or a redirect cannot slip past it;
-  timeouts and a cap on the response's size. Cloud Run can reach the metadata server, which hands out
-  the service account's tokens, so this is not optional. OAuth discovery and token requests (M18) go
-  through the same guard. The connection is made to the address the guard checked, never to a name
-  resolved again. A request that carries a credential (an API key, a member's token, a refresh
-  token, the registered client's secret) never follows a redirect to another origin: it fails, so no
-  secret reaches a host it was not issued for. Only unauthenticated discovery follows redirects, each
-  hop guarded.
+  types it: `https` only; every address the host resolves to must be globally routable unicast, an
+  allowlist, so loopback, private, link-local, carrier-grade NAT, multicast, unspecified (`0.0.0.0`,
+  `::`), other special-use ranges and the metadata server (`169.254.169.254`,
+  `metadata.google.internal`, which hands out the service account's tokens) are refused; the
+  connection goes to the address checked, and the check repeats on every redirect; timeouts and a
+  response size cap. A request carrying a credential (an API key, a token, a client secret) never
+  follows a cross-origin redirect; only unauthenticated discovery follows redirects, each hop
+  guarded. OAuth discovery and token requests (M18) use the same guard.
 - The guard ships with deterministic tests, a fake resolver and transport standing in for the
   network: representative IPv4 and IPv6 addresses of each special-use range (private, loopback,
   link-local, unique local, carrier-grade NAT, multicast, documentation, `0.0.0.0` and `::`),
@@ -1219,18 +1172,14 @@ A refactor and two pure functions, no visible change.
   `toolInput`, which stays behind "View output". The warning strip is computed against the live
   integrations list matched by `integration`, never by name. All additive, with `APPROVAL` appended
   to the kinds.
-- **Approval.** Every integration call waits for the member, unless its tool is in the server's
-  `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind, appended to
-  `ConversationMessageKind`) showing the server, the tool and its arguments, with Allow and Deny.
-  Allow runs the call in the next run; Deny answers it as refused. Approvals are answered as
-  questions are, serialized on the waiting run. A server's annotations decide nothing: a server can
-  call a tool that writes read-only, and even a read can carry private text out in its arguments.
-  Text that knowledge, the web, a file or another integration slipped into the conversation can
-  then propose an action, never take one, except through an auto-approved tool. An administrator who
-  trusts a tool can let it run straight away, as the design shows, and that is exactly the exception:
-  injected text can make the model call an auto-approved tool at once, with any arguments, including
-  private text it carries out. The switch says so beside it, and the page's help asks administrators
-  to allow only tools whose effects and reach they accept from anything the agent reads.
+- **Approval.** Every integration call waits for the member unless its tool is in the server's
+  `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind) showing the
+  server, the tool and its arguments, with Allow (the call runs in the next run) and Deny (answered
+  as refused), answered as questions are. Annotations decide nothing: a server can mislabel a tool
+  that writes, and a read can carry private text out in its arguments. Injected text can then
+  propose an action, never take one, except through an auto-approved tool, which it can get called
+  at once with any arguments: the switch says so, and administrators allow only tools whose effects
+  and reach they accept from anything the agent reads.
 - **A waiting approval counts as a waiting question everywhere**: `GetConversations`' attention check
   also matches an `APPROVAL` whose `approvalState` is `PENDING` on a `WAITING` run, so it raises
   "Needs your answer", the sidebar badge and the minimized window's dot; inserting one adds to

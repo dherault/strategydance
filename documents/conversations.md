@@ -217,7 +217,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
   started from), `activeRunId`, `preview` and `previewMessageId`, `unreadCount`, `nextRunNumber`,
   `nextMessagePosition`, `messageCount` (what it holds, lowered by Retry), `isFull` (see
-  Attachments), `deletedAt`, `createdAt`, `updatedAt` (its last activity). Indexed on `userId`,
+  Attachments), `deletedAt`, `pruneClaimedAt`, `createdAt`, `updatedAt` (its last activity). Indexed on `userId`,
   `organizationId`, `updatedAt`.
   - `activeRunId` is the run in flight, null when idle: a plain UUID rather than a reference,
     because the first send writes the conversation and its run in one mutation, and a reference would
@@ -264,7 +264,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
 - **`ConversationAttachment`**: `id` (made by the client, also the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
   uploaded before the conversation exists), `message` (optional, set when sent), `status`
-  (`UPLOADING` while its slot is reserved, `READY` once its file is stored), `name`, `contentType`,
+  (`UPLOADING` while its slot is reserved, `READY` once its file is stored, `PRUNING` once a prune
+  has claimed it), `name`, `contentType`,
   `size`, `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`, so
   deleting the organization sweeps it with the rest (see Attachments). Indexed on `conversationId`,
@@ -339,8 +340,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   and take the verified `$userId`: creating a conversation, every message and transcript entry,
   runs and their leases, uploads, and pruning (rows, the conversation's `ConversationAttachment` rows
   by `conversationId`, which no reference cascades to, and its Storage folder), when it creates a
-  conversation, the member's
-  conversations deleted over a day ago, with their files. Each milestone adds the operations it
+  conversation, the member's conversations deleted over a day ago, with their files. A prune first
+  claims each conversation, setting `pruneClaimedAt` only where it is still deleted past the window
+  and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
+  win; files and rows go only after the claim. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
 - **Search** is the backend's too: `GET …/conversations/search?q=` runs Data Connect's full-text
@@ -569,8 +572,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   their unsent rows, so a member at the cap is refused before anything reaches Storage, and two
   requests with one id end with one row. Then the object, then the row turned `READY` with the size
   and type confirmed. A reservation still `UPLOADING` after ten minutes is pruned with the expired
-  unsent rows, its object first: the pending object at its path is deleted, and only then the row,
-  which stays, still counted, when the delete fails, to be tried again on the next prune. So a failed
+  unsent rows: it is claimed first, turned from `UPLOADING` to `PRUNING` only while still stale (an
+  upload retry refuses a `PRUNING` row, and its own move to `READY` requires `UPLOADING`), then its
+  pending object is deleted, and only then the row, which stays, still counted, when the delete
+  fails, to be tried again on the next prune. So a failed
   upload holds its slot only that long, and Storage never holds more than the quota's worth of a
   member's unsent files.
 - **Uploads are create-only**, since every replay depends on the bytes never changing: the object is

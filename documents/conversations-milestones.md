@@ -46,7 +46,7 @@ pull request number in the table below.
 | M8 | Rich text and Markdown in core | core, design-system, web | |
 | M9 | Knowledge tools and knowledge links | backend, database, web | |
 | M10 | Mentioning knowledge in the composer | web | |
-| M11 | Team, log and top priority tools | backend, database | |
+| M11 | Team, log and top priority tools | backend, database, web | |
 | M12 | Questions | backend, database, web | |
 | M13 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | |
 | M14 | The dock | web | |
@@ -168,7 +168,8 @@ heavy.
 - The composer, text only: send, Enter and Shift+Enter, disabled while a run goes. Drafts: "New
   conversation" opens `/conversations/<createId()>?isNew=true`, the first send creates it, then
   `isNew` leaves the address as knowledge's does.
-- Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
+- Tests (database mocked): the sweeper claiming a conversation before deleting it, and a restore
+  refused once it is claimed; claiming twice, an expired lease, fencing, finishing only the active run,
   busy, an unclear and a definite queueing failure, both leaving the run queued for the retry to
   enqueue, a dead run finalized, a send retried with the
   same `messageId`, a fourth run refused, a conversation without room for a run refused, an empty, a
@@ -242,6 +243,10 @@ A refactor and two pure functions, no visible change.
     null rows, enough for the occasional write from an old bundle. When null rows remain after that,
     the result says the index is still being built and the search may be incomplete, so the model
     can retry later or read the documents it already knows.
+  - Both the backfill and the on-demand reindex write `contentText` only where the document's
+    `revision` is still the one they read, so an edit that lands in between, which nulls
+    `contentText` again, is never overwritten with text from the content before it; a conflict stays
+    null for the next pass. Tests cover an edit landing between the read and the write.
   - If the collaborative documents branch has changed how content is stored by then, `contentText`
     follows its writes instead.
 - Creating keeps the knowledge cap as `CreateDocument` does: the backend's create locks the
@@ -276,6 +281,8 @@ A refactor and two pure functions, no visible change.
 - Backend-connector operations reading the team (as `GetOrganizationTeam` does, without emails) and
   the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
   converted with `richTextToMarkdown`.
+- The three tools' labels in the `conversation` catalogue, running and done ("Reading your team",
+  "Reading the log", "Setting your top priority"), and `bun run translate`.
 - `set_top_priority`, through one backend mutation `SetTopPriorityForAgent($organizationId,
   $userId, $topPriority, $date)`: it checks membership, writes the member's own `topPriority`
   (through `markdownToRichText`, held to the Today page's two limits, `MAX_TOP_PRIORITY_TEXT_LENGTH`
@@ -359,8 +366,9 @@ A refactor and two pure functions, no visible change.
   message whose counted tokens pass 700000; an oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a member at the cap refused before
   any byte is stored, again and again with new ids; a stale reservation pruned; a retried upload
-  finishing its reservation; two sent at once with one id ending with one row; a placeholder replayed
-  byte for byte; a conversation marked full.
+  finishing its reservation; a retry refused once a prune has claimed its row, and a prune never
+  deleting the object of a row that became `READY`; two sent at once with one id ending with one
+  row; a placeholder replayed byte for byte; a conversation marked full.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
 ### M16: Attachments in the composer and the thread

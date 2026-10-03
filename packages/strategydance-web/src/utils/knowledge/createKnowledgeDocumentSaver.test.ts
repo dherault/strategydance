@@ -172,6 +172,24 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual(['create Plan|||false'])
   })
 
+  it("fails a draft's create when its text could not be opened, rather than wait for good", async () => {
+    const { calls, writes } = createWrites()
+    const failed = Promise.reject(new Error('The editor could not load'))
+
+    failed.catch(() => undefined)
+
+    const { text } = createText({ ready: failed })
+    const saver = createSaver({ documentId: 'd34', fields: BLANK, isStored: false, writes, text })
+    track(saver)
+
+    saver.change({ title: 'Plan' })
+
+    expect(await saver.flush()).toBe(false)
+    expect(calls).toEqual([])
+    expect(saver.getStatus()).toBe('error')
+    expect(saver.hasUnsaved()).toBe(true)
+  })
+
   it('creates a draft with its text and the snapshot of it', async () => {
     const { writes } = createWrites()
     const saver = createSaver({ documentId: 'd24', fields: BLANK, isStored: false, writes })

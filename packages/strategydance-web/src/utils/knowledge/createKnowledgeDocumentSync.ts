@@ -191,11 +191,17 @@ function createKnowledgeDocumentSync({
   let createdVector: Uint8Array | null = null
   // A push that arrived before the document was ready, merged once it is
   let earlyLive: LiveKnowledgeDocumentText | null | undefined
-  // Settled once the document is ready, for a draft's create to wait on
+  // Settled once the document is ready, for a draft's create to wait on, or failed with the first
+  // start that failed, so that a create waiting on it fails rather than waits for good
   let markReady = () => {}
-  const ready = new Promise<void>(resolve => {
+  let markFailed: (error: unknown) => void = () => {}
+  const ready = new Promise<void>((resolve, reject) => {
     markReady = resolve
+    markFailed = reject
   })
+
+  // Nothing need wait on it for its failure to be handled
+  ready.catch(() => undefined)
   const appliedIds = new Set<string>()
   // The updates the server holds beside the snapshot, as last read or pushed
   let pendingIds: string[] = []
@@ -374,6 +380,7 @@ function createKnowledgeDocumentSync({
   function start(stored: StoredKnowledgeDocumentText | null) {
     starting ??= begin(stored).catch(error => {
       starting = null
+      markFailed(error)
 
       throw error
     })

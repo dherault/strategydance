@@ -668,6 +668,7 @@ describe('createKnowledgeDocumentSync', () => {
     const { sync, writes } = createTab(server)
 
     await expect(sync.start(await writes.read())).rejects.toThrow()
+    await expect(sync.whenReady()).rejects.toThrow()
 
     await wait(10)
     await sync.flushAndCompact()

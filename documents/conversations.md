@@ -272,9 +272,12 @@ New tables in `schema.gql`, each commented as the existing ones are:
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`,
   where `organizations/{organizationId}` is `buildOrganizationStoragePrefix`'s canonical form (hyphens
   removed, as `deleteOrganization` sweeps it), never the route's raw parameter, so deleting the
-  organization sweeps it with the rest (see Attachments). Indexed on `conversationId`,
-  for pruning and the conversation's budget, and on `userId`, `organizationId`, `createdAt`, for the
-  quota's count of unsent rows and their pruning.
+  organization sweeps it with the rest (see Attachments). Every lookup, budget and prune matches
+  `conversationId` together with `userId` and `organizationId`: a draft's id is reserved by nothing,
+  so another member who learned it could make rows under it, and an upload is also refused when a
+  conversation with that id exists and is not the caller's. Indexed on those three, for pruning and
+  the conversation's budget, and on `userId`, `organizationId`, `createdAt`, for the quota's count of
+  unsent rows and their pruning.
 
 Limits go in strategydance-core beside the others. Per member and organization:
 `MAX_CONVERSATIONS` (1000), `MAX_ACTIVE_RUNS_PER_MEMBER` (3), `MAX_PENDING_CONVERSATION_ATTACHMENTS`
@@ -333,8 +336,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
     position, bodies included, read once when the reader scrolls up to them. History changes only by Retry's
     deletions, and every Retry bumps the conversation's `historyRevision`, which the live
-    `GetConversation` carries: each tab seeing it change refetches the history pages it holds, so a
-    deleted run disappears in every tab, not only the one that retried.
+    `GetConversation` carries: each tab seeing it change rebuilds what it holds from the fresh tail
+    and its history pages fetched again, dropping every entry neither returns, so a deleted run
+    disappears in every tab, entries it kept from an older tail included, not only in the one that
+    retried.
   - `GetConversationRun($organizationId, $conversationId)`, live: the latest run (the highest
     `number`), with its status, trigger, step, `createdAt`, `startedAt` and
     `leaseExpiresAt`; the indicator times a queued run from `createdAt`. Progress lines and lease
@@ -436,10 +441,13 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
-  seconds) outlasts the lease. The claim, and every fenced write after it, also require the member's
-  current membership in the conversation's organization, so removing a member stops their runs at
-  the next step: no more of the organization's context goes to Claude, and no tool runs for them.
-  Such a run is left to expire, and is finalized as interrupted if they are ever invited back.
+  seconds) outlasts the lease. The claim, and every fenced write after it, also require the
+  membership the run was started under: the run records its `UserOrganization` row's `createdAt`
+  (`membershipCreatedAt`), and every check matches it, so removing a member stops their runs at the
+  next step (no more of the organization's context goes to Claude, and no tool runs for them), and
+  a member invited back, whose new row has a new `createdAt`, never passes for an old run. A worker
+  that finds the membership gone or changed finalizes the run there as interrupted, in a write
+  fenced on the run alone, with its note, so no delivery is left for a re-invitation to resume.
 - **Fencing.** Every worker mutation starts with `conversationRun_updateMany(where: { id, status: {
   eq: RUNNING }, attempts: { eq: $attempt } })` under `@check(this == 1)`, so a worker whose run was
   finalized or claimed again writes nothing more. It is the run row's only write in the mutation (a
@@ -662,7 +670,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   unsent rows: it is claimed first, turned from `UPLOADING` to `PRUNING` only while still stale (an
   upload retry refuses a `PRUNING` row, and its own move to `READY` requires `UPLOADING`), then its
   pending object is deleted, and only then the row, which stays, still counted, when the delete
-  fails, to be tried again on the next prune. So a failed
+  fails, to be tried again on the next prune. Each upload runs that prune for the caller before it
+  counts, and the daily sweep is the fallback for a member who never uploads again. So a failed
   upload holds its slot only that long, and Storage never holds more than the quota's worth of a
   member's unsent files.
 - **Uploads are create-only**, since every replay depends on the bytes never changing: the object is
@@ -707,8 +716,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   input tokens, it marks the conversation full, and the send route refuses new messages with
   `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and the worker measures
   again before the retried request, setting it back only if the shortened request is still too
-  large, so a retry that brings it under the limits frees the conversation. The service gets `--memory 2Gi` and `--concurrency 20`, measured on
-  the heaviest conversation, since a request holds its files several times over.
+  large, so a retry that brings it under the limits frees the conversation. A request holds its
+  files about four times over (the bytes, their base64, the JSON body, the SDK's copy), and twenty
+  at once at the limit would pass any sensible instance, so memory is bounded per instance rather
+  than sized from one conversation: before building a request, the worker reserves four times its
+  measured body from a budget of 1 GiB per instance, and waits for budget when it is spent,
+  renewing its lease meanwhile. With `--memory 2Gi` and `--concurrency 20`, that leaves the rest
+  for the runtime and the other routes, however many heavy requests arrive at once.
 
 ### The agent
 

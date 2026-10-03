@@ -65,11 +65,15 @@ The data model and the web connector's operations, with nothing yet using them.
 
 - The five tables and their enums, as The data describes, commented in `schema.gql`'s style, with
   `@searchable(language: "simple")` on `Conversation.title` and `ConversationMessage.text` (check
-  that the emulator takes `simple`, and fall back to `english` otherwise); Chinese and Japanese go
-  through the substring path conversations.md describes, since no text search configuration splits
-  them. All additive, so the release migrates by itself.
-- The web connector's operations, as Who writes what lists them. No backend operation yet: each
-  milestone adds the ones it calls.
+  that Data Connect and the emulator take `simple`; if not, every search takes the bounded substring
+  path until a configuration that does not stem is available, never `english`, which stems, so
+  "run" would match "running", and changes the other languages); Chinese and Japanese go through
+  the substring path conversations.md describes, since no text search configuration splits them. All additive, so the release migrates by itself.
+- The web connector's operations, as Who writes what lists them, selecting only the fields M1's
+  tables hold: a field a later milestone adds (M21's approval fields, for one) joins the selections
+  in that milestone, and so do the refreshes naming its mutations, since selections and refreshes
+  grow without breaking the connector. Variables do not, so each operation takes its final
+  variables now. No backend operation yet: each milestone adds the ones it calls.
 - The limits, error codes and gate in strategydance-core, and `buildConversationPreview` there,
   with tests.
 - In `CLAUDE.md` § The database: the transcript is backend-only and append-only, with one exception
@@ -135,7 +139,8 @@ The data model and the web connector's operations, with nothing yet using them.
   own one-second timer (`useNow` ticks once a minute), and the missing conversation's state.
 - The live tail and the older pages (`GetConversationMessagesBefore`) loaded as the reader scrolls
   up, merged into one thread by a utility with tests: a tail that slides past the pages it meets
-  keeps every entry, and a gap between them is fetched. Each message's body is read once by id
+  keeps every entry, a gap between them is fetched, and a `historyRevision` change from another
+  tab's Retry drops the retried run's entries kept from an older tail. Each message's body is read once by id
   through `GetConversationMessageBodies` and kept by id, a placeholder line standing in meanwhile.
 - `MarkConversationRead` when the page shows a conversation with unread replies.
 - Verify: the seeded conversations against the design at both widths; switching organization on a
@@ -166,7 +171,8 @@ process. No queue and no composer yet: a script sends, and the page from M4 show
 - A script under `scripts/` signs in to the Auth emulator and sends through the route, which is how
   this milestone is driven before the composer.
 - Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
-  busy, a dead run finalized, a send retried with the same `messageId`, a fourth run refused, a
+  a removed member's run finalized by the worker at its next step, and one whose member was invited
+  back before its delivery never resuming, busy, a dead run finalized, a send retried with the same `messageId`, a fourth run refused, a
   conversation without room for a run refused, an empty, a blank and an over-long message refused.
   Against the emulators, a script under `scripts/` sends from two conversations at once with two
   runs already in flight, and exactly one goes through.
@@ -431,8 +437,12 @@ A refactor and two pure functions, no visible change.
   pages, copies each file into
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
-- `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, both measured before the release.
-- Tests: blocks built from each type; one attachment uploaded and sent twice with its ids spelled
+- `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, and the worker the per-instance
+  budget of request bodies (1 GiB, four times each measured body); a load test sends twenty
+  maximum-size requests to one instance at once and watches memory stay under the limit.
+- Tests: blocks built from each type; another member's upload under a draft's id neither counted in
+  its budget nor pruned with it, and an upload under somebody else's conversation refused; one
+  attachment uploaded and sent twice with its ids spelled
   with and without hyphens, stored as one object and one copy; the budget refused; a text file over its length refused, and a
   message whose counted tokens pass 700000; an oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a member at the cap refused before
@@ -453,7 +463,8 @@ A refactor and two pure functions, no visible change.
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, `configRevision` (see below), the key encrypted with Cloud KMS and its
-  last four characters, how the key is sent (`apiKeyScheme`: `BEARER`, as `Authorization: Bearer
+  last four characters, `keyGeneration` (bumped whenever the key is replaced), how the key is sent
+  (`apiKeyScheme`: `BEARER`, as `Authorization: Bearer
   <key>`, the default, or `HEADER`, the key alone in the header `apiKeyHeader` names, such as
   `X-API-Key`, validated as an HTTP token of at most 64 characters and refused when it is a header
   the client sets itself or one proxies act on: `Host`, `Content-Length`, `Content-Type`, `Cookie`,
@@ -506,7 +517,7 @@ A refactor and two pure functions, no visible change.
 ### M20: Integrations: members connect their accounts
 
 - `IntegrationConnection`, one per member and server: the account's label, tokens encrypted, expiry,
-  status. Pending authorizations: references to the initiating member and integration (all the
+  status, and `generation`, bumped on every connect and kept by a refresh. Pending authorizations: references to the initiating member and integration (all the
   unauthenticated callback has is `code` and `state`), a unique, random 256-bit `state`, the PKCE
   verifier encrypted, an expiry. The callback consumes the authorization first, deleting it by
   `state` under `@check(this == 1)`, before exchanging the code, so a replayed or concurrent callback
@@ -540,9 +551,10 @@ A refactor and two pure functions, no visible change.
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
 - **The schema change**, additive, with `APPROVAL` appended to the kinds: `ConversationMessage` gains
   `integration` (an optional reference, nulled if the server is pruned), `integrationName` (at call
-  time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), `approvalConfigRevision`
-  and `approvalToolHash` (see below), and
-  `argumentsPreview` (display text, cut to 2000 characters), which the live tail selects; the
+  time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), `approvalConfigRevision`,
+  `approvalToolHash` and `approvalCredentialGeneration` (see below), and
+  `argumentsPreview` (display text, cut to 2000 characters), the live tail selecting the state and
+  `GetConversationMessageBodies` the rest, both extended here; the
   warning strip matches the live integrations list by `integration`, never by name. A preview
   authorizes nothing, since what matters can sit past its cut: Allow opens a dialog showing the
   complete stored `toolInput` (`GetConversationToolCall` reads a pending call too), whose own Allow
@@ -557,14 +569,17 @@ A refactor and two pure functions, no visible change.
   and reach they accept from anything the agent reads. At the cap, an approval that would leave
   less than a run's room and one more is refused as a question is (see A run), tested at the same
   boundary, answered and skipped by a send.
-- **An approval is bound to the server and the tool it showed.** The entry records the integration's
-  `configRevision` and the hash of the tool's definition (as `autoApprovedTools` hashes it) when it
-  is drawn. Allow checks both against the integration as it is, and so does the continuation right
-  before the call, so a change of address, authentication or issuer, or a refresh that changes the
-  tool, never lets an approval given for one server run against another: on a mismatch the approval
+- **An approval is bound to the server, the tool and the credential it showed.** The entry records
+  the integration's `configRevision`, the hash of the tool's definition (as `autoApprovedTools`
+  hashes it) and `approvalCredentialGeneration`, the generation of what will make the call: the
+  key's `keyGeneration` on a key-based server, the member's connection's `generation` on an OAuth
+  one. Allow checks all three against the integration as it is, and so does the continuation right
+  before the call, so a change of address, authentication or issuer, a refresh that changes the
+  tool, a replaced key or a reconnect to another account never lets an approval given for one run
+  as another (a token refresh keeps the generation, and the approval): on a mismatch the approval
   is marked denied and the call answered as refused, saying the integration changed since it was
   proposed, so the model can propose it again. Tested at Allow and at the call, for an address
-  change and for a changed definition.
+  change, a changed definition, a replaced key and a reconnect, and a token refresh passing.
 - **A waiting approval counts as a waiting question everywhere**: `GetConversations`' attention check
   also matches an `APPROVAL` whose `approvalState` is `PENDING` on a `WAITING` run, so it raises
   "Needs your answer", the sidebar badge and the minimized window's dot; inserting one adds to

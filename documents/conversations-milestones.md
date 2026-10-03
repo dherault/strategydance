@@ -101,7 +101,8 @@ The data model and the web connector's operations, with nothing yet using them.
 - The `conversation` message type (its module and its `MESSAGE_TYPES` entry), registered in
   `_app.tsx`'s `APP_MESSAGE_TYPES`.
 - Sidebar: the "Reflection" group with Conversations and Knowledge, Conversations staff only, its
-  badge (a `badge` prop on `NavigationLink`, drawn with `SidebarMenuBadge`, with an accessible label).
+  badge (a `badge` prop on `NavigationLink`, drawn with `SidebarMenuBadge`, with an accessible label),
+  fed by `useConversationsAwaitingAnswer`, never by the full list.
 - `_app/conversations.tsx`, the parent layout route holding the release bouncer around its
   `<Outlet />`, as `administration.tsx` holds `AdministrationBouncer`, so every page under
   `/conversations/` is gated by it. Under it, `_app/conversations.index.tsx`, its waiter keyed on the organization's
@@ -370,7 +371,8 @@ A refactor and two pure functions, no visible change.
   or writes something; and a single-choice answer is exactly one of the two, an option or its own
   words, as the radios draw it.
 - The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
-  sidebar badge, and questions in previews.
+  sidebar badge, and questions in previews, all read from `isAwaitingAnswer`, which ending a run
+  `WAITING` sets and consuming its turn clears.
 - Tests: an `ask_user` call whose prompt or one option is a character past its bound refused before
   anything is drawn, and one at the bounds drawn; an unknown, repeated or second option for a
   single-choice question refused, an empty answer refused, a long `other` refused, an option and own words together on a single-choice
@@ -396,7 +398,8 @@ A refactor and two pure functions, no visible change.
   position 0 before the member's message, so the first send stays atomic and a retry finds it whole;
   in the transcript, the suggestion carried in the first user entry, never as an assistant entry
   (see The agent).
-- The aspect page's Conversations section above Knowledge, as designed, and "New conversation"
+- The aspect page's Conversations section above Knowledge, as designed, through
+  `useAspectConversations` (`GetAspectConversations`), and "New conversation"
   tagged with the aspect.
 - Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not;
   start a suggestion and see it leave the cards.
@@ -408,8 +411,9 @@ A refactor and two pure functions, no visible change.
   key, holding a map keyed by `${userId}:${organizationId}`, since neither is known when `Wrap`
   mounts.
 - The dock in `AppLayout`, inside `SidebarProvider` after `SidebarInset`, `z-40`, hidden on mobile
-  and on the conversation page: windows, the "+N" menu, focus, Escape, unread counts and
-  `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list,
+  and on the conversation page: windows, read through `useDockConversations`
+  (`GetDockConversations`, only the conversations its windows hold), the "+N" menu, focus, Escape,
+  unread counts and `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list,
   the page and the cards.
 - Toasts move out of the dock's corner app-wide (Sonner's `position`), checked on a screenshot.
 - Utilities with tests: how many windows fit.
@@ -425,10 +429,11 @@ A refactor and two pure functions, no visible change.
   reservation.
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
-  Claude's image limits and a PDF's page count: the row reserved `UPLOADING` under the membership
-  lock, the object streamed under `pending/` with a generation-match-zero precondition, the row
-  turned `READY`; stale reservations pruned after ten minutes; deleting a pruned conversation's
-  folder.
+  Claude's image limits and a PDF's page count, kept in `pageCount`: the row reserved `UPLOADING`
+  under the membership lock, the object streamed under `pending/` with a generation-match-zero
+  precondition, the row turned `READY`; stale reservations pruned after ten minutes; deleting a
+  pruned conversation's folder. `DELETE …/attachments/:attachmentId` for the caller's own unsent
+  file, idempotent, through the prune's claim-then-delete.
 - The bucket's lifecycle rule deleting `pending/` objects older than two days, applied with gcloud
   like the CORS rule (a human step, written down beside `storage.cors.json`).
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
@@ -440,7 +445,9 @@ A refactor and two pure functions, no visible change.
 - `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, and the worker the per-instance
   budget of request bodies (1 GiB, four times each measured body); a load test sends twenty
   maximum-size requests to one instance at once and watches memory stay under the limit.
-- Tests: blocks built from each type; another member's upload under a draft's id neither counted in
+- Tests: removing an unsent file freeing its slot at once, removing it twice answering the same,
+  and a sent one refused; the 300-page total summed from stored `pageCount`s without reading a
+  file; blocks built from each type; another member's upload under a draft's id neither counted in
   its budget nor pruned with it, and an upload under somebody else's conversation refused; one
   attachment uploaded and sent twice with its ids spelled
   with and without hyphens, stored as one object and one copy; the budget refused; a text file over its length refused, and a
@@ -454,10 +461,11 @@ A refactor and two pure functions, no visible change.
 
 ### M18: Attachments in the composer and the thread
 
-- The "+" menu's "Files and images", paste, the tray with upload progress, image shrinking, the
-  budget's message; the thread's thumbnails fetched from `GET …/attachments/:attachmentId` with the
+- The "+" menu's "Files and images", paste, the tray with upload progress and a remove button
+  calling `DELETE …/attachments/:attachmentId`, image shrinking, the budget's message; the thread's thumbnails fetched from `GET …/attachments/:attachmentId` with the
   caller's tokens and shown as object URLs, file chips, the image dialog.
-- Verify: attach each type from the composer and ask about it; reach the conversation's budget.
+- Verify: attach each type from the composer and ask about it; add and remove thirty files and
+  attach again; reach the conversation's budget.
 
 ### M19: Integrations: the organization's servers
 
@@ -580,8 +588,8 @@ A refactor and two pure functions, no visible change.
   is marked denied and the call answered as refused, saying the integration changed since it was
   proposed, so the model can propose it again. Tested at Allow and at the call, for an address
   change, a changed definition, a replaced key and a reconnect, and a token refresh passing.
-- **A waiting approval counts as a waiting question everywhere**: `GetConversations`' attention check
-  also matches an `APPROVAL` whose `approvalState` is `PENDING` on a `WAITING` run, so it raises
+- **A waiting approval counts as a waiting question everywhere**: its run ends `WAITING`, which sets
+  `isAwaitingAnswer`, so it raises
   "Needs your answer", the sidebar badge and the minimized window's dot; inserting one adds to
   `unreadCount`; and its preview reads "Approval: Stripe · create_payment_link".
 - **Sending while an approval waits denies it**: the new user entry first answers the pending call

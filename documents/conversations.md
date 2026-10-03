@@ -216,7 +216,9 @@ New tables in `schema.gql`, each commented as the existing ones are:
   is stored), `user`, `organization` (both references, as `TaskList` has them, so a member removed
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
-  started from), `activeRunId`, `preview` and `previewMessageId`, `unreadCount`, `nextRunNumber`,
+  started from), `activeRunId`, `isAwaitingAnswer` (set by the write that ends a run `WAITING`,
+  cleared by the one that consumes its turn, both of which write the row anyway), `preview` and
+  `previewMessageId`, `unreadCount`, `nextRunNumber`,
   `nextMessagePosition`, `messageCount` (what it holds, lowered by Retry), `historyRevision` (bumped
   by Retry), `isFull` (see
   Attachments), `deletedAt`, `pruneClaimedAt`, `createdAt`, `updatedAt` (its last activity). Indexed on `userId`,
@@ -268,7 +270,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
   uploaded before the conversation exists), `message` (optional, set when sent), `status`
   (`UPLOADING` while its slot is reserved, `READY` once its file is stored, `PRUNING` once a prune
   has claimed it), `name`, `contentType`,
-  `size`, `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
+  `size`, `pageCount` (a PDF's pages, counted when it is stored, null for other files), `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`,
   where `organizations/{organizationId}` is `buildOrganizationStoragePrefix`'s canonical form (hyphens
   removed, as `deleteOrganization` sweeps it), never the route's raw parameter, so deleting the
@@ -303,14 +305,20 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   `GetOrganizationDocuments` does, the list, the conversation, its history, its run, a tool call and
   both searches alike; only `RestoreConversation` reaches a deleted one. The backend's routes refuse a
   deleted conversation too, and its worker stops at its next write once the conversation is deleted):
-  - `GetConversations($organizationId)`, live: the list, the dock and the badge, `limit: 1000`,
-    ordered by `updatedAt` then `id` (a query without a limit stops at 100). Each conversation's
-    fields, `preview` included, and whether a question waits:
-    `conversationMessages_on_conversation(where: { kind: { eq: QUESTION }, answeredAt: { isNull:
-    true }, run: { status: { eq: WAITING } } }, limit: 1) { id }`, so a question stranded by a failed
-    run does not count. It refreshes on run start and finish, message inserts, create, delete,
-    restore, aspects and read, on `mutation.variables.userId == request.auth.uid &&
-    mutation.variables.organizationId == request.variables.organizationId`.
+  - `GetConversations($organizationId)`, live, read by the conversations page alone: the list,
+    `limit: 1000`, ordered by `updatedAt` then `id` (a query without a limit stops at 100), each
+    conversation's fields, `preview` and `isAwaitingAnswer` included. It refreshes on run start and
+    finish, message inserts, create, delete, restore, aspects and read, on
+    `mutation.variables.userId == request.auth.uid && mutation.variables.organizationId ==
+    request.variables.organizationId`, as the next three do.
+  - The app-wide reads stay small, so a message insert never sends a thousand rows to every tab:
+    `GetConversationsAwaitingAnswer($organizationId)`, live, for the sidebar's badge and the dock's
+    "+N" dot, the ids of the member's conversations with `isAwaitingAnswer` (`limit: 100`),
+    refreshed only by what sets or clears it (a run ending, a waiting turn consumed) and by delete
+    and restore; `GetDockConversations($organizationId, $ids)`, live, for the dock, the conversations
+    its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
+    `isAwaitingAnswer`; and `GetAspectConversations($organizationId, $aspect)`, live, for the aspect
+    page's section, its latest four, three drawn and the fourth saying older ones exist.
   - Every live conversation query, this one, `GetConversation` and `GetConversationRun`, also
     refreshes on `RemoveOrganizationMember` and `DeleteOrganization`, on their `organizationId`, as
     `GetOrganizationDocuments` does: filtering on current membership only protects the next read, so
@@ -555,7 +563,8 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   entry's tool calls: a call whose message exists but which never started is handled as Recovery and
   side effects says, and a call that had no message yet gets one and runs like any other.
 - **Ending.** One mutation: the fenced write gives the run its status, `endedAt` and usage, and the
-  conversation's `activeRunId` is cleared, only where it still names this run.
+  conversation's `activeRunId` is cleared, only where it still names this run, in the same write
+  that sets `isAwaitingAnswer` when the run ends `WAITING`.
 
 ### The transcript
 
@@ -613,7 +622,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Consuming a waiting turn.** A send and the last answer can race for the same waiting turn, so
   every mutation that starts a run on one (the answer's continuation, or a send) moves the waiting
   run out of `WAITING` under `@check(this == 1)`, as its only write to that run, together with taking
-  the conversation's `activeRunId`. Whichever commits first starts the run and builds the results
+  the conversation's `activeRunId` and clearing its `isAwaitingAnswer`, in one write to that row. Whichever commits first starts the run and builds the results
   from the questions' states at that moment; the other finds the turn consumed: a send gets
   `ERROR_CODE_CONVERSATION_BUSY` and is retried by the browser, an answer's continuation does nothing,
   its answer already sent with the winner's results. A script under `scripts/` races an answer
@@ -684,8 +693,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Claude's limits are checked here, not in the browser**, whose shrinking is a convenience: an
   image over 5 MB or 8000 pixels on a side (read from its header), or in a format Claude does not
   take, is refused, since a stored file Claude refuses would fail every later request of its
-  conversation. So is a PDF over 100 pages, counted from its page tree, and sending refuses files
-  that would take a conversation's PDFs past 300 pages in all, since every replay carries them all.
+  conversation. So is a PDF over 100 pages, counted from its page tree when it is stored and kept in
+  `pageCount`, and sending refuses files that would take a conversation's PDFs past 300 pages in
+  all, summing the stored counts of its sent PDFs and the new ones, so nothing is parsed twice,
+  since every replay carries them all.
   Claude takes up to 600 pages a request on a 1M-token model such as Opus 5.5 (100 on 200k-token
   ones), which leaves a margin.
 - Every id in an object's name is canonical: parsed as a UUID, then written lowercase without
@@ -701,6 +712,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   mutation that sends the message, each copy under a generation-match-zero precondition (a
   collision of the same size counts as done), so a retried send copies only what is missing. With
   no retry, the row stays unsent, and its pruning deletes its pending object and any copy.
+- **Removing an unsent file** goes through `DELETE …/attachments/:attachmentId`, which the tray's
+  remove button calls: it takes only the caller's own unsent row, matched with its conversation,
+  owner and organization, and runs the prune's claim-then-delete on it at once, so its slot frees
+  straight away rather than in two days. It is idempotent, answering the same when the row is
+  already gone, and refuses a sent file, which only its conversation's deletion removes.
 - **Reading a file goes through the backend too**: `GET …/attachments/:attachmentId` checks that the
   caller is still a member and owns the conversation, and streams the bytes with private cache
   headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
@@ -829,7 +845,7 @@ backend's routes, checked on every action, stop them starting or continuing runs
 worker's claim checks the role again, so a queued run stops too:
 
 - The sidebar item, the aspect page section and the dock show for `user.isAdministrator` only. The
-  sidebar's `useConversations` runs for staff only and never behind a waiter.
+  sidebar's `useConversationsAwaitingAnswer` runs for staff only and never behind a waiter.
 - The routes sit behind a release bouncer that redirects anybody else to `/today`, as
   `AdministrationBouncer` does, mounted once in the parent layout route `_app/conversations.tsx`
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
@@ -891,9 +907,10 @@ adds a section on it to `operations-costs.md`.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 150 entries and the member's list. The tail carries no
-  bodies, about 45 KB at most, and each body is read once by id, so a run of 100 entries sends an
-  open reader a few megabytes of refreshes at most, not hundreds.
+  refreshes the open thread's tail of 150 entries, the dock's few rows, and the list of 1000 only
+  while the conversations page is open; the badge reruns only when a run starts or stops waiting.
+  The tail carries no bodies, about 45 KB at most, and each body is read once by id, so a run of
+  100 entries sends an open reader a few megabytes of refreshes at most, not hundreds.
 - **The member's open editor**: when the agent changes a document the member has open, their next
   save meets the revision check and asks them to reload, as two people editing do today.
 - **Collaborative documents**: the `live-documents` branch, in progress on 2026-10-02, makes

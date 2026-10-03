@@ -310,7 +310,9 @@ codes: `ERROR_CODE_CONVERSATION_BUSY` (a run is already going) and `ERROR_CODE_C
     an open subscription must re-run, and come back empty, the moment its reader is removed or the
     organization is deleted.
   - `GetConversation($organizationId, $id)`, live: one conversation and its latest 150 messages,
-    more than one run can draw (see Room at the cap), so Retry's deletions always fall inside it,
+    more than one run can draw (see Room at the cap), so Retry's deletions usually fall inside it;
+    when aspects notes written during a run push its first entries into a history page, the page
+    drops the retried run's messages there by run id (see Retry),
     newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
     live, so a new entry never sends a long thread again.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
@@ -543,7 +545,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Stop** (`POST …/stop`) sets `stopRequestedAt`. The worker aborts the stream (the turn being
   written is dropped), or lets the calls already running finish and records them, so nothing is left
   in doubt, and cancels the ones not started: they become `CANCELLED`, a `STOPPED` note is added, the
-  run ends `STOPPED`. A dead run is finalized by the route itself.
+  run ends `STOPPED`. A dead run is finalized by the route itself, and so is a run still `QUEUED`,
+  at once and conditionally on its still being queued, so the member can send again straight away;
+  its task, if it is delivered later, finds the run finished and does nothing.
 - **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note: the
   note goes and a run starts. When the transcript's last entry holds unanswered `tool_use` blocks,
   the run executes the calls that never started and the built-in ones that did (their messages go
@@ -665,9 +669,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   (see The transcript), the member (name, job title, role, bio), the organization (name, brief,
   explored aspects), the conversation's aspects and the member's language. The team, the log and
   knowledge come through tools, which keeps it short.
-- **A suggestion's opener** is sent as a first exchange: a user entry "[The member started this
-  conversation from the suggestion “title”.]", then the opener as an assistant entry, then the
-  member's reply.
+- **A suggestion's opener** is never stored as something Claude said, since its text comes from the
+  browser: the backend accepts only a `suggestionId` from `CONVERSATION_SUGGESTION_IDS`, and the
+  title and opener the browser sends with it, in the member's language, bounded in length. The first
+  user entry carries them as the member's context, "[The member started this conversation from the
+  suggestion “title”, which asks: “opener”.]", followed by the member's reply in the same entry. The
+  thread shows the opener as Strategy Dance's first message, which only the member, who chose it,
+  can see.
 - **Tagging aspects**: on a conversation's first run, unless the member set its aspects, a side
   request (structured output, effort `low`, no tools) picks one to three aspects from the first
   exchange. It writes them with the note only where `aspectsSetBy` is still null.
@@ -1074,7 +1082,8 @@ A refactor and two pure functions, no visible change.
   a draft, held in the draft until it is sent; the first message's draft fields (`aspects`,
   `suggestionId`, `title`, `opener`); the opener inserted in the first send's one mutation, at
   position 0 before the member's message, so the first send stays atomic and a retry finds it whole;
-  the synthetic first exchange in the transcript.
+  in the transcript, the suggestion carried in the first user entry, never as an assistant entry
+  (see The agent).
 - The aspect page's Conversations section above Knowledge, as designed, and "New conversation"
   tagged with the aspect.
 - Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not;
@@ -1132,7 +1141,11 @@ A refactor and two pure functions, no visible change.
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, the key encrypted with Cloud KMS and its last four characters, the OAuth
   client it registered, its tools as last listed (annotations included), `autoApprovedTools` (the
-  tools an administrator lets run without the member's approval, empty to begin with), `lastError`,
+  tools an administrator lets run without the member's approval, empty to begin with, each bound to
+  a fingerprint of the definition the administrator reviewed: a hash of its name, description,
+  input schema and annotations; when a refresh of the server's tools changes a definition, its
+  approval is cleared and the tool asks again, so a server cannot keep a name and change what it
+  does), `lastError`,
   `lastUsedAt`, `deletedAt`. The web connector's live list never selects a secret, and says its
   limit (`MAX_INTEGRATIONS`, 50 per organization, refused past that) rather than stopping at the
   default 100 unannounced.

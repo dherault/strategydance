@@ -366,10 +366,14 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   search.
 - **Chinese and Japanese need another path.** The `simple` configuration splits words on spaces and
   punctuation, which Chinese and Japanese text does not use, so it cannot find a word inside a
-  sentence. A query holding CJK characters runs as a case-insensitive substring match instead
-  (`pattern: { like: "%…%", ignoreCase: true }`, escaped), on the same fields, scoped to the
-  member's own conversations, under the same page and result limits; knowledge search does the same
-  on `title` and `contentText` within its 20 candidates. Tests run a search in both languages.
+  sentence. A query holding CJK characters runs as substring matches instead: split on spaces as any
+  query is, each term becomes its own `pattern: { like: "%term%", ignoreCase: true }` filter (Data
+  Connect's `String_Pattern`; `contains` is case-sensitive), escaped, and all of them are required
+  in the same title or the same message's text, so every word still has to appear, and a term
+  without spaces matches as written. It reads the same fields, scoped to the member's own
+  conversations, under the same page and result limits, scanning their rows rather than an index,
+  which their size allows; knowledge search does the same on `title` and `contentText`, also at most
+  20 candidates. Tests run a search in both languages.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
   knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
   `GetOrganizationTeam`'s.
@@ -442,6 +446,13 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   at least `CONVERSATION_RUN_ROOM` positions stay free. Every run start, the send, the answer's
   continuation, Resume and Retry alike, requires that much room, so a run that starts always has
   its hundred, and a conversation without it shows full.
+- **A waiting run keeps its continuation's room.** The run an answer starts needs that room like
+  any other, so a run ends `WAITING` only while `CONVERSATION_RUN_ROOM` positions stay free after its
+  turn, which an aspects note cannot take. A turn whose questions, or M19's approvals, would leave
+  less has them refused, as a call past a limit is: each is drawn as a failed call ("Asking you" for
+  a question), and its result tells the model the conversation is too full to ask the member
+  anything more, so it answers without asking and suggests a new conversation. The run goes on
+  instead of waiting, so every waiting question or approval can be answered.
 - **Concurrency**, bounded rather than metered: at most three runs in flight per member in each
   organization (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the
   queue dispatches at most 50 tasks at once. A run-start mutation locks the member's membership row
@@ -708,7 +719,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - The thread labels each tool from the `conversation` catalogue, running and done: "Searching
   knowledge" and "Searched knowledge", "Opening knowledge" and "Opened knowledge", "Creating
   knowledge", "Updating knowledge", "Reading your team", "Reading the log", "Setting your top
-  priority", "Searching the web".
+  priority", "Searching the web", and "Asking you" for a question refused at the cap (see A run).
 - Integrations go through three fixed tools rather than one tool per server tool, so the tools list
   never changes with what an organization connects, which keeps the transcript valid and the cache
   warm.

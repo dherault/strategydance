@@ -300,7 +300,8 @@ A refactor and two pure functions, no visible change.
 
 ### M12: Questions
 
-- `ask_user`, its `QUESTION` messages, `WAITING` runs with their `pendingToolResults`.
+- `ask_user`, its `QUESTION` messages, `WAITING` runs with their `pendingToolResults`, and the
+  "Asking you" label of a question refused at the cap.
 - `POST …/answers` with `{ messageId, selected, other }`, serialized on the waiting run as The
   transcript describes, and skipping on send. The answer is checked against its stored question
   before anything is recorded, since it goes into Claude's transcript: `selected` holds distinct
@@ -316,7 +317,9 @@ A refactor and two pure functions, no visible change.
   one run; the preview following an answer to the last question shown, and staying put for an
   answer to an earlier one; a skipped question's result; the other tools' results go back with the answers, in
   order; a backend stopping between the last answer and its continuation, finished by the answer
-  sent again and by the reconcile route.
+  sent again and by the reconcile route; at the cap, a turn whose question would leave less than a
+  run's room has it refused, drawn as a failed call, and the run goes on, while one leaving exactly
+  that room waits, and its answer starts the continuation.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
 
@@ -473,7 +476,8 @@ A refactor and two pure functions, no visible change.
   that writes, and a read can carry private text out in its arguments. Injected text can then
   propose an action, never take one, except through an auto-approved tool, which it can get called
   at once with any arguments: the switch says so, and administrators allow only tools whose effects
-  and reach they accept from anything the agent reads.
+  and reach they accept from anything the agent reads. At the cap, an approval that would leave
+  less than a run's room is refused as a question is (see A run), tested at the same boundary.
 - **A waiting approval counts as a waiting question everywhere**: `GetConversations`' attention check
   also matches an `APPROVAL` whose `approvalState` is `PENDING` on a `WAITING` run, so it raises
   "Needs your answer", the sidebar badge and the minimized window's dot; inserting one adds to

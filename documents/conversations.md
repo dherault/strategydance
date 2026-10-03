@@ -390,8 +390,10 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   status: { eq: RUNNING }, attempts: { eq: $attempt } })` and `@check(this == 1)`, so a worker whose
   run was finalized or claimed again writes nothing more. That fenced write is the run row's only
   write in the mutation, since a later one would be skipped: it carries whatever the mutation changes
-  on the run, a lease renewal, a step, or, when the run ends, its terminal status, `endedAt` and
-  usage.
+  on the run, a lease renewal, a step, or, when the run ends, its terminal status and `endedAt`.
+  Usage is checkpointed, not totted up at the end: the mutation that stores an assistant turn writes
+  the run's cumulative `usage` through that fenced write, so a worker that takes a run over after a
+  crash starts from what was already spent, and the credit system bills every request made.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so the send stays
@@ -438,7 +440,11 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   each progress line to `run.step` at most once a second and checking the stop flag every two
   seconds; store the finished assistant turn; draw it as messages; then by `stop_reason`:
   - `end_turn`: done, `COMPLETED`.
-  - `tool_use`: run the turn's tools, four at a time, record each result on its message, store one
+  - `tool_use`: run the turn's tools in transcript order: a run of consecutive read-only built-in
+    calls (`search_knowledge`, `read_knowledge`, `get_team`, `read_log`) goes four at a time, and every
+    write (`create_knowledge`, `update_knowledge`, `set_top_priority`) and every integration call,
+    whose annotations prove nothing, goes alone, in order, so two writes never land in the wrong
+    order. Record each result on its message, store one
     user entry holding every `tool_result` in order, and go round again. A turn runs at most ten
     calls and a run at most fifty (`MAX_TOOL_CALLS_PER_TURN`, `MAX_TOOL_CALLS_PER_RUN`): a call past
     either is not run, and its result tells the model so, so one turn cannot fan out into thousands
@@ -726,6 +732,9 @@ in-process runs):
    in Agent Platform's Model Garden (accept Anthropic's terms), and check the quota for
    `claude-opus-5-5` on `global`. Raise it before M20.
 2. `gcloud services enable aiplatform.googleapis.com cloudtasks.googleapis.com --project strategydance`.
+   Before M6, allow web search for partner models in the organization policy
+   (`constraints/vertexai.allowedPartnerModelFeatures`, which leaves `web-search` off by default), an
+   organization administrator's change, or every request carrying the tool fails.
 3. Grant the runtime service account (the Compute Engine default one, see `CLAUDE.md`)
    `roles/aiplatform.user`, `roles/cloudtasks.enqueuer`, `roles/cloudtasks.viewer` (the queued-run
    check reads tasks, which the enqueuer role does not allow), and `roles/iam.serviceAccountUser` on
@@ -968,10 +977,13 @@ A refactor and two pure functions, no visible change.
     which take `$contentText` as required. The old `CreateDocument` and `UpdateDocumentContent` stay
     for bundles still open from before, with the same variables, and now write `contentText: null`
     alongside the content (their data block is the server's, so the change reaches old bundles too).
-  - Before `search_knowledge` reads the index, the backend reindexes the organization's documents
-    whose `contentText` is null, from their content, a bounded batch at a time, so a write from an
-    old bundle is indexed by the next search rather than left stale. The same pass backfills
-    existing documents, which start null.
+  - Existing documents, which start null, are filled by a backfill script under `scripts/`, run by
+    hand after the release: it pages through null rows in batches and can stop and resume at any
+    point, so no request ever carries it.
+  - Before `search_knowledge` reads the index, the backend reindexes up to 20 of the organization's
+    null rows, enough for the occasional write from an old bundle. When null rows remain after that,
+    the result says the index is still being built and the search may be incomplete, so the model
+    can retry later or read the documents it already knows.
   - If the collaborative documents branch has changed how content is stored by then, `contentText`
     follows its writes instead.
 - Creating keeps the knowledge cap as `CreateDocument` does: the backend's create locks the

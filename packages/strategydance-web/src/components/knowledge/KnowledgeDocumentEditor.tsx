@@ -22,11 +22,19 @@ import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import type { KnowledgeDocument, KnowledgeDocumentFields } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useNow from '~hooks/common/useNow'
 import useRichTextEditor from '~hooks/common/useRichTextEditor'
+import useKnowledgeDocumentAwareness from '~hooks/knowledge/useKnowledgeDocumentAwareness'
+import useKnowledgeDocumentPresence from '~hooks/knowledge/useKnowledgeDocumentPresence'
 import useKnowledgeDocumentSaver from '~hooks/knowledge/useKnowledgeDocumentSaver'
+import useKnowledgeDocumentSync from '~hooks/knowledge/useKnowledgeDocumentSync'
+import useLiveKnowledgeDocument from '~hooks/knowledge/useLiveKnowledgeDocument'
+import useUser from '~hooks/user/useUser'
 
+import createId from '~utils/common/createId'
 import writeOptimistically from '~utils/common/writeOptimistically'
+import getPresenceColor from '~utils/knowledge/getPresenceColor'
 
 import Spinner from '~components/common/Spinner'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
@@ -34,6 +42,7 @@ import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumen
 import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
+import KnowledgeDocumentPresences from '~components/knowledge/KnowledgeDocumentPresences'
 import KnowledgeEditedAt from '~components/knowledge/KnowledgeEditedAt'
 import KnowledgeLeaveDialog from '~components/knowledge/KnowledgeLeaveDialog'
 
@@ -51,25 +60,43 @@ type Props = {
 }
 
 /*
-  One document of the organization's knowledge, written in place: its title, the aspects it is
-  about, whether agents may change it, and its text. Nothing has a Save button. Each change goes
-  through the saver once the reader pauses, and whatever is left goes when they leave the page,
-  the tab or the page's fields.
+  One document of the organization's knowledge, written in place, by any number of its members at
+  once: its title, the aspects it is about, whether agents may change it, and its text. Nothing has
+  a Save button. The text is a Yjs document its sync pushes as it is typed and merges others'
+  edits into as they arrive, so two people writing at once each see the other's words. The other
+  fields go through the saver once the reader pauses, and another member's change to one shows here
+  unless the reader has a change of their own to it waiting. Whatever is left goes when they leave
+  the page, the tab or the page's fields.
 
-  The editor is uncontrolled and seeded once, from the document read as the page opened, so the
-  page reads it once too, into state, and nothing that arrives later reaches it. A draft is the
-  same page at the id the document will have: the saver stores it once it has a title or some
-  text, and the address then loses its `isNew`, which keeps this page mounted.
+  The page reads the document whole once, into state, and `GetLiveDocument` tells it of every
+  change after. A draft is the same page at the id the document will have: the saver stores it,
+  text and all, once it has a title or some text, and the address then loses its `isNew`, which
+  keeps this page mounted, and only then does the page follow the live query.
 
   A document emptied of its title and text is deleted as the page goes, as the design has it, and
-  one deleted from the menu can be taken back from the notification for a few seconds
+  one deleted from the menu can be taken back from the notification for a few seconds. One
+  somebody else deleted says so, and nothing on it can be changed until an Undo brings it back
 */
 function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument, draftAspect }: Props) {
   const { formatMessage, formatList, locale } = useIntl()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const now = useNow()
+  const { data: viewer } = useAuthentication()
+  const { data: user } = useUser()
   const { RichTextEditor, hasFailed: hasEditorFailed } = useRichTextEditor()
+  const {
+    sync,
+    isReady: isTextReady,
+    hasFailed: hasTextFailed,
+  } = useKnowledgeDocumentSync({
+    organizationId,
+    documentId,
+    knowledgeDocument,
+  })
+  const awareness = useKnowledgeDocumentAwareness(sync.doc)
+  // This tab, as its presence row names it, and as a discard leaves its own row out
+  const [sessionId] = useState(createId)
 
   const [initial] = useState(() => ({
     fields: {
@@ -78,7 +105,6 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
       aspects: knowledgeDocument?.aspects ?? (draftAspect ? [draftAspect] : []),
       isAiLocked: knowledgeDocument?.isAiLocked ?? false,
     } satisfies KnowledgeDocumentFields,
-    revision: knowledgeDocument?.revision ?? null,
     updatedAt: knowledgeDocument?.updatedAt ?? null,
   }))
   const [title, setTitle] = useState(initial.fields.title)
@@ -86,14 +112,24 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const [isAiLocked, setIsAiLocked] = useState(initial.fields.isAiLocked)
   const [isStored, setIsStored] = useState(knowledgeDocument !== null)
   const [isPickingAspects, setIsPickingAspects] = useState(false)
+  // Whether the live query found the document gone, and when it last says it changed
+  const [isDeletedElsewhere, setIsDeletedElsewhere] = useState(false)
+  const [liveUpdatedAt, setLiveUpdatedAt] = useState<string | null>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const editorRef = useRef<RichTextEditorHandle>(null)
 
-  const { saver, status, savedAt, leave } = useKnowledgeDocumentSaver({
+  const { saver, status, syncStatus, savedAt, leave } = useKnowledgeDocumentSaver({
     organizationId,
     documentId,
+    sessionId,
     fields: initial.fields,
-    revision: initial.revision,
+    isStored,
+    sync,
+    onRemoteChange: fields => {
+      if (fields.title !== undefined) setTitle(fields.title)
+      if (fields.aspects !== undefined) setAspects(fields.aspects)
+      if (fields.isAiLocked !== undefined) setIsAiLocked(fields.isAiLocked)
+    },
     onCreated: () => {
       setIsStored(true)
       navigate({
@@ -106,16 +142,54 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     },
   })
 
-  const updatedAt = savedAt ?? initial.updatedAt
+  useLiveKnowledgeDocument({
+    organizationId,
+    documentId,
+    isEnabled: isStored,
+    onNext: live => {
+      sync.receive(live && { revision: live.revision, updates: live.documentUpdates_on_document })
+      setIsDeletedElsewhere(!live)
+
+      if (!live) return
+
+      saver.receive({ title: live.title, aspects: live.aspects, isAiLocked: live.isAiLocked })
+      setLiveUpdatedAt(live.updatedAt)
+    },
+  })
+
+  // The latest of when this page last saved and when the live query says the document changed
+  const updatedAt =
+    [savedAt, liveUpdatedAt, initial.updatedAt]
+      .filter(value => value !== null)
+      .sort((a, b) => Date.parse(a) - Date.parse(b))
+      .at(-1) ?? null
+  const isGone = isDeletedElsewhere || syncStatus === 'gone'
+  const people = useKnowledgeDocumentPresence({
+    organizationId,
+    documentId,
+    sessionId,
+    awareness,
+    isEnabled: isStored && isTextReady && !isGone,
+    viewerId: viewer?.uid ?? null,
+    flushText: sync.flushStored,
+  })
+  const isShared = people.length > 0
+
+  // Typing goes out sooner while somebody else is there to see it
+  useEffect(() => {
+    sync.setShared(isShared)
+  }, [sync, isShared])
 
   // A new document starts in its title, as one opened to read starts nowhere
   useEffect(() => {
     if (!initial.fields.title && !initial.fields.content) titleRef.current?.focus()
   }, [initial])
 
+  const hasSaveFailed = status === 'error' || syncStatus === 'error'
+
   useEffect(() => {
-    if (status === 'error') toast.error(formatMessage(knowledgeMessages.saveError))
-  }, [status, formatMessage])
+    if (hasSaveFailed) toast.error(formatMessage(knowledgeMessages.saveError))
+  }, [hasSaveFailed, formatMessage])
 
   function changeTitle(value: string) {
     // One line: a paste of several joins them
@@ -125,16 +199,14 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     saver.change({ title: next })
   }
 
-  // Empty has one spelling, the one the server checks a discarded document for. Content too long
-  // to save is the saver's to hold back, and the page says so
+  // Empty has one spelling, the one the server checks a discarded document for. The saver reads it
+  // for a draft and for emptiness, and the sync for whether it is too long to send, which the page
+  // says
   function changeContent({ value, isEmpty }: RichTextEditorChange) {
-    saver.change({ content: isEmpty ? '' : value })
-  }
+    const content = isEmpty ? '' : value
 
-  // What else is left goes first, and a send that fails keeps the page. The words the server
-  // refused are given up on purpose, so leaving does not ask
-  async function reload() {
-    if (await saver.settle()) window.location.reload()
+    saver.change({ content })
+    sync.setContent(content)
   }
 
   function saveAspects(next: CompanyAspect[]) {
@@ -164,7 +236,14 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
     // What was typed goes first, so an Undo brings it back, and a send that fails keeps the
     // document, which the failed send has already said
-    if (!(await saver.settle())) return
+    const [isSaverSettled, isSyncSettled] = await Promise.all([saver.settle(), sync.settle()])
+
+    if (!isSaverSettled || !isSyncSettled) {
+      saver.resume()
+      sync.resume()
+
+      return
+    }
 
     try {
       await writeOptimistically({
@@ -180,6 +259,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     } catch (error) {
       console.error('The document could not be deleted', error)
       saver.resume()
+      sync.resume()
       toast.error(formatMessage(knowledgeMessages.deleteError))
 
       return
@@ -207,8 +287,11 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   }
 
   function renderMeta() {
-    if (status === 'pending' || status === 'saving') return formatMessage(knowledgeMessages.saving)
-    if (status === 'error' || status === 'tooLong' || status === 'full' || status === 'conflict') {
+    if (isGone) return formatMessage(knowledgeMessages.notSaved)
+    if (status === 'pending' || status === 'saving' || syncStatus === 'pending' || syncStatus === 'saving') {
+      return formatMessage(knowledgeMessages.saving)
+    }
+    if (status === 'error' || status === 'tooLong' || status === 'full' || hasSaveFailed || syncStatus === 'tooLong') {
       return formatMessage(knowledgeMessages.notSaved)
     }
     if (!isStored || !updatedAt) return formatMessage(knowledgeMessages.draft)
@@ -233,129 +316,143 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
         >
           {renderMeta()}
         </span>
-        {isStored ? <KnowledgeDocumentMoreMenu onDelete={handleDelete} /> : null}
+        <KnowledgeDocumentPresences people={people} />
+        {isStored && !isGone ? <KnowledgeDocumentMoreMenu onDelete={handleDelete} /> : null}
       </div>
-      {status === 'conflict' ? (
+      {isGone ? (
         <Alert
           variant="warning"
           actions={
             <Button
               variant="outline"
               size="sm"
-              onClick={reload}
+              onClick={() => navigate({ to: '/knowledge' })}
             >
-              {formatMessage(knowledgeMessages.reload)}
+              {formatMessage(knowledgeMessages.goToAll)}
             </Button>
           }
         >
-          {formatMessage(knowledgeMessages.conflict)}
+          {formatMessage(knowledgeMessages.deletedElsewhere)}
         </Alert>
       ) : null}
-      <Textarea
-        ref={titleRef}
-        autosize
-        rows={1}
-        value={title}
-        maxLength={MAX_DOCUMENT_TITLE_LENGTH}
-        placeholder={formatMessage(knowledgeMessages.untitled)}
-        aria-label={formatMessage(knowledgeMessages.titleLabel)}
-        onChange={event => changeTitle(event.target.value)}
-        onKeyDown={event => {
-          if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+      {/* Laid out as if it were not there, so its fields keep the page's gaps */}
+      <div
+        inert={isGone}
+        className="contents"
+      >
+        <Textarea
+          ref={titleRef}
+          autosize
+          rows={1}
+          value={title}
+          maxLength={MAX_DOCUMENT_TITLE_LENGTH}
+          placeholder={formatMessage(knowledgeMessages.untitled)}
+          aria-label={formatMessage(knowledgeMessages.titleLabel)}
+          onChange={event => changeTitle(event.target.value)}
+          onKeyDown={event => {
+            if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
 
-          event.preventDefault()
-          editorRef.current?.focus()
-        }}
-        // Its full size on a touch screen too, where a field's text is otherwise 16px
-        className="h-auto overflow-hidden rounded-none border-0 bg-transparent p-0 font-heading text-5xl pointer-coarse:text-5xl leading-[1.1] font-normal tracking-tight text-secondary placeholder:text-neutral-400 focus:bg-transparent"
-      />
-      <div className="-mt-3 mb-0.5 flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
-        <button
-          type="button"
-          aria-label={
-            aspects.length
-              ? formatMessage(knowledgeMessages.editAspects, {
-                  aspects: formatList(aspectNames, { type: 'conjunction' }),
-                })
-              : undefined
-          }
-          onClick={() => setIsPickingAspects(true)}
-          className="flex h-8 cursor-pointer items-center rounded-xs border-0 bg-transparent px-1 font-sans text-sm text-neutral-600 transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
-        >
-          {aspects.length ? (
-            <KnowledgeDocumentAspectIcons
-              aspects={aspects}
-              size={18}
-              className="gap-2 px-1"
-            />
-          ) : (
-            <span className="px-2">{formatMessage(knowledgeMessages.addAspects)}</span>
-          )}
-        </button>
-        <span
-          aria-hidden="true"
-          className="h-5 w-px bg-border"
+            event.preventDefault()
+            editorRef.current?.focus()
+          }}
+          // Its full size on a touch screen too, where a field's text is otherwise 16px
+          className="h-auto overflow-hidden rounded-none border-0 bg-transparent p-0 font-heading text-5xl pointer-coarse:text-5xl leading-[1.1] font-normal tracking-tight text-secondary placeholder:text-neutral-400 focus:bg-transparent"
         />
-        <Tooltip
-          content={formatMessage(isAiLocked ? knowledgeMessages.lockedTooltip : knowledgeMessages.lock)}
-          side="bottom"
-          // Open through the press, so the reader sees the words change with the lock
-          isKeptOpenOnPress
-        >
-          <Button
-            variant="transparent"
-            size="sm"
-            icon={isAiLocked ? <LockIcon /> : <LockOpenIcon />}
-            aria-label={formatMessage(isAiLocked ? knowledgeMessages.unlock : knowledgeMessages.lock)}
-            aria-pressed={isAiLocked}
-            onClick={toggleAiLock}
-          />
-        </Tooltip>
-      </div>
-      {status === 'full' ? (
-        <p
-          role="alert"
-          className="m-0 text-sm text-danger"
-        >
-          {formatMessage(knowledgeMessages.draftFull, { max: MAX_DOCUMENTS })}
-        </p>
-      ) : null}
-      {status === 'tooLong' ? (
-        <p
-          role="alert"
-          className="m-0 text-sm text-danger"
-        >
-          {formatMessage(knowledgeMessages.tooLong)}
-        </p>
-      ) : null}
-      {RichTextEditor ? (
-        <RichTextEditor
-          ref={editorRef}
-          appearance="document"
-          initialValue={initial.fields.content || null}
-          placeholder={formatMessage(knowledgeMessages.bodyPlaceholder)}
-          aria-label={formatMessage(knowledgeMessages.bodyLabel)}
-          locale={locale}
-          labels={{ turnInto: formatMessage(knowledgeMessages.editorTurnInto) }}
-          onChange={changeContent}
-          className="border-t border-neutral-200"
-        />
-      ) : (
-        // Holds the editor's height and its gutter while it loads, so the page does not jump when it arrives
-        <div className="flex min-h-[360px] items-start gap-2 border-t border-neutral-200 pt-4 text-sm text-muted-foreground max-md:pl-[52px]">
-          {hasEditorFailed ? (
-            formatMessage(knowledgeMessages.editorError)
-          ) : (
-            <>
-              <Spinner
-                size="sm"
-                tone="muted"
+        <div className="-mt-3 mb-0.5 flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
+          <button
+            type="button"
+            aria-label={
+              aspects.length
+                ? formatMessage(knowledgeMessages.editAspects, {
+                    aspects: formatList(aspectNames, { type: 'conjunction' }),
+                  })
+                : undefined
+            }
+            onClick={() => setIsPickingAspects(true)}
+            className="flex h-8 cursor-pointer items-center rounded-xs border-0 bg-transparent px-1 font-sans text-sm text-neutral-600 transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+          >
+            {aspects.length ? (
+              <KnowledgeDocumentAspectIcons
+                aspects={aspects}
+                size={18}
+                className="gap-2 px-1"
               />
-              {formatMessage(knowledgeMessages.loadingEditor)}
-            </>
-          )}
+            ) : (
+              <span className="px-2">{formatMessage(knowledgeMessages.addAspects)}</span>
+            )}
+          </button>
+          <span
+            aria-hidden="true"
+            className="h-5 w-px bg-border"
+          />
+          <Tooltip
+            content={formatMessage(isAiLocked ? knowledgeMessages.lockedTooltip : knowledgeMessages.lock)}
+            side="bottom"
+            // Open through the press, so the reader sees the words change with the lock
+            isKeptOpenOnPress
+          >
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={isAiLocked ? <LockIcon /> : <LockOpenIcon />}
+              aria-label={formatMessage(isAiLocked ? knowledgeMessages.unlock : knowledgeMessages.lock)}
+              aria-pressed={isAiLocked}
+              onClick={toggleAiLock}
+            />
+          </Tooltip>
         </div>
-      )}
+        {status === 'full' ? (
+          <p
+            role="alert"
+            className="m-0 text-sm text-danger"
+          >
+            {formatMessage(knowledgeMessages.draftFull, { max: MAX_DOCUMENTS })}
+          </p>
+        ) : null}
+        {status === 'tooLong' || syncStatus === 'tooLong' ? (
+          <p
+            role="alert"
+            className="m-0 text-sm text-danger"
+          >
+            {formatMessage(knowledgeMessages.tooLong)}
+          </p>
+        ) : null}
+        {RichTextEditor && isTextReady && awareness ? (
+          <RichTextEditor
+            ref={editorRef}
+            appearance="document"
+            collaboration={{
+              doc: sync.doc,
+              awareness,
+              user: {
+                name: user?.displayName || viewer?.displayName || user?.email || viewer?.email || '',
+                color: getPresenceColor(viewer?.uid ?? ''),
+              },
+            }}
+            placeholder={formatMessage(knowledgeMessages.bodyPlaceholder)}
+            aria-label={formatMessage(knowledgeMessages.bodyLabel)}
+            locale={locale}
+            labels={{ turnInto: formatMessage(knowledgeMessages.editorTurnInto) }}
+            onChange={changeContent}
+            className="border-t border-neutral-200"
+          />
+        ) : (
+          // Holds the editor's height and its gutter while it loads, so the page does not jump when it arrives
+          <div className="flex min-h-[360px] items-start gap-2 border-t border-neutral-200 pt-4 text-sm text-muted-foreground max-md:pl-[52px]">
+            {hasEditorFailed || hasTextFailed ? (
+              formatMessage(knowledgeMessages.editorError)
+            ) : (
+              <>
+                <Spinner
+                  size="sm"
+                  tone="muted"
+                />
+                {formatMessage(knowledgeMessages.loadingEditor)}
+              </>
+            )}
+          </div>
+        )}
+      </div>
       {leave.status === 'blocked' ? (
         <KnowledgeLeaveDialog
           onStay={leave.reset}

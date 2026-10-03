@@ -233,3 +233,25 @@ export const MAX_LOG_ENTRY_LENGTH = 50000
 export const MAX_DOCUMENTS = 1000
 export const MAX_DOCUMENT_TITLE_LENGTH = 200
 export const MAX_DOCUMENT_CONTENT_LENGTH = 200000
+
+/*
+  A document's text is a Yjs document, stored as a snapshot in base64 with the updates made since
+  it pending beside it. Yjs encodes text as UTF-8, three bytes a character in Chinese or Japanese,
+  so the 200000 characters of content can come to 600000 bytes, 800000 characters of base64, before
+  Yjs' own structure, and a snapshot also keeps what was deleted as small tombstones: it is held to
+  well past that worst case.
+
+  An update is small, as the live query sends every pending one to every open tab at each push: at
+  most 50000 characters, and at most 100 pending, so a push sends a few megabytes at the very most
+  and a few kilobytes as a rule. An edit too long to push, a long paste say, is folded into the
+  snapshot instead. Once 50 are pending the tab whose push brought them there folds them, and a
+  tab that finds as many as a read takes folds them at once.
+
+  Written out again in `CreateDocument`'s, `SeedDocumentState`'s, `PushDocumentUpdate`'s and
+  `CompactDocument`'s checks and in `GetDocument`'s and `GetLiveDocument`'s limits: change them
+  together
+*/
+export const MAX_DOCUMENT_STATE_LENGTH = 2000000
+export const MAX_DOCUMENT_UPDATE_LENGTH = 50000
+export const DOCUMENT_COMPACTION_THRESHOLD = 50
+export const DOCUMENT_UPDATES_LIMIT = 100

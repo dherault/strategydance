@@ -21,10 +21,11 @@ type Options = {
   document: deleted, in another organization, or an id that is not one, which is answered here
   rather than sent to a server that would only refuse it.
 
-  Read once per visit. The page seeds its editor from it and takes nothing in afterwards, so the
-  answer must never change under it: nothing marks it stale, a return to the tab does not read it
-  again, and it is dropped from the cache the moment the page goes, so the next visit reads what
-  is stored then rather than opening an editor on a copy from before somebody's edits.
+  Read once per visit: its snapshot and the updates pending beside it start the page's text, and
+  `GetLiveDocument` tells the page of every change after, so the answer must never change under
+  it. Nothing marks it stale, a return to the tab does not read it again, and it is dropped from
+  the cache the moment the page goes, so the next visit reads what is stored then rather than
+  opening on a copy from before somebody's edits.
 
   A read that fails is not a missing document: `hasFailed` lets the page offer to try again, and
   it does not retry on mount, for the reason `useOrganizationTeam` gives

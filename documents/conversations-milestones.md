@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The twenty milestones that build the conversations feature, each one pull request into `dev` that a
+The twenty-two milestones that build the conversations feature, each one pull request into `dev` that a
 Claude Code session can implement, with the conventions every one of them follows. What they build,
 and why, is in [conversations.md](conversations.md): the sections named here, such as The data, A
 run, The transcript, The agent and Tools, are that document's. When a milestone merges, write its
@@ -40,22 +40,24 @@ pull request number in the table below.
 | M2 | The Markdown component | design-system | |
 | M3 | Navigation, the list, search and delete, from seeded data | web, backend, database, root | |
 | M4 | The conversation page and its thread, read-only | web | |
-| M5 | Sending, and the run pipeline without a model | backend, database, web, root | |
-| M6 | Claude replies, with web search | backend, database, web | |
-| M7 | Stop, resume, retry, failures and refusals | backend, database, web | |
-| M8 | Rich text and Markdown in core | core, design-system, web | |
-| M9 | Knowledge tools and knowledge links | backend, database, web | |
-| M10 | Mentioning knowledge in the composer | web | |
-| M11 | Team, log and top priority tools | backend, database, web | |
-| M12 | Questions | backend, database, web | |
-| M13 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | |
-| M14 | The dock | web | |
-| M15 | Attachments: storing them and sending them to Claude | backend, database, root | |
-| M16 | Attachments in the composer and the thread | web | |
-| M17 | Integrations: the organization's servers | database, backend, web | |
-| M18 | Integrations: members connect their accounts | database, backend, web | |
-| M19 | Integrations in conversations | database, backend, web | |
-| M20 | Launch | all | |
+| M5 | Runs without a model, in the backend's process | backend, database, root | |
+| M6 | The composer and drafts | web | |
+| M7 | Runs through Cloud Tasks, and the daily sweeper | backend, database, root | |
+| M8 | Claude replies, with web search | backend, database, web | |
+| M9 | Stop, resume, retry, failures and refusals | backend, database, web | |
+| M10 | Rich text and Markdown in core | core, design-system, web | |
+| M11 | Knowledge tools and knowledge links | backend, database, web | |
+| M12 | Mentioning knowledge in the composer | web | |
+| M13 | Team, log and top priority tools | backend, database, web | |
+| M14 | Questions | backend, database, web | |
+| M15 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | |
+| M16 | The dock | web | |
+| M17 | Attachments: storing them and sending them to Claude | backend, database, root | |
+| M18 | Attachments in the composer and the thread | web | |
+| M19 | Integrations: the organization's servers | database, backend, web | |
+| M20 | Integrations: members connect their accounts | database, backend, web | |
+| M21 | Integrations in conversations | database, backend, web | |
+| M22 | Launch | all | |
 
 ### M1: The conversation tables and the web's operations
 
@@ -99,29 +101,30 @@ The data model and the web connector's operations, with nothing yet using them.
 - `_app/conversations.index.tsx` behind the release bouncer, its waiter keyed on the organization's
   id, `useConversations` copying `useOrganizationTeam`'s live pattern (`retryOnMount: false`,
   `hasFailed`).
-- The list: header (New conversation arrives in M5), search (debounced, through the backend's
+- The list: header (New conversation arrives in M6), search (debounced, through the backend's
   search route, which lands here with the conversations router, its member and staff middleware
   and its backend-connector search operations), table, previews worded from `preview`, empty states,
   Delete with confirm and Undo through `DeleteConversation` and `RestoreConversation`.
 - Tests: wording a preview; the search route merging titles and messages, deduplicating by
   conversation, and stopping at 1000 conversations or ten pages; a Chinese and a Japanese query
-  taking the substring path (database mocked).
+  taking the substring path, which reads at most 20000 messages, newest conversations first; a query
+  past 100 characters or 8 terms refused (database mocked).
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
 ### M4: The conversation page and its thread, read-only
 
-- `_app/conversations.$conversationId.tsx`: search param `isNew` validated (`aspect` in M13), and
+- `_app/conversations.$conversationId.tsx`: search param `isNew` validated (`aspect` in M15), and
   `beforeLoad` refusing an id that is not one, as `knowledge.$documentId.tsx` does; a
   `ConversationOrganizationBouncer` copied from `KnowledgeOrganizationBouncer`, back to the list when
   the organization changes; waiters keyed on the organization's id; `useConversation` and
   `useConversationRun`.
 - The page: the bar, the title, the aspects button (on saved conversations: a draft's aspects arrive
-  in M13, sent with its first message); `KnowledgeDocumentAspectsDialog` generalized into an
+  in M15, sent with its first message); `KnowledgeDocumentAspectsDialog` generalized into an
   `AspectsDialog` taking its labels as props; `UpdateConversationAspects`.
 - The thread drawing every kind of entry, read-only: text through `Markdown`, tool calls and their
   output dialog (`GetConversationToolCall`), questions in their answered and skipped states (waiting
-  ones drawn disabled until M12), notes, aspects notes, the thinking indicator from the run with its
+  ones drawn disabled until M14), notes, aspects notes, the thinking indicator from the run with its
   own one-second timer (`useNow` ticks once a minute), and the missing conversation's state.
 - The live tail and the older pages (`GetConversationMessagesBefore`) loaded as the reader scrolls
   up, merged into one thread.
@@ -129,10 +132,52 @@ The data model and the web connector's operations, with nothing yet using them.
 - Verify: the seeded conversations against the design at both widths; switching organization on a
   conversation's page goes back to the list.
 
-### M5: Sending, and the run pipeline without a model
+### M5: Runs without a model, in the backend's process
 
-The member can send, and a placeholder agent answers through the real pipeline. The largest
-milestone, kept whole: the composer is the only way to exercise the pipeline it ships with.
+The send route and the whole run lifecycle, answered by a placeholder agent, in the backend's own
+process. No queue and no composer yet: a script sends, and the page from M4 shows the reply arrive.
+
+- `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
+  suggestion and attachments), validated on the server: `text` trimmed, not empty (M17 allows that
+  with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the
+  conversation (title rule, `MAX_CONVERSATIONS` under the membership lock, pruning what the member
+  deleted over a day ago) with its message, queued run and first transcript entry, in one mutation;
+  a later one locks the conversation and needs room for a run; both hold
+  `MAX_ACTIVE_RUNS_PER_MEMBER` and finalize a dead run; then the run goes to `enqueueRun`: 202 with
+  the run's id. Idempotent on the client-made `messageId`: a retry completes what is missing and
+  answers with the same run.
+- `enqueueRun` starts `runConversation` in the process without waiting, as development keeps doing
+  for good. Until M7 brings the queue, the route refuses in production with a 503 before writing
+  anything, since a run left going after the response would stall once Cloud Run throttles the CPU.
+- `runConversation`: claiming, leases, fencing, finishing, drawing with its cursor and deterministic
+  ids, and a placeholder agent that writes one `AGENT_TEXT` through the code paths M8 uses.
+  `POST …/runs/:runId/reconcile`, which the page calls for a queued run past its lease, finalizing it
+  as interrupted (M7 has it ask Cloud Tasks first). The backend operations for all of it.
+- A script under `scripts/` signs in to the Auth emulator and sends through the route, which is how
+  this milestone is driven before the composer.
+- Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
+  busy, a dead run finalized, a send retried with the same `messageId`, a fourth run refused, a
+  conversation without room for a run refused, an empty, a blank and an over-long message refused.
+  Against the emulators, a script under `scripts/` sends from two conversations at once with two
+  runs already in flight, and exactly one goes through.
+- Verify: locally, send with the script while the conversation's page is open in two tabs, and watch
+  the reply arrive in both; restart the backend mid-run, see the run shown interrupted a minute
+  later, and send again.
+
+### M6: The composer and drafts
+
+- The composer, text only: send, Enter and Shift+Enter, nothing sent while an input method is
+  composing, disabled while a run goes; a send that fails keeps its text and is retried with the
+  same `messageId`. Drafts: "New conversation" opens `/conversations/<createId()>?isNew=true`, the
+  first send creates it, then `isNew` leaves the address as knowledge's does.
+- Verify: locally, start a conversation with "New conversation", send in two tabs and watch the
+  reply arrive; stop the backend, send, and see the text kept, then sent once it is back.
+  Production refuses sends until M7.
+
+### M7: Runs through Cloud Tasks, and the daily sweeper
+
+Google Cloud calling the backend: Cloud Tasks for each run, Cloud Scheduler for the daily sweep, both
+with an OIDC token. Sends work in production from here.
 
 - Dependencies: `@google-cloud/tasks` (the same google-gax stack `@google-cloud/secret-manager`
   already runs under Bun) and `google-auth-library`, declared directly since Bun's isolated install
@@ -141,48 +186,32 @@ milestone, kept whole: the composer is the only way to exercise the pipeline it 
   with M3's search), verifying the OIDC token's audience (`PRODUCTION_API_URL` +
   `/internal/conversation-runs`) and its service account, both backend constants, since Cloud Run
   tells the service neither.
-- `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
-  suggestion and attachments), validated on the server: `text` trimmed, not empty (M15 allows that
-  with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the
-  conversation (title rule, `MAX_CONVERSATIONS` under the membership lock, pruning what the member
-  deleted over a day ago) with its message, queued run and first transcript entry, in one mutation;
-  a later one locks the conversation and needs room for a run; both hold
-  `MAX_ACTIVE_RUNS_PER_MEMBER` and finalize a dead run; then the task is queued: 202 with the run's
-  id. Idempotent on the client-made `messageId`: a retry completes what is missing and answers with
-  the same run.
-- `enqueueRun`: a named task (`run-<runId>`, so a repeat does not queue twice), an OIDC token, a
-  15-minute dispatch deadline; in development, `runConversation` in-process without waiting.
-- `POST /internal/conversation-runs` and `runConversation`: claiming, leases, fencing, the 200 and
-  503 answers, finishing, drawing with its cursor and deterministic ids, and a placeholder agent that
-  writes one `AGENT_TEXT` through the code paths M6 uses. `POST …/runs/:runId/reconcile`, which the
-  page calls for a queued run past its lease. The backend operations for all of it.
+- `enqueueRun` in production: a named task (`run-<runId>`, so a repeat does not queue twice), an OIDC
+  token, a 15-minute dispatch deadline, and the queueing failures A run describes; development keeps
+  running in the process. `POST /internal/conversation-runs` runs `runConversation`, with its 200 and
+  503 answers. The reconcile route asks Cloud Tasks about a queued run's task, pushing its lease back
+  while the task exists and finalizing the run once it is gone.
 - **The daily sweeper**: `POST /internal/sweep`, called once a day by Cloud Scheduler with an OIDC
   token (the shared verifier takes each endpoint's own URL as its audience, Cloud Scheduler's
   default), removes what is still deleted past its Undo window
   whether or not anybody comes back: conversations deleted over a day ago, with their attachment
-  rows and Storage folders; later milestones add stale upload reservations and unsent files (M15)
-  and deleted integrations with their credentials (M17). The prunes done on the way through stay as a
+  rows and Storage folders; later milestones add stale upload reservations and unsent files (M17)
+  and deleted integrations with their credentials (M19). The prunes done on the way through stay as a
   fast path; every step is idempotent.
 - `deploy:backend` gains `--timeout 900`. The welcome email's lease goes from ten minutes to twenty
   (`ClaimWelcomeEmail` and its comment in the backend connector, the `schema.gql` comment,
   `sendWelcomeEmail.ts`), since a request may now run fifteen.
-- The composer, text only: send, Enter and Shift+Enter, disabled while a run goes. Drafts: "New
-  conversation" opens `/conversations/<createId()>?isNew=true`, the first send creates it, then
-  `isNew` leaves the address as knowledge's does.
-- Tests (database mocked): the sweeper claiming a conversation before deleting it, and a restore
-  refused once it is claimed, and a prune that failed after claiming finished by the next sweep;
-  claiming twice, an expired lease, fencing, finishing only the active run,
-  busy, an unclear and a definite queueing failure, both leaving the run queued for the retry to
-  enqueue, a dead run finalized, a send retried with the
-  same `messageId`, a fourth run refused, a conversation without room for a run refused, an empty, a
-  blank and an over-long message refused. Against the
-  emulators, a script under `scripts/` sends from two conversations at once with two runs already in
-  flight, and exactly one goes through.
-- Verify: locally, send in two tabs and watch the reply arrive; restart the backend mid-run, see the
-  run shown interrupted a minute later, and send again. Setup steps 2 to 4 and 6 before the release; then,
-  as staff in production, the same with the task in Cloud Tasks' logs.
+- Tests (database mocked): a token for another audience or service account refused; an unclear and
+  a definite queueing failure, both leaving the run queued for the retry to enqueue; the worker's 200
+  once its run is finished and 503 while another holds the lease; the reconcile route keeping a
+  queued run whose task exists and finalizing one whose task is gone; the sweeper claiming a
+  conversation before deleting it, a restore refused once it is claimed, and a prune that failed
+  after claiming finished by the next sweep.
+- Verify: setup steps 2 to 4 and 6 before the release; then, as staff in production, send and watch
+  the task in Cloud Tasks' logs and the reply arrive, and the sweeper's first run in Cloud
+  Scheduler's.
 
-### M6: Claude replies, with web search
+### M8: Claude replies, with web search
 
 - Dependencies: `@anthropic-ai/vertex-sdk` and the `@anthropic-ai/sdk` it builds on. Mind the
   seven-day install cooldown.
@@ -200,7 +229,7 @@ milestone, kept whole: the composer is the only way to exercise the pipeline it 
 - Verify: setup step 1 and, for development, step 5; ask a question that needs the web and one that
   does not; watch progress lines; check the logs show `input_transformations` empty across turns.
 
-### M7: Stop, resume, retry, failures and refusals
+### M9: Stop, resume, retry, failures and refusals
 
 - Routes `…/stop`, `…/resume`, `…/retry`, as The transcript describes, finalizing dead runs.
 - The worker: aborting on the stop flag, cancelled calls, notes; failures (`FAILED`, the reason in
@@ -212,11 +241,12 @@ milestone, kept whole: the composer is the only way to exercise the pipeline it 
   `tool_use` blocks; retry goes back to the run's anchor, for a files-only message and for an
   answer, and its cut passes `checkTranscript`; retrying many times lowers `messageCount` by what it
   deletes, so it never fills the conversation, and so does stopping and resuming many times;
-  sending after a stop answers the open blocks; a turn
+  Resume hidden, and refused, when removing the note would leave less than a run's room, while
+  Retry still frees it; sending after a stop answers the open blocks; a turn
   with a `fallback` block is stored without the blocks before its boundary.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
 
-### M8: Rich text and Markdown in core
+### M10: Rich text and Markdown in core
 
 A refactor and two pure functions, no visible change.
 
@@ -228,7 +258,7 @@ A refactor and two pure functions, no visible change.
   `MAX_DOCUMENT_CONTENT_LENGTH`.
 - Verify: the four checks; knowledge, the log, priorities and build in public cards draw as before.
 
-### M9: Knowledge tools and knowledge links
+### M11: Knowledge tools and knowledge links
 
 - **A searchable plain text for documents.** `Document` gains `contentText`, the content's plain
   text (`getRichTextText`), `@searchable(language: "simple")` beside a searchable `title`, so
@@ -269,18 +299,19 @@ A refactor and two pure functions, no visible change.
   paragraph, and a text that occurs twice refused;
   search reading the index and loading the plain text of 20 candidates at most; a write through the
   old operations nulling `contentText`, and the next search reindexing it; a Chinese and a Japanese
-  search finding a word inside a document's sentence; Markdown in, the document
+  search finding a word inside a document's sentence, reading the content of the 100 latest
+  documents at most; Markdown in, the document
   draws as written.
 - Verify: ask the agent to write a decision into an existing document, then to create one; open them
   in Knowledge; lock one and ask again.
 
-### M10: Mentioning knowledge in the composer
+### M12: Mentioning knowledge in the composer
 
-- The "+" menu (with "Mention knowledge" only until M16), the `@` list and its keyboard handling,
+- The "+" menu (with "Mention knowledge" only until M18), the `@` list and its keyboard handling,
   mentions sent as `[Title](doc:<id>)`, all as The composer describes.
 - Verify: mention two documents, send, see the links in the bubble and the agent read them.
 
-### M11: Team, log and top priority tools
+### M13: Team, log and top priority tools
 
 - Backend-connector operations reading the team (as `GetOrganizationTeam` does, without emails) and
   the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
@@ -298,7 +329,7 @@ A refactor and two pure functions, no visible change.
   pricing page my priority": the Today page updates without a reload, and the build in public streak
   counts the day once the page is reloaded (`GetActivityDays` is not live).
 
-### M12: Questions
+### M14: Questions
 
 - `ask_user`, its `QUESTION` messages, `WAITING` runs with their `pendingToolResults`, and the
   "Asking you" label of a question refused at the cap.
@@ -323,7 +354,7 @@ A refactor and two pure functions, no visible change.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
 
-### M13: Aspect tagging, suggestions and the aspect page section
+### M15: Aspect tagging, suggestions and the aspect page section
 
 - The tagging side request and its note, as The agent describes.
 - The suggestion catalogue: `CONVERSATION_SUGGESTION_IDS` in core (keys like
@@ -339,7 +370,7 @@ A refactor and two pure functions, no visible change.
 - Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not;
   start a suggestion and see it leave the cards.
 
-### M14: The dock
+### M16: The dock
 
 - `_ConversationDockProvider` in `router.tsx`'s `Wrap` after `CurrentOrganizationProvider`, with its
   context and `useConversationDock`. Windows are persisted with `usePersistedState` under one literal
@@ -354,7 +385,7 @@ A refactor and two pure functions, no visible change.
 - Verify: open four conversations at several widths; minimize, close, full page; replies arriving in
   minimized windows count up; a phone width has no dock.
 
-### M15: Attachments: storing them and sending them to Claude
+### M17: Attachments: storing them and sending them to Claude
 
 - The upload's transport: `PUT /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId`,
   the conversation's id in the path (a draft's, made by the browser, before the conversation
@@ -385,14 +416,14 @@ A refactor and two pure functions, no visible change.
   row; a placeholder replayed byte for byte; a conversation marked full.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
-### M16: Attachments in the composer and the thread
+### M18: Attachments in the composer and the thread
 
 - The "+" menu's "Files and images", paste, the tray with upload progress, image shrinking, the
   budget's message; the thread's thumbnails fetched from `GET …/attachments/:attachmentId` with the
   caller's tokens and shown as object URLs, file chips, the image dialog.
 - Verify: attach each type from the composer and ask about it; reach the conversation's budget.
 
-### M17: Integrations: the organization's servers
+### M19: Integrations: the organization's servers
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, the key encrypted with Cloud KMS and its last four characters, the OAuth
@@ -412,7 +443,7 @@ A refactor and two pure functions, no visible change.
   one: the MCP specification calls annotations untrusted.
 - Backend routes for administrators: add (connects with `@modelcontextprotocol/sdk` over Streamable
   HTTP and lists the tools), edit, delete, turn on and off, retry. Deleting sets `deletedAt`, keeping
-  the secrets for Undo; the daily sweeper (M5) removes it a day later, with its connections, pending
+  the secrets for Undo; the daily sweeper (M7) removes it a day later, with its connections, pending
   authorizations and encrypted credentials, if it is still deleted.
   Encryption through Cloud KMS, and a local key in development.
 - **Every request to a server's address goes through an outbound guard**, since an administrator
@@ -423,7 +454,7 @@ A refactor and two pure functions, no visible change.
   connection goes to the address checked, and the check repeats on every redirect; timeouts and a
   response size cap. A request carrying a credential (an API key, a token, a client secret) never
   follows a cross-origin redirect; only unauthenticated discovery follows redirects, each hop
-  guarded. OAuth discovery and token requests (M18) use the same guard.
+  guarded. OAuth discovery and token requests (M20) use the same guard.
 - The guard ships with deterministic tests, a fake resolver and transport standing in for the
   network: representative IPv4 and IPv6 addresses of each special-use range (private, loopback,
   link-local, unique local, carrier-grade NAT, multicast, documentation, `0.0.0.0` and `::`),
@@ -434,7 +465,7 @@ A refactor and two pure functions, no visible change.
   real remote MCP server before shipping it.
 - Verify: add a key-based server and an OAuth one, turn one off, delete and undo.
 
-### M18: Integrations: members connect their accounts
+### M20: Integrations: members connect their accounts
 
 - `IntegrationConnection`, one per member and server: the account's label, tokens encrypted, expiry,
   status. Pending authorizations: references to the initiating member and integration (all the
@@ -457,7 +488,7 @@ A refactor and two pure functions, no visible change.
   themselves, and the design's waiting dialog.
 - Verify: connect two members to the same server as different accounts; disconnect one.
 
-### M19: Integrations in conversations
+### M21: Integrations in conversations
 
 - The three integration tools; calls with the member's own connection or the organization's key,
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
@@ -494,7 +525,7 @@ A refactor and two pure functions, no visible change.
 - Verify: ask something that needs a connected server, then allow the call and deny another; let an
   administrator allow one tool and see it run straight away; turn the server off and ask again.
 
-### M20: Launch
+### M22: Launch
 
 - Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`.
 - `CLAUDE.md`: a Conversations section with what a new tool needs, the transcript's rules and the

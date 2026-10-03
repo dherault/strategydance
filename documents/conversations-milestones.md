@@ -50,7 +50,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
 | M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |
 | M7 | The composer and drafts | web | M6 | |
-| M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4, 6 | |
+| M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | |
 | M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | |
 | M10 | Stop, resume, retry, failures and refusals | backend, database, web | M9 | |
 | M11 | Questions | backend, database, web | M10 | |
@@ -284,9 +284,9 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   message with the first assistant turn), the request, the streamed turn (progress lines to
   `run.step`), drawing a turn with each insert claiming its positions, `web_search`, usage per model
   and per request, cache reads and writes included, `preview` and `unreadCount`; and `isFull`, set
-  before a request whose input would pass 800000 tokens, the last request's input plus what was
-  appended, so a long conversation shows full rather than failing every request (M19 adds the
-  body's size).
+  before a request whose input would pass 800000 tokens, the last request's input and output plus
+  a conservative estimate of what was appended since, so a long conversation shows full rather
+  than failing every request (M19 adds the body's size and the files' stored counts).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
   listing the results); citations drawn as numbered links after their spans, with the sources under
   the message.
@@ -397,8 +397,9 @@ M14.
   alone and nested in the others; another tag kept as literal text; nesting, check items, links,
   what degrades to paragraphs, lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
 - `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`, working on rows rather than
-  calling the database: reading a document's shared text from its snapshot and pending updates, or
-  from its `content` before it has a snapshot, as top-level blocks with their ids and Markdown; and
+  calling the database: reading a document's shared text from its snapshot and pending updates
+  through `yDocToBlocks`, as top-level blocks with their ids and Markdown, or, for a document with no
+  snapshot yet, building the seed M14 stores before it hands out any id; and
   turning an edit into a fold, the new `state`, `content` and `contentText` and the ids of the
   updates it merged, as Rich text and Markdown describes.
 - Tests: a document with pending updates read with them; one without a snapshot read from its
@@ -448,12 +449,16 @@ M14.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted.
 - Tests: a locked document refuses, including one locked between the read and the fold; a stale
-  `version` refuses `content` and `replaceBlocks` while `append` and `replaceText` go through; a
+  `version` refuses `content`, including a push landing between the read and the fold, while
+  `replaceBlocks`, `append` and `replaceText` go through as somebody types elsewhere; two reads in
+  a row hand out the same block ids, and so do a document stored before the editor was shared and
+  read twice, and one a tab seeds while the backend reads it; a
   create retried with the same `tool_use` id makes one document; a crash between a fold and the
   next step leaving the edit applied once, `append` included; a create in a full organization
   refuses; a 200000-character document read in pages that join back whole, and one made of a
   single 200000-character paragraph too; a page asked for after somebody typed elsewhere carrying
-  on from its block, and one whose block was deleted starting again; a fold refused on a moved
+  on from its block, one after an edit inside the block it stopped in starting that block again,
+  and one whose block was deleted starting the document again; a fold refused on a moved
   revision read again and reapplied, and a push landing during a fold left pending; a block range
   replaced between two ids without touching the rest, and refused once one of them is gone; a unique piece of text replaced inside that paragraph,
   and a text that occurs twice refused; search reading the index and loading the plain text of 20
@@ -548,8 +553,9 @@ M14.
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
   with private cache headers. `storage.rules` stays as it is.
 - `POST …/messages` accepts attachment ids, checks the conversation's budget, its PDFs' total pages
-  and its next request's tokens, the last request's input plus the new files' stored counts,
-  without building that request, copies each file into
+  and its next request's tokens as Attachments counts them (the last request's input and output,
+  the appended text's estimate, the new files' stored counts), without building that request,
+  copies each file into
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
 - A load test runs four maximum-size requests on one worker instance at once, the concurrency M8
@@ -561,7 +567,8 @@ M14.
   its budget nor pruned with it, and an upload under somebody else's conversation refused; one
   attachment uploaded and sent twice with its ids spelled
   with and without hyphens, stored as one object and one copy; the budget refused; a text file over
-  its length refused, and a message whose stored counts and last request pass 700000 tokens; an
+  its length refused; a message passing 700000 tokens refused, and one following a long reply
+  refused although the last request's input alone, with its files, stayed under it; an
   oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a member at the cap refused before
   any byte is stored, again and again with new ids; a stale reservation pruned; a retried upload

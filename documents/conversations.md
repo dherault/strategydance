@@ -772,9 +772,12 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   files is sent only while the next request stays under 700000 input tokens. Building that request
   to count it would put every earlier file in the backend's memory, so each file is counted once,
   alone, once it is stored (Vertex has the count endpoint), into `tokenCount` on its row as its
-  pages go into `pageCount`; the send route adds the new files' stored counts and its text's to the
-  last request's input tokens, which already carried every earlier file, or to the context's
-  estimate for a first message. The upload streams into Storage as before, and the count reads the
+  pages go into `pageCount`. The send route starts from the last request's input and output
+  tokens, from its stored usage, since its input already carried every earlier file and its output
+  is in the transcript now; adds a conservative estimate, one token for every two characters, of
+  everything appended since that holds no file (tool results, the next context message, the
+  member's text); and adds the new files' stored counts. A first message starts from the context's
+  estimate instead. The upload streams into Storage as before, and the count reads the
   stored object back, at most two at once per instance, so the backend's memory stays bounded
   however many arrive. Before each request the worker measures the body: past 30 MB, or 800000
   input tokens, it marks the conversation full, and the send route refuses new messages with
@@ -845,7 +848,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | --- | --- | --- |
 | `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M9 |
 | `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M14 |
-| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed; only a cursor whose block was deleted sends the model back to the start | M14 |
+| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text | M14 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, in the mutation that records the call's result. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M14 |
 | `update_knowledge` | `{ id, version?, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the AI lock is on ("The team locked this document against AI changes. Tell the member instead."); for `content`, which rewrites everything the model read, when the text is no longer the `version` read; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | M14 |
 | `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M16 |
@@ -890,9 +893,13 @@ keeps all four styles through an agent's edit.
 `CLAUDE.md` § The database):
 
 - **Reading** merges the snapshot, `state`, with the pending `DocumentUpdate` rows into a Yjs
-  document and reads its blocks with `readRichTextYDoc`. `content` is only the last compaction's
-  copy, and lags whenever somebody typed since. A document stored before the editor was shared has
-  no `state` yet, and its `content` is its text.
+  document and reads its blocks with BlockNote's `yDocToBlocks`, ids and all, then each through
+  `normalizeRichText` for its Markdown. Not through `readRichTextYDoc`, which normalizes the whole
+  document and drops the ids that the tools' cursors and ranges name. `content` is only the last
+  compaction's copy, and lags whenever somebody typed since. A document stored before the editor
+  was shared has no `state` and so no ids: the first read seeds it, storing its snapshot under
+  `SeedDocumentState`'s condition before it answers, and reads the snapshot that won when a tab
+  seeded it first, so the ids it hands out are the ones every later read sees.
 - **Writing** applies the edit to that Yjs document as a difference, never by building a new one:
   a document built from the edited blocks shares no history with the stored one, so merging it
   would add the text a second time. The edit works on the document's own blocks as BlockNote reads
@@ -904,7 +911,12 @@ keeps all four styles through an agent's edit.
 - **Storing** is a fold, as a tab's compaction is: one backend mutation writes the new `state`,
   `content` and `contentText` under the `revision` it read, deletes the updates it merged, and
   records the call's result (see Recovery and side effects). A push that lands meanwhile is not
-  among them and stays pending; a fold somebody else made meanwhile moves the revision, and the
+  among them and stays pending, and merges with the edit as two members' edits merge. A pushed
+  update moves no revision, so for a whole-document `content` replacement, whose `version` says the
+  model saw the text it replaces, the fold also checks, after it has locked the row, that no
+  update is pending beyond those it merged, and reads again when one is. A push committing inside
+  the fold's own transaction still merges rather than refuses, as concurrent edits do, which the
+  version check never meant to prevent; a fold somebody else made meanwhile moves the revision, and the
   backend reads again and reapplies, three times at most. Every tab with the document open sees the
   revision move and reads the snapshot again, as after any fold, so the agent's edit appears in
   open editors without a reload. A fold has no 50000-character bound, as a pushed update has, so a

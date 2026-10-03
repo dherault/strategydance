@@ -981,10 +981,11 @@ and in-process runs):
    which both services run as, `roles/aiplatform.user`, `roles/cloudtasks.enqueuer` and
    `roles/cloudtasks.viewer` (the queued-run check reads tasks, which the enqueuer role does not
    allow). Create `conversation-tasks@strategydance.iam.gserviceaccount.com`, the identity Cloud
-   Tasks and Cloud Scheduler call the worker as, grant it `roles/run.invoker` on the project, which
-   can be done before the worker exists and reaches no other private service, since the worker is
-   the only one, and grant the runtime account `roles/iam.serviceAccountUser` on it, which creating
-   a task that carries its token needs. If
+   Tasks and Cloud Scheduler call the worker as, and grant the runtime account
+   `roles/iam.serviceAccountUser` on it, which creating a task that carries its token needs. Once
+   M8's release has deployed the worker, grant `conversation-tasks` `roles/run.invoker` on
+   `strategydance-worker` alone, never on the project, so a private service added later is not
+   open to it, before testing delivery; until then, tasks are refused and retried. If
    dispatches fail on the token, also grant the Cloud Tasks service agent
    `roles/iam.serviceAccountTokenCreator` on it.
 4. For M8: `gcloud tasks queues create conversation-runs --location us-central1 --max-attempts 5

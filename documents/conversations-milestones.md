@@ -20,7 +20,7 @@ pull request number in the table below.
   its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
 - Backend files: `routes/conversations.ts` (mounted at `/organizations/:organizationId/conversations`
   with `mergeParams`), `routes/internal.ts`, `middleware/organizationMember.ts`,
-  `middleware/staffOnly.ts`, `middleware/cloudTasks.ts`, `domain/conversations/`, `domain/agent/`.
+  `middleware/staffOnly.ts`, `middleware/cloudTasks.ts`, `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`.
 - Data Connect: a mutation writes each row once; messages are ordered by `position`, claimed on the
   conversation's counter; live queries name every mutation that changes them; backend operations
   take `$userId` and check it against the rows; each milestone adds the operations it calls.
@@ -98,7 +98,9 @@ The data model and the web connector's operations, with nothing yet using them.
   `_app.tsx`'s `APP_MESSAGE_TYPES`.
 - Sidebar: the "Reflection" group with Conversations and Knowledge, Conversations staff only, its
   badge (a `badge` prop on `NavigationLink`, drawn with `SidebarMenuBadge`, with an accessible label).
-- `_app/conversations.index.tsx` behind the release bouncer, its waiter keyed on the organization's
+- `_app/conversations.tsx`, the parent layout route holding the release bouncer around its
+  `<Outlet />`, as `administration.tsx` holds `AdministrationBouncer`, so every page under
+  `/conversations/` is gated by it. Under it, `_app/conversations.index.tsx`, its waiter keyed on the organization's
   id, `useConversations` copying `useOrganizationTeam`'s live pattern (`retryOnMount: false`,
   `hasFailed`).
 - The list: header (New conversation arrives in M6), search (debounced, through the backend's
@@ -108,13 +110,15 @@ The data model and the web connector's operations, with nothing yet using them.
 - Tests: wording a preview; the search route merging titles and messages, deduplicating by
   conversation, and stopping at 1000 conversations or ten pages; a Chinese and a Japanese query
   taking the substring path, which reads at most 20000 messages, newest conversations first; a query
-  past 100 characters or 8 terms refused (database mocked).
+  past 100 characters or 8 terms refused; the 121st search from one caller in ten minutes refused
+  (database mocked).
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
 ### M4: The conversation page and its thread, read-only
 
-- `_app/conversations.$conversationId.tsx`: search param `isNew` validated (`aspect` in M15), and
+- `_app/conversations.$conversationId.tsx`, under M3's layout route and so behind its release
+  bouncer: search param `isNew` validated (`aspect` in M15), and
   `beforeLoad` refusing an id that is not one, as `knowledge.$documentId.tsx` does; a
   `ConversationOrganizationBouncer` copied from `KnowledgeOrganizationBouncer`, back to the list when
   the organization changes; waiters keyed on the organization's id; `useConversation` and
@@ -130,7 +134,8 @@ The data model and the web connector's operations, with nothing yet using them.
   up, merged into one thread.
 - `MarkConversationRead` when the page shows a conversation with unread replies.
 - Verify: the seeded conversations against the design at both widths; switching organization on a
-  conversation's page goes back to the list.
+  conversation's page goes back to the list; a non-staff account sent to a conversation's address
+  is redirected to `/today`.
 
 ### M5: Runs without a model, in the backend's process
 
@@ -426,7 +431,7 @@ A refactor and two pure functions, no visible change.
 ### M19: Integrations: the organization's servers
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
-  or `NONE`), `isEnabled`, the key encrypted with Cloud KMS and its last four characters, the OAuth
+  or `NONE`), `isEnabled`, `configRevision` (see below), the key encrypted with Cloud KMS and its last four characters, the OAuth
   client it registered, its tools as last listed (annotations included), `autoApprovedTools` (tools
   an administrator lets run without approval, each bound to a hash of the definition reviewed:
   name, description, input schema, annotations; a refresh that changes a definition clears its
@@ -437,7 +442,8 @@ A refactor and two pure functions, no visible change.
   discovery that resolves a different issuer, clears in one mutation everything issued for the old
   ones (the key, the registered client, members' connections, pending authorizations, and every
   auto-approval, since a different server could advertise identical definitions), and members
-  reconnect, so no credential or approval reaches a server it was not given for.
+  reconnect, so no credential or approval reaches a server it was not given for. The same mutation
+  bumps the integration's `configRevision`, a counter M21's pending approvals are bound to.
 - The server dialog lists its tools with a switch each for running without approval. A tool's
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.
@@ -494,7 +500,8 @@ A refactor and two pure functions, no visible change.
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
 - **The schema change**, additive, with `APPROVAL` appended to the kinds: `ConversationMessage` gains
   `integration` (an optional reference, nulled if the server is pruned), `integrationName` (at call
-  time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`) and
+  time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), `approvalConfigRevision`
+  and `approvalToolHash` (see below), and
   `argumentsPreview` (display text, cut to 2000 characters), which the live tail selects; the
   warning strip matches the live integrations list by `integration`, never by name. A preview
   authorizes nothing, since what matters can sit past its cut: Allow opens a dialog showing the
@@ -509,6 +516,14 @@ A refactor and two pure functions, no visible change.
   at once with any arguments: the switch says so, and administrators allow only tools whose effects
   and reach they accept from anything the agent reads. At the cap, an approval that would leave
   less than a run's room is refused as a question is (see A run), tested at the same boundary.
+- **An approval is bound to the server and the tool it showed.** The entry records the integration's
+  `configRevision` and the hash of the tool's definition (as `autoApprovedTools` hashes it) when it
+  is drawn. Allow checks both against the integration as it is, and so does the continuation right
+  before the call, so a change of address, authentication or issuer, or a refresh that changes the
+  tool, never lets an approval given for one server run against another: on a mismatch the approval
+  is marked denied and the call answered as refused, saying the integration changed since it was
+  proposed, so the model can propose it again. Tested at Allow and at the call, for an address
+  change and for a changed definition.
 - **A waiting approval counts as a waiting question everywhere**: `GetConversations`' attention check
   also matches an `APPROVAL` whose `approvalState` is `PENDING` on a `WAITING` run, so it raises
   "Needs your answer", the sidebar badge and the minimized window's dot; inserting one adds to

@@ -383,7 +383,12 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 - **Every search is bounded at the door**: a query of at most 100 characters and 8 terms
   (`MAX_SEARCH_QUERY_LENGTH`, `MAX_SEARCH_TERMS`), refused with a 400 past either, which the field
   enforces as the member types and `search_knowledge`'s schema enforces for the agent. The field
-  waits 300 ms after the last keystroke and aborts the request it replaces.
+  waits 300 ms after the last keystroke and aborts the request it replaces, and since a caller can
+  skip the field, the route is metered on the server as the invite and picture routes are:
+  `conversationSearchRateLimitMiddleware`, 120 searches per caller in ten minutes, keyed by the
+  verified caller (the address only if there is none), counted in the instance's memory, and
+  refused with `ERROR_CODE_TOO_MANY_REQUESTS`: somebody searching never reaches it, a script does.
+  The agent's searches are bounded by its tool calls per run instead.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
   knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its top priority writes to
   `GetOrganizationTeam`'s.
@@ -762,7 +767,9 @@ worker's claim checks the role again, so a queued run stops too:
 - The sidebar item, the aspect page section and the dock show for `user.isAdministrator` only. The
   sidebar's `useConversations` runs for staff only and never behind a waiter.
 - The routes sit behind a release bouncer that redirects anybody else to `/today`, as
-  `AdministrationBouncer` does.
+  `AdministrationBouncer` does, mounted once in the parent layout route `_app/conversations.tsx`
+  around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
+  page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
   M19 and M20, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the

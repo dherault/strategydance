@@ -113,7 +113,8 @@ The data model and the web connector's operations, with nothing yet using them.
   taking the substring path, which reads at most 20000 messages, newest conversations first; a query
   past 100 characters or 8 terms refused; the 121st search from one caller in ten minutes refused by
   the in-memory limiter and, with a fresh limiter as another instance would have, by the shared
-  count (database mocked).
+  count (database mocked); against the emulators, a script running two searches at once at 119
+  lets exactly one through.
 - Verify: seed, then the list at desktop and phone widths against the design; search; delete and
   undo; a non-staff account sees no item and is redirected.
 
@@ -133,7 +134,8 @@ The data model and the web connector's operations, with nothing yet using them.
   ones drawn disabled until M14), notes, aspects notes, the thinking indicator from the run with its
   own one-second timer (`useNow` ticks once a minute), and the missing conversation's state.
 - The live tail and the older pages (`GetConversationMessagesBefore`) loaded as the reader scrolls
-  up, merged into one thread.
+  up, merged into one thread by a utility with tests: a tail that slides past the pages it meets
+  keeps every entry, and a gap between them is fetched.
 - `MarkConversationRead` when the page shows a conversation with unread replies.
 - Verify: the seeded conversations against the design at both widths; switching organization on a
   conversation's page goes back to the list; a non-staff account sent to a conversation's address
@@ -424,7 +426,8 @@ A refactor and two pure functions, no visible change.
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
 - `deploy:backend` gains `--memory 2Gi` and `--concurrency 20`, both measured before the release.
-- Tests: blocks built from each type; the budget refused; a text file over its length refused, and a
+- Tests: blocks built from each type; one attachment uploaded and sent twice with its ids spelled
+  with and without hyphens, stored as one object and one copy; the budget refused; a text file over its length refused, and a
   message whose counted tokens pass 700000; an oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a member at the cap refused before
   any byte is stored, again and again with new ids; a stale reservation pruned; a retried upload
@@ -443,8 +446,13 @@ A refactor and two pure functions, no visible change.
 ### M19: Integrations: the organization's servers
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
-  or `NONE`), `isEnabled`, `configRevision` (see below), the key encrypted with Cloud KMS and its last four characters, the OAuth
-  client it registered, its tools as last listed (annotations included), `autoApprovedTools` (tools
+  or `NONE`), `isEnabled`, `configRevision` (see below), the key encrypted with Cloud KMS and its
+  last four characters, how the key is sent (`apiKeyScheme`: `BEARER`, as `Authorization: Bearer
+  <key>`, the default, or `HEADER`, the key alone in the header `apiKeyHeader` names, such as
+  `X-API-Key`, validated as an HTTP token of at most 64 characters and refused when it is a header
+  the client sets itself or one proxies act on: `Host`, `Content-Length`, `Content-Type`, `Cookie`,
+  `Connection`, `Transfer-Encoding`, and the `Proxy-`, `Sec-` and `Mcp-` families; changing either
+  bumps `configRevision`), the OAuth client it registered, its tools as last listed (annotations included), `autoApprovedTools` (tools
   an administrator lets run without approval, each bound to a hash of the definition reviewed:
   name, description, input schema, annotations; a refresh that changes a definition clears its
   approval), `lastError`, `lastUsedAt`, `deletedAt`. The live list never selects a secret, and says
@@ -481,6 +489,7 @@ A refactor and two pure functions, no visible change.
 - The Integrations page as designed (table, server dialog, gallery with marks in
   `public/assets/images/mcp/`), staff gated, and its sidebar item. Check each catalogue address is a
   real remote MCP server before shipping it.
+- Tests: a key sent as a bearer token and in a named header, and a reserved header name refused.
 - Verify: add a key-based server and an OAuth one, turn one off, delete and undo.
 
 ### M20: Integrations: members connect their accounts

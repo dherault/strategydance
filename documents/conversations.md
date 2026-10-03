@@ -318,7 +318,11 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     when aspects notes written during a run push its first entries into a history page, the page
     drops the retried run's messages there by run id (see Retry),
     newest first, without `toolInput` and `toolOutput`, with their attachments. Only this tail is
-    live, so a new entry never sends a long thread again.
+    live, so a new entry never sends a long thread again. The page merges each pushed tail into
+    what it holds rather than replacing it: an entry that slides out of the tail stays in its cache
+    as history, where only Retry's deletions change it, and whenever the oldest position of the
+    tail does not meet the newest it holds (after a long disconnect, say), it fetches the gap with
+    `GetConversationMessagesBefore`, so no entry ever falls between the two.
   - `GetConversationMessagesBefore($organizationId, $id, $beforePosition)`: the 100 messages before a
     position, read once when the reader scrolls up to them. History changes only by Retry's
     deletions, and every Retry bumps the conversation's `historyRevision`, which the live
@@ -338,8 +342,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     and clearing `unreadCount` only while that is still current, so a reply that lands meanwhile
     stays unread), and `UpdateConversationAspects` (the
     aspects as the member's, and the aspects note at a position claimed on the counter, the claim
-    refused once `messageCount` is at `MAX_CONVERSATION_MESSAGES`, so a full conversation's aspects no longer change and the
-    dialog says it is full; the web
+    refused unless `CONVERSATION_RUN_ROOM` + 1 positions stay free after the note, the boundary A
+    run sets for every aspects note, so aspects stop changing a whole send before the cap, and the
+    dialog says the conversation is full; the web
     retrying with the new counter when the worker got there first). A web mutation takes `$userId` so the list's
     refresh condition can match it, and checks `vars.userId == auth.uid`.
   - `RestoreConversation` holds `MAX_CONVERSATIONS` as creating does: both lock the member's
@@ -389,10 +394,11 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   `conversationSearchRateLimitMiddleware` (120 searches per caller in ten minutes, keyed by the
   verified caller, the address only if there is none, counted in the instance's memory) turns a
   script away cheaply, and the database holds the bound across instances, which autoscaling would
-  otherwise multiply: the route's first mutation inserts a `ConversationSearch` row (the caller,
-  the organization, `createdAt`, indexed on the caller and time) only while fewer than 120 of the
-  caller's rows are younger than ten minutes, a read of at most 120 under `@check`, so every
-  instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
+  otherwise multiply: the route's first mutation locks the caller's membership row, as a run start
+  does, then inserts a `ConversationSearch` row (the caller, the organization, `createdAt`, indexed
+  on the caller and time) only while fewer than 120 of the caller's rows are younger than ten
+  minutes, a read of at most 120 under `@check`. The lock serializes the count and the insert, so
+  two instances at once cannot both see 119, and every instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
   searching never reaches, and the daily sweeper deletes rows over a day old. The agent's searches
   are bounded by its tool calls per run instead.
 - Every operation that changes what a live query shows is named in its `@refresh`. The agent's
@@ -660,6 +666,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   that would take a conversation's PDFs past 300 pages in all, since every replay carries them all.
   Claude takes up to 600 pages a request on a 1M-token model such as Opus 5.5 (100 on 200k-token
   ones), which leaves a margin.
+- Every id in an object's name is canonical: parsed as a UUID, then written lowercase without
+  hyphens, as `buildOrganizationStoragePrefix` writes the organization's, never the route's raw
+  parameter, since the backend accepts an id with or without hyphens and Data Connect returns them
+  without. One attachment then has one pending object and one copy, however a retry spells its
+  ids, which the quota and the create-only writes rely on.
 - An upload lands under `pending/{organizationId}/{userId}/{attachmentId}`, outside `organizations/`,
   where a bucket lifecycle rule deletes what is two days old: a draft never sent costs nothing for
   long, whether or not its author comes back. Sending checks the conversation's budget and copies

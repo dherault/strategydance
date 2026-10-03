@@ -267,7 +267,9 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`UPLOADING` while its slot is reserved, `READY` once its file is stored), `name`, `contentType`,
   `size`, `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`, so
-  deleting the organization sweeps it with the rest (see Attachments).
+  deleting the organization sweeps it with the rest (see Attachments). Indexed on `conversationId`,
+  for pruning and the conversation's budget, and on `userId`, `organizationId`, `createdAt`, for the
+  quota's count of unsent rows and their pruning.
 
 Limits go in strategydance-core beside the others: `MAX_CONVERSATIONS` (1000 per member and
 organization), `MAX_CONVERSATION_MESSAGES` (2000 per conversation), `MAX_CONVERSATION_TITLE_LENGTH`
@@ -678,7 +680,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   can see.
 - **Tagging aspects**: on a conversation's first run, unless the member set its aspects, a side
   request (structured output, effort `low`, no tools) picks one to three aspects from the first
-  exchange. It writes them with the note only where `aspectsSetBy` is still null.
+  exchange. It writes them with the note only where `aspectsSetBy` is still null. It goes through
+  the same accounting as the run's own requests: reserved before it is sent, settled into the run's
+  `usage` after, and counted toward the run's 25 requests.
 
 ### Tools
 
@@ -1161,9 +1165,11 @@ A refactor and two pure functions, no visible change.
   the secrets for Undo, and the next delete prunes what was deleted over a day ago, as documents do.
   Encryption through Cloud KMS, and a local key in development.
 - **Every request to a server's address goes through an outbound guard**, since an administrator
-  types it: `https` only; the host resolved and refused when any of its addresses is loopback,
-  private, link-local, or the metadata server (`169.254.169.254`, `metadata.google.internal`); the
-  check repeated on every connection and redirect, so a rebinding or a redirect cannot slip past it;
+  types it: `https` only; the host resolved, and every address it resolves to allowed only when it is
+  a globally routable unicast address, an allowlist rather than a list of what to refuse, so
+  loopback, private, link-local, carrier-grade NAT, multicast, unspecified (`0.0.0.0`, `::`), other
+  special-use ranges and the metadata server (`169.254.169.254`, `metadata.google.internal`) are all
+  refused; the check repeated on every connection and redirect, so a rebinding or a redirect cannot slip past it;
   timeouts and a cap on the response's size. Cloud Run can reach the metadata server, which hands out
   the service account's tokens, so this is not optional. OAuth discovery and token requests (M18) go
   through the same guard. The connection is made to the address the guard checked, never to a name
@@ -1172,8 +1178,9 @@ A refactor and two pure functions, no visible change.
   secret reaches a host it was not issued for. Only unauthenticated discovery follows redirects, each
   hop guarded.
 - The guard ships with deterministic tests, a fake resolver and transport standing in for the
-  network: IPv4 and IPv6 private, loopback, link-local and unique local ranges, IPv4-mapped IPv6
-  forms, `0.0.0.0`, the metadata names, a resolver whose answer changes between the check and the
+  network: representative IPv4 and IPv6 addresses of each special-use range (private, loopback,
+  link-local, unique local, carrier-grade NAT, multicast, documentation, `0.0.0.0` and `::`),
+  IPv4-mapped IPv6 forms, the metadata names, a public address allowed, a resolver whose answer changes between the check and the
   connection, a redirect to a blocked address, a timeout, and a response past the size cap.
 - The Integrations page as designed (table, server dialog, gallery with marks in
   `public/assets/images/mcp/`), staff gated, and its sidebar item. Check each catalogue address is a
@@ -1256,5 +1263,13 @@ A refactor and two pure functions, no visible change.
   call waits for the member's approval unless an administrator allowed its tool, and every request to
   an integration passes the outbound guard. An auto-approved tool is the stated exception: anything
   the agent reads can get it called at once, so allowing one is an administrator's acceptance of that.
+- **Built-in writes run without approval, by decision.** David decided the agent writes knowledge
+  and the member's top priority directly, as the design shows, and the system prompt's "when the
+  member asks or agrees" is no boundary against injected text. So text from the web, a file, the log
+  or another document could get the agent to change an unlocked document or the member's priority.
+  What limits it: the AI lock, which the team sets on what must not change; the tool call row every
+  write leaves in the thread, input and output included; and the revision check, which refuses to
+  write over an edit it has not read. If that proves too loose, the approval entry of M19 can gate
+  built-in writes too, a product decision to take again with real use.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta on Vertex) if it comes to that.

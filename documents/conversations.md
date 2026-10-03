@@ -214,12 +214,10 @@ New tables in `schema.gql`, each commented as the existing ones are:
   is stored), `user`, `organization` (both references, as `TaskList` has them, so a member removed
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
-  started from), `activeRunId`, `preview`, `unreadCount` (replies since the member last looked),
-  `previewMessageId`, `nextRunNumber` (see `ConversationRun`), `nextMessagePosition` (see
-  `ConversationMessage`), `messageCount` (the messages it holds, which
-  Retry's deletions bring down, as the sequence never does), `isFull` (set by the worker once the
-  conversation no longer fits a request, see Attachments), `deletedAt`, `createdAt`, `updatedAt` (its
-  last activity). Indexed on `userId`, `organizationId`, `updatedAt`.
+  started from), `activeRunId`, `preview` and `previewMessageId`, `unreadCount`, `nextRunNumber`,
+  `nextMessagePosition`, `messageCount` (what it holds, lowered by Retry), `isFull` (see
+  Attachments), `deletedAt`, `createdAt`, `updatedAt` (its last activity). Indexed on `userId`,
+  `organizationId`, `updatedAt`.
   - `activeRunId` is the run in flight, null when idle: a plain UUID rather than a reference,
     because the first send writes the conversation and its run in one mutation, and a reference would
     have it write the conversation's row twice, which Data Connect skips.
@@ -409,14 +407,11 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   the Cloud Run timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note.
 - **Room at the cap.** A run draws at most `CONVERSATION_RUN_ROOM` (100) entries, its note included:
-  before storing a turn, the worker checks the turn's entries fit what the run has left, keeping one
-  for the note, and otherwise stops the run there with a note saying the response grew too long. The
-  send route refuses a message with `ERROR_CODE_CONVERSATION_FULL` once a conversation's
-  `messageCount` reaches `MAX_CONVERSATION_MESSAGES` minus `CONVERSATION_RUN_ROOM`, so a run always
-  has room for everything it may draw, and the live tail (150) always holds a whole run. The cap
-  counts the messages a conversation holds, never the sequence: every insert raises `messageCount`
-  in the write that claims its position, and Retry lowers it by the messages it deletes, in the same
-  mutation, so retrying never fills a conversation.
+  a turn that would not fit, keeping one for the note, stops the run there with a note. The send
+  route refuses with `ERROR_CODE_CONVERSATION_FULL` once `messageCount` reaches
+  `MAX_CONVERSATION_MESSAGES` minus that room, so a run always fits, and the live tail (150) holds a
+  whole run. `messageCount` counts what a conversation holds, not the sequence: each insert raises it
+  as it claims its position, and Retry lowers it by what it deletes, so retrying never fills one.
 - **The cap holds on every claim**, in the claim's own condition, since a run can also start from an
   answer or Resume, and an aspects note can land mid-run. An entry a run draws claims only while
   `messageCount` plus its entries stays below `MAX_CONVERSATION_MESSAGES`, keeping the last position
@@ -424,16 +419,12 @@ end: COMPLETED │ WAITING (questions) │ STOPPED │ FAILED │ REFUSED │ IN
   at least `CONVERSATION_RUN_ROOM` positions stay free. Every run start, the send, the answer's
   continuation, Resume and Retry alike, requires that much room, so a run that starts always has
   its hundred, and a conversation without it shows full.
-- **Concurrency.** These are not usage limits, which wait for credits, but bounds on how much runs
-  at once: at most three runs in flight per member in each organization
-  (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the queue
-  dispatches at most 50 tasks at a time, which also bounds a member of several organizations. Every
-  mutation that starts a run first locks the member's membership row in that organization, the one
-  creating and restoring lock, then counts their active runs there and inserts, so two sends from
-  two conversations at once cannot both find room. Before counting, the route reconciles every run
-  the member has in flight in that organization, not only the target conversation's, finalizing the
-  dead ones as Leases says, so runs that crashed elsewhere, deleted conversations' included, never
-  lock the member out.
+- **Concurrency**, bounded rather than metered: at most three runs in flight per member in each
+  organization (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the
+  queue dispatches at most 50 tasks at once. A run-start mutation locks the member's membership row
+  (as creating and restoring do), counts their active runs and inserts, so two sends at once cannot
+  both find room; before counting, the route finalizes every dead run the member has in that
+  organization, so crashes elsewhere never lock them out.
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
   flag; build the request from the transcript and check it (see The transcript); stream it, writing
@@ -1181,18 +1172,14 @@ A refactor and two pure functions, no visible change.
 
 - The three integration tools; calls with the member's own connection or the organization's key,
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
-- **The schema change.** `ConversationMessage` gains, for integration calls and approvals:
-  `integration` (an optional reference to `OrganizationIntegration`, set to null if the server is
-  pruned), `integrationName` (the server's name when the call was made), `integrationToolName`,
-  `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), and `argumentsPreview` (the arguments rendered
-  for display, cut to 2000 characters, secrets never included since none reach the model). The live
-  tail selects these, so a thread draws the server, the tool and the arguments without the full
-  `toolInput`, which stays behind "View output". The warning strip is computed against the live
-  integrations list matched by `integration`, never by name. All additive, with `APPROVAL` appended
-  to the kinds. The preview cannot authorize anything, since what matters can sit past its cut: Allow
-  first opens a dialog that loads the complete stored `toolInput` (`GetConversationToolCall` reads a
-  pending call too) and shows it whole, and only that dialog's Allow approves. Arguments too large
-  to show in it (past 100000 characters) are refused before the approval is ever drawn.
+- **The schema change**, additive, with `APPROVAL` appended to the kinds: `ConversationMessage` gains
+  `integration` (an optional reference, nulled if the server is pruned), `integrationName` (at call
+  time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`) and
+  `argumentsPreview` (display text, cut to 2000 characters), which the live tail selects; the
+  warning strip matches the live integrations list by `integration`, never by name. A preview
+  authorizes nothing, since what matters can sit past its cut: Allow opens a dialog showing the
+  complete stored `toolInput` (`GetConversationToolCall` reads a pending call too), whose own Allow
+  approves; arguments past 100000 characters are refused before an approval is drawn.
 - **Approval.** Every integration call waits for the member unless its tool is in the server's
   `autoApprovedTools`: the run ends `WAITING` on an approval entry (a new `APPROVAL` kind) showing the
   server, the tool and its arguments, with Allow (the call runs in the next run) and Deny (answered
@@ -1243,18 +1230,13 @@ A refactor and two pure functions, no visible change.
   through its update model rather than replacing `content` under a `revision`; M9 starts by
   reading what is on `dev` then.
 - **Prompt injection**: knowledge, the log, the web, files and integrations carry text others wrote,
-  and a system prompt is no boundary. The boundaries are what the tools allow: built-in writes reach
-  only knowledge, where the AI lock holds, and the member's own top priority; from M19, an integration
-  call waits for the member's approval unless an administrator allowed its tool, and every request to
-  an integration passes the outbound guard. An auto-approved tool is the stated exception: anything
-  the agent reads can get it called at once, so allowing one is an administrator's acceptance of that.
-- **Built-in writes run without approval, by decision.** David decided the agent writes knowledge
-  and the member's top priority directly, as the design shows, and the system prompt's "when the
-  member asks or agrees" is no boundary against injected text. So text from the web, a file, the log
-  or another document could get the agent to change an unlocked document or the member's priority.
-  What limits it: the AI lock, which the team sets on what must not change; the tool call row every
-  write leaves in the thread, input and output included; and the revision check, which refuses to
-  write over an edit it has not read. If that proves too loose, the approval entry of M19 can gate
-  built-in writes too, a product decision to take again with real use.
+  and a system prompt is no boundary; what the tools allow is. Integration calls wait for the
+  member's approval, except auto-approved tools, which anything the agent reads can get called at
+  once (allowing one is an administrator's acceptance of that), and every integration request
+  passes the outbound guard.
+- **Built-in writes run without approval, by David's decision**, as the design shows, so injected
+  text could get the agent to change an unlocked document or the member's priority. The AI lock, the
+  tool call row each write leaves in the thread, and the revision check limit it; if that proves too
+  loose, M19's approval entry can gate built-in writes too.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta on Vertex) if it comes to that.

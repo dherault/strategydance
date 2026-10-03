@@ -205,6 +205,41 @@ describe('createKnowledgeDocumentPresence', () => {
     presence.detach()
   })
 
+  it('leaves only once the text is stored, and stays while it could not be', async () => {
+    let finishFlush = (_isFlushed: boolean) => {}
+    const awareness = new Awareness(new Y.Doc())
+    const calls: string[] = []
+    const presence = createKnowledgeDocumentPresence({
+      awareness,
+      sessionId: `mine${(pageCount += 1)}`,
+      viewerId: 'ana',
+      writes: { update: async () => calls.push('update'), leave: async () => calls.push('leave') },
+      flushText: () => new Promise(resolve => (finishFlush = resolve)),
+      getColor: () => '#0a61b5',
+    })
+
+    presence.attach({ onPeople: () => {} })
+    presence.show()
+    presence.hide()
+    await wait(5)
+
+    expect(calls).toEqual(['update'])
+
+    finishFlush(true)
+    await wait(5)
+
+    expect(calls).toEqual(['update', 'leave'])
+
+    presence.show()
+    presence.hide()
+    await wait(5)
+    finishFlush(false)
+    await wait(5)
+
+    expect(calls).toEqual(['update', 'leave', 'update'])
+    presence.detach()
+  })
+
   it('leaves and forgets the others as the page goes', async () => {
     const { presence, calls, readOthers } = createPage()
 

@@ -20,6 +20,8 @@ type Options = {
   // False until the document is stored and its editor open
   isEnabled: boolean
   viewerId: string | null
+  // Sends what is left of the tab's text, which leaving waits for
+  flushText: () => Promise<boolean>
 }
 
 /*
@@ -35,6 +37,7 @@ function useKnowledgeDocumentPresence({
   awareness,
   isEnabled,
   viewerId,
+  flushText,
 }: Options) {
   const [people, setPeople] = useState<KnowledgeDocumentPresent[]>([])
   // The bridge the live query's pushes go to, while the effect below keeps one
@@ -49,6 +52,7 @@ function useKnowledgeDocumentPresence({
       sessionId,
       viewerId,
       writes: createKnowledgeDocumentPresenceWrites(organizationId, documentId, sessionId),
+      flushText,
       getColor: getPresenceColor,
     })
 
@@ -76,7 +80,7 @@ function useKnowledgeDocumentPresence({
       presence.detach()
       presenceRef.current = null
     }
-  }, [awareness, isEnabled, organizationId, documentId, sessionId, viewerId])
+  }, [awareness, isEnabled, organizationId, documentId, sessionId, viewerId, flushText])
 
   useKnowledgeDocumentPresences({
     organizationId,

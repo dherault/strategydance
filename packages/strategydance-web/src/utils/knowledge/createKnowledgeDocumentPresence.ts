@@ -54,6 +54,8 @@ type Options = {
   // The reader, whose tabs, this one and any other, are never drawn
   viewerId: string | null
   writes: KnowledgeDocumentPresenceWrites
+  // Sends what is left of this tab's text, and says whether it went through, which a leave waits for
+  flushText?: () => Promise<boolean>
   getColor: (userId: string) => string
   heartbeatDelay?: number
   cursorDelay?: number
@@ -118,6 +120,7 @@ function createKnowledgeDocumentPresence({
   sessionId,
   viewerId,
   writes,
+  flushText = async () => true,
   getColor,
   heartbeatDelay = HEARTBEAT_DELAY,
   cursorDelay = CURSOR_DELAY,
@@ -216,7 +219,14 @@ function createKnowledgeDocumentPresence({
 
     heartbeatTimer = null
     cursorTimer = null
-    runInOrder(queueKey, writes.leave).catch(error => console.error('Leaving the document could not be sent', error))
+    /*
+      Only once this tab's last text is stored: a document nobody is in, with no update pending, can
+      be discarded by a tab that emptied it, and words still on their way would go with it. When
+      they could not go, the row stays, and ages out as a closed tab's does
+    */
+    runInOrder(queueKey, async () => {
+      if (await flushText()) await writes.leave()
+    }).catch(error => console.error('Leaving the document could not be sent', error))
   }
 
   function notifyPeople() {

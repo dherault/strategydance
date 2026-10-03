@@ -59,6 +59,17 @@
   line-height: 1.7;
 }
 
+/*
+  Below `md` a page has no margin to hang the side menu in, and a touch screen shows it on a tap
+  as a pointer does on a hover. So the text keeps a gutter of its own on the left, the menu's
+  52px: the "+" starts where the page's title does, and nothing is added on the right
+*/
+@media (width < 48rem) {
+  [data-appearance='document'] .rich-text-editor.bn-root .bn-editor {
+    padding-left: 52px;
+  }
+}
+
 .rich-text-editor.bn-root .bn-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type='heading'] {
   padding-top: 4px;
   font-family: var(--font-display);

@@ -97,6 +97,8 @@ type Options = {
   maxUpdateLength?: number
   // The most pending updates a read takes
   updatesLimit?: number
+  // How many pending updates the tab whose push brought them there folds at
+  compactionThreshold?: number
 }
 
 function isSameBytes(a: Uint8Array, b: Uint8Array) {
@@ -159,6 +161,7 @@ function createKnowledgeDocumentSync({
   maxStateLength = MAX_DOCUMENT_STATE_LENGTH,
   maxUpdateLength = MAX_DOCUMENT_UPDATE_LENGTH,
   updatesLimit = DOCUMENT_UPDATES_LIMIT,
+  compactionThreshold = DOCUMENT_COMPACTION_THRESHOLD,
 }: Options) {
   const queueKey = `knowledgeDocumentText:${documentId}`
   const doc = new Y.Doc()
@@ -463,7 +466,7 @@ function createKnowledgeDocumentSync({
     const latest = live.updates.at(-1)
     const isCutOff = live.updates.length >= updatesLimit
     const isOwnPushOverThreshold =
-      live.updates.length >= DOCUMENT_COMPACTION_THRESHOLD && latest !== undefined && ownIds.has(latest.id)
+      live.updates.length >= compactionThreshold && latest !== undefined && ownIds.has(latest.id)
 
     retireOwnIds(pendingIds, live.revision)
 
@@ -583,6 +586,10 @@ function createKnowledgeDocumentSync({
       hasFailed = false
       retryDelay = RETRY_INITIAL_DELAY
       listeners?.onSaved()
+
+      // Its echo came before its answer, so `receive` could not tell it was this tab's push that
+      // brought the pending updates to the threshold
+      if (pendingIds.length >= compactionThreshold && pendingIds.includes(sent.id)) enqueueCompaction()
     } catch (error) {
       console.error('A document update could not be sent', error)
       hasFailed = true

@@ -110,7 +110,13 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
     The writes of one tab. `losePushAnswers` stores that many pushes and then throws, as a push
     whose answer the network lost does. `latency` holds each answer back
   */
-  function createWrites({ losePushAnswers = 0, latency = 0, failCompactions = 0 } = {}): KnowledgeDocumentSyncWrites {
+  function createWrites({
+    losePushAnswers = 0,
+    latency = 0,
+    failCompactions = 0,
+    // The live query pushes a stored update back before the push's own answer arrives
+    isEchoFirst = false,
+  } = {}): KnowledgeDocumentSyncWrites {
     let answersToLose = losePushAnswers
     let compactionsToFail = failCompactions
 
@@ -134,12 +140,14 @@ function createServer(initial: Partial<StoredDocument> | null = {}) {
       },
       push: async (id, payload) => {
         pushes.push({ id, payload })
-        await wait(latency)
 
+        if (!isEchoFirst) await wait(latency)
         if (!stored || stored.state === null) return false
 
         stored.updates = [...stored.updates.filter(update => update.id !== id), { id, payload }]
         notify()
+
+        if (isEchoFirst) await wait(latency)
 
         if (answersToLose > 0) {
           answersToLose -= 1
@@ -245,6 +253,7 @@ function createTab(
     maxStateLength,
     maxUpdateLength,
     updatesLimit,
+    compactionThreshold,
   }: {
     writes?: KnowledgeDocumentSyncWrites
     compactionDelay?: number
@@ -253,6 +262,7 @@ function createTab(
     maxStateLength?: number
     maxUpdateLength?: number
     updatesLimit?: number
+    compactionThreshold?: number
   } = {},
 ) {
   tabCount += 1
@@ -272,6 +282,7 @@ function createTab(
     maxStateLength,
     maxUpdateLength,
     updatesLimit,
+    compactionThreshold,
   })
   const statuses: KnowledgeDocumentSyncStatus[] = []
   let savedCount = 0
@@ -694,6 +705,25 @@ describe('createKnowledgeDocumentSync', () => {
     expect(error).toHaveBeenCalled()
 
     error.mockRestore()
+  })
+
+  it('folds once its push brings the pending updates to the threshold, its echo coming first or last', async () => {
+    const server = createServer(seeded('Hello'))
+    // Each answer comes after the live query has pushed the update back
+    const { sync } = await openTab(server, {
+      compactionThreshold: 2,
+      writes: server.createWrites({ latency: 10, isEchoFirst: true }),
+    })
+
+    type(sync, 'end', ' a')
+    await sync.flush()
+    type(sync, 'end', ' b')
+    await sync.flush()
+    await wait(40)
+
+    expect(server.compactions).toEqual([true])
+    expect(server.getUpdates()).toEqual([])
+    expect(server.readText()).toBe('Hello a b')
   })
 
   it('counts only its own edits as changed here, never what arrived', async () => {

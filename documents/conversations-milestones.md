@@ -255,8 +255,10 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   header lists what deploying a second service asks of `deployer`, and `CLAUDE.md` § Backend
   conventions says the worker is private where the backend is public, and why.
 - `enqueueRun` in production: a named task (`run-<runId>`, so a repeat does not queue twice) aimed
-  at the worker's `/internal/conversation-runs`, with an OIDC token for `conversation-tasks`, a
-  15-minute dispatch deadline, and the queueing failures A run describes; development keeps running
+  at the worker's `/internal/conversation-runs`, with an OIDC token for `conversation-tasks` whose
+  `audience` is set to the worker's base `run.app` address, without the path, since Cloud Tasks
+  would default it to the full address and Cloud Run checks it against its own, a 15-minute
+  dispatch deadline, and the queueing failures A run describes; development keeps running
   in the process. `POST /internal/conversation-runs` runs `runConversation`, with its 200 and 503
   answers. The reconcile route asks Cloud Tasks about a queued run's task, pushing its lease back
   while the task exists and finalizing the run once it is gone.
@@ -284,9 +286,10 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   message with the first assistant turn), the request, the streamed turn (progress lines to
   `run.step`), drawing a turn with each insert claiming its positions, `web_search`, usage per model
   and per request, cache reads and writes included, `preview` and `unreadCount`; and `isFull`, set
-  before a request whose input would pass 800000 tokens, the last request's input and output plus
-  a conservative estimate of what was appended since, so a long conversation shows full rather
-  than failing every request (M19 adds the body's size and the files' stored counts).
+  before a request whose input would pass 800000 tokens, counted as Attachments says, from the
+  last request's whole input, cached included, and output, plus what was appended since, so a long
+  conversation shows full rather than failing every request (M19 adds the body's size and the
+  files' stored counts).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
   listing the results); citations drawn as numbered links after their spans, with the sources under
   the message.
@@ -449,7 +452,8 @@ M14.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted.
 - Tests: a locked document refuses, including one locked between the read and the fold; a stale
-  `version` refuses `content`, including a push landing between the read and the fold, while
+  `version` refuses `content`, and so does `content` sent without one, before anything is written,
+  including when a push lands between the read and the fold, while
   `replaceBlocks`, `append` and `replaceText` go through as somebody types elsewhere; two reads in
   a row hand out the same block ids, and so do a document stored before the editor was shared and
   read twice, and one a tab seeds while the backend reads it; a
@@ -553,8 +557,8 @@ M14.
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
   with private cache headers. `storage.rules` stays as it is.
 - `POST …/messages` accepts attachment ids, checks the conversation's budget, its PDFs' total pages
-  and its next request's tokens as Attachments counts them (the last request's input and output,
-  the appended text's estimate, the new files' stored counts), without building that request,
+  and its next request's tokens as Attachments counts them (the last request's whole input and its
+  output, the appended text's count, the new files' stored counts), without building that request,
   copies each file into
   the conversation's folder and sets each row's `message` once; the transcript's placeholders and
   the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
@@ -568,7 +572,8 @@ M14.
   attachment uploaded and sent twice with its ids spelled
   with and without hyphens, stored as one object and one copy; the budget refused; a text file over
   its length refused; a message passing 700000 tokens refused, and one following a long reply
-  refused although the last request's input alone, with its files, stayed under it; an
+  refused although the last request's input alone, with its files, stayed under it; one whose
+  last request was mostly read from the cache; one whose new text is Chinese and emoji; an
   oversized image refused; a PDF over 100
   pages refused, and one that would pass 300 in the conversation; a member at the cap refused before
   any byte is stored, again and again with new ids; a stale reservation pruned; a retried upload

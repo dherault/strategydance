@@ -78,6 +78,7 @@ if (!user.userOrganizations_on_user.length) {
   process.exit(1)
 }
 
+const userId = user.id
 const now = Date.now()
 
 function toTime(ago: number) {
@@ -100,7 +101,7 @@ function toRichText(paragraphs: string[]) {
 
 async function seedDocuments(organizationId: string) {
   const documentIds = Object.fromEntries(
-    SEED_DOCUMENTS.map(({ key }) => [key, seedId(user!.id, organizationId, 'document', key)]),
+    SEED_DOCUMENTS.map(({ key }) => [key, seedId(userId, organizationId, 'document', key)]),
   ) as Record<SeedDocumentKey, string>
 
   const { data: existing } = await dataConnect.executeGraphql<{ documents: { id: string }[] }, { ids: string[] }>(
@@ -124,7 +125,7 @@ async function seedDocuments(organizationId: string) {
           rows: missing.map(document => ({
             id: documentIds[document.key],
             organizationId,
-            createdById: user!.id,
+            createdById: userId,
             title: document.title,
             aspects: document.aspects,
             content: toRichText(document.paragraphs),
@@ -204,7 +205,7 @@ function toMessageFields(entry: SeedEntry) {
 
 function buildRows(conversation: SeedConversation, membership: Membership) {
   const { organizationId } = membership
-  const conversationId = seedId(user!.id, organizationId, 'conversation', conversation.key)
+  const conversationId = seedId(userId, organizationId, 'conversation', conversation.key)
 
   const runs = conversation.runs.map((run, number) => ({ run, number, id: seedId(conversationId, 'run', `${number}`) }))
   const entries = [
@@ -258,7 +259,7 @@ function buildRows(conversation: SeedConversation, membership: Membership) {
   return {
     conversation: {
       id: conversationId,
-      userId: user!.id,
+      userId,
       organizationId,
       title: conversation.title,
       aspects: conversation.aspects,

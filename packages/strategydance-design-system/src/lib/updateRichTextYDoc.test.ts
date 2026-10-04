@@ -453,6 +453,30 @@ describe('updateRichTextYDoc', () => {
         { outcome: 'unknownContent' },
       ],
       [
+        'a document holding a property the schema does not declare',
+        () => {
+          const doc = createDoc([paragraph('Alpha')])
+
+          ;(readContainers(doc)[0].get(0) as Y.XmlElement).setAttribute('textAlignment', 'center')
+
+          return doc
+        },
+        () => ({ type: 'replaceText', find: 'Alpha', replace: 'Beta' }),
+        { outcome: 'unknownContent' },
+      ],
+      [
+        'a document holding a link with an attribute the schema does not declare',
+        () => {
+          const doc = createDoc([paragraph('Alpha')])
+
+          readText(readContainers(doc)[0]).format(0, 5, { link: { href: 'https://example.com/', target: '_blank' } })
+
+          return doc
+        },
+        () => ({ type: 'replaceText', find: 'Alpha', replace: 'Beta' }),
+        { outcome: 'unknownContent' },
+      ],
+      [
         'a text found nowhere, in a document whose read would join two texts it wrote itself',
         createDocWithOwnSecondText,
         () => ({ type: 'replaceText', find: 'Omega', replace: 'Beta' }),
@@ -537,6 +561,21 @@ describe('updateRichTextYDoc', () => {
         paragraph('line one, line two'),
       ],
       ['with line breaks of its own', paragraph('one line'), 'one line', 'two\nlines', paragraph('two\nlines')],
+      [
+        'with line breaks of its own, inside a bold link, which stays one link',
+        paragraph({
+          type: 'link',
+          href: 'https://example.com/',
+          content: [{ type: 'text', text: 'go here', styles: { bold: true } }],
+        }),
+        'here',
+        'over\nthere',
+        paragraph({
+          type: 'link',
+          href: 'https://example.com/',
+          content: [{ type: 'text', text: 'go over\nthere', styles: { bold: true } }],
+        }),
+      ],
       ['beside an emoji', paragraph('👍🏽 done'), 'done', 'shipped', paragraph('👍🏽 shipped')],
       ['by nothing', paragraph('Remove this word'), ' this', '', paragraph('Remove word')],
     ]

@@ -50,6 +50,9 @@ type Options = {
   origin?: unknown
 }
 
+// How y-prosemirror names the attribute of a mark that may overlap itself, with a hash after it
+const HASHED_MARK_NAME = /(.*)(--[a-zA-Z0-9+/=]{8})$/
+
 // The next document, and the top-level blocks to delete from the shared text before writing it
 type Plan = { next: ProseMirrorNode; removed?: { index: number; length: number } }
 
@@ -267,10 +270,12 @@ function readChildren(node: Pick<ProseMirrorNode, 'forEach'>) {
 
 /*
   The shared text as y-prosemirror reads it, read from a copy, or null when that read changed the
-  copy or built what the schema refuses. Its read deletes an element or a text it cannot build,
-  such as a node or a style the schema lacks, a newer editor's say, and builds nodes without
-  checking how they are arranged. The one other change a read makes, joining a text into the one
-  before it when the reading document wrote both, cannot happen on a copy, whose client is new
+  copy, built what the schema refuses, or left out what the schema does not declare. Its read
+  deletes an element or a text it cannot build, such as a node or a style the schema lacks, a
+  newer editor's say, builds nodes without checking how they are arranged, and drops an attribute
+  of a node or a style that the schema does not declare, which `updateYFragment` would then remove
+  from whatever it writes. The one other change a read makes, joining a text into the one before
+  it when the reading document wrote both, cannot happen on a copy, whose client is new
 */
 function readCopy(doc: Y.Doc, schema: ProseMirrorSchema) {
   const copy = new Y.Doc()
@@ -289,7 +294,31 @@ function readCopy(doc: Y.Doc, schema: ProseMirrorSchema) {
     return null
   }
 
-  return isChanged ? null : root
+  if (isChanged || hasUndeclaredAttributes(copy.getXmlFragment(RICH_TEXT_YJS_FRAGMENT), schema)) return null
+
+  return root
+}
+
+// Whether an element or a style of a text read without error carries an attribute its schema does not declare
+function hasUndeclaredAttributes(type: Y.XmlFragment | Y.XmlElement, schema: ProseMirrorSchema): boolean {
+  return type.toArray().some(child => {
+    if (child instanceof Y.XmlElement) {
+      const declared = schema.nodes[child.nodeName].spec.attrs ?? {}
+
+      return (
+        Object.keys(child.getAttributes()).some(name => !Object.hasOwn(declared, name))
+        || hasUndeclaredAttributes(child, schema)
+      )
+    }
+
+    return (child as Y.XmlText).toDelta().some((delta: { attributes?: Record<string, unknown> }) =>
+      Object.entries(delta.attributes ?? {}).some(([name, value]) => {
+        const declared = schema.marks[HASHED_MARK_NAME.exec(name)?.[1] ?? name].spec.attrs ?? {}
+
+        return !!value && typeof value === 'object' && Object.keys(value).some(key => !Object.hasOwn(declared, key))
+      }),
+    )
+  })
 }
 
 export { updateRichTextYDoc }

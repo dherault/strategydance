@@ -918,10 +918,10 @@ keeps all four styles through an agent's edit.
   compaction's copy, and lags whenever somebody typed since. A document stored before the editor
   was shared has no `state` and so no ids: the first read seeds it, storing its snapshot under
   `SeedDocumentState`'s condition before it answers, and reads the snapshot that won when a tab
-  seeded it first, so the ids it hands out are the ones every later read sees. The read first
-  checks the Yjs tree against the editor's schema, as `updateRichTextYDoc` does: y-prosemirror,
-  which `yDocToBlocks` reads through, deletes a node or a style the schema lacks as it reads, and
-  a fold would store the loss.
+  seeded it first, so the ids it hands out are the ones every later read sees. The read is first
+  tried on a copy, as `updateRichTextYDoc` does: y-prosemirror, which `yDocToBlocks` reads
+  through, deletes what it cannot build as it reads, a node or a style the schema lacks say, and a
+  fold would store the loss.
 - **Writing** applies the edit to that Yjs document as a difference, never by building a new one:
   a document built from the edited blocks shares no history with the stored one, so merging it
   would add the text a second time. M1 built it as `updateRichTextYDoc`, in the design system's
@@ -937,8 +937,9 @@ keeps all four styles through an agent's edit.
   back exactly, such as one somebody cleared, whose empty text y-prosemirror keeps, with a new
   block, and delete it with what somebody typed in it. The function's tests fail that way on the
   first recipe. An edit is refused, touching nothing, when a block or a piece of text is not found
-  exactly once, when the document has no text yet, or when it holds a node or a style the schema
-  lacks.
+  exactly once, when the document has no text yet, or when y-prosemirror cannot read it as it
+  stands: tried on a copy, the read deletes something, such as a node or a style the schema lacks,
+  or builds nodes the schema's check refuses.
 - **Storing** is a fold, as a tab's compaction is: one backend mutation writes the new `state`,
   `content` and `contentText` under the `revision` it read, deletes the updates it merged, and
   records the call's result (see Recovery and side effects). A push that lands meanwhile is not

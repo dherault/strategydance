@@ -414,7 +414,7 @@ M14.
   what degrades to paragraphs, lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
 - `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`, working on rows rather than
   calling the database: reading a document's shared text from its snapshot and pending updates
-  through `yDocToBlocks`, once its Yjs tree has been checked against the schema as
+  through `yDocToBlocks`, once a read tried on a copy has left it unchanged, as
   `updateRichTextYDoc` checks it, as top-level blocks with their ids and Markdown, or, for a document with no
   snapshot yet, building the seed M14 stores before it hands out any id; and
   turning an edit into a fold, the new `state`, `content` and `contentText` and the ids of the

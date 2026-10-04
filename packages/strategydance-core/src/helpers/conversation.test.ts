@@ -57,6 +57,10 @@ describe('buildConversationPreview', () => {
     expect(previewText('Pipe it as a | b\n\nthen run it.')).toBe('Pipe it as a | b then run it.')
   })
 
+  it('never opens a table on a line that starts another block', () => {
+    expect(previewText('# Plan | Price\n--- | ---')).toBe('Plan | Price --- | ---')
+  })
+
   it('leaves out a table inside a quote, and ends a table where a quote starts', () => {
     expect(previewText('> Plan | Price\n> --- | ---\n> Flat | 19\n\nFlat wins.')).toBe('Flat wins.')
     expect(previewText('> > | Plan |\n> > | --- |\n> > | Flat |\n> Back to the quote')).toBe('Back to the quote')

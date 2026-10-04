@@ -60,7 +60,8 @@ const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:[-*_]\s*){3,}$|=+$)/
 */
 const TABLE_DELIMITER_PATTERN = /^(?=.*\|)\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$/
 
-// A line that starts another block, which ends a table as a blank line does
+// A line that starts another block, which ends a table as a blank line does, and is never a
+// table's header
 const BLOCK_START_PATTERN = /^(?:#{1,6}(?:\s|$)|```|~~~|(?:[-*+]|\d{1,9}[.)])\s)/
 
 const QUOTE_MARKER_PATTERN = /^(?:>\s*)+/
@@ -96,7 +97,12 @@ function getMarkdownPreviewText(markdown: string) {
     const next = lines[index + 1]
 
     tableDepth =
-      content.includes('|') && next?.depth === depth && TABLE_DELIMITER_PATTERN.test(next.content) ? depth : null
+      content.includes('|')
+      && !BLOCK_START_PATTERN.test(content)
+      && next?.depth === depth
+      && TABLE_DELIMITER_PATTERN.test(next.content)
+        ? depth
+        : null
 
     if (tableDepth !== null) {
       index++

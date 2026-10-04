@@ -145,13 +145,14 @@ export type KnowledgeDocumentFields = {
   title: string
   content: string
   aspects: CompanyAspect[]
-  isAiLocked: boolean
+  isAiReadable: boolean
+  isAiWritable: boolean
 }
 
 /*
-  Where the saving of a document's title, aspects and lock stands, and a draft's: nothing to save,
-  a change waiting for the reader to pause, one on its way, one that failed and waits for the next
-  try, a draft whose text is too long to store, or a draft the organization has no room for
+  Where the saving of a document's title, aspects and AI permissions stands, and a draft's: nothing
+  to save, a change waiting for the reader to pause, one on its way, one that failed and waits for
+  the next try, a draft whose text is too long to store, or a draft the organization has no room for
 */
 export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full'
 

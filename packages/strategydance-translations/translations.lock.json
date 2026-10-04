@@ -1415,6 +1415,30 @@
         "hash": "d2a272d05c287f5e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.aiNoAccess": {
+        "hash": "7ccfc1b87988f01c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aiPermissions": {
+        "hash": "6ba72ad1d9a7cfd2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aiRead": {
+        "hash": "f91c6d8764639718",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aiReadOnly": {
+        "hash": "7fd3663d53853a11",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aiReadWrite": {
+        "hash": "06746ff9595a2ce1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aiWrite": {
+        "hash": "816d69d067c644d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.allKnowledge": {
         "hash": "7ba49bc4779b6d0b",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1555,18 +1579,6 @@
         "hash": "a3e24b1495c08e06",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "knowledge.lock": {
-        "hash": "9eed278691a10005",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.locked": {
-        "hash": "9253db613c6fe34d",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.lockedTooltip": {
-        "hash": "033e089adacfae40",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "knowledge.moreActions": {
         "hash": "b3dab16d8741e2a7",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1621,14 +1633,6 @@
       },
       "knowledge.undo": {
         "hash": "6cac6edbe5aa0efe",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.unlock": {
-        "hash": "80cb506f7c555a93",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.unlocked": {
-        "hash": "2b671f1fe64e64f4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.untitled": {

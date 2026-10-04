@@ -321,8 +321,8 @@ type ActivityDay @table(key: ["user", "organization", "date"]) {
 
 # A piece of what an organization knows, such as a plan, some notes or a decision, which the
 # Knowledge pages list and each aspect's page shows when it is tagged with that aspect. Any member
-# reads, writes, tags, locks and deletes any of its organization's documents: it is the team's,
-# not its author's.
+# reads, writes, tags, deletes and sets what agents may do with any of its organization's
+# documents: it is the team's, not its author's.
 #
 # Deleted by setting `deletedAt`, so an Undo is one update. `DeleteDocument` prunes the
 # organization's documents deleted over a day ago, as lazily as `DeleteTaskList` prunes lists. One
@@ -356,9 +356,12 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   # Which aspects of the company it is about, each once, in no particular order. The pages show
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")
-  # Whether the team asked that no agent change it. Nothing reads it yet: it keeps their choice for
-  # the agents to come
-  isAiLocked: Boolean! @default(value: false)
+  # Whether the team lets agents read it. Nothing reads it yet: it keeps their choice for the agents
+  # to come
+  isAiReadable: Boolean! @default(value: true)
+  # Whether the team lets agents change it, which they may only while they may read it too. One they
+  # may not read keeps this as it was, for when they may again
+  isAiWritable: Boolean! @default(value: true)
   # How many times its `state` or its `content` was written. A compaction names the revision of the
   # snapshot it folded the pending updates into and is refused when it is not the stored one, so it
   # never writes over a newer snapshot, and a tab that sees it move reads the snapshot again. A
@@ -367,8 +370,8 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   revision: Int! @default(value: 0)
   deletedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
-  # When its title, content or aspects last changed, or its lock. Deleting it and taking the
-  # delete back leave it alone, so an Undo puts it back where it was in the list
+  # When its title, content or aspects last changed, or what agents may do with it. Deleting it and
+  # taking the delete back leave it alone, so an Undo puts it back where it was in the list
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 

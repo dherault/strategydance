@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { LockIcon, LockOpenIcon } from 'lucide-react'
 import { type FocusEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { MAX_DOCUMENTS, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
@@ -18,7 +17,6 @@ import type {
 } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
-import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import type { KnowledgeDocument, KnowledgeDocumentFields } from '~types'
 
@@ -38,6 +36,7 @@ import getPresenceColor from '~utils/knowledge/getPresenceColor'
 
 import Spinner from '~components/common/Spinner'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
+import KnowledgeDocumentAiMenu from '~components/knowledge/KnowledgeDocumentAiMenu'
 import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumentAspectIcons'
 import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
@@ -103,13 +102,15 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
       title: knowledgeDocument?.title ?? '',
       content: knowledgeDocument?.content ?? '',
       aspects: knowledgeDocument?.aspects ?? (draftAspect ? [draftAspect] : []),
-      isAiLocked: knowledgeDocument?.isAiLocked ?? false,
+      isAiReadable: knowledgeDocument?.isAiReadable ?? true,
+      isAiWritable: knowledgeDocument?.isAiWritable ?? true,
     } satisfies KnowledgeDocumentFields,
     updatedAt: knowledgeDocument?.updatedAt ?? null,
   }))
   const [title, setTitle] = useState(initial.fields.title)
   const [aspects, setAspects] = useState(initial.fields.aspects)
-  const [isAiLocked, setIsAiLocked] = useState(initial.fields.isAiLocked)
+  const [isAiReadable, setIsAiReadable] = useState(initial.fields.isAiReadable)
+  const [isAiWritable, setIsAiWritable] = useState(initial.fields.isAiWritable)
   const [isStored, setIsStored] = useState(knowledgeDocument !== null)
   const [isPickingAspects, setIsPickingAspects] = useState(false)
   // Whether the live query found the document gone, and when it last says it changed
@@ -128,7 +129,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     onRemoteChange: fields => {
       if (fields.title !== undefined) setTitle(fields.title)
       if (fields.aspects !== undefined) setAspects(fields.aspects)
-      if (fields.isAiLocked !== undefined) setIsAiLocked(fields.isAiLocked)
+      if (fields.isAiReadable !== undefined) setIsAiReadable(fields.isAiReadable)
+      if (fields.isAiWritable !== undefined) setIsAiWritable(fields.isAiWritable)
     },
     onCreated: () => {
       setIsStored(true)
@@ -152,7 +154,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
       if (!live) return
 
-      saver.receive({ title: live.title, aspects: live.aspects, isAiLocked: live.isAiLocked })
+      saver.receive({
+        title: live.title,
+        aspects: live.aspects,
+        isAiReadable: live.isAiReadable,
+        isAiWritable: live.isAiWritable,
+      })
       setLiveUpdatedAt(live.updatedAt)
     },
   })
@@ -215,13 +222,11 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     saver.change({ aspects: next })
   }
 
-  function toggleAiLock() {
-    const next = !isAiLocked
+  function changeAiPermissions(fields: Partial<Pick<KnowledgeDocumentFields, 'isAiReadable' | 'isAiWritable'>>) {
+    if (fields.isAiReadable !== undefined) setIsAiReadable(fields.isAiReadable)
+    if (fields.isAiWritable !== undefined) setIsAiWritable(fields.isAiWritable)
 
-    setIsAiLocked(next)
-    saver.change({ isAiLocked: next })
-
-    if (isStored) toast(formatMessage(next ? knowledgeMessages.locked : knowledgeMessages.unlocked))
+    saver.change(fields)
   }
 
   // Leaving the page's fields sends what is left, as leaving the page would
@@ -385,21 +390,11 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             aria-hidden="true"
             className="h-5 w-px bg-border"
           />
-          <Tooltip
-            content={formatMessage(isAiLocked ? knowledgeMessages.lockedTooltip : knowledgeMessages.lock)}
-            side="bottom"
-            // Open through the press, so the reader sees the words change with the lock
-            isKeptOpenOnPress
-          >
-            <Button
-              variant="transparent"
-              size="sm"
-              icon={isAiLocked ? <LockIcon /> : <LockOpenIcon />}
-              aria-label={formatMessage(isAiLocked ? knowledgeMessages.unlock : knowledgeMessages.lock)}
-              aria-pressed={isAiLocked}
-              onClick={toggleAiLock}
-            />
-          </Tooltip>
+          <KnowledgeDocumentAiMenu
+            isAiReadable={isAiReadable}
+            isAiWritable={isAiWritable}
+            onChange={changeAiPermissions}
+          />
         </div>
         {status === 'full' ? (
           <p

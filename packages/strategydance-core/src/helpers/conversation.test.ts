@@ -141,7 +141,7 @@ describe('buildConversationPreview', () => {
   })
 
   it('reads a message full of unpaired delimiters without searching past each one', () => {
-    const start = performance.now()
+    const start = process.cpuUsage()
 
     for (const unit of [
       '[a',
@@ -162,8 +162,12 @@ describe('buildConversationPreview', () => {
       buildConversationPreview({ kind: 'MEMBER_TEXT', text: unit.repeat(Math.ceil(20000 / unit.length)) })
     }
 
-    // About a millisecond each, where a pattern that searched past its next delimiter took seconds
-    expect(performance.now() - start).toBeLessThan(1000)
+    // The time spent on the processor, which a busy machine does not stretch as it stretches the
+    // time on the clock: about a millisecond each, where a pattern that searched past its next
+    // delimiter took seconds
+    const { user, system } = process.cpuUsage(start)
+
+    expect((user + system) / 1000).toBeLessThan(1000)
   })
 
   it('keeps a text that fits as it is', () => {

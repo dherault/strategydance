@@ -697,6 +697,10 @@
         "hash": "55566c588dbe24df",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.dayCharged": {
+        "hash": "3079ba81f07f6703",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.dayCounter": {
         "hash": "10d06db29a3f9ba7",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -923,6 +927,22 @@
       },
       "buildInPublic.statementCard": {
         "hash": "f336c61840954092",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakChargePending": {
+        "hash": "a8c495068476e38e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakCharges": {
+        "hash": "b07a4ca69839701c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakChargesHelp": {
+        "hash": "e43a145991f1039f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.streakChargesHelpLabel": {
+        "hash": "a5d60329d5034f3e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.streakDays": {

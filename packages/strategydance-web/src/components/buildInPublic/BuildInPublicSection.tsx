@@ -17,6 +17,8 @@ type Failure = {
 type Props = {
   title: string
   description: string
+  // Laid under the head, above the cards, as a word on what they show
+  head?: ReactNode
   // What the section could not read, shown with a way to try again in place of its cards
   failure?: Failure | null
   children: ReactNode
@@ -26,7 +28,7 @@ type Props = {
   One section of the build in public page, its cards one under the other. Its head stays in view
   while the cards scroll under it, below the bar that opens the sidebar on a narrow screen
 */
-function BuildInPublicSection({ title, description, failure, children }: Props) {
+function BuildInPublicSection({ title, description, head, failure, children }: Props) {
   const { formatMessage } = useIntl()
 
   return (
@@ -54,7 +56,10 @@ function BuildInPublicSection({ title, description, failure, children }: Props) 
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col items-start gap-24">{children}</div>
+        <>
+          {head}
+          <div className="flex flex-col items-start gap-24">{children}</div>
+        </>
       )}
     </PageSection>
   )

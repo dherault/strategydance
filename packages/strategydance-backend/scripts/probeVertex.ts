@@ -418,23 +418,29 @@ if (firstTurn && stored) {
     },
   )
 
-  const reordered = replayTurn(stored, true)
-  const isReordered = JSON.stringify(reordered) !== JSON.stringify(replayTurn(stored))
+  // Whether the API counts key order as an edit: either answer settles it, a drop or a refusal
+  await check('Request 3, replaying turn 1 with its tool input reordered as jsonb would, gets an answer', async () => {
+    const reordered = replayTurn(stored, true)
 
-  finding('Request 3 reorders the decision input', isReordered)
+    assert(
+      JSON.stringify(reordered) !== JSON.stringify(replayTurn(stored)),
+      'the decision input already came in jsonb order, so nothing was reordered',
+    )
 
-  if (isReordered) {
     try {
       const third = await runTurn([...FIRST_MESSAGES, ...reordered, answer], new BetaFallbackState())
 
-      finding('Request 3 (keys reordered as jsonb) input_transformations', readTransformations(third))
+      finding('Request 3 input_transformations', readTransformations(third))
       finding('Request 3 usage, per piece', readUsage(third))
     } catch (error) {
-      finding('Request 3 (keys reordered as jsonb) refused', describeError(error))
+      if (!(error instanceof Anthropic.BadRequestError)) throw error
+
+      finding('Request 3 refused', describeError(error))
     }
-  }
+  })
 } else {
   skip('Request 2: the replay from JSON text', 'request 1 has no record_decision call to answer')
+  skip('Request 3: the replay with its tool input reordered', 'request 1 has no record_decision call to answer')
 }
 
 /* ---

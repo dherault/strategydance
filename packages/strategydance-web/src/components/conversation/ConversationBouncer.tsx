@@ -4,6 +4,7 @@ import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 
 import useConversation from '~hooks/conversation/useConversation'
+import useConversationRun from '~hooks/conversation/useConversationRun'
 
 import Spinner from '~components/common/Spinner'
 import ConversationBackLink from '~components/conversation/ConversationBackLink'
@@ -19,13 +20,25 @@ type Props = PropsWithChildren<{
 }>
 
 /*
-  Turns the conversation's first read into a verdict: one that failed offers to try again, and a
-  conversation that is not there, and is not a draft, is missing. Below `ConversationWait`, which
-  holds it until the read lands
+  Turns the first reads of the conversation and its latest run into a verdict: either failing
+  offers to read again what failed, since a run that could not be read is not a conversation
+  without one, and a conversation that is not there, and is not a draft, is missing. Below
+  `ConversationWait`, which holds it until both reads land
 */
 function ConversationBouncer({ conversationId, isNew, children }: Props) {
   const { formatMessage } = useIntl()
-  const { data: conversation, loading, refetch, hasFailed } = useConversation(conversationId)
+  const conversationRead = useConversation(conversationId)
+  const runRead = useConversationRun(conversationId)
+  const conversation = conversationRead.data
+  const hasFailed = conversationRead.hasFailed || runRead.hasFailed
+  const loading = conversationRead.loading || runRead.loading
+
+  async function refetch() {
+    await Promise.all([
+      conversationRead.hasFailed ? conversationRead.refetch() : null,
+      runRead.hasFailed ? runRead.refetch() : null,
+    ])
+  }
 
   if (hasFailed) {
     return (

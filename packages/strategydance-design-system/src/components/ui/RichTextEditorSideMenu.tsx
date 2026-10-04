@@ -165,7 +165,7 @@ function DragHandleButton() {
   others stay plain items, since a checkbox item would keep the menu open once it is chosen.
 
   Only a block of text or code turns into another, which keeps its text: any other would lose what
-  it holds
+  it holds, so a selection's pictures, videos, cards and tables stay as they are
 */
 function BlockMenu() {
   const Components = useComponentsContext()!
@@ -188,7 +188,10 @@ function BlockMenu() {
     if (!block) return
 
     const selectedBlocks = editor.getSelection()?.blocks
-    const blocks = selectedBlocks?.some(selected => selected.id === block.id) ? selectedBlocks : [block]
+    // Of a selection, only the blocks holding text turn, as a picture or a table would lose what it holds
+    const blocks = selectedBlocks?.some(selected => selected.id === block.id)
+      ? selectedBlocks.filter(selected => hasText(editor, selected.type))
+      : [block]
     const update = { type: item.type, props: item.props } as PartialBlock
 
     editor.transact(() => {

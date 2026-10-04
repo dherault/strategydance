@@ -9,7 +9,9 @@ follows.
 Written on 2026-10-02 against `dev` at `4def3a6`, from the Claude Design project "Strategy Dance
 Conversations". Reviewed on 2026-10-03 against `dev` at `db4df41`, once live documents had merged:
 the agent's knowledge writes, the rich text milestone, the worker and the message cap changed then.
-When a decision changes, change it here first.
+Revised on 2026-10-04, in M1: the agent calls Claude through Anthropic's API rather than Vertex,
+which gave the project no Claude quota, and the Files API, server-side refusal fallbacks and the
+newer web search came with it. When a decision changes, change it here first.
 
 ## The design
 
@@ -35,16 +37,16 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Topic | Decision |
 | --- | --- |
 | Model | Claude Opus 5.5, `claude-opus-5-5` |
-| Where it runs | Gemini Enterprise Agent Platform (Vertex AI), through `@anthropic-ai/vertex-sdk`, region `global`, with Application Default Credentials: nothing stored, billed through Google Cloud |
+| Where it runs | Anthropic's Claude API, directly, through `@anthropic-ai/sdk`. Its key is the `anthropic-api-key` secret, read through `retrieveSecret`, and the workspace it belongs to has a spend limit. Vertex was the first choice, for credentials nothing stores and one bill, until Google gave the project no Claude quota and refused one. The API also has what Vertex lacks: server-side refusal fallbacks, the Files API and the newer web search |
 | How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on a private worker service, the backend's image deployed a second time, writing each step to Data Connect. Locally it runs in the backend's process |
 | What the agent reads | Knowledge, the organization's profile (name, brief), the whole team (names, job titles, roles, bios, top priorities) and the log. Not tasks or the checklist, which are going away |
 | What the agent writes | Knowledge documents, through their shared Yjs text as an editor would, so its edits reach open editors live, never one whose AI lock is on; and the member's own top priority. Not the log, the checklist or tasks |
-| Web search | Claude's built-in web search, `web_search_20250305` (the version Vertex offers), from the first agent milestone |
-| Attachments | Images, PDFs and text files, read by Claude natively |
+| Web search | Claude's built-in web search, `web_search_20260209`, which filters what it finds before it reaches the context, from the first agent milestone |
+| Attachments | Images, PDFs and text files, read by Claude natively, through the Files API |
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
 | Integrations (MCP) | The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it |
-| Usage limits | None yet: a credit system comes later, and a budget alert on Vertex spend, set before the first request, is the guard until then. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage |
+| Usage limits | None yet: a credit system comes later. Until then the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Agent-started conversations | Not in this plan. Orchestration comes later |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone |
@@ -195,7 +197,7 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
                                                      │ OIDC-signed POST, checked by Cloud Run
                                                      ▼
                          Worker (Cloud Run, private) `/internal/conversation-runs`
-                                    ├──▶ Claude Opus 5.5 on Vertex (stream)
+                                    ├──▶ Claude Opus 5.5 on the Claude API (stream)
                                     ├──▶ tools: knowledge, team, log, top priority, integrations
                                     └──▶ Data Connect (backend connector) ──refresh──▶ Browser
 ```
@@ -208,16 +210,15 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
   whole run, so the CPU stays, and the run survives the member closing the tab. Tasks retry when a
   request fails. In development there is no queue: the backend runs the worker in its own process,
   which nothing throttles.
-- **Why the backend's code.** It already verifies callers, holds the Admin SDK and runs on Google
-  Cloud's credentials, which is all calling Vertex needs.
+- **Why the backend's code.** It already verifies callers, holds the Admin SDK and reads secrets
+  from Secret Manager, which is all calling Claude needs.
 - **Why a second service.** The backend is public (`--no-invoker-iam-check`), so an internal route
   there would have to verify Cloud Tasks' and Cloud Scheduler's tokens itself, and a 15-minute run
-  holding 32 MB requests would share its instances, timeout and memory with every interactive
-  route. `strategydance-worker` is the same image started with `SERVICE=worker`, which mounts the
+  would share its instances and timeout with every interactive route. `strategydance-worker` is the same image started with `SERVICE=worker`, which mounts the
   internal routes and nothing else, while the backend mounts everything but them. Its invoker check
   stays on, and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses
   any other caller before the code runs and no token verification is written by hand. It has its own
-  15-minute timeout, a low concurrency (4) and the memory that concurrency needs, and scales to zero
+  15-minute timeout and a low concurrency (4), and scales to zero
   between runs. The backend keeps its defaults.
 
 ### The data
@@ -301,7 +302,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`UPLOADING` while its slot is reserved, `READY` once its file is stored, `PRUNING` once a prune
   has claimed it), `name`, `contentType`,
   `size`, `pageCount` (a PDF's pages, counted when it is stored, null for other files), `tokenCount`
-  (its input tokens alone, counted when it is stored, see Attachments), `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
+  (its input tokens alone, counted when it is stored, see Attachments), `claudeFileId` (its id in
+  the Files API, written with `READY`, see Attachments), `createdAt`. Unsent, the file waits under `pending/`; sent, it lives at
   `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{attachmentId}`,
   where `organizations/{organizationId}` is `buildOrganizationStoragePrefix`'s canonical form (hyphens
   removed, as `deleteOrganization` sweeps it), never the route's raw parameter, so deleting the
@@ -619,16 +621,16 @@ the plan treats it as enforced either way. So the transcript is stored as sent, 
 untouched, and replayed as stored; the thread's messages are a separate drawing of it. It is
 append-only with one exception: Retry cuts the tail back to a run's anchor, which leaves a prefix
 the remaining thinking blocks were made with. Nothing else ever edits or deletes an entry. The system
-prompt is the same text for every conversation and the tools the same list. Files go in as base64
-of the stored bytes, which never change: the transcript holds a placeholder naming the file, and
-the worker swaps the bytes in.
+prompt is the same text for every conversation and the tools the same list. Files go in by their
+id in the Files API, which names bytes that never change, so the transcript holds the reference as
+it is sent.
 
 **The rules**, which a pure `checkTranscript` function enforces before every request, with tests:
 
 1. Entry 0 is `USER`.
 2. A `SYSTEM` entry sits directly after a `USER` entry and directly before an `ASSISTANT` entry: never
    last, never beside another `SYSTEM` entry. (These are Claude's rules for mid-conversation system
-   messages, which Opus 5.5 takes on Vertex.)
+   messages, which Opus 5.5 takes.)
 3. An `ASSISTANT` entry with client `tool_use` blocks is followed by a `USER` entry that opens with one
    `tool_result` per id, in order, before any text, image or document block.
 4. Only the last entry may hold unanswered `tool_use` blocks.
@@ -771,15 +773,24 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
   rule could check only the uid, which stays true after a member is removed, so `storage.rules` keeps
   granting clients nothing under `organizations/`, as it does today.
-- Claude receives images as `image` blocks and PDFs as `document` blocks, both base64 since Vertex
-  has no Files API, and text files as `document` blocks with a `text` source, decoded, so the model
-  reads the text rather than its encoding. A request takes about 32 MB, every
-  earlier file included, so a conversation's files are capped at 15 MiB (about 20 MB encoded) and a
+- Claude receives each file through the Files API, never as bytes in a request. Once the upload
+  route has stored a file, it streams the stored object to the Files API, reading objects back at
+  most two at once per instance so the backend's memory stays bounded however many arrive, and
+  keeps the returned id in `claudeFileId`, in the write that turns the row `READY`. Images go in as
+  `image` blocks, and PDFs and text files as `document` blocks, each with `source: { type: "file",
+  file_id }`, so a request carries ids rather than bytes, and neither service holds a file while a
+  run goes. Storage keeps the member's copy, which the thread shows, since the Files API gives back
+  no file it was sent. A retried upload that finds its row `UPLOADING` uploads again, so a crash
+  between the upload and the row's write leaves a file no row names: the daily sweeper lists the
+  organization's files and deletes those no row names after a day. Pruning a conversation or an
+  unsent file deletes its file there too, idempotently, and deleting an organization deletes its
+  files there from their rows before the rows go. The Files API keeps files until they are deleted,
+  up to 500 MB each and 100 GB for the whole Anthropic organization.
+- A conversation's files stay capped at 15 MiB, a storage bound now that no request carries them, a
   text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
-  files is sent only while the next request stays under 700000 input tokens. Building that request
-  to count it would put every earlier file in the backend's memory, so each file is counted once,
-  alone, once it is stored (Vertex has the count endpoint), into `tokenCount` on its row as its
-  pages go into `pageCount`. Each request's usage records the transcript position its input ended
+  files is sent only while the next request stays under 700000 input tokens. Each file is counted
+  once, alone, by its id once it is uploaded, into `tokenCount` on its row as its pages go into
+  `pageCount`. Each request's usage records the transcript position its input ended
   at and whether its turn was stored. The send route starts from the latest request whose input and
   turn both still lie in the transcript, so a turn Retry cut never counts: its whole input, from its
   stored usage (`input_tokens` with `cache_read_input_tokens` and `cache_creation_input_tokens`,
@@ -796,29 +807,22 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   what the continuation resends, the pieces held in memory included, so nothing is left out or
   counted twice. A first
   message counts its context and text the same way. The worker's check before each request sums
-  the same way. The upload streams into Storage as before, and the count reads the
-  stored object back, at most two at once per instance, so the backend's memory stays bounded
-  however many arrive. Before each request the worker measures the body: past 30 MB, or 800000
-  input tokens, it marks the conversation full, and the send route refuses new messages with
-  `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and the worker measures
-  again before the retried request, setting it back only if the shortened request is still too
-  large, so a retry that brings it under the limits frees the conversation. A request holds its
-  files about four times over (the bytes, their base64, the JSON body, the SDK's copy), about
-  130 MB at the limit, so the worker service is sized for its concurrency rather than budgeting
-  memory in code: four runs an instance (`--concurrency 4`) at the limit hold about 520 MB, which
-  `--memory 2Gi` holds with room for the runtime. The backend's own routes never build a request,
-  so its instances keep their defaults.
+  the same way: past 800000 input tokens it marks the conversation full, and the send route refuses
+  new messages with `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and
+  the worker measures again before the retried request, setting it back only if the shortened
+  request is still too large, so a retry that brings it under the limit frees the conversation.
 
 ### The agent
 
-- **The client**: `AnthropicVertex` with `projectId: 'strategydance'` and `region: 'global'`, behind
-  a small interface so tests, and development when wanted, can swap in a scripted client. Load the
+- **The client**: `new Anthropic({ apiKey })`, the key read once per process through
+  `retrieveSecret` (`SECRET_ANTHROPIC_API_KEY`), behind a small interface so tests, and development when wanted, can swap in a scripted client. Load the
   `claude-api` skill before writing this code: the request shape below names features, and the
   skill and the SDK give their exact spelling.
 - **The request**, streamed: model `claude-opus-5-5`; `max_tokens` 64000 (thinking counts toward
   it); `thinking: { type: "adaptive", display: "updates", block_binding: { prefix_mismatch_behavior:
   "drop_block" } }` with the betas `thinking-display-updates-2026-08-18` and
-  `thinking-binding-controls-2026-08-01`; `output_config.effort` set explicitly to `medium` (Opus
+  `thinking-binding-controls-2026-08-01`; `fallbacks: "default"` with the beta
+  `server-side-fallback-2026-07-01` (see Refusals); `output_config.effort` set explicitly to `medium` (Opus
   5.5's default, and the first lever to tune); the static system prompt with a cache breakpoint, plus
   top-level automatic caching for the conversation's tail; the tools with strict schemas and
   `eager_input_streaming: true`, as the skill recommends for streamed requests, so every input is
@@ -827,11 +831,12 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   text is a short progress line ("Comparing revenue with September"): it becomes `run.step`, which
   the thinking indicator shows, which is what the design's rotating steps are. Without one, the
   indicator shows the running tool's label, else "Thinking".
-- **Refusals** come back as `stop_reason: "refusal"`. Vertex has no server-side fallback, so the
-  client uses the SDK's client-side refusal fallback to `claude-opus-5`, with one `BetaFallbackState`
-  per run, since it scopes the pinning. `display: "updates"` is documented for Opus 5.5, not Opus 5,
-  and the middleware sends the fallback the same body: M1's probe checks with a real call what Opus 5
-  accepts, and the fallback strips what it does not. Before storing a turn that holds a
+- **Refusals** come back as `stop_reason: "refusal"`. The request asks for server-side fallbacks,
+  `fallbacks: "default"`: on a refusal the API runs the same request again, within the same call, on
+  the model Anthropic recommends for the refusal's category, among those Opus 5.5's model entry
+  lists as `allowed_fallback_models`, and serves the conversation's requests from that model for
+  about an hour after. A fallback runs the agent's own body, so M1's probe sends it to each allowed
+  model directly. Before storing a turn that holds a
   `fallback` block, the worker drops the thinking, redacted thinking, `tool_use` and unpaired
   `server_tool_use` blocks before the boundary, and draws only what it stores. A refusal that survives
   the fallback ends `REFUSED` with a note.
@@ -865,7 +870,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 
 | Tool | What it does | Milestone |
 | --- | --- | --- |
-| `web_search` | Claude's server tool, `web_search_20250305`, at most 5 searches a request | M9 |
+| `web_search` | Claude's server tool, `web_search_20260209`, which filters what it fetches before it reaches the context, at most 5 searches a request | M9 |
 | `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents, with id, title, aspects, `updatedAt`, `isAiLocked` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M14 |
 | `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text | M14 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, in the mutation that records the call's result. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M14 |
@@ -987,22 +992,23 @@ worker's claim checks the role again, so a queued run stops too:
 - All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M24 removes.
   Locally, `bun run grant:administrator <email>` makes an account staff.
 
-### Google Cloud setup
+### Setup
 
 Done once by a human. Steps 1, 2, 5 and 8 come before M1, whose spike is the first request to
-Vertex; the rest before the milestone each names (development otherwise uses the developer's ADC
-and in-process runs):
+Claude; the rest before the milestone each names (development otherwise runs in the backend's
+process). Steps 2 and 8 were done on 2026-10-04.
 
-1. Enable Claude Opus 5.5, and Claude Opus 5 for the refusal fallback, for project `strategydance`
-   in Agent Platform's Model Garden (accept Anthropic's terms), and check the quota for
-   `claude-opus-5-5` on `global`. Raise it before M24.
-2. `gcloud services enable aiplatform.googleapis.com cloudtasks.googleapis.com
-   cloudscheduler.googleapis.com --project strategydance`, and allow web search for partner models
-   in the organization policy (`constraints/vertexai.allowedPartnerModelFeatures`, which leaves
-   `web-search` off by default), an organization administrator's change, or every request carrying
-   the tool fails.
+1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
+   limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
+   anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
+   file or a chat). The workspace's default inference region is the legal review's call before M24.
+   Check the organization's rate limit tier before staff use, and raise it before M24.
+2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
+   strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
+   search for partner models on Vertex, both from when Vertex was the plan, and unused since.
 3. For M8: grant the runtime service account (the Compute Engine default one, see `CLAUDE.md`),
-   which both services run as, `roles/aiplatform.user`, `roles/cloudtasks.enqueuer` and
+   which both services run as, Secret Manager's accessor role on `anthropic-api-key`,
+   `roles/cloudtasks.enqueuer` and
    `roles/cloudtasks.viewer` (the queued-run check reads tasks, which the enqueuer role does not
    allow). Create `conversation-tasks@strategydance.iam.gserviceaccount.com`, the identity Cloud
    Tasks and Cloud Scheduler call the worker as, and grant the runtime account
@@ -1014,8 +1020,9 @@ and in-process runs):
    `roles/iam.serviceAccountTokenCreator` on it.
 4. For M8: `gcloud tasks queues create conversation-runs --location us-central1 --max-attempts 5
    --min-backoff 90s --max-concurrent-dispatches 50 --project strategydance`.
-5. Developers: `gcloud auth application-default login` as an account with `roles/aiplatform.user`, so
-   `bun run dev:backend` reaches Vertex. Development calls the real model and costs money.
+5. Developers: `gcloud auth application-default login` as an account that may read
+   `anthropic-api-key`, so `bun run dev:backend` reaches Claude, or `ANTHROPIC_API_KEY` set to the
+   key. Development calls the real model and costs money.
 6. For M8, once its release has deployed the worker, whose address the job names: a Cloud Scheduler
    job calling the worker's `POST /internal/sweep` daily with an OIDC token for
    `conversation-tasks` (`gcloud scheduler jobs create http`), its `--oidc-token-audience` the
@@ -1025,15 +1032,17 @@ and in-process runs):
    first.
 7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
-8. A budget alert on Vertex spend, since nothing caps usage yet, and staff runs in production and
-   every development run cost money from the first request.
+8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
+   development run cost money from the first request: the workspace's spend limit (step 1), and a
+   budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting
+   at 50%, 90% and 100% (done on 2026-10-04).
 9. For M21 to M23: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
 
 ### Cost
 
 At first-party list prices ($4 per million input tokens, $20 per million output, cache reads $0.20,
-cache writes $5; check Vertex's partner prices) and medium effort, a run of three requests over a
+cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
 the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M24
@@ -1049,8 +1058,9 @@ the lifetime is chosen from what members' pauses turn out to be.
 ## Risks and open questions
 
 - **Spend**: nothing caps usage until credits exist; the budget alert is the guard.
-- **Vertex**: partner pricing, the web search price, the request size limit and the quota for
-  `claude-opus-5-5` on `global` need checking in the console.
+- **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
+  it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
+  checked before staff use and raised before M24.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
@@ -1066,9 +1076,10 @@ the lifetime is chosen from what members' pauses turn out to be.
   y-prosemirror, which is pinned at 1.3.7 for it: a newer version comes in with those tests run
   against it. BlockNote already ships a binding for y-prosemirror's second major version, which has
   no `updateYFragment`, so moving to it means writing the function again.
-- **Processing location**: Vertex's `global` endpoint may process a request in any region. The
-  legal review before M24 says so, and names Google and Anthropic as processors of what members
-  write and attach.
+- **Processing location**: the API runs inference in the workspace's default region unless a
+  request names one (`inference_geo`). The legal review before M24 picks it, and names Anthropic as
+  the processor of what members write and attach, files included, which the Files API keeps until
+  they are deleted.
 - **Prompt injection**: knowledge, the log, the web, files and integrations carry text others wrote,
   and a system prompt is no boundary; what the tools allow is. Integration calls wait for the
   member's approval, except auto-approved tools, which anything the agent reads can get called at
@@ -1079,4 +1090,4 @@ the lifetime is chosen from what members' pauses turn out to be.
   tool call row each write leaves in the thread, and the version check limit it; if that proves too
   loose, M23's approval entry can gate built-in writes too.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
-  available (beta on Vertex) if it comes to that.
+  available (beta) if it comes to that.

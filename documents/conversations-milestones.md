@@ -44,7 +44,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
-| M2 | The conversation tables | database, core | M1 | |
+| M2 | The conversation tables | database, core | M1 | #95 |
 | M3 | The Markdown component | design-system | | #94 |
 | M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
@@ -565,6 +565,10 @@ M14.
 ### M19: Attachments: storing them and sending them to Claude
 
 - The `ConversationAttachment` table, as The data describes it, additive.
+- In strategydance-core, `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the types the upload's sniffing
+  accepts, which M2 left to this milestone since the plan names no list; and the files case of
+  `buildConversationPreview`, a message holding only files previewed as the first file's name or
+  their count, additive in `preview`.
 - The upload's transport: `PUT /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId`,
   the conversation's id in the path (a draft's, made by the browser, before the conversation
   exists), the raw bytes as the body with their `Content-Type`, and the file's name in an

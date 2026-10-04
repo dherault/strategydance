@@ -696,7 +696,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   messages go back to `RUNNING`),
   answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the
-  stream was cut), it sends its context and the request straight away.
+  stream was cut), it sends its context and the request straight away. Resume refuses once
+  anything follows the note, since the page relies on it: it deletes the thread's newest entry
+  and moves no `historyRevision`, and the page's merge (`createConversationThread`, M5) finds
+  such a deletion only because it is the newest.
 - **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed, refused or full note: every run
   records `anchorPosition` when it is created, before anything runs: the `USER` entry that started
   it (a message, files only included, or answers), and for a resumed run the anchor of the run it

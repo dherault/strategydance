@@ -34,9 +34,10 @@ function isSameAspects(a: CompanyAspect[], b: CompanyAspect[]) {
   the new position, a few times at most. The same refusal says when the conversation is full or
   gone, which the read tells apart.
 
-  Any other failure may have landed or not: the conversation is read again, and the save counts as
-  done when it holds the aspects sent, as the reader's, so a lost answer never writes a second note.
-  An unchanged set saves nothing, as the design has it.
+  After any failure the conversation is read again, and the save counts as done when it already
+  holds the aspects sent, as the reader's: a request whose answer was lost may have landed, and
+  another tab may have saved the same set first, and neither writes a second note. An unchanged set
+  saves nothing, as the design has it.
 
   Throws when the save failed for any other reason
 */
@@ -74,13 +75,12 @@ function useUpdateConversationAspects() {
 
         current = data.conversations[0] ?? null
 
-        if (!isRefused) {
-          if (current?.aspectsSetBy === ConversationActor.MEMBER && isSameAspects(current.aspects, aspects)) {
-            return 'saved'
-          }
-
-          throw error
+        // Saved already, by this request whose answer was lost or by another tab saving the same
+        if (current?.aspectsSetBy === ConversationActor.MEMBER && isSameAspects(current.aspects, aspects)) {
+          return 'saved'
         }
+
+        if (!isRefused) throw error
       }
     }
 

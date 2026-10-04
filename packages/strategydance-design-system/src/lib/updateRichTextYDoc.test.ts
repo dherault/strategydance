@@ -408,6 +408,32 @@ describe('updateRichTextYDoc', () => {
         { outcome: 'textNotUnique', count: 2 },
       ],
       [
+        'a document holding known blocks out of place',
+        () => {
+          const doc = createDoc([paragraph('Alpha')])
+          const misplaced = new Y.XmlElement('paragraph')
+
+          misplaced.insert(0, [new Y.XmlText('Loose')])
+          ;(doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0) as Y.XmlElement).insert(1, [misplaced])
+
+          return doc
+        },
+        () => ({ type: 'append', blocks: [paragraph('Bravo')] }),
+        { outcome: 'unknownContent' },
+      ],
+      [
+        'a document holding a style the schema lacks',
+        () => {
+          const doc = createDoc([paragraph('Alpha')])
+
+          readText(readContainers(doc)[0]).format(0, 2, { textColor: 'red' })
+
+          return doc
+        },
+        () => ({ type: 'append', blocks: [paragraph('Bravo')] }),
+        { outcome: 'unknownContent' },
+      ],
+      [
         'a document holding no text yet',
         () => new Y.Doc(),
         () => ({ type: 'append', blocks: [paragraph('Alpha')] }),

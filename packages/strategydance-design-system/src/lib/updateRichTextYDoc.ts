@@ -53,9 +53,6 @@ type Options = {
 // The next document, and the top-level blocks to delete from the shared text before writing it
 type Plan = { next: ProseMirrorNode; removed?: { index: number; length: number } }
 
-// How y-prosemirror names the attribute of a mark that may overlap itself, with a hash after it
-const HASHED_MARK_NAME = /(.*)(--[a-zA-Z0-9+/=]{8})$/
-
 /*
   Applies an edit to a shared text in place, as a difference, the way an editor's own keystrokes
   are written, so that it merges with whatever somebody types meanwhile in another tab. A document
@@ -74,8 +71,8 @@ const HASHED_MARK_NAME = /(.*)(--[a-zA-Z0-9+/=]{8})$/
   and unstable in y-prosemirror, which is pinned for it: this file's tests are what a newer
   version has to pass.
 
-  Nothing is written when the edit is refused, and the read refuses first a document holding a
-  node or a mark the schema lacks, since y-prosemirror deletes such content as it reads it
+  Nothing is written when the edit is refused. A document y-prosemirror cannot read as it stands
+  is refused before it is read, since its read deletes what it cannot build
 */
 function updateRichTextYDoc(
   doc: Y.Doc,
@@ -88,7 +85,7 @@ function updateRichTextYDoc(
 
   const editor = getHeadlessRichTextEditor(blocks)
 
-  if (fragment.length !== 1 || !isKnownContent(fragment, editor.pmSchema)) return { outcome: 'unknownContent' }
+  if (!isReadable(doc, editor.pmSchema)) return { outcome: 'unknownContent' }
 
   const { doc: root, meta } = initProseMirrorDoc(fragment, editor.pmSchema)
   const plan = planEdit(root, edit, editor, blocks)
@@ -243,25 +240,31 @@ function readChildren(node: Pick<ProseMirrorNode, 'forEach'>) {
   return children
 }
 
-// Whether every element and every text style of the shared text is one the schema knows
-function isKnownContent(type: Y.XmlFragment | Y.XmlElement, schema: ProseMirrorSchema): boolean {
-  return type.toArray().every(child => {
-    if (child instanceof Y.XmlElement) {
-      return Object.hasOwn(schema.nodes, child.nodeName) && isKnownContent(child, schema)
-    }
+/*
+  Whether y-prosemirror reads the shared text without changing it, tried on a copy. Its read
+  deletes an element or a text it cannot build, such as a node or a style the schema lacks, a newer
+  editor's say, and builds nodes without checking how they are arranged, so what it built is
+  checked against the schema too. The one other change a read makes, joining a text into the one
+  before it when the reading document wrote both, cannot happen on a copy, whose client is new
+*/
+function isReadable(doc: Y.Doc, schema: ProseMirrorSchema) {
+  const copy = new Y.Doc()
+  let isChanged = false
 
-    if (child instanceof Y.XmlText) {
-      return child
-        .toDelta()
-        .every((delta: { attributes?: Record<string, unknown> }) =>
-          Object.keys(delta.attributes ?? {}).every(name =>
-            Object.hasOwn(schema.marks, HASHED_MARK_NAME.exec(name)?.[1] ?? name),
-          ),
-        )
-    }
-
-    return false
+  Y.applyUpdate(copy, Y.encodeStateAsUpdate(doc))
+  copy.on('update', () => {
+    isChanged = true
   })
+
+  const { doc: root } = initProseMirrorDoc(copy.getXmlFragment(RICH_TEXT_YJS_FRAGMENT), schema)
+
+  try {
+    root.check()
+  } catch {
+    return false
+  }
+
+  return !isChanged
 }
 
 export { updateRichTextYDoc }

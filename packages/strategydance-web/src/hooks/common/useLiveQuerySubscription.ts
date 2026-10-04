@@ -17,6 +17,10 @@ type Options<Data, Variables> = {
   createQueryRef: () => QueryRef<Data, Variables>
   // Anything else a pushed result should do, after it is cached
   onNext?: (data: Data) => void
+  // Whether a pushed result is older than the one cached, which it then leaves alone. The SDK hands
+  // a subscriber its cached result when it subscribes, and every result a read of the same query
+  // brings, so one can land after a newer one
+  isOlder?: (cached: Data, next: Data) => boolean
 }
 
 /*
@@ -41,10 +45,14 @@ function useLiveQuerySubscription<Data, Variables>({
   queryKey,
   createQueryRef,
   onNext,
+  isOlder,
 }: Options<Data, Variables>) {
   const queryClient = useQueryClient()
   const createRef = useEffectEvent(createQueryRef)
   const handleNext = useEffectEvent((data: Data) => onNext?.(data))
+  const isOlderThanCached = useEffectEvent((cached: Data | undefined, data: Data) =>
+    cached !== undefined && isOlder ? isOlder(cached, data) : false,
+  )
 
   // A key is an array, a new one each render, so the effect follows what it spells
   const serializedQueryKey = queryKey ? JSON.stringify(queryKey) : null
@@ -78,6 +86,9 @@ function useLiveQuerySubscription<Data, Variables>({
         unsubscribe = subscribe(createRef(), {
           onNext: ({ data }) => {
             reopenDelay = REOPEN_INITIAL_DELAY_MS
+
+            if (isOlderThanCached(queryClient.getQueryData<Data>(pinnedQueryKey), data)) return
+
             queryClient.setQueryData(pinnedQueryKey, data)
             handleNext(data)
           },

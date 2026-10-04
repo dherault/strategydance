@@ -45,6 +45,9 @@ function useConversationRun(conversationId: string): DataSource<ConversationRun 
     name: 'conversation run',
     queryKey: isEnabled ? queryKey : null,
     createQueryRef,
+    // An earlier run, delivered late, would hide the one that goes. A run gone is never older
+    isOlder: ({ conversationRuns: [current] }, { conversationRuns: [latest] }) =>
+      Boolean(current && latest && latest.number < current.number),
   })
 
   return {

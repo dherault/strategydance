@@ -8,6 +8,8 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import isOlderConversation from '~utils/conversation/isOlderConversation'
+
 import { dataConnect } from '~data/firebase'
 
 /*
@@ -15,7 +17,7 @@ import { dataConnect } from '~data/firebase'
   or null when there is none: deleted, somebody else's, in another organization, or a draft not
   stored yet. As `useConversations` does, the first read is an ordinary query, which
   `ConversationWait` waits on, and the subscription beside it writes each result the server pushes
-  into the same cache entry.
+  into the same cache entry, unless it is older than the one cached: the SDK can deliver one late.
 
   The subscription keeps it current, so nothing marks it stale and a return to the tab does not
   read it again. A first read that fails is not a missing conversation: `hasFailed` says so, and it
@@ -52,6 +54,7 @@ function useConversation(conversationId: string): DataSource<Conversation | null
     name: 'conversation',
     queryKey: isEnabled ? queryKey : null,
     createQueryRef,
+    isOlder: (cached, next) => isOlderConversation(cached.conversations[0], next.conversations[0]),
   })
 
   return {

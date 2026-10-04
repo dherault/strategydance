@@ -552,6 +552,32 @@ describe('updateRichTextYDoc', () => {
     }
   })
 
+  it('appends to a document with no text yet in place of its empty paragraph', () => {
+    const doc = createDoc([])
+
+    expect(updateRichTextYDoc(doc, { type: 'append', blocks: [paragraph('Bravo'), paragraph('Charlie')] })).toEqual({
+      outcome: 'updated',
+    })
+    expect(read(doc)).toEqual([paragraph('Bravo'), paragraph('Charlie')])
+    expect(readContainers(doc)).toHaveLength(2)
+  })
+
+  it('merges what was typed meanwhile into the empty paragraph of a document appended to', () => {
+    const ana = createDoc([])
+    const ben = fork(ana)
+
+    ;(readContainers(ana)[0].get(0) as Y.XmlElement).insert(0, [new Y.XmlText('typed')])
+    updateRichTextYDoc(ben, { type: 'append', blocks: [paragraph('Bravo')] })
+    merge(ana, ben)
+
+    const [first] = read(ana)
+
+    expect(read(ben)).toEqual(read(ana))
+    expect(read(ana)).toHaveLength(1)
+    expect(first.content[0].text).toContain('typed')
+    expect(first.content[0].text).toContain('Bravo')
+  })
+
   it('leaves one empty paragraph when every block is replaced by nothing', () => {
     const doc = createDoc([paragraph('Alpha'), paragraph('Bravo')])
     const [alpha, bravo] = readIds(doc)

@@ -127,7 +127,14 @@ function planEdit(
 
   const added = createNodes(editor, normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks) }))
 
-  if (edit.type === 'append') return { next: withChildren(root, group, [...children, ...added]) }
+  // A document with no text yet is one empty paragraph, which the first block appended to it takes
+  // the place of. Nothing deletes it first, so `updateYFragment` turns it into that block in place,
+  // and whatever somebody typed in it meanwhile merges into that block rather than going
+  if (edit.type === 'append') {
+    const isEmpty = children.length === 1 && isEmptyParagraph(children[0])
+
+    return { next: withChildren(root, group, isEmpty && added.length ? added : [...children, ...added]) }
+  }
 
   const from = findBlock(children, edit.fromId)
 
@@ -146,6 +153,11 @@ function planEdit(
     next: withChildren(root, group, next.length ? next : createNodes(editor, [{ type: 'paragraph' }])),
     removed: { index: from, length: to - from + 1 },
   }
+}
+
+// Whether a top-level block is a paragraph holding nothing, nor any block nested under it
+function isEmptyParagraph(container: ProseMirrorNode) {
+  return container.childCount === 1 && container.child(0).type.name === 'paragraph' && !container.child(0).content.size
 }
 
 // The index of the one top-level block with the id

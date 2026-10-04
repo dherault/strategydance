@@ -152,8 +152,9 @@ function readAlign(node: ExtraProps['node']) {
 
 /*
   Each takes only what it draws, never the class names and styles GFM gives its elements. A list's
-  markers are named, since preflight strips them, a bulleted one's by its depth as `RichText`
-  draws them, and a loose list is drawn as tight as any other
+  markers are named, since preflight strips them, a bulleted one's by its depth: a disc, a circle,
+  then a square for the third level and any below it, which a reply hardly reaches, where `RichText`
+  starts the cycle again. A loose list is drawn as tight as any other
 */
 const staticComponents: Components = {
   p: ({ children }) => <p className="mb-2">{children}</p>,

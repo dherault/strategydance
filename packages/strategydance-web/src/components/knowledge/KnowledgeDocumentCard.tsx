@@ -4,7 +4,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { KnowledgeDocumentSummary } from '~types'
 
-import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumentAspectIcons'
+import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import KnowledgeEditedAt from '~components/knowledge/KnowledgeEditedAt'
 
 import knowledgeMessages from '~data/intl/messages/knowledge'
@@ -34,7 +34,7 @@ function KnowledgeDocumentCard({ knowledgeDocument, now }: Props) {
         {title || formatMessage(knowledgeMessages.untitled)}
       </h3>
       <div className="mt-auto flex items-center gap-3 pt-2 text-xs text-muted-foreground">
-        <KnowledgeDocumentAspectIcons
+        <CompanyAspectIcons
           aspects={knowledgeDocument.aspects}
           size={14}
           className="gap-1.5 text-neutral-500"

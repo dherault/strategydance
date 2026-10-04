@@ -15,8 +15,9 @@ type Props = {
   className?: string
 }
 
-// The icons of the aspects a document is tagged with, in `COMPANY_ASPECTS`' order, each named
-function KnowledgeDocumentAspectIcons({ aspects, size, className }: Props) {
+// The icons of the aspects a document or a conversation is tagged with, in `COMPANY_ASPECTS`' order,
+// each named
+function CompanyAspectIcons({ aspects, size, className }: Props) {
   const { formatMessage } = useIntl()
 
   return (
@@ -33,4 +34,4 @@ function KnowledgeDocumentAspectIcons({ aspects, size, className }: Props) {
   )
 }
 
-export default KnowledgeDocumentAspectIcons
+export default CompanyAspectIcons

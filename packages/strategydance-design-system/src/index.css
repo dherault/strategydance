@@ -148,22 +148,48 @@
 }
 
 /*
-  Room below a text in the display face for its descenders, for a text that hides what overflows
-  it, as a clamp does. Oswald's descenders reach 0.24em below its baseline, but a line L ems tall
-  ends only (L - 0.9) / 2 em below it: a box set under 1.38 cuts them off, by 0.13em at the 1.12
-  its headlines are set at. The room is that much padding, taken back by a negative margin so the
-  layout does not move.
+  Room below a text in the display face for its descenders, for a box that hides what overflows
+  it. Oswald's descenders reach 0.24em below its baseline, but a line L ems tall ends only
+  (L - 0.9) / 2 em below it: a box set under 1.38 cuts them off, by 0.14em at the 1.1 of a
+  document's title and 0.13em at the 1.12 its headlines are set at.
 
   It stops short of the tops of the next line, which a clamp hides but still paints, and which
   begin (L / 2 - 0.36) em below the box. That binds only under 1.05, where a clamped text loses the
   bottom of its deepest descenders rather than show the top of the line it cut.
 
+  `--descender-room` is that room. A custom property keeps its units unresolved, so its em and lh
+  are those of the element that reads it, whatever size and leading that element is set at
+*/
+@layer base {
+  :root {
+    --descender-room: max(0px, min(0.69em - 0.5lh, 0.5lh - 0.36em));
+  }
+}
+
+/*
+  The room, as padding taken back by a negative margin so the layout does not move, on every text
+  in the display face that clips itself: a field, a clamp, a truncated line. Any h1 to h3, or any
+  element in `font-display` or `font-heading`, that is one of those takes it without asking, so a
+  new one cannot forget it. A text switched back to the body face is left alone.
+
+  A box that clips display text it does not set itself, as a card's wrapper around a top priority
+  does, takes `descender-room` by hand, in the size of the text it holds. `RichText` keeps the room
+  of a heading it ends on inside itself, and FitText counts its own as it fits.
+
   A rule in the utilities layer, after Tailwind's own, rather than an `@utility`, which Tailwind
-  sorts among its margin utilities: an `mb-` or a `p-` beside it would undo half of it
+  sorts among its margin utilities: an `mb-` or a `p-` beside it would undo half of it. So a text
+  that clips itself takes no bottom margin: the gap above what follows sets it apart instead
 */
 @layer utilities {
-  .descender-room {
-    padding-bottom: max(0px, min(0.69em - 0.5lh, 0.5lh - 0.36em));
-    margin-bottom: min(0px, max(0.5lh - 0.69em, 0.36em - 0.5lh));
+  .descender-room,
+  :is(h1, h2, h3, .font-display, .font-heading):not(.font-sans):is(
+      textarea,
+      input,
+      .truncate,
+      .text-ellipsis,
+      [class*='line-clamp-']:not(.line-clamp-none)
+    ) {
+    padding-bottom: var(--descender-room);
+    margin-bottom: calc(-1 * var(--descender-room));
   }
 }

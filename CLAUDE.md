@@ -88,7 +88,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run test` | `bun test` across the packages, each file in a fresh global so a `mock.module` stays in the file that made it |
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
-| `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open |
+| `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open, and sets it to merge itself once CI passes |
 | `bun run review <command>` | The GitHub calls of the Copilot review loop: `count`, `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [Copilot review loop](#copilot-review-loop) |
 | `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`. Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
@@ -97,8 +97,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 bun run test && bun run build` from the root. Run those four before every commit, since the
 husky `pre-commit` hook only lints.
 
-**The `deploy:*` scripts are run by humans only.** A merge into `main` deploys the release by
-itself, and a migration that stops it waits for a human to read its SQL, as
+**The `deploy:*` scripts and `bun run ship` are run by humans only.** `ship` sets the release
+pull request to merge itself once CI passes, a merge into `main` deploys the release by itself,
+and a migration that stops it waits for a human to read its SQL, as
 [What a merge into `main` deploys](#what-a-merge-into-main-deploys) says.
 
 Two things are generated and never edited by hand.
@@ -207,6 +208,17 @@ focused input, textarea or editable element whose text is smaller, and leaves it
 not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, and so does
 text a field opens over, as a task's does. Never put `maximum-scale=1` in the viewport instead:
 Android then refuses the pinch zoom people read by.
+
+Oswald, the display face, hangs its descenders 0.24em below its baseline, below the line box of
+the tight leading it is set at, so a box that clips its overflow cuts them off. The design system's
+`index.css` keeps their room in one place, `--descender-room`, worked out from the size and line
+height of whatever element reads it, and hands it out three ways. An h1 to h3, or anything in
+`font-display` or `font-heading`, that clips itself, as a field, a clamp or a truncated line does,
+gets it automatically, and takes no bottom margin of its own. A box that clips display text it does
+not set, as a card's wrapper does, takes the `descender-room` utility. `RichText` keeps a final
+heading's room inside itself. FitText counts its own as it fits. A descender cut anywhere else is a
+gap in that rule to widen in `index.css`, never a padding added to one element: the Typography page
+in Storybook shows each case.
 
 Strings stay in the frontend's catalogues. A design-system component that names itself in
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
@@ -778,7 +790,8 @@ reopening it or opening another.
 
 ### Hand the pull request to a human
 
-Never merge a pull request: that is a human decision, taken on GitHub after a human approval.
+Never merge a pull request, nor set one to merge itself: that is a human decision, taken on
+GitHub after a human approval.
 Once CI is green and review is clean, say so and link the pull request. Unless you are the
 primary already, ask in the same message whether the person wants the branch checked out on the
 main checkout to see the work: a yes is a handover (see [Where to work](#where-to-work)). Then
@@ -791,11 +804,16 @@ granular commits are the point, and squashing collapses them into one.
 
 Taking `dev` to `main` is a release, and a human's call like any other merge, since it deploys
 everything, the database included (see below). `bun run ship` (`scripts/ship.sh`) opens the
-release pull request, titled "Ship dev to main", with the release's commits as its body. It is
-idempotent, reporting the open one rather than failing, since one release pull request stays
-open across several merges into `dev`, and it refuses to run while local `dev` has unpushed
-commits the release would leave behind. A human merges it. Nothing pushes to `main` directly:
-its ruleset accepts only a pull request.
+release pull request, titled "Ship dev to main", with the release's commits as its body, and sets
+it to merge itself, with a merge commit, once `ci` passes. `main`'s ruleset asks for no approval,
+so running it is the release, and only a human runs it. It is idempotent, reporting the open one
+rather than failing and setting it to merge if it is not already, since a release pull request
+stays open across merges into `dev` for as long as a check fails, and it refuses to run while
+local `dev` has unpushed commits the release would leave behind. Auto merge stays set as `dev`
+moves on, so whatever lands on `dev` before `ci` passes goes out with the release, a fix for a
+check that failed included. To hold an open release back, turn its auto merge off
+(`gh pr merge <number> --disable-auto`): the next `bun run ship` turns it on again. Nothing
+pushes to `main` directly: its ruleset accepts only a pull request.
 
 ### What a merge into `main` deploys
 

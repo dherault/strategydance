@@ -61,9 +61,9 @@ const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:[-*_]\s*){3,}$|=+$)/
 const TABLE_DELIMITER_PATTERN = /^(?=.*\|)\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$/
 
 // A line that starts another block, which ends a table as a blank line does
-const BLOCK_START_PATTERN = /^(?:>|#{1,6}(?:\s|$)|```|~~~|(?:[-*+]|\d{1,9}[.)])\s)/
+const BLOCK_START_PATTERN = /^(?:#{1,6}(?:\s|$)|```|~~~|(?:[-*+]|\d{1,9}[.)])\s)/
 
-const QUOTE_MARKER_PATTERN = /^(?:>\s?)+/
+const QUOTE_MARKER_PATTERN = /^(?:>\s*)+/
 
 const HEADING_MARKER_PATTERN = /^#{1,6}(?:\s+|$)/
 
@@ -79,28 +79,32 @@ const INTRODUCTION_END_PATTERN = /:[*_~`]*$/
   inline markup down to its text
 */
 function getMarkdownPreviewText(markdown: string) {
-  const lines = markdown.split(/\r\n?|\n/).map(line => line.trim())
+  const lines = markdown.split(/\r\n?|\n/).map(readQuotedLine)
   let text = ''
   // The line before, tested rather than the whole text, which would make a long list quadratic
   let previousLine = ''
-  let isInTable = false
+  // How deep in quotes the table being left out sits, and null outside one
+  let tableDepth: number | null = null
 
   for (let index = 0; index < lines.length; index++) {
-    const rawLine = lines[index]
+    const { depth, content } = lines[index]
 
-    // A table runs from its header, the line above its delimiter row, to a blank line or another
-    // block, and every row in between is one, with a pipe or without
-    if (isInTable && rawLine && !BLOCK_START_PATTERN.test(rawLine)) continue
+    // A table runs from its header, the line above its delimiter row, to a blank line, another
+    // block or another depth of quote, and every row in between is one, with a pipe or without
+    if (depth === tableDepth && content && !BLOCK_START_PATTERN.test(content)) continue
 
-    isInTable = rawLine.includes('|') && TABLE_DELIMITER_PATTERN.test(lines[index + 1] ?? '')
+    const next = lines[index + 1]
 
-    if (isInTable) {
+    tableDepth =
+      content.includes('|') && next?.depth === depth && TABLE_DELIMITER_PATTERN.test(next.content) ? depth : null
+
+    if (tableDepth !== null) {
       index++
 
       continue
     }
 
-    let line = rawLine.replace(QUOTE_MARKER_PATTERN, '')
+    let line = content
 
     if (!line || SKIPPED_LINE_PATTERN.test(line)) continue
 
@@ -119,6 +123,14 @@ function getMarkdownPreviewText(markdown: string) {
   }
 
   return getPlainPreviewText(stripInlineMarkdown(text))
+}
+
+// A line without its quote markers, and how many it had
+function readQuotedLine(line: string) {
+  const trimmed = line.trim()
+  const quote = QUOTE_MARKER_PATTERN.exec(trimmed)?.[0] ?? ''
+
+  return { depth: quote.split('>').length - 1, content: trimmed.slice(quote.length) }
 }
 
 /*

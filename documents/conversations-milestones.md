@@ -43,7 +43,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
-| M1 | Spikes: the request on Vertex, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | |
+| M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | |
 | M3 | The Markdown component | design-system | | |
 | M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
@@ -68,41 +68,46 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | M23 | Integrations in conversations | database, backend, web | M11, M22 | |
 | M24 | Launch | all | all | |
 
-### M1: Spikes: the request on Vertex, and an edit to a shared document
+### M1: Spikes: the request to Claude, and an edit to a shared document
 
 The plan rests on facts only a real request or a real merge can confirm, and the milestones after
 this one build on them. Each is settled here, before any of them, and what it finds goes back into
 [conversations.md](conversations.md): a check that fails changes the plan, with David, before M2
-starts.
+starts. M1 first probed Claude on Vertex; Google gave the project no Claude quota and refused one,
+so the agent moved to Anthropic's API, as Decisions says.
 
-- Dependencies: `@anthropic-ai/vertex-sdk` and the `@anthropic-ai/sdk` it builds on, in the
-  backend. Mind the seven-day install cooldown: a beta the SDK learned of last week cannot be
-  installed yet.
-- `packages/strategydance-backend/scripts/probeVertex.ts`, against the real project with the
-  developer's ADC, exiting non-zero and naming every check that failed. Kept, so an SDK bump or a
-  new model runs it again:
+- Dependencies: `@anthropic-ai/sdk` in the backend. Mind the seven-day install cooldown: a beta the
+  SDK learned of last week cannot be installed yet.
+- `packages/strategydance-backend/scripts/probeClaude.ts` (`bun run probe:claude`), against the API
+  with the `anthropic-api-key` secret, exiting non-zero and naming every check that failed. Kept, so
+  an SDK bump or a new model runs it again:
   - the request The agent describes, streamed: adaptive thinking with `display: "updates"` and
-    `block_binding`, both betas, explicit effort, a strict tool with eager input streaming, web
-    search, top-level cache control, and the context message last as a mid-conversation system
-    message; progress lines arrive as thinking blocks with text;
+    `block_binding`, both betas, explicit effort, server-side fallbacks, a strict tool with eager
+    input streaming, web search, top-level cache control, and the context message last as a
+    mid-conversation system message, and the progress lines it gets, which the API does not
+    promise (see The agent);
   - a second request replaying the first turn from its JSON text, with a `tool_use` whose input has
     keys out of alphabetical order: `input_transformations` comes back empty and
     `cache_read_input_tokens` is not zero; and a third replaying it with that input's keys
     reordered as `jsonb` would reorder them, to see whether the API counts that as an edit;
-  - `count_tokens` on one PDF and one image, as the upload route will call it;
-  - the refusal middleware wired to `claude-opus-5` with the same body, through a request the
-    fallback serves: whether Opus 5 takes `display: "updates"` and `block_binding`, and what to
-    strip when it does not.
+  - one PDF and one image counted from their bytes with `count_tokens`, which takes no Files API
+    source, then uploaded through the Files API and read by a message by their ids, as the upload
+    route and the agent will;
+  - the models Opus 5.5 may fall back to, read from `allowed_fallback_models` on its model entry,
+    each sent the agent's body directly, the first request and the replay, since a fallback runs the
+    same request: whether each takes `display: "updates"` and `block_binding`, and what it refuses
+    when it does not.
 - `updateRichTextYDoc(doc, edit)` in the design system's `lib/`, the half of M13 that has no
-  network to wait on: it reads the document's own blocks with `yDocToBlocks`, ids included, since
-  the stored model has none, applies the edit to them (a range replaced between two ids, blocks
-  appended, one piece of text replaced), and writes the result into the shared fragment as a
-  difference, through y-prosemirror's `updateYFragment` on the node the headless editor builds from
-  it. Tests: a document forked into two, a block typed into on one and another range replaced
+  network to wait on: it reads the document as y-prosemirror's binding does, ids included, since
+  the stored model has none, applies the edit to the top-level blocks that read produced (a range
+  replaced between two ids, blocks appended, one piece of text replaced), and writes the result
+  into the shared fragment as a difference, through y-prosemirror's `updateYFragment` on a document
+  built from those very nodes, with the read's metadata (see Rich text and Markdown for why not
+  `yDocToBlocks`). Tests: a document forked into two, a block typed into on one and another range replaced
   through `updateRichTextYDoc` on the other, merged both ways, read the same blocks with both edits
   and nothing doubled; every block the edit leaves alone keeps its id, and a relative position in
   it survives; a document seeded from `content` and edited reads back the edit.
-- Verify: `probeVertex.ts` passes, or each failure has a decision written into the plan; the four
+- Verify: `probeClaude.ts` passes, or each failure has a decision written into the plan; the four
   checks pass.
 
 ### M2: The conversation tables
@@ -250,8 +255,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
 - **The worker service** (see Why a second service): `SERVICE=worker` makes the entry point mount
   `routes/internal.ts` and nothing else, and the backend mounts everything but it, so neither
   answers the other's routes. `deploy:backend` deploys `strategydance-backend` as today, then the
-  image it built as `strategydance-worker`, private (the invoker check on), with `--timeout 900`,
-  `--concurrency 4` and `--memory 2Gi`, as the same runtime account. The backend keeps its defaults,
+  image it built as `strategydance-worker`, private (the invoker check on), with `--timeout 900`
+  and `--concurrency 4`, as the same runtime account. The backend keeps its defaults,
   so the welcome email's ten-minute lease still outlasts any request of its. The deploy workflow's
   header lists what deploying a second service asks of `deployer`, and `CLAUDE.md` § Backend
   conventions says the worker is private where the backend is public, and why.
@@ -291,8 +296,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   before a request whose input would pass 800000 tokens, counted as Attachments says, from the
   latest request whose input and turn the transcript still holds, its whole input, cached
   included, and its output, plus what the transcript holds after it, so a long
-  conversation shows full rather than failing every request (M19 adds the body's size and the
-  files' stored counts).
+  conversation shows full rather than failing every request (M19 adds the files' stored counts).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
   listing the results); citations drawn as numbered links after their spans, with the sources under
   the message.
@@ -307,7 +311,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   and the send route refusing, and a `pause_turn` continuation counted from the paused request, so
   pieces held in memory that take it past the limit stop it too; a conversation near the limit
   whose tools list grew in a release counted with the growth, and stopped by it.
-- Verify: ask a question that needs the web and one that does not; watch progress lines; check the
+- Verify: ask a question that needs the web and one that does not; watch the indicator's progress
+  lines when they come, across a run of several tool calls, and its tool labels otherwise; check the
   logs show `input_transformations` empty across turns, and cache reads on every request after a
   run's first.
 
@@ -333,8 +338,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   sends no request, and Retry giving the room back; a conversation marked full by its context,
   retried back under the limit, counted from a request the cut left whole and no longer full;
   sending after a stop answers the open blocks; a turn with a
-  `fallback` block is stored without the blocks before its boundary, and the fallback's request
-  shaped as M1 found Opus 5 takes it.
+  `fallback` block is stored without the blocks before its boundary, and a conversation served by
+  its fallback model afterwards stored and drawn as any other.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
 
 ### M11: Questions
@@ -413,7 +418,8 @@ M14.
   what degrades to paragraphs, lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
 - `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`, working on rows rather than
   calling the database: reading a document's shared text from its snapshot and pending updates
-  through `yDocToBlocks`, as top-level blocks with their ids and Markdown, or, for a document with no
+  through `yDocToBlocks`, once a read tried on a copy has left it unchanged, as
+  `updateRichTextYDoc` checks it, as top-level blocks with their ids and Markdown, or, for a document with no
   snapshot yet, building the seed M14 stores before it hands out any id; and
   turning an edit into a fold, the new `state`, `content` and `contentText` and the ids of the
   updates it merged, as Rich text and Markdown describes.
@@ -560,13 +566,15 @@ M14.
   reservation.
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
-  Claude's image limits, a PDF's page count kept in `pageCount`, and the file's tokens counted
-  alone once it is stored, read back from Storage two at once per instance, and kept in
-  `tokenCount`: the row reserved `UPLOADING`
+  Claude's image limits, a PDF's page count kept in `pageCount`, the stored file read back from
+  Storage two at once per instance and uploaded to the Files API, and its tokens counted alone from
+  those bytes and kept in `tokenCount`: the row reserved `UPLOADING`
   under the membership lock, the object streamed under `pending/` with a generation-match-zero
-  precondition, the row turned `READY`; stale reservations pruned after ten minutes; deleting a
-  pruned conversation's folder. `DELETE …/attachments/:attachmentId` for the caller's own unsent
-  file, idempotent, through the prune's claim-then-delete.
+  precondition, the row turned `READY` with its `claudeFileId`; stale reservations pruned after ten minutes; deleting a
+  pruned conversation's folder and its files in the Files API, and an organization's before its
+  rows go; the daily sweeper deleting a day-old file in the Files API that no row names.
+  `DELETE …/attachments/:attachmentId` for the caller's own unsent file, idempotent, through the
+  prune's claim-then-delete.
 - The bucket's lifecycle rule deleting `pending/` objects older than two days, applied with gcloud
   like the CORS rule (a human step, written down beside `storage.cors.json`).
 - `GET …/attachments/:attachmentId`: current membership and ownership checked, the bytes streamed
@@ -576,11 +584,10 @@ M14.
   and output, the text after it counted, the files after it by their stored counts), without
   building that request,
   copies each file into
-  the conversation's folder and sets each row's `message` once; the transcript's placeholders and
-  the worker's base64 blocks; the serialized request measured, and `isFull` set past the limits.
-- A load test runs four maximum-size requests on one worker instance at once, the concurrency M8
-  gave it, and watches memory stay under `--memory 2Gi`; another uploads twenty maximum-size files
-  to one backend instance at once and watches it stay within its defaults.
+  the conversation's folder and sets each row's `message` once; the transcript's file blocks, each
+  referencing its file's id in the Files API; `isFull` set past the limit.
+- A load test uploads twenty maximum-size files to one backend instance at once and watches it stay
+  within its defaults.
 - Tests: removing an unsent file freeing its slot at once, removing it twice answering the same,
   and a sent one refused; the 300-page total summed from stored `pageCount`s without reading a
   file; blocks built from each type; another member's upload under a draft's id neither counted in
@@ -595,7 +602,8 @@ M14.
   any byte is stored, again and again with new ids; a stale reservation pruned; a retried upload
   finishing its reservation; a retry refused once a prune has claimed its row, and a prune never
   deleting the object of a row that became `READY`; two sent at once with one id ending with one
-  row; a placeholder replayed byte for byte; a conversation marked full.
+  row; a file reference replayed byte for byte; a file the Files API holds that no row names deleted
+  by the sweeper, and one a row names kept; a conversation marked full.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
 ### M20: Attachments in the composer and the thread
@@ -749,7 +757,7 @@ M14.
 - Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`.
 - `CLAUDE.md`: a Conversations section with what a new tool needs, the transcript's rules and the
   run lifecycle, where earlier milestones have not written it.
-- `operations-costs.md`: Vertex, Cloud Tasks and attachment storage, from the recorded usage.
-- Before merging: the quota raised, the budget alert's threshold looked at again against the
-  recorded usage, and the legal page reviewed for AI processing, naming Google and Anthropic as
-  processors and Vertex's `global` endpoint as processing anywhere, which are David's calls.
+- `operations-costs.md`: Claude, Cloud Tasks and attachment storage, from the recorded usage.
+- Before merging: the rate limit tier raised, the spend limit and the budget alert's threshold looked
+  at again against the recorded usage, and the legal page reviewed for AI processing, naming
+  Anthropic as processor and the region inference runs in, which are David's calls.

@@ -61,6 +61,10 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
 // Read only in production, which is the only environment that sends email
 export const SECRET_RESEND_API_KEY = 'resend-api-key'
 
+// Claude's API key, for the conversations agent. A machine whose credentials cannot read it sets
+// ANTHROPIC_API_KEY instead
+export const SECRET_ANTHROPIC_API_KEY = 'anthropic-api-key'
+
 /* ---
   EMAIL
 --- */

@@ -9,6 +9,8 @@
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src scripts",
     "grant:administrator": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/grantAdministrator.ts",
+    "seed:conversations": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/seedConversations.ts",
+    "check:conversation-list": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationList.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
     "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
   },

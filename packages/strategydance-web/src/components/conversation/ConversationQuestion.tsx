@@ -46,14 +46,15 @@ function ConversationQuestion({ entry, body }: Props) {
     )
   }
 
-  // Answered, an option reads as chosen or not, and nothing can be changed
+  // Answered, an option reads as chosen or not, and nothing can be changed. Off as a control, for
+  // assistive technology as for a pointer, without the dimming a row that is off takes
   function renderAnsweredOption(option: string, isChosen: boolean, hint?: string) {
     return (
       <Control
         name={name}
         checked={isChosen}
-        readOnly
-        tabIndex={-1}
+        disabled
+        className="has-disabled:cursor-default has-disabled:opacity-100"
         label={<span className={isChosen ? 'text-secondary' : 'font-normal text-muted-foreground'}>{option}</span>}
         hint={hint}
       />
@@ -137,7 +138,7 @@ function ConversationQuestion({ entry, body }: Props) {
           )}
         </p>
       ) : null}
-      <div className={cn('flex flex-col gap-2.5', !isWaiting && 'pointer-events-none')}>{renderOptions()}</div>
+      <div className="flex flex-col gap-2.5">{renderOptions()}</div>
       {isWaiting ? (
         <div className="flex justify-end">
           <Button

@@ -208,6 +208,17 @@ not, like the `MultiSelect`'s search, the editor and its link field, sets it its
 text a field opens over, as a task's does. Never put `maximum-scale=1` in the viewport instead:
 Android then refuses the pinch zoom people read by.
 
+Oswald, the display face, hangs its descenders 0.24em below its baseline, below the line box of
+the tight leading it is set at, so a box that clips its overflow cuts them off. The design system's
+`index.css` keeps their room in one place, `--descender-room`, worked out from the size and line
+height of whatever element reads it, and hands it out three ways. An h1 to h3, or anything in
+`font-display` or `font-heading`, that clips itself, as a field, a clamp or a truncated line does,
+gets it automatically, and takes no bottom margin of its own. A box that clips display text it does
+not set, as a card's wrapper does, takes the `descender-room` utility. `RichText` keeps a final
+heading's room inside itself. FitText counts its own as it fits. A descender cut anywhere else is a
+gap in that rule to widen in `index.css`, never a padding added to one element: the Typography page
+in Storybook shows each case.
+
 Strings stay in the frontend's catalogues. A design-system component that names itself in
 English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
 it: `~components/common/Spinner` is the design system's spinner with that label. The one

@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { executeQuery } from 'firebase/data-connect'
-import { getConversationRunRef } from 'strategydance-database/web'
+import { type GetConversationRunData, getConversationRunRef } from 'strategydance-database/web'
 
 import type { ConversationRun, DataSource } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+
+import keepNewerRead from '~utils/common/keepNewerRead'
+import isOlderConversationRun from '~utils/conversation/isOlderConversationRun'
 
 import { dataConnect } from '~data/firebase'
 
@@ -36,6 +39,10 @@ function useConversationRun(conversationId: string): DataSource<ConversationRun 
       return result
     },
     enabled: isEnabled,
+    // A result delivered late would show an ended run as going, or hide the one that goes
+    structuralSharing: keepNewerRead<GetConversationRunData>((cached, next) =>
+      isOlderConversationRun(cached.conversationRuns[0], next.conversationRuns[0]),
+    ),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     retryOnMount: false,
@@ -45,9 +52,6 @@ function useConversationRun(conversationId: string): DataSource<ConversationRun 
     name: 'conversation run',
     queryKey: isEnabled ? queryKey : null,
     createQueryRef,
-    // An earlier run, delivered late, would hide the one that goes. A run gone is never older
-    isOlder: ({ conversationRuns: [current] }, { conversationRuns: [latest] }) =>
-      Boolean(current && latest && latest.number < current.number),
   })
 
   return {

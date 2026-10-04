@@ -52,6 +52,15 @@ describe('mergeConversationTail', () => {
     expect(mergeConversationTail(state, tail([4, 5, 6], { revision: 1 }), TAIL_LENGTH)).toBe(state)
   })
 
+  it('ignores an old tail holding a note Resume deleted since, at the same revision and counter', () => {
+    const withNote = tail([4, 5, 6])
+    const state = mergeConversationTail(null, withNote, TAIL_LENGTH)
+    const resumed = mergeConversationTail(state, tail([3, 4, 5], { counter: 7 }), TAIL_LENGTH)
+
+    expect(resumed.entries.map(({ position }) => position)).toEqual([3, 4, 5])
+    expect(mergeConversationTail(resumed, withNote, TAIL_LENGTH)).toBe(resumed)
+  })
+
   it('keeps the object of an entry that did not change, and replaces one that did', () => {
     const state = mergeConversationTail(null, tail([4, 5, 6]), TAIL_LENGTH)
     const next = mergeConversationTail(

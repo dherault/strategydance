@@ -6,6 +6,19 @@ import settleConversationThread from '~utils/conversation/settleConversationThre
 import toConversationThreadEntry from '~utils/conversation/toConversationThreadEntry'
 
 /*
+  Whether a tail is older than what the page holds, which it then ignores: the SDK hands a query's
+  subscribers its cached result when they subscribe, and every result a read of the same query
+  brings. The revision and the counter both only grow, and at the same two nothing was inserted, so
+  a tail reaching past the newest entry held holds one deleted since, as Resume deletes its note
+*/
+function isOlderTail(state: ConversationThreadState, tail: ConversationTail) {
+  if (tail.historyRevision !== state.revision) return tail.historyRevision < state.revision
+  if (tail.nextMessagePosition !== state.counter) return tail.nextMessagePosition < state.counter
+
+  return (tail.messages[0]?.position ?? -Infinity) > (state.entries.at(-1)?.position ?? -Infinity)
+}
+
+/*
   Merges a conversation's live tail, its latest messages, into what its page holds of the thread,
   or starts the thread from the first one.
 
@@ -22,22 +35,14 @@ import toConversationThreadEntry from '~utils/conversation/toConversationThreadE
     entry held below it is read again, and whatever the pages do not return goes, a run longer than
     the tail included
 
-  A tail older than what the page holds is ignored: the SDK hands a query's subscribers its cached
-  result when they subscribe, and every result a read of the same query brings, and the revision
-  and the counter both only grow
+  A tail older than what the page holds is ignored, as `isOlderTail` tells
 */
 function mergeConversationTail(
   state: ConversationThreadState | null,
   tail: ConversationTail,
   tailLength: number,
 ): ConversationThreadState {
-  if (
-    state
-    && (tail.historyRevision < state.revision
-      || (tail.historyRevision === state.revision && tail.nextMessagePosition < state.counter))
-  ) {
-    return state
-  }
+  if (state && isOlderTail(state, tail)) return state
 
   const batch = tail.messages.map(toConversationThreadEntry).reverse()
   const isWhole = batch.length < tailLength

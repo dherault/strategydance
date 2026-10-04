@@ -84,13 +84,15 @@ so the agent moved to Anthropic's API, as Decisions says.
   - the request The agent describes, streamed: adaptive thinking with `display: "updates"` and
     `block_binding`, both betas, explicit effort, server-side fallbacks, a strict tool with eager
     input streaming, web search, top-level cache control, and the context message last as a
-    mid-conversation system message; progress lines arrive as thinking blocks with text;
+    mid-conversation system message, and the progress lines it gets, which the API does not
+    promise (see The agent);
   - a second request replaying the first turn from its JSON text, with a `tool_use` whose input has
     keys out of alphabetical order: `input_transformations` comes back empty and
     `cache_read_input_tokens` is not zero; and a third replaying it with that input's keys
     reordered as `jsonb` would reorder them, to see whether the API counts that as an edit;
-  - one PDF and one image uploaded through the Files API and counted by their ids with
-    `count_tokens`, as the upload route will;
+  - one PDF and one image counted from their bytes with `count_tokens`, which takes no Files API
+    source, then uploaded through the Files API and read by a message by their ids, as the upload
+    route and the agent will;
   - the models Opus 5.5 may fall back to, read from `allowed_fallback_models` on its model entry,
     each sent the agent's body directly, the first request and the replay, since a fallback runs the
     same request: whether each takes `display: "updates"` and `block_binding`, and what it refuses
@@ -309,7 +311,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   and the send route refusing, and a `pause_turn` continuation counted from the paused request, so
   pieces held in memory that take it past the limit stop it too; a conversation near the limit
   whose tools list grew in a release counted with the growth, and stopped by it.
-- Verify: ask a question that needs the web and one that does not; watch progress lines; check the
+- Verify: ask a question that needs the web and one that does not; watch the indicator's progress
+  lines when they come, across a run of several tool calls, and its tool labels otherwise; check the
   logs show `input_transformations` empty across turns, and cache reads on every request after a
   run's first.
 
@@ -564,8 +567,8 @@ M14.
 - `PUT …/attachments/:attachmentId`: member and staff checks, a rate limit, type sniffing, the size
   and the member's quota of unsent files (after deleting their unsent rows older than two days),
   Claude's image limits, a PDF's page count kept in `pageCount`, the stored file read back from
-  Storage two at once per instance and uploaded to the Files API, and its tokens counted alone by
-  its id and kept in `tokenCount`: the row reserved `UPLOADING`
+  Storage two at once per instance and uploaded to the Files API, and its tokens counted alone from
+  those bytes and kept in `tokenCount`: the row reserved `UPLOADING`
   under the membership lock, the object streamed under `pending/` with a generation-match-zero
   precondition, the row turned `READY` with its `claudeFileId`; stale reservations pruned after ten minutes; deleting a
   pruned conversation's folder and its files in the Files API, and an organization's before its

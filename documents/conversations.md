@@ -11,7 +11,8 @@ Conversations". Reviewed on 2026-10-03 against `dev` at `db4df41`, once live doc
 the agent's knowledge writes, the rich text milestone, the worker and the message cap changed then.
 Revised on 2026-10-04, in M1: the agent calls Claude through Anthropic's API rather than Vertex,
 which gave the project no Claude quota, and the Files API, server-side refusal fallbacks and the
-newer web search came with it. When a decision changes, change it here first.
+newer web search came with it. Probed the same day with `bun run probe:claude`, every check
+passing: what it found is written where it applies. When a decision changes, change it here first.
 
 ## The design
 
@@ -294,7 +295,10 @@ New tables in `schema.gql`, each commented as the existing ones are:
     an answer's own words go back into the transcript from their columns, so they are refused at
     the door when they hold a control character, as their length bounds are refused (see M11), and
     are never altered. The drawn prose, `text`, `citations` and the preview, drops U+0000 before it
-    is written, since a Postgres `text` refuses it; the transcript keeps it.
+    is written, since a Postgres `text` refuses it; the transcript keeps it. M1 found that the API
+    does not count key order as an edit: a replay with a `tool_use` input's keys reordered as
+    `jsonb` reorders them dropped no thinking block and read as much from the cache. JSON text
+    stays for what `jsonb` would lose, a duplicate key and U+0000.
 - **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
@@ -587,7 +591,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   source's address, title and quoted text), and the thread draws a small numbered link after the span
   and the sources under the message. A `tool_use` becomes a `TOOL_CALL` (`RUNNING`), or a `QUESTION` for `ask_user`. A web
   search (`server_tool_use` with its `web_search_tool_result`) becomes a finished `TOOL_CALL` whose
-  output lists the results' titles and addresses. Each `AGENT_TEXT` and `QUESTION` adds one to
+  output lists the results' titles and addresses. `web_search_20260209` filters its results by
+  running code around the search, so the turn also holds `server_tool_use` blocks named
+  `code_execution` with their results, as M1 saw: the transcript keeps them, and the thread draws
+  nothing of them. Each `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
 - **A long reply is drawn in pieces.** Agent text keeps the bound every message keeps,
   `MAX_CONVERSATION_MESSAGE_LENGTH` (20000 characters), though one turn may write far more: a longer
@@ -789,8 +796,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - A conversation's files stay capped at 15 MiB, a storage bound now that no request carries them, a
   text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
   files is sent only while the next request stays under 700000 input tokens. Each file is counted
-  once, alone, by its id once it is uploaded, into `tokenCount` on its row as its pages go into
-  `pageCount`. Each request's usage records the transcript position its input ended
+  once, alone, from its bytes as the route reads them back for the upload, since `count_tokens`
+  takes no Files API source, into `tokenCount` on its row as its pages go into `pageCount`. In M1 a
+  one-page PDF counted 1594 tokens and a 512 by 512 PNG 371. Each request's usage records the transcript position its input ended
   at and whether its turn was stored. The send route starts from the latest request whose input and
   turn both still lie in the transcript, so a turn Retry cut never counts: its whole input, from its
   stored usage (`input_tokens` with `cache_read_input_tokens` and `cache_creation_input_tokens`,
@@ -830,13 +838,21 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Thinking cannot be turned off** on Opus 5.5. Under `display: "updates"`, a thinking block with
   text is a short progress line ("Comparing revenue with September"): it becomes `run.step`, which
   the thinking indicator shows, which is what the design's rotating steps are. Without one, the
-  indicator shows the running tool's label, else "Thinking".
+  indicator shows the running tool's label, else "Thinking". Progress lines are not promised: M1
+  saw a turn of web search's server tool calls ending on a client tool call bring one thinking block
+  with no text, and a system prompt asking for a few words before each step got them as text blocks
+  between the server tool calls instead, which the thread would draw as Strategy Dance's text around
+  the search's row. The system prompt asks for no such notes. M9 looks again across a run of
+  several client tool calls.
 - **Refusals** come back as `stop_reason: "refusal"`. The request asks for server-side fallbacks,
   `fallbacks: "default"`: on a refusal the API runs the same request again, within the same call, on
   the model Anthropic recommends for the refusal's category, among those Opus 5.5's model entry
   lists as `allowed_fallback_models`, and serves the conversation's requests from that model for
   about an hour after. A fallback runs the agent's own body, so M1's probe sends it to each allowed
-  model directly. Before storing a turn that holds a
+  model directly. M1 found them to be `claude-opus-4-8` and `claude-opus-5`, and both take the body
+  as it is, `display: "updates"` and `block_binding` included; on a replay each dropped Opus 5.5's
+  thinking with `model_binding_mismatch`, as the API documents, so nothing is stripped for a
+  fallback. Before storing a turn that holds a
   `fallback` block, the worker drops the thinking, redacted thinking, `tool_use` and unpaired
   `server_tool_use` blocks before the boundary, and draws only what it stores. A refusal that survives
   the fallback ends `REFUSED` with a note.
@@ -1048,7 +1064,8 @@ web search. A member running ten a day costs about $1.50 a day, two orders of ma
 the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M24
 adds a section on it to `operations-costs.md`.
 
-That figure assumes the cache holds between requests, which it does within a run. Between a
+That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
+the replay of a first turn read 8080 tokens from the cache and wrote 164. Between a
 member's messages it holds only for five minutes, the default lifetime: a reply sent after a longer
 pause writes the whole conversation to the cache again, at $5 a million, which for a 100000-token
 conversation is $0.50 a message. A one-hour lifetime on the conversation's breakpoint costs $8 a

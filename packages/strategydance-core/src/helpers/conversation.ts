@@ -98,13 +98,7 @@ function getMarkdownPreviewText(markdown: string) {
 
     const next = lines[index + 1]
 
-    tableDepth =
-      content.includes('|')
-      && !BLOCK_START_PATTERN.test(content)
-      && next?.depth === depth
-      && TABLE_DELIMITER_PATTERN.test(next.content)
-        ? depth
-        : null
+    tableDepth = next?.depth === depth && isTableHeader(content, next.content) ? depth : null
 
     if (tableDepth !== null) {
       index++
@@ -131,6 +125,26 @@ function getMarkdownPreviewText(markdown: string) {
   }
 
   return getPlainPreviewText(stripInlineMarkdown(text))
+}
+
+/*
+  Whether a line opens a table over the one under it, as GFM has it, and as the thread's own
+  Markdown reads it: the line under is a delimiter row, neither starts another block, which
+  `- | -` would as a list item, and both have as many cells
+*/
+function isTableHeader(line: string, nextLine: string) {
+  return (
+    Boolean(line)
+    && TABLE_DELIMITER_PATTERN.test(nextLine)
+    && !BLOCK_START_PATTERN.test(line)
+    && !BLOCK_START_PATTERN.test(nextLine)
+    && countTableCells(line) === countTableCells(nextLine)
+  )
+}
+
+// A row's cells: one more than its pipes, the outer ones and the escaped ones aside
+function countTableCells(row: string) {
+  return row.replace(/\\./g, '').replace(/^\|/, '').replace(/\|$/, '').split('|').length
 }
 
 // A line without its quote markers, and how many it had

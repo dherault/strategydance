@@ -62,6 +62,14 @@ describe('buildConversationPreview', () => {
 
   it('never opens a table on a line that starts another block', () => {
     expect(previewText('# Plan | Price\n--- | ---')).toBe('Plan | Price --- | ---')
+    expect(previewText('Choices A | B\n- | -')).toBe('Choices A | B, | -')
+  })
+
+  it('opens a table only where the thread does, on rows of as many cells', () => {
+    expect(previewText('a | b | c\n--- | ---')).toBe('a | b | c --- | ---')
+    expect(previewText('Plan\n| - |\n| Flat |\n\nFlat wins.')).toBe('Flat wins.')
+    expect(previewText('a \\| b | c\n--- | ---\n\nFlat wins.')).toBe('Flat wins.')
+    expect(previewText('`a | b` | c\n--- | ---')).toBe('a | b | c --- | ---')
   })
 
   it('leaves out a table inside a quote, and ends a table where a quote starts', () => {

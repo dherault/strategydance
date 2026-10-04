@@ -75,6 +75,14 @@ export const ERROR_CODE_CONFLICT = 'CONFLICT' // 409
 // ask of them: make room
 export const ERROR_CODE_TEAM_FULL = 'TEAM_FULL' // 409
 
+// A 409 for a conversation that already has a run going, or a member who already has as many in
+// flight as they may: the action is fine, only its moment is not, so the reader tries again
+export const ERROR_CODE_CONVERSATION_BUSY = 'CONVERSATION_BUSY' // 409
+
+// A 409 set apart as `TEAM_FULL` is: a conversation that holds as much as it can takes no more
+// messages, and the reader's way on is a new conversation
+export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
+
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 
@@ -255,3 +263,107 @@ export const MAX_DOCUMENT_STATE_LENGTH = 2000000
 export const MAX_DOCUMENT_UPDATE_LENGTH = 50000
 export const DOCUMENT_COMPACTION_THRESHOLD = 50
 export const DOCUMENT_UPDATES_LIMIT = 100
+
+/* ---
+  CONVERSATIONS
+--- */
+
+/*
+  Conversations are open to Strategy Dance's own administrators (`User.isAdministrator`) alone
+  while they are built, and everything that offers one or runs one asks this first. It hides an
+  unfinished feature and protects no data: a conversation is its author's alone either way
+*/
+export const ARE_CONVERSATIONS_STAFF_ONLY: boolean = true
+
+/*
+  How many conversations a member keeps in an organization, and how many of their runs may go at
+  once there. A deleted conversation does not count, so taking a delete back is held to the first
+  as starting one is. The second bounds concurrency rather than usage: a run waiting for an answer
+  has ended, and holds no place
+*/
+export const MAX_CONVERSATIONS = 1000
+export const MAX_ACTIVE_RUNS_PER_MEMBER = 3
+
+/*
+  How many entries a conversation holds, which bounds what it stores and the history a reader pages
+  through. Its context fills up long before, and is measured on its own before each request
+*/
+export const MAX_CONVERSATION_MESSAGES = 2000
+
+/*
+  How many entries one run may draw, and how many tool calls it may make, in all and in one turn.
+  A run past one of them sends no further request: the turn in flight is still drawn whole, and a
+  call past a bound is answered as not run
+*/
+export const MAX_CONVERSATION_RUN_ENTRIES = 100
+export const MAX_TOOL_CALLS_PER_RUN = 50
+export const MAX_TOOL_CALLS_PER_TURN = 10
+
+/*
+  How long a conversation's title may be, on one line. One built from a first message or a file's
+  name is cut far shorter, so only a title somebody writes comes near it
+*/
+export const MAX_CONVERSATION_TITLE_LENGTH = 120
+
+/*
+  How long a message may be, the member's and each piece of a reply alike: a longer reply is drawn
+  as several pieces, split between its blocks
+*/
+export const MAX_CONVERSATION_MESSAGE_LENGTH = 20000
+
+/*
+  How much of a conversation's last entry its preview keeps, in characters of plain text, so the
+  list of a member's conversations stays small however long their replies run
+*/
+export const MAX_CONVERSATION_PREVIEW_LENGTH = 200
+
+/*
+  A question the agent asks: how many options it offers, how long its prompt and each option may
+  be, and how long the member's own answer may be, on one line. All of it goes back into what
+  Claude is sent exactly as it was written, so a value past a bound is refused rather than cut
+*/
+export const MAX_QUESTION_OPTIONS = 6
+export const MAX_QUESTION_PROMPT_LENGTH = 1000
+export const MAX_QUESTION_OPTION_LENGTH = 200
+export const MAX_ANSWER_OTHER_LENGTH = 500
+
+/*
+  Files sent in a conversation, in bytes: one file, and every file a conversation holds together.
+  Claude reads them by reference rather than in each request, so these bound what is stored. A
+  message carries a handful at most, and a text file is held to a number of characters as well
+*/
+export const MAX_CONVERSATION_ATTACHMENT_SIZE = 10 * 1024 * 1024
+export const MAX_CONVERSATION_ATTACHMENTS_SIZE = 15 * 1024 * 1024
+export const MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE = 10
+export const MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH = 200000
+
+/*
+  How many pages a PDF may have, and how many a conversation's PDFs may have together, since every
+  request carries them all. Claude reads up to 600 pages a request on a model with a 1M-token
+  context, so both leave a margin
+*/
+export const MAX_CONVERSATION_PDF_PAGES = 100
+export const MAX_CONVERSATION_PDF_PAGES_TOTAL = 300
+
+/*
+  How many files a member may have uploaded and not sent yet in an organization. An upload reserves
+  its place before any byte is accepted, and one left unsent for two days is pruned, so an
+  abandoned draft never keeps a place for good
+*/
+export const MAX_PENDING_CONVERSATION_ATTACHMENTS = 30
+
+/*
+  How long a search may be, in characters and in words, the conversations field and the agent's
+  knowledge search alike. Every word has to match, so a longer query finds nothing a shorter one
+  would miss
+*/
+export const MAX_SEARCH_QUERY_LENGTH = 100
+export const MAX_SEARCH_TERMS = 8
+
+/*
+  How far a search in a language written without spaces, Chinese or Japanese, reads. No index
+  serves a match inside a sentence, so it reads the messages of the most recently active
+  conversations, and the text of the most recently updated documents, up to these many
+*/
+export const MAX_SUBSTRING_SEARCH_MESSAGES = 20000
+export const MAX_SUBSTRING_SEARCH_DOCUMENTS = 100

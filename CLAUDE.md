@@ -798,9 +798,11 @@ it to merge itself, with a merge commit, once `ci` passes. `main`'s ruleset asks
 so running it is the release, and only a human runs it. It is idempotent, reporting the open one
 rather than failing and setting it to merge if it is not already, since a release pull request
 stays open across merges into `dev` for as long as a check fails, and it refuses to run while
-local `dev` has unpushed commits the release would leave behind. To hold an open release back,
-turn its auto merge off (`gh pr merge <number> --disable-auto`): the next `bun run ship` turns it
-on again. Nothing pushes to `main` directly: its ruleset accepts only a pull request.
+local `dev` has unpushed commits the release would leave behind. Auto merge stays set as `dev`
+moves on, so whatever lands on `dev` before `ci` passes goes out with the release, a fix for a
+check that failed included. To hold an open release back, turn its auto merge off
+(`gh pr merge <number> --disable-auto`): the next `bun run ship` turns it on again. Nothing
+pushes to `main` directly: its ruleset accepts only a pull request.
 
 ### What a merge into `main` deploys
 

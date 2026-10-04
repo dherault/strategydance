@@ -19,7 +19,9 @@ fi
 git fetch --quiet origin "$BASE" "$HEAD"
 
 # With a merge commit, the one method the `main` ruleset accepts. When the checks have already passed,
-# gh merges on the spot rather than waiting. Never with --delete-branch, since the head is `dev`
+# gh merges on the spot rather than waiting. Never with --delete-branch, since the head is `dev`.
+# Auto merge stays set as `dev` moves on, so whatever lands there before the checks pass goes out
+# with this release
 merge_when_ready() {
   gh pr merge "$1" --auto --merge
 }

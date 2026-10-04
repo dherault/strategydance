@@ -312,12 +312,23 @@ function createOrganizationsRouter() {
         return
       }
 
-      const url = await storeRichTextImage({ organizationId: request.params.organizationId, bytes, contentType })
+      const result = await storeRichTextImage({
+        organizationId: request.params.organizationId,
+        userId: readViewer(request).id,
+        bytes,
+        contentType,
+      })
+
+      if (result.outcome === 'forbidden') {
+        respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+        return
+      }
 
       response.json({
         status: 'success',
         data: {
-          url,
+          url: result.url,
         },
       })
     },

@@ -1,8 +1,10 @@
-import { describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const ORGANIZATION_ID = '0F9C2B8E-4B1A-4D2C-9E7F-6A5B4C3D2E1F'
 
 const saves: { name: string; bytes: Buffer; options: Record<string, unknown> }[] = []
+const deletions: string[] = []
+let isMember = true
 
 mock.module('~firebase', () => ({
   bucket: {
@@ -11,17 +13,37 @@ mock.module('~firebase', () => ({
       save: async (bytes: Buffer, options: Record<string, unknown>) => {
         saves.push({ name, bytes, options })
       },
+      delete: async () => {
+        deletions.push(name)
+      },
     }),
   },
   dataConnect: {},
 }))
 
+mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
+
+mock.module('strategydance-database/backend', () => ({
+  getOrganizationMembership: async () => ({ data: { userOrganization: isMember ? { role: 'MEMBER' } : null } }),
+}))
+
 const { default: storeRichTextImage } = await import('./storeRichTextImage')
+
+beforeEach(() => {
+  saves.length = 0
+  deletions.length = 0
+  isMember = true
+})
 
 describe('storeRichTextImage', () => {
   test("saves the picture under a fresh name in the organization's rich text folder, and answers with its URL", async () => {
     const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47])
-    const url = await storeRichTextImage({ organizationId: ORGANIZATION_ID, bytes, contentType: 'image/png' })
+    const result = await storeRichTextImage({
+      organizationId: ORGANIZATION_ID,
+      userId: 'member',
+      bytes,
+      contentType: 'image/png',
+    })
     const [save] = saves
 
     expect(save.name).toMatch(/^organizations\/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f\/rich-text\/[0-9a-f-]{36}$/)
@@ -35,19 +57,41 @@ describe('storeRichTextImage', () => {
     const token = (save.options.metadata as { metadata: { firebaseStorageDownloadTokens: string } }).metadata
       .firebaseStorageDownloadTokens
 
-    expect(url).toEndWith(
-      `/v0/b/strategydance.firebasestorage.app/o/${encodeURIComponent(save.name)}?alt=media&token=${token}`,
-    )
+    expect(result).toEqual({
+      outcome: 'stored',
+      url: expect.stringMatching(
+        new RegExp(
+          `/v0/b/strategydance\\.firebasestorage\\.app/o/${encodeURIComponent(save.name)}\\?alt=media&token=${token}$`,
+        ),
+      ),
+    })
   })
 
   test('gives every picture a name and a token of its own', async () => {
-    saves.length = 0
-
-    const bytes = Buffer.from([0xff, 0xd8, 0xff])
-    const first = await storeRichTextImage({ organizationId: ORGANIZATION_ID, bytes, contentType: 'image/jpeg' })
-    const second = await storeRichTextImage({ organizationId: ORGANIZATION_ID, bytes, contentType: 'image/jpeg' })
+    const input = {
+      organizationId: ORGANIZATION_ID,
+      userId: 'member',
+      bytes: Buffer.from([1]),
+      contentType: 'image/jpeg',
+    }
+    const first = await storeRichTextImage(input)
+    const second = await storeRichTextImage(input)
 
     expect(saves[0].name).not.toBe(saves[1].name)
-    expect(first).not.toBe(second)
+    expect(first).not.toEqual(second)
+  })
+
+  test('deletes the picture and refuses when the uploader no longer belongs, as after a deletion that raced it', async () => {
+    isMember = false
+
+    const result = await storeRichTextImage({
+      organizationId: ORGANIZATION_ID,
+      userId: 'member',
+      bytes: Buffer.from([1]),
+      contentType: 'image/png',
+    })
+
+    expect(result).toEqual({ outcome: 'forbidden' })
+    expect(deletions).toEqual([saves[0].name])
   })
 })

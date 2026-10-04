@@ -94,11 +94,12 @@ starts.
     fallback serves: whether Opus 5 takes `display: "updates"` and `block_binding`, and what to
     strip when it does not.
 - `updateRichTextYDoc(doc, edit)` in the design system's `lib/`, the half of M13 that has no
-  network to wait on: it reads the document's own blocks with `yDocToBlocks`, ids included, since
-  the stored model has none, applies the edit to them (a range replaced between two ids, blocks
-  appended, one piece of text replaced), and writes the result into the shared fragment as a
-  difference, through y-prosemirror's `updateYFragment` on the node the headless editor builds from
-  it. Tests: a document forked into two, a block typed into on one and another range replaced
+  network to wait on: it reads the document as y-prosemirror's binding does, ids included, since
+  the stored model has none, applies the edit to the top-level blocks that read produced (a range
+  replaced between two ids, blocks appended, one piece of text replaced), and writes the result
+  into the shared fragment as a difference, through y-prosemirror's `updateYFragment` on a document
+  built from those very nodes, with the read's metadata (see Rich text and Markdown for why not
+  `yDocToBlocks`). Tests: a document forked into two, a block typed into on one and another range replaced
   through `updateRichTextYDoc` on the other, merged both ways, read the same blocks with both edits
   and nothing doubled; every block the edit leaves alone keeps its id, and a relative position in
   it survives; a document seeded from `content` and edited reads back the edit.
@@ -413,7 +414,8 @@ M14.
   what degrades to paragraphs, lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
 - `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`, working on rows rather than
   calling the database: reading a document's shared text from its snapshot and pending updates
-  through `yDocToBlocks`, as top-level blocks with their ids and Markdown, or, for a document with no
+  through `yDocToBlocks`, once its Yjs tree has been checked against the schema as
+  `updateRichTextYDoc` checks it, as top-level blocks with their ids and Markdown, or, for a document with no
   snapshot yet, building the seed M14 stores before it hands out any id; and
   turning an edit into a fold, the new `state`, `content` and `contentText` and the ids of the
   updates it merged, as Rich text and Markdown describes.

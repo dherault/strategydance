@@ -918,15 +918,27 @@ keeps all four styles through an agent's edit.
   compaction's copy, and lags whenever somebody typed since. A document stored before the editor
   was shared has no `state` and so no ids: the first read seeds it, storing its snapshot under
   `SeedDocumentState`'s condition before it answers, and reads the snapshot that won when a tab
-  seeded it first, so the ids it hands out are the ones every later read sees.
+  seeded it first, so the ids it hands out are the ones every later read sees. The read first
+  checks the Yjs tree against the editor's schema, as `updateRichTextYDoc` does: y-prosemirror,
+  which `yDocToBlocks` reads through, deletes a node or a style the schema lacks as it reads, and
+  a fold would store the loss.
 - **Writing** applies the edit to that Yjs document as a difference, never by building a new one:
   a document built from the edited blocks shares no history with the stored one, so merging it
-  would add the text a second time. The edit works on the document's own blocks as BlockNote reads
-  them (`yDocToBlocks`), ids included, rather than on the stored model, which has no ids: the blocks
-  it replaces go, new ones come without an id and get a fresh one, and every other block keeps its
-  id. The result becomes a ProseMirror node of the editor's schema, and y-prosemirror's
-  `updateYFragment` writes only what differs into the shared fragment, so blocks the edit leaves
-  alone keep their identity, and what a member types in them meanwhile merges.
+  would add the text a second time. M1 built it as `updateRichTextYDoc`, in the design system's
+  `lib/`. It reads the document as y-prosemirror's binding does (`initProseMirrorDoc`), takes the
+  top-level blocks that read produced, ids included, and hands `updateYFragment` the next document
+  built from those very nodes, with the read's metadata. Every block the edit leaves alone is then
+  found by identity and keeps its Yjs items, its id and the positions in it, so what a member types
+  in it meanwhile merges. The blocks a range replaces are deleted before the new ones are written,
+  so the new ones come fresh, with ids of their own, and what somebody typed into a replaced block
+  meanwhile goes with it. The plan first had the edit rebuild a node from `yDocToBlocks`'s blocks
+  and diff it with an empty mapping. M1 found that this matches blocks by equality alone, so a
+  range replaced by a different number of blocks can pair an untouched block that does not read
+  back exactly, such as one somebody cleared, whose empty text y-prosemirror keeps, with a new
+  block, and delete it with what somebody typed in it. The function's tests fail that way on the
+  first recipe. An edit is refused, touching nothing, when a block or a piece of text is not found
+  exactly once, when the document has no text yet, or when it holds a node or a style the schema
+  lacks.
 - **Storing** is a fold, as a tab's compaction is: one backend mutation writes the new `state`,
   `content` and `contentText` under the `revision` it read, deletes the updates it merged, and
   records the call's result (see Recovery and side effects). A push that lands meanwhile is not
@@ -1046,12 +1058,13 @@ the lifetime is chosen from what members' pauses turn out to be.
   stops waiting.
   The tail carries no bodies, about 45 KB at most, and each body is read once by id, so a run of
   100 entries sends an open reader a few megabytes of refreshes at most, not hundreds.
-- **Editing the shared text from the backend**: nothing in the repository does it yet. BlockNote's
-  helpers build a document from blocks rather than diff one, and a diff written wrong duplicates or
-  loses a member's text in every open tab. M1's spike proves `updateYFragment` with the editor's
-  schema under Bun, against a concurrent edit, before M13 and M14 depend on it; if it fails, the
-  agent creates documents only and suggests edits to existing ones in its reply until a way is
-  found.
+- **Editing the shared text from the backend**: settled by M1. `updateRichTextYDoc` writes an edit
+  as a difference with the editor's schema under Bun, and its tests merge it with concurrent typing
+  both ways, keep every untouched block's identity, and fail on the recipe first planned, which lost
+  a member's text (see Rich text and Markdown). `updateYFragment` is marked private and unstable in
+  y-prosemirror, which is pinned at 1.3.7 for it: a newer version comes in with those tests run
+  against it. BlockNote already ships a binding for y-prosemirror's second major version, which has
+  no `updateYFragment`, so moving to it means writing the function again.
 - **Processing location**: Vertex's `global` endpoint may process a request in any region. The
   legal review before M24 says so, and names Google and Anthropic as processors of what members
   write and attach.

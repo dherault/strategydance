@@ -219,6 +219,8 @@ export type BuildInPublicSettings = {
 export type StreakDay = {
   date: string
   isOn: boolean
+  // Not active, and kept in the streak by a charge: see `getStreakCharges`
+  isCharged: boolean
   isToday: boolean
   isFuture: boolean
 }

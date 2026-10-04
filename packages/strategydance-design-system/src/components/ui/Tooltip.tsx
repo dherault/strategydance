@@ -1,5 +1,13 @@
 import { Tooltip as TooltipPrimitive } from 'radix-ui'
-import { type ComponentProps, type ReactNode, isValidElement, useRef } from 'react'
+import {
+  type ComponentProps,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+  isValidElement,
+  useRef,
+  useState,
+} from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 // The rotated square that draws the arrow, and so how far Radix pushes the tooltip out for it
@@ -33,6 +41,13 @@ type Props = Omit<
    * itself, a `type="button"`, since the press's default is prevented
    */
   isKeptOpenOnPress?: boolean
+  /**
+   * Opens on a tap too, on a touch screen, which has no hover to open it, and closes on the next
+   * tap or one outside it. For a tooltip that explains something, such as an info button's, that
+   * a phone's reader would otherwise never see. Only for a trigger whose tap does nothing by
+   * itself, a `type="button"`, since the tap's default is prevented
+   */
+  isOpenedOnTap?: boolean
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
@@ -48,7 +63,8 @@ type PointerDownOutsideEvent = Parameters<
   NonNullable<ComponentProps<typeof TooltipPrimitive.Content>['onPointerDownOutside']>
 >[0]
 
-// Opens on hover and keyboard focus, and closes on press, unless kept open, or Escape
+// Opens on hover and keyboard focus, or a tap when asked, and closes on press, unless kept open, or
+// Escape
 function Tooltip({
   content,
   children,
@@ -59,6 +75,7 @@ function Tooltip({
   arrow = true,
   shortcut,
   isKeptOpenOnPress = false,
+  isOpenedOnTap = false,
   open,
   defaultOpen,
   onOpenChange,
@@ -68,15 +85,65 @@ function Tooltip({
   ...props
 }: Props) {
   const triggerRef = useRef<HTMLButtonElement>(null)
+  // Whether the tooltip was open as a tap began, null outside one. Radix closes it on the tap's
+  // pointerdown, and Android's focus on the tap may open it again, so the tap's click alone decides
+  // which way it goes, from what it was before either
+  const tapStartedOpenRef = useRef<boolean | null>(null)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false)
   // Whatever React renders is content, a 0 included, so falsiness is not the test
   const hasContent = content !== undefined && content !== null && typeof content !== 'boolean' && content !== ''
 
   if (disabled || !hasContent) return children
 
+  // Held here rather than by Radix, which has no way to open on a tap, unless the caller holds it
+  const isOpen = open ?? uncontrolledOpen
+
+  function handleOpenChange(nextOpen: boolean) {
+    setUncontrolledOpen(nextOpen)
+    onOpenChange?.(nextOpen)
+  }
+
+  // Radix's own handler still runs on a tap, closing an open tooltip, and the tap's click settles it
+  function handlePointerDown(event: PointerEvent) {
+    if (isOpenedOnTap && event.pointerType === 'touch') {
+      tapStartedOpenRef.current = isOpen
+
+      return
+    }
+
+    tapStartedOpenRef.current = null
+
+    if (isKeptOpenOnPress) keepOpen(event)
+  }
+
+  // A touch the browser took over, as a scroll, ends in no click
+  function handlePointerCancel() {
+    tapStartedOpenRef.current = null
+  }
+
+  function handleClick(event: MouseEvent) {
+    const wasOpen = tapStartedOpenRef.current
+
+    tapStartedOpenRef.current = null
+
+    if (wasOpen !== null) {
+      keepOpen(event)
+      handleOpenChange(!wasOpen)
+
+      return
+    }
+
+    if (isKeptOpenOnPress) keepOpen(event)
+  }
+
   // The content dismisses on a press anywhere outside it, the trigger included, which a kept tooltip
-  // has to let through
+  // has to let through, and so does one a tap opens, whose next tap on the trigger closes it
   function handlePointerDownOutside(event: PointerDownOutsideEvent) {
-    if (isKeptOpenOnPress && event.target instanceof Node && triggerRef.current?.contains(event.target)) {
+    if (
+      (isKeptOpenOnPress || isOpenedOnTap)
+      && event.target instanceof Node
+      && triggerRef.current?.contains(event.target)
+    ) {
       event.preventDefault()
     }
 
@@ -98,15 +165,15 @@ function Tooltip({
   return (
     <TooltipPrimitive.Provider delayDuration={delay}>
       <TooltipPrimitive.Root
-        open={open}
-        defaultOpen={defaultOpen}
-        onOpenChange={onOpenChange}
+        open={isOpen}
+        onOpenChange={handleOpenChange}
       >
         <TooltipPrimitive.Trigger
           ref={triggerRef}
           asChild
-          onPointerDown={isKeptOpenOnPress ? keepOpen : undefined}
-          onClick={isKeptOpenOnPress ? keepOpen : undefined}
+          onPointerDown={handlePointerDown}
+          onPointerCancel={handlePointerCancel}
+          onClick={handleClick}
         >
           {trigger}
         </TooltipPrimitive.Trigger>

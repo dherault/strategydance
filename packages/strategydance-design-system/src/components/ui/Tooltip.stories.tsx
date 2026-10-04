@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { LockIcon, LockOpenIcon, SearchIcon } from 'lucide-react'
+import { InfoIcon, LockIcon, LockOpenIcon, SearchIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
@@ -98,4 +98,23 @@ function KeptOpenOnPressExample(props: Parameters<typeof Tooltip>[0]) {
       />
     </Tooltip>
   )
+}
+
+// An explanation behind an info button, which a phone's reader, with no hover, opens with a tap and
+// closes with another or one outside it. Kept open on a click too, since the button does nothing else
+export const OpenedOnTap: Story = {
+  args: {
+    isOpenedOnTap: true,
+    isKeptOpenOnPress: true,
+    content:
+      'What subscribers pay each month, without one-off fees. Paused subscriptions count from the day they resume.',
+    children: (
+      <Button
+        variant="transparent"
+        size="sm"
+        icon={<InfoIcon />}
+        aria-label="What MRR counts"
+      />
+    ),
+  },
 }

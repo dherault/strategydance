@@ -1555,8 +1555,48 @@
         "hash": "fef0fb6d952496b7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.editorImageSizeError": {
+        "hash": "eca8d68fa206d342",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorImageTypeError": {
+        "hash": "b01a32209790c359",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorImageUploadError": {
+        "hash": "ca85f3d4ac2ac320",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewAdd": {
+        "hash": "d4429250f7fb1d08",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewButton": {
+        "hash": "ff45661568feea30",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewInvalid": {
+        "hash": "49dd16c48df72b27",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewSubtext": {
+        "hash": "239070c29323db5f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewTitle": {
+        "hash": "85b125e50ef55ed7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.editorTurnInto": {
         "hash": "5ec56d5ad4433055",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorVideoSubtext": {
+        "hash": "7e206de7e8378567",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorVideoUnsupported": {
+        "hash": "fdeb040411c9477d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.emptyText": {

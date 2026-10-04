@@ -2,7 +2,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { type FocusEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_DOCUMENTS, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
+import {
+  MAX_DOCUMENTS,
+  MAX_DOCUMENT_TITLE_LENGTH,
+  MAX_RICH_TEXT_IMAGE_SIZE,
+  RICH_TEXT_IMAGE_CONTENT_TYPES,
+} from 'strategydance-core'
 import {
   type CompanyAspect,
   type GetOrganizationDocumentsData,
@@ -33,6 +38,8 @@ import useUser from '~hooks/user/useUser'
 import createId from '~utils/common/createId'
 import writeOptimistically from '~utils/common/writeOptimistically'
 import getPresenceColor from '~utils/knowledge/getPresenceColor'
+import readLinkPreview from '~utils/knowledge/readLinkPreview'
+import uploadRichTextImage from '~utils/knowledge/uploadRichTextImage'
 
 import Spinner from '~components/common/Spinner'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
@@ -214,6 +221,34 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
     saver.change({ content })
     sync.setContent(content)
+  }
+
+  /*
+    Stores a picture put in the text, saying why it will not when the file is not one or too large,
+    or when the upload fails. Throwing tells the editor, which takes away the picture's place
+  */
+  async function uploadImage(file: File) {
+    if (!RICH_TEXT_IMAGE_CONTENT_TYPES.includes(file.type)) {
+      toast.error(formatMessage(knowledgeMessages.editorImageTypeError))
+
+      throw new Error(`Not a picture: ${file.type || file.name}`)
+    }
+
+    if (file.size > MAX_RICH_TEXT_IMAGE_SIZE) {
+      toast.error(
+        formatMessage(knowledgeMessages.editorImageSizeError, { megabytes: MAX_RICH_TEXT_IMAGE_SIZE / 1024 / 1024 }),
+      )
+
+      throw new Error(`A picture too large: ${file.size} bytes`)
+    }
+
+    try {
+      return await uploadRichTextImage(organizationId, file)
+    } catch (error) {
+      toast.error(formatMessage(knowledgeMessages.editorImageUploadError))
+
+      throw error
+    }
   }
 
   function saveAspects(next: CompanyAspect[]) {
@@ -427,7 +462,18 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             placeholder={formatMessage(knowledgeMessages.bodyPlaceholder)}
             aria-label={formatMessage(knowledgeMessages.bodyLabel)}
             locale={locale}
-            labels={{ turnInto: formatMessage(knowledgeMessages.editorTurnInto) }}
+            labels={{
+              turnInto: formatMessage(knowledgeMessages.editorTurnInto),
+              videoEmbedSubtext: formatMessage(knowledgeMessages.editorVideoSubtext),
+              videoEmbedUnsupported: formatMessage(knowledgeMessages.editorVideoUnsupported),
+              linkPreviewTitle: formatMessage(knowledgeMessages.editorLinkPreviewTitle),
+              linkPreviewSubtext: formatMessage(knowledgeMessages.editorLinkPreviewSubtext),
+              linkPreviewAdd: formatMessage(knowledgeMessages.editorLinkPreviewAdd),
+              linkPreviewButton: formatMessage(knowledgeMessages.editorLinkPreviewButton),
+              linkPreviewInvalid: formatMessage(knowledgeMessages.editorLinkPreviewInvalid),
+            }}
+            uploadImage={uploadImage}
+            previewLink={readLinkPreview}
             onChange={changeContent}
             className="border-t border-neutral-200"
           />

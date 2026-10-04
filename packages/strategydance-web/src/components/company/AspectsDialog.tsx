@@ -87,9 +87,11 @@ function AspectsDialog({ aspects, messages, onSave, onClose, isSaving = false, i
                 key={aspect}
                 type="button"
                 aria-pressed={isSelected}
+                // What is saving is what was picked when Save was pressed, so nothing changes meanwhile
+                disabled={isSaving}
                 onClick={() => toggle(aspect)}
                 className={cn(
-                  'flex aspect-square min-w-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-xs border p-2 text-center font-sans text-xs leading-[1.3] font-medium transition-colors duration-150 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
+                  'flex aspect-square min-w-0 cursor-pointer flex-col disabled:cursor-wait items-center justify-center gap-2 rounded-xs border p-2 text-center font-sans text-xs leading-[1.3] font-medium transition-colors duration-150 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
                   isSelected
                     ? 'border-primary bg-primary-50 text-primary'
                     : 'border-neutral-200 bg-white text-foreground hover:border-neutral-300',

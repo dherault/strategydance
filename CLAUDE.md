@@ -340,6 +340,10 @@ only way the app talks to them.
 - Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
   exports each as values in the schema's order, and the frontend imports them from
   `strategydance-database/web`
+- The generator declares an enum only when some operation of the connector selects a field of
+  that type at its top level. One selected only under a nested relation is named in the types and
+  never declared, which `tsc` does not catch past `skipLibCheck`: `GetConversationMessagesBefore`
+  reads its messages at the top level for that reason
 - That order is the Postgres enum's, and reordering an enum's values is a breaking migration.
   Append a value; never reorder. The order the aspects are shown in is `COMPANY_ASPECTS` in the
   web package's `constants.ts`, and `constants.test.ts` fails when it stops matching the enum
@@ -410,6 +414,13 @@ A conversation is kept twice, once for Claude and once for the page, and
   `nextMessagePosition`, moving it on under `@check(this == 1)`, and a writer that loses the race
   reads it again and retries. The counter only grows, so a deleted message leaves a gap rather
   than a position used twice
+- The page reads the thread in three parts: `GetConversation`'s live tail of the latest 150
+  messages, carrying only what is small or changes in place (kind, position, run, a call's status,
+  an answer), each message's body once by id through `GetConversationMessageBodies`, and older
+  messages in pages through `GetConversationMessagesBefore`. `createConversationThread` merges
+  them, and reads every page it holds again when `historyRevision` moves. A field that changes in
+  place belongs in the tail, one that never changes once written in the bodies, and the history
+  page carries both
 - A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
   auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's

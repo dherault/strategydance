@@ -153,9 +153,9 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # would take a second write to one row, which Data Connect skips. The membership goes with the
 # organization anyway, so touching it costs nothing.
 #
-# `$organizationId` is also what `GetOrganizationTeam`, `GetOrganizationLog` and
-# `GetOrganizationDocuments` refresh on, so a member watching the team page, the log or the
-# knowledge sees it go
+# `$organizationId` is also what every live query scoped to an organization refreshes on, the
+# team, the log, knowledge and conversations among them, so a member watching any of them sees it
+# go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }

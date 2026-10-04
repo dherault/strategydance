@@ -35,10 +35,10 @@ import writeOptimistically from '~utils/common/writeOptimistically'
 import getPresenceColor from '~utils/knowledge/getPresenceColor'
 
 import Spinner from '~components/common/Spinner'
+import AspectsDialog from '~components/company/AspectsDialog'
 import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
 import KnowledgeDocumentAiMenu from '~components/knowledge/KnowledgeDocumentAiMenu'
-import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
 import KnowledgeDocumentPresences from '~components/knowledge/KnowledgeDocumentPresences'
@@ -48,6 +48,16 @@ import KnowledgeLeaveDialog from '~components/knowledge/KnowledgeLeaveDialog'
 import { dataConnect } from '~data/firebase'
 import aspectMessages from '~data/intl/aspectMessages'
 import knowledgeMessages from '~data/intl/messages/knowledge'
+
+// The aspects dialog's words, for a document. At module scope so the reference is stable
+const KNOWLEDGE_ASPECTS_DIALOG_MESSAGES = {
+  title: knowledgeMessages.aspectsTitle,
+  description: knowledgeMessages.aspectsDescription,
+  selected: knowledgeMessages.aspectsSelected,
+  cancel: knowledgeMessages.cancel,
+  save: knowledgeMessages.save,
+  close: knowledgeMessages.close,
+}
 
 type Props = {
   organizationId: string
@@ -455,8 +465,9 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
         />
       ) : null}
       {isPickingAspects ? (
-        <KnowledgeDocumentAspectsDialog
+        <AspectsDialog
           aspects={aspects}
+          messages={KNOWLEDGE_ASPECTS_DIALOG_MESSAGES}
           onSave={saveAspects}
           onClose={() => setIsPickingAspects(false)}
         />

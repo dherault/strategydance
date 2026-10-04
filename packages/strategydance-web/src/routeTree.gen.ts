@@ -34,6 +34,7 @@ import { Route as AuthenticatedAppAdministrationOrganizationsRouteImport } from 
 import { Route as AuthenticatedAppAdministrationUsersRouteImport } from './routes/_authenticated/_app/administration/users'
 import { Route as AuthenticatedAppAspectsAspectRouteImport } from './routes/_authenticated/_app/aspects.$aspect'
 import { Route as AuthenticatedAppConversationsIndexRouteImport } from './routes/_authenticated/_app/conversations.index'
+import { Route as AuthenticatedAppConversationsConversationIdRouteImport } from './routes/_authenticated/_app/conversations.$conversationId'
 import { Route as AuthenticatedAppKnowledgeIndexRouteImport } from './routes/_authenticated/_app/knowledge.index'
 import { Route as AuthenticatedAppKnowledgeDocumentIdRouteImport } from './routes/_authenticated/_app/knowledge.$documentId'
 
@@ -172,6 +173,12 @@ const AuthenticatedAppConversationsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAppConversationsRoute,
   } as any)
+const AuthenticatedAppConversationsConversationIdRoute =
+  AuthenticatedAppConversationsConversationIdRouteImport.update({
+    id: '/$conversationId',
+    path: '/$conversationId',
+    getParentRoute: () => AuthenticatedAppConversationsRoute,
+  } as any)
 const AuthenticatedAppKnowledgeIndexRoute =
   AuthenticatedAppKnowledgeIndexRouteImport.update({
     id: '/knowledge/',
@@ -206,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
   '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/conversations/$conversationId': typeof AuthenticatedAppConversationsConversationIdRoute
   '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/account/': typeof AuthenticatedAppAccountIndexRoute
   '/administration/': typeof AuthenticatedAppAdministrationIndexRoute
@@ -229,6 +237,7 @@ export interface FileRoutesByTo {
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
   '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/conversations/$conversationId': typeof AuthenticatedAppConversationsConversationIdRoute
   '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/account': typeof AuthenticatedAppAccountIndexRoute
   '/administration': typeof AuthenticatedAppAdministrationIndexRoute
@@ -259,6 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/_authenticated/_app/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
   '/_authenticated/_app/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
+  '/_authenticated/_app/conversations/$conversationId': typeof AuthenticatedAppConversationsConversationIdRoute
   '/_authenticated/_app/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/_authenticated/_app/account/': typeof AuthenticatedAppAccountIndexRoute
   '/_authenticated/_app/administration/': typeof AuthenticatedAppAdministrationIndexRoute
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/administration/organizations'
     | '/administration/users'
     | '/aspects/$aspect'
+    | '/conversations/$conversationId'
     | '/knowledge/$documentId'
     | '/account/'
     | '/administration/'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/administration/organizations'
     | '/administration/users'
     | '/aspects/$aspect'
+    | '/conversations/$conversationId'
     | '/knowledge/$documentId'
     | '/account'
     | '/administration'
@@ -340,6 +352,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/administration/organizations'
     | '/_authenticated/_app/administration/users'
     | '/_authenticated/_app/aspects/$aspect'
+    | '/_authenticated/_app/conversations/$conversationId'
     | '/_authenticated/_app/knowledge/$documentId'
     | '/_authenticated/_app/account/'
     | '/_authenticated/_app/administration/'
@@ -533,6 +546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppConversationsIndexRouteImport
       parentRoute: typeof AuthenticatedAppConversationsRoute
     }
+    '/_authenticated/_app/conversations/$conversationId': {
+      id: '/_authenticated/_app/conversations/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/conversations/$conversationId'
+      preLoaderRoute: typeof AuthenticatedAppConversationsConversationIdRouteImport
+      parentRoute: typeof AuthenticatedAppConversationsRoute
+    }
     '/_authenticated/_app/knowledge/': {
       id: '/_authenticated/_app/knowledge/'
       path: '/knowledge'
@@ -588,11 +608,14 @@ const AuthenticatedAppAdministrationRouteWithChildren =
   )
 
 interface AuthenticatedAppConversationsRouteChildren {
+  AuthenticatedAppConversationsConversationIdRoute: typeof AuthenticatedAppConversationsConversationIdRoute
   AuthenticatedAppConversationsIndexRoute: typeof AuthenticatedAppConversationsIndexRoute
 }
 
 const AuthenticatedAppConversationsRouteChildren: AuthenticatedAppConversationsRouteChildren =
   {
+    AuthenticatedAppConversationsConversationIdRoute:
+      AuthenticatedAppConversationsConversationIdRoute,
     AuthenticatedAppConversationsIndexRoute:
       AuthenticatedAppConversationsIndexRoute,
   }

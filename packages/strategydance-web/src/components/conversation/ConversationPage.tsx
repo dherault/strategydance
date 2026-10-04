@@ -25,7 +25,11 @@ function ConversationPage({ conversationId }: Props) {
   const { data: run } = useConversationRun(conversationId)
 
   return (
-    <ConversationLayout className="min-h-[calc(100svh-1.25rem)]">
+    // A draft's column fills the screen, its line in the middle of what is left, as the design has
+    // it: the screen less the column's top padding and, on a phone, the bar over the page
+    <ConversationLayout
+      className={conversation ? undefined : 'min-h-[calc(100svh-1.25rem)] max-md:min-h-[calc(100svh-4.25rem)]'}
+    >
       <ConversationBar updatedAt={conversation?.updatedAt ?? null} />
       <ConversationHead conversation={conversation} />
       {conversation ? (

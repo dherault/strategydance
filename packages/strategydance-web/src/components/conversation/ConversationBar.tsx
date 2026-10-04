@@ -25,7 +25,8 @@ function ConversationBar({ updatedAt }: Props) {
   return (
     <div className="flex items-center gap-3">
       <ConversationBackLink />
-      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-2 text-right text-sm text-muted-foreground">
+      {/* On a phone the two stack, rather than wrap with the dot between them left hanging */}
+      <div className="ml-auto flex min-w-0 items-center justify-end gap-2 text-right text-sm text-muted-foreground max-sm:flex-col max-sm:items-end max-sm:gap-0.5">
         <Tooltip
           content={formatMessage(conversationMessages.privateTooltip)}
           isOpenedOnTap
@@ -39,7 +40,12 @@ function ConversationBar({ updatedAt }: Props) {
             {formatMessage(conversationMessages.private)}
           </button>
         </Tooltip>
-        <span aria-hidden="true">·</span>
+        <span
+          aria-hidden="true"
+          className="max-sm:hidden"
+        >
+          ·
+        </span>
         <span>
           {updatedAt ? (
             <FormattedMessage

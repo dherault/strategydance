@@ -152,7 +152,15 @@ function planEdit(
 
   if (edit.type === 'replaceText') return planReplaceText(root, edit.find, edit.replace)
 
-  const added = createNodes(editor, normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks) }))
+  /*
+    The blocks an agent writes load nothing from elsewhere: no picture, no video and no link
+    preview's picture. A model told by a page it read to put a picture in could make every reader's
+    browser send what the document says to an address of the page's choosing
+  */
+  const added = createNodes(
+    editor,
+    normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks), media: false }),
+  )
 
   // A document with no text yet is one empty paragraph, which the first block appended to it takes
   // the place of. Nothing deletes it first, so `updateYFragment` turns it into that block in place,

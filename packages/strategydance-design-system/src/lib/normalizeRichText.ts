@@ -61,7 +61,32 @@ const MAX_LINK_PREVIEW_LENGTHS = { title: 300, description: 1000, siteName: 100 
 type Options = {
   /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
   blockTypes?: readonly RichTextBlockType[]
+  /**
+   * Whether to keep what loads from elsewhere: pictures, videos and a link preview's picture,
+   * kept unless it says not. Without, a picture and a video give way to their children, and a link
+   * preview keeps its words alone
+   */
+  media?: boolean
 }
+
+// What a value is held to as it is read, block by block
+type Rules = { blockTypes: ReadonlySet<string>; media: boolean }
+
+// What loads from elsewhere, which `media: false` drops
+const MEDIA_BLOCK_TYPES = new Set(['image', 'videoEmbed'])
+
+// BlockNote's blocks that never hold text, whatever content a writer gives them
+const BLOCKS_WITHOUT_TEXT = new Set([
+  'image',
+  'video',
+  'audio',
+  'file',
+  'videoEmbed',
+  'linkPreview',
+  'divider',
+  'pageBreak',
+  'table',
+])
 
 type UnknownRecord = Record<string, unknown>
 
@@ -85,10 +110,14 @@ type UnknownRecord = Record<string, unknown>
   are dropped, so the same document always serializes to the same string. Anything that is not an
   array, Lexical's editor state among them, reads as nothing
 */
-function normalizeRichText(value: unknown, { blockTypes = ALL_BLOCK_TYPES }: Options = {}): RichTextBlock[] {
+function normalizeRichText(
+  value: unknown,
+  { blockTypes = ALL_BLOCK_TYPES, media = true }: Options = {},
+): RichTextBlock[] {
   if (!Array.isArray(value)) return []
 
-  const blocks = normalizeBlocks(value, new Set(blockTypes), 0)
+  const allowed = blockTypes.filter(type => media || !MEDIA_BLOCK_TYPES.has(type))
+  const blocks = normalizeBlocks(value, { blockTypes: new Set(allowed), media }, 0)
   const end = blocks.findLastIndex(block => !isEmptyParagraph(block))
 
   return blocks.slice(0, end + 1)
@@ -98,16 +127,18 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function normalizeBlocks(values: unknown[], blockTypes: ReadonlySet<string>, depth: number): RichTextBlock[] {
+function normalizeBlocks(values: unknown[], rules: Rules, depth: number): RichTextBlock[] {
   if (depth >= MAX_DEPTH) return []
 
-  return values.flatMap(value => (isRecord(value) ? normalizeBlock(value, blockTypes, depth) : []))
+  return values.flatMap(value => (isRecord(value) ? normalizeBlock(value, rules, depth) : []))
 }
 
-function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, depth: number): RichTextBlock[] {
-  const children = Array.isArray(value.children) ? normalizeBlocks(value.children, blockTypes, depth + 1) : []
-  const isKnown = typeof value.type === 'string' && blockTypes.has(value.type)
-  const hasContent = typeof value.content === 'string' || Array.isArray(value.content)
+function normalizeBlock(value: UnknownRecord, rules: Rules, depth: number): RichTextBlock[] {
+  const children = Array.isArray(value.children) ? normalizeBlocks(value.children, rules, depth + 1) : []
+  const isKnown = typeof value.type === 'string' && rules.blockTypes.has(value.type)
+  const hasContent =
+    (typeof value.content === 'string' || Array.isArray(value.content))
+    && !BLOCKS_WITHOUT_TEXT.has(value.type as string)
 
   if (!isKnown && !hasContent) return children
 
@@ -122,7 +153,7 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
           : type === 'videoEmbed'
             ? normalizeVideoEmbed(value)
             : type === 'linkPreview'
-              ? normalizeLinkPreview(value)
+              ? normalizeLinkPreview(value, rules.media)
               : normalizeTextBlock(type, value)
 
   if (!block) return children
@@ -273,15 +304,15 @@ function normalizeVideoEmbed(value: UnknownRecord): RichTextVideoEmbedBlock {
 
 /*
   A card by its web address and what the page said of itself, or the place one is about to go when
-  it has no web address. Its picture is kept at an https address only
+  it has no web address. Its picture is kept at an https address only, and only with media
 */
-function normalizeLinkPreview(value: UnknownRecord): RichTextLinkPreviewBlock {
+function normalizeLinkPreview(value: UnknownRecord, media: boolean): RichTextLinkPreviewBlock {
   const props = isRecord(value.props) ? value.props : {}
   const url = normalizeUrl(props.url, MEDIA_PROTOCOLS)
 
   if (!url) return { type: 'linkPreview' }
 
-  const imageUrl = normalizeUrl(props.imageUrl, HTTPS)
+  const imageUrl = media ? normalizeUrl(props.imageUrl, HTTPS) : null
   const words = Object.fromEntries(
     Object.entries(MAX_LINK_PREVIEW_LENGTHS).flatMap(([name, max]) => {
       const text = props[name]

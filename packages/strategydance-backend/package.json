@@ -9,9 +9,11 @@
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src scripts",
     "grant:administrator": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/grantAdministrator.ts",
+    "probe:claude": "bun scripts/probeClaude.ts",
     "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@google-cloud/secret-manager": "^7.1.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",

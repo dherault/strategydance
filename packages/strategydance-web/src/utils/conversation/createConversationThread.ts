@@ -14,6 +14,9 @@ import { CONVERSATION_BODIES_LENGTH, CONVERSATION_PAGE_LENGTH, CONVERSATION_TAIL
 import mergeConversationPage from '~utils/conversation/mergeConversationPage'
 import mergeConversationTail from '~utils/conversation/mergeConversationTail'
 
+// The longest a failed read of bodies waits before it is tried again, its wait doubling up to it
+const BODIES_RETRY_MAX_DELAY_MS = 30 * 1000
+
 // The kinds whose body is read apart: the others are drawn from the entry alone
 const KINDS_WITH_BODY: ReadonlySet<ConversationMessageKind> = new Set([
   ConversationMessageKind.MEMBER_TEXT,
@@ -44,6 +47,8 @@ type Options = {
   tailLength?: number
   pageLength?: number
   bodiesLength?: number
+  // How long a failed read of bodies first waits before it is tried again
+  bodiesRetryDelay?: number
 }
 
 function toBody({
@@ -67,8 +72,10 @@ function toBody({
   tab's Retry leaves to read again, one at a time, and the bodies of the entries that have one, 50
   at a time. Older pages are read for the reader when the page asks, through `loadOlder`.
 
-  A body read that fails is asked again on the next change, and one the server no longer has, as
-  after a Retry, is never asked again: the tail that follows the Retry drops its entry
+  A body read that fails is tried again by itself, after a wait that doubles up to half a minute,
+  and on the next change, so a quiet conversation does not keep its placeholders. A body the server
+  no longer has, as after a Retry, is never asked again: the tail that follows the Retry drops its
+  entry
 */
 function createConversationThread({
   tail,
@@ -77,6 +84,7 @@ function createConversationThread({
   tailLength = CONVERSATION_TAIL_LENGTH,
   pageLength = CONVERSATION_PAGE_LENGTH,
   bodiesLength = CONVERSATION_BODIES_LENGTH,
+  bodiesRetryDelay = 1000,
 }: Options) {
   const listeners = new Set<() => void>()
   const bodiesInFlight = new Set<string>()
@@ -89,6 +97,8 @@ function createConversationThread({
   let isOlderWanted = false
   // Set when the conversation was gone at the last page read, until a tail says otherwise
   let isGone = false
+  let bodiesRetryDelayMs = bodiesRetryDelay
+  let bodiesRetryTimeout: ReturnType<typeof setTimeout> | undefined
   let snapshot = createSnapshot()
 
   function createSnapshot(): ConversationThreadSnapshot {
@@ -199,6 +209,17 @@ function createConversationThread({
     }
   }
 
+  function retryBodiesLater() {
+    if (bodiesRetryTimeout) return
+
+    bodiesRetryTimeout = setTimeout(() => {
+      bodiesRetryTimeout = undefined
+
+      if (listeners.size) readMissingBodies()
+    }, bodiesRetryDelayMs)
+    bodiesRetryDelayMs = Math.min(bodiesRetryDelayMs * 2, BODIES_RETRY_MAX_DELAY_MS)
+  }
+
   async function readSomeBodies(ids: string[]) {
     for (const id of ids) bodiesInFlight.add(id)
 
@@ -210,10 +231,12 @@ function createConversationThread({
         if (!foundIds.has(id)) bodiesMissing.add(id)
       }
 
+      bodiesRetryDelayMs = bodiesRetryDelay
       addBodies(found)
       emit()
     } catch (error) {
       console.error('Messages could not be read', error)
+      retryBodiesLater()
     } finally {
       for (const id of ids) bodiesInFlight.delete(id)
     }

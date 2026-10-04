@@ -326,9 +326,9 @@ describe('createConversationThread', () => {
     expect(server.reads.bodies.flat().filter(id => id === 'message-2')).toHaveLength(1)
   })
 
-  it('asks again on the next change for bodies a failed read left out', async () => {
+  it('reads bodies a failed read left out again by itself', async () => {
     const server = createConversationTestServer({ pageLength: PAGE_LENGTH })
-    let isFailing = true
+    let failures = 2
 
     server.insert(2)
 
@@ -336,24 +336,19 @@ describe('createConversationThread', () => {
       tail: server.tail(TAIL_LENGTH),
       readPage: before => server.readPage(before),
       readBodies: async ids => {
-        if (isFailing) throw new Error('Offline')
+        if (failures-- > 0) throw new Error('Offline')
 
         return server.readBodies(ids)
       },
       tailLength: TAIL_LENGTH,
+      bodiesRetryDelay: 1,
     })
     const originalError = console.error
 
     console.error = () => {}
     thread.subscribe(() => {})
-    await settle()
+    await new Promise(resolve => setTimeout(resolve, 50))
     console.error = originalError
-
-    expect(thread.getSnapshot().bodies.size).toBe(0)
-
-    isFailing = false
-    thread.receive(server.tail(TAIL_LENGTH))
-    await settle()
 
     expect(thread.getSnapshot().bodies.size).toBe(2)
   })

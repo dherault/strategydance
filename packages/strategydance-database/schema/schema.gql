@@ -409,3 +409,292 @@ type DocumentPresence @table(key: ["document", "user", "sessionId"]) {
   cursor: String
   updatedAt: Timestamp! @default(expr: "request.time")
 }
+
+# Who set something on a conversation: the member, or the agent on their behalf
+enum ConversationActor {
+  MEMBER
+  AGENT
+}
+
+# What a thread's entry is. Append a value; never reorder: the order is the Postgres enum's
+enum ConversationMessageKind {
+  # The member's message
+  MEMBER_TEXT
+  # Strategy Dance's text, in Markdown, or one piece of a reply too long for one message
+  AGENT_TEXT
+  # A tool the agent called, web search included
+  TOOL_CALL
+  # A question the agent asked, with the options it offered
+  QUESTION
+  # The aspects the conversation was tagged with, by the agent or the member
+  ASPECTS
+  # A line the thread draws on its own, such as "You stopped this response."
+  NOTE
+}
+
+# Where a tool call stands. Append a value; never reorder
+enum ConversationToolStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+# Which note the thread draws. Append a value; never reorder
+enum ConversationNoteKind {
+  # The member stopped the response
+  STOPPED
+  # The run failed, at a limit or after the API's retries
+  FAILED
+  # Claude refused, and so did the model it fell back to
+  REFUSED
+  # The run died with its worker and was finalized by somebody else
+  INTERRUPTED
+  # The conversation holds as much as it can, and takes no more messages
+  FULL
+}
+
+# What started a run. Append a value; never reorder
+enum ConversationRunTrigger {
+  MESSAGE
+  ANSWER
+  RESUME
+  RETRY
+}
+
+# Where a run stands. Append a value; never reorder
+enum ConversationRunStatus {
+  # Waiting for a worker to claim it
+  QUEUED
+  # Claimed by a worker, whose lease says it is still alive
+  RUNNING
+  # Ended on a question, until an answer or a send consumes its turn
+  WAITING
+  COMPLETED
+  STOPPED
+  FAILED
+  REFUSED
+  INTERRUPTED
+  # A waiting run whose turn was consumed. It never waits again, so an answer or a send arriving
+  # after another has consumed it finds nothing to consume
+  CONTINUED
+}
+
+# Who an entry of the transcript is from, as Claude reads it. Append a value; never reorder
+enum ConversationTranscriptRole {
+  USER
+  ASSISTANT
+  # A run's context message, which sits between the member's entry and the reply it led to
+  SYSTEM
+}
+
+# A member's chat with Strategy Dance in an organization. Private: only its author reads it,
+# administrators included, and only through operations keyed by the uid off the token and by their
+# current membership.
+#
+# Only the backend creates one, with its first message, its first run and its first transcript
+# entry in one mutation, so a conversation exists only once something was sent. The browser
+# deletes, restores, marks read and changes the aspects.
+#
+# It references the account and the organization rather than the membership, as `TaskList` does:
+# a member removed and invited again finds their conversations where they left them. Deleting the
+# account or the organization cascades, to the messages, the runs and the transcript with it.
+#
+# Deleted by setting `deletedAt`, so an Undo is one update. A prune removes it a day later, after
+# claiming it with `pruneClaimedAt`
+type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"]) {
+  # Made by the browser, as a document's is, so a draft has its address before anything is stored
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 120 characters (`MAX_CONVERSATION_TITLE_LENGTH` in strategydance-core): the
+  # first message's text, a suggestion's title, or the first file's name, cut short
+  title: String!
+  # Which aspects of the company it is about, each once, in no particular order. The pages show
+  # them in `COMPANY_ASPECTS`' order
+  aspects: [CompanyAspect!]! @default(sql: "'{}'")
+  # Who set `aspects` last, and null until anybody has. The agent tags a conversation after its
+  # first message only while this is null, so once the member sets them they stay the member's
+  aspectsSetBy: ConversationActor
+  # The catalogue key of the suggestion it started from (`CONVERSATION_SUGGESTION_IDS`), so the
+  # aspect page stops offering it. Null for one the member started themselves
+  suggestionId: String
+  # The run in flight, and null while none is. A plain UUID rather than a reference: the first send
+  # inserts the conversation and its run in one mutation, and a reference would have it write this
+  # row a second time to point at the run, which Data Connect skips
+  activeRunId: UUID
+  # Whether a question waits for the member. The write that ends a run `WAITING` sets it and the
+  # one that consumes its turn clears it, both of which write this row anyway, so the sidebar's
+  # badge reads one column rather than every question
+  isAwaitingAnswer: Boolean! @default(value: false)
+  # What the list and the cards show of the last entry that is not an aspects note, as
+  # strategydance-core's `buildConversationPreview` builds it: the entry's kind and a little of its
+  # plain text, never the words around it, which the web writes in the reader's language. Null
+  # until there is one. Whoever inserts an entry writes it, so the list selects no message text
+  preview: Any
+  # Which message `preview` was built from. A question or a tool call changes in place, so whatever
+  # changes one rebuilds the preview only while this still names it
+  previewMessageId: UUID
+  # How many replies the member has not read yet. Each reply and each question adds one, in the
+  # write that inserts it; the page clears it when it shows them
+  unreadCount: Int! @default(value: 0)
+  # The `number` the next run takes, claimed in the write that starts it
+  nextRunNumber: Int! @default(value: 0)
+  # The `position` the next message takes. A mutation that inserts messages claims their positions
+  # here first, moving it on by as many as it inserts under `@check(this == 1)`, and a writer that
+  # loses the race reads it again and retries. It only grows, so a deleted message leaves a gap
+  # rather than a position used twice
+  nextMessagePosition: Int! @default(value: 0)
+  # How many messages it holds, at most 2000 (`MAX_CONVERSATION_MESSAGES`). Each insert raises it
+  # as it claims a position, and a retry lowers it by what it deletes
+  messageCount: Int! @default(value: 0)
+  # Bumped by every retry, which deletes messages a tab may hold beyond the live tail, so each tab
+  # that sees it move reads its history again
+  historyRevision: Int! @default(value: 0)
+  # Set once the next request to Claude would not fit its context, which refuses new messages
+  # until a retry shortens the conversation
+  isFull: Boolean! @default(value: false)
+  deletedAt: Timestamp
+  # When a prune claimed it, past its day of Undo. A restore refuses a claimed conversation, so an
+  # Undo and a prune never both win, and a prune that failed partway is finished by the next
+  pruneClaimedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  # Its last activity, which orders the list
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# One go of the agent in a conversation, from the member's action to its end: queued by the
+# backend, then claimed and finished by a worker. Only the backend writes it; the page reads its
+# status, its step and its times to draw the thinking indicator
+type ConversationRun @table @unique(fields: ["conversation", "number"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `conversationId: UUID!` column, cascade deleting
+  conversation: Conversation!
+  # Counted from 0 in its conversation, claimed on its `nextRunNumber`, so the latest run is the
+  # one with the highest number, never decided by a tie between timestamps
+  number: Int!
+  trigger: ConversationRunTrigger!
+  # No default: an insert says which, as a membership's `role` does
+  status: ConversationRunStatus!
+  # The `createdAt` of the membership it was started under. Every write of its worker matches it,
+  # so removing the member stops the run at its next step, and a member invited back, whose new
+  # membership has a new `createdAt`, never passes for an old run
+  membershipCreatedAt: Timestamp!
+  # The latest progress line, which the thinking indicator shows. Null when there is none
+  step: String
+  # The transcript position of the `USER` entry it answers, where a retry goes back to. A resumed
+  # run takes the anchor of the run it resumes
+  anchorPosition: Int!
+  # Its context message, as JSON text, until it is stored in the transcript with the run's first
+  # reply. A `String` rather than `Any`, for the transcript's reason
+  context: String
+  # When the member asked it to stop, which its worker reads between steps
+  stopRequestedAt: Timestamp
+  # Until when it counts as alive: a minute out once a worker claims it, renewed as it goes, and
+  # twenty minutes out while it is queued, when it only says when to ask the queue again
+  leaseExpiresAt: Timestamp
+  # How many times a worker claimed it. Every write of a worker matches the attempt it claimed, so
+  # one that lost the run writes nothing more
+  attempts: Int! @default(value: 0)
+  # The results of the tool calls that ran beside a question, as JSON text, kept until the answer
+  # goes back with them
+  pendingToolResults: String
+  # Why it failed, for the logs. Never shown to the member
+  failure: String
+  # The tokens and web searches each model used, and whether a figure is an estimate: the ledger
+  # credits will be counted from
+  usage: Any
+  # When it was queued
+  createdAt: Timestamp! @default(expr: "request.time")
+  # When a worker first claimed it
+  startedAt: Timestamp
+  endedAt: Timestamp
+}
+
+# An entry of a conversation's thread, as the page draws it: one wide table rather than one per
+# kind, so the thread is one query. Each kind fills its own columns and leaves the others null.
+#
+# The thread is a drawing of the transcript, never what Claude reads. Ordered by `position` rather
+# than by time, since two mutations can share an instant: each insert claims its position on the
+# conversation's `nextMessagePosition`
+type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
+  # The member's message has the id the browser made for it, so a send retried stores it once. A
+  # message the backend draws has an id derived from its transcript entry and block, so drawing it
+  # twice after a crash is a conflict rather than a duplicate
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `conversationId: UUID!` column, cascade deleting
+  conversation: Conversation!
+  # The run that drew it, or the run the member's message started. Optional, as an aspects note the
+  # member writes belongs to none, and a retry deletes a run's messages by it
+  run: ConversationRun
+  kind: ConversationMessageKind!
+  # The text of a message or a reply, in Markdown, at most 20000 characters
+  # (`MAX_CONVERSATION_MESSAGE_LENGTH`), without U+0000, which Postgres refuses in `text`
+  text: String
+  # Where a reply cites the web: each span's offsets in `text`, with its sources' addresses, titles
+  # and quoted text
+  citations: Any
+  # A tool call's: the id Claude gave it, the tool's name, its status, its input and output as JSON
+  # text, lossless as the transcript is, when it started and how long it took. The output arrives
+  # after the message, so only the dialog that shows it reads it
+  toolUseId: String
+  toolName: String
+  toolStatus: ConversationToolStatus
+  toolInput: String
+  toolOutput: String
+  toolStartedAt: Timestamp
+  toolDurationMs: Int
+  # A question's: its prompt and options as the agent wrote them, and whether several may be
+  # chosen. They go back into the transcript as they are, so the backend refuses them, rather than
+  # cuts them, past `MAX_QUESTION_PROMPT_LENGTH` and `MAX_QUESTION_OPTION_LENGTH`
+  questionPrompt: String
+  questionOptions: [String!]
+  isMultipleChoice: Boolean
+  # The answer: the options chosen, by their text, and the member's own words, on one line of at
+  # most 500 characters (`MAX_ANSWER_OTHER_LENGTH`)
+  answerSelected: [String!]
+  answerOther: String
+  # Whether the member sent a message instead of answering. Not null, so a count of the questions
+  # left never has to match a null as well as a false
+  isAnswerSkipped: Boolean! @default(value: false)
+  # When it was answered or skipped, and null while it waits
+  answeredAt: Timestamp
+  # An aspects note's: the aspects set, and who set them
+  aspects: [CompanyAspect!]
+  aspectsSetBy: ConversationActor
+  noteKind: ConversationNoteKind
+  position: Int!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What Claude is sent: the exact content blocks of every turn, kept apart from the thread, which
+# only draws them. Only the backend reads or writes it.
+#
+# Claude's thinking blocks are bound to the history they were made with, so the transcript is
+# replayed byte for byte as stored. It is append-only, with one exception: a retry cuts the tail
+# back to a run's anchor, which leaves a prefix the remaining thinking blocks were made with.
+# Nothing else ever edits or deletes an entry
+type ConversationTranscriptEntry @table @unique(fields: ["conversation", "position"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `conversationId: UUID!` column, cascade deleting
+  conversation: Conversation!
+  # Implies a `runId: UUID!` column, cascade deleting
+  run: ConversationRun!
+  # Dense from 0 in its conversation
+  position: Int!
+  role: ConversationTranscriptRole!
+  # The entry's content blocks, signatures included, as the JSON text of exactly what was sent,
+  # parsed again only to be sent. A `String` rather than `Any`: Data Connect stores `Any` as
+  # Postgres `jsonb`, which keeps one of two duplicate keys and refuses U+0000 in a string, so a
+  # file or a tool result holding either could not come back as it went
+  content: String!
+  # On a context message, a hash of its profile part, which the next run's context leaves out
+  # while it has not changed
+  contextHash: String
+  # How many of its blocks the thread has drawn, advanced in the mutation that draws each, so a
+  # worker taking over after a crash draws the rest and nothing twice
+  drawnBlocks: Int! @default(value: 0)
+  createdAt: Timestamp! @default(expr: "request.time")
+}

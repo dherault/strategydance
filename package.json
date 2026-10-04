@@ -25,6 +25,7 @@
     "ship": "bash scripts/ship.sh",
     "review": "bash scripts/copilotReview.sh",
     "grant:administrator": "cd packages/strategydance-backend && bun run grant:administrator",
+    "probe:vertex": "cd packages/strategydance-backend && bun run probe:vertex",
     "generate:database": "cd packages/strategydance-database && bun run generate",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives && oxfmt --check",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix && oxfmt",

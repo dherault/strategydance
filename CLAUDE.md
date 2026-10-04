@@ -79,6 +79,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
+| `bun run probe:vertex` | Sends Claude on Vertex the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Application Default Credentials, or `VERTEX_ACCESS_TOKEN=$(gcloud auth print-access-token)` |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -361,6 +362,11 @@ caret is, and `GetDocumentPresences` keeps them live for the carets and the face
 - Anything that writes a document's text, an agent included, writes it through Yjs. Once a
   document has a snapshot, a write to `content` alone is refused, and the next compaction would
   write over it anyway
+- Outside an editor, the text is written as a difference, through the design system's
+  `updateRichTextYDoc`, never as a document rebuilt from blocks, which shares no history with the
+  stored one and merges as a second copy. It keeps the nodes y-prosemirror's read produced, with
+  the read's metadata: blocks matched by equality alone can pair an untouched block with a new one
+  and delete it, with whatever somebody typed in it
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
   text. A new block type reaches every tab before anybody can write one

@@ -3,6 +3,7 @@ import {
   type RichTextBlock,
   type RichTextBlockType,
   type RichTextCodeBlock,
+  type RichTextImageBlock,
   type RichTextInline,
   type RichTextRun,
   type RichTextStyles,
@@ -25,6 +26,7 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'checkListItem',
   'codeBlock',
   'table',
+  'image',
 ]
 
 // More than a table written by hand ever has, and few enough that a hostile one stays small
@@ -38,6 +40,12 @@ const MAX_COLUMN_WIDTH = 2000
 const STYLES = ['bold', 'italic', 'underline', 'strike'] as const
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
+
+// What a picture may be loaded from: the web, and the Storage emulator, which development serves over http
+const MEDIA_PROTOCOLS = new Set(['http:', 'https:'])
+
+// Longer than any caption or alternative text written by hand
+const MAX_MEDIA_TEXT_LENGTH = 1000
 
 type Options = {
   /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
@@ -56,7 +64,9 @@ type UnknownRecord = Record<string, unknown>
   gives way to its children. Ids, colors, alignment and every other prop go, but a heading's level,
   a numbered list's first number, a check item's tick and a code block's language. Text keeps four
   styles, and code none. A table keeps its cells' text, laid out on its grid with merged cells
-  split, and the widths of its columns, and whether its first row and column are headers. A link keeps its address when it is a web or mail one, written as the URL
+  split, and the widths of its columns, and whether its first row and column are headers. A
+  picture keeps its web address, its alternative text, its caption and the width it was resized
+  to. A link keeps its address when it is a web or mail one, written as the URL
   parser writes it, and is its text otherwise.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
@@ -95,7 +105,9 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
       ? normalizeCodeBlock(value)
       : type === 'table'
         ? normalizeTable(value)
-        : normalizeTextBlock(type, value)
+        : type === 'image'
+          ? normalizeImage(value)
+          : normalizeTextBlock(type, value)
 
   if (!block) return children
 
@@ -216,6 +228,30 @@ function normalizeColumnWidths(widths: unknown, count: number) {
   return normalized.some(width => width !== null) ? normalized : null
 }
 
+// A picture as it is drawn. One with no web address keeps none, and is the place one is about to go
+function normalizeImage(value: UnknownRecord): RichTextImageBlock {
+  const props = isRecord(value.props) ? value.props : {}
+  const url = normalizeUrl(props.url, MEDIA_PROTOCOLS)
+  const name = normalizeMediaText(props.name)
+  const caption = normalizeMediaText(props.caption)
+  const previewWidth =
+    typeof props.previewWidth === 'number' && Number.isFinite(props.previewWidth) && props.previewWidth >= 1
+      ? Math.min(Math.round(props.previewWidth), MAX_COLUMN_WIDTH)
+      : null
+  const normalized = {
+    ...(url ? { url } : {}),
+    ...(name ? { name } : {}),
+    ...(caption ? { caption } : {}),
+    ...(previewWidth ? { previewWidth } : {}),
+  }
+
+  return { type: 'image', ...(Object.keys(normalized).length ? { props: normalized } : {}) }
+}
+
+function normalizeMediaText(text: unknown) {
+  return typeof text === 'string' ? text.slice(0, MAX_MEDIA_TEXT_LENGTH) : ''
+}
+
 function normalizeTextProps(type: RichTextTextBlock['type'], props: unknown): RichTextTextBlock['props'] {
   if (!isRecord(props)) return undefined
 
@@ -283,12 +319,17 @@ function normalizeStyles(styles: unknown): RichTextStyles | undefined {
 }
 
 function normalizeHref(href: unknown) {
-  if (typeof href !== 'string') return null
+  return normalizeUrl(href, SAFE_PROTOCOLS)
+}
+
+// An address in one of the protocols, as the URL parser writes it, or null
+function normalizeUrl(value: unknown, protocols: ReadonlySet<string>) {
+  if (typeof value !== 'string') return null
 
   try {
-    const url = new URL(href)
+    const url = new URL(value)
 
-    return SAFE_PROTOCOLS.has(url.protocol) ? url.href : null
+    return protocols.has(url.protocol) ? url.href : null
   } catch {
     return null
   }

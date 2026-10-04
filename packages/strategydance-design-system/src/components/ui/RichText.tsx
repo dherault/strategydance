@@ -8,6 +8,7 @@ import {
   type RichTextBlock,
   type RichTextEditorBlock,
   type RichTextHeadingLevel,
+  type RichTextImageBlock,
   type RichTextInline,
   type RichTextRun,
   type RichTextTableContent,
@@ -88,7 +89,7 @@ function renderHeading(level: RichTextHeadingLevel, content: ReactNode) {
 }
 
 function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
-  const content = block.type === 'table' ? null : renderContent(block)
+  const content = block.type === 'table' || block.type === 'image' ? null : renderContent(block)
   const element =
     block.type === 'codeBlock' ? (
       <pre className={RICH_TEXT_CLASSES.code}>
@@ -96,6 +97,8 @@ function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
       </pre>
     ) : block.type === 'table' ? (
       renderTable(block.content)
+    ) : block.type === 'image' ? (
+      renderImage(block)
     ) : block.type === 'heading' ? (
       renderHeading(block.props?.level ?? 2, content)
     ) : block.type === 'quote' ? (
@@ -267,8 +270,33 @@ function renderTable({ headerRows, headerCols, columnWidths, rows }: RichTextTab
   )
 }
 
+/*
+  A picture at its own width up to the text's, or at the width it was resized to, with its caption.
+  It is loaded only once it nears the screen, and tells the site it comes from nothing of the page
+*/
+function renderImage({ props }: RichTextImageBlock) {
+  if (!props?.url) return null
+
+  const classes = RICH_TEXT_CLASSES.image
+
+  return (
+    <figure className={classes.figure}>
+      <img
+        src={props.url}
+        alt={props.name ?? ''}
+        width={props.previewWidth}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        className={classes.image}
+      />
+      {props.caption ? <figcaption className={classes.caption}>{props.caption}</figcaption> : null}
+    </figure>
+  )
+}
+
 // A block's text, or a line break holding its line when it has none, as the editor draws it
-function renderContent(block: Exclude<RichTextBlock, { type: 'table' }>): ReactNode {
+function renderContent(block: Exclude<RichTextBlock, { type: 'table' | 'image' }>): ReactNode {
   if (!block.content) return <br />
 
   return block.content.map(renderInline)

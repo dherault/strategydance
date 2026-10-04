@@ -23,6 +23,7 @@ const SLASH_MENU_KEYS = new Set([
   'check_list',
   'code_block',
   'table',
+  'image',
 ])
 
 /*

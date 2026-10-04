@@ -35,6 +35,12 @@ const richTextClasses = {
     // A column nobody resized, as wide as the editor makes it at the least
     unsizedCell: 'min-w-[120px]',
   },
+  // At its own width up to the text's, or as resized
+  image: {
+    figure: 'mb-2',
+    image: 'block h-auto max-w-full rounded-xs',
+    caption: 'mt-1 text-[0.85em] text-neutral-500',
+  },
   bulletedList: 'mb-2 pl-[22px]',
   bulletMarkers: ['list-disc', 'list-[circle]', 'list-[square]'],
   numberedList: 'mb-2 list-decimal pl-[22px]',
@@ -83,7 +89,7 @@ export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
  * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike.
  * Each is one or more of the stored block types, as `getRichTextBlockTypes` names them
  */
-export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code' | 'table'
+export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code' | 'table' | 'image'
 
 /**
  * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
@@ -104,6 +110,7 @@ export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
   'checklist',
   'code',
   'table',
+  'image',
 ]
 
 /**
@@ -192,6 +199,7 @@ export function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): R
     ...(blocks.includes('checklist') ? (['checkListItem'] as const) : []),
     ...(blocks.includes('code') ? (['codeBlock'] as const) : []),
     ...(blocks.includes('table') ? (['table'] as const) : []),
+    ...(blocks.includes('image') ? (['image'] as const) : []),
   ]
 }
 
@@ -260,7 +268,23 @@ export type RichTextTableBlock = {
   children?: RichTextBlock[]
 }
 
-export type RichTextBlock = RichTextTextBlock | RichTextCodeBlock | RichTextTableBlock
+/**
+ * A picture, uploaded to the organization's part of the bucket or linked from the web, with the
+ * text it reads as, a caption under it, and the width it was resized to. One with no address yet is
+ * the place a picture is about to go, which draws nothing
+ */
+export type RichTextImageBlock = {
+  type: 'image'
+  props?: {
+    url?: string
+    name?: string
+    caption?: string
+    previewWidth?: number
+  }
+  children?: RichTextBlock[]
+}
+
+export type RichTextBlock = RichTextTextBlock | RichTextCodeBlock | RichTextTableBlock | RichTextImageBlock
 
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType = RichTextBlock['type']

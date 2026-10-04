@@ -101,7 +101,7 @@ describe('normalizeRichText', () => {
       ]),
     ])
 
-    expect(block?.content).toEqual([
+    expect((block as RichTextTextBlock | undefined)?.content).toEqual([
       { type: 'link', href: 'https://example.com/', content: [{ type: 'text', text: 'site' }] },
       { type: 'link', href: 'mailto:hi@example.com', content: [{ type: 'text', text: 'mail' }] },
       { type: 'text', text: 'script', styles: { bold: true } },
@@ -300,6 +300,31 @@ describe('normalizeRichText', () => {
         ]),
       ).toEqual([{ type: 'paragraph', content: [{ type: 'text', text: 'Under' }] }])
     })
+  })
+
+  it("keeps a picture's web address, its text, its caption and its width, and nothing else", () => {
+    expect(
+      normalizeRichText([
+        editorBlock('image', [], {
+          url: 'https://example.com/a b.png',
+          name: 'A chart',
+          caption: 'Latency by week',
+          previewWidth: 320.6,
+          showPreview: true,
+        }),
+        editorBlock('image', [], { url: '', name: '', caption: '', previewWidth: undefined }),
+        editorBlock('image', [], { url: 'javascript:alert(1)', caption: 'x'.repeat(1200), previewWidth: -4 }),
+        editorBlock('image', [], { url: 'data:image/png;base64,AAAA', previewWidth: 9000 }),
+      ]),
+    ).toEqual([
+      {
+        type: 'image',
+        props: { url: 'https://example.com/a%20b.png', name: 'A chart', caption: 'Latency by week', previewWidth: 321 },
+      },
+      { type: 'image' },
+      { type: 'image', props: { caption: 'x'.repeat(1000) } },
+      { type: 'image', props: { previewWidth: 2000 } },
+    ])
   })
 
   it('reads plain strings as text, and an unknown inline element as its text', () => {

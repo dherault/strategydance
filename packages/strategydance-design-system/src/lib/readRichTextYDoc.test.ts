@@ -32,6 +32,12 @@ describe('readRichTextYDoc', () => {
     expect(readRichTextYDoc(createDoc(value))).toEqual({ value, isEmpty: false })
   })
 
+  it('reads a picture alone as saying something', () => {
+    const value = JSON.stringify([{ type: 'image', props: { url: 'https://example.com/a.png', caption: 'A chart' } }])
+
+    expect(readRichTextYDoc(createDoc(value))).toEqual({ value, isEmpty: false })
+  })
+
   it('reads one empty paragraph as no text', () => {
     expect(readRichTextYDoc(createDoc(''))).toEqual({ value: '[]', isEmpty: true })
   })

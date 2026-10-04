@@ -4,6 +4,7 @@ import {
   createCheckListItemBlockSpec,
   createCodeBlockSpec,
   createHeadingBlockSpec,
+  createImageBlockSpec,
   createNumberedListItemBlockSpec,
   createParagraphBlockSpec,
   createQuoteBlockSpec,
@@ -112,6 +113,7 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
       ...(blocks.includes('code') ? { codeBlock: createRichTextCodeBlockSpec() } : {}),
       // Its cells keep the colors and the alignment their nodes always carry, which nothing here sets
       ...(blocks.includes('table') ? { table: withoutDefaultProps(createTableBlockSpec()) } : {}),
+      ...(blocks.includes('image') ? { image: withoutDefaultProps(createImageBlockSpec()) } : {}),
     },
     inlineContentSpecs: {
       text: defaultInlineContentSpecs.text,

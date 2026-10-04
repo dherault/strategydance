@@ -80,6 +80,15 @@ const richTextDocumentSampleBlocks: RichTextBlock[] = [
       ],
     },
   },
+  {
+    type: 'image',
+    props: {
+      url: 'https://strategydance.com/assets/images/logo/logo-primary-borders-background-512.png',
+      name: 'The Strategy Dance mark',
+      caption: 'The mark the feed shows beside each post',
+      previewWidth: 160,
+    },
+  },
   { type: 'heading', content: [{ type: 'text', text: 'The indexes' }] },
   {
     type: 'codeBlock',

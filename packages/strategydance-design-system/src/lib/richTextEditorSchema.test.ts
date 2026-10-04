@@ -64,4 +64,17 @@ describe('createRichTextSchema', () => {
     expect(Object.keys(blockSchema).sort()).toEqual(['paragraph', 'table'])
     expect(Object.keys(blockSchema.table.propSchema)).toEqual([])
   })
+
+  it('writes pictures without colors or alignment', () => {
+    const blockSchema = readBlockSchema(['image'])
+
+    expect(Object.keys(blockSchema).sort()).toEqual(['image', 'paragraph'])
+    expect(Object.keys(blockSchema.image.propSchema).sort()).toEqual([
+      'caption',
+      'name',
+      'previewWidth',
+      'showPreview',
+      'url',
+    ])
+  })
 })

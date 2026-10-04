@@ -17,6 +17,16 @@ import { RICH_TEXT_EDITOR_BLOCKS, RICH_TEXT_POST_BLOCKS } from 'strategydance-de
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
+/*
+  Stores a picture as an upload would, after a moment, answering with an address only this page
+  can load: RichText draws only a web address, so a round trip draws the picture's place empty
+*/
+async function uploadImage(file: File) {
+  await new Promise(resolve => setTimeout(resolve, 800))
+
+  return URL.createObjectURL(file)
+}
+
 const meta = {
   title: 'Components/RichTextEditor',
   component: RichTextEditor,
@@ -78,6 +88,7 @@ export const DocumentRoundTrip: Story = {
   args: {
     initialValue: richTextDocumentSample,
     blocks: RICH_TEXT_EDITOR_BLOCKS,
+    uploadImage,
   },
   parameters: {
     docs: {
@@ -156,6 +167,7 @@ export const Document: Story = {
     appearance: 'document',
     initialValue: richTextDocumentSample,
     blocks: RICH_TEXT_EDITOR_BLOCKS,
+    uploadImage,
     placeholder: 'Start writing',
     className: undefined,
   },
@@ -205,6 +217,7 @@ export const Collaborative: Story = {
   args: {
     appearance: 'document',
     blocks: RICH_TEXT_EDITOR_BLOCKS,
+    uploadImage,
     placeholder: 'Start writing',
     className: undefined,
   },

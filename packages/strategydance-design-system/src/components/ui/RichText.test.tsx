@@ -172,6 +172,19 @@ describe('RichText', () => {
     expect(render([{ type: 'table', content: { type: 'tableContent', rows: [{ cells: [[text('a')]] }] } }])).toBe('')
   })
 
+  it('draws a picture at its width with its caption, loaded lazily and telling its site nothing', () => {
+    const image = {
+      type: 'image',
+      props: { url: 'https://example.com/a.png', name: 'A chart', caption: 'Latency', previewWidth: 240 },
+    }
+
+    expect(renderDocument([image])).toBe(
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><figure class="mb-2"><img src="https://example.com/a.png" alt="A chart" width="240" loading="lazy" decoding="async" referrerPolicy="no-referrer" class="block h-auto max-w-full rounded-xs"/><figcaption class="mt-1 text-[0.85em] text-neutral-500">Latency</figcaption></figure></div>',
+    )
+    expect(renderDocument([{ type: 'image', props: { url: 'javascript:alert(1)' } }])).not.toContain('<img')
+    expect(render([image])).toBe('')
+  })
+
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {
     expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h1 ')
     expect(render([{ type: 'heading', content: [text('Title')] }])).toContain('<h2 ')

@@ -183,6 +183,71 @@
   background-color: var(--color-primary);
 }
 
+/*
+  A picture as `RichText` draws it, its caption under it in a muted step down. The place a picture
+  is about to go, which opens the panel below, is a neutral strip rather than BlockNote's beige
+*/
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-add-file-button {
+  border-radius: var(--radius-xs);
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-500);
+  font-family: var(--font-sans);
+}
+
+.rich-text-editor.bn-root .bn-editor[contenteditable='true'] [data-file-block] .bn-add-file-button:hover {
+  background-color: var(--color-neutral-200);
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-visual-media {
+  border-radius: var(--radius-xs);
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-file-caption {
+  padding-block: 4px 0;
+  font-size: 0.85em;
+  color: var(--color-neutral-500);
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-resize-handle {
+  border-color: var(--color-white, #fff);
+  background-color: var(--color-secondary);
+}
+
+/*
+  While a picture uploads, a spinning ring in the strip's place, since BlockNote's "Loading..."
+  speaks English only
+*/
+/* The strip spans the text as the place before it did */
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-file-block-content-wrapper:has(.bn-file-loading-preview) {
+  width: 100%;
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-file-loading-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-neutral-100);
+  font-size: 0;
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] .bn-file-loading-preview::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-neutral-300);
+  border-top-color: var(--color-secondary);
+  border-radius: 50%;
+  animation: rich-text-editor-spin 0.8s linear infinite;
+}
+
+@keyframes rich-text-editor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .rich-text-editor.bn-root .bn-editor strong {
   font-weight: 600;
 }
@@ -531,6 +596,31 @@
   > [aria-hidden='true']:is([data-side='right'], [data-side='inline-end']) {
   border-bottom-width: 1px;
   border-left-width: 1px;
+}
+
+/*
+  The panel where a picture's file or its address is given, framed as the menus are, its tabs, its
+  card and its button at the xs radius, the card's border the menus' own
+*/
+.rich-text-editor.bn-root .bn-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  font-family: var(--font-sans);
+}
+
+.rich-text-editor.bn-root
+  .bn-panel
+  :is([data-slot='tabs-list'], [data-slot='tabs-trigger'], [data-slot='card'], [data-slot='button']) {
+  border-radius: var(--radius-xs);
+}
+
+.rich-text-editor.bn-root .bn-panel [data-slot='card'] {
+  border: 1px solid var(--border);
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
 }
 
 /*

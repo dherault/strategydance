@@ -5,6 +5,7 @@ const ORGANIZATION_ID = '0F9C2B8E-4B1A-4D2C-9E7F-6A5B4C3D2E1F'
 const saves: { name: string; bytes: Buffer; options: Record<string, unknown> }[] = []
 const deletions: string[] = []
 let isMember = true
+let membershipFailure: Error | undefined
 
 mock.module('~firebase', () => ({
   bucket: {
@@ -24,7 +25,11 @@ mock.module('~firebase', () => ({
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
 mock.module('strategydance-database/backend', () => ({
-  getOrganizationMembership: async () => ({ data: { userOrganization: isMember ? { role: 'MEMBER' } : null } }),
+  getOrganizationMembership: async () => {
+    if (membershipFailure) throw membershipFailure
+
+    return { data: { userOrganization: isMember ? { role: 'MEMBER' } : null } }
+  },
 }))
 
 const { default: storeRichTextImage } = await import('./storeRichTextImage')
@@ -33,6 +38,7 @@ beforeEach(() => {
   saves.length = 0
   deletions.length = 0
   isMember = true
+  membershipFailure = undefined
 })
 
 describe('storeRichTextImage', () => {
@@ -92,6 +98,20 @@ describe('storeRichTextImage', () => {
     })
 
     expect(result).toEqual({ outcome: 'forbidden' })
+    expect(deletions).toEqual([saves[0].name])
+  })
+
+  test('deletes the picture and fails when the membership cannot be read', async () => {
+    membershipFailure = new Error('Data Connect is down')
+
+    await expect(
+      storeRichTextImage({
+        organizationId: ORGANIZATION_ID,
+        userId: 'member',
+        bytes: Buffer.from([1]),
+        contentType: 'image/png',
+      }),
+    ).rejects.toThrow('Data Connect is down')
     expect(deletions).toEqual([saves[0].name])
   })
 })

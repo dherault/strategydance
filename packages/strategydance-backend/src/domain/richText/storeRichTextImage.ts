@@ -27,7 +27,8 @@ type StoreRichTextImageResult = { outcome: 'forbidden' } | { outcome: 'stored'; 
 
   The membership the route checked is read again once the file is saved: an organization deleted
   while the picture went up has swept its files already, and would leave this one behind, so
-  without a membership the file goes and the upload is refused.
+  without a membership the file goes and the upload is refused. A read that fails takes the file
+  away too, as the upload fails and a retry saves another.
 
   Nothing else deletes it before its organization goes. The text points at it by its URL alone,
   an undo or another writer's tab can bring a deleted picture back, and the same URL can be pasted
@@ -56,14 +57,30 @@ async function storeRichTextImage({
     },
   })
 
-  const { data } = await getOrganizationMembership(dataConnect, { organizationId, userId })
-
-  if (!data.userOrganization) {
+  // Deletes the file this upload saved, logging rather than throwing when that fails too
+  async function discard(reason: string) {
     try {
       await file.delete({ ignoreNotFound: true })
     } catch (error) {
-      logger.error(`Rich text images: could not delete ${name}, stored for an organization the uploader left`, error)
+      logger.error(`Rich text images: could not delete ${name}, ${reason}`, error)
     }
+  }
+
+  let isMember: boolean
+
+  try {
+    const { data } = await getOrganizationMembership(dataConnect, { organizationId, userId })
+
+    isMember = !!data.userOrganization
+  } catch (error) {
+    // The upload fails, and a retry saves another file, so this one goes
+    await discard('stored by an upload whose membership could not be read')
+
+    throw error
+  }
+
+  if (!isMember) {
+    await discard('stored for an organization the uploader left')
 
     return { outcome: 'forbidden' }
   }

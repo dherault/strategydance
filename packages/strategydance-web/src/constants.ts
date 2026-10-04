@@ -22,6 +22,7 @@ export const MESSAGE_TYPES = [
   'authentication',
   'buildInPublic',
   'checklist',
+  'conversation',
   'explore',
   'global',
   'invitation',

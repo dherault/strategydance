@@ -6,8 +6,11 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 import AppLayout from '~components/layout/AppLayout'
 import UserOrganizationsBouncer from '~components/userOrganization/UserOrganizationsBouncer'
 
-// At module scope so the reference is stable across renders
-const APP_MESSAGE_TYPES: MessageType[] = ['navigation']
+/*
+  At module scope so the reference is stable across renders. The conversations' catalogue is here
+  rather than on their pages, since the sidebar and the dock read it on every page
+*/
+const APP_MESSAGE_TYPES: MessageType[] = ['navigation', 'conversation']
 
 /*
   The app proper: every page of the authenticated area that sits beside the sidebar. Pathless, so

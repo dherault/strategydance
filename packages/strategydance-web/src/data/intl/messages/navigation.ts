@@ -38,6 +38,24 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Explore more aspects',
     description: 'Sidebar link to the page where the reader adds more aspects of their company to work on.',
   },
+  reflection: {
+    id: 'navigation.reflection',
+    defaultMessage: 'Reflection',
+    description:
+      "Sidebar heading above the links to the reader's conversations with Strategy Dance, the app's AI, and to the knowledge their team wrote down about its company.",
+  },
+  conversations: {
+    id: 'navigation.conversations',
+    defaultMessage: 'Conversations',
+    description:
+      "Sidebar link to the page that lists the reader's private conversations with Strategy Dance, the app's AI, and that page's title.",
+  },
+  conversationsAwaitingAnswer: {
+    id: 'navigation.conversationsAwaitingAnswer',
+    defaultMessage: '{count, plural, one {# conversation needs your answer} other {# conversations need your answer}}',
+    description:
+      "What a screen reader says after the Conversations link of the sidebar, where a small count shows how many of the reader's conversations hold a question from Strategy Dance, the app's AI, waiting for their answer.",
+  },
   knowledge: {
     id: 'navigation.knowledge',
     defaultMessage: 'Knowledge',

@@ -1220,6 +1220,196 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "conversation": {
+      "conversation.column.actions": {
+        "hash": "577a3ef4b4172b75",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.aspects": {
+        "hash": "e3d8fc14c4f37054",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.conversation": {
+        "hash": "f4b2ca6cfd4ba863",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.updated": {
+        "hash": "713f0ab16a18ab7d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirm": {
+        "hash": "35e5b22bdee1f919",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.delete": {
+        "hash": "b81265c3281576b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.deleteError": {
+        "hash": "7c9ae5ec8615de13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.deleteLabel": {
+        "hash": "dc47ad425d726339",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.deleted": {
+        "hash": "0485437548c5178d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.emptyText": {
+        "hash": "a5839264f0d4c449",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.emptyTitle": {
+        "hash": "632d821f3aba3d1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.lead": {
+        "hash": "c59f04ee6853d43e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.loadError": {
+        "hash": "536b6bf6c940fe86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.needsAnswer": {
+        "hash": "ae937983da267d2b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.failed": {
+        "hash": "450490e158ec8bb6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.full": {
+        "hash": "742414db2586b987",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.interrupted": {
+        "hash": "3186eeacaf449a01",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.refused": {
+        "hash": "47f40f9d527bcc56",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.stopped": {
+        "hash": "7d6a3e4f53fe2a93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.answered": {
+        "hash": "0de015f6556626f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.empty": {
+        "hash": "1dadc3e7856a8584",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.member": {
+        "hash": "4daa3c66a3c765d7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.question": {
+        "hash": "74710c28fae08618",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.skipped": {
+        "hash": "fd3b0d4d769d96f4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.thinking": {
+        "hash": "7dc2b33102a693a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.toolCancelled": {
+        "hash": "6aba279b255a9662",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.toolFailed": {
+        "hash": "b4e783c88f45901d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreError": {
+        "hash": "555883b091f28f04",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retry": {
+        "hash": "1f65e210a1787c7c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.createKnowledge.done": {
+        "hash": "af6c64105219dac1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.createKnowledge.running": {
+        "hash": "80e599362e8ee722",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.getTeam.done": {
+        "hash": "159c7996f561814d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.getTeam.running": {
+        "hash": "c1c3b0d8c2831bb0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readKnowledge.done": {
+        "hash": "acd91b26f15c3ba0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readKnowledge.running": {
+        "hash": "64c2f903f021241f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readLog.done": {
+        "hash": "f7d19eedda955e13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readLog.running": {
+        "hash": "3c79dc14e571fa7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.searchKnowledge.done": {
+        "hash": "a7c76337b7c4980e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.searchKnowledge.running": {
+        "hash": "ad4aa23eae02d820",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setTopPriority.done": {
+        "hash": "a11f670f678327d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setTopPriority.running": {
+        "hash": "f7c8e189dadab232",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateKnowledge.done": {
+        "hash": "551c441649f73049",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateKnowledge.running": {
+        "hash": "d7d1258752b01334",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.webSearch.done": {
+        "hash": "d87c720132d9cffd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.webSearch.running": {
+        "hash": "cfd069bfb5bde2c7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.undo": {
+        "hash": "6cac6edbe5aa0efe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.updatedJustNow": {
+        "hash": "996b701e92458726",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "explore": {
       "explore.blurbDesign": {
         "hash": "732e8bf4219df317",
@@ -1913,6 +2103,14 @@
         "hash": "9a38a14f5506e5ea",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.conversations": {
+        "hash": "7fe9ccc967c675b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.conversationsAwaitingAnswer": {
+        "hash": "b7eac36e22480f93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.exploreMore": {
         "hash": "c06a5db77d6a5de1",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1959,6 +2157,10 @@
       },
       "navigation.profile": {
         "hash": "7daadd2d0e2e55df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.reflection": {
+        "hash": "84c655bf63091991",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.sidebar": {

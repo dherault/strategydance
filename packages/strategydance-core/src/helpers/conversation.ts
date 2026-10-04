@@ -51,8 +51,8 @@ function buildQuestionPreview(source: ConversationPreviewSource): ConversationPr
 --- */
 
 // A line the preview leaves out: a code fence, a rule of three of one marker or more, or a
-// heading's underline
-const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){3,}$|=+$)/
+// heading's underline of equals signs or of hyphens, however few
+const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){3,}$|=+$|-+$)/
 
 /*
   A table's delimiter row, under its header: cells of dashes, with colons for their alignment,

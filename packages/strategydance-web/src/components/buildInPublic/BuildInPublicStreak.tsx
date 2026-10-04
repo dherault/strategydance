@@ -46,8 +46,8 @@ type Props = {
   The streak cards: how many days in a row the reader has changed something of theirs on the Today
   page, their week, and the last five, under the streak charges they hold. A day counts from its
   first change, today not counting yet leaves the streak where it was until the day is over, and a
-  day without a change uses a charge rather than breaking the streak while one is left: see
-  `getStreak` and `getStreakCharges`
+  day without a change uses a charge rather than breaking the streak while one is left, and counts
+  in it: see `getStreak` and `getStreakCharges`
 */
 function BuildInPublicStreak({ settings }: Props) {
   const intl = useIntl()

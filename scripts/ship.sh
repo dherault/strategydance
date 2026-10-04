@@ -43,8 +43,11 @@ if [[ -n $url ]]; then
   echo "$HEAD is already on its way to $BASE: $url"
 
   # Where it is missing: a release opened before this script set auto merge, or by a run that failed
-  # between opening it and setting it
-  if [[ $(gh pr view "$url" --json autoMergeRequest --jq '.autoMergeRequest != null') == false ]]; then
+  # between opening it and setting it. Read on a line of its own, since `set -e` exempts a command
+  # inside an `if` condition, and a failed read would then exit 0 having set nothing
+  is_merging=$(gh pr view "$url" --json autoMergeRequest --jq '.autoMergeRequest != null')
+
+  if [[ $is_merging == false ]]; then
     merge_when_ready "$url"
   fi
 

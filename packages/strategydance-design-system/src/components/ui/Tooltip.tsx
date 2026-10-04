@@ -65,7 +65,19 @@ type PointerDownOutsideEvent = Parameters<
 
 // Opens on hover and keyboard focus, or a tap when asked, and closes on press, unless kept open, or
 // Escape
-function Tooltip({
+function Tooltip({ disabled = false, ...props }: Props) {
+  const { content, children } = props
+  // Whatever React renders is content, a 0 included, so falsiness is not the test
+  const hasContent = content !== undefined && content !== null && typeof content !== 'boolean' && content !== ''
+
+  if (disabled || !hasContent) return children
+
+  // Mounted only while it can open, so a tooltip disabled while open, as a collapsed sidebar's is
+  // when the sidebar expands, comes back closed, as Radix's own state did
+  return <ActiveTooltip {...props} />
+}
+
+function ActiveTooltip({
   content,
   children,
   side = 'top',
@@ -79,23 +91,17 @@ function Tooltip({
   open,
   defaultOpen,
   onOpenChange,
-  disabled = false,
   className,
   onPointerDownOutside,
   ...props
-}: Props) {
+}: Omit<Props, 'disabled'>) {
   const triggerRef = useRef<HTMLButtonElement>(null)
   // Whether the tooltip was open as a tap began, null outside one. Radix closes it on the tap's
   // pointerdown, and Android's focus on the tap may open it again, so the tap's click alone decides
   // which way it goes, from what it was before either
   const tapStartedOpenRef = useRef<boolean | null>(null)
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false)
-  // Whatever React renders is content, a 0 included, so falsiness is not the test
-  const hasContent = content !== undefined && content !== null && typeof content !== 'boolean' && content !== ''
-
-  if (disabled || !hasContent) return children
-
   // Held here rather than by Radix, which has no way to open on a tap, unless the caller holds it
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false)
   const isOpen = open ?? uncontrolledOpen
 
   function handleOpenChange(nextOpen: boolean) {

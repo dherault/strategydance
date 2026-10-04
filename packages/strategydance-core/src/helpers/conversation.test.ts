@@ -44,6 +44,7 @@ describe('buildConversationPreview', () => {
       previewText('Here is the comparison:\n\n| Plan | Price |\n| --- | --- |\n| Flat | 19 |\n\n---\n\nFlat wins.'),
     ).toBe('Here is the comparison: Flat wins.')
     expect(previewText('Run this:\n\n```\nbun run dev\n```')).toBe('Run this: bun run dev')
+    expect(previewText('One\n\n* * *\n\n___\n\n-*-\n\nTwo')).toBe('One -*- Two')
   })
 
   it('leaves out a table whose outer pipes are left out, and its rows without a pipe', () => {

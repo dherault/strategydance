@@ -50,8 +50,9 @@ function buildQuestionPreview(source: ConversationPreviewSource): ConversationPr
   TEXT
 --- */
 
-// A line the preview leaves out: a code fence, a rule, or a heading's underline
-const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:[-*_]\s*){3,}$|=+$)/
+// A line the preview leaves out: a code fence, a rule of three of one marker or more, or a
+// heading's underline
+const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){3,}$|=+$)/
 
 /*
   A table's delimiter row, under its header: cells of dashes, with colons for their alignment,

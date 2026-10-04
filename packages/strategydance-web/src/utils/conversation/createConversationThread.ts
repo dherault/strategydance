@@ -89,6 +89,9 @@ function createConversationThread({
   let isOlderWanted = false
   // Set when the conversation was gone at the last page read, until a tail says otherwise
   let isGone = false
+  // The newest history a page was read in. A page from a newer history than the thread's means a
+  // tail is on its way, and no page is read again, whoever asks, until it has brought the thread there
+  let awaitedRevision = -Infinity
   let bodiesRetryDelayMs = bodiesRetryDelay
   let bodiesRetryTimeout: ReturnType<typeof setTimeout> | undefined
   let snapshot = createSnapshot()
@@ -142,6 +145,7 @@ function createConversationThread({
     const isWanted = state.fillTo !== null || (isOlderWanted && state.hasOlder)
 
     if (isReadingPage || isGone || !isWanted || state.verifiedFrom === -Infinity) return
+    if (state.revision < awaitedRevision) return
 
     const before = state.verifiedFrom
     // A fill reads for the thread, and the reader's own wish waits for the read after it
@@ -174,9 +178,8 @@ function createConversationThread({
       olderStatus = 'idle'
       emit()
 
-      // A page from a newer history than the thread's means a tail is on its way, and the reads it
-      // starts replace this one
-      if (state !== previous || page.historyRevision <= state.revision) schedule()
+      awaitedRevision = Math.max(awaitedRevision, page.historyRevision)
+      schedule()
     } catch (error) {
       console.error('Older messages could not be read', error)
 

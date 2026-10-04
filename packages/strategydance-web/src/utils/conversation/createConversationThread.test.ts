@@ -273,6 +273,13 @@ describe('createConversationThread', () => {
     await settle()
 
     expect(positions()).toEqual([7, 8, 9, 10, 11])
+
+    // The thread asks again while the top stays in view, and reads nothing more
+    for (let round = 0; round < 3; round++) {
+      thread.loadOlder()
+      await settle()
+    }
+
     expect(server.reads.pages).toEqual([7])
 
     push()

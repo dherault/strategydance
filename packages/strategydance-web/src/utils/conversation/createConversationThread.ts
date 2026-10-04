@@ -1,5 +1,3 @@
-import { ConversationMessageKind } from 'strategydance-database/web'
-
 import type {
   ConversationMessageBody,
   ConversationPage,
@@ -11,18 +9,12 @@ import type {
 
 import { CONVERSATION_BODIES_LENGTH, CONVERSATION_PAGE_LENGTH, CONVERSATION_TAIL_LENGTH } from '~constants'
 
+import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import mergeConversationPage from '~utils/conversation/mergeConversationPage'
 import mergeConversationTail from '~utils/conversation/mergeConversationTail'
 
 // The longest a failed read of bodies waits before it is tried again, its wait doubling up to it
 const BODIES_RETRY_MAX_DELAY_MS = 30 * 1000
-
-// The kinds whose body is read apart: the others are drawn from the entry alone
-const KINDS_WITH_BODY: ReadonlySet<ConversationMessageKind> = new Set([
-  ConversationMessageKind.MEMBER_TEXT,
-  ConversationMessageKind.AGENT_TEXT,
-  ConversationMessageKind.QUESTION,
-])
 
 export type ConversationThreadSnapshot = {
   // Oldest first
@@ -200,7 +192,7 @@ function createConversationThread({
     const ids = state.entries
       .filter(
         ({ id, kind }) =>
-          KINDS_WITH_BODY.has(kind) && !bodies.has(id) && !bodiesInFlight.has(id) && !bodiesMissing.has(id),
+          hasConversationMessageBody(kind) && !bodies.has(id) && !bodiesInFlight.has(id) && !bodiesMissing.has(id),
       )
       .map(({ id }) => id)
 

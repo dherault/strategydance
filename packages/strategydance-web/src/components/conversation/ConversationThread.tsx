@@ -11,6 +11,7 @@ import useConversationThreadScroll from '~hooks/conversation/useConversationThre
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
+import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -38,7 +39,7 @@ type Props = {
   A conversation's thread, read-only: each entry as the design draws its kind, oldest first, and
   the thinking indicator after them while a run goes. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
-  The replies it shows are marked read.
+  The replies it shows are marked read once the latest is drawn whole.
 
   An observer does not fire again while what it watches stays in view, so once a page lands with
   the top still showing, the next one is asked for here. That reads where the top is rather than
@@ -52,8 +53,11 @@ function ConversationThread({ conversation, run }: Props) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
 
+  const latest = entries.find(({ id }) => id === conversation.previewMessageId)
+  const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
+
   useConversationThreadScroll(listRef)
-  useMarkConversationRead(conversation)
+  useMarkConversationRead(conversation, isLatestShown)
 
   useEffect(() => {
     const sentinel = sentinelRef.current

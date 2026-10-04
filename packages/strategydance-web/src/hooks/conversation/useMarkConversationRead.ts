@@ -9,14 +9,19 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import { dataConnect } from '~data/firebase'
 
 /*
-  Marks a conversation read while its page shows replies the reader has not seen, and only while
-  the tab is in front of them: one in the background marks nothing until it comes back.
+  Marks a conversation read while its page shows replies the reader has not seen: once the latest
+  of them is drawn, its words and all, rather than a placeholder for them, and only while the tab
+  is in front of the reader. One in the background marks nothing until it comes back.
 
   It names the latest entry it showed, `previewMessageId`, and the server clears the count only
   while that is still the latest, so a reply landing meanwhile stays unread. Each entry is marked
   once, the next reply's id marks again, and a mark that failed is tried again with the next change
 */
-function useMarkConversationRead(conversation: Conversation) {
+function useMarkConversationRead(
+  conversation: Conversation,
+  // Whether the entry `previewMessageId` names is drawn whole
+  isLatestShown: boolean,
+) {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
   const markedRef = useRef<string | null>(null)
@@ -26,7 +31,7 @@ function useMarkConversationRead(conversation: Conversation) {
   const { id, unreadCount, previewMessageId } = conversation
 
   useEffect(() => {
-    if (!unreadCount || !previewMessageId || !organizationId || !viewerId) return
+    if (!isLatestShown || !unreadCount || !previewMessageId || !organizationId || !viewerId) return
 
     function mark() {
       if (document.visibilityState !== 'visible' || markedRef.current === previewMessageId) return
@@ -47,7 +52,7 @@ function useMarkConversationRead(conversation: Conversation) {
     document.addEventListener('visibilitychange', mark)
 
     return () => document.removeEventListener('visibilitychange', mark)
-  }, [id, unreadCount, previewMessageId, organizationId, viewerId])
+  }, [id, isLatestShown, unreadCount, previewMessageId, organizationId, viewerId])
 }
 
 export default useMarkConversationRead

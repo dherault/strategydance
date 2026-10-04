@@ -5,7 +5,7 @@ import {
   useComponentsContext,
   useDictionary,
 } from '@blocknote/react'
-import { type Middleware, offset, shift, size } from '@floating-ui/react'
+import { type Middleware, detectOverflow, offset, shift, size } from '@floating-ui/react'
 import { type ComponentProps, useEffect, useRef } from 'react'
 
 type FloatingOptions = NonNullable<ComponentProps<typeof SuggestionMenuController>['floatingUIOptions']>
@@ -27,21 +27,18 @@ const MIN_ROOM_BELOW = 160
 */
 const placeByRoom: Middleware = {
   name: 'placeByRoom',
-  fn: async ({ elements, placement, platform, rects, strategy }) => {
-    const list = elements.floating.querySelector('.bn-suggestion-menu')
-    const height = Math.min(list?.scrollHeight ?? rects.floating.height, MIN_ROOM_BELOW)
-    const visible = await platform.getClippingRect({
-      element: elements.floating,
-      boundary: 'clippingAncestors',
-      rootBoundary: 'viewport',
-      strategy,
-    })
-    const caret = elements.reference.getBoundingClientRect()
-    const below = visible.y + visible.height - caret.bottom - OFFSET - PADDING
-    const above = caret.top - visible.y - OFFSET - PADDING
+  fn: async state => {
+    const list = state.elements.floating.querySelector('.bn-suggestion-menu')
+    const height = Math.min(list?.scrollHeight ?? state.rects.floating.height, MIN_ROOM_BELOW)
+    // How far the caret sits from each edge of what is visible, in the coordinates floating-ui
+    // places the menu in. On iOS those are shifted by the keyboard's pan when the menu is fixed,
+    // which a rectangle read off the page directly is not
+    const overflow = await detectOverflow(state, { elementContext: 'reference', padding: PADDING })
+    const below = -overflow.bottom - OFFSET
+    const above = -overflow.top - OFFSET
     const next = below >= height || below >= above ? 'bottom-start' : 'top-start'
 
-    return next === placement ? {} : { reset: { placement: next } }
+    return next === state.placement ? {} : { reset: { placement: next } }
   },
 }
 

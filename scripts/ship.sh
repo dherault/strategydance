@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-# Opens the release pull request: everything that has landed on `dev` goes to `main`, which deploys
-# when a human merges it. Idempotent, because `dev` is long lived and one pull request stays open
-# across several merges into it: a second run reports the open one rather than failing
+# Opens the release pull request, which takes everything that has landed on `dev` to `main`, and sets
+# it to merge itself once `main`'s required checks pass. That merge deploys, so running this is the
+# release, and a human's call. Idempotent, because `dev` is long lived and the pull request can stay
+# open across several merges into it, as it does while a check fails: a second run reports the open
+# one rather than failing, and sets it to merge too if it is not already
 
 set -euo pipefail
 
@@ -15,6 +17,12 @@ if ! command -v gh > /dev/null; then
 fi
 
 git fetch --quiet origin "$BASE" "$HEAD"
+
+# With a merge commit, the one method the `main` ruleset accepts. When the checks have already passed,
+# gh merges on the spot rather than waiting. Never with --delete-branch, since the head is `dev`
+merge_when_ready() {
+  gh pr merge "$1" --auto --merge
+}
 
 # Before anything else, including the exits that report there is nothing to do: a commit sitting
 # unpushed is one the pull request would leave behind whichever branch it takes, and saying "nothing
@@ -33,6 +41,13 @@ url=$(gh pr list --base "$BASE" --head "$HEAD" --state open --json url --jq '.[0
 
 if [[ -n $url ]]; then
   echo "$HEAD is already on its way to $BASE: $url"
+
+  # Where it is missing: a release opened before this script set auto merge, or by a run that failed
+  # between opening it and setting it
+  if [[ $(gh pr view "$url" --json autoMergeRequest --jq '.autoMergeRequest != null') == false ]]; then
+    merge_when_ready "$url"
+  fi
+
   exit 0
 fi
 
@@ -52,8 +67,13 @@ if [[ -z $commits ]]; then
   commits=$(git log --format='- %s' --reverse "origin/$BASE..origin/$HEAD")
 fi
 
-gh pr create \
-  --base "$BASE" \
-  --head "$HEAD" \
-  --title "Ship $HEAD to $BASE" \
-  --body "$(printf 'Everything that has landed on `%s` since the last release.\n\n%s\n' "$HEAD" "$commits")"
+url=$(
+  gh pr create \
+    --base "$BASE" \
+    --head "$HEAD" \
+    --title "Ship $HEAD to $BASE" \
+    --body "$(printf 'Everything that has landed on `%s` since the last release.\n\n%s\n' "$HEAD" "$commits")"
+)
+
+echo "$url"
+merge_when_ready "$url"

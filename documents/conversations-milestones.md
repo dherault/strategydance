@@ -45,7 +45,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | --- | --- | --- | --- | --- |
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | |
-| M3 | The Markdown component | design-system | | |
+| M3 | The Markdown component | design-system | | #94 |
 | M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
 | M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |

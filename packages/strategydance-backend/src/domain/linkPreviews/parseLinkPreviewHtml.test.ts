@@ -44,8 +44,13 @@ describe('parseLinkPreviewHtml', () => {
     ).toEqual({ title: 'Head', siteName: 'First' })
   })
 
-  test('keeps a picture only at an https address', async () => {
-    for (const image of ['http://example.com/a.png', 'data:image/png;base64,AAAA', 'javascript:alert(1)']) {
+  test('keeps a picture only at an https address no longer than a web address may be', async () => {
+    for (const image of [
+      'http://example.com/a.png',
+      'data:image/png;base64,AAAA',
+      'javascript:alert(1)',
+      `https://example.com/${'a'.repeat(2048)}.png`,
+    ]) {
       expect(await parseLinkPreviewHtml(`<meta property="og:image" content="${image}">`, PAGE)).toEqual({})
     }
 

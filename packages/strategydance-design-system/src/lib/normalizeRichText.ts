@@ -55,6 +55,10 @@ const HTTPS = new Set(['https:'])
 // Longer than any caption or alternative text written by hand
 const MAX_MEDIA_TEXT_LENGTH = 1000
 
+// Longer than any web address a picture, a video or a page has, and short enough that one cannot
+// run a document past its length
+const MAX_MEDIA_URL_LENGTH = 2048
+
 // A card's, as the backend holds a page's words to
 const MAX_LINK_PREVIEW_LENGTHS = { title: 300, description: 1000, siteName: 100 }
 
@@ -278,7 +282,7 @@ function normalizeColumnWidths(widths: unknown, count: number) {
 // A picture as it is drawn. One with no web address keeps none, and is the place one is about to go
 function normalizeImage(value: UnknownRecord): RichTextImageBlock {
   const props = isRecord(value.props) ? value.props : {}
-  const url = normalizeUrl(props.url, MEDIA_PROTOCOLS)
+  const url = normalizeMediaUrl(props.url, MEDIA_PROTOCOLS)
   const name = normalizeMediaText(props.name)
   const caption = normalizeMediaText(props.caption)
   const previewWidth =
@@ -308,11 +312,11 @@ function normalizeVideoEmbed(value: UnknownRecord): RichTextVideoEmbedBlock {
 */
 function normalizeLinkPreview(value: UnknownRecord, media: boolean): RichTextLinkPreviewBlock {
   const props = isRecord(value.props) ? value.props : {}
-  const url = normalizeUrl(props.url, MEDIA_PROTOCOLS)
+  const url = normalizeMediaUrl(props.url, MEDIA_PROTOCOLS)
 
   if (!url) return { type: 'linkPreview' }
 
-  const imageUrl = media ? normalizeUrl(props.imageUrl, HTTPS) : null
+  const imageUrl = media ? normalizeMediaUrl(props.imageUrl, HTTPS) : null
   const words = Object.fromEntries(
     Object.entries(MAX_LINK_PREVIEW_LENGTHS).flatMap(([name, max]) => {
       const text = props[name]
@@ -396,6 +400,13 @@ function normalizeStyles(styles: unknown): RichTextStyles | undefined {
 
 function normalizeHref(href: unknown) {
   return normalizeUrl(href, SAFE_PROTOCOLS)
+}
+
+// A media's address, as `normalizeUrl` has it, when it is no longer than a web address may be
+function normalizeMediaUrl(value: unknown, protocols: ReadonlySet<string>) {
+  const url = normalizeUrl(value, protocols)
+
+  return url && url.length <= MAX_MEDIA_URL_LENGTH ? url : null
 }
 
 // An address in one of the protocols, as the URL parser writes it, or null

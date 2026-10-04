@@ -341,7 +341,7 @@ describe('normalizeRichText', () => {
     ])
   })
 
-  it("keeps a link preview's web address and what the page said, its picture at an https address only", () => {
+  it("keeps a link preview's web address and what the page said, its picture at an https address of a web address's length", () => {
     expect(
       normalizeRichText([
         editorBlock('linkPreview', [], {
@@ -353,6 +353,10 @@ describe('normalizeRichText', () => {
         }),
         editorBlock('linkPreview', [], { url: 'https://example.com/', imageUrl: 'https://example.com/cover.png' }),
         editorBlock('linkPreview', [], { url: 'javascript:alert(1)', title: 'Click' }),
+        editorBlock('linkPreview', [], {
+          url: 'https://example.com/long',
+          imageUrl: `https://example.com/${'a'.repeat(2048)}.png`,
+        }),
         editorBlock('linkPreview', [], { url: '' }),
       ]),
     ).toEqual([
@@ -362,6 +366,7 @@ describe('normalizeRichText', () => {
       },
       { type: 'linkPreview', props: { url: 'https://example.com/', imageUrl: 'https://example.com/cover.png' } },
       { type: 'linkPreview' },
+      { type: 'linkPreview', props: { url: 'https://example.com/long' } },
       { type: 'linkPreview' },
     ])
   })

@@ -6,6 +6,10 @@ const MAX_TITLE_LENGTH = 300
 const MAX_DESCRIPTION_LENGTH = 1000
 const MAX_SITE_NAME_LENGTH = 100
 
+// As long as the address a preview is asked for may be: a longer one is no picture's, and would
+// run a document past its length
+const MAX_IMAGE_URL_LENGTH = 2048
+
 /*
   What the start of a web page says of itself, from its Open Graph and Twitter tags, its `<title>`
   and its description: its title, its description, its site's name, and its picture, as an https
@@ -65,14 +69,14 @@ function readText(value: string | undefined, maxLength: number) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1).trimEnd()}…` : text
 }
 
-// A picture's address, resolved against the page's, when it is an https one
+// A picture's address, resolved against the page's, when it is an https one of a picture's length
 function readImageUrl(value: string | undefined, pageUrl: string) {
   if (!value) return null
 
   try {
     const url = new URL(decodeHTML(value).trim(), pageUrl)
 
-    return url.protocol === 'https:' ? url.href : null
+    return url.protocol === 'https:' && url.href.length <= MAX_IMAGE_URL_LENGTH ? url.href : null
   } catch {
     return null
   }

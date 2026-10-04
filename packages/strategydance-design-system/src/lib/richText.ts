@@ -35,6 +35,9 @@ const richTextClasses = {
     // A column nobody resized, as wide as the editor makes it at the least
     unsizedCell: 'min-w-[120px]',
   },
+  // As wide as the text, at the 16:9 a player is drawn in
+  videoEmbed:
+    'mb-2 aspect-video w-full overflow-hidden rounded-xs bg-neutral-900 [&>iframe]:size-full [&>iframe]:border-0',
   // At its own width up to the text's, or as resized
   image: {
     figure: 'mb-2',
@@ -89,7 +92,7 @@ export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
  * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike.
  * Each is one or more of the stored block types, as `getRichTextBlockTypes` names them
  */
-export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code' | 'table' | 'image'
+export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code' | 'table' | 'image' | 'video'
 
 /**
  * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
@@ -111,6 +114,7 @@ export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
   'code',
   'table',
   'image',
+  'video',
 ]
 
 /**
@@ -200,6 +204,7 @@ export function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): R
     ...(blocks.includes('code') ? (['codeBlock'] as const) : []),
     ...(blocks.includes('table') ? (['table'] as const) : []),
     ...(blocks.includes('image') ? (['image'] as const) : []),
+    ...(blocks.includes('video') ? (['videoEmbed'] as const) : []),
   ]
 }
 
@@ -284,7 +289,22 @@ export type RichTextImageBlock = {
   children?: RichTextBlock[]
 }
 
-export type RichTextBlock = RichTextTextBlock | RichTextCodeBlock | RichTextTableBlock | RichTextImageBlock
+/**
+ * A YouTube, Vimeo or Loom video, by the address of its page, which `parseVideoEmbedUrl` writes one
+ * way. One with no address is the place a video is about to go, which draws nothing
+ */
+export type RichTextVideoEmbedBlock = {
+  type: 'videoEmbed'
+  props?: { url: string }
+  children?: RichTextBlock[]
+}
+
+export type RichTextBlock =
+  | RichTextTextBlock
+  | RichTextCodeBlock
+  | RichTextTableBlock
+  | RichTextImageBlock
+  | RichTextVideoEmbedBlock
 
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType = RichTextBlock['type']

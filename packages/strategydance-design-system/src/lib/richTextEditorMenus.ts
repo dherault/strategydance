@@ -6,9 +6,21 @@ import {
   type InlineContentSchema,
   type StyleSchema,
 } from '@blocknote/core'
-import { filterSuggestionItems } from '@blocknote/core/extensions'
-import { type BlockTypeSelectItem, blockTypeSelectItems, getDefaultReactSlashMenuItems } from '@blocknote/react'
-import { SquareCodeIcon } from 'lucide-react'
+import {
+  FilePanelExtension,
+  FormattingToolbarExtension,
+  filterSuggestionItems,
+  insertOrUpdateBlockForSlashMenu,
+} from '@blocknote/core/extensions'
+import {
+  type BlockTypeSelectItem,
+  type DefaultReactSuggestionItem,
+  blockTypeSelectItems,
+  getDefaultReactSlashMenuItems,
+} from '@blocknote/react'
+import { SquareCodeIcon, SquarePlayIcon } from 'lucide-react'
+import { createElement } from 'react'
+import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { RICH_TEXT_HEADING_LEVELS, type RichTextHeadingLevel } from 'strategydance-design-system/lib/richText'
 
 // What the slash menu offers, those of them the schema holds: the blocks, and none of the emoji
@@ -28,7 +40,8 @@ const SLASH_MENU_KEYS = new Set([
 
 /*
   The slash menu's items for `editor`, matched against what is typed after the slash. BlockNote's
-  own, those the schema holds, since its defaults always add an emoji picker
+  own, those the schema holds, since its defaults always add an emoji picker, then the blocks of
+  the editor's own after BlockNote's last media one, in its group
 */
 function getRichTextSlashMenuItems<B extends BlockSchema, I extends InlineContentSchema, S extends StyleSchema>(
   editor: BlockNoteEditor<B, I, S>,
@@ -37,8 +50,42 @@ function getRichTextSlashMenuItems<B extends BlockSchema, I extends InlineConten
   const items = getDefaultReactSlashMenuItems(editor).filter(
     item => 'key' in item && typeof item.key === 'string' && SLASH_MENU_KEYS.has(item.key),
   )
+  const media = getMediaItems(editor)
+  const index = items.findLastIndex(item => item.group === editor.dictionary.slash_menu.image.group) + 1 || items.length
+  const all = [...items.slice(0, index), ...media, ...items.slice(index)]
 
-  return async (query: string) => filterSuggestionItems(items, query)
+  return async (query: string) => filterSuggestionItems(all, query)
+}
+
+/*
+  The items for the editor's blocks BlockNote has none for: a YouTube, Vimeo or Loom video. Each
+  inserts its block and opens the panel its address is given in, as BlockNote's picture does
+*/
+function getMediaItems<B extends BlockSchema, I extends InlineContentSchema, S extends StyleSchema>(
+  editor: BlockNoteEditor<B, I, S>,
+): DefaultReactSuggestionItem[] {
+  const dictionary = editor.dictionary as RichTextDictionary
+
+  function insert(type: string) {
+    const block = insertOrUpdateBlockForSlashMenu(editor, { type } as never)
+
+    editor.getExtension(FilePanelExtension)?.showMenu(block.id)
+    // Hidden as BlockNote hides it for a picture, for a block inserted at the end of the text
+    editor.getExtension(FormattingToolbarExtension)?.store.setState(false)
+  }
+
+  return 'videoEmbed' in editor.schema.blockSchema
+    ? [
+        {
+          title: dictionary.slash_menu.video.title,
+          subtext: dictionary.rich_text.video_embed_subtext,
+          aliases: ['video', 'youtube', 'vimeo', 'loom', 'embed'],
+          group: dictionary.slash_menu.video.group,
+          icon: createElement(SquarePlayIcon, { size: 18 }),
+          onItemClick: () => insert('videoEmbed'),
+        },
+      ]
+    : []
 }
 
 /*

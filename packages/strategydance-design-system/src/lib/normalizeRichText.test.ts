@@ -327,6 +327,20 @@ describe('normalizeRichText', () => {
     ])
   })
 
+  it('keeps a video by the address of its page, written one way, or as the place one is about to go', () => {
+    expect(
+      normalizeRichText([
+        editorBlock('videoEmbed', [], { url: 'https://youtu.be/aqz-KE-bpKQ?t=30' }),
+        editorBlock('videoEmbed', [], { url: 'https://example.com/video.mp4' }),
+        editorBlock('videoEmbed', [], { url: '' }),
+      ]),
+    ).toEqual([
+      { type: 'videoEmbed', props: { url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ&t=30s' } },
+      { type: 'videoEmbed' },
+      { type: 'videoEmbed' },
+    ])
+  })
+
   it('reads plain strings as text, and an unknown inline element as its text', () => {
     expect(
       normalizeRichText([{ type: 'paragraph', content: ['Hello ', { type: 'mention', content: [text('Ada')] }] }]),

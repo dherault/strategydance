@@ -1,6 +1,7 @@
 import { CheckIcon } from 'lucide-react'
 import { type CSSProperties, Fragment, type ReactNode } from 'react'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
+import { parseVideoEmbedUrl } from 'strategydance-design-system/lib/parseVideoEmbedUrl'
 import {
   RICH_TEXT_CLASS_NAME,
   RICH_TEXT_CLASSES,
@@ -13,6 +14,7 @@ import {
   type RichTextRun,
   type RichTextTableContent,
   type RichTextTextBlock,
+  type RichTextVideoEmbedBlock,
   getRichTextBlockTypes,
 } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
@@ -89,7 +91,8 @@ function renderHeading(level: RichTextHeadingLevel, content: ReactNode) {
 }
 
 function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
-  const content = block.type === 'table' || block.type === 'image' ? null : renderContent(block)
+  const content =
+    block.type === 'table' || block.type === 'image' || block.type === 'videoEmbed' ? null : renderContent(block)
   const element =
     block.type === 'codeBlock' ? (
       <pre className={RICH_TEXT_CLASSES.code}>
@@ -99,6 +102,8 @@ function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
       renderTable(block.content)
     ) : block.type === 'image' ? (
       renderImage(block)
+    ) : block.type === 'videoEmbed' ? (
+      renderVideoEmbed(block)
     ) : block.type === 'heading' ? (
       renderHeading(block.props?.level ?? 2, content)
     ) : block.type === 'quote' ? (
@@ -295,8 +300,32 @@ function renderImage({ props }: RichTextImageBlock) {
   )
 }
 
+/*
+  A video in its provider's player, as the editor draws it: built from the video's address, loaded
+  once it nears the screen, telling the provider which site it is on and nothing more
+*/
+function renderVideoEmbed({ props }: RichTextVideoEmbedBlock) {
+  const embed = parseVideoEmbedUrl(props?.url)
+
+  if (!embed) return null
+
+  return (
+    <div className={RICH_TEXT_CLASSES.videoEmbed}>
+      <iframe
+        src={embed.src}
+        title={embed.providerName}
+        loading="lazy"
+        allow="fullscreen; picture-in-picture; encrypted-media"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
+      />
+    </div>
+  )
+}
+
 // A block's text, or a line break holding its line when it has none, as the editor draws it
-function renderContent(block: Exclude<RichTextBlock, { type: 'table' | 'image' }>): ReactNode {
+function renderContent(block: Exclude<RichTextBlock, { type: 'table' | 'image' | 'videoEmbed' }>): ReactNode {
   if (!block.content) return <br />
 
   return block.content.map(renderInline)

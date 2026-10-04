@@ -12,10 +12,11 @@ import { DesktopFormattingToolbarController, FilePanelController, TableHandlesCo
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
+import { RichTextEditorFilePanel } from 'strategydance-design-system/components/ui/RichTextEditorFilePanel'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorSlashMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSlashMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
-import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
+import { type RichTextLabels, getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
 import { isRichTextEmpty } from 'strategydance-design-system/lib/isRichTextEmpty'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
@@ -35,10 +36,8 @@ import type * as Y from 'yjs'
 // Relative, since the package's `components/*` export resolves to `.tsx` modules only
 import './RichTextEditor.css'
 
-type RichTextEditorLabels = {
-  /** The block menu's item that turns a block into another, which BlockNote has no words for */
-  turnInto: string
-}
+/** The menus' words BlockNote has none for, in English unless the caller's catalogue says otherwise */
+type RichTextEditorLabels = RichTextLabels
 
 /** What a parent can do to the editor from outside it */
 type RichTextEditorHandle = {
@@ -131,8 +130,8 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline and strikethrough, links, code, colored in the
-  language picked over it, and tables, grown and headed from the handles on their edges, which is
-  everything `RichText` draws back.
+  language picked over it, tables, grown and headed from the handles on their edges, pictures, and
+  YouTube, Vimeo and Loom videos, which is everything `RichText` draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
   `normalizeRichText` keeps, serialized, whether they say anything and how much text, and a parent that
@@ -267,8 +266,10 @@ function RichTextEditor({
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
         {/* Only an editor writing tables has the extension, which the handles throw without */}
         {editor.getExtension(TableHandlesExtension) ? <TableHandlesController /> : null}
-        {/* Where a picture's file or address is given, which opens over an empty picture */}
-        {blocks.includes('image') ? <FilePanelController /> : null}
+        {/* Where a picture's file or a video's address is given, which opens over an empty one */}
+        {blocks.includes('image') || blocks.includes('video') ? (
+          <FilePanelController filePanel={RichTextEditorFilePanel} />
+        ) : null}
       </BlockNoteView>
     </div>
   )
@@ -310,7 +311,7 @@ function createEditor({
 
   const options = {
     schema: createRichTextSchema(blocks),
-    dictionary: getRichTextDictionary(locale, { placeholder, turnInto: labels?.turnInto }),
+    dictionary: getRichTextDictionary(locale, { ...labels, placeholder }),
     domAttributes: {
       editor: { 'aria-label': ariaLabel ?? placeholder, class: EDITOR_CLASS_NAMES[appearance] },
     },

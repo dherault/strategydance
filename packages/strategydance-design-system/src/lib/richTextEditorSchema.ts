@@ -18,6 +18,7 @@ import {
   type RichTextEditorBlock,
   getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
+import { createVideoEmbedBlockSpec } from 'strategydance-design-system/lib/videoEmbedBlockSpec'
 
 // The props BlockNote gives every block, which `RichText` never draws
 const DEFAULT_PROPS = new Set(['backgroundColor', 'textColor', 'textAlignment'])
@@ -114,6 +115,7 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
       // Its cells keep the colors and the alignment their nodes always carry, which nothing here sets
       ...(blocks.includes('table') ? { table: withoutDefaultProps(createTableBlockSpec()) } : {}),
       ...(blocks.includes('image') ? { image: withoutDefaultProps(createImageBlockSpec()) } : {}),
+      ...(blocks.includes('video') ? { videoEmbed: createVideoEmbedBlockSpec() } : {}),
     },
     inlineContentSpecs: {
       text: defaultInlineContentSpecs.text,

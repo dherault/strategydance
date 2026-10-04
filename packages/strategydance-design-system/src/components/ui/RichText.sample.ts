@@ -89,6 +89,8 @@ const richTextDocumentSampleBlocks: RichTextBlock[] = [
       previewWidth: 160,
     },
   },
+  // Big Buck Bunny, which the Blender Foundation publishes on YouTube
+  { type: 'videoEmbed', props: { url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ' } },
   { type: 'heading', content: [{ type: 'text', text: 'The indexes' }] },
   {
     type: 'codeBlock',

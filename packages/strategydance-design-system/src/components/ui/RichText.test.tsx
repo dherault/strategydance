@@ -185,6 +185,19 @@ describe('RichText', () => {
     expect(render([image])).toBe('')
   })
 
+  it("draws a video in its provider's player, built from the video alone", () => {
+    const markup = renderDocument([{ type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } }])
+
+    expect(markup).toContain('<iframe src="https://player.vimeo.com/video/76979871" title="Vimeo" loading="lazy"')
+    expect(markup).toContain(
+      'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"',
+    )
+    expect(renderDocument([{ type: 'videoEmbed', props: { url: 'https://evil.example/player' } }])).not.toContain(
+      '<iframe',
+    )
+    expect(render([{ type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } }])).toBe('')
+  })
+
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {
     expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h1 ')
     expect(render([{ type: 'heading', content: [text('Title')] }])).toContain('<h2 ')

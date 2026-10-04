@@ -77,4 +77,18 @@ describe('createRichTextSchema', () => {
       'url',
     ])
   })
+
+  it("writes a video by its page's address, and reads a pasted player as one", () => {
+    const schema = createRichTextSchema(['video'])
+    const blockSchema = readBlockSchema(['video'])
+    const parse = schema.blockSpecs.videoEmbed?.implementation.parse
+    const frame = (src: string) => ({ tagName: 'IFRAME', getAttribute: () => src }) as unknown as HTMLElement
+
+    expect(Object.keys(blockSchema).sort()).toEqual(['paragraph', 'videoEmbed'])
+    expect(Object.keys(blockSchema.videoEmbed.propSchema)).toEqual(['url'])
+    expect(parse?.(frame('https://www.youtube.com/embed/aqz-KE-bpKQ'))).toEqual({
+      url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+    })
+    expect(parse?.(frame('https://evil.example/player'))).toBeUndefined()
+  })
 })

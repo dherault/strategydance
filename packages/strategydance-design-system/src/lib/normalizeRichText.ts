@@ -1,4 +1,5 @@
 import { getRichTextInlineText } from 'strategydance-design-system/lib/getRichTextText'
+import { parseVideoEmbedUrl } from 'strategydance-design-system/lib/parseVideoEmbedUrl'
 import {
   type RichTextBlock,
   type RichTextBlockType,
@@ -10,6 +11,7 @@ import {
   type RichTextTableBlock,
   type RichTextTableContent,
   type RichTextTextBlock,
+  type RichTextVideoEmbedBlock,
   getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
 
@@ -27,6 +29,7 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'codeBlock',
   'table',
   'image',
+  'videoEmbed',
 ]
 
 // More than a table written by hand ever has, and few enough that a hostile one stays small
@@ -66,7 +69,7 @@ type UnknownRecord = Record<string, unknown>
   styles, and code none. A table keeps its cells' text, laid out on its grid with merged cells
   split, and the widths of its columns, and whether its first row and column are headers. A
   picture keeps its web address, its alternative text, its caption and the width it was resized
-  to. A link keeps its address when it is a web or mail one, written as the URL
+  to, and a video the address of its page on YouTube, Vimeo or Loom, written one way. A link keeps its address when it is a web or mail one, written as the URL
   parser writes it, and is its text otherwise.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
@@ -107,7 +110,9 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
         ? normalizeTable(value)
         : type === 'image'
           ? normalizeImage(value)
-          : normalizeTextBlock(type, value)
+          : type === 'videoEmbed'
+            ? normalizeVideoEmbed(value)
+            : normalizeTextBlock(type, value)
 
   if (!block) return children
 
@@ -246,6 +251,13 @@ function normalizeImage(value: UnknownRecord): RichTextImageBlock {
   }
 
   return { type: 'image', ...(Object.keys(normalized).length ? { props: normalized } : {}) }
+}
+
+// A video by its page's address, or the place one is about to go when no provider plays it
+function normalizeVideoEmbed(value: UnknownRecord): RichTextVideoEmbedBlock {
+  const embed = parseVideoEmbedUrl(isRecord(value.props) ? value.props.url : undefined)
+
+  return { type: 'videoEmbed', ...(embed ? { props: { url: embed.url } } : {}) }
 }
 
 function normalizeMediaText(text: unknown) {

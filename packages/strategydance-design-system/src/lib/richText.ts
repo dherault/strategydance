@@ -8,10 +8,11 @@
   a card's picture copies it
 
   A heading it ends on keeps the room its descenders hang into inside the text, so a box that clips
-  the text, as a card does, does not cut them off
+  the text, as a card does, does not cut them off. Inside a box that keeps that room already, a
+  `descender-room` one, it adds none of its own, which would only push what follows down
 */
 const richTextClassName =
-  'text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&>:last-child]:mb-0 [&>:is(h1,h2,h3):last-child]:pb-(--descender-room)'
+  'text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&>:last-child]:mb-0 [&:not(.descender-room_*)>:is(h1,h2,h3):last-child]:pb-(--descender-room)'
 
 const richTextClasses = {
   paragraph: 'mb-2',

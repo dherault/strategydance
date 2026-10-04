@@ -83,7 +83,7 @@ describe('RichText', () => {
     ])
 
     expect(markup).toBe(
-      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0 [&amp;&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">plain!</p></div>',
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">plain!</p></div>',
     )
   })
 

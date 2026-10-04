@@ -30,7 +30,8 @@ the deepest descenders need, so that a clamp never shows the top of the line it 
 - **A box that clips display text it does not set itself** takes `descender-room`, in the size of
   the text it holds, as a card's wrapper around a top priority does
 - **`RichText` keeps the room of a heading it ends on** inside itself, so any box that clips it
-  keeps the descenders, and FitText counts its own room as it fits
+  keeps the descenders, unless that box keeps the room already with `descender-room`. FitText
+  counts its own room as it fits
 
 <Unstyled>
   <div className="flex flex-wrap gap-x-12 gap-y-6">

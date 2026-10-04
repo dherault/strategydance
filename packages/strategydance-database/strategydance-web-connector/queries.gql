@@ -980,6 +980,12 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "UpdateConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1055,5 +1061,273 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
     limit: 1000
   ) {
     id
+  }
+}
+
+# One of the caller's conversations, as its page reads it: the conversation's fields and its latest
+# 150 messages, newest first, more than a run usually draws, so a run's messages and Retry's
+# deletions usually fall inside it. Read only while the caller still belongs to the organization,
+# and empty once the conversation is deleted, as every conversation read is.
+#
+# The messages carry only what is small or changes in place: their kind and position, their run,
+# a tool call's name, status and duration, a question's answer, an aspects note's aspects and a
+# note's kind. Never their bodies, which never change once written: the page reads each body once,
+# by id, through `GetConversationMessageBodies`, so a refresh carries a few hundred bytes a message
+# however long the replies. A call's input and output stay out too: its dialog reads them through
+# `GetConversationToolCall` as it opens. Older messages are read in pages through
+# `GetConversationMessagesBefore`, and `historyRevision`, which only Retry moves, tells the page
+# when the pages it holds have to be read again.
+#
+# A live query. Each `@refresh` names a mutation that changes the conversation or its messages,
+# matched on its author and its id, and the backend's run mutations join them as they arrive.
+# Marking it read does not wake it: the page never shows the count, and every tab would be sent the
+# whole tail after each reply. Removing a member empties theirs, and deleting the organization
+# empties everybody's
+query GetConversation($organizationId: UUID!, $id: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversations(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+    title
+    aspects
+    aspectsSetBy
+    activeRunId
+    isAwaitingAnswer
+    previewMessageId
+    unreadCount
+    nextMessagePosition
+    messageCount
+    historyRevision
+    isFull
+    createdAt
+    updatedAt
+    # `CONVERSATION_TAIL_LENGTH` in the web package
+    conversationMessages_on_conversation(orderBy: [{ position: DESC }], limit: 150) {
+      id
+      kind
+      position
+      run {
+        id
+      }
+      createdAt
+      toolName
+      toolStatus
+      toolDurationMs
+      answerSelected
+      answerOther
+      isAnswerSkipped
+      answeredAt
+      aspects
+      aspectsSetBy
+      noteKind
+    }
+  }
+}
+
+# The bodies of some of a conversation's messages, by id, which never change once written: a text's
+# Markdown and its citations, and a question's prompt and options. Read once per message, as its id
+# first appears on the page, up to 50 at a time. Only the caller's own conversation's messages come
+# back, so an id from anywhere else reads nothing
+query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
+  conversationMessages(
+    where: {
+      id: { in: $messageIds }
+      conversationId: { eq: $id }
+      conversation: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    # `CONVERSATION_BODIES_LENGTH` in the web package
+    limit: 50
+  ) {
+    id
+    text
+    citations
+    questionPrompt
+    questionOptions
+    isMultipleChoice
+  }
+}
+
+# The 100 messages of a conversation before a position, newest first, bodies included, read once
+# when the reader scrolls up to them, or again when `historyRevision` has moved. The revision comes
+# with them, so the page knows which history they belong to. The two are read apart, and either
+# order is safe: messages newer than their revision are still right, and a revision newer than the
+# page's is one a pushed tail is about to bring, so the page drops what it read
+query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforePosition: Int!) @auth(level: USER) {
+  conversations(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    historyRevision
+  }
+  conversationMessages(
+    where: {
+      conversationId: { eq: $id }
+      position: { lt: $beforePosition }
+      conversation: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    orderBy: [{ position: DESC }]
+    # `CONVERSATION_PAGE_LENGTH` in the web package
+    limit: 100
+  ) {
+    id
+    kind
+    position
+    run {
+      id
+    }
+    createdAt
+    toolName
+    toolStatus
+    toolDurationMs
+    answerSelected
+    answerOther
+    isAnswerSkipped
+    answeredAt
+    aspects
+    aspectsSetBy
+    noteKind
+    text
+    citations
+    questionPrompt
+    questionOptions
+    isMultipleChoice
+  }
+}
+
+# A conversation's latest run, the one with the highest number, whose status says whether Strategy
+# Dance is working and whose step is the progress line it shows meanwhile. A queued run is timed
+# from `createdAt`.
+#
+# A live query of its own, so the progress lines and lease renewals a run writes wake this small
+# read rather than the thread. The backend's run mutations join its `@refresh` list as they arrive
+query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversationRuns(
+    where: {
+      conversationId: { eq: $conversationId }
+      conversation: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 1
+  ) {
+    id
+    number
+    status
+    trigger
+    step
+    createdAt
+    startedAt
+    leaseExpiresAt
+  }
+}
+
+# One tool call's input and output, as its dialog shows them, read each time the dialog opens since
+# a call's output arrives after its message. Both are JSON text, exactly as the call took and gave
+# them
+query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(level: USER) {
+  conversationMessages(
+    where: {
+      id: { eq: $messageId }
+      kind: { eq: TOOL_CALL }
+      conversation: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    limit: 1
+  ) {
+    id
+    toolName
+    toolStatus
+    toolInput
+    toolOutput
+    toolStartedAt
+    toolDurationMs
+    createdAt
   }
 }

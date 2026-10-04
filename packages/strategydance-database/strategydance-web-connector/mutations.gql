@@ -1443,3 +1443,86 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
     data: { deletedAt: null }
   ) @check(expr: "this == 1", message: "The conversation is gone for good")
 }
+
+# Marks the caller's conversation read, setting `unreadCount` back to 0 once its page has shown
+# what it counted. `$previewMessageId` is the latest entry the page showed, and the count is
+# cleared only while that is still the conversation's latest, so a reply that lands meanwhile stays
+# unread until the page shows it too. Neither that nor a conversation read already is an error.
+#
+# `updatedAt` is left alone: reading is not activity, and the list would move the conversation up
+mutation MarkConversationRead($organizationId: UUID!, $userId: String!, $id: UUID!, $previewMessageId: UUID!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+      @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
+      role
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      previewMessageId: { eq: $previewMessageId }
+      unreadCount: { gt: 0 }
+    }
+    data: { unreadCount: 0 }
+  )
+}
+
+# Sets which aspects the caller's conversation is tagged with, as theirs, so Strategy Dance never
+# tags it after, and adds the note that says so to the thread, at `$position`. The list is written
+# whole, each aspect once.
+#
+# The note's position is claimed on the conversation's counter, in the write that sets the aspects:
+# it holds only while `nextMessagePosition` is still `$position`, and moves it on by one, as every
+# insert of a message does. A run that inserted first moved it, and the page reads the counter
+# again and retries. The same write counts the note in `messageCount`, and refuses once the
+# conversation holds 2000 entries (`MAX_CONVERSATION_MESSAGES` in strategydance-core), when the
+# page says it is full. Its refusal reads the same for all three, a moved counter, a full
+# conversation and one that is gone, and the page reads the conversation again to tell them apart.
+#
+# Nothing else moves: an aspects note never shows as the conversation's preview, so `preview` and
+# `unreadCount` stay, and neither does `updatedAt`, so retagging does not move the conversation up
+# the list
+mutation UpdateConversationAspects(
+  $organizationId: UUID!
+  $userId: String!
+  $id: UUID!
+  $aspects: [CompanyAspect!]!
+  $position: Int!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+      @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
+      role
+        @check(
+          expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+          message: "A conversation is tagged with each aspect at most once"
+        )
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      nextMessagePosition: { eq: $position }
+      messageCount: { lt: 2000 }
+    }
+    data: {
+      aspects: $aspects
+      aspectsSetBy: MEMBER
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+    }
+  ) @check(expr: "this == 1", message: "The conversation's aspects could not take a note at that position")
+  conversationMessage_insert(
+    data: { conversationId: $id, kind: ASPECTS, aspects: $aspects, aspectsSetBy: MEMBER, position: $position }
+  )
+}

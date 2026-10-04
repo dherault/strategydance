@@ -926,7 +926,7 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
 # to it, so two members adding at once count one after the other. A title is one line of at most
 # 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is typed,
 # and the content at most 200000 characters of serialized blocks (`MAX_DOCUMENT_CONTENT_LENGTH`).
-# Each aspect is there once. A lock chosen on the draft comes with it.
+# Each aspect is there once. What agents may do with it, chosen on the draft, comes with it.
 #
 # `$state` is the draft's text as a Yjs document, the same text as `$content`, so the document is
 # shared from its first save and nobody seeds a second copy of it. Optional, since a page from
@@ -937,7 +937,8 @@ mutation CreateDocument(
   $title: String!
   $content: String!
   $aspects: [CompanyAspect!]!
-  $isAiLocked: Boolean!
+  $isAiReadable: Boolean!
+  $isAiWritable: Boolean!
   $state: String
 ) @auth(level: USER) @transaction {
   organization_updateMany(
@@ -980,7 +981,8 @@ mutation CreateDocument(
       title: $title
       content: $content
       aspects: $aspects
-      isAiLocked: $isAiLocked
+      isAiReadable: $isAiReadable
+      isAiWritable: $isAiWritable
       state: $state
     }
   )
@@ -1062,8 +1064,11 @@ mutation UpdateDocumentAspects($organizationId: UUID!, $id: UUID!, $aspects: [Co
   ) @check(expr: "this == 1", message: "No document by that id in the organization")
 }
 
-# Asks that no agent change a document, or lets them again
-mutation SetDocumentAiLock($organizationId: UUID!, $id: UUID!, $isAiLocked: Boolean!) @auth(level: USER) @transaction {
+# Lets agents read a document, or keeps it from them. Whether they may change it is kept apart, by
+# `SetDocumentAiWritable`, and counts only while they may read it
+mutation SetDocumentAiReadable($organizationId: UUID!, $id: UUID!, $isAiReadable: Boolean!)
+@auth(level: USER)
+@transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
@@ -1072,7 +1077,23 @@ mutation SetDocumentAiLock($organizationId: UUID!, $id: UUID!, $isAiLocked: Bool
   }
   document_updateMany(
     where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
-    data: { isAiLocked: $isAiLocked, updatedAt_expr: "request.time" }
+    data: { isAiReadable: $isAiReadable, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No document by that id in the organization")
+}
+
+# Lets agents change a document, or asks that none does
+mutation SetDocumentAiWritable($organizationId: UUID!, $id: UUID!, $isAiWritable: Boolean!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+    }
+  }
+  document_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { isAiWritable: $isAiWritable, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No document by that id in the organization")
 }
 

@@ -18,7 +18,8 @@ export type KnowledgeDocumentWrites = {
   read: () => Promise<StoredKnowledgeDocument | null>
   rename: (title: string) => Promise<unknown>
   updateAspects: (aspects: KnowledgeDocumentFields['aspects']) => Promise<unknown>
-  setAiLock: (isAiLocked: boolean) => Promise<unknown>
+  setAiReadable: (isAiReadable: boolean) => Promise<unknown>
+  setAiWritable: (isAiWritable: boolean) => Promise<unknown>
   discard: () => Promise<unknown>
 }
 
@@ -69,9 +70,9 @@ type StoredKnowledgeDocument = KnowledgeDocumentFields & {
 type SavedState = Omit<KnowledgeDocumentFields, 'content'>
 
 // The fields the live query keeps current, each written by an operation of its own
-type LiveField = 'title' | 'aspects' | 'isAiLocked'
+type LiveField = 'title' | 'aspects' | 'isAiReadable' | 'isAiWritable'
 
-const LIVE_FIELDS: LiveField[] = ['title', 'aspects', 'isAiLocked']
+const LIVE_FIELDS: LiveField[] = ['title', 'aspects', 'isAiReadable', 'isAiWritable']
 
 // The queue a document's saver sends through, which its sync's pushes wait behind
 export function getKnowledgeDocumentSaverKey(documentId: string) {
@@ -102,16 +103,17 @@ function isCreatedFrom(stored: StoredKnowledgeDocument, fields: KnowledgeDocumen
     && stored.state === state
     && stored.title === fields.title
     && stored.content === fields.content
-    && stored.isAiLocked === fields.isAiLocked
+    && stored.isAiReadable === fields.isAiReadable
+    && stored.isAiWritable === fields.isAiWritable
     && stored.aspects.join() === fields.aspects.join()
   )
 }
 
 /*
-  Saves one document's title, aspects and lock as they are edited, which its page does without a
-  button: each change waits for the reader to pause, then what differs from what the server holds
-  goes out, one operation per field, so two members changing two fields never write back each
-  other's. Another member's change to a field arrives through `receive`, and replaces this page's
+  Saves one document's title, aspects and AI permissions as they are edited, which its page does
+  without a button: each change waits for the reader to pause, then what differs from what the
+  server holds goes out, one operation per field, so two members changing two fields never write
+  back each other's. Another member's change to a field arrives through `receive`, and replaces this page's
   unless it has a change of its own to that field waiting, which goes out over it. The text is the
   sync's, which pushes it as it is typed: the saver reads it only to create a draft, and to tell
   whether the page emptied the document.
@@ -151,7 +153,12 @@ function createKnowledgeDocumentSaver({
 
   let current: KnowledgeDocumentFields = fields
   let saved: SavedState | null = isStored
-    ? { title: fields.title, aspects: fields.aspects, isAiLocked: fields.isAiLocked }
+    ? {
+        title: fields.title,
+        aspects: fields.aspects,
+        isAiReadable: fields.isAiReadable,
+        isAiWritable: fields.isAiWritable,
+      }
     : null
   let listeners: KnowledgeDocumentSaverListeners | null = null
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -276,8 +283,12 @@ function createKnowledgeDocumentSaver({
       sends.push(sendField(state, 'aspects', next.aspects, () => writes.updateAspects(next.aspects)))
     }
 
-    if (next.isAiLocked !== state.isAiLocked) {
-      sends.push(sendField(state, 'isAiLocked', next.isAiLocked, () => writes.setAiLock(next.isAiLocked)))
+    if (next.isAiReadable !== state.isAiReadable) {
+      sends.push(sendField(state, 'isAiReadable', next.isAiReadable, () => writes.setAiReadable(next.isAiReadable)))
+    }
+
+    if (next.isAiWritable !== state.isAiWritable) {
+      sends.push(sendField(state, 'isAiWritable', next.isAiWritable, () => writes.setAiWritable(next.isAiWritable)))
     }
 
     const results = await Promise.allSettled(sends)
@@ -362,7 +373,12 @@ function createKnowledgeDocumentSaver({
     text.markCreated()
     listeners?.onCreated()
 
-    return { title: fields.title, aspects: fields.aspects, isAiLocked: fields.isAiLocked }
+    return {
+      title: fields.title,
+      aspects: fields.aspects,
+      isAiReadable: fields.isAiReadable,
+      isAiWritable: fields.isAiWritable,
+    }
   }
 
   // Queues a send behind the one out, unless one is waiting already, which will read the latest

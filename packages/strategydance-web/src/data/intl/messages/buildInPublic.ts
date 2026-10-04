@@ -217,6 +217,31 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'Your streak could not be loaded.',
     description: 'Error shown in place of the streak cards when the days the reader was active failed to load.',
   },
+  streakCharges: {
+    id: 'buildInPublic.streakCharges',
+    defaultMessage: '<strong>{count} of {total}</strong> streak charges',
+    description:
+      'Line under the title of the streak section, beside a battery icon. {count} is how many streak charges the reader holds, from 0 to {total}, the most they can hold, which is 2. A charge keeps the streak going through a day without an update. The part in <strong> is drawn bold.',
+  },
+  streakChargesHelp: {
+    id: 'buildInPublic.streakChargesHelp',
+    defaultMessage:
+      'Each day you update the Today page adds a charge, up to {total}. A day without an update uses one and keeps your streak going.',
+    description:
+      'Tooltip explaining streak charges, opened from an info button beside the count of charges. {total} is the most charges the reader can hold, which is 2. The Today page is where the reader sets their priority, tasks, checklist and log.',
+  },
+  streakChargesHelpLabel: {
+    id: 'buildInPublic.streakChargesHelpLabel',
+    defaultMessage: 'How streak charges work',
+    description:
+      'Accessible name of the info button that opens the explanation of streak charges, read by screen readers.',
+  },
+  streakChargePending: {
+    id: 'buildInPublic.streakChargePending',
+    defaultMessage: "You haven't updated the Today page today, so it will use 1 streak charge at the end of the day.",
+    description:
+      'Line under the count of streak charges while the reader has changed nothing on their Today page today and still holds a charge, which the day will use unless they update it.',
+  },
   flameCard: {
     id: 'buildInPublic.flameCard',
     defaultMessage: 'Flame',
@@ -283,6 +308,12 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.dayToCome',
     defaultMessage: '{day}: still to come',
     description: 'Accessible name of a day of the current week that has not come yet. {day} is the date.',
+  },
+  dayCharged: {
+    id: 'buildInPublic.dayCharged',
+    defaultMessage: '{day}: kept by a streak charge',
+    description:
+      'Accessible name of a battery icon for a day the reader changed nothing, which a streak charge kept in their streak, or today when it is about to use one. {day} is the date.',
   },
   bestStreak: {
     id: 'buildInPublic.bestStreak',

@@ -9,9 +9,15 @@ import createKnowledgeDocumentSaver, {
 
 const DELAY = 10
 
-const BLANK: KnowledgeDocumentFields = { title: '', content: '', aspects: [], isAiLocked: false }
+const BLANK: KnowledgeDocumentFields = { title: '', content: '', aspects: [], isAiReadable: true, isAiWritable: true }
 
-const STORED: KnowledgeDocumentFields = { title: 'Plan', content: '[1]', aspects: [], isAiLocked: false }
+const STORED: KnowledgeDocumentFields = {
+  title: 'Plan',
+  content: '[1]',
+  aspects: [],
+  isAiReadable: true,
+  isAiWritable: true,
+}
 
 const LEGAL = ['LEGAL'] as KnowledgeDocumentFields['aspects']
 
@@ -48,7 +54,9 @@ function createWrites({
 
   const writes: KnowledgeDocumentWrites = {
     create: async (fields, state) => {
-      await answer(`create ${fields.title}|${fields.content}|${fields.aspects.join()}|${fields.isAiLocked}`)
+      await answer(
+        `create ${fields.title}|${fields.content}|${fields.aspects.join()}|${fields.isAiReadable}|${fields.isAiWritable}`,
+      )
 
       if (isFull) return 'full'
       if (stored) throw new Error('A document by that id exists')
@@ -66,7 +74,8 @@ function createWrites({
     },
     rename: title => answer(`rename ${title}`),
     updateAspects: aspects => answer(`aspects ${aspects.join()}`),
-    setAiLock: isAiLocked => answer(`lock ${isAiLocked}`),
+    setAiReadable: isAiReadable => answer(`readable ${isAiReadable}`),
+    setAiWritable: isAiWritable => answer(`writable ${isAiWritable}`),
     discard: () => answer('discard'),
   }
 
@@ -145,10 +154,10 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(calls).toEqual([])
     expect(saver.getStatus()).toBe('idle')
 
-    saver.change({ title: 'Plan', isAiLocked: true })
+    saver.change({ title: 'Plan', isAiReadable: false })
     await wait(DELAY * 3)
 
-    expect(calls).toEqual(['create Plan||STRATEGY|true'])
+    expect(calls).toEqual(['create Plan||STRATEGY|false|true'])
     expect(getCreatedCount()).toBe(1)
     expect(getMarkedCount()).toBe(1)
     expect(saver.getStatus()).toBe('idle')
@@ -169,7 +178,7 @@ describe('createKnowledgeDocumentSaver', () => {
     markReady()
     await saver.flush()
 
-    expect(calls).toEqual(['create Plan|||false'])
+    expect(calls).toEqual(['create Plan|||true|true'])
   })
 
   it("fails a draft's create when its text could not be opened, rather than wait for good", async () => {
@@ -211,7 +220,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ title: 'Plan', content: '[1]' })
     await saver.flush()
 
-    expect(calls).toEqual(['create P|||false', 'rename Plan'])
+    expect(calls).toEqual(['create P|||true|true', 'rename Plan'])
     expect(getCreatedCount()).toBe(1)
   })
 
@@ -230,7 +239,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ title: 'Plans' })
     await saver.flush()
 
-    expect(calls).toEqual(['create Plan|||false', 'read', 'rename Plans'])
+    expect(calls).toEqual(['create Plan|||true|true', 'read', 'rename Plans'])
     expect(saver.getStatus()).toBe('idle')
   })
 
@@ -249,7 +258,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ content: '[2]' })
     await saver.flush()
 
-    expect(calls).toEqual(['create Mine|||false', 'read', 'create Mine|[2]||false', 'read'])
+    expect(calls).toEqual(['create Mine|||true|true', 'read', 'create Mine|[2]||true|true', 'read'])
     expect(getMarkedCount()).toBe(0)
   })
 
@@ -267,7 +276,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ title: 'Plans' })
     await saver.flush()
 
-    expect(calls).toEqual(['create Plan|||false', 'create Plans|||false'])
+    expect(calls).toEqual(['create Plan|||true|true', 'create Plans|||true|true'])
     expect(getCreatedCount()).toBe(0)
 
     saver.change({ title: '' })
@@ -324,7 +333,7 @@ describe('createKnowledgeDocumentSaver', () => {
     const saver = createSaver({ documentId: 'd6', fields: STORED, isStored: true, writes })
     const { remoteChanges } = track(saver)
 
-    saver.receive({ title: 'Their plan', aspects: LEGAL, isAiLocked: false })
+    saver.receive({ title: 'Their plan', aspects: LEGAL, isAiReadable: true, isAiWritable: true })
     await saver.flush()
 
     expect(remoteChanges).toEqual([{ title: 'Their plan', aspects: LEGAL }])
@@ -338,11 +347,29 @@ describe('createKnowledgeDocumentSaver', () => {
     const { remoteChanges } = track(saver)
 
     saver.change({ title: 'My plan' })
-    saver.receive({ title: 'Their plan', aspects: [], isAiLocked: true })
+    saver.receive({ title: 'Their plan', aspects: [], isAiReadable: true, isAiWritable: false })
     await saver.flush()
 
-    expect(remoteChanges).toEqual([{ isAiLocked: true }])
+    expect(remoteChanges).toEqual([{ isAiWritable: false }])
     expect(calls).toEqual(['rename My plan'])
+  })
+
+  it('sends each AI permission by an operation of its own, leaving the other as it is', async () => {
+    const { calls, writes } = createWrites()
+    const saver = createSaver({ documentId: 'd35', fields: STORED, isStored: true, writes })
+
+    track(saver)
+
+    saver.change({ isAiReadable: false })
+    await saver.flush()
+
+    expect(calls).toEqual(['readable false'])
+
+    saver.change({ isAiWritable: false })
+    await saver.flush()
+
+    expect(calls).toEqual(['readable false', 'writable false'])
+    expect(saver.hasUnsaved()).toBe(false)
   })
 
   it('takes its own save coming back as nothing new', async () => {
@@ -354,9 +381,9 @@ describe('createKnowledgeDocumentSaver', () => {
     const flushed = saver.flush()
     // The live query pushes the rename before its answer is back
     await wait(DELAY / 2)
-    saver.receive({ title: 'Plan 2', aspects: [], isAiLocked: false })
+    saver.receive({ title: 'Plan 2', aspects: [], isAiReadable: true, isAiWritable: true })
     await flushed
-    saver.receive({ title: 'Plan 2', aspects: [], isAiLocked: false })
+    saver.receive({ title: 'Plan 2', aspects: [], isAiReadable: true, isAiWritable: true })
     await saver.flush()
 
     expect(remoteChanges).toEqual([])
@@ -386,7 +413,7 @@ describe('createKnowledgeDocumentSaver', () => {
     const flushed = saver.flush()
     await wait(DELAY / 2)
     // Their rename landed after this one, so its push is the last
-    saver.receive({ title: 'Theirs', aspects: [], isAiLocked: false })
+    saver.receive({ title: 'Theirs', aspects: [], isAiReadable: true, isAiWritable: true })
     await flushed
     await saver.flush()
 
@@ -403,7 +430,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ title: 'Mine' })
     const flushed = saver.flush()
     await wait(DELAY / 2)
-    saver.receive({ title: 'Plan', aspects: [], isAiLocked: false })
+    saver.receive({ title: 'Plan', aspects: [], isAiReadable: true, isAiWritable: true })
     await flushed
 
     expect(remoteChanges).toEqual([{ title: 'Plan' }])
@@ -419,7 +446,7 @@ describe('createKnowledgeDocumentSaver', () => {
     const flushed = saver.flush()
     await wait(DELAY / 2)
     saver.change({ title: 'Mine, again' })
-    saver.receive({ title: 'Theirs', aspects: [], isAiLocked: false })
+    saver.receive({ title: 'Theirs', aspects: [], isAiReadable: true, isAiWritable: true })
     await flushed
     await saver.flush()
 
@@ -443,7 +470,7 @@ describe('createKnowledgeDocumentSaver', () => {
     saver.change({ content: '[12]' })
     await saver.flush()
 
-    expect(calls).toEqual(['create Plan|[12]||false'])
+    expect(calls).toEqual(['create Plan|[12]||true|true'])
     expect(saver.getStatus()).toBe('idle')
     expect(saver.hasUnsaved()).toBe(false)
   })
@@ -461,7 +488,7 @@ describe('createKnowledgeDocumentSaver', () => {
     expect(saver.getStatus()).toBe('error')
 
     // An Undo brought it back, and the live query says so
-    saver.receive({ title: 'Plan', aspects: [], isAiLocked: false })
+    saver.receive({ title: 'Plan', aspects: [], isAiReadable: true, isAiWritable: true })
     await wait(DELAY * 3)
 
     expect(calls).toEqual(['rename Plan 2', 'rename Plan 2'])

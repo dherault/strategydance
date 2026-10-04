@@ -45,7 +45,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | --- | --- | --- | --- | --- |
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | |
-| M3 | The Markdown component | design-system | | |
+| M3 | The Markdown component | design-system | | #94 |
 | M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
 | M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |
@@ -139,6 +139,10 @@ The data model, with nothing yet using it.
   links, line breaks), headings drawn as bold paragraphs, a `urlTransform` letting through `http`,
   `https`, `mailto` and `doc:` only, a `renderLink` prop, and a `size` prop for the dock's 14px and
   the page's 16px (`.cv-rt` in the design).
+- Built with `remark-breaks` too, so a single newline breaks the line as the design's prototype
+  draws it, and with `singleTilde: false`, so "~5 minutes" strikes nothing. An image is its alt text
+  and never loads, and whatever else falls outside the allowlist keeps its words. `Table`'s wrapper
+  takes focus while it scrolls, so the keyboard scrolls a reply's wide table, as in the dock.
 - A story with the design's replies from `conversations-data.js`: lists, a table, links, bold.
 - Verify: Storybook, at both sizes; the four checks.
 
@@ -460,17 +464,18 @@ M14.
   agent and the browser cannot race past it, and a full organization comes back to the model as a
   failure it can explain.
 - Backend-connector operations, on M13's `domain/knowledge/`: search candidates, read one (title,
-  aspects, lock, `revision`, `state`, its pending updates and `content`), create, and fold, retried
-  on a moved revision three times at most (the shared text with `content` and
+  aspects, AI permissions, `revision`, `state`, its pending updates and `content`), create, and
+  fold, retried on a moved revision three times at most (the shared text with `content` and
   `contentText`, the title and the aspects, in one write of the row), each guarded on membership,
-  `deletedAt` and, for writes, `isAiLocked`, each write recording its call's result beside the
-  fenced run write (see Recovery and side effects), and named in `GetOrganizationDocuments`'
-  refreshes and, for the fold, `GetLiveDocument`'s.
+  `deletedAt`, `isAiReadable` and, for writes, `isAiWritable`, each write recording its call's
+  result beside the fenced run write (see Recovery and side effects), and named in
+  `GetOrganizationDocuments`' refreshes and, for the fold, `GetLiveDocument`'s.
 - The four knowledge tools, their labels, and the system prompt's knowledge section.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted.
-- Tests: a locked document refuses, including one locked between the read and the fold; a stale
-  `version` refuses `content`, and so does `content` sent without one, before anything is written,
+- Tests: a document kept from AI is neither found by search nor read, a mentioned one included;
+  one AI may not change refuses, including one whose permission goes off between the read and the
+  fold; a stale `version` refuses `content`, and so does `content` sent without one, before anything is written,
   including when a push lands between the read and the fold, while
   `replaceBlocks`, `append` and `replaceText` go through as somebody types elsewhere; two reads in
   a row hand out the same block ids, and so do a document stored before the editor was shared and
@@ -492,14 +497,15 @@ M14.
   reading the content of the 100 latest documents at most; Markdown in, the document draws as
   written.
 - Verify: with a document open in another tab, ask the agent to write a decision into it and watch
-  the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it to create one; open both in Knowledge; lock
-  one and ask again.
+  the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it to create one; open both in Knowledge; turn
+  Write off on one and ask again; turn Read off on it and ask about it.
 
 ### M15: Mentioning knowledge in the composer
 
 - The "+" menu (with "Mention knowledge" only until M20), the `@` list and its keyboard handling,
   mentions sent as `[Title](doc:<id>)`, all as The composer describes.
-- Verify: mention two documents, send, see the links in the bubble and the agent read them.
+- Verify: mention two documents, send, see the links in the bubble and the agent read them; mention
+  one with Read off and see the agent say it cannot read it.
 
 ### M16: Team, log and top priority tools
 

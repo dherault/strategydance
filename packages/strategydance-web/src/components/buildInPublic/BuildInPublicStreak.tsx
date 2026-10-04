@@ -11,16 +11,19 @@ import useUser from '~hooks/user/useUser'
 
 import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
 import getStreak from '~utils/buildInPublic/getStreak'
+import getStreakCharges from '~utils/buildInPublic/getStreakCharges'
 import getStreakDayLabel from '~utils/buildInPublic/getStreakDayLabel'
 import getStreakDays from '~utils/buildInPublic/getStreakDays'
 import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
+import BuildInPublicBattery from '~components/buildInPublic/BuildInPublicBattery'
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicFlame from '~components/buildInPublic/BuildInPublicFlame'
 import BuildInPublicOrganization from '~components/buildInPublic/BuildInPublicOrganization'
 import BuildInPublicPerson from '~components/buildInPublic/BuildInPublicPerson'
 import BuildInPublicSection from '~components/buildInPublic/BuildInPublicSection'
+import BuildInPublicStreakCharges from '~components/buildInPublic/BuildInPublicStreakCharges'
 import BuildInPublicWeekFlames from '~components/buildInPublic/BuildInPublicWeekFlames'
 import {
   CARD_DISPLAY_CLASS_NAME,
@@ -41,8 +44,10 @@ type Props = {
 
 /*
   The streak cards: how many days in a row the reader has changed something of theirs on the Today
-  page, their week, and the last five. A day counts from its first change, and today not counting
-  yet leaves the streak where it was until the day is over: see `getStreak`
+  page, their week, and the last five, under the streak charges they hold. A day counts from its
+  first change, today not counting yet leaves the streak where it was until the day is over, and a
+  day without a change uses a charge rather than breaking the streak while one is left: see
+  `getStreak` and `getStreakCharges`
 */
 function BuildInPublicStreak({ settings }: Props) {
   const intl = useIntl()
@@ -53,10 +58,11 @@ function BuildInPublicStreak({ settings }: Props) {
   const today = useLocalDate()
 
   const organizationName = organization?.name ?? ''
-  const { current, best } = getStreak(dates, today)
+  const charges = getStreakCharges(dates, today)
+  const { current, best } = getStreak(dates, today, charges.chargedDates)
   const isLit = current > 0
-  const week = getStreakDays(dates, today, 1)
-  const calendar = getStreakDays(dates, today, 5)
+  const week = getStreakDays(dates, today, 1, charges.chargedDates)
+  const calendar = getStreakDays(dates, today, 5, charges.chargedDates)
   const activeDaysWindow = Math.min(
     ACTIVE_DAYS_WINDOW,
     organization ? getOrganizationDayCount(organization.createdAt, today) : ACTIVE_DAYS_WINDOW,
@@ -95,6 +101,12 @@ function BuildInPublicStreak({ settings }: Props) {
     <BuildInPublicSection
       title={formatMessage(buildInPublicMessages.streakTitle)}
       description={formatMessage(buildInPublicMessages.streakDescription)}
+      head={
+        <BuildInPublicStreakCharges
+          count={charges.count}
+          isPending={charges.isPending}
+        />
+      }
       failure={
         hasFailed
           ? { message: formatMessage(buildInPublicMessages.streakLoadFailed), isRetrying: loading, onRetry: refetch }
@@ -322,6 +334,12 @@ function BuildInPublicStreak({ settings }: Props) {
               )}
             >
               {day.isOn ? <BuildInPublicFlame size={16} /> : null}
+              {day.isCharged ? (
+                <BuildInPublicBattery
+                  size={16}
+                  className="text-(--flame-charge)"
+                />
+              ) : null}
             </span>
           ))}
         </div>

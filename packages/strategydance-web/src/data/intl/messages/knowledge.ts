@@ -211,33 +211,41 @@ const knowledgeMessages = defineMessages({
     defaultMessage: 'Close',
     description: 'Accessible name of the button that closes the aspects dialog.',
   },
-  lock: {
-    id: 'knowledge.lock',
-    defaultMessage: 'Prevent AI modification',
+  aiPermissions: {
+    id: 'knowledge.aiPermissions',
+    defaultMessage: 'AI permissions',
     description:
-      "Button under an item of knowledge's title, and its tooltip, that asks the product's AI agents never to change the item.",
+      "Accessible name of the button under an item of knowledge's title that opens a menu of what the product's AI agents may do with the item, and that menu's heading.",
   },
-  unlock: {
-    id: 'knowledge.unlock',
-    defaultMessage: 'Allow AI modification',
+  aiRead: {
+    id: 'knowledge.aiRead',
+    defaultMessage: 'Read',
     description:
-      "Accessible name of the same button once the item is locked, which lets the product's AI agents change it again.",
+      "Checkbox in an item of knowledge's AI permissions menu: whether the product's AI agents may read the item.",
   },
-  lockedTooltip: {
-    id: 'knowledge.lockedTooltip',
-    defaultMessage: 'AI modification prevented. Click to allow.',
+  aiWrite: {
+    id: 'knowledge.aiWrite',
+    defaultMessage: 'Write',
     description:
-      "Tooltip of the lock button of an item of knowledge that the product's AI agents are asked not to change.",
+      "Checkbox in an item of knowledge's AI permissions menu: whether the product's AI agents may change the item. Disabled while they may not read it.",
   },
-  locked: {
-    id: 'knowledge.locked',
-    defaultMessage: 'AI modification prevented',
-    description: "Notification once an item of knowledge is locked against the product's AI agents.",
+  aiReadWrite: {
+    id: 'knowledge.aiReadWrite',
+    defaultMessage: 'AI can read and edit this item',
+    description:
+      "Tooltip of the AI permissions button of an item of knowledge that the product's AI agents may both read and change.",
   },
-  unlocked: {
-    id: 'knowledge.unlocked',
-    defaultMessage: 'AI can modify this item',
-    description: "Notification once an item of knowledge is unlocked, so the product's AI agents may change it again.",
+  aiReadOnly: {
+    id: 'knowledge.aiReadOnly',
+    defaultMessage: 'AI can read this item but not edit it',
+    description:
+      "Tooltip of the AI permissions button of an item of knowledge that the product's AI agents may read but not change.",
+  },
+  aiNoAccess: {
+    id: 'knowledge.aiNoAccess',
+    defaultMessage: 'AI can neither read nor edit this item',
+    description:
+      "Tooltip of the AI permissions button of an item of knowledge that the product's AI agents may neither read nor change.",
   },
   moreActions: {
     id: 'knowledge.moreActions',

@@ -129,6 +129,12 @@ export const CARD_ACCENT_COLORS = {
   black: '#0A0A0A',
 } as const
 
+/*
+  The most streak charges a member holds at once. Each day they are active earns one, and a day
+  they are not uses one rather than breaking their streak: see `getStreakCharges`
+*/
+export const MAX_STREAK_CHARGES = 2
+
 /* ---
   GITHUB
 --- */

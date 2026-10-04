@@ -453,6 +453,21 @@ describe('updateRichTextYDoc', () => {
         { outcome: 'unknownContent' },
       ],
       [
+        'a document holding a Yjs type y-prosemirror cannot read',
+        () => {
+          const doc = createDoc([paragraph('Alpha')])
+
+          // Typed as taking elements and texts only, an element stores a hook all the same, as an update can carry one
+          const hook = new Y.XmlHook('hook') as unknown as Y.XmlText
+
+          ;(doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0) as Y.XmlElement).insert(1, [hook])
+
+          return doc
+        },
+        () => ({ type: 'append', blocks: [paragraph('Bravo')] }),
+        { outcome: 'unknownContent' },
+      ],
+      [
         'a document holding a property the schema does not declare',
         () => {
           const doc = createDoc([paragraph('Alpha')])

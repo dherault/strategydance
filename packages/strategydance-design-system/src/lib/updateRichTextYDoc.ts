@@ -286,9 +286,11 @@ function readCopy(doc: Y.Doc, schema: ProseMirrorSchema) {
     isChanged = true
   })
 
-  const { doc: root } = initProseMirrorDoc(copy.getXmlFragment(RICH_TEXT_YJS_FRAGMENT), schema)
+  // A type y-prosemirror does not expect, such as a hook, throws rather than being deleted
+  let root: ProseMirrorNode
 
   try {
+    root = initProseMirrorDoc(copy.getXmlFragment(RICH_TEXT_YJS_FRAGMENT), schema).doc
     root.check()
   } catch {
     return null
@@ -311,7 +313,9 @@ function hasUndeclaredAttributes(type: Y.XmlFragment | Y.XmlElement, schema: Pro
       )
     }
 
-    return (child as Y.XmlText).toDelta().some((delta: { attributes?: Record<string, unknown> }) =>
+    if (!(child instanceof Y.XmlText)) return true
+
+    return child.toDelta().some((delta: { attributes?: Record<string, unknown> }) =>
       Object.entries(delta.attributes ?? {}).some(([name, value]) => {
         const declared = schema.marks[HASHED_MARK_NAME.exec(name)?.[1] ?? name].spec.attrs ?? {}
 

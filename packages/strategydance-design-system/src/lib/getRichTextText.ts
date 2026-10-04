@@ -6,12 +6,16 @@ import type { RichTextBlock, RichTextInline } from 'strategydance-design-system/
 */
 function getRichTextText(blocks: readonly RichTextBlock[]): string {
   return blocks
-    .flatMap(block => [readInline(block.content ?? []), ...(block.children ? [getRichTextText(block.children)] : [])])
+    .flatMap(block => [
+      getRichTextInlineText(block.content ?? []),
+      ...(block.children ? [getRichTextText(block.children)] : []),
+    ])
     .join('\n')
 }
 
-function readInline(content: readonly RichTextInline[]) {
+// The words of some inline content, a link's included
+function getRichTextInlineText(content: readonly RichTextInline[]) {
   return content.map(item => (item.type === 'link' ? item.content.map(run => run.text).join('') : item.text)).join('')
 }
 
-export { getRichTextText }
+export { getRichTextInlineText, getRichTextText }

@@ -1,6 +1,6 @@
 import type { RichTextBlock } from 'strategydance-design-system/lib/richText'
 
-// A post using every block, style and kind of list the editor writes, shared by the stories and the tests
+// A post using every block, style and kind of list a post is written in, shared by the stories and the tests
 const richTextSampleBlocks: RichTextBlock[] = [
   { type: 'heading', props: { level: 1 }, content: [{ type: 'text', text: 'Feed performance' }] },
   {
@@ -49,5 +49,23 @@ const richTextSampleBlocks: RichTextBlock[] = [
 ]
 
 const richTextSample = JSON.stringify(richTextSampleBlocks)
+
+// A knowledge document: the post, then every block a document adds to it
+const richTextDocumentSampleBlocks: RichTextBlock[] = [
+  ...richTextSampleBlocks,
+  { type: 'heading', content: [{ type: 'text', text: 'The indexes' }] },
+  {
+    type: 'codeBlock',
+    props: { language: 'sql' },
+    content: [
+      {
+        type: 'text',
+        text: 'create index task_assignments_task_id\n  on task_assignments (task_id);\n\nanalyze task_assignments;',
+      },
+    ],
+  },
+]
+
+export const richTextDocumentSample = JSON.stringify(richTextDocumentSampleBlocks)
 
 export default richTextSample

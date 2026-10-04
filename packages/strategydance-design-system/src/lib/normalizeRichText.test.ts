@@ -150,6 +150,37 @@ describe('normalizeRichText', () => {
     ])
   })
 
+  it('keeps code as one run of its text, without styles, in a language it lists', () => {
+    expect(
+      normalizeRichText([
+        editorBlock('codeBlock', [text('const a', { bold: true }), text(' = 1\n\tb()')], { language: 'typescript' }),
+        editorBlock('codeBlock', [text('x')], { language: 'ts' }),
+        editorBlock('codeBlock', [text('y')], { language: '' }),
+        editorBlock('codeBlock', [text('z')], { language: 'cobol' }),
+        editorBlock('codeBlock', [], { language: 'python' }),
+        editorBlock('codeBlock', [text('w')], { language: 'text' }),
+      ]),
+    ).toEqual([
+      { type: 'codeBlock', props: { language: 'typescript' }, content: [{ type: 'text', text: 'const a = 1\n\tb()' }] },
+      { type: 'codeBlock', props: { language: 'typescript' }, content: [{ type: 'text', text: 'x' }] },
+      { type: 'codeBlock', content: [{ type: 'text', text: 'y' }] },
+      { type: 'codeBlock', content: [{ type: 'text', text: 'z' }] },
+      { type: 'codeBlock', props: { language: 'python' } },
+      { type: 'codeBlock', content: [{ type: 'text', text: 'w' }] },
+    ])
+  })
+
+  it('reads a link inside code as its words, since code holds nothing but text', () => {
+    expect(
+      normalizeRichText([
+        {
+          type: 'codeBlock',
+          content: [text('see '), { type: 'link', href: 'https://example.com', content: [text('docs')] }],
+        },
+      ]),
+    ).toEqual([{ type: 'codeBlock', content: [{ type: 'text', text: 'see docs' }] }])
+  })
+
   it('reads plain strings as text, and an unknown inline element as its text', () => {
     expect(
       normalizeRichText([{ type: 'paragraph', content: ['Hello ', { type: 'mention', content: [text('Ada')] }] }]),

@@ -1,3 +1,4 @@
+import { syntaxHighlighter } from '@blocknote/code-block'
 import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
 import { FormattingToolbarExtension, SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
@@ -12,14 +13,14 @@ import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTe
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
-import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
-import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
-  createRichTextSchema,
-  getRichTextBlockTypes,
+  RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
-} from 'strategydance-design-system/lib/richTextEditorSchema'
+  getRichTextBlockTypes,
+} from 'strategydance-design-system/lib/richText'
+import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
+import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 import { cn } from 'strategydance-design-system/lib/utils'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
@@ -85,7 +86,7 @@ type Props = {
   /** The menus' words BlockNote lacks, in English unless the caller's catalogue says otherwise */
   labels?: Partial<RichTextEditorLabels>
   /**
-   * The blocks it writes besides paragraphs, all four unless it says fewer. One left out is not
+   * The blocks it writes besides paragraphs, every one unless it says fewer. One left out is not
    * offered, and pastes as paragraphs
    */
   blocks?: readonly RichTextEditorBlock[]
@@ -116,8 +117,8 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   a selection raises a toolbar of the four styles, a link and the block it is in. Markdown's
   shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
-  nested by Tab, text in bold, italic, underline and strikethrough, and links, which is everything
-  `RichText` draws back.
+  nested by Tab, text in bold, italic, underline and strikethrough, links, and code, colored in
+  the language picked over it, which is everything `RichText` draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
   `normalizeRichText` keeps, serialized, whether they hold any text and how much, and a parent that
@@ -271,6 +272,8 @@ function createEditor({
     },
     autofocus: autoFocus ? ('end' as const) : false,
     trailingBlock: false,
+    // Colors code as shiki does, each language's grammar loaded the first time a block is in it
+    extensions: blocks.includes('code') ? [syntaxHighlighter] : [],
   }
 
   // A shared text opens on its document, so nothing seeds it, and its history is Yjs' own, which

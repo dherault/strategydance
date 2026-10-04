@@ -4,8 +4,8 @@ import { BlockNoteEditor } from '@blocknote/core'
 import { yDocToBlocks } from '@blocknote/core/yjs'
 import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRichTextYUpdate'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
-import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
-import { RICH_TEXT_EDITOR_BLOCKS, createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
+import { RICH_TEXT_EDITOR_BLOCKS, RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
+import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 import * as Y from 'yjs'
 
 // The blocks a Yjs document holds, as BlockNote reads them
@@ -30,6 +30,15 @@ describe('createRichTextYUpdate', () => {
       { type: 'heading', props: { level: 1 }, content: [{ type: 'text', text: 'Plan' }] },
       { type: 'paragraph', content: [{ type: 'text', text: 'Ship it', styles: { bold: true } }] },
       { type: 'checkListItem', props: { checked: true }, content: [{ type: 'text', text: 'Done' }] },
+    ])
+
+    expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
+  })
+
+  it('lays code in with its language and its line breaks', () => {
+    const value = JSON.stringify([
+      { type: 'codeBlock', props: { language: 'typescript' }, content: [{ type: 'text', text: 'const a = 1\n\tb()' }] },
+      { type: 'codeBlock' },
     ])
 
     expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)

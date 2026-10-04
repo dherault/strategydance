@@ -103,6 +103,55 @@
   color: var(--color-neutral-600);
 }
 
+/*
+  Code as `RichText` draws it: on a light fill in the monospace face, its lines as typed, scrolling
+  sideways. BlockNote's is dark, and its highlighter writes each token's color for a light and a
+  dark theme both, as shiki's variables, of which the light one is read here. The select of its
+  language sits in the block's top right corner, shown while the pointer is over the block or the
+  select has the focus
+*/
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='codeBlock'] {
+  margin: 4px 0;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-neutral-100);
+  color: var(--color-secondary);
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='codeBlock'] > pre {
+  padding: 12px 16px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* As wide as the language it shows, where a select is as wide as its longest option, or flush right in a browser that cannot size it so */
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='codeBlock'] > div > select {
+  top: 6px;
+  right: 8px;
+  left: auto;
+  field-sizing: content;
+  text-align-last: right;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-neutral-100);
+  padding: 2px 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='codeBlock']:hover > div > select,
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='codeBlock'] > div > select:focus-visible {
+  opacity: 1;
+}
+
+.rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='codeBlock'] > div > select:focus-visible {
+  outline: 2px solid var(--color-secondary) !important;
+}
+
+.rich-text-editor.bn-root .shiki {
+  color: var(--shiki-light);
+}
+
 .rich-text-editor.bn-root .bn-editor strong {
   font-weight: 600;
 }

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
-import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
+import richTextSample, { richTextDocumentSample } from 'strategydance-design-system/components/ui/RichText.sample'
+import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richText'
 
 const meta = {
   title: 'Components/RichText',
@@ -17,9 +18,17 @@ type Story = StoryObj<typeof meta>
 
 export const Post: Story = {}
 
+// A knowledge document's text, drawn with every block its editor writes
+export const Document: Story = {
+  args: {
+    value: richTextDocumentSample,
+    blocks: RICH_TEXT_EDITOR_BLOCKS,
+  },
+}
+
 /*
   Colors, alignment and an inline style are dropped, the second paragraph's `<b>` tag is text, the
-  `javascript:` link is its words, and the unknown blocks read as what they hold
+  `javascript:` link is its words, and the blocks a post does not hold read as what they hold
 */
 export const Untrusted: Story = {
   args: {

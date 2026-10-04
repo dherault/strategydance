@@ -1,23 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 
-import { createRichTextSchema, getRichTextBlockTypes } from 'strategydance-design-system/lib/richTextEditorSchema'
+import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 
 // The schema's blocks by name, which its type, built from the blocks asked for, leaves loose
 function readBlockSchema(blocks: Parameters<typeof createRichTextSchema>[0]) {
   return createRichTextSchema(blocks).blockSchema as Record<string, { propSchema: Record<string, unknown> }>
 }
-
-describe('getRichTextBlockTypes', () => {
-  it('names the stored blocks an editor writing some blocks keeps', () => {
-    expect(getRichTextBlockTypes(['list', 'checklist'])).toEqual([
-      'paragraph',
-      'bulletListItem',
-      'numberedListItem',
-      'checkListItem',
-    ])
-    expect(getRichTextBlockTypes([])).toEqual(['paragraph'])
-  })
-})
 
 describe('createRichTextSchema', () => {
   it('holds the blocks it is asked for, and paragraphs, without colors or alignment', () => {
@@ -47,5 +35,26 @@ describe('createRichTextSchema', () => {
     expect(read('H3')).toEqual({ level: 3 })
     expect(read('H6')).toEqual({ level: 3 })
     expect(read('P')).toBeUndefined()
+  })
+
+  it('writes code in the languages it lists, plain text by default', () => {
+    const blockSchema = readBlockSchema(['code'])
+
+    expect(Object.keys(blockSchema).sort()).toEqual(['codeBlock', 'paragraph'])
+    expect(blockSchema.codeBlock.propSchema.language).toMatchObject({ default: 'text' })
+  })
+
+  it("pastes code in a language it lists, read from the code's class", () => {
+    const parse = createRichTextSchema(['code']).blockSpecs.codeBlock?.implementation.parse
+    // The `<pre><code>` BlockNote reads a pasted block from, as much of it as it reads
+    const read = (className: string) => {
+      const code = { tagName: 'CODE', className, getAttribute: () => null }
+
+      return parse?.({ tagName: 'PRE', childElementCount: 1, firstElementChild: code } as unknown as HTMLElement)
+    }
+
+    expect(read('language-ts')).toEqual({ language: 'typescript' })
+    expect(read('language-cobol')).toEqual({ language: 'text' })
+    expect(read('')).toEqual({ language: 'text' })
   })
 })

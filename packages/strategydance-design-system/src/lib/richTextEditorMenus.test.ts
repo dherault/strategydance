@@ -13,4 +13,10 @@ describe('getRichTextBlockTypeSelectItems', () => {
       ['Heading 3', { level: 3 }],
     ])
   })
+
+  it('offers code after the blocks of text, which BlockNote leaves out', () => {
+    const last = getRichTextBlockTypeSelectItems(en).at(-1)
+
+    expect([last?.name, last?.type, last?.props]).toEqual(['Code Block', 'codeBlock', undefined])
+  })
 })

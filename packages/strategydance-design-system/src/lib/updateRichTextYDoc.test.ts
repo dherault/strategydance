@@ -4,11 +4,11 @@ import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRic
 import { getHeadlessRichTextEditor } from 'strategydance-design-system/lib/getHeadlessRichTextEditor'
 import { readRichTextYDoc } from 'strategydance-design-system/lib/readRichTextYDoc'
 import {
+  RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextBlock,
   type RichTextInline,
 } from 'strategydance-design-system/lib/richText'
-import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richTextEditorSchema'
 import { type RichTextYDocEdit, updateRichTextYDoc } from 'strategydance-design-system/lib/updateRichTextYDoc'
 import { initProseMirrorDoc } from 'y-prosemirror'
 import * as Y from 'yjs'
@@ -604,6 +604,39 @@ describe('updateRichTextYDoc', () => {
         expect(isWellFormed(doc)).toBe(true)
       })
     }
+  })
+
+  describe('writes code as code holds it', () => {
+    function code(text: string): RichTextBlock {
+      return { type: 'codeBlock', props: { language: 'typescript' }, content: [{ type: 'text', text }] }
+    }
+
+    it('keeps the line breaks of a replacement inside code in its text', () => {
+      const doc = createDoc([paragraph('Before'), code('const a = 1\nlog(a)')])
+
+      expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'log(a)', replace: 'log(a)\nlog(a + 1)' })).toEqual({
+        outcome: 'updated',
+      })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([paragraph('Before'), code('const a = 1\nlog(a)\nlog(a + 1)')])
+    })
+
+    it('finds text across the line breaks of code', () => {
+      const doc = createDoc([code('one\ntwo')])
+
+      expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'one\ntwo', replace: 'three' })).toEqual({
+        outcome: 'updated',
+      })
+      expect(read(doc)).toEqual([code('three')])
+    })
+
+    it('appends code with its line breaks', () => {
+      const doc = createDoc([paragraph('Before')])
+
+      expect(updateRichTextYDoc(doc, { type: 'append', blocks: [code('a\n\tb')] })).toEqual({ outcome: 'updated' })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([paragraph('Before'), code('a\n\tb')])
+    })
   })
 
   it('appends to a document with no text yet in place of its empty paragraph', () => {

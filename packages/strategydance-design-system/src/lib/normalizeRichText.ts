@@ -1,9 +1,13 @@
-import type {
-  RichTextBlock,
-  RichTextBlockType,
-  RichTextInline,
-  RichTextRun,
-  RichTextStyles,
+import { getRichTextInlineText } from 'strategydance-design-system/lib/getRichTextText'
+import {
+  type RichTextBlock,
+  type RichTextBlockType,
+  type RichTextCodeBlock,
+  type RichTextInline,
+  type RichTextRun,
+  type RichTextStyles,
+  type RichTextTextBlock,
+  getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
 
 // Deeper than any list anybody indents by hand, and shallow enough that a hostile value nesting
@@ -17,6 +21,7 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'bulletListItem',
   'numberedListItem',
   'checkListItem',
+  'codeBlock',
 ]
 
 const STYLES = ['bold', 'italic', 'underline', 'strike'] as const
@@ -24,7 +29,7 @@ const STYLES = ['bold', 'italic', 'underline', 'strike'] as const
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
 
 type Options = {
-  /** The blocks to keep, all six unless it says fewer. Any other block holding text becomes a paragraph */
+  /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
   blockTypes?: readonly RichTextBlockType[]
 }
 
@@ -38,8 +43,9 @@ type UnknownRecord = Record<string, unknown>
   wrote, so nothing in it is trusted. A block keeps its type when it is one the options allow, and
   becomes a paragraph otherwise when it holds text. One holding none, such as a table or an image,
   gives way to its children. Ids, colors, alignment and every other prop go, but a heading's level,
-  a numbered list's first number and a check item's tick. Text keeps four styles. A link keeps its address when it is
-  a web or mail one, written as the URL parser writes it, and is its text otherwise.
+  a numbered list's first number, a check item's tick and a code block's language. Text keeps four
+  styles, and code none. A link keeps its address when it is a web or mail one, written as the URL
+  parser writes it, and is its text otherwise.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
   are dropped, so the same document always serializes to the same string. Anything that is not an
@@ -72,20 +78,31 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
   if (!isKnown && !hasContent) return children
 
   const type = isKnown ? (value.type as RichTextBlockType) : 'paragraph'
-  const props = normalizeProps(type, value.props)
-  const content = normalizeInline(value.content)
+  const block = type === 'codeBlock' ? normalizeCodeBlock(value) : normalizeTextBlock(type, value)
 
-  return [
-    {
-      type,
-      ...(props ? { props } : {}),
-      ...(content.length ? { content } : {}),
-      ...(children.length ? { children } : {}),
-    },
-  ]
+  return [{ ...block, ...(children.length ? { children } : {}) }]
 }
 
-function normalizeProps(type: RichTextBlockType, props: unknown): RichTextBlock['props'] {
+function normalizeTextBlock(type: RichTextTextBlock['type'], value: UnknownRecord): RichTextTextBlock {
+  const props = normalizeTextProps(type, value.props)
+  const content = normalizeInline(value.content)
+
+  return { type, ...(props ? { props } : {}), ...(content.length ? { content } : {}) }
+}
+
+// Its text in one run without styles, whatever it was written in, and its language unless that is plain text
+function normalizeCodeBlock(value: UnknownRecord): RichTextCodeBlock {
+  const language = getRichTextCodeLanguage(isRecord(value.props) ? value.props.language : undefined)
+  const text = getRichTextInlineText(normalizeInline(value.content))
+
+  return {
+    type: 'codeBlock',
+    ...(language === 'text' ? {} : { props: { language } }),
+    ...(text ? { content: [{ type: 'text', text }] } : {}),
+  }
+}
+
+function normalizeTextProps(type: RichTextTextBlock['type'], props: unknown): RichTextTextBlock['props'] {
   if (!isRecord(props)) return undefined
 
   // The second level is the default and goes unsaid, and one past the third reads as the third

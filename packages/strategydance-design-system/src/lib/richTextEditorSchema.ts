@@ -2,6 +2,7 @@ import {
   BlockNoteSchema,
   createBulletListItemBlockSpec,
   createCheckListItemBlockSpec,
+  createCodeBlockSpec,
   createHeadingBlockSpec,
   createNumberedListItemBlockSpec,
   createParagraphBlockSpec,
@@ -10,9 +11,10 @@ import {
   defaultStyleSpecs,
 } from '@blocknote/core'
 import {
+  RICH_TEXT_CODE_LANGUAGES,
   RICH_TEXT_HEADING_LEVELS,
-  type RichTextBlockType,
   type RichTextEditorBlock,
+  getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
 
 // The props BlockNote gives every block, which `RichText` never draws
@@ -54,9 +56,42 @@ function createRichTextHeadingBlockSpec() {
 }
 
 /*
+  Code in the languages `RICH_TEXT_CODE_LANGUAGES` names, plain text by default, picked from a
+  select over the block. BlockNote's select throws on a language it does not list, and a block can
+  come with one: three backticks alone write an empty one, a pasted `<code class="language-ts">`
+  keeps `ts`, and another editor's text arrives as it is through Yjs. So a pasted block is read
+  into a language listed, and a block is drawn in one, plain text when its own is unknown
+*/
+function createRichTextCodeBlockSpec() {
+  const spec = createCodeBlockSpec({
+    defaultLanguage: 'text',
+    supportedLanguages: RICH_TEXT_CODE_LANGUAGES,
+    indentLineWithTab: true,
+  })
+  const { parse, render } = spec.implementation
+  const implementation: typeof spec.implementation = {
+    ...spec.implementation,
+    parse: element => {
+      const props = parse?.(element)
+
+      return props ? { ...props, language: getRichTextCodeLanguage(props.language) } : undefined
+    },
+    render(block, editor) {
+      return render.call(
+        this,
+        { ...block, props: { ...block.props, language: getRichTextCodeLanguage(block.props.language) } },
+        editor,
+      )
+    },
+  }
+
+  return { ...spec, implementation }
+}
+
+/*
   The schema of an editor writing `blocks` besides paragraphs: the blocks `RichText` draws, with
   text in four styles and links. A pasted block it does not hold comes in as a paragraph, and a
-  pasted color or code mark is dropped
+  pasted color or inline code mark is dropped
 */
 function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
   const hasLists = blocks.includes('list')
@@ -73,6 +108,7 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
           }
         : {}),
       ...(blocks.includes('checklist') ? { checkListItem: withoutDefaultProps(createCheckListItemBlockSpec()) } : {}),
+      ...(blocks.includes('code') ? { codeBlock: createRichTextCodeBlockSpec() } : {}),
     },
     inlineContentSpecs: {
       text: defaultInlineContentSpecs.text,
@@ -87,18 +123,4 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
   })
 }
 
-/** Every block an editor can write besides paragraphs, which it writes unless told fewer */
-const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
-
-// The stored block types an editor writing `blocks` keeps, which `normalizeRichText` holds a value to
-function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): RichTextBlockType[] {
-  return [
-    'paragraph',
-    ...(blocks.includes('heading') ? (['heading'] as const) : []),
-    ...(blocks.includes('quote') ? (['quote'] as const) : []),
-    ...(blocks.includes('list') ? (['bulletListItem', 'numberedListItem'] as const) : []),
-    ...(blocks.includes('checklist') ? (['checkListItem'] as const) : []),
-  ]
-}
-
-export { RICH_TEXT_EDITOR_BLOCKS, createRichTextSchema, getRichTextBlockTypes, type RichTextEditorBlock }
+export { createRichTextSchema }

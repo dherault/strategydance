@@ -10,17 +10,20 @@ import {
   DialogTrigger,
 } from 'strategydance-design-system/components/ui/Dialog'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
-import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
+import richTextSample, { richTextDocumentSample } from 'strategydance-design-system/components/ui/RichText.sample'
 import { RichTextEditor, type RichTextEditorHandle } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRichTextYUpdate'
+import { RICH_TEXT_EDITOR_BLOCKS, RICH_TEXT_POST_BLOCKS } from 'strategydance-design-system/lib/richText'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
 const meta = {
   title: 'Components/RichTextEditor',
   component: RichTextEditor,
+  // A post's blocks, as the log writes them, but in the stories of a document
   args: {
     placeholder: 'What moved forward today?',
+    blocks: RICH_TEXT_POST_BLOCKS,
     className: 'max-w-xl',
   },
   parameters: {
@@ -70,8 +73,24 @@ export const RoundTrip: Story = {
   render: args => <RoundTripExample {...args} />,
 }
 
+// The same with a document's blocks, which RichText draws back as a document's
+export const DocumentRoundTrip: Story = {
+  args: {
+    initialValue: richTextDocumentSample,
+    blocks: RICH_TEXT_EDITOR_BLOCKS,
+  },
+  parameters: {
+    docs: {
+      story: {
+        height: '1200px',
+      },
+    },
+  },
+  render: args => <RoundTripExample {...args} />,
+}
+
 function RoundTripExample(props: Parameters<typeof RichTextEditor>[0]) {
-  const [value, setValue] = useState<string | null>(null)
+  const [value, setValue] = useState<string | null>(props.initialValue ?? null)
   const [submitCount, setSubmitCount] = useState(0)
 
   return (
@@ -83,7 +102,12 @@ function RoundTripExample(props: Parameters<typeof RichTextEditor>[0]) {
         onSubmit={() => setSubmitCount(count => count + 1)}
       />
       <p className="text-xs text-muted-foreground">Submitted {submitCount} times with ⌘Enter</p>
-      {value ? <RichText value={value} /> : null}
+      {value ? (
+        <RichText
+          value={value}
+          blocks={props.blocks}
+        />
+      ) : null}
     </div>
   )
 }
@@ -130,7 +154,8 @@ export const InDialog: Story = {
 export const Document: Story = {
   args: {
     appearance: 'document',
-    initialValue: richTextSample,
+    initialValue: richTextDocumentSample,
+    blocks: RICH_TEXT_EDITOR_BLOCKS,
     placeholder: 'Start writing',
     className: undefined,
   },
@@ -179,6 +204,7 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
 export const Collaborative: Story = {
   args: {
     appearance: 'document',
+    blocks: RICH_TEXT_EDITOR_BLOCKS,
     placeholder: 'Start writing',
     className: undefined,
   },
@@ -245,7 +271,7 @@ function CollaborativeExample(props: Parameters<typeof RichTextEditor>[0]) {
     running. Both open on the same first update, so they hold one copy of the text
   */
   useEffect(() => {
-    const seed = createRichTextYUpdate(richTextSample)
+    const seed = createRichTextYUpdate(richTextDocumentSample)
     const next = { ana: createWriter(seed), ben: createWriter(seed) }
     const unlinkAna = link(next.ana, next.ben)
     const unlinkBen = link(next.ben, next.ana)

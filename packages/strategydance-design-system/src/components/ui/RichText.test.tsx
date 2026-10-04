@@ -3,9 +3,20 @@ import { describe, expect, it, spyOn } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
+import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richText'
 
 function render(blocks: unknown) {
   return renderToStaticMarkup(<RichText value={JSON.stringify(blocks)} />)
+}
+
+// As a document draws its text, with every block its editor writes
+function renderDocument(blocks: unknown) {
+  return renderToStaticMarkup(
+    <RichText
+      value={JSON.stringify(blocks)}
+      blocks={RICH_TEXT_EDITOR_BLOCKS}
+    />,
+  )
 }
 
 function text(value: string, styles: Record<string, unknown> = {}) {
@@ -111,7 +122,7 @@ describe('RichText', () => {
     expect(markup).toContain(' script</p>')
   })
 
-  it('draws a block it does not know as a paragraph, or as what it holds', () => {
+  it('draws a block a post does not hold as a paragraph, or as what it holds', () => {
     expect(
       render([
         { type: 'codeBlock', content: [text('let a')] },
@@ -122,6 +133,16 @@ describe('RichText', () => {
         },
       ]),
     ).toContain('<p class="mb-2">let a</p><p class="mb-2">b</p>')
+  })
+
+  it('draws code as its lines, in its language, where a document draws it', () => {
+    const code = [{ type: 'codeBlock', props: { language: 'typescript' }, content: [text('let a = 1\n<b>bold</b>')] }]
+
+    expect(renderDocument(code)).toContain(
+      '<code data-language="typescript">let a = 1\n&lt;b&gt;bold&lt;/b&gt;</code></pre>',
+    )
+    expect(renderDocument([{ type: 'codeBlock' }])).toContain('<code data-language="text"></code>')
+    expect(render(code)).toContain('<p class="mb-2">let a = 1<br/>&lt;b&gt;bold&lt;/b&gt;</p>')
   })
 
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {

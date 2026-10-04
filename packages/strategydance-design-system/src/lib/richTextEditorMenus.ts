@@ -8,6 +8,7 @@ import {
 } from '@blocknote/core'
 import { filterSuggestionItems } from '@blocknote/core/extensions'
 import { type BlockTypeSelectItem, blockTypeSelectItems, getDefaultReactSlashMenuItems } from '@blocknote/react'
+import { SquareCodeIcon } from 'lucide-react'
 import { RICH_TEXT_HEADING_LEVELS, type RichTextHeadingLevel } from 'strategydance-design-system/lib/richText'
 
 // What the slash menu offers, those of them the schema holds: the blocks, and none of the emoji
@@ -20,6 +21,7 @@ const SLASH_MENU_KEYS = new Set([
   'bullet_list',
   'numbered_list',
   'check_list',
+  'code_block',
 ])
 
 /*
@@ -38,17 +40,20 @@ function getRichTextSlashMenuItems<B extends BlockSchema, I extends InlineConten
 }
 
 /*
-  The formatting toolbar's block types, BlockNote's own with its three heading levels. Its defaults
-  name a heading's toggle prop, which this heading does not have, so they would offer none
+  The formatting toolbar's block types, BlockNote's own with its three heading levels, then code,
+  which BlockNote's leave out. Its defaults name a heading's toggle prop, which this heading does
+  not have, so they would offer none
 */
 function getRichTextBlockTypeSelectItems(dictionary: Dictionary): BlockTypeSelectItem[] {
-  return blockTypeSelectItems(dictionary).flatMap(item => {
+  const items = blockTypeSelectItems(dictionary).flatMap(item => {
     if (item.type !== 'heading') return [item]
 
     const level = item.props?.level
 
     return isRichTextHeadingLevel(level) && !item.props?.isToggleable ? [{ ...item, props: { level } }] : []
   })
+
+  return [...items, { name: dictionary.slash_menu.code_block.title, type: 'codeBlock', icon: SquareCodeIcon }]
 }
 
 /*

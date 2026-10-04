@@ -2,16 +2,16 @@ import { yDocToBlocks } from '@blocknote/core/yjs'
 import { getHeadlessRichTextEditor } from 'strategydance-design-system/lib/getHeadlessRichTextEditor'
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
-import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
+  RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
   getRichTextBlockTypes,
-} from 'strategydance-design-system/lib/richTextEditorSchema'
+} from 'strategydance-design-system/lib/richText'
 import type * as Y from 'yjs'
 
 type Options = {
-  // The blocks the editor writing in it writes, all four unless it says fewer
+  // The blocks the editor writing in it writes, every one unless it says fewer
   blocks?: readonly RichTextEditorBlock[]
 }
 

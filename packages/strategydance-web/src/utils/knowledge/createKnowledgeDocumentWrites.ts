@@ -4,7 +4,8 @@ import {
   discardDocument,
   getDocument,
   renameDocument,
-  setDocumentAiLock,
+  setDocumentAiReadable,
+  setDocumentAiWritable,
   updateDocumentAspects,
 } from 'strategydance-database/web'
 
@@ -44,13 +45,14 @@ function createKnowledgeDocumentWrites(
 
       if (!stored) return null
 
-      const { title, content, aspects, isAiLocked, revision, state } = stored
+      const { title, content, aspects, isAiReadable, isAiWritable, revision, state } = stored
 
-      return { title, content, aspects, isAiLocked, revision, state: state ?? null }
+      return { title, content, aspects, isAiReadable, isAiWritable, revision, state: state ?? null }
     },
     rename: title => renameDocument(dataConnect, { ...key, title }),
     updateAspects: aspects => updateDocumentAspects(dataConnect, { ...key, aspects }),
-    setAiLock: isAiLocked => setDocumentAiLock(dataConnect, { ...key, isAiLocked }),
+    setAiReadable: isAiReadable => setDocumentAiReadable(dataConnect, { ...key, isAiReadable }),
+    setAiWritable: isAiWritable => setDocumentAiWritable(dataConnect, { ...key, isAiWritable }),
     discard: () => discardDocument(dataConnect, { ...key, sessionId }),
   }
 }

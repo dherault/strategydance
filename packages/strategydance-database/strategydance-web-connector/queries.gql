@@ -713,10 +713,10 @@ query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(
 # strategydance-core), so the list is never cut short.
 #
 # A live query: each `@refresh` names a mutation that adds, hides or reorders a document, or changes
-# what a card shows. A save of a document's content is not among them, nor a change to its lock, so
-# somebody writing does not push the whole list to every member with a page open at each pause: a
-# card's "Edited" and its place catch up on the next load instead. Removing a member empties theirs,
-# and deleting the organization empties everybody's
+# what a card shows. A save of a document's content is not among them, nor a change to what agents
+# may do with it, so somebody writing does not push the whole list to every member with a page open
+# at each pause: a card's "Edited" and its place catch up on the next load instead. Removing a
+# member empties theirs, and deleting the organization empties everybody's
 query GetOrganizationDocuments($organizationId: UUID!)
 @auth(level: USER)
 @refresh(
@@ -808,7 +808,8 @@ query GetDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
     title
     content
     aspects
-    isAiLocked
+    isAiReadable
+    isAiWritable
     revision
     createdAt
     updatedAt
@@ -851,7 +852,10 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
   onMutationExecuted: { operation: "UpdateDocumentAspects", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
-  onMutationExecuted: { operation: "SetDocumentAiLock", condition: "mutation.variables.id == request.variables.id" }
+  onMutationExecuted: { operation: "SetDocumentAiReadable", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: { operation: "SetDocumentAiWritable", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
   onMutationExecuted: { operation: "DeleteDocument", condition: "mutation.variables.id == request.variables.id" }
@@ -885,7 +889,8 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
   ) {
     title
     aspects
-    isAiLocked
+    isAiReadable
+    isAiWritable
     revision
     updatedAt
     documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {

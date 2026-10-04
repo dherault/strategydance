@@ -103,13 +103,14 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
       title: knowledgeDocument?.title ?? '',
       content: knowledgeDocument?.content ?? '',
       aspects: knowledgeDocument?.aspects ?? (draftAspect ? [draftAspect] : []),
-      isAiLocked: knowledgeDocument?.isAiLocked ?? false,
+      isAiReadable: knowledgeDocument?.isAiReadable ?? true,
+      isAiWritable: knowledgeDocument?.isAiWritable ?? true,
     } satisfies KnowledgeDocumentFields,
     updatedAt: knowledgeDocument?.updatedAt ?? null,
   }))
   const [title, setTitle] = useState(initial.fields.title)
   const [aspects, setAspects] = useState(initial.fields.aspects)
-  const [isAiLocked, setIsAiLocked] = useState(initial.fields.isAiLocked)
+  const [isAiWritable, setIsAiWritable] = useState(initial.fields.isAiWritable)
   const [isStored, setIsStored] = useState(knowledgeDocument !== null)
   const [isPickingAspects, setIsPickingAspects] = useState(false)
   // Whether the live query found the document gone, and when it last says it changed
@@ -128,7 +129,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     onRemoteChange: fields => {
       if (fields.title !== undefined) setTitle(fields.title)
       if (fields.aspects !== undefined) setAspects(fields.aspects)
-      if (fields.isAiLocked !== undefined) setIsAiLocked(fields.isAiLocked)
+      if (fields.isAiWritable !== undefined) setIsAiWritable(fields.isAiWritable)
     },
     onCreated: () => {
       setIsStored(true)
@@ -152,7 +153,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
       if (!live) return
 
-      saver.receive({ title: live.title, aspects: live.aspects, isAiLocked: live.isAiLocked })
+      saver.receive({
+        title: live.title,
+        aspects: live.aspects,
+        isAiReadable: live.isAiReadable,
+        isAiWritable: live.isAiWritable,
+      })
       setLiveUpdatedAt(live.updatedAt)
     },
   })
@@ -216,12 +222,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   }
 
   function toggleAiLock() {
-    const next = !isAiLocked
+    const next = !isAiWritable
 
-    setIsAiLocked(next)
-    saver.change({ isAiLocked: next })
+    setIsAiWritable(next)
+    saver.change({ isAiWritable: next })
 
-    if (isStored) toast(formatMessage(next ? knowledgeMessages.locked : knowledgeMessages.unlocked))
+    if (isStored) toast(formatMessage(next ? knowledgeMessages.unlocked : knowledgeMessages.locked))
   }
 
   // Leaving the page's fields sends what is left, as leaving the page would
@@ -386,7 +392,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             className="h-5 w-px bg-border"
           />
           <Tooltip
-            content={formatMessage(isAiLocked ? knowledgeMessages.lockedTooltip : knowledgeMessages.lock)}
+            content={formatMessage(isAiWritable ? knowledgeMessages.lock : knowledgeMessages.lockedTooltip)}
             side="bottom"
             // Open through the press, so the reader sees the words change with the lock
             isKeptOpenOnPress
@@ -394,9 +400,9 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             <Button
               variant="transparent"
               size="sm"
-              icon={isAiLocked ? <LockIcon /> : <LockOpenIcon />}
-              aria-label={formatMessage(isAiLocked ? knowledgeMessages.unlock : knowledgeMessages.lock)}
-              aria-pressed={isAiLocked}
+              icon={isAiWritable ? <LockOpenIcon /> : <LockIcon />}
+              aria-label={formatMessage(isAiWritable ? knowledgeMessages.lock : knowledgeMessages.unlock)}
+              aria-pressed={!isAiWritable}
               onClick={toggleAiLock}
             />
           </Tooltip>

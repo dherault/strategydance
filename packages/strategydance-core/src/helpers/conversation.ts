@@ -188,55 +188,79 @@ function stripInlineMarkdown(text: string) {
 }
 
 /*
-  A run of backticks whose first one no backslash escapes: one behind an even number of
-  backslashes is not escaped, since each pair is an escaped backslash. The look behind follows the
-  first backtick, so it runs only where there is one, never along a long run of backslashes
-*/
-const BACKTICK_RUN_PATTERN = /`(?<=(?:^|[^\\])(?:\\\\)*`)`*/g
-
-/*
   Each code span, replaced by a mark around its index in `codeSpans`, where its text goes, so
   emphasis around it is still found and nothing inside it is read as markup. As CommonMark has it,
   a run of backticks opens a span that the next run of the same length closes, so a longer run can
-  hold shorter ones, and one that nothing closes stays as written. Each run's closing one is found
-  in a single pass from the end, rather than by searching past it, which keeps a message full of
-  unpaired runs linear
+  hold shorter ones, and one that nothing closes stays as written. A backslash outside a span
+  escapes the backtick after it, which leaves the rest of its run to open one; inside a span it
+  escapes nothing, so it never keeps a run from closing it. Each run's closing one is looked up
+  among the runs of its length rather than searched for, which keeps a message full of unpaired
+  runs fast
 */
 function markCodeSpans(text: string, codeSpans: string[]) {
-  const runs = Array.from(text.matchAll(BACKTICK_RUN_PATTERN), match => ({
-    start: match.index,
-    end: match.index + match[0].length,
-  }))
-  const closingRuns: (number | undefined)[] = []
-  const nextRunOfLength = new Map<number, number>()
+  const runs = Array.from(text.matchAll(/`+/g), match => ({ start: match.index, end: match.index + match[0].length }))
+  const runsByLength = new Map<number, number[]>()
 
-  for (let index = runs.length - 1; index >= 0; index--) {
-    const length = runs[index].end - runs[index].start
+  for (const [index, run] of runs.entries()) {
+    const length = run.end - run.start
+    const indexes = runsByLength.get(length)
 
-    closingRuns[index] = nextRunOfLength.get(length)
-    nextRunOfLength.set(length, index)
+    if (indexes) indexes.push(index)
+    else runsByLength.set(length, [index])
   }
 
   let marked = ''
   let position = 0
 
   for (let index = 0; index < runs.length; index++) {
-    const closingIndex = closingRuns[index]
+    const run = runs[index]
+    const start = isEscaped(text, position, run.start) ? run.start + 1 : run.start
+    const closingIndex = findIndexAfter(runsByLength.get(run.end - start), index)
 
     if (closingIndex === undefined) continue
 
-    let code = text.slice(runs[index].end, runs[closingIndex].start)
+    let code = text.slice(run.end, runs[closingIndex].start)
 
     // One space on each side is padding, which lets a span start or end with a backtick
     if (code.startsWith(' ') && code.endsWith(' ') && code.trim()) code = code.slice(1, -1)
 
-    marked += `${text.slice(position, runs[index].start)}${CODE_SPAN_MARK}${codeSpans.length}${CODE_SPAN_MARK}`
+    marked += `${text.slice(position, start)}${CODE_SPAN_MARK}${codeSpans.length}${CODE_SPAN_MARK}`
     codeSpans.push(code)
     position = runs[closingIndex].end
     index = closingIndex
   }
 
   return marked + text.slice(position)
+}
+
+/*
+  Whether the character at `end` is escaped: an odd number of backslashes before it, since each
+  pair is an escaped backslash. Those inside the code span `from` ends are not counted, as no
+  backslash escapes anything there
+*/
+function isEscaped(text: string, from: number, end: number) {
+  let count = 0
+
+  while (end - count - 1 >= from && text[end - count - 1] === '\\') count++
+
+  return count % 2 === 1
+}
+
+// The first of the ascending `indexes` past `index`, by bisection
+function findIndexAfter(indexes: number[] | undefined, index: number) {
+  if (!indexes) return undefined
+
+  let low = 0
+  let high = indexes.length
+
+  while (low < high) {
+    const middle = (low + high) >> 1
+
+    if (indexes[middle] <= index) low = middle + 1
+    else high = middle
+  }
+
+  return indexes[low]
 }
 
 /*

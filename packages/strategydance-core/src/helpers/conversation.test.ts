@@ -117,6 +117,11 @@ describe('buildConversationPreview', () => {
     expect(previewText('**Call `read_knowledge`** in [`search`](doc:a)')).toBe('Call read_knowledge in search')
   })
 
+  it('lets a backslash keep a run of backticks from opening a code span, never from closing one', () => {
+    expect(previewText('Type `a\\` then `b`')).toBe('Type a\\ then b')
+    expect(previewText('Type \\``a` then')).toBe('Type `a then')
+  })
+
   it('keeps an underscore inside a word', () => {
     expect(previewText('I called read_knowledge and search_knowledge.')).toBe(
       'I called read_knowledge and search_knowledge.',

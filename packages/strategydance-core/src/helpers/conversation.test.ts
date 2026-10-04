@@ -55,6 +55,7 @@ describe('buildConversationPreview', () => {
 
   it('ends a table at the next block, and keeps a pipe outside one', () => {
     expect(previewText('| Plan | Price |\n| - | - |\n| Flat | 19 |\n- Pick Flat\n- Ship it')).toBe('Pick Flat, Ship it')
+    expect(previewText('| Plan | Price |\n| - | - |\n| Flat | 19 |\n---\nFlat wins.')).toBe('Flat wins.')
     expect(previewText('Pipe it as a | b\n\nthen run it.')).toBe('Pipe it as a | b then run it.')
   })
 

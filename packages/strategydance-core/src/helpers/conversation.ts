@@ -61,9 +61,10 @@ const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){
 */
 const TABLE_DELIMITER_PATTERN = /^(?=.*\|)\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$/
 
-// A line that starts another block, which ends a table as a blank line does, and is never a
-// table's header
-const BLOCK_START_PATTERN = /^(?:#{1,6}(?:\s|$)|```|~~~|(?:[-*+]|\d{1,9}[.)])\s)/
+// A line that starts another block, a rule among them, which ends a table as a blank line does,
+// and is never a table's header
+const BLOCK_START_PATTERN =
+  /^(?:#{1,6}(?:\s|$)|```|~~~|(?:[-*+]|\d{1,9}[.)])\s|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){3,}$)/
 
 const QUOTE_MARKER_PATTERN = /^(?:>\s*)+/
 

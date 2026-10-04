@@ -102,6 +102,19 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
 ]
 
 /* ---
+  CONVERSATIONS
+--- */
+
+// How many of a conversation's latest messages its page keeps live, as `GetConversation` reads them
+export const CONVERSATION_TAIL_LENGTH = 150
+
+// How many older messages one history page reads, as `GetConversationMessagesBefore` reads them
+export const CONVERSATION_PAGE_LENGTH = 100
+
+// How many messages' bodies one read takes, as `GetConversationMessageBodies` reads them
+export const CONVERSATION_BODIES_LENGTH = 50
+
+/* ---
   BUILD IN PUBLIC
 --- */
 

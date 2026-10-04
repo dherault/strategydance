@@ -134,13 +134,11 @@ function readQuotedLine(line: string) {
 }
 
 /*
-  Inline markup, to the text it marks up, in this order. Each pattern stops at the next delimiter
-  rather than looking past it for a closing one, so a message full of unpaired ones costs no more
-  to read than any other
+  Inline markup, to the text it marks up, in this order, after the code spans. Each pattern stops
+  at the next delimiter rather than looking past it for a closing one, so a message full of
+  unpaired ones costs no more to read than any other
 */
 const INLINE_MARKUP_PATTERNS: [RegExp, string][] = [
-  // A code span, to its text, first, so emphasis around it is still found
-  [/(`+)([^`]*)\1/g, '$2'],
   // A link or an image, to its label, a knowledge mention's title included. An escaped bracket
   // opens none, and neither part reads past the next bracket that would open another
   [/(?<!\\)!?\[((?:\\.|[^\\[\]])*)\]\((?:\\.|[^\\()])*\)/g, '$1'],
@@ -159,8 +157,54 @@ const INLINE_MARKUP_PATTERNS: [RegExp, string][] = [
 function stripInlineMarkdown(text: string) {
   return INLINE_MARKUP_PATTERNS.reduce(
     (stripped, [pattern, replacement]) => stripped.replace(pattern, replacement),
-    text,
+    stripCodeSpans(text),
   )
+}
+
+// A run of backticks no backslash escapes
+const BACKTICK_RUN_PATTERN = /(?<!\\)`+/g
+
+/*
+  Code spans, to their text, first, so emphasis around one is still found. As CommonMark has it, a
+  run of backticks opens a span that the next run of the same length closes, so a longer run can
+  hold shorter ones, and one that nothing closes stays as written. Each run's closing one is found
+  in a single pass from the end, rather than by searching past it, which keeps a message full of
+  unpaired runs linear
+*/
+function stripCodeSpans(text: string) {
+  const runs = Array.from(text.matchAll(BACKTICK_RUN_PATTERN), match => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }))
+  const closingRuns: (number | undefined)[] = []
+  const nextRunOfLength = new Map<number, number>()
+
+  for (let index = runs.length - 1; index >= 0; index--) {
+    const length = runs[index].end - runs[index].start
+
+    closingRuns[index] = nextRunOfLength.get(length)
+    nextRunOfLength.set(length, index)
+  }
+
+  let stripped = ''
+  let position = 0
+
+  for (let index = 0; index < runs.length; index++) {
+    const closingIndex = closingRuns[index]
+
+    if (closingIndex === undefined) continue
+
+    let code = text.slice(runs[index].end, runs[closingIndex].start)
+
+    // One space on each side is padding, which lets a span start or end with a backtick
+    if (code.startsWith(' ') && code.endsWith(' ') && code.trim()) code = code.slice(1, -1)
+
+    stripped += text.slice(position, runs[index].start) + code
+    position = runs[closingIndex].end
+    index = closingIndex
+  }
+
+  return stripped + text.slice(position)
 }
 
 /*

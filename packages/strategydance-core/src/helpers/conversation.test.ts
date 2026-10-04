@@ -84,6 +84,13 @@ describe('buildConversationPreview', () => {
     expect(previewText('Use \\*args\\* here')).toBe('Use *args* here')
   })
 
+  it('reads a code span as CommonMark pairs its backticks', () => {
+    expect(previewText('Write `` `foo` `` to quote it')).toBe('Write `foo` to quote it')
+    expect(previewText('A ``span with ` inside`` and `one`')).toBe('A span with ` inside and one')
+    expect(previewText('It`s left ``open')).toBe('It`s left ``open')
+    expect(previewText('Not \\`code` here')).toBe('Not `code` here')
+  })
+
   it('keeps an underscore inside a word', () => {
     expect(previewText('I called read_knowledge and search_knowledge.')).toBe(
       'I called read_knowledge and search_knowledge.',
@@ -111,7 +118,20 @@ describe('buildConversationPreview', () => {
   it('reads a message full of unpaired delimiters without searching past each one', () => {
     const start = performance.now()
 
-    for (const unit of ['[a', '\\[', 'a | b\n', '![a](', '*a ', '_a ', '~~a ', '`a', '<https:', '- a\n', 'a:\n- b\n']) {
+    for (const unit of [
+      '[a',
+      '\\[',
+      'a | b\n',
+      '![a](',
+      '*a ',
+      '_a ',
+      '~~a ',
+      '`a',
+      '``a`',
+      '<https:',
+      '- a\n',
+      'a:\n- b\n',
+    ]) {
       buildConversationPreview({ kind: 'MEMBER_TEXT', text: unit.repeat(Math.ceil(20000 / unit.length)) })
     }
 

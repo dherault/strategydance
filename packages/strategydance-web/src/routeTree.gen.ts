@@ -21,6 +21,7 @@ import { Route as AuthenticationPasswordResetRouteImport } from './routes/authen
 import { Route as AuthenticatedAppAccountRouteImport } from './routes/_authenticated/_app/account'
 import { Route as AuthenticatedAppAdministrationRouteImport } from './routes/_authenticated/_app/administration'
 import { Route as AuthenticatedAppBuildInPublicRouteImport } from './routes/_authenticated/_app/build-in-public'
+import { Route as AuthenticatedAppConversationsRouteImport } from './routes/_authenticated/_app/conversations'
 import { Route as AuthenticatedAppExploreRouteImport } from './routes/_authenticated/_app/explore'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/_app/profile'
 import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/_app/team'
@@ -32,6 +33,7 @@ import { Route as AuthenticatedAppAdministrationIndexRouteImport } from './route
 import { Route as AuthenticatedAppAdministrationOrganizationsRouteImport } from './routes/_authenticated/_app/administration/organizations'
 import { Route as AuthenticatedAppAdministrationUsersRouteImport } from './routes/_authenticated/_app/administration/users'
 import { Route as AuthenticatedAppAspectsAspectRouteImport } from './routes/_authenticated/_app/aspects.$aspect'
+import { Route as AuthenticatedAppConversationsIndexRouteImport } from './routes/_authenticated/_app/conversations.index'
 import { Route as AuthenticatedAppKnowledgeIndexRouteImport } from './routes/_authenticated/_app/knowledge.index'
 import { Route as AuthenticatedAppKnowledgeDocumentIdRouteImport } from './routes/_authenticated/_app/knowledge.$documentId'
 
@@ -96,6 +98,12 @@ const AuthenticatedAppBuildInPublicRoute =
     path: '/build-in-public',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppConversationsRoute =
+  AuthenticatedAppConversationsRouteImport.update({
+    id: '/conversations',
+    path: '/conversations',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppExploreRoute = AuthenticatedAppExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
@@ -158,6 +166,12 @@ const AuthenticatedAppAspectsAspectRoute =
     path: '/aspects/$aspect',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppConversationsIndexRoute =
+  AuthenticatedAppConversationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppConversationsRoute,
+  } as any)
 const AuthenticatedAppKnowledgeIndexRoute =
   AuthenticatedAppKnowledgeIndexRouteImport.update({
     id: '/knowledge/',
@@ -182,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
   '/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
+  '/conversations': typeof AuthenticatedAppConversationsRouteWithChildren
   '/explore': typeof AuthenticatedAppExploreRoute
   '/profile': typeof AuthenticatedAppProfileRoute
   '/team': typeof AuthenticatedAppTeamRoute
@@ -194,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/account/': typeof AuthenticatedAppAccountIndexRoute
   '/administration/': typeof AuthenticatedAppAdministrationIndexRoute
+  '/conversations/': typeof AuthenticatedAppConversationsIndexRoute
   '/knowledge/': typeof AuthenticatedAppKnowledgeIndexRoute
 }
 export interface FileRoutesByTo {
@@ -216,6 +232,7 @@ export interface FileRoutesByTo {
   '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/account': typeof AuthenticatedAppAccountIndexRoute
   '/administration': typeof AuthenticatedAppAdministrationIndexRoute
+  '/conversations': typeof AuthenticatedAppConversationsIndexRoute
   '/knowledge': typeof AuthenticatedAppKnowledgeIndexRoute
 }
 export interface FileRoutesById {
@@ -232,6 +249,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/_authenticated/_app/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
   '/_authenticated/_app/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
+  '/_authenticated/_app/conversations': typeof AuthenticatedAppConversationsRouteWithChildren
   '/_authenticated/_app/explore': typeof AuthenticatedAppExploreRoute
   '/_authenticated/_app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/_app/team': typeof AuthenticatedAppTeamRoute
@@ -244,6 +262,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
   '/_authenticated/_app/account/': typeof AuthenticatedAppAccountIndexRoute
   '/_authenticated/_app/administration/': typeof AuthenticatedAppAdministrationIndexRoute
+  '/_authenticated/_app/conversations/': typeof AuthenticatedAppConversationsIndexRoute
   '/_authenticated/_app/knowledge/': typeof AuthenticatedAppKnowledgeIndexRoute
 }
 export interface FileRouteTypes {
@@ -259,6 +278,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/administration'
     | '/build-in-public'
+    | '/conversations'
     | '/explore'
     | '/profile'
     | '/team'
@@ -271,6 +291,7 @@ export interface FileRouteTypes {
     | '/knowledge/$documentId'
     | '/account/'
     | '/administration/'
+    | '/conversations/'
     | '/knowledge/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -293,6 +314,7 @@ export interface FileRouteTypes {
     | '/knowledge/$documentId'
     | '/account'
     | '/administration'
+    | '/conversations'
     | '/knowledge'
   id:
     | '__root__'
@@ -308,6 +330,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/account'
     | '/_authenticated/_app/administration'
     | '/_authenticated/_app/build-in-public'
+    | '/_authenticated/_app/conversations'
     | '/_authenticated/_app/explore'
     | '/_authenticated/_app/profile'
     | '/_authenticated/_app/team'
@@ -320,6 +343,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/knowledge/$documentId'
     | '/_authenticated/_app/account/'
     | '/_authenticated/_app/administration/'
+    | '/_authenticated/_app/conversations/'
     | '/_authenticated/_app/knowledge/'
   fileRoutesById: FileRoutesById
 }
@@ -418,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBuildInPublicRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/_app/conversations': {
+      id: '/_authenticated/_app/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof AuthenticatedAppConversationsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/_app/explore': {
       id: '/_authenticated/_app/explore'
       path: '/explore'
@@ -495,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAspectsAspectRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/_app/conversations/': {
+      id: '/_authenticated/_app/conversations/'
+      path: '/'
+      fullPath: '/conversations/'
+      preLoaderRoute: typeof AuthenticatedAppConversationsIndexRouteImport
+      parentRoute: typeof AuthenticatedAppConversationsRoute
+    }
     '/_authenticated/_app/knowledge/': {
       id: '/_authenticated/_app/knowledge/'
       path: '/knowledge'
@@ -549,10 +587,26 @@ const AuthenticatedAppAdministrationRouteWithChildren =
     AuthenticatedAppAdministrationRouteChildren,
   )
 
+interface AuthenticatedAppConversationsRouteChildren {
+  AuthenticatedAppConversationsIndexRoute: typeof AuthenticatedAppConversationsIndexRoute
+}
+
+const AuthenticatedAppConversationsRouteChildren: AuthenticatedAppConversationsRouteChildren =
+  {
+    AuthenticatedAppConversationsIndexRoute:
+      AuthenticatedAppConversationsIndexRoute,
+  }
+
+const AuthenticatedAppConversationsRouteWithChildren =
+  AuthenticatedAppConversationsRoute._addFileChildren(
+    AuthenticatedAppConversationsRouteChildren,
+  )
+
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAccountRoute: typeof AuthenticatedAppAccountRouteWithChildren
   AuthenticatedAppAdministrationRoute: typeof AuthenticatedAppAdministrationRouteWithChildren
   AuthenticatedAppBuildInPublicRoute: typeof AuthenticatedAppBuildInPublicRoute
+  AuthenticatedAppConversationsRoute: typeof AuthenticatedAppConversationsRouteWithChildren
   AuthenticatedAppExploreRoute: typeof AuthenticatedAppExploreRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
@@ -567,6 +621,8 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAdministrationRoute:
     AuthenticatedAppAdministrationRouteWithChildren,
   AuthenticatedAppBuildInPublicRoute: AuthenticatedAppBuildInPublicRoute,
+  AuthenticatedAppConversationsRoute:
+    AuthenticatedAppConversationsRouteWithChildren,
   AuthenticatedAppExploreRoute: AuthenticatedAppExploreRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,

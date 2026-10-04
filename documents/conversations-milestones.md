@@ -46,7 +46,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | #95 |
 | M3 | The Markdown component | design-system | | #94 |
-| M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
+| M4 | Navigation, the list and delete | web, backend, database, root | M2 | #102 |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
 | M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |
 | M7 | The composer and drafts | web | M6 | |
@@ -146,12 +146,14 @@ The data model, with nothing yet using it.
 - A story with the design's replies from `conversations-data.js`: lists, a table, links, bold.
 - Verify: Storybook, at both sizes; the four checks.
 
-### M4: Navigation, the list and delete, from seeded data
+### M4: Navigation, the list and delete
 
-- `bun run seed:conversations <email>` (root and backend scripts, emulators only, refusing otherwise
-  as `grantAdministrator.ts` does), writing ad hoc GraphQL through `executeGraphql` so no seed
-  operation is ever deployed: the design's seven conversations, every kind of entry, with positions,
-  counters and `createdAt` set explicitly and each `preview` built by `buildConversationPreview`.
+- **No seed.** The plan first had M4 write the design's conversations into the emulators with a
+  `bun run seed:conversations <email>` script. David dropped it on 2026-10-04 as not needed, so none
+  exists, and no later milestone relies on one: a page is looked at against conversations written
+  into the emulators for the check at hand, and from M6 on against ones sent through the route.
+  The list's SQL conditions are checked by `check:conversation-list` in the backend, which makes and
+  removes its own rows.
 - The `conversation` message type (its module and its `MESSAGE_TYPES` entry), registered in
   `_app.tsx`'s `APP_MESSAGE_TYPES`.
 - Sidebar: the "Reflection" group with Conversations and Knowledge, Conversations staff only, its
@@ -169,8 +171,8 @@ The data model, with nothing yet using it.
   `GetConversations`, `GetConversationsAwaitingAnswer`, `DeleteConversation`,
   `RestoreConversation`.
 - Tests: wording a preview; restoring at the cap refused.
-- Verify: seed, then the list at desktop and phone widths against the design; delete and undo; a
-  non-staff account sees no item and is redirected.
+- Verify: the list at desktop and phone widths against the design; delete and undo; a non-staff
+  account sees no item and is redirected.
 
 ### M5: The conversation page and its thread, read-only
 
@@ -198,9 +200,9 @@ The data model, with nothing yet using it.
   `GetConversation`, `GetConversationMessageBodies`, `GetConversationMessagesBefore`,
   `GetConversationRun`, `GetConversationToolCall`, `MarkConversationRead` and
   `UpdateConversationAspects`.
-- Verify: the seeded conversations against the design at both widths; switching organization on a
-  conversation's page goes back to the list; a non-staff account sent to a conversation's address
-  is redirected to `/today`.
+- Verify: conversations written into the emulators, since there is no seed (see M4), against the
+  design at both widths; switching organization on a conversation's page goes back to the list; a
+  non-staff account sent to a conversation's address is redirected to `/today`.
 
 ### M6: Runs without a model, in the backend's process
 

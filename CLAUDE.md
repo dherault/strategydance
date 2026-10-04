@@ -410,6 +410,15 @@ A conversation is kept twice, once for Claude and once for the page, and
   `nextMessagePosition`, moving it on under `@check(this == 1)`, and a writer that loses the race
   reads it again and retries. The counter only grows, so a deleted message leaves a gap rather
   than a position used twice
+- A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
+  auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
+  the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
+  mutations, run through the Admin SDK, carry no `mutation.auth.uid` and take the verified
+  `$userId` anyway
+- Until conversations launch, they are for administrators of Strategy Dance alone
+  (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
+  every page under `/conversations/` sits behind the bouncer its layout route mounts. Locally,
+  `bun run grant:administrator` makes an account staff
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task

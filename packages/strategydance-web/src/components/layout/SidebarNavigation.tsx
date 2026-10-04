@@ -1,4 +1,3 @@
-import { Link, type LinkProps, useRouterState } from '@tanstack/react-router'
 import {
   Building2Icon,
   CalendarIcon,
@@ -9,69 +8,30 @@ import {
   StoreIcon,
   UsersRoundIcon,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
 import { CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from 'strategydance-design-system/components/ui/Sidebar'
-import useSidebar from 'strategydance-design-system/hooks/useSidebar'
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from 'strategydance-design-system/components/ui/Sidebar'
 
 import { COMPANY_ASPECTS } from '~constants'
 
+import useCanUseConversations from '~hooks/conversation/useCanUseConversations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUser from '~hooks/user/useUser'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
 
+import ConversationsNavigationLink from '~components/conversation/ConversationsNavigationLink'
+import NavigationLink from '~components/layout/NavigationLink'
+
 import aspectMessages from '~data/intl/aspectMessages'
 import navigationMessages from '~data/intl/messages/navigation'
-
-type NavigationLinkProps = {
-  // Matched against the current path to mark the row active
-  path: string
-  // Active on the pages under the path too, as the knowledge's row is on each document's
-  isNested?: boolean
-  label: string
-  icon: ReactNode
-  link: LinkProps
-}
-
-function NavigationLink({ path, isNested = false, label, icon, link }: NavigationLinkProps) {
-  const { isMobile, setOpenMobile } = useSidebar()
-  const pathname = useRouterState({ select: state => state.location.pathname })
-  const isActive = pathname === path || (isNested && pathname.startsWith(`${path}/`))
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        asChild
-        isActive={isActive}
-      >
-        <Link
-          {...link}
-          // On a narrow screen the sidebar is a panel over the page, which should get out of the way
-          onClick={() => {
-            if (isMobile) setOpenMobile(false)
-          }}
-        >
-          {icon}
-          <span>{label}</span>
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
-}
 
 function SidebarNavigation() {
   const { formatMessage } = useIntl()
   const { organization, role } = useCurrentOrganization()
   const { data: user } = useUser()
+  const canUseConversations = useCanUseConversations()
 
   /*
     The organization's explored aspects, in `COMPANY_ASPECTS`'s order rather than the order they
@@ -122,6 +82,12 @@ function SidebarNavigation() {
               link={{ to: '/explore' }}
             />
           ) : null}
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>{formatMessage(navigationMessages.reflection)}</SidebarGroupLabel>
+        <SidebarMenu>
+          {canUseConversations ? <ConversationsNavigationLink /> : null}
           <NavigationLink
             path="/knowledge"
             isNested

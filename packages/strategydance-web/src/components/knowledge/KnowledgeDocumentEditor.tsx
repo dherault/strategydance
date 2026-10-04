@@ -35,9 +35,9 @@ import writeOptimistically from '~utils/common/writeOptimistically'
 import getPresenceColor from '~utils/knowledge/getPresenceColor'
 
 import Spinner from '~components/common/Spinner'
+import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
 import KnowledgeDocumentAiMenu from '~components/knowledge/KnowledgeDocumentAiMenu'
-import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumentAspectIcons'
 import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
@@ -377,7 +377,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             className="flex h-8 cursor-pointer items-center rounded-xs border-0 bg-transparent px-1 font-sans text-sm text-neutral-600 transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
           >
             {aspects.length ? (
-              <KnowledgeDocumentAspectIcons
+              <CompanyAspectIcons
                 aspects={aspects}
                 size={18}
                 className="gap-2 px-1"

@@ -6,6 +6,7 @@ import type {
   GetAdministrationUsersData,
   GetChecklistData,
   GetCurrentUserData,
+  GetConversationsData,
   GetCurrentUserOrganizationsData,
   GetDocumentData,
   GetOrganizationDocumentsData,
@@ -225,3 +226,9 @@ export type StreakDay = {
   isToday: boolean
   isFuture: boolean
 }
+
+/*
+  One of the reader's conversations as the list reads it: its title, aspects, whether a run goes or
+  a question waits, the preview of its last entry and when it last changed, never a message's text
+*/
+export type ConversationSummary = GetConversationsData['conversations'][number]

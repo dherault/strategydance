@@ -30,7 +30,19 @@ describe('getStreakDays', () => {
 
     expect(calendar).toHaveLength(35)
     expect(calendar[0].date).toBe('2026-08-31')
-    expect(calendar[1]).toEqual({ date: '2026-09-01', isOn: true, isToday: false, isFuture: false })
+    expect(calendar[1]).toEqual({ date: '2026-09-01', isOn: true, isCharged: false, isToday: false, isFuture: false })
     expect(calendar[34].date).toBe('2026-10-04')
+  })
+
+  it('flags the days a charge kept, and only those that were not active nor still to come', () => {
+    // A Tuesday
+    const week = getStreakDays(['2026-09-28'], '2026-09-30', 1, [
+      '2026-09-28',
+      '2026-09-29',
+      '2026-09-30',
+      '2026-10-01',
+    ])
+
+    expect(week.map(day => day.isCharged)).toEqual([false, true, true, false, false, false, false])
   })
 })

@@ -107,8 +107,9 @@ const TONE_VARIABLES: Record<CardTone, Variables> = {
 }
 
 /*
-  A flame's three layers, outside in, what it sits on when a day is lit, and how an unlit one is
-  outlined: in the accent's shades, or in a real flame's reds and yellows whatever the tone
+  A flame's three layers, outside in, what it sits on when a day is lit, how an unlit one is
+  outlined, and the battery of a day a charge kept: in the accent's shades, or in a real flame's
+  reds and yellows whatever the tone, where the battery takes the text color rather than a red
 */
 function getFlameVariables(tone: CardTone, flameColor: FlameColor): Variables {
   const off: Variables = {
@@ -128,6 +129,7 @@ function getFlameVariables(tone: CardTone, flameColor: FlameColor): Variables {
       '--flame-inner': 'var(--color-warning-bg)',
       '--flame-background': 'var(--color-warning-bg)',
       '--flame-foreground': 'var(--color-secondary-900)',
+      '--flame-charge': 'currentColor',
     }
   }
 
@@ -139,6 +141,7 @@ function getFlameVariables(tone: CardTone, flameColor: FlameColor): Variables {
       '--flame-inner': 'var(--card-accent)',
       '--flame-background': 'var(--card-panel)',
       '--flame-foreground': 'inherit',
+      '--flame-charge': 'var(--flame-outer)',
     }
   }
 
@@ -149,6 +152,7 @@ function getFlameVariables(tone: CardTone, flameColor: FlameColor): Variables {
     '--flame-inner': '#ffffff',
     '--flame-background': 'var(--card-panel)',
     '--flame-foreground': 'inherit',
+    '--flame-charge': 'var(--flame-outer)',
   }
 }
 

@@ -164,11 +164,26 @@ const INLINE_MARKUP_PATTERNS: [RegExp, string][] = [
   [/\\([!-/:-@[-`{-~])/g, '$1'],
 ]
 
+/*
+  What stands in for a code span while the rest of the markup is read, around the span's index:
+  U+0000, which no pattern reads as a delimiter and a preview drops anyway, so the text loses it
+  first and a mark can only be one
+*/
+const CODE_SPAN_MARK = '\u0000'
+
+// The code spans first, set aside behind their marks so the patterns never read what they hold,
+// then put back as written
 function stripInlineMarkdown(text: string) {
+  const codeSpans: string[] = []
+  const marked = markCodeSpans(text.replaceAll(CODE_SPAN_MARK, ''), codeSpans)
+
   return INLINE_MARKUP_PATTERNS.reduce(
     (stripped, [pattern, replacement]) => stripped.replace(pattern, replacement),
-    stripCodeSpans(text),
+    marked,
   )
+    .split(CODE_SPAN_MARK)
+    .map((part, index) => (index % 2 ? (codeSpans[Number(part)] ?? '') : part))
+    .join('')
 }
 
 /*
@@ -179,13 +194,14 @@ function stripInlineMarkdown(text: string) {
 const BACKTICK_RUN_PATTERN = /`(?<=(?:^|[^\\])(?:\\\\)*`)`*/g
 
 /*
-  Code spans, to their text, first, so emphasis around one is still found. As CommonMark has it, a
-  run of backticks opens a span that the next run of the same length closes, so a longer run can
+  Each code span, replaced by a mark around its index in `codeSpans`, where its text goes, so
+  emphasis around it is still found and nothing inside it is read as markup. As CommonMark has it,
+  a run of backticks opens a span that the next run of the same length closes, so a longer run can
   hold shorter ones, and one that nothing closes stays as written. Each run's closing one is found
   in a single pass from the end, rather than by searching past it, which keeps a message full of
   unpaired runs linear
 */
-function stripCodeSpans(text: string) {
+function markCodeSpans(text: string, codeSpans: string[]) {
   const runs = Array.from(text.matchAll(BACKTICK_RUN_PATTERN), match => ({
     start: match.index,
     end: match.index + match[0].length,
@@ -200,7 +216,7 @@ function stripCodeSpans(text: string) {
     nextRunOfLength.set(length, index)
   }
 
-  let stripped = ''
+  let marked = ''
   let position = 0
 
   for (let index = 0; index < runs.length; index++) {
@@ -213,12 +229,13 @@ function stripCodeSpans(text: string) {
     // One space on each side is padding, which lets a span start or end with a backtick
     if (code.startsWith(' ') && code.endsWith(' ') && code.trim()) code = code.slice(1, -1)
 
-    stripped += text.slice(position, runs[index].start) + code
+    marked += `${text.slice(position, runs[index].start)}${CODE_SPAN_MARK}${codeSpans.length}${CODE_SPAN_MARK}`
+    codeSpans.push(code)
     position = runs[closingIndex].end
     index = closingIndex
   }
 
-  return stripped + text.slice(position)
+  return marked + text.slice(position)
 }
 
 /*

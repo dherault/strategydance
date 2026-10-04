@@ -111,6 +111,11 @@ describe('buildConversationPreview', () => {
     expect(previewText('Not \\\\\\`code` here')).toBe('Not \\`code` here')
   })
 
+  it('keeps what a code span holds as written', () => {
+    expect(previewText('Write `*literal*`, `\\*` and `[a](b)` as is')).toBe('Write *literal*, \\* and [a](b) as is')
+    expect(previewText('**Call `read_knowledge`** in [`search`](doc:a)')).toBe('Call read_knowledge in search')
+  })
+
   it('keeps an underscore inside a word', () => {
     expect(previewText('I called read_knowledge and search_knowledge.')).toBe(
       'I called read_knowledge and search_knowledge.',

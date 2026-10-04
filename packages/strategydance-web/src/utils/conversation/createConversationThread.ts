@@ -124,12 +124,25 @@ function createConversationThread({
     for (const listener of listeners) listener()
   }
 
-  function addBodies(found: ConversationMessageBody[]) {
-    if (!found.length) return
+  /*
+    Keeps the bodies of the entries the thread holds, with any just read, and lets go of the rest:
+    the replies a Retry deleted, and a body that landed after its entry went. An entry held from
+    before a gap or a Retry, until the pages read again replace it, keeps its own
+  */
+  function keepBodies(found: ConversationMessageBody[] = []) {
+    const held = new Set(state.entries.map(({ id }) => id))
+    const isPruning = [...bodies.keys()].some(id => !held.has(id))
+    const kept = found.filter(({ id }) => held.has(id))
 
-    const next = new Map(bodies)
+    for (const id of bodiesMissing) {
+      if (!held.has(id)) bodiesMissing.delete(id)
+    }
 
-    for (const body of found) next.set(body.id, body)
+    if (!isPruning && !kept.length) return
+
+    const next = new Map(isPruning ? [...bodies].filter(([id]) => held.has(id)) : bodies)
+
+    for (const body of kept) next.set(body.id, body)
 
     bodies = next
   }
@@ -171,7 +184,7 @@ function createConversationThread({
       const previous = state
 
       state = mergeConversationPage(state, { before, ...page }, pageLength)
-      addBodies(page.messages.map(toBody))
+      keepBodies(page.messages.map(toBody))
 
       if (state !== previous && isForReader) isOlderWanted = false
 
@@ -227,7 +240,7 @@ function createConversationThread({
       }
 
       bodiesRetryDelayMs = bodiesRetryDelay
-      addBodies(found)
+      keepBodies(found)
       emit()
     } catch (error) {
       console.error('Messages could not be read', error)
@@ -245,7 +258,10 @@ function createConversationThread({
       state = mergeConversationTail(state, next, tailLength)
       isGone = false
 
-      if (state !== previous) emit()
+      if (state !== previous) {
+        keepBodies()
+        emit()
+      }
 
       schedule()
     },

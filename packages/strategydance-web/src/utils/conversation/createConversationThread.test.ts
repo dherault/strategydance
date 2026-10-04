@@ -241,6 +241,13 @@ describe('createConversationThread', () => {
     expect(positions()).toEqual(server.positions())
     expect(thread.getSnapshot().entries.some(({ run }) => run?.id === 'retried')).toBe(false)
     expect(thread.getSnapshot().isFilling).toBe(false)
+    // Their bodies go with them
+    expect([...thread.getSnapshot().bodies.keys()].sort()).toEqual(
+      server
+        .positions()
+        .map(position => `message-${position}`)
+        .sort(),
+    )
   })
 
   it('drops a run deleted wholly below the tail', async () => {

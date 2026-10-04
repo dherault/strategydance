@@ -13,6 +13,12 @@ const HIDDEN_TEXT_CHARACTERS =
   // oxlint-disable-next-line no-control-regex
   /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g
 
+/*
+  How deep the layout indents. Deeper nesting keeps its lines and every token, at this indent: a
+  payload of 2000 nested arrays would otherwise grow to millions of spaces
+*/
+const MAX_INDENT_DEPTH = 20
+
 function escape(character: string) {
   return `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`
 }
@@ -34,7 +40,7 @@ function layOut(text: string) {
   let index = 0
 
   function breakLine() {
-    return `\n${'  '.repeat(depth)}`
+    return `\n${'  '.repeat(Math.min(depth, MAX_INDENT_DEPTH))}`
   }
 
   while (index < text.length) {

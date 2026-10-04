@@ -49,6 +49,16 @@ describe('formatConversationToolJson', () => {
     expect(formatConversationToolJson('line one\nline\u0000two')).toBe('line one\nline\\u0000two')
   })
 
+  it('stops indenting past 20 levels, keeping every token', () => {
+    const nested = `${'['.repeat(2000)}1${']'.repeat(2000)}`
+    const shown = formatConversationToolJson(nested)
+
+    expect(shown.length).toBeLessThan(200_000)
+    expect(shown.replace(/\s/g, '')).toBe(nested)
+    expect(shown).toContain(`\n${'  '.repeat(20)}[`)
+    expect(shown).not.toContain(`\n${'  '.repeat(21)}`)
+  })
+
   it('shows nothing for a call with no output yet', () => {
     expect(formatConversationToolJson(null)).toBe('')
   })

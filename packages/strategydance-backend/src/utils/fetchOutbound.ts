@@ -61,7 +61,8 @@ const PORTS: Record<string, string> = { 'http:': '80', 'https:': '443' }
   goes to the one checked rather than to whatever a second resolution would answer, so a name that
   answers a public address to the check and a private one to the connection reaches nothing. A
   redirect is followed by hand, as many as `maxRedirects`, each checked the same way. The whole
-  fetch has a deadline, and the body is read up to `maxBytes`, past which it is cut.
+  fetch has a deadline, resolutions included, and the body is read up to `maxBytes`, past which it
+  is cut.
 
   It sends no cookie nor credential, and asks for an uncompressed body, so the byte count is the
   body's. A refused address throws an `OutboundRefusal`; a network failure, a timeout included,
@@ -83,7 +84,7 @@ async function fetchOutbound(
   let url = parseAddress(address)
 
   for (let redirects = 0; ; redirects++) {
-    const target = await resolveChecked(url, resolve)
+    const target = await resolveChecked(url, resolve, signal)
     const response = await send(url, target, requestHeaders, signal)
     const location = response.headers.location
 
@@ -120,18 +121,30 @@ function parseAddress(address: string) {
   return url
 }
 
-// The address to connect to, once every address the hostname resolves to is public
-async function resolveChecked(url: URL, resolve: NonNullable<FetchOutboundOptions['resolve']>) {
+// The address to connect to, once every address the hostname resolves to is public, within the deadline
+async function resolveChecked(url: URL, resolve: NonNullable<FetchOutboundOptions['resolve']>, signal: AbortSignal) {
   // The URL parser writes an IPv6 hostname in brackets, which neither the resolver nor the check reads
   const hostname = url.hostname.replace(/^\[(.*)\]$/, '$1')
   const family = isIP(hostname)
-  const addresses = family ? [{ address: hostname, family }] : await resolve(hostname)
+  const addresses = family ? [{ address: hostname, family }] : await untilAborted(resolve(hostname), signal)
 
   if (!addresses.length || !addresses.every(({ address }) => isGloballyRoutableAddress(address))) {
     throw new OutboundRefusal(`Not a public address: ${url.hostname}`)
   }
 
   return addresses[0]
+}
+
+// What a promise settles to, or the signal's reason once it aborts first, a stalled resolver's say
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal) {
+  if (signal.aborted) return Promise.reject(signal.reason)
+
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason)
+
+    signal.addEventListener('abort', abort, { once: true })
+    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
+  })
 }
 
 async function resolveHostname(hostname: string) {

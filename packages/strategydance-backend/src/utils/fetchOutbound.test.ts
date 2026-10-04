@@ -178,6 +178,21 @@ describe('fetchOutbound', () => {
     expect(response.body.toString()).toBe('a'.repeat(600) + 'b'.repeat(400))
   })
 
+  test('gives up past its deadline while the hostname resolves', async () => {
+    const send = createSender()
+
+    await expect(
+      fetchOutbound('https://stalled.example/', {
+        ...OPTIONS,
+        timeoutMs: 20,
+        // A resolver that never answers
+        resolve: () => new Promise<ResolvedAddress[]>(() => {}),
+        send,
+      }),
+    ).rejects.toThrow()
+    expect(send).not.toHaveBeenCalled()
+  })
+
   test('gives up past its deadline', async () => {
     // A server that never answers, but to the signal
     const send = mock(

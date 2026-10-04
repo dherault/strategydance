@@ -10,6 +10,7 @@ import {
   type RichTextHeadingLevel,
   type RichTextInline,
   type RichTextRun,
+  type RichTextTableContent,
   type RichTextTextBlock,
   getRichTextBlockTypes,
 } from 'strategydance-design-system/lib/richText'
@@ -87,12 +88,14 @@ function renderHeading(level: RichTextHeadingLevel, content: ReactNode) {
 }
 
 function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
-  const content = renderContent(block)
+  const content = block.type === 'table' ? null : renderContent(block)
   const element =
     block.type === 'codeBlock' ? (
       <pre className={RICH_TEXT_CLASSES.code}>
         <code data-language={block.props?.language ?? 'text'}>{block.content?.[0].text}</code>
       </pre>
+    ) : block.type === 'table' ? (
+      renderTable(block.content)
     ) : block.type === 'heading' ? (
       renderHeading(block.props?.level ?? 2, content)
     ) : block.type === 'quote' ? (
@@ -200,8 +203,72 @@ function renderCheckItem(item: RichTextTextBlock, listDepth: number, key: number
   )
 }
 
+/*
+  A table, its first row a header row and its first column a header column when it says so, and
+  its columns as wide as the editor resized them, or as their text from the editor's least width
+*/
+function renderTable({ headerRows, headerCols, columnWidths, rows }: RichTextTableContent) {
+  const classes = RICH_TEXT_CLASSES.table
+  const [first, ...rest] = rows
+  const header = headerRows ? first : null
+  const body = headerRows ? rest : rows
+
+  function renderCell(cell: RichTextInline[], column: number, isHeaderRow: boolean) {
+    const className = cn(classes.cell, !columnWidths?.[column] && classes.unsizedCell)
+    const content = cell.map(renderInline)
+
+    if (isHeaderRow || (headerCols && column === 0)) {
+      return (
+        <th
+          key={column}
+          scope={isHeaderRow ? 'col' : 'row'}
+          className={cn(className, classes.header)}
+        >
+          {content}
+        </th>
+      )
+    }
+
+    return (
+      <td
+        key={column}
+        className={className}
+      >
+        {content}
+      </td>
+    )
+  }
+
+  return (
+    <div className={classes.container}>
+      <table className={classes.table}>
+        {columnWidths ? (
+          <colgroup>
+            {columnWidths.map((width, column) => (
+              <col
+                key={column}
+                style={width ? { width } : undefined}
+              />
+            ))}
+          </colgroup>
+        ) : null}
+        {header ? (
+          <thead>
+            <tr>{header.cells.map((cell, column) => renderCell(cell, column, true))}</tr>
+          </thead>
+        ) : null}
+        <tbody>
+          {body.map((row, index) => (
+            <tr key={index}>{row.cells.map((cell, column) => renderCell(cell, column, false))}</tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // A block's text, or a line break holding its line when it has none, as the editor draws it
-function renderContent(block: RichTextBlock): ReactNode {
+function renderContent(block: Exclude<RichTextBlock, { type: 'table' }>): ReactNode {
   if (!block.content) return <br />
 
   return block.content.map(renderInline)

@@ -44,6 +44,25 @@ describe('createRichTextYUpdate', () => {
     expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
   })
 
+  it('lays a table in with its header row, its widths and its empty cells', () => {
+    const value = JSON.stringify([
+      {
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          headerRows: 1,
+          columnWidths: [150, null],
+          rows: [
+            { cells: [[{ type: 'text', text: 'Name' }], [{ type: 'text', text: 'Score' }]] },
+            { cells: [[{ type: 'text', text: 'Ada', styles: { italic: true } }], []] },
+          ],
+        },
+      },
+    ])
+
+    expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
+  })
+
   it('lays an empty text in as one empty paragraph', () => {
     for (const value of ['', null]) {
       const blocks = readBlocks(createRichTextYUpdate(value))

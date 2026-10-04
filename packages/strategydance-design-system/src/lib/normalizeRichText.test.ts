@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
+import type { RichTextTableBlock, RichTextTextBlock } from 'strategydance-design-system/lib/richText'
 
 // A block as BlockNote's editor hands it over, with its id and its default props
 function editorBlock(
@@ -181,6 +182,126 @@ describe('normalizeRichText', () => {
     ).toEqual([{ type: 'codeBlock', content: [{ type: 'text', text: 'see docs' }] }])
   })
 
+  describe('keeps a table on its grid', () => {
+    // A cell as BlockNote's editor hands it over, with every prop it carries
+    function cell(content: unknown[], props: Record<string, unknown> = {}) {
+      return {
+        type: 'tableCell',
+        content,
+        props: {
+          colspan: 1,
+          rowspan: 1,
+          backgroundColor: 'default',
+          textColor: 'default',
+          textAlignment: 'left',
+          ...props,
+        },
+      }
+    }
+
+    function table(content: Record<string, unknown>) {
+      return { ...editorBlock('table', [], {}), content: { type: 'tableContent', ...content } }
+    }
+
+    it('keeps its cells as their text, its widths and its header row', () => {
+      expect(
+        normalizeRichText([
+          table({
+            columnWidths: [180.4, undefined],
+            headerRows: 1,
+            rows: [
+              { cells: [cell([text('Name', { bold: true })]), cell([text('Score')])] },
+              { cells: [cell([text('Ada')]), cell([])] },
+            ],
+          }),
+        ]),
+      ).toEqual([
+        {
+          type: 'table',
+          content: {
+            type: 'tableContent',
+            headerRows: 1,
+            columnWidths: [180, null],
+            rows: [
+              {
+                cells: [[{ type: 'text', text: 'Name', styles: { bold: true } }], [{ type: 'text', text: 'Score' }]],
+              },
+              { cells: [[{ type: 'text', text: 'Ada' }], []] },
+            ],
+          },
+        },
+      ])
+    })
+
+    it('reads cells written as their text, or as a string', () => {
+      expect(normalizeRichText([table({ rows: [{ cells: [[text('a')], 'b'] }] })])[0]).toEqual({
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          rows: [{ cells: [[{ type: 'text', text: 'a' }], [{ type: 'text', text: 'b' }]] }],
+        },
+      })
+    })
+
+    it('splits merged cells, so every cell keeps its column', () => {
+      const rows = (
+        normalizeRichText([
+          table({
+            rows: [
+              { cells: [cell([text('a')], { colspan: 2 }), cell([text('b')], { rowspan: 2 })] },
+              { cells: [cell([text('c')]), cell([text('d')])] },
+              { cells: [cell([text('e')])] },
+            ],
+          }),
+        ])[0] as RichTextTableBlock
+      ).content.rows
+
+      expect(rows.map(row => row.cells.map(cells => (cells[0] as { text?: string } | undefined)?.text ?? ''))).toEqual([
+        ['a', '', 'b'],
+        ['c', 'd', ''],
+        ['e', '', ''],
+      ])
+    })
+
+    it('says whether its first column is a header, but of a table of one header row', () => {
+      const read = (content: Record<string, unknown>) =>
+        (normalizeRichText([table(content)])[0] as RichTextTableBlock).content
+
+      expect(read({ headerCols: 1, rows: [{ cells: ['a'] }, { cells: ['b'] }] }).headerCols).toBe(1)
+      expect(read({ headerRows: 1, headerCols: 2, rows: [{ cells: ['a', 'b'] }] })).toMatchObject({ headerRows: 1 })
+      expect(read({ headerRows: 1, headerCols: 2, rows: [{ cells: ['a', 'b'] }] }).headerCols).toBeUndefined()
+      expect(read({ headerRows: 0, headerCols: '1', rows: [{ cells: ['a'] }] })).toEqual({
+        type: 'tableContent',
+        rows: [{ cells: [[{ type: 'text', text: 'a' }]] }],
+      })
+    })
+
+    it('holds its widths within bounds, and leaves them out when none is set', () => {
+      const read = (columnWidths: unknown) =>
+        (normalizeRichText([table({ columnWidths, rows: [{ cells: ['a', 'b', 'c'] }] })])[0] as RichTextTableBlock)
+          .content.columnWidths
+
+      expect(read([10, 5000, 'wide'])).toEqual([35, 2000, null])
+      expect(read([null, undefined])).toBeUndefined()
+      expect(read('wide')).toBeUndefined()
+    })
+
+    it('keeps at most 25 columns and 200 rows, and drops a table without a cell for its children', () => {
+      const wide = normalizeRichText([
+        table({ rows: Array.from({ length: 250 }, () => ({ cells: Array(30).fill('x') })) }),
+      ])
+      const { rows } = (wide[0] as RichTextTableBlock).content
+
+      expect(rows).toHaveLength(200)
+      expect(rows[0].cells).toHaveLength(25)
+      expect(
+        normalizeRichText([
+          { ...table({ rows: [{ cells: [] }] }), children: [editorBlock('paragraph', [text('Under')])] },
+        ]),
+      ).toEqual([{ type: 'paragraph', content: [{ type: 'text', text: 'Under' }] }])
+    })
+  })
+
   it('reads plain strings as text, and an unknown inline element as its text', () => {
     expect(
       normalizeRichText([{ type: 'paragraph', content: ['Hello ', { type: 'mention', content: [text('Ada')] }] }]),
@@ -200,7 +321,8 @@ describe('normalizeRichText', () => {
 
   it('keeps a numbered start only when it is a whole number other than 1, or 0, which the editor numbers from 1', () => {
     const starts = [1, 0, 7, 2.5, '4'].map(
-      start => normalizeRichText([editorBlock('numberedListItem', [text('a')], { start })])[0]?.props,
+      start =>
+        (normalizeRichText([editorBlock('numberedListItem', [text('a')], { start })])[0] as RichTextTextBlock).props,
     )
 
     expect(starts).toEqual([undefined, undefined, { start: 7 }, undefined, undefined])

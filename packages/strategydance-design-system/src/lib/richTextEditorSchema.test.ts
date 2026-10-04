@@ -57,4 +57,11 @@ describe('createRichTextSchema', () => {
     expect(read('language-cobol')).toEqual({ language: 'text' })
     expect(read('')).toEqual({ language: 'text' })
   })
+
+  it('writes tables without colors', () => {
+    const blockSchema = readBlockSchema(['table'])
+
+    expect(Object.keys(blockSchema).sort()).toEqual(['paragraph', 'table'])
+    expect(Object.keys(blockSchema.table.propSchema)).toEqual([])
+  })
 })

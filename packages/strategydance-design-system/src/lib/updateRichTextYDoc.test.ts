@@ -639,6 +639,38 @@ describe('updateRichTextYDoc', () => {
     })
   })
 
+  describe('writes in a table', () => {
+    function table(...rows: string[][]): RichTextBlock {
+      return {
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          rows: rows.map(cells => ({ cells: cells.map(cell => (cell ? [{ type: 'text', text: cell }] : [])) })),
+        },
+      }
+    }
+
+    it("replaces a piece of text in one of a table's cells", () => {
+      const doc = createDoc([table(['Name', 'Score'], ['Ada', '9'])])
+
+      expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'Ada', replace: 'Grace' })).toEqual({
+        outcome: 'updated',
+      })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([table(['Name', 'Score'], ['Grace', '9'])])
+    })
+
+    it('appends a table, its empty cells included', () => {
+      const doc = createDoc([paragraph('Before')])
+
+      expect(updateRichTextYDoc(doc, { type: 'append', blocks: [table(['a', ''], ['', 'b'])] })).toEqual({
+        outcome: 'updated',
+      })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([paragraph('Before'), table(['a', ''], ['', 'b'])])
+    })
+  })
+
   it('appends to a document with no text yet in place of its empty paragraph', () => {
     const doc = createDoc([])
 

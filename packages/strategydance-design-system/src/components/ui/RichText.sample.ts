@@ -53,6 +53,33 @@ const richTextSample = JSON.stringify(richTextSampleBlocks)
 // A knowledge document: the post, then every block a document adds to it
 const richTextDocumentSampleBlocks: RichTextBlock[] = [
   ...richTextSampleBlocks,
+  {
+    type: 'table',
+    content: {
+      type: 'tableContent',
+      headerRows: 1,
+      columnWidths: [180, null, null],
+      rows: [
+        {
+          cells: [
+            [{ type: 'text', text: 'Endpoint' }],
+            [{ type: 'text', text: 'Before' }],
+            [{ type: 'text', text: 'After' }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: 'text', text: '/feed', styles: { bold: true } }],
+            [{ type: 'text', text: '410ms' }],
+            [{ type: 'text', text: '230ms' }],
+          ],
+        },
+        {
+          cells: [[{ type: 'text', text: '/tasks', styles: { bold: true } }], [{ type: 'text', text: '180ms' }], []],
+        },
+      ],
+    },
+  },
   { type: 'heading', content: [{ type: 'text', text: 'The indexes' }] },
   {
     type: 'codeBlock',

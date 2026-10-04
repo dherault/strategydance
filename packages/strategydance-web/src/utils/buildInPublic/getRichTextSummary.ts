@@ -1,5 +1,6 @@
 import { getRichTextInlineText, getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
+import type { RichTextTextBlock } from 'strategydance-design-system/lib/richText'
 
 const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -12,7 +13,7 @@ const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 function getRichTextSummary(value: string) {
   const blocks = parseRichText(value)
   const firstText = blocks
-    .filter(block => block.type === 'paragraph' || block.type === 'heading')
+    .filter((block): block is RichTextTextBlock => block.type === 'paragraph' || block.type === 'heading')
     .map(block => fold(getRichTextInlineText(block.content ?? [])))
     .find(Boolean)
   const quoteBlock = blocks.find(block => block.type === 'quote')

@@ -27,6 +27,24 @@ describe('getRichTextText', () => {
     ).toBe('Ship it\nOne\nTwo\n\nsite')
   })
 
+  it('reads code as its lines, and a table as a line per row, its cells apart by a tab', () => {
+    expect(
+      getRichTextText([
+        { type: 'codeBlock', content: [{ type: 'text', text: 'a\nb' }] },
+        {
+          type: 'table',
+          content: {
+            type: 'tableContent',
+            rows: [
+              { cells: [[{ type: 'text', text: 'One' }], []] },
+              { cells: [[{ type: 'text', text: 'Two' }], [{ type: 'text', text: 'Three' }]] },
+            ],
+          },
+        },
+      ]),
+    ).toBe('a\nb\nOne\t\nTwo\tThree')
+  })
+
   it('reads no blocks as nothing', () => {
     expect(getRichTextText([])).toBe('')
   })

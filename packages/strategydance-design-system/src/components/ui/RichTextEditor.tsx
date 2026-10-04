@@ -1,8 +1,13 @@
 import { syntaxHighlighter } from '@blocknote/code-block'
 import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
-import { FormattingToolbarExtension, SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
+import {
+  FormattingToolbarExtension,
+  SideMenuExtension,
+  SuggestionMenu,
+  TableHandlesExtension,
+} from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
-import { DesktopFormattingToolbarController } from '@blocknote/react'
+import { DesktopFormattingToolbarController, TableHandlesController } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
@@ -117,8 +122,9 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   a selection raises a toolbar of the four styles, a link and the block it is in. Markdown's
   shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
-  nested by Tab, text in bold, italic, underline and strikethrough, links, and code, colored in
-  the language picked over it, which is everything `RichText` draws back.
+  nested by Tab, text in bold, italic, underline and strikethrough, links, code, colored in the
+  language picked over it, and tables, grown and headed from the handles on their edges, which is
+  everything `RichText` draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
   `normalizeRichText` keeps, serialized, whether they hold any text and how much, and a parent that
@@ -248,6 +254,8 @@ function RichTextEditor({
         <RichTextEditorSlashMenuController getItems={getSlashMenuItems} />
         <RichTextEditorSideMenuController />
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
+        {/* Only an editor writing tables has the extension, which the handles throw without */}
+        {editor.getExtension(TableHandlesExtension) ? <TableHandlesController /> : null}
       </BlockNoteView>
     </div>
   )
@@ -274,6 +282,8 @@ function createEditor({
     trailingBlock: false,
     // Colors code as shiki does, each language's grammar loaded the first time a block is in it
     extensions: blocks.includes('code') ? [syntaxHighlighter] : [],
+    // A table's first row or column made a header from its handles, and no colors nor merged cells
+    tables: { headers: true },
   }
 
   // A shared text opens on its document, so nothing seeds it, and its history is Yjs' own, which

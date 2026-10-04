@@ -25,6 +25,16 @@ const richTextClasses = {
   quote: 'mb-2 border-l-2 border-neutral-300 pl-3 text-neutral-600',
   // Its lines as typed, scrolling sideways rather than wrapping, as the editor sets it
   code: 'mb-2 overflow-x-auto rounded-xs bg-neutral-100 px-4 py-3 font-mono text-[13px] leading-[1.6] whitespace-pre [tab-size:2] text-secondary',
+  // A table scrolls sideways when it is wider than the text, its columns as wide as their text
+  // from a width up, or as the editor resized them
+  table: {
+    container: 'mb-2 overflow-x-auto',
+    table: 'border-collapse',
+    cell: 'border border-neutral-200 px-2.5 py-1.5 text-left align-top',
+    header: 'bg-neutral-100 font-semibold',
+    // A column nobody resized, as wide as the editor makes it at the least
+    unsizedCell: 'min-w-[120px]',
+  },
   bulletedList: 'mb-2 pl-[22px]',
   bulletMarkers: ['list-disc', 'list-[circle]', 'list-[square]'],
   numberedList: 'mb-2 list-decimal pl-[22px]',
@@ -73,7 +83,7 @@ export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
  * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike.
  * Each is one or more of the stored block types, as `getRichTextBlockTypes` names them
  */
-export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code'
+export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code' | 'table'
 
 /**
  * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
@@ -87,7 +97,14 @@ export const RICH_TEXT_POST_BLOCKS: readonly RichTextEditorBlock[] = ['heading',
  * document's. The Yjs helpers default to it too, and a shared text has to be read with the
  * schema its editor writes, since a read deletes whatever block the schema lacks
  */
-export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist', 'code']
+export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
+  'heading',
+  'quote',
+  'list',
+  'checklist',
+  'code',
+  'table',
+]
 
 /**
  * The languages a code block is written in, by shiki's ids, each with its name and the names it is
@@ -174,6 +191,7 @@ export function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): R
     ...(blocks.includes('list') ? (['bulletListItem', 'numberedListItem'] as const) : []),
     ...(blocks.includes('checklist') ? (['checkListItem'] as const) : []),
     ...(blocks.includes('code') ? (['codeBlock'] as const) : []),
+    ...(blocks.includes('table') ? (['table'] as const) : []),
   ]
 }
 
@@ -223,7 +241,26 @@ export type RichTextCodeBlock = {
   children?: RichTextBlock[]
 }
 
-export type RichTextBlock = RichTextTextBlock | RichTextCodeBlock
+/**
+ * A table's cells, row by row, every row as wide as the widest: each cell its text, empty when it
+ * holds none. Its first row, its first column or both are headers when it says so
+ */
+export type RichTextTableContent = {
+  type: 'tableContent'
+  headerRows?: 1
+  headerCols?: 1
+  /** Each column's width in pixels, as it was resized, or null for one as wide as its text */
+  columnWidths?: (number | null)[]
+  rows: { cells: RichTextInline[][] }[]
+}
+
+export type RichTextTableBlock = {
+  type: 'table'
+  content: RichTextTableContent
+  children?: RichTextBlock[]
+}
+
+export type RichTextBlock = RichTextTextBlock | RichTextCodeBlock | RichTextTableBlock
 
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType = RichTextBlock['type']

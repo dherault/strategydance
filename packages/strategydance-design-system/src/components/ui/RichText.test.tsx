@@ -145,6 +145,33 @@ describe('RichText', () => {
     expect(render(code)).toContain('<p class="mb-2">let a = 1<br/>&lt;b&gt;bold&lt;/b&gt;</p>')
   })
 
+  it('draws a table with its header row and column, and its resized columns, where a document draws it', () => {
+    const markup = renderDocument([
+      {
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          headerRows: 1,
+          headerCols: 1,
+          columnWidths: [200, null],
+          rows: [
+            { cells: [[text('Name')], [text('Score')]] },
+            { cells: [[text('Ada')], [text('<b>9</b>', { bold: true })]] },
+          ],
+        },
+      },
+    ])
+
+    expect(markup).toContain('<colgroup><col style="width:200px"/><col/></colgroup>')
+    expect(markup).toContain(
+      '<thead><tr><th scope="col" class="border border-neutral-200 px-2.5 py-1.5 text-left align-top bg-neutral-100 font-semibold">Name</th>',
+    )
+    expect(markup).toContain('min-w-[120px] bg-neutral-100 font-semibold">Score</th></tr></thead>')
+    expect(markup).toContain('<tbody><tr><th scope="row" ')
+    expect(markup).toContain('<span class="font-semibold">&lt;b&gt;9&lt;/b&gt;</span></td>')
+    expect(render([{ type: 'table', content: { type: 'tableContent', rows: [{ cells: [[text('a')]] }] } }])).toBe('')
+  })
+
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {
     expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h1 ')
     expect(render([{ type: 'heading', content: [text('Title')] }])).toContain('<h2 ')

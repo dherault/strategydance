@@ -152,6 +152,37 @@
   color: var(--shiki-light);
 }
 
+/*
+  A table as `RichText` draws it, on the tokens: its header cells filled and set in the weight of
+  bold text. BlockNote pads the table's wrapper for the handles half inside its edges and the
+  buttons past its end that add a row or a column, which the side menu's gutter already holds on
+  the left, so the table starts where the text does
+*/
+.rich-text-editor.bn-root .bn-editor [data-content-type='table'] .tableWrapper {
+  margin-left: calc(-1 * var(--bn-table-handle-size));
+}
+
+.rich-text-editor.bn-root .bn-editor [data-content-type='table'] th,
+.rich-text-editor.bn-root .bn-editor [data-content-type='table'] td {
+  border-color: var(--color-neutral-200);
+  padding: 6px 10px;
+}
+
+.rich-text-editor.bn-root .bn-editor [data-content-type='table'] th {
+  background-color: var(--color-neutral-100);
+  font-weight: 600;
+}
+
+/* The selected cells, under the primary's lightest tint rather than prosemirror-tables' blue */
+.rich-text-editor.bn-root .bn-editor .selectedCell::after {
+  background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+}
+
+/* The column's edge being dragged */
+.rich-text-editor.bn-root .bn-editor .column-resize-handle {
+  background-color: var(--color-primary);
+}
+
 .rich-text-editor.bn-root .bn-editor strong {
   font-weight: 600;
 }

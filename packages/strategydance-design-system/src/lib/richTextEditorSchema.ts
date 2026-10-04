@@ -9,10 +9,11 @@ import {
   defaultInlineContentSpecs,
   defaultStyleSpecs,
 } from '@blocknote/core'
-import { RICH_TEXT_HEADING_LEVELS, type RichTextBlockType } from 'strategydance-design-system/lib/richText'
-
-/** A block the editor can write besides paragraphs, lists being one, bulleted and numbered alike */
-type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist'
+import {
+  RICH_TEXT_HEADING_LEVELS,
+  type RichTextBlockType,
+  type RichTextEditorBlock,
+} from 'strategydance-design-system/lib/richText'
 
 // The props BlockNote gives every block, which `RichText` never draws
 const DEFAULT_PROPS = new Set(['backgroundColor', 'textColor', 'textAlignment'])

@@ -67,6 +67,15 @@ export const RICH_TEXT_HEADING_LEVELS = [1, 2, 3] as const
 
 export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
 
+/** A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike */
+export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist'
+
+/**
+ * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
+ * Here rather than beside the editor's schema, so a page passing it loads no editor
+ */
+export const RICH_TEXT_POST_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
+
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType =
   | 'paragraph'

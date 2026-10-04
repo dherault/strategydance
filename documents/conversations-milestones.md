@@ -45,7 +45,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | --- | --- | --- | --- | --- |
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | #95 |
-| M3 | The Markdown component | design-system | | |
+| M3 | The Markdown component | design-system | | #94 |
 | M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
 | M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |
@@ -139,6 +139,10 @@ The data model, with nothing yet using it.
   links, line breaks), headings drawn as bold paragraphs, a `urlTransform` letting through `http`,
   `https`, `mailto` and `doc:` only, a `renderLink` prop, and a `size` prop for the dock's 14px and
   the page's 16px (`.cv-rt` in the design).
+- Built with `remark-breaks` too, so a single newline breaks the line as the design's prototype
+  draws it, and with `singleTilde: false`, so "~5 minutes" strikes nothing. An image is its alt text
+  and never loads, and whatever else falls outside the allowlist keeps its words. `Table`'s wrapper
+  takes focus while it scrolls, so the keyboard scrolls a reply's wide table, as in the dock.
 - A story with the design's replies from `conversations-data.js`: lists, a table, links, bold.
 - Verify: Storybook, at both sizes; the four checks.
 

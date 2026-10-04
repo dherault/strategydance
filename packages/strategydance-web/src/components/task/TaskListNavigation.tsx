@@ -73,7 +73,7 @@ function TaskListNavigation({ taskLists, activeTaskListId, isOwn, onSelect, onAd
                 type="button"
                 aria-current={isActive ? 'true' : undefined}
                 className={cn(
-                  'flex h-9 w-full cursor-pointer items-center gap-2 rounded-xs border-0 pr-2.5 text-left font-sans text-sm leading-none font-medium transition-colors duration-150 ease-in-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary',
+                  'flex h-9 w-full cursor-pointer items-center gap-2 rounded-xs border-0 pr-2.5 text-left font-sans text-sm font-medium transition-colors duration-150 ease-in-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary',
                   isOwn ? 'pl-7' : 'pl-2.5',
                   // The row's hover rather than the button's, so the handle over it keeps it lit
                   isActive

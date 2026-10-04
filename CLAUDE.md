@@ -48,9 +48,13 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
   drawn by `RichText` without it. BlockNote's menus are built from its own Base UI copies of
   shadcn's components, which the design system's never reach, so `RichTextEditor.css` dresses them
-  in the tokens, found by their `bn-` classes and `data-slot`s. It imports itself by its package name,
-  `strategydance-design-system/*` mapped to its `src/`, the alias shadcn writes with, so a
-  component resolves the same when another package reads it as source. Its tokens and components
+  in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
+  drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
+  text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last, and never
+  loads an image: draw the agent's text through it, never through `react-markdown` directly. It
+  imports itself by its package name, `strategydance-design-system/*` mapped to its `src/`, the
+  alias shadcn writes with, so a component resolves the same when another package reads it as
+  source. Its tokens and components
   are ported from the Strategy Dance Design System project in Claude Design and keep that
   project's props, so what a design uses maps onto code. Another package imports
   `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`

@@ -980,9 +980,13 @@ keeps all four styles through an agent's edit.
   deleted. A document with no `state` is seeded in the same write, under
   `SeedDocumentState`'s condition.
 
-The thread draws the agent's Markdown with a new design-system `Markdown` component (M3:
-`react-markdown` and `remark-gfm`, no raw HTML, an element allowlist, and a `renderLink` prop for
-`doc:` links).
+The thread draws the agent's Markdown with the design system's `Markdown` component, built in M3
+on `react-markdown`, `remark-gfm` and `remark-breaks`: HTML drawn as text, an element allowlist
+with headings drawn as bold paragraphs, a link kept only to a web, mail or `doc:` address, and a
+`renderLink` prop drawing the `doc:` ones. A single newline breaks the line, as the design's
+prototype draws it, and a single tilde strikes nothing, since "~5 minutes" is an estimate. An image
+is its alt text and is never loaded: loading one would send its address, and whatever an injected
+instruction wrote into it, out from the reader's browser.
 
 ### Release gate
 

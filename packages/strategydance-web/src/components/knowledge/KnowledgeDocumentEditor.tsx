@@ -438,17 +438,17 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           />
         ) : (
           // Holds the editor's height and its gutter while it loads, so the page does not jump when it arrives
-          <div className="flex min-h-[360px] items-start gap-2 border-t border-neutral-200 pt-4 text-sm text-muted-foreground max-md:pl-[52px]">
+          <div className="min-h-[360px] border-t border-neutral-200 pt-4 text-sm text-muted-foreground max-md:pl-[52px]">
             {hasEditorFailed || hasTextFailed ? (
               formatMessage(knowledgeMessages.editorError)
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Spinner
                   size="sm"
                   tone="muted"
                 />
                 {formatMessage(knowledgeMessages.loadingEditor)}
-              </>
+              </div>
             )}
           </div>
         )}

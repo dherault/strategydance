@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { LockIcon, LockOpenIcon } from 'lucide-react'
 import { type FocusEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { MAX_DOCUMENTS, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
@@ -18,7 +17,6 @@ import type {
 } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
-import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import type { KnowledgeDocument, KnowledgeDocumentFields } from '~types'
 
@@ -38,6 +36,7 @@ import getPresenceColor from '~utils/knowledge/getPresenceColor'
 
 import Spinner from '~components/common/Spinner'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
+import KnowledgeDocumentAiMenu from '~components/knowledge/KnowledgeDocumentAiMenu'
 import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumentAspectIcons'
 import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
@@ -110,6 +109,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   }))
   const [title, setTitle] = useState(initial.fields.title)
   const [aspects, setAspects] = useState(initial.fields.aspects)
+  const [isAiReadable, setIsAiReadable] = useState(initial.fields.isAiReadable)
   const [isAiWritable, setIsAiWritable] = useState(initial.fields.isAiWritable)
   const [isStored, setIsStored] = useState(knowledgeDocument !== null)
   const [isPickingAspects, setIsPickingAspects] = useState(false)
@@ -129,6 +129,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     onRemoteChange: fields => {
       if (fields.title !== undefined) setTitle(fields.title)
       if (fields.aspects !== undefined) setAspects(fields.aspects)
+      if (fields.isAiReadable !== undefined) setIsAiReadable(fields.isAiReadable)
       if (fields.isAiWritable !== undefined) setIsAiWritable(fields.isAiWritable)
     },
     onCreated: () => {
@@ -221,13 +222,11 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     saver.change({ aspects: next })
   }
 
-  function toggleAiLock() {
-    const next = !isAiWritable
+  function changeAiPermissions(fields: Partial<Pick<KnowledgeDocumentFields, 'isAiReadable' | 'isAiWritable'>>) {
+    if (fields.isAiReadable !== undefined) setIsAiReadable(fields.isAiReadable)
+    if (fields.isAiWritable !== undefined) setIsAiWritable(fields.isAiWritable)
 
-    setIsAiWritable(next)
-    saver.change({ isAiWritable: next })
-
-    if (isStored) toast(formatMessage(next ? knowledgeMessages.unlocked : knowledgeMessages.locked))
+    saver.change(fields)
   }
 
   // Leaving the page's fields sends what is left, as leaving the page would
@@ -391,21 +390,11 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             aria-hidden="true"
             className="h-5 w-px bg-border"
           />
-          <Tooltip
-            content={formatMessage(isAiWritable ? knowledgeMessages.lock : knowledgeMessages.lockedTooltip)}
-            side="bottom"
-            // Open through the press, so the reader sees the words change with the lock
-            isKeptOpenOnPress
-          >
-            <Button
-              variant="transparent"
-              size="sm"
-              icon={isAiWritable ? <LockOpenIcon /> : <LockIcon />}
-              aria-label={formatMessage(isAiWritable ? knowledgeMessages.lock : knowledgeMessages.unlock)}
-              aria-pressed={!isAiWritable}
-              onClick={toggleAiLock}
-            />
-          </Tooltip>
+          <KnowledgeDocumentAiMenu
+            isAiReadable={isAiReadable}
+            isAiWritable={isAiWritable}
+            onChange={changeAiPermissions}
+          />
         </div>
         {status === 'full' ? (
           <p

@@ -46,7 +46,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | #95 |
 | M3 | The Markdown component | design-system | | #94 |
-| M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |
+| M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | #102 |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | |
 | M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |
 | M7 | The composer and drafts | web | M6 | |
@@ -150,8 +150,10 @@ The data model, with nothing yet using it.
 
 - `bun run seed:conversations <email>` (root and backend scripts, emulators only, refusing otherwise
   as `grantAdministrator.ts` does), writing ad hoc GraphQL through `executeGraphql` so no seed
-  operation is ever deployed: the design's seven conversations, every kind of entry, with positions,
+  operation is ever deployed: the design's eight conversations, every kind of entry, with positions,
   counters and `createdAt` set explicitly and each `preview` built by `buildConversationPreview`.
+  Its tools are named after the agent's, and its integration calls go through
+  `call_integration_tool` until M23 gives them their columns.
 - The `conversation` message type (its module and its `MESSAGE_TYPES` entry), registered in
   `_app.tsx`'s `APP_MESSAGE_TYPES`.
 - Sidebar: the "Reflection" group with Conversations and Knowledge, Conversations staff only, its

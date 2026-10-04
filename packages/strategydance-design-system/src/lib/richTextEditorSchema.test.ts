@@ -91,4 +91,17 @@ describe('createRichTextSchema', () => {
     })
     expect(parse?.(frame('https://evil.example/player'))).toBeUndefined()
   })
+
+  it('writes a link preview with what the page said of itself', () => {
+    const blockSchema = readBlockSchema(['linkPreview'])
+
+    expect(Object.keys(blockSchema).sort()).toEqual(['linkPreview', 'paragraph'])
+    expect(Object.keys(blockSchema.linkPreview.propSchema)).toEqual([
+      'url',
+      'title',
+      'description',
+      'siteName',
+      'imageUrl',
+    ])
+  })
 })

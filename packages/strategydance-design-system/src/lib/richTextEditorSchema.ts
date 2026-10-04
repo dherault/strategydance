@@ -12,6 +12,7 @@ import {
   defaultInlineContentSpecs,
   defaultStyleSpecs,
 } from '@blocknote/core'
+import { createLinkPreviewBlockSpec } from 'strategydance-design-system/lib/linkPreviewBlockSpec'
 import {
   RICH_TEXT_CODE_LANGUAGES,
   RICH_TEXT_HEADING_LEVELS,
@@ -116,6 +117,7 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
       ...(blocks.includes('table') ? { table: withoutDefaultProps(createTableBlockSpec()) } : {}),
       ...(blocks.includes('image') ? { image: withoutDefaultProps(createImageBlockSpec()) } : {}),
       ...(blocks.includes('video') ? { videoEmbed: createVideoEmbedBlockSpec() } : {}),
+      ...(blocks.includes('linkPreview') ? { linkPreview: createLinkPreviewBlockSpec() } : {}),
     },
     inlineContentSpecs: {
       text: defaultInlineContentSpecs.text,

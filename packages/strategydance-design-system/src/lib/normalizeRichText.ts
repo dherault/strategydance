@@ -6,6 +6,7 @@ import {
   type RichTextCodeBlock,
   type RichTextImageBlock,
   type RichTextInline,
+  type RichTextLinkPreviewBlock,
   type RichTextRun,
   type RichTextStyles,
   type RichTextTableBlock,
@@ -30,6 +31,7 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'table',
   'image',
   'videoEmbed',
+  'linkPreview',
 ]
 
 // More than a table written by hand ever has, and few enough that a hostile one stays small
@@ -47,8 +49,14 @@ const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
 // What a picture may be loaded from: the web, and the Storage emulator, which development serves over http
 const MEDIA_PROTOCOLS = new Set(['http:', 'https:'])
 
+// What a card's picture may be loaded from, as the backend keeps it to
+const HTTPS = new Set(['https:'])
+
 // Longer than any caption or alternative text written by hand
 const MAX_MEDIA_TEXT_LENGTH = 1000
+
+// A card's, as the backend holds a page's words to
+const MAX_LINK_PREVIEW_LENGTHS = { title: 300, description: 1000, siteName: 100 }
 
 type Options = {
   /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
@@ -69,7 +77,8 @@ type UnknownRecord = Record<string, unknown>
   styles, and code none. A table keeps its cells' text, laid out on its grid with merged cells
   split, and the widths of its columns, and whether its first row and column are headers. A
   picture keeps its web address, its alternative text, its caption and the width it was resized
-  to, and a video the address of its page on YouTube, Vimeo or Loom, written one way. A link keeps its address when it is a web or mail one, written as the URL
+  to, a video the address of its page on YouTube, Vimeo or Loom, written one way, and a link
+  preview its web address, what the page said of itself, and its picture's https address. A link keeps its address when it is a web or mail one, written as the URL
   parser writes it, and is its text otherwise.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
@@ -112,7 +121,9 @@ function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, d
           ? normalizeImage(value)
           : type === 'videoEmbed'
             ? normalizeVideoEmbed(value)
-            : normalizeTextBlock(type, value)
+            : type === 'linkPreview'
+              ? normalizeLinkPreview(value)
+              : normalizeTextBlock(type, value)
 
   if (!block) return children
 
@@ -258,6 +269,28 @@ function normalizeVideoEmbed(value: UnknownRecord): RichTextVideoEmbedBlock {
   const embed = parseVideoEmbedUrl(isRecord(value.props) ? value.props.url : undefined)
 
   return { type: 'videoEmbed', ...(embed ? { props: { url: embed.url } } : {}) }
+}
+
+/*
+  A card by its web address and what the page said of itself, or the place one is about to go when
+  it has no web address. Its picture is kept at an https address only
+*/
+function normalizeLinkPreview(value: UnknownRecord): RichTextLinkPreviewBlock {
+  const props = isRecord(value.props) ? value.props : {}
+  const url = normalizeUrl(props.url, MEDIA_PROTOCOLS)
+
+  if (!url) return { type: 'linkPreview' }
+
+  const imageUrl = normalizeUrl(props.imageUrl, HTTPS)
+  const words = Object.fromEntries(
+    Object.entries(MAX_LINK_PREVIEW_LENGTHS).flatMap(([name, max]) => {
+      const text = props[name]
+
+      return typeof text === 'string' && text.trim() ? [[name, text.trim().slice(0, max)]] : []
+    }),
+  )
+
+  return { type: 'linkPreview', props: { url, ...words, ...(imageUrl ? { imageUrl } : {}) } }
 }
 
 function normalizeMediaText(text: unknown) {

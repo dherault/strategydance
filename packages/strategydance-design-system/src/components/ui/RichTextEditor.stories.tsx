@@ -27,6 +27,24 @@ async function uploadImage(file: File) {
   return URL.createObjectURL(file)
 }
 
+/*
+  Reads a page as the backend would, after a moment: its address as its title, and nothing else
+  but for the one page the story knows
+*/
+async function previewLink(url: string) {
+  await new Promise(resolve => setTimeout(resolve, 800))
+
+  return url.includes('blocknotejs.org')
+    ? {
+        url,
+        title: 'BlockNote - Javascript Block-Based React rich text editor',
+        description: 'A beautiful text editor that just works.',
+        siteName: 'BlockNote',
+        imageUrl: 'https://www.blocknotejs.org/og/image.png',
+      }
+    : { url, title: new URL(url).hostname }
+}
+
 const meta = {
   title: 'Components/RichTextEditor',
   component: RichTextEditor,
@@ -89,6 +107,7 @@ export const DocumentRoundTrip: Story = {
     initialValue: richTextDocumentSample,
     blocks: RICH_TEXT_EDITOR_BLOCKS,
     uploadImage,
+    previewLink,
   },
   parameters: {
     docs: {
@@ -168,6 +187,7 @@ export const Document: Story = {
     initialValue: richTextDocumentSample,
     blocks: RICH_TEXT_EDITOR_BLOCKS,
     uploadImage,
+    previewLink,
     placeholder: 'Start writing',
     className: undefined,
   },
@@ -218,6 +238,7 @@ export const Collaborative: Story = {
     appearance: 'document',
     blocks: RICH_TEXT_EDITOR_BLOCKS,
     uploadImage,
+    previewLink,
     placeholder: 'Start writing',
     className: undefined,
   },

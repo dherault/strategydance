@@ -341,6 +341,31 @@ describe('normalizeRichText', () => {
     ])
   })
 
+  it("keeps a link preview's web address and what the page said, its picture at an https address only", () => {
+    expect(
+      normalizeRichText([
+        editorBlock('linkPreview', [], {
+          url: 'https://example.com/page',
+          title: '  Indexes ',
+          description: 'd'.repeat(1200),
+          siteName: '',
+          imageUrl: 'http://example.com/cover.png',
+        }),
+        editorBlock('linkPreview', [], { url: 'https://example.com/', imageUrl: 'https://example.com/cover.png' }),
+        editorBlock('linkPreview', [], { url: 'javascript:alert(1)', title: 'Click' }),
+        editorBlock('linkPreview', [], { url: '' }),
+      ]),
+    ).toEqual([
+      {
+        type: 'linkPreview',
+        props: { url: 'https://example.com/page', title: 'Indexes', description: 'd'.repeat(1000) },
+      },
+      { type: 'linkPreview', props: { url: 'https://example.com/', imageUrl: 'https://example.com/cover.png' } },
+      { type: 'linkPreview' },
+      { type: 'linkPreview' },
+    ])
+  })
+
   it('reads plain strings as text, and an unknown inline element as its text', () => {
     expect(
       normalizeRichText([{ type: 'paragraph', content: ['Hello ', { type: 'mention', content: [text('Ada')] }] }]),

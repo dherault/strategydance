@@ -40,7 +40,7 @@ describe('getRichTextSlashMenuItems', () => {
     return items.map(item => `${item.group}: ${item.title}`)
   }
 
-  it("offers the blocks a document's editor writes, its video after BlockNote's picture", async () => {
+  it("offers the blocks a document's editor writes, its video and its link preview after BlockNote's picture", async () => {
     expect(await readItems(RICH_TEXT_EDITOR_BLOCKS)).toEqual([
       'Headings: Heading 1',
       'Headings: Heading 2',
@@ -54,10 +54,12 @@ describe('getRichTextSlashMenuItems', () => {
       'Advanced: Table',
       'Media: Image',
       'Media: Video',
+      'Media: Link preview',
     ])
   })
 
-  it('offers no video to an editor that writes none', async () => {
+  it('offers no video nor link preview to an editor that writes none', async () => {
     expect(await readItems(['heading'])).not.toContain('Media: Video')
+    expect(await readItems(['heading'])).not.toContain('Media: Link preview')
   })
 })

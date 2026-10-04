@@ -18,7 +18,7 @@ import {
   blockTypeSelectItems,
   getDefaultReactSlashMenuItems,
 } from '@blocknote/react'
-import { SquareCodeIcon, SquarePlayIcon } from 'lucide-react'
+import { LinkIcon, SquareCodeIcon, SquarePlayIcon } from 'lucide-react'
 import { createElement } from 'react'
 import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { RICH_TEXT_HEADING_LEVELS, type RichTextHeadingLevel } from 'strategydance-design-system/lib/richText'
@@ -58,8 +58,9 @@ function getRichTextSlashMenuItems<B extends BlockSchema, I extends InlineConten
 }
 
 /*
-  The items for the editor's blocks BlockNote has none for: a YouTube, Vimeo or Loom video. Each
-  inserts its block and opens the panel its address is given in, as BlockNote's picture does
+  The items for the editor's blocks BlockNote has none for: a YouTube, Vimeo or Loom video, and a
+  card linking to a web page. Each inserts its block and opens the panel its address is given in,
+  as BlockNote's picture does
 */
 function getMediaItems<B extends BlockSchema, I extends InlineContentSchema, S extends StyleSchema>(
   editor: BlockNoteEditor<B, I, S>,
@@ -74,18 +75,32 @@ function getMediaItems<B extends BlockSchema, I extends InlineContentSchema, S e
     editor.getExtension(FormattingToolbarExtension)?.store.setState(false)
   }
 
-  return 'videoEmbed' in editor.schema.blockSchema
-    ? [
-        {
-          title: dictionary.slash_menu.video.title,
-          subtext: dictionary.rich_text.video_embed_subtext,
-          aliases: ['video', 'youtube', 'vimeo', 'loom', 'embed'],
-          group: dictionary.slash_menu.video.group,
-          icon: createElement(SquarePlayIcon, { size: 18 }),
-          onItemClick: () => insert('videoEmbed'),
-        },
-      ]
-    : []
+  return [
+    ...('videoEmbed' in editor.schema.blockSchema
+      ? [
+          {
+            title: dictionary.slash_menu.video.title,
+            subtext: dictionary.rich_text.video_embed_subtext,
+            aliases: ['video', 'youtube', 'vimeo', 'loom', 'embed'],
+            group: dictionary.slash_menu.video.group,
+            icon: createElement(SquarePlayIcon, { size: 18 }),
+            onItemClick: () => insert('videoEmbed'),
+          },
+        ]
+      : []),
+    ...('linkPreview' in editor.schema.blockSchema
+      ? [
+          {
+            title: dictionary.rich_text.link_preview_title,
+            subtext: dictionary.rich_text.link_preview_subtext,
+            aliases: ['link', 'bookmark', 'preview', 'card', 'url', 'embed'],
+            group: dictionary.slash_menu.image.group,
+            icon: createElement(LinkIcon, { size: 18 }),
+            onItemClick: () => insert('linkPreview'),
+          },
+        ]
+      : []),
+  ]
 }
 
 /*

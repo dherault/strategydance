@@ -284,6 +284,128 @@
   border: 0;
 }
 
+/*
+  A link preview's card, as `RichText` draws it: its words beside the page's picture, inside a
+  neutral-200 frame at the xs radius, the arrow in its corner opening the page. It leaves room for
+  the arrow when no picture sits under it
+*/
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 96px;
+  overflow: hidden;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-white, #fff);
+  cursor: pointer;
+  transition: border-color 150ms ease-in-out;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview:hover {
+  border-color: var(--color-neutral-300);
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 44px 12px 16px;
+}
+
+.rich-text-editor.bn-root
+  .bn-editor
+  .rich-text-link-preview:has(.rich-text-link-preview-media)
+  .rich-text-link-preview-text {
+  padding-right: 16px;
+}
+
+.rich-text-editor.bn-root .bn-editor :is(.rich-text-link-preview-title, .rich-text-link-preview-description) {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.375;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-title {
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-description {
+  font-size: 0.85em;
+  color: var(--color-neutral-600);
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-site {
+  margin: auto 0 0;
+  overflow: hidden;
+  font-size: 0.8em;
+  color: var(--color-neutral-500);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* As tall as the words beside it, whatever the picture's own shape */
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-media {
+  position: relative;
+  flex-shrink: 0;
+  width: 33%;
+  max-width: 200px;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-open {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-white, #fff);
+  color: var(--color-neutral-500);
+  text-decoration: none;
+  transition:
+    background-color 150ms ease-in-out,
+    color 150ms ease-in-out;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-open:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-secondary);
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-link-preview-open > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The ring on the panel's button while it waits for a page */
+.rich-text-editor.bn-root .bn-panel .rich-text-panel-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: rich-text-editor-spin 0.8s linear infinite;
+}
+
 /* The panel's word that a link is no video it plays */
 .rich-text-editor.bn-root .bn-panel .bn-error-text {
   margin: 8px 0 0;

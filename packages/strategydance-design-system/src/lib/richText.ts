@@ -39,6 +39,17 @@ const richTextClasses = {
   // As wide as the text, at the 16:9 a player is drawn in
   videoEmbed:
     'mb-2 aspect-video w-full overflow-hidden rounded-xs bg-neutral-900 [&>iframe]:size-full [&>iframe]:border-0',
+  // A card the width of the text, its words beside the page's picture, as the editor draws it
+  linkPreview: {
+    card: 'mb-2 flex min-h-24 overflow-hidden rounded-xs border border-neutral-200 bg-white text-secondary no-underline transition-colors duration-150 ease-in-out hover:border-neutral-300',
+    text: 'flex min-w-0 flex-1 flex-col gap-1 px-4 py-3',
+    title: 'line-clamp-2 text-[0.95em]/[1.375] font-semibold',
+    description: 'line-clamp-2 text-[0.85em]/[1.375] text-neutral-600',
+    site: 'mt-auto truncate text-[0.8em] text-neutral-500',
+    // As tall as the words beside it, whatever the picture's own shape
+    media: 'relative w-1/3 max-w-50 shrink-0',
+    image: 'absolute inset-0 size-full object-cover',
+  },
   // At its own width up to the text's, or as resized
   image: {
     figure: 'mb-2',
@@ -93,7 +104,16 @@ export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
  * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike.
  * Each is one or more of the stored block types, as `getRichTextBlockTypes` names them
  */
-export type RichTextEditorBlock = 'heading' | 'quote' | 'list' | 'checklist' | 'code' | 'table' | 'image' | 'video'
+export type RichTextEditorBlock =
+  | 'heading'
+  | 'quote'
+  | 'list'
+  | 'checklist'
+  | 'code'
+  | 'table'
+  | 'image'
+  | 'video'
+  | 'linkPreview'
 
 /**
  * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
@@ -116,6 +136,7 @@ export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
   'table',
   'image',
   'video',
+  'linkPreview',
 ]
 
 /**
@@ -206,6 +227,7 @@ export function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): R
     ...(blocks.includes('table') ? (['table'] as const) : []),
     ...(blocks.includes('image') ? (['image'] as const) : []),
     ...(blocks.includes('video') ? (['videoEmbed'] as const) : []),
+    ...(blocks.includes('linkPreview') ? (['linkPreview'] as const) : []),
   ]
 }
 
@@ -300,12 +322,36 @@ export type RichTextVideoEmbedBlock = {
   children?: RichTextBlock[]
 }
 
+/**
+ * What a web page says of itself, as the backend reads it for a card: its address, and whatever it
+ * names of its title, its description, its site and its picture
+ */
+export type RichTextLinkPreview = {
+  url: string
+  title?: string
+  description?: string
+  siteName?: string
+  /** An https picture, loaded from wherever the page names it */
+  imageUrl?: string
+}
+
+/**
+ * A card linking to a web page, with what the page said of itself when it was added. One with no
+ * address is the place a card is about to go, which draws nothing
+ */
+export type RichTextLinkPreviewBlock = {
+  type: 'linkPreview'
+  props?: RichTextLinkPreview
+  children?: RichTextBlock[]
+}
+
 export type RichTextBlock =
   | RichTextTextBlock
   | RichTextCodeBlock
   | RichTextTableBlock
   | RichTextImageBlock
   | RichTextVideoEmbedBlock
+  | RichTextLinkPreviewBlock
 
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType = RichTextBlock['type']

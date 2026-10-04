@@ -15,7 +15,7 @@ describe('isRichTextEmpty', () => {
     ).toBe(true)
   })
 
-  it('says a picture or a video says something, nested or not, as words do', () => {
+  it('says a picture, a video or a link preview says something, nested or not, as words do', () => {
     expect(isRichTextEmpty([{ type: 'image', props: { url: 'https://example.com/a.png' } }])).toBe(false)
     expect(
       isRichTextEmpty([
@@ -25,5 +25,7 @@ describe('isRichTextEmpty', () => {
     expect(isRichTextEmpty([{ type: 'codeBlock', content: [{ type: 'text', text: 'x' }] }])).toBe(false)
     expect(isRichTextEmpty([{ type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } }])).toBe(false)
     expect(isRichTextEmpty([{ type: 'videoEmbed' }])).toBe(true)
+    expect(isRichTextEmpty([{ type: 'linkPreview', props: { url: 'https://example.com/' } }])).toBe(false)
+    expect(isRichTextEmpty([{ type: 'linkPreview' }])).toBe(true)
   })
 })

@@ -63,6 +63,28 @@ describe('createRichTextYUpdate', () => {
     expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
   })
 
+  it('lays pictures, videos and link previews in with their props', () => {
+    const value = JSON.stringify([
+      {
+        type: 'image',
+        props: { url: 'https://example.com/a.png', name: 'A chart', caption: 'Latency', previewWidth: 240 },
+      },
+      { type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } },
+      {
+        type: 'linkPreview',
+        props: {
+          url: 'https://example.com/page',
+          title: 'Indexes',
+          description: 'How two indexes halved the feed',
+          siteName: 'Example',
+          imageUrl: 'https://example.com/cover.png',
+        },
+      },
+    ])
+
+    expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
+  })
+
   it('lays an empty text in as one empty paragraph', () => {
     for (const value of ['', null]) {
       const blocks = readBlocks(createRichTextYUpdate(value))

@@ -91,6 +91,16 @@ const richTextDocumentSampleBlocks: RichTextBlock[] = [
   },
   // Big Buck Bunny, which the Blender Foundation publishes on YouTube
   { type: 'videoEmbed', props: { url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ' } },
+  {
+    type: 'linkPreview',
+    props: {
+      url: 'https://www.postgresql.org/docs/current/indexes.html',
+      title: 'Chapter 11. Indexes',
+      description: 'Indexes are a common way to enhance database performance.',
+      siteName: 'PostgreSQL Documentation',
+      imageUrl: 'https://www.postgresql.org/media/img/about/press/elephant.png',
+    },
+  },
   { type: 'heading', content: [{ type: 'text', text: 'The indexes' }] },
   {
     type: 'codeBlock',

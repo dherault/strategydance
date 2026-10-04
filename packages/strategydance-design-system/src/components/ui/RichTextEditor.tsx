@@ -12,7 +12,7 @@ import { DesktopFormattingToolbarController, FilePanelController, TableHandlesCo
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
-import { RichTextEditorFilePanel } from 'strategydance-design-system/components/ui/RichTextEditorFilePanel'
+import { createRichTextEditorFilePanel } from 'strategydance-design-system/components/ui/RichTextEditorFilePanel'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorSlashMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSlashMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
@@ -25,6 +25,7 @@ import {
   RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
+  type RichTextLinkPreview,
   getRichTextBlockTypes,
 } from 'strategydance-design-system/lib/richText'
 import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
@@ -90,6 +91,11 @@ type Props = {
    * a picture comes in by its address only. Read once, as `initialValue` is
    */
   uploadImage?: (file: File) => Promise<string>
+  /**
+   * What a web page says of itself, which a link preview's card shows: the backend's to read, as
+   * the browser cannot read another site's page. Left out, a card is its address alone. Read once
+   */
+  previewLink?: (url: string) => Promise<RichTextLinkPreview>
   /** Called on ⌘Enter, or Ctrl+Enter, the shortcut to post */
   onSubmit?: () => void
   autoFocus?: boolean
@@ -130,8 +136,9 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline and strikethrough, links, code, colored in the
-  language picked over it, tables, grown and headed from the handles on their edges, pictures, and
-  YouTube, Vimeo and Loom videos, which is everything `RichText` draws back.
+  language picked over it, tables, grown and headed from the handles on their edges, pictures,
+  YouTube, Vimeo and Loom videos, and cards linking to web pages, which is everything `RichText`
+  draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
   `normalizeRichText` keeps, serialized, whether they say anything and how much text, and a parent that
@@ -168,6 +175,7 @@ function RichTextEditor({
   blocks = RICH_TEXT_EDITOR_BLOCKS,
   appearance = 'field',
   uploadImage,
+  previewLink,
   className,
   'aria-label': ariaLabel,
   ref,
@@ -187,6 +195,7 @@ function RichTextEditor({
     }),
   )
   const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor))
+  const [filePanel] = useState(() => createRichTextEditorFilePanel(previewLink))
 
   useImperativeHandle(ref, () => ({ focus: () => editor.focus() }), [editor])
 
@@ -266,9 +275,9 @@ function RichTextEditor({
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
         {/* Only an editor writing tables has the extension, which the handles throw without */}
         {editor.getExtension(TableHandlesExtension) ? <TableHandlesController /> : null}
-        {/* Where a picture's file or a video's address is given, which opens over an empty one */}
-        {blocks.includes('image') || blocks.includes('video') ? (
-          <FilePanelController filePanel={RichTextEditorFilePanel} />
+        {/* Where a picture's file, a video's address or a page's is given, which opens over an empty one */}
+        {blocks.includes('image') || blocks.includes('video') || blocks.includes('linkPreview') ? (
+          <FilePanelController filePanel={filePanel} />
         ) : null}
       </BlockNoteView>
     </div>

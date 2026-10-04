@@ -12,12 +12,27 @@ type RichTextLabels = {
   videoEmbedSubtext: string
   /** What the video's panel says of a link it cannot play */
   videoEmbedUnsupported: string
+  /** The slash menu's item that adds a card linking to a web page */
+  linkPreviewTitle: string
+  /** What the slash menu says under it */
+  linkPreviewSubtext: string
+  /** What the place of a card waiting for its link says */
+  linkPreviewAdd: string
+  /** The panel's button that previews the link pasted in it */
+  linkPreviewButton: string
+  /** What the panel says of what is not a web address */
+  linkPreviewInvalid: string
 }
 
 const ENGLISH_LABELS: RichTextLabels = {
   turnInto: 'Turn into',
   videoEmbedSubtext: 'A YouTube, Vimeo or Loom video',
   videoEmbedUnsupported: 'Paste a link to a YouTube, Vimeo or Loom video',
+  linkPreviewTitle: 'Link preview',
+  linkPreviewSubtext: "A card with the page's title and picture",
+  linkPreviewAdd: 'Add a link preview',
+  linkPreviewButton: 'Preview link',
+  linkPreviewInvalid: 'Paste a web address, starting with https://',
 }
 
 type Overrides = Partial<RichTextLabels> & {
@@ -28,7 +43,15 @@ type Overrides = Partial<RichTextLabels> & {
 /** BlockNote's dictionary with the words the editor adds to its menus */
 type RichTextDictionary = Dictionary & {
   drag_handle: Dictionary['drag_handle'] & { turn_into_menuitem: string }
-  rich_text: { video_embed_subtext: string; video_embed_unsupported: string }
+  rich_text: {
+    video_embed_subtext: string
+    video_embed_unsupported: string
+    link_preview_title: string
+    link_preview_subtext: string
+    link_preview_add: string
+    link_preview_button: string
+    link_preview_invalid: string
+  }
 }
 
 /*
@@ -51,6 +74,11 @@ function getRichTextDictionary(
     rich_text: {
       video_embed_subtext: labels.videoEmbedSubtext,
       video_embed_unsupported: labels.videoEmbedUnsupported,
+      link_preview_title: labels.linkPreviewTitle,
+      link_preview_subtext: labels.linkPreviewSubtext,
+      link_preview_add: labels.linkPreviewAdd,
+      link_preview_button: labels.linkPreviewButton,
+      link_preview_invalid: labels.linkPreviewInvalid,
     },
   }
 }

@@ -198,6 +198,31 @@ describe('RichText', () => {
     expect(render([{ type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } }])).toBe('')
   })
 
+  it('draws a link preview as a card opening the page, its words as text and its picture telling nothing', () => {
+    const markup = renderDocument([
+      {
+        type: 'linkPreview',
+        props: {
+          url: 'https://www.example.com/page',
+          title: '<b>Indexes</b>',
+          siteName: 'Example',
+          imageUrl: 'https://cdn.example.com/cover.png',
+        },
+      },
+      { type: 'linkPreview', props: { url: 'https://example.org/' } },
+    ])
+
+    expect(markup).toContain(
+      '<a href="https://www.example.com/page" target="_blank" rel="noopener noreferrer nofollow"',
+    )
+    expect(markup).toContain('&lt;b&gt;Indexes&lt;/b&gt;</span>')
+    expect(markup).toContain('>Example · example.com</span>')
+    expect(markup).toContain('<img src="https://cdn.example.com/cover.png" alt="" loading="lazy"')
+    expect(markup).toContain('referrerPolicy="no-referrer"')
+    expect(markup).toContain('example.org</span><span class="mt-auto truncate')
+    expect(render([{ type: 'linkPreview', props: { url: 'https://example.org/' } }])).toBe('')
+  })
+
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {
     expect(render([{ type: 'heading', props: { level: 1 }, content: [text('Title')] }])).toContain('<h1 ')
     expect(render([{ type: 'heading', content: [text('Title')] }])).toContain('<h2 ')

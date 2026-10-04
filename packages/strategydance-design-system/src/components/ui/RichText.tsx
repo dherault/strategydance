@@ -11,6 +11,7 @@ import {
   type RichTextHeadingLevel,
   type RichTextImageBlock,
   type RichTextInline,
+  type RichTextLinkPreviewBlock,
   type RichTextRun,
   type RichTextTableContent,
   type RichTextTextBlock,
@@ -92,7 +93,9 @@ function renderHeading(level: RichTextHeadingLevel, content: ReactNode) {
 
 function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
   const content =
-    block.type === 'table' || block.type === 'image' || block.type === 'videoEmbed' ? null : renderContent(block)
+    block.type === 'table' || block.type === 'image' || block.type === 'videoEmbed' || block.type === 'linkPreview'
+      ? null
+      : renderContent(block)
   const element =
     block.type === 'codeBlock' ? (
       <pre className={RICH_TEXT_CLASSES.code}>
@@ -104,6 +107,8 @@ function renderBlock(block: RichTextBlock, listDepth: number, key: number) {
       renderImage(block)
     ) : block.type === 'videoEmbed' ? (
       renderVideoEmbed(block)
+    ) : block.type === 'linkPreview' ? (
+      renderLinkPreview(block)
     ) : block.type === 'heading' ? (
       renderHeading(block.props?.level ?? 2, content)
     ) : block.type === 'quote' ? (
@@ -324,8 +329,49 @@ function renderVideoEmbed({ props }: RichTextVideoEmbedBlock) {
   )
 }
 
+/*
+  A card linking to a web page, as the editor draws it: what the page said of itself, its site, and
+  its picture, loaded from wherever the page names it and telling it nothing of this one. The page
+  opens in a new tab and learns nothing of this one either
+*/
+function renderLinkPreview({ props }: RichTextLinkPreviewBlock) {
+  if (!props?.url) return null
+
+  const classes = RICH_TEXT_CLASSES.linkPreview
+  const host = new URL(props.url).hostname.replace(/^www\./, '')
+
+  return (
+    <a
+      href={props.url}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      className={classes.card}
+    >
+      <span className={classes.text}>
+        <span className={classes.title}>{props.title || host}</span>
+        {props.description ? <span className={classes.description}>{props.description}</span> : null}
+        <span className={classes.site}>{props.siteName ? `${props.siteName} · ${host}` : host}</span>
+      </span>
+      {props.imageUrl ? (
+        <span className={classes.media}>
+          <img
+            src={props.imageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className={classes.image}
+          />
+        </span>
+      ) : null}
+    </a>
+  )
+}
+
 // A block's text, or a line break holding its line when it has none, as the editor draws it
-function renderContent(block: Exclude<RichTextBlock, { type: 'table' | 'image' | 'videoEmbed' }>): ReactNode {
+function renderContent(
+  block: Exclude<RichTextBlock, { type: 'table' | 'image' | 'videoEmbed' | 'linkPreview' }>,
+): ReactNode {
   if (!block.content) return <br />
 
   return block.content.map(renderInline)

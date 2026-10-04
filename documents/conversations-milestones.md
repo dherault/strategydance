@@ -559,6 +559,10 @@ M14.
 ### M19: Attachments: storing them and sending them to Claude
 
 - The `ConversationAttachment` table, as The data describes it, additive.
+- In strategydance-core, `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the types the upload's sniffing
+  accepts, which M2 left to this milestone since the plan names no list; and the files case of
+  `buildConversationPreview`, a message holding only files previewed as the first file's name or
+  their count, additive in `preview`.
 - The upload's transport: `PUT /organizations/:organizationId/conversations/:conversationId/attachments/:attachmentId`,
   the conversation's id in the path (a draft's, made by the browser, before the conversation
   exists), the raw bytes as the body with their `Content-Type`, and the file's name in an

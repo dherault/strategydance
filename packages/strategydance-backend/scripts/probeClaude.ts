@@ -21,11 +21,13 @@ import retrieveSecret from '~utils/retrieveSecret'
   It sends the request the agent will send (conversations.md, The agent), streamed: adaptive
   thinking with progress updates and `drop_block`, explicit effort, server-side refusal fallbacks,
   a strict tool with eager input streaming, web search, top-level caching and the context message
-  last. Then it replays that turn from its JSON text, as the transcript stores it, and again with the
-  tool's input reordered as Postgres `jsonb` would reorder it; uploads a PDF and an image through the
-  Files API and counts their tokens by id, as the upload route will; and sends the first request and
-  the replay straight to each model a refusal may fall back to. It prints what passed, what failed
-  and what it found, and exits non-zero naming every check that did not pass.
+  last, and reports the progress lines it gets, which the API does not promise. Then it replays
+  that turn from its JSON text, as the transcript stores it, and again with the tool's input
+  reordered as Postgres `jsonb` would reorder it; counts the tokens of a PDF and an image from their
+  bytes, uploads them through the Files API and has a message read them by id, as the upload route
+  and the agent will; and sends the first request and the replay straight to each model a refusal
+  may fall back to. It prints what passed, what failed and what it found, and exits non-zero naming
+  every check that did not pass.
 
   It calls the real model, so it costs money, under a dollar a run: run it after an Anthropic SDK
   bump or a change of model, never in CI. It reads the API key from Secret Manager with Application
@@ -310,13 +312,6 @@ if (firstTurn) {
     )
   })
 
-  await check('Progress lines arrive as thinking blocks with text', () => {
-    assert(
-      blocks.some(block => block.type === 'thinking' && block.thinking.trim()),
-      'no thinking block carries text',
-    )
-  })
-
   await check('Web search runs, and returns results', () => {
     const search = blocks.find(
       (block): block is BetaServerToolUseBlock => block.type === 'server_tool_use' && block.name === 'web_search',
@@ -351,6 +346,19 @@ if (firstTurn) {
     assert(!readTransformations(firstTurn).length, JSON.stringify(readTransformations(firstTurn)))
   })
 
+  // Progress lines are not promised: in a turn of server tool calls the model's notes, when it
+  // writes any, come as text blocks, and its thinking blocks stay empty. The thread draws the one,
+  // and the indicator falls back to the running tool's label without the other
+  finding(
+    'Request 1 progress lines (thinking blocks with text)',
+    blocks.flatMap(block => (block.type === 'thinking' && block.thinking.trim() ? [block.thinking] : [])),
+  )
+  finding(
+    'Request 1 blocks, in order',
+    blocks.map(block =>
+      block.type === 'server_tool_use' || block.type === 'tool_use' ? `${block.type}:${block.name}` : block.type,
+    ),
+  )
   finding('Request 1 usage, per piece', readUsage(firstTurn))
   finding('Request 1 pauses', firstTurn.pieces.length - 1)
   finding('Request 1 input_json deltas (eager input streaming)', firstTurn.inputJsonDeltas)
@@ -363,13 +371,7 @@ if (firstTurn) {
     readDecisions(firstTurn).map(block => block.input),
   )
 } else {
-  for (const name of [
-    'the model serving it',
-    'progress lines',
-    'web search',
-    'the tool call',
-    'input_transformations',
-  ]) {
+  for (const name of ['the model serving it', 'web search', 'the tool call', 'input_transformations']) {
     skip(`Request 1: ${name}`, 'request 1 failed')
   }
 }
@@ -431,39 +433,41 @@ if (firstTurn && stored) {
   FILES, THROUGH THE FILES API, AS THE UPLOAD ROUTE WILL SEND THEM
 --- */
 
-const uploaded: string[] = []
+const pdf = buildPdf()
 
-await check('The Files API takes a PDF, and count_tokens counts it by its id', async () => {
-  const file = await client.files.upload({ file: await toFile(buildPdf(), 'probe.pdf', { type: 'application/pdf' }) })
-
-  uploaded.push(file.id)
-
-  const { input_tokens } = await client.messages.countTokens({
-    model: MODEL,
-    messages: [{ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: file.id } }] }],
-  })
-
-  finding('PDF tokens (one page)', input_tokens)
-  assert(input_tokens > 0, 'counted 0 tokens')
-})
-
-await check('The Files API takes an image, and count_tokens counts it by its id', async () => {
-  const image = await Bun.file(
+const image = Buffer.from(
+  await Bun.file(
     new URL('../../strategydance-web/public/assets/images/logo/logo-primary-512.png', import.meta.url),
-  ).arrayBuffer()
-  const file = await client.files.upload({
-    file: await toFile(Buffer.from(image), 'logo.png', { type: 'image/png' }),
-  })
+  ).arrayBuffer(),
+)
 
-  uploaded.push(file.id)
+// count_tokens takes no file id, so the upload route counts a file from the bytes it stored, once
+await check('count_tokens counts a PDF and an image from their bytes', async () => {
+  const counts = await Promise.all(
+    [
+      {
+        type: 'document' as const,
+        source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: pdf.toString('base64') },
+      },
+      {
+        type: 'image' as const,
+        source: { type: 'base64' as const, media_type: 'image/png' as const, data: image.toString('base64') },
+      },
+    ].map(async block => {
+      const { input_tokens } = await client.messages.countTokens({
+        model: MODEL,
+        messages: [{ role: 'user', content: [block] }],
+      })
 
-  const { input_tokens } = await client.messages.countTokens({
-    model: MODEL,
-    messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'file', file_id: file.id } }] }],
-  })
+      return input_tokens
+    }),
+  )
 
-  finding('Image tokens (512 by 512 PNG)', input_tokens)
-  assert(input_tokens > 0, 'counted 0 tokens')
+  finding('PDF tokens (one page), and image tokens (512 by 512 PNG)', counts)
+  assert(
+    counts.every(count => count > 0),
+    'counted 0 tokens',
+  )
 })
 
 try {
@@ -476,6 +480,41 @@ try {
 } catch (error) {
   finding('Baseline tokens refused', describeError(error))
 }
+
+const uploaded: string[] = []
+
+await check('The Files API takes a PDF and an image, and a message reads both by their ids', async () => {
+  for (const file of [
+    await toFile(pdf, 'probe.pdf', { type: 'application/pdf' }),
+    await toFile(image, 'logo.png', { type: 'image/png' }),
+  ]) {
+    uploaded.push((await client.files.upload({ file })).id)
+  }
+
+  const [pdfId, imageId] = uploaded
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4000,
+    output_config: { effort: 'low' },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'document', source: { type: 'file', file_id: pdfId } },
+          { type: 'image', source: { type: 'file', file_id: imageId } },
+          { type: 'text', text: 'In one short sentence: what does the document say, and what does the image show?' },
+        ],
+      },
+    ],
+  })
+
+  finding('The files read by id: usage', { input: message.usage.input_tokens, output: message.usage.output_tokens })
+  finding(
+    'The files read by id: reply',
+    message.content.flatMap(block => (block.type === 'text' ? [block.text] : [])).join(' '),
+  )
+  assert(message.stop_reason === 'end_turn', `stop_reason ${message.stop_reason}`)
+})
 
 // The probe's files go, as a pruned conversation's will
 for (const id of uploaded) {

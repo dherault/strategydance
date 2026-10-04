@@ -12,15 +12,16 @@
   `descender-room` one, it adds none of its own, which would only push what follows down
 */
 const richTextClassName =
-  'text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&>:last-child]:mb-0 [&:not(.descender-room_*)>:is(h1,h2,h3):last-child]:pb-(--descender-room)'
+  'text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&>:first-child]:mt-0 [&>:last-child]:mb-0 [&:not(.descender-room_*)>:is(h1,h2,h3):last-child]:pb-(--descender-room)'
 
 const richTextClasses = {
   paragraph: 'mb-2',
-  // By level, each a step down the display face's sizes from the first
+  // By level, each a step down the display face's sizes from the first, and set apart from what
+  // comes before it by less, as the editor sets them. The text's first block has nothing above it
   headings: {
-    1: 'mt-1 mb-2 font-display text-2xl/[1.2] font-normal tracking-normal text-secondary',
-    2: 'mt-1 mb-1.5 font-display text-xl/[1.25] font-normal tracking-normal text-secondary',
-    3: 'mt-1 mb-1 font-display text-lg/[1.3] font-normal tracking-normal text-secondary',
+    1: 'mt-6 mb-3 font-display text-[32px]/[1.15] font-normal tracking-normal text-secondary',
+    2: 'mt-5 mb-2 font-display text-2xl/[1.2] font-normal tracking-normal text-secondary',
+    3: 'mt-4 mb-1 font-display text-lg/[1.3] font-normal tracking-normal text-secondary',
   },
   quote: 'mb-2 border-l-2 border-neutral-300 pl-3 text-neutral-600',
   // Its lines as typed, scrolling sideways rather than wrapping, as the editor sets it

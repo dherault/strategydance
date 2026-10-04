@@ -94,7 +94,7 @@ describe('RichText', () => {
     ])
 
     expect(markup).toBe(
-      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">plain!</p></div>',
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:first-child]:mt-0 [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">plain!</p></div>',
     )
   })
 
@@ -179,7 +179,7 @@ describe('RichText', () => {
     }
 
     expect(renderDocument([image])).toBe(
-      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><figure class="mb-2"><img src="https://example.com/a.png" alt="A chart" width="240" loading="lazy" decoding="async" referrerPolicy="no-referrer" class="block h-auto max-w-full rounded-xs"/><figcaption class="mt-1 text-[0.85em] text-neutral-500">Latency</figcaption></figure></div>',
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:first-child]:mt-0 [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><figure class="mb-2"><img src="https://example.com/a.png" alt="A chart" width="240" loading="lazy" decoding="async" referrerPolicy="no-referrer" class="block h-auto max-w-full rounded-xs"/><figcaption class="mt-1 text-[0.85em] text-neutral-500">Latency</figcaption></figure></div>',
     )
     expect(renderDocument([{ type: 'image', props: { url: 'javascript:alert(1)' } }])).not.toContain('<img')
     expect(render([image])).toBe('')

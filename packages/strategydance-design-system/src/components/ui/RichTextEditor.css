@@ -70,22 +70,30 @@
   }
 }
 
+/*
+  A heading, as `RichText` sets it: the second level at 24px, with room above it that sets it apart
+  from what comes before and less below, which ties it to what follows. Padding rather than margin,
+  which the side menu reads to center itself on the heading's line
+*/
 .rich-text-editor.bn-root .bn-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type='heading'] {
-  padding-top: 4px;
+  padding-top: 20px;
+  padding-bottom: 8px;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 400;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
-/* The first and third levels, a step above and below the second, as `RichText` sets them */
+/* The first and third levels, a step above and below the second, the first set apart the most */
 .rich-text-editor.bn-root
   .bn-editor
   .bn-block-outer
   > .bn-block
   > .bn-block-content[data-content-type='heading'][data-level='1'] {
-  font-size: 24px;
-  line-height: 1.2;
+  padding-top: 24px;
+  padding-bottom: 12px;
+  font-size: 32px;
+  line-height: 1.15;
 }
 
 .rich-text-editor.bn-root
@@ -93,8 +101,20 @@
   .bn-block-outer
   > .bn-block
   > .bn-block-content[data-content-type='heading'][data-level='3'] {
+  padding-top: 16px;
+  padding-bottom: 4px;
   font-size: 18px;
   line-height: 1.3;
+}
+
+/* A heading the text opens on has nothing above it to be set apart from */
+.rich-text-editor.bn-root
+  .bn-editor
+  > .bn-block-group
+  > .bn-block-outer:first-child
+  > .bn-block
+  > .bn-block-content[data-content-type='heading'] {
+  padding-top: 4px;
 }
 
 .rich-text-editor.bn-root .bn-editor [data-content-type='quote'] blockquote {

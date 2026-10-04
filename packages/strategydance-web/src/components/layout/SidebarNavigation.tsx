@@ -15,11 +15,13 @@ import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from 'strategydance-desi
 
 import { COMPANY_ASPECTS } from '~constants'
 
+import useCanUseConversations from '~hooks/conversation/useCanUseConversations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useUser from '~hooks/user/useUser'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
 
+import ConversationsNavigationLink from '~components/conversation/ConversationsNavigationLink'
 import NavigationLink from '~components/layout/NavigationLink'
 
 import aspectMessages from '~data/intl/aspectMessages'
@@ -29,6 +31,7 @@ function SidebarNavigation() {
   const { formatMessage } = useIntl()
   const { organization, role } = useCurrentOrganization()
   const { data: user } = useUser()
+  const canUseConversations = useCanUseConversations()
 
   /*
     The organization's explored aspects, in `COMPANY_ASPECTS`'s order rather than the order they
@@ -79,6 +82,12 @@ function SidebarNavigation() {
               link={{ to: '/explore' }}
             />
           ) : null}
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>{formatMessage(navigationMessages.reflection)}</SidebarGroupLabel>
+        <SidebarMenu>
+          {canUseConversations ? <ConversationsNavigationLink /> : null}
           <NavigationLink
             path="/knowledge"
             isNested

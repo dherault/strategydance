@@ -43,7 +43,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
-| M1 | Spikes: the request on Vertex, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | |
+| M1 | Spikes: the request on Vertex, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | |
 | M3 | The Markdown component | design-system | | |
 | M4 | Navigation, the list and delete, from seeded data | web, backend, database, root | M2 | |

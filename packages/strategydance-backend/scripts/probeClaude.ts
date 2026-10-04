@@ -1,4 +1,4 @@
-import Anthropic, { BetaFallbackState, betaRefusalFallbackMiddleware } from '@anthropic-ai/sdk'
+import Anthropic, { toFile } from '@anthropic-ai/sdk'
 import type {
   BetaContentBlock,
   BetaMessage,
@@ -7,36 +7,35 @@ import type {
   BetaServerToolUseBlock,
   BetaToolUseBlock,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { AnthropicVertex, type ClientOptions } from '@anthropic-ai/vertex-sdk'
 
-import { FIREBASE_PROJECT_ID } from '~constants'
+import { SECRET_ANTHROPIC_API_KEY } from '~constants'
+
+import retrieveSecret from '~utils/retrieveSecret'
 
 /*
-  Checks, against Claude on Vertex itself, the facts the conversations agent is built on, which no
-  test without the real model can confirm:
+  Checks, against Claude's API itself, the facts the conversations agent is built on, which no test
+  without the real model can confirm:
 
-    bun run probe:vertex
+    bun run probe:claude
 
   It sends the request the agent will send (conversations.md, The agent), streamed: adaptive
-  thinking with progress updates and `drop_block`, explicit effort, a strict tool with eager input
-  streaming, web search, top-level caching and the context message last. Then it replays that turn
-  from its JSON text, as the transcript stores it, and again with the tool's input reordered as
-  Postgres `jsonb` would reorder it; counts the tokens of a PDF and an image, as the upload route
-  will; and sends the first request and the replay to the refusal fallback, Claude Opus 5, as the
-  middleware would. It prints what passed, what failed and what it found, and exits non-zero naming
-  every check that did not pass.
+  thinking with progress updates and `drop_block`, explicit effort, server-side refusal fallbacks,
+  a strict tool with eager input streaming, web search, top-level caching and the context message
+  last. Then it replays that turn from its JSON text, as the transcript stores it, and again with the
+  tool's input reordered as Postgres `jsonb` would reorder it; uploads a PDF and an image through the
+  Files API and counts their tokens by id, as the upload route will; and sends the first request and
+  the replay straight to each model a refusal may fall back to. It prints what passed, what failed
+  and what it found, and exits non-zero naming every check that did not pass.
 
-  It calls the real model, so it costs money, a few tens of cents a run: run it after an Anthropic
-  SDK bump or a change of model, never in CI. It authenticates with Application Default
-  Credentials, or with `VERTEX_ACCESS_TOKEN` when that is set, for a machine whose ADC belongs to
-  another account or has expired:
+  It calls the real model, so it costs money, under a dollar a run: run it after an Anthropic SDK
+  bump or a change of model, never in CI. It reads the API key from Secret Manager with Application
+  Default Credentials, or from ANTHROPIC_API_KEY when that is set, for a machine whose credentials
+  cannot read the secret:
 
-    VERTEX_ACCESS_TOKEN=$(gcloud auth print-access-token) bun run probe:vertex
+    ANTHROPIC_API_KEY=$(gcloud secrets versions access latest --secret=anthropic-api-key --project=strategydance) bun run probe:claude
 */
 
 const MODEL = 'claude-opus-5-5'
-
-const FALLBACK_MODEL = 'claude-opus-5'
 
 // How many times a turn paused by web search's server-side loop is sent back, as the agent will
 const MAX_PAUSES = 5
@@ -71,7 +70,7 @@ const TOOLS: BetaMessageStreamParams['tools'] = [
       additionalProperties: false,
     },
   },
-  { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
+  { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
 ]
 
 const FIRST_MESSAGES: BetaMessageParam[] = [
@@ -84,7 +83,13 @@ type Result = { name: string; outcome: 'pass' | 'fail' | 'skip'; detail?: string
 // A turn as it comes back: its pieces, more than one when web search paused it
 type Turn = { pieces: BetaMessage[]; inputJsonDeltas: number }
 
-type Transform = (body: BetaMessageStreamParams) => BetaMessageStreamParams
+type ThinkingField = 'display' | 'block_binding'
+
+type BodyOptions = {
+  model?: string
+  // The thinking fields sent beside its type, to find what a fallback model refuses
+  thinking?: readonly ThinkingField[]
+}
 
 const results: Result[] = []
 
@@ -92,32 +97,36 @@ const findings: [string, unknown][] = []
 
 const startedAt = Date.now()
 
-const client = new AnthropicVertex({
-  projectId: FIREBASE_PROJECT_ID,
-  region: 'global',
-  authClient: createAccessTokenClient(process.env.VERTEX_ACCESS_TOKEN),
-  middleware: [betaRefusalFallbackMiddleware([{ model: FALLBACK_MODEL }])],
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || (await retrieveSecret(SECRET_ANTHROPIC_API_KEY)),
 })
 
 /*
-  An auth client that hands the Vertex client a token it was given, or nothing, so that it falls
-  back to Application Default Credentials. The client's own `accessToken` option is stored and never
-  read: every request asks an auth client for its headers, and that is all this one answers
+  The agent's request. Only the agent's own model falls back on a refusal: a request sent straight
+  to a fallback model, to see whether it takes the same body, goes without
 */
-function createAccessTokenClient(token: string | undefined) {
-  if (!token) return null
+function buildBody(
+  messages: BetaMessageParam[],
+  { model = MODEL, thinking = ['display', 'block_binding'] }: BodyOptions = {},
+): BetaMessageStreamParams {
+  const hasFallbacks = model === MODEL
 
-  const client = { getRequestHeaders: async () => new Headers({ Authorization: `Bearer ${token}` }) }
-
-  return client as unknown as NonNullable<ClientOptions['authClient']>
-}
-
-function buildBody(messages: BetaMessageParam[]): BetaMessageStreamParams {
   return {
-    model: MODEL,
+    model,
     max_tokens: 64000,
-    betas: ['thinking-display-updates-2026-08-18', 'thinking-binding-controls-2026-08-01'],
-    thinking: { type: 'adaptive', display: 'updates', block_binding: { prefix_mismatch_behavior: 'drop_block' } },
+    betas: [
+      'thinking-display-updates-2026-08-18',
+      'thinking-binding-controls-2026-08-01',
+      ...(hasFallbacks ? (['server-side-fallback-2026-07-01'] as const) : []),
+    ],
+    thinking: {
+      type: 'adaptive',
+      ...(thinking.includes('display') ? { display: 'updates' as const } : {}),
+      ...(thinking.includes('block_binding')
+        ? { block_binding: { prefix_mismatch_behavior: 'drop_block' as const } }
+        : {}),
+    },
+    ...(hasFallbacks ? { fallbacks: 'default' as const } : {}),
     output_config: { effort: 'medium' },
     cache_control: { type: 'ephemeral' },
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
@@ -127,16 +136,12 @@ function buildBody(messages: BetaMessageParam[]): BetaMessageStreamParams {
 }
 
 // One turn, streamed, each piece a paused turn sent back as it is, progress lines logged as they land
-async function runTurn(
-  messages: BetaMessageParam[],
-  fallbackState: BetaFallbackState,
-  transform: Transform = body => body,
-) {
+async function runTurn(messages: BetaMessageParam[], options: BodyOptions = {}) {
   const turn: Turn = { pieces: [], inputJsonDeltas: 0 }
   let sent = messages
 
   for (;;) {
-    const stream = client.beta.messages.stream(transform(buildBody(sent)), { fallbackState })
+    const stream = client.beta.messages.stream(buildBody(sent, options))
 
     stream.on('inputJson', () => turn.inputJsonDeltas++)
     stream.on('contentBlock', block => {
@@ -188,11 +193,6 @@ function describeError(error: unknown) {
 
 function log(line: string) {
   console.log(`[${((Date.now() - startedAt) / 1000).toFixed(1)}s] ${line}`)
-}
-
-// Whether a message was served by a model, which Vertex may name with a version after an `@`
-function isServedBy(message: BetaMessage, model: string) {
-  return message.model === model || message.model.startsWith(`${model}@`)
 }
 
 function readBlocks(turn: Turn) {
@@ -283,27 +283,7 @@ function buildPdf() {
   pdf += offsets.map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
 
-  return Buffer.from(pdf, 'latin1').toString('base64')
-}
-
-// A state that sends every request straight to the first fallback, as after a refusal
-function createPinnedFallbackState() {
-  const state = new BetaFallbackState()
-
-  state.index = 0
-
-  return state
-}
-
-function withoutThinkingFields(...fields: ('display' | 'block_binding')[]): Transform {
-  return body => ({
-    ...body,
-    thinking: {
-      type: 'adaptive',
-      ...(fields.includes('display') ? {} : { display: 'updates' }),
-      ...(fields.includes('block_binding') ? {} : { block_binding: { prefix_mismatch_behavior: 'drop_block' } }),
-    },
-  })
+  return Buffer.from(pdf, 'latin1')
 }
 
 /* ---
@@ -312,8 +292,8 @@ function withoutThinkingFields(...fields: ('display' | 'block_binding')[]): Tran
 
 let first: Turn | null = null
 
-await check('Request 1 is accepted on Vertex with every field and beta together', async () => {
-  first = await runTurn(FIRST_MESSAGES, new BetaFallbackState())
+await check('Request 1 is accepted with every field and beta together, fallbacks included', async () => {
+  first = await runTurn(FIRST_MESSAGES)
 })
 
 // Read through a constant, since TypeScript cannot tell the check above assigned it
@@ -325,7 +305,7 @@ if (firstTurn) {
 
   await check(`Request 1 is served by ${MODEL}`, () => {
     assert(
-      firstTurn.pieces.every(piece => isServedBy(piece, MODEL)),
+      firstTurn.pieces.every(piece => piece.model === MODEL),
       `served by ${firstTurn.pieces.map(piece => piece.model).join(', ')}`,
     )
   })
@@ -375,6 +355,10 @@ if (firstTurn) {
   finding('Request 1 pauses', firstTurn.pieces.length - 1)
   finding('Request 1 input_json deltas (eager input streaming)', firstTurn.inputJsonDeltas)
   finding(
+    'Request 1 server tool calls',
+    blocks.flatMap(block => (block.type === 'server_tool_use' ? [block.name] : [])),
+  )
+  finding(
     'Request 1 decision input',
     readDecisions(firstTurn).map(block => block.input),
   )
@@ -407,7 +391,7 @@ if (firstTurn && stored) {
   await check(
     'Request 2, replaying turn 1 from its JSON text, is accepted with nothing dropped and a cache read',
     async () => {
-      const second = await runTurn(replayed, new BetaFallbackState())
+      const second = await runTurn(replayed)
       const usage = readUsage(second)
 
       finding('Request 2 usage, per piece', usage)
@@ -428,7 +412,7 @@ if (firstTurn && stored) {
     )
 
     try {
-      const third = await runTurn([...FIRST_MESSAGES, ...reordered, answer], new BetaFallbackState())
+      const third = await runTurn([...FIRST_MESSAGES, ...reordered, answer])
 
       finding('Request 3 input_transformations', readTransformations(third))
       finding('Request 3 usage, per piece', readUsage(third))
@@ -444,41 +428,38 @@ if (firstTurn && stored) {
 }
 
 /* ---
-  COUNTING TOKENS, AS THE UPLOAD ROUTE WILL
+  FILES, THROUGH THE FILES API, AS THE UPLOAD ROUTE WILL SEND THEM
 --- */
 
-await check('count_tokens counts a PDF', async () => {
+const uploaded: string[] = []
+
+await check('The Files API takes a PDF, and count_tokens counts it by its id', async () => {
+  const file = await client.files.upload({ file: await toFile(buildPdf(), 'probe.pdf', { type: 'application/pdf' }) })
+
+  uploaded.push(file.id)
+
   const { input_tokens } = await client.messages.countTokens({
     model: MODEL,
-    messages: [
-      {
-        role: 'user',
-        content: [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: buildPdf() } }],
-      },
-    ],
+    messages: [{ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: file.id } }] }],
   })
 
   finding('PDF tokens (one page)', input_tokens)
   assert(input_tokens > 0, 'counted 0 tokens')
 })
 
-await check('count_tokens counts an image', async () => {
+await check('The Files API takes an image, and count_tokens counts it by its id', async () => {
   const image = await Bun.file(
     new URL('../../strategydance-web/public/assets/images/logo/logo-primary-512.png', import.meta.url),
   ).arrayBuffer()
+  const file = await client.files.upload({
+    file: await toFile(Buffer.from(image), 'logo.png', { type: 'image/png' }),
+  })
+
+  uploaded.push(file.id)
+
   const { input_tokens } = await client.messages.countTokens({
     model: MODEL,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: 'image/png', data: Buffer.from(image).toString('base64') },
-          },
-        ],
-      },
-    ],
+    messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'file', file_id: file.id } }] }],
   })
 
   finding('Image tokens (512 by 512 PNG)', input_tokens)
@@ -496,50 +477,71 @@ try {
   finding('Baseline tokens refused', describeError(error))
 }
 
+// The probe's files go, as a pruned conversation's will
+for (const id of uploaded) {
+  try {
+    await client.files.delete(id)
+  } catch (error) {
+    finding(`Deleting file ${id} failed`, describeError(error))
+  }
+}
+
 /* ---
-  THE REFUSAL FALLBACK, CLAUDE OPUS 5, SENT THE SAME BODY
+  THE REFUSAL FALLBACK, CHOSEN BY THE API
 --- */
 
-await check(`${FALLBACK_MODEL} takes request 1's body through the fallback middleware`, async () => {
-  try {
-    const turn = await runTurn(FIRST_MESSAGES, createPinnedFallbackState())
+let targets: string[] = []
 
-    finding('Fallback request 1 stop_reason', turn.pieces.at(-1)?.stop_reason)
-    assert(
-      turn.pieces.every(piece => isServedBy(piece, FALLBACK_MODEL)),
-      `served by ${turn.pieces.map(piece => piece.model).join(', ')}`,
-    )
-  } catch (error) {
-    if (!(error instanceof Anthropic.BadRequestError)) throw error
+await check(`${MODEL} lists the models a refusal may fall back to`, async () => {
+  const model = await client.beta.models.retrieve(MODEL, { betas: ['server-side-fallback-2026-06-01'] })
 
-    // What would have to be stripped for the fallback to take the request
-    for (const [name, transform] of [
-      ['without thinking.display', withoutThinkingFields('display')],
-      ['without thinking.block_binding', withoutThinkingFields('block_binding')],
-      ['without both', withoutThinkingFields('display', 'block_binding')],
-    ] as const) {
-      try {
-        await runTurn(FIRST_MESSAGES, createPinnedFallbackState(), transform)
-        finding(`Fallback request 1 ${name}`, 'accepted')
-      } catch (variantError) {
-        finding(`Fallback request 1 ${name}`, describeError(variantError))
-      }
-    }
+  targets = model.allowed_fallback_models ?? []
 
-    throw error
-  }
+  finding('Allowed fallback models', targets)
+  assert(targets.length, 'no allowed fallback models')
 })
 
-const replayed = replay as BetaMessageParam[] | null
+// A fallback model runs the same request, so each has to take the agent's body as it is
+for (const target of targets) {
+  await check(`${target} takes request 1's body`, async () => {
+    try {
+      const turn = await runTurn(FIRST_MESSAGES, { model: target })
 
-if (replayed) {
-  await check(`${FALLBACK_MODEL} takes request 2's body, ${MODEL}'s thinking in it, without a refusal`, async () => {
-    const turn = await runTurn(replayed, createPinnedFallbackState())
+      finding(`${target} on request 1: stop_reason`, turn.pieces.at(-1)?.stop_reason)
+    } catch (error) {
+      if (!(error instanceof Anthropic.BadRequestError)) throw error
 
-    finding('Fallback request 2 input_transformations', readTransformations(turn))
+      // What it would take for this model to take the request
+      for (const [name, thinking] of [
+        ['without thinking.display', ['block_binding']],
+        ['without thinking.block_binding', ['display']],
+        ['without both', []],
+      ] as const) {
+        try {
+          await runTurn(FIRST_MESSAGES, { model: target, thinking })
+          finding(`${target} on request 1 ${name}`, 'accepted')
+        } catch (variantError) {
+          finding(`${target} on request 1 ${name}`, describeError(variantError))
+        }
+      }
+
+      throw error
+    }
   })
-} else {
-  skip(`${FALLBACK_MODEL} on request 2's body`, 'request 2 was never built')
+
+  const replayed = replay as BetaMessageParam[] | null
+
+  if (!replayed) {
+    skip(`${target} on request 2's body`, 'request 2 was never built')
+
+    continue
+  }
+
+  await check(`${target} takes request 2's body, ${MODEL}'s thinking in it`, async () => {
+    const turn = await runTurn(replayed, { model: target })
+
+    finding(`${target} on request 2: input_transformations`, readTransformations(turn))
+  })
 }
 
 /* ---

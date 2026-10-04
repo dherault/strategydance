@@ -7,18 +7,19 @@ import getDaysBetween from '~utils/date/getDaysBetween'
 
   Today not counting yet does not break the streak, since the day is not over: it runs back from
   yesterday instead, and only a whole day with nothing breaks it. A charged day, one a streak
-  charge kept (see `getStreakCharges`), does not break it either, though it adds nothing to it. A
-  day after today, which a traveller's zone can leave behind, is not counted
+  charge kept (see `getStreakCharges`), counts as a day of it, so three active days and two
+  charged ones are a streak of five. Today's charge is only pending until the day is over, so it
+  adds nothing yet, and updating today still adds the day. A day after today, which a traveller's
+  zone can leave behind, is not counted
 */
 function getStreak(dates: string[], today: string, chargedDates: string[] = []) {
-  const activeDates = new Set(dates.filter(date => date <= today))
-  const keptDates = new Set([...activeDates, ...chargedDates.filter(date => date <= today)])
-  const isLitToday = activeDates.has(today)
+  const keptDates = new Set([...dates.filter(date => date <= today), ...chargedDates.filter(date => date < today)])
+  const isLitToday = dates.includes(today)
 
   let current = 0
 
   for (let date = isLitToday ? today : addDays(today, -1); keptDates.has(date); date = addDays(date, -1)) {
-    if (activeDates.has(date)) current += 1
+    current += 1
   }
 
   let best = 0
@@ -28,7 +29,7 @@ function getStreak(dates: string[], today: string, chargedDates: string[] = []) 
   for (const date of [...keptDates].sort()) {
     const isContinued = previous !== null && getDaysBetween(previous, date) === 1
 
-    run = (isContinued ? run : 0) + (activeDates.has(date) ? 1 : 0)
+    run = (isContinued ? run : 0) + 1
     best = Math.max(best, run)
     previous = date
   }

@@ -392,6 +392,25 @@ caret is, and `GetDocumentPresences` keeps them live for the carets and the face
   writes it does send then, `PushDocumentUpdate`, `UpdateDocumentPresence` and `LeaveDocument`,
   are not
 
+A conversation is kept twice, once for Claude and once for the page, and
+`documents/conversations.md` says how each is written:
+
+- The transcript, `ConversationTranscriptEntry`, is what Claude is sent: the exact content blocks
+  of every turn, thinking blocks and their signatures included. Only the backend reads or writes
+  it. It is append-only with one exception: Retry cuts the tail back to a run's anchor, which
+  leaves a prefix the remaining thinking blocks were made with. Nothing else ever edits or deletes
+  an entry, since Claude refuses a history changed under its thinking
+- An entry's `content`, a run's `context` and its `pendingToolResults` are `String` columns holding
+  the JSON text of exactly what was sent, never `Any`, so the transcript replays byte for byte.
+  Data Connect stores `Any` as Postgres `jsonb`, which keeps one of two duplicate keys and refuses
+  U+0000 in a string
+- The thread, `ConversationMessage`, is a drawing of the transcript, and what the page reads. Its
+  messages are ordered by `position`, never by time, since two mutations can share an instant: a
+  mutation that inserts messages first claims their positions on the conversation's
+  `nextMessagePosition`, moving it on under `@check(this == 1)`, and a writer that loses the race
+  reads it again and retries. The counter only grows, so a deleted message leaves a gap rather
+  than a position used twice
+
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task
 list or task, their checklist or their log. The day is the one the change was made on, never

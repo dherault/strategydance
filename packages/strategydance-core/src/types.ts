@@ -45,3 +45,51 @@ export type OrganizationImageKind = 'logo' | 'banner'
 export type ChangeOrganizationImageData = {
   url: string | null
 }
+
+/* ---
+  CONVERSATIONS
+--- */
+
+/*
+  A conversation's entry, as `buildConversationPreview` reads it: the columns of a
+  `ConversationMessage` row, by their names, so a row read back from the database goes in as it
+  is. String literals rather than the schema's enums, which this package cannot import: the
+  generated SDK's values are assignable to them, so a value the schema gains and these lack fails
+  to typecheck wherever a row is passed
+*/
+export type ConversationPreviewSource = {
+  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE'
+  text?: string | null
+  toolName?: string | null
+  toolStatus?: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | null
+  questionPrompt?: string | null
+  answerSelected?: string[] | null
+  answerOther?: string | null
+  isAnswerSkipped?: boolean | null
+  noteKind?: 'STOPPED' | 'FAILED' | 'REFUSED' | 'INTERRUPTED' | 'FULL' | null
+}
+
+/*
+  What `Conversation.preview` holds: the facts of the last entry the list shows, never its words.
+  A text keeps up to `MAX_CONVERSATION_PREVIEW_LENGTH` characters of plain text, and a question
+  its prompt, or once answered the answer
+*/
+export type ConversationPreview =
+  | {
+      kind: 'MEMBER_TEXT' | 'AGENT_TEXT'
+      text: string
+    }
+  | {
+      kind: 'TOOL_CALL'
+      toolName: string
+      toolStatus: NonNullable<ConversationPreviewSource['toolStatus']>
+    }
+  | {
+      kind: 'QUESTION'
+      questionState: 'WAITING' | 'ANSWERED' | 'SKIPPED'
+      text: string
+    }
+  | {
+      kind: 'NOTE'
+      noteKind: NonNullable<ConversationPreviewSource['noteKind']>
+    }

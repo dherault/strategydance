@@ -276,6 +276,292 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Set your top priority',
     description: "What the AI did once it set the reader's top priority, the one thing they focus on. Past tense.",
   },
+
+  /* ---
+    PAGE: one conversation, its bar, its title and its aspects
+  --- */
+
+  allConversations: {
+    id: 'conversation.allConversations',
+    defaultMessage: 'All conversations',
+    description: "Link at the top of a conversation's page, back to the list of the reader's conversations.",
+  },
+  private: {
+    id: 'conversation.private',
+    defaultMessage: 'Private',
+    description: "Label beside a lock at the top of a conversation's page, saying nobody else can read it.",
+  },
+  privateTooltip: {
+    id: 'conversation.privateTooltip',
+    defaultMessage: 'Only you can see your conversations',
+    description: 'Tooltip on the Private label of a conversation, saying what it means.',
+  },
+  updated: {
+    id: 'conversation.updated',
+    defaultMessage: 'Updated {time}',
+    description:
+      "At the top of a conversation's page, when it last changed. {time} is a relative time such as '5 min ago' or 'Just now', or a date such as 'Oct 2'.",
+  },
+  notSaved: {
+    id: 'conversation.notSaved',
+    defaultMessage: 'Not saved until you send a message',
+    description: "At the top of a new conversation's page, which is not kept until the reader writes to the AI.",
+  },
+  newTitle: {
+    id: 'conversation.newTitle',
+    defaultMessage: 'New conversation',
+    description: 'Title of a conversation the reader has just started, before its first message.',
+  },
+  addAspects: {
+    id: 'conversation.addAspects',
+    defaultMessage: 'Add aspects',
+    description:
+      'Button under the title of a conversation that has no aspects yet, which opens the list of aspects to tag it with. Aspects are the parts of a company, such as strategy or finances.',
+  },
+  editAspects: {
+    id: 'conversation.editAspects',
+    defaultMessage: 'Edit aspects: {aspects}',
+    description:
+      "Accessible name of the button under a conversation's title that shows the icons of the aspects it is tagged with and opens the list to change them. {aspects} lists their names.",
+  },
+  aspectsTitle: {
+    id: 'conversation.aspectsTitle',
+    defaultMessage: 'Aspects',
+    description:
+      'Title of the dialog that tags a conversation with aspects of the company, such as strategy or finances.',
+  },
+  aspectsDescription: {
+    id: 'conversation.aspectsDescription',
+    defaultMessage:
+      'It shows up on the page of each aspect it is tagged with. Strategy Dance no longer tags it once you do.',
+    description:
+      "Line under the title of the dialog that tags a conversation with aspects of the company. The AI, Strategy Dance, picks a conversation's aspects by itself until the reader picks them.",
+  },
+  aspectsSelected: {
+    id: 'conversation.aspectsSelected',
+    defaultMessage: '{count} selected',
+    description: 'How many aspects are picked, at the bottom of the dialog that tags a conversation with them.',
+  },
+  aspectsFull: {
+    id: 'conversation.aspectsFull',
+    defaultMessage: 'This conversation is full, so its aspects can no longer change.',
+    description:
+      'In the aspects dialog of a conversation that holds as many messages as a conversation may. Changing the aspects adds a line to the conversation, which has no room left.',
+  },
+  aspectsError: {
+    id: 'conversation.aspectsError',
+    defaultMessage: 'The aspects could not be saved. Check your connection and try again.',
+    description: 'In the aspects dialog of a conversation, when saving them failed.',
+  },
+  cancel: {
+    id: 'conversation.cancel',
+    defaultMessage: 'Cancel',
+    description: 'Button that closes the aspects dialog without changing the conversation.',
+  },
+  save: {
+    id: 'conversation.save',
+    defaultMessage: 'Save',
+    description: 'Button that tags the conversation with the aspects picked in the dialog.',
+  },
+  close: {
+    id: 'conversation.close',
+    defaultMessage: 'Close',
+    description: "Accessible name of the button that closes one of a conversation's dialogs.",
+  },
+  missingTitle: {
+    id: 'conversation.missingTitle',
+    defaultMessage: 'This conversation no longer exists',
+    description: 'Title of what the page of a conversation shows when there is no such conversation.',
+  },
+  missingText: {
+    id: 'conversation.missingText',
+    defaultMessage: 'It was deleted, or the link is out of date.',
+    description: 'Line under the title of what the page of a conversation that does not exist shows.',
+  },
+  conversationLoadError: {
+    id: 'conversation.conversationLoadError',
+    defaultMessage: 'This conversation could not be loaded. Check your connection and try again.',
+    description: "What a conversation's page shows in place of the conversation when it could not be read.",
+  },
+
+  /* ---
+    THREAD: the messages of a conversation, between the reader and Strategy Dance, the AI
+  --- */
+
+  threadLabel: {
+    id: 'conversation.threadLabel',
+    defaultMessage: 'Messages',
+    description: "Accessible name of the list of a conversation's messages.",
+  },
+  threadEmpty: {
+    id: 'conversation.threadEmpty',
+    defaultMessage: 'Ask about your company, a decision, or what to do next. Type @ to mention knowledge.',
+    description:
+      'What a new conversation shows before its first message. Knowledge is what the organization keeps written down, such as notes, plans and decisions; typing @ in the message field lists it.',
+  },
+  olderError: {
+    id: 'conversation.olderError',
+    defaultMessage: 'Older messages could not be loaded.',
+    description: 'At the top of a conversation, when its earlier messages could not be read.',
+  },
+  messageLoading: {
+    id: 'conversation.messageLoading',
+    defaultMessage: 'Loading this message',
+    description: 'Accessible name of the placeholder that stands in for a message of a conversation while it loads.',
+  },
+  toolBadge: {
+    id: 'conversation.toolBadge',
+    defaultMessage: 'Tool',
+    description:
+      'Small badge beside something the AI used while answering, such as a search of the knowledge, to tell it from a message.',
+  },
+  toolStatusRunning: {
+    id: 'conversation.toolStatus.running',
+    defaultMessage: 'Running',
+    description: 'The state of a tool the AI is using while answering, which has not finished.',
+  },
+  toolStatusFailed: {
+    id: 'conversation.toolStatus.failed',
+    defaultMessage: 'Failed',
+    description: 'The state of a tool the AI used while answering, which went wrong.',
+  },
+  toolStatusCancelled: {
+    id: 'conversation.toolStatus.cancelled',
+    defaultMessage: 'Cancelled',
+    description:
+      'The state of a tool the AI was about to use, which stopped before it ran because the reader stopped the answer.',
+  },
+  viewOutput: {
+    id: 'conversation.viewOutput',
+    defaultMessage: 'View output',
+    description: 'Button on a tool the AI used, which opens what the tool was given and what it gave back.',
+  },
+  viewError: {
+    id: 'conversation.viewError',
+    defaultMessage: 'View error',
+    description: 'Button on a tool the AI used that failed, which opens what the tool was given and how it failed.',
+  },
+  toolCall: {
+    id: 'conversation.toolCall',
+    defaultMessage: 'Tool call · {name}',
+    description:
+      "Line under the title of the dialog showing a tool the AI used. {name} is the tool's technical name, such as search_knowledge, kept as it is.",
+  },
+  toolInput: {
+    id: 'conversation.toolInput',
+    defaultMessage: 'Input',
+    description: 'Heading over what a tool the AI used was given, in the dialog that shows the call.',
+  },
+  toolOutput: {
+    id: 'conversation.toolOutput',
+    defaultMessage: 'Output',
+    description: 'Heading over what a tool the AI used gave back, in the dialog that shows the call.',
+  },
+  toolError: {
+    id: 'conversation.toolError',
+    defaultMessage: 'Error',
+    description: 'Heading over how a tool the AI used failed, in the dialog that shows the call.',
+  },
+  copyOutput: {
+    id: 'conversation.copyOutput',
+    defaultMessage: 'Copy output',
+    description: 'Button that copies what a tool the AI used gave back.',
+  },
+  copyError: {
+    id: 'conversation.copyError',
+    defaultMessage: 'Copy error',
+    description: 'Button that copies how a tool the AI used failed.',
+  },
+  copied: {
+    id: 'conversation.copied',
+    defaultMessage: 'Copied',
+    description: 'What the copy button of a tool call says for a moment after it copied.',
+  },
+  toolCallLoadError: {
+    id: 'conversation.toolCallLoadError',
+    defaultMessage: 'This call could not be loaded. Check your connection and try again.',
+    description: 'In the dialog that shows a tool the AI used, when its input and output could not be read.',
+  },
+  questionWaiting: {
+    id: 'conversation.question.waiting',
+    defaultMessage: 'Waiting for your answer',
+    description: 'Small heading over a question the AI asked the reader, which they have not answered yet.',
+  },
+  questionSelectOne: {
+    id: 'conversation.question.selectOne',
+    defaultMessage: 'Select one',
+    description: 'Hint under a question the AI asked, whose answer is one of its options.',
+  },
+  questionSelectAll: {
+    id: 'conversation.question.selectAll',
+    defaultMessage: 'Select all that apply',
+    description: 'Hint under a question the AI asked, whose answer can be several of its options.',
+  },
+  questionWriteOwn: {
+    id: 'conversation.question.writeOwn',
+    defaultMessage: 'Write your own answer',
+    description: "Placeholder of the field under a question's options, where the reader answers in their own words.",
+  },
+  questionOwnAnswer: {
+    id: 'conversation.question.ownAnswer',
+    defaultMessage: 'Your own answer',
+    description: 'Under an answer the reader wrote in their own words rather than picked from the options.',
+  },
+  questionSend: {
+    id: 'conversation.question.send',
+    defaultMessage: 'Send answer',
+    description: "Button that sends the reader's answer to a question the AI asked.",
+  },
+  questionAnswered: {
+    id: 'conversation.question.answered',
+    defaultMessage: 'Answered',
+    description: 'Small heading over a question the AI asked, which the reader has answered.',
+  },
+  questionSkipped: {
+    id: 'conversation.question.skipped',
+    defaultMessage: 'Skipped',
+    description:
+      'Small heading over a question the AI asked, which the reader did not answer and wrote something else instead.',
+  },
+  aspectsTagged: {
+    id: 'conversation.aspectsNote.tagged',
+    defaultMessage: 'Strategy Dance tagged this conversation',
+    description:
+      "Line in a conversation, over the aspects the AI tagged it with. Strategy Dance is the product's name, and its AI's.",
+  },
+  aspectsChanged: {
+    id: 'conversation.aspectsNote.changed',
+    defaultMessage: 'You changed the aspects',
+    description: 'Line in a conversation, over the aspects the reader tagged it with.',
+  },
+  aspectsRemoved: {
+    id: 'conversation.aspectsNote.removed',
+    defaultMessage: 'You removed all aspects',
+    description: 'Line in a conversation, when the reader took every aspect off it.',
+  },
+  thinking: {
+    id: 'conversation.thinking',
+    defaultMessage: 'Thinking',
+    description: 'What the AI is shown doing while it works on an answer and says nothing more precise.',
+  },
+  working: {
+    id: 'conversation.working',
+    defaultMessage: 'Strategy Dance is working: {step}',
+    description:
+      "Accessible name of the indicator shown while the AI works on an answer. {step} is what it is doing, such as 'Thinking' or 'Searching the web'.",
+  },
+  elapsedSeconds: {
+    id: 'conversation.elapsedSeconds',
+    defaultMessage: '{seconds}s',
+    description:
+      'How long the AI has been working on an answer, in seconds, kept short as a timer. {seconds} is a number such as 12.',
+  },
+  elapsedMinutes: {
+    id: 'conversation.elapsedMinutes',
+    defaultMessage: '{minutes}m {seconds}s',
+    description:
+      'How long the AI has been working on an answer, in minutes and seconds, kept short as a timer. {seconds} has two digits, such as 05.',
+  },
 })
 
 export default conversationMessages

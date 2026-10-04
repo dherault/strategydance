@@ -88,7 +88,17 @@ describe('buildConversationPreview', () => {
     expect(previewText('Use \\*args\\* here')).toBe('Use *args* here')
   })
 
-  it('reads a code span as CommonMark pairs its backticks', () => {
+  it('reads nested emphasis, and a link whose address holds parentheses', () => {
+    expect(previewText('**bold *italic* text** and __more _of_ it__, ~~a ~ b~~')).toBe(
+      'bold italic text and more of it, a ~ b',
+    )
+    expect(previewText('***both*** and *a **b** c*')).toBe('both and a b c')
+    expect(previewText('See [Function](https://en.wikipedia.org/wiki/Function_(mathematics)) first')).toBe(
+      'See Function first',
+    )
+  })
+
+  it('reads code spans as CommonMark pairs their backticks', () => {
     expect(previewText('Write `` `foo` `` to quote it')).toBe('Write `foo` to quote it')
     expect(previewText('A ``span with ` inside`` and `one`')).toBe('A span with ` inside and one')
     expect(previewText('It`s left ``open')).toBe('It`s left ``open')
@@ -124,10 +134,12 @@ describe('buildConversationPreview', () => {
 
     for (const unit of [
       '[a',
+      '[a](x(',
       '\\[',
       'a | b\n',
       '![a](',
       '*a ',
+      '**a *b',
       '_a ',
       '~~a ',
       '`a',

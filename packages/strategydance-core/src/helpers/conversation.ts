@@ -146,13 +146,16 @@ function readQuotedLine(line: string) {
 */
 const INLINE_MARKUP_PATTERNS: [RegExp, string][] = [
   // A link or an image, to its label, a knowledge mention's title included. An escaped bracket
-  // opens none, and neither part reads past the next bracket that would open another
-  [/(?<!\\)!?\[((?:\\.|[^\\[\]])*)\]\((?:\\.|[^\\()])*\)/g, '$1'],
+  // opens none, and neither part reads past the next bracket that would open another, but for
+  // one pair of parentheses in the address, as an address like `Function_(mathematics)` holds
+  [/(?<!\\)!?\[((?:\\.|[^\\[\]])*)\]\((?:\\.|[^\\()]|\((?:\\.|[^\\()])*\))*\)/g, '$1'],
   // An autolink, to its address
   [/<((?:https?|mailto):[^\s<>]*)>/g, '$1'],
-  [/(?<!\\)\*\*([^*\s](?:[^*]*[^*\s])?)\*\*/g, '$1'],
-  [/(?<![\\\w])__([^_\s](?:[^_]*[^_\s])?)__(?!\w)/g, '$1'],
-  [/(?<!\\)~~([^~\s](?:[^~]*[^~\s])?)~~/g, '$1'],
+  // Strong emphasis and strikethrough, which may wrap single delimiters of their own, as
+  // **bold *italic* text** does, and stop at the next double one. The single ones come after
+  [/(?<!\\)\*\*(?=[^*\s])((?:[^*]|\*(?!\*))*?[^*\s])\*\*/g, '$1'],
+  [/(?<![\\\w])__(?=[^_\s])((?:[^_]|_(?!_))*?[^_\s])__(?!\w)/g, '$1'],
+  [/(?<!\\)~~(?=[^~\s])((?:[^~]|~(?!~))*?[^~\s])~~/g, '$1'],
   [/(?<![\\*\w])\*([^*\s](?:[^*]*[^*\s])?)\*(?![*\w])/g, '$1'],
   // Never inside a word, so `read_knowledge` keeps its underscore
   [/(?<![\\\w])_([^_\s](?:[^_]*[^_\s])?)_(?!\w)/g, '$1'],

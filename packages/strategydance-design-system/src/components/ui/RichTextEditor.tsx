@@ -139,8 +139,8 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   Its menus portal into the editor itself, so inside a modal dialog they are inside the dialog, and
   while one is open Escape closes it rather than the dialog. The toolbar floats over the selection
   on touch screens too, since BlockNote's mobile toolbar would portal outside the dialog. The slash
-  menu opens on the side of the caret with room for it, above an on-screen keyboard included, and
-  scrolls its own list, never the page
+  menu opens on the side of the caret with room for it, above an on-screen keyboard included, floats
+  over the page rather than lengthening it, and scrolls its own list, never the page
 */
 function RichTextEditor({
   initialValue,

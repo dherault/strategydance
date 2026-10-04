@@ -42,8 +42,16 @@ const placeByRoom: Middleware = {
   },
 }
 
+/*
+  Fixed, the menu floats over the viewport rather than sitting in the page, so it never lengthens
+  what the page scrolls through. BlockNote sets it absolute, in the page: placed for an instant
+  below a caret near the page's end, with the height it was about to take above it, it reached past
+  the page's end and lengthened it. Chrome on iOS, which fits the page to the space over the
+  keyboard, answered by scrolling the page by that much
+*/
 const FLOATING_OPTIONS: FloatingOptions = {
   useFloatingOptions: {
+    strategy: 'fixed',
     middleware: [
       offset(OFFSET),
       placeByRoom,

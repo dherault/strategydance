@@ -50,8 +50,18 @@ function buildQuestionPreview(source: ConversationPreviewSource): ConversationPr
   TEXT
 --- */
 
-// A line the preview leaves out: a table's row, a code fence, a rule, or a heading's underline
-const SKIPPED_LINE_PATTERN = /^(?:\||```|~~~|(?:[-*_]\s*){3,}$|=+$)/
+// A line the preview leaves out: a code fence, a rule, or a heading's underline
+const SKIPPED_LINE_PATTERN = /^(?:```|~~~|(?:[-*_]\s*){3,}$|=+$)/
+
+/*
+  A table's delimiter row, under its header: cells of dashes, with colons for their alignment,
+  split by pipes whose outer ones GFM makes optional. It holds one pipe at least, which tells it
+  from a rule or a heading's underline
+*/
+const TABLE_DELIMITER_PATTERN = /^(?=.*\|)\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$/
+
+// A line that starts another block, which ends a table as a blank line does
+const BLOCK_START_PATTERN = /^(?:>|#{1,6}(?:\s|$)|```|~~~|(?:[-*+]|\d{1,9}[.)])\s)/
 
 const QUOTE_MARKER_PATTERN = /^(?:>\s?)+/
 
@@ -69,12 +79,28 @@ const INTRODUCTION_END_PATTERN = /:[*_~`]*$/
   inline markup down to its text
 */
 function getMarkdownPreviewText(markdown: string) {
+  const lines = markdown.split(/\r\n?|\n/).map(line => line.trim())
   let text = ''
   // The line before, tested rather than the whole text, which would make a long list quadratic
   let previousLine = ''
+  let isInTable = false
 
-  for (const rawLine of markdown.split(/\r\n?|\n/)) {
-    let line = rawLine.trim().replace(QUOTE_MARKER_PATTERN, '')
+  for (let index = 0; index < lines.length; index++) {
+    const rawLine = lines[index]
+
+    // A table runs from its header, the line above its delimiter row, to a blank line or another
+    // block, and every row in between is one, with a pipe or without
+    if (isInTable && rawLine && !BLOCK_START_PATTERN.test(rawLine)) continue
+
+    isInTable = rawLine.includes('|') && TABLE_DELIMITER_PATTERN.test(lines[index + 1] ?? '')
+
+    if (isInTable) {
+      index++
+
+      continue
+    }
+
+    let line = rawLine.replace(QUOTE_MARKER_PATTERN, '')
 
     if (!line || SKIPPED_LINE_PATTERN.test(line)) continue
 

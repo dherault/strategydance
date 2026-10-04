@@ -46,6 +46,17 @@ describe('buildConversationPreview', () => {
     expect(previewText('Run this:\n\n```\nbun run dev\n```')).toBe('Run this: bun run dev')
   })
 
+  it('leaves out a table whose outer pipes are left out, and its rows without a pipe', () => {
+    expect(previewText('Here is the comparison:\n\nPlan | Price\n:--- | ---:\nFlat | 19\nFree\n\nFlat wins.')).toBe(
+      'Here is the comparison: Flat wins.',
+    )
+  })
+
+  it('ends a table at the next block, and keeps a pipe outside one', () => {
+    expect(previewText('| Plan | Price |\n| - | - |\n| Flat | 19 |\n- Pick Flat\n- Ship it')).toBe('Pick Flat, Ship it')
+    expect(previewText('Pipe it as a | b\n\nthen run it.')).toBe('Pipe it as a | b then run it.')
+  })
+
   it('strips heading and quote markers', () => {
     expect(previewText('## Next steps ##\n\n> Ship it on **Monday**')).toBe('Next steps Ship it on Monday')
   })
@@ -94,7 +105,7 @@ describe('buildConversationPreview', () => {
   it('reads a message full of unpaired delimiters without searching past each one', () => {
     const start = performance.now()
 
-    for (const unit of ['[a', '\\[', '![a](', '*a ', '_a ', '~~a ', '`a', '<https:', '- a\n', 'a:\n- b\n']) {
+    for (const unit of ['[a', '\\[', 'a | b\n', '![a](', '*a ', '_a ', '~~a ', '`a', '<https:', '- a\n', 'a:\n- b\n']) {
       buildConversationPreview({ kind: 'MEMBER_TEXT', text: unit.repeat(Math.ceil(20000 / unit.length)) })
     }
 

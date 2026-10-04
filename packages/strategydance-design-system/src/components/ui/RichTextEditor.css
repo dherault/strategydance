@@ -218,6 +218,24 @@
   background-color: var(--color-neutral-200);
 }
 
+/* The editor's own place, a button where BlockNote's is a div, drawn the same and outlined when the keyboard reaches it */
+.rich-text-editor.bn-root .bn-editor [data-file-block] button.bn-add-file-button {
+  width: 100%;
+  border: 0;
+  font-size: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] button.bn-add-file-button:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+.rich-text-editor.bn-root .bn-editor [data-file-block] button.bn-add-file-button > span {
+  display: block;
+}
+
 .rich-text-editor.bn-root .bn-editor [data-file-block] .bn-visual-media {
   border-radius: var(--radius-xs);
 }

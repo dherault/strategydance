@@ -949,3 +949,111 @@ query GetDocumentPresences($organizationId: UUID!, $id: UUID!)
     }
   }
 }
+
+# The caller's conversations in an organization, latest activity first, as the conversations page
+# lists them: each one's title, aspects and preview, never a message's text, which only the
+# conversation's own page reads. A conversation is private, so it is keyed by the uid off the token,
+# administrators included, and read only while the caller still belongs to the organization, since a
+# conversation outlives its author's removal. A deleted one is left out.
+#
+# Read up to 1000, as many as somebody keeps in an organization (`MAX_CONVERSATIONS` in
+# strategydance-core), so the list is never cut short.
+#
+# A live query. Each `@refresh` names a mutation that adds, hides or reorders a conversation, or
+# changes what its row shows, on the variables it carries, so one member's change wakes only their
+# own pages. A run's message inserts are not among them: while a run goes the row says "Thinking…"
+# from `activeRunId`, and the write that ends it sets the preview the row then shows. Removing a
+# member empties theirs, and deleting the organization empties everybody's
+query GetConversations($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversations(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # `id` breaks the tie between two conversations active in the same instant
+    orderBy: [{ updatedAt: DESC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    title
+    aspects
+    activeRunId
+    isAwaitingAnswer
+    preview
+    updatedAt
+  }
+}
+
+# Which of the caller's conversations in an organization wait for their answer, for the sidebar's
+# count, read on every page of the app: the ids alone, so it stays small however many conversations
+# there are. Read up to 1000, as many as somebody keeps, so the count is exact.
+#
+# A live query, refreshed only by what sets or clears `isAwaitingAnswer`, and by deleting and
+# restoring, which hide and show a conversation that waits. A message inserted during a run never
+# wakes it
+query GetConversationsAwaitingAnswer($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversations(
+    where: {
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAwaitingAnswer: { eq: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}

@@ -1371,3 +1371,75 @@ mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: U
   }
   documentPresence_delete(key: { documentId: $documentId, userId_expr: "auth.uid", sessionId: $sessionId })
 }
+
+# Deletes one of the caller's conversations by setting `deletedAt`, so `RestoreConversation` can
+# take it back, and asks its run to stop, if one goes: the worker reads `stopRequestedAt` at its next
+# step, and stops at its next write once the conversation is deleted anyway. Two rows, each written
+# once. Deleting one that is gone already changes nothing and succeeds, since the outcome is the one
+# asked for. `updatedAt` is left alone, so a conversation brought back takes its place in the list
+# again rather than the top.
+#
+# `$userId` is the caller's own, checked against the token: the conversations list's refresh
+# condition reads it, since a mutation's variables are all a condition can match. Nothing here
+# prunes, since a conversation's files live in Storage beside its rows: the backend removes what
+# was deleted over a day ago
+mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+      @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
+      role
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    data: { deletedAt_expr: "request.time" }
+  )
+  conversationRun_updateMany(
+    where: {
+      conversation: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }
+      status: { in: [QUEUED, RUNNING] }
+      stopRequestedAt: { isNull: true }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Takes back a delete, which the page offers for a few seconds after one. Fails once a prune has
+# claimed the conversation, a day after it was deleted, so an Undo and a prune never both win.
+#
+# A conversation brought back counts against the 1000 as a new one does, under the same lock: the
+# first step writes the caller's own membership, as starting a conversation does, so deleting one at
+# the cap, starting another and taking the delete back cannot keep 1001
+mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone")
+  query @redact {
+    conversations(
+      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "Somebody keeps at most 1000 conversations in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: false }
+      pruneClaimedAt: { isNull: true }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The conversation is gone for good")
+}

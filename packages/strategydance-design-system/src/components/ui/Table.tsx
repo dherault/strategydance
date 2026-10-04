@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react'
+import { type ComponentProps, useEffect, useRef, useState } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type Align = 'left' | 'center' | 'right'
@@ -25,7 +25,10 @@ type TableProps = ComponentProps<'table'> & {
   The shadcn anatomy: a scroll wrapper, then Header, Body, Footer, Row, Head, Cell and Caption.
 
   Density and striping are set once here and read by the rows and cells below through the named
-  `table` group, so a cell never has to be told which table it sits in
+  `table` group, so a cell never has to be told which table it sits in.
+
+  A table wider than its wrapper scrolls, and the keyboard scrolls only what it can focus, so the
+  wrapper takes focus while it scrolls, and only then, to add no stop to a table that fits
 */
 function Table({
   density = 'md',
@@ -35,11 +38,37 @@ function Table({
   className,
   ...props
 }: TableProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isScrollable, setIsScrollable] = useState(false)
+
+  useEffect(() => {
+    const container = containerRef.current
+
+    if (!container) return
+
+    function measure() {
+      if (container) setIsScrollable(container.scrollWidth > container.clientWidth)
+    }
+
+    measure()
+
+    const observer = new ResizeObserver(measure)
+
+    observer.observe(container)
+
+    for (const child of container.children) observer.observe(child)
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div
+      ref={containerRef}
       data-slot="table-container"
+      tabIndex={isScrollable ? 0 : undefined}
       className={cn(
         'relative w-full overflow-x-auto bg-white font-sans antialiased',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
         bordered && 'rounded-xs border border-border',
         containerClassName,
       )}

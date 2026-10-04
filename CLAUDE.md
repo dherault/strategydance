@@ -42,13 +42,19 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   hooks, and the backend as `strategydance-database/backend`. See below
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
-  inviting people, which emails them. See below
+  inviting people, which emails them, storing the pictures of documents' text, and reading what a
+  web page says of itself for a link preview. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
-  drawn by `RichText` without it. BlockNote's menus are built from its own Base UI copies of
-  shadcn's components, which the design system's never reach, so `RichTextEditor.css` dresses them
-  in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
+  drawn by `RichText` without it. A post's editor writes text and lists (`RICH_TEXT_POST_BLOCKS`),
+  and a knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos and link
+  preview cards (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks unless
+  told a document's, since a feed and a public page draw posts. The editor's own blocks, the video
+  and the card, are the core's `createBlockSpec` with plain DOM, never React's, so the headless
+  editor the Yjs helpers convert through loads no React. BlockNote's menus are built from its own
+  Base UI copies of shadcn's components, which the design system's never reach, so
+  `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
   text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last, and never
   loads an image: draw the agent's text through it, never through `react-markdown` directly. It
@@ -230,8 +236,9 @@ English, like the spinner's "Loading", gets its label from `react-intl` where th
 it: `~components/common/Spinner` is the design system's spinner with that label. The one
 exception is BlockNote's menus, dozens of strings that BlockNote translates into every locale the
 app speaks: `RichTextEditor` takes the app's `locale` for them, and only its placeholder and the
-block menu's "Turn into", which BlockNote has no words for, come from a catalogue. Every caller
-passes both: `log.editorTurnInto` is the label's.
+words BlockNote has none for come from a catalogue, through `labels`: the block menu's "Turn into",
+which every caller passes (`log.editorTurnInto` is the label's), and the video's and the link
+preview's words, which the knowledge editor passes.
 
 shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
 its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer
@@ -389,7 +396,9 @@ caret is, and `GetDocumentPresences` keeps them live for the carets and the face
   and delete it, with whatever somebody typed in it
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
-  text. A new block type reaches every tab before anybody can write one
+  text. A new block type reaches every tab before anybody can write one. The Yjs helpers read with
+  a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another, and their read deletes a block it
+  lacks as surely: a document's editor and its helpers keep to one list
 - A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's
   database stuck in its transaction, refusing every mutation after until the emulator restarts.
   A document's page folds nothing as it goes away, as `CompactDocument` is a transaction, and the
@@ -527,6 +536,14 @@ in `utils/`, one concern per file.
   and a Storage rule cannot read who administers what. It stores each under a fresh name with
   its own download token, writes that URL to the row, and deletes the file the row pointed at
   before. `storage.rules` grants clients nothing under `organizations/`
+- So are the pictures of documents' text, which any member may put in, under
+  `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
+  at it by its URL alone, and an undo or another tab can bring a deleted picture back
+- A request to an address somebody else gave, a link preview's page today, goes through
+  `fetchOutbound` in `utils/`, never `fetch`: http or https on its own port, every address the
+  hostname resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address
+  checked, each redirect checked again, a deadline and a byte cap. The server otherwise reaches its
+  metadata server and its own network on anybody's say
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read

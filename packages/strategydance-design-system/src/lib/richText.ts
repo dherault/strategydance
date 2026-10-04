@@ -12,17 +12,50 @@
   `descender-room` one, it adds none of its own, which would only push what follows down
 */
 const richTextClassName =
-  'text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&>:last-child]:mb-0 [&:not(.descender-room_*)>:is(h1,h2,h3):last-child]:pb-(--descender-room)'
+  'text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&>:first-child]:mt-0 [&>:last-child]:mb-0 [&:not(.descender-room_*)>:is(h1,h2,h3):last-child]:pb-(--descender-room)'
 
 const richTextClasses = {
   paragraph: 'mb-2',
-  // By level, each a step down the display face's sizes from the first
+  // By level, each a step down the display face's sizes from the first, and set apart from what
+  // comes before it by less, as the editor sets them. The text's first block has nothing above it
   headings: {
-    1: 'mt-1 mb-2 font-display text-2xl/[1.2] font-normal tracking-normal text-secondary',
-    2: 'mt-1 mb-1.5 font-display text-xl/[1.25] font-normal tracking-normal text-secondary',
-    3: 'mt-1 mb-1 font-display text-lg/[1.3] font-normal tracking-normal text-secondary',
+    1: 'mt-6 mb-3 font-display text-[32px]/[1.15] font-normal tracking-normal text-secondary',
+    2: 'mt-5 mb-2 font-display text-2xl/[1.2] font-normal tracking-normal text-secondary',
+    3: 'mt-4 mb-1 font-display text-lg/[1.3] font-normal tracking-normal text-secondary',
   },
   quote: 'mb-2 border-l-2 border-neutral-300 pl-3 text-neutral-600',
+  // Its lines as typed, scrolling sideways rather than wrapping, as the editor sets it
+  code: 'mb-2 overflow-x-auto rounded-xs bg-neutral-100 px-4 py-3 font-mono text-[13px] leading-[1.6] whitespace-pre [tab-size:2] text-secondary',
+  // A table scrolls sideways when it is wider than the text, its columns as wide as their text
+  // from a width up, or as the editor resized them
+  table: {
+    container: 'mb-2 overflow-x-auto',
+    table: 'border-collapse',
+    cell: 'border border-neutral-200 px-2.5 py-1.5 text-left align-top',
+    header: 'bg-neutral-100 font-semibold',
+    // A column nobody resized, as wide as the editor makes it at the least
+    unsizedCell: 'min-w-[120px]',
+  },
+  // As wide as the text, at the 16:9 a player is drawn in
+  videoEmbed:
+    'mb-2 aspect-video w-full overflow-hidden rounded-xs bg-neutral-900 [&>iframe]:size-full [&>iframe]:border-0',
+  // A card the width of the text, its words beside the page's picture, as the editor draws it
+  linkPreview: {
+    card: 'mb-2 flex min-h-24 overflow-hidden rounded-xs border border-neutral-200 bg-white text-secondary no-underline transition-colors duration-150 ease-in-out hover:border-neutral-300',
+    text: 'flex min-w-0 flex-1 flex-col gap-1 px-4 py-3',
+    title: 'line-clamp-2 text-[0.95em]/[1.375] font-semibold',
+    description: 'line-clamp-2 text-[0.85em]/[1.375] text-neutral-600',
+    site: 'mt-auto truncate text-[0.8em] text-neutral-500',
+    // As tall as the words beside it, whatever the picture's own shape
+    media: 'relative w-1/3 max-w-50 shrink-0',
+    image: 'absolute inset-0 size-full object-cover',
+  },
+  // At its own width up to the text's, or as resized
+  image: {
+    figure: 'mb-2',
+    image: 'block h-auto max-w-full rounded-xs',
+    caption: 'mt-1 text-[0.85em] text-neutral-500',
+  },
   bulletedList: 'mb-2 pl-[22px]',
   bulletMarkers: ['list-disc', 'list-[circle]', 'list-[square]'],
   numberedList: 'mb-2 list-decimal pl-[22px]',
@@ -67,14 +100,136 @@ export const RICH_TEXT_HEADING_LEVELS = [1, 2, 3] as const
 
 export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
 
-/** The blocks rich text is written in, by BlockNote's names */
-export type RichTextBlockType =
-  | 'paragraph'
+/**
+ * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike.
+ * Each is one or more of the stored block types, as `getRichTextBlockTypes` names them
+ */
+export type RichTextEditorBlock =
   | 'heading'
   | 'quote'
-  | 'bulletListItem'
-  | 'numberedListItem'
-  | 'checkListItem'
+  | 'list'
+  | 'checklist'
+  | 'code'
+  | 'table'
+  | 'image'
+  | 'video'
+  | 'linkPreview'
+
+/**
+ * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
+ * Here rather than beside the editor's schema, as are the lists below, so a page passing one loads
+ * no editor
+ */
+export const RICH_TEXT_POST_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
+
+/**
+ * Every block an editor can write besides paragraphs, which it writes unless told fewer: a
+ * document's. The Yjs helpers default to it too, and a shared text has to be read with the
+ * schema its editor writes, since a read deletes whatever block the schema lacks
+ */
+export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
+  'heading',
+  'quote',
+  'list',
+  'checklist',
+  'code',
+  'table',
+  'image',
+  'video',
+  'linkPreview',
+]
+
+/**
+ * The languages a code block is written in, by shiki's ids, each with its name and the names it is
+ * also typed by: those of `@blocknote/code-block`, whose highlighter loads their grammars, plain
+ * text first and the rest by name. A copy rather than that package's list, which would bring shiki
+ * into every page that draws rich text
+ */
+export const RICH_TEXT_CODE_LANGUAGES = {
+  text: { name: 'Plain Text', aliases: ['text', 'txt', 'plain'] },
+  c: { name: 'C', aliases: ['c'] },
+  csharp: { name: 'C#', aliases: ['c#', 'csharp', 'cs'] },
+  cpp: { name: 'C++', aliases: ['cpp', 'c++'] },
+  css: { name: 'CSS', aliases: ['css'] },
+  glsl: { name: 'GLSL', aliases: ['glsl'] },
+  graphql: { name: 'GraphQL', aliases: ['graphql', 'gql'] },
+  haskell: { name: 'Haskell', aliases: ['haskell', 'hs'] },
+  html: { name: 'HTML', aliases: ['html'] },
+  java: { name: 'Java', aliases: ['java'] },
+  javascript: { name: 'JavaScript', aliases: ['javascript', 'js'] },
+  json: { name: 'JSON', aliases: ['json'] },
+  jsonc: { name: 'JSON with Comments', aliases: ['jsonc'] },
+  jsonl: { name: 'JSON Lines', aliases: ['jsonl'] },
+  jsx: { name: 'JSX', aliases: ['jsx'] },
+  julia: { name: 'Julia', aliases: ['julia', 'jl'] },
+  kotlin: { name: 'Kotlin', aliases: ['kotlin', 'kt', 'kts'] },
+  latex: { name: 'LaTeX', aliases: ['latex'] },
+  less: { name: 'Less', aliases: ['less'] },
+  lua: { name: 'Lua', aliases: ['lua'] },
+  markdown: { name: 'Markdown', aliases: ['markdown', 'md'] },
+  mdx: { name: 'MDX', aliases: ['mdx'] },
+  mermaid: { name: 'Mermaid', aliases: ['mermaid', 'mmd'] },
+  'objective-c': { name: 'Objective C', aliases: ['objective-c', 'objc'] },
+  php: { name: 'PHP', aliases: ['php'] },
+  postcss: { name: 'PostCSS', aliases: ['postcss'] },
+  pug: { name: 'Pug', aliases: ['pug', 'jade'] },
+  python: { name: 'Python', aliases: ['python', 'py'] },
+  r: { name: 'R', aliases: ['r'] },
+  regexp: { name: 'RegExp', aliases: ['regexp', 'regex'] },
+  ruby: { name: 'Ruby', aliases: ['ruby', 'rb'] },
+  haml: { name: 'Ruby Haml', aliases: ['haml'] },
+  rust: { name: 'Rust', aliases: ['rust', 'rs'] },
+  sass: { name: 'Sass', aliases: ['sass'] },
+  scala: { name: 'Scala', aliases: ['scala'] },
+  scss: { name: 'SCSS', aliases: ['scss'] },
+  shellscript: { name: 'Shell', aliases: ['shellscript', 'bash', 'sh', 'shell', 'zsh'] },
+  sql: { name: 'SQL', aliases: ['sql'] },
+  svelte: { name: 'Svelte', aliases: ['svelte'] },
+  swift: { name: 'Swift', aliases: ['swift'] },
+  tsx: { name: 'TSX', aliases: ['tsx', 'typescriptreact'] },
+  typescript: { name: 'TypeScript', aliases: ['typescript', 'ts'] },
+  vue: { name: 'Vue', aliases: ['vue'] },
+  'vue-html': { name: 'Vue HTML', aliases: ['vue-html'] },
+  wasm: { name: 'WebAssembly', aliases: ['wasm'] },
+  wgsl: { name: 'WGSL', aliases: ['wgsl'] },
+  xml: { name: 'XML', aliases: ['xml'] },
+  yaml: { name: 'YAML', aliases: ['yaml', 'yml'] },
+} satisfies Record<string, { name: string; aliases: string[] }>
+
+/** A code block's language, plain text being the default, which a block in it leaves out */
+export type RichTextCodeLanguage = keyof typeof RICH_TEXT_CODE_LANGUAGES
+
+/**
+ * The language a name stands for, by its id or one of the names it is also typed by, ignoring
+ * case: `ts` is TypeScript. Plain text for anything else, an empty name included, which is what
+ * BlockNote writes for a block opened by three backticks alone
+ */
+export function getRichTextCodeLanguage(name: unknown): RichTextCodeLanguage {
+  if (typeof name !== 'string') return 'text'
+
+  const typed = name.trim().toLowerCase()
+  const entry = Object.entries(RICH_TEXT_CODE_LANGUAGES).find(
+    ([id, { aliases }]) => id === typed || aliases.includes(typed),
+  )
+
+  return (entry?.[0] as RichTextCodeLanguage | undefined) ?? 'text'
+}
+
+/** The stored block types an editor writing `blocks` keeps, which `normalizeRichText` holds a value to */
+export function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): RichTextBlockType[] {
+  return [
+    'paragraph',
+    ...(blocks.includes('heading') ? (['heading'] as const) : []),
+    ...(blocks.includes('quote') ? (['quote'] as const) : []),
+    ...(blocks.includes('list') ? (['bulletListItem', 'numberedListItem'] as const) : []),
+    ...(blocks.includes('checklist') ? (['checkListItem'] as const) : []),
+    ...(blocks.includes('code') ? (['codeBlock'] as const) : []),
+    ...(blocks.includes('table') ? (['table'] as const) : []),
+    ...(blocks.includes('image') ? (['image'] as const) : []),
+    ...(blocks.includes('video') ? (['videoEmbed'] as const) : []),
+    ...(blocks.includes('linkPreview') ? (['linkPreview'] as const) : []),
+  ]
+}
 
 /** The four styles a run of text may carry, each present only when it is on */
 export type RichTextStyles = {
@@ -99,8 +254,9 @@ export type RichTextLink = {
 
 export type RichTextInline = RichTextRun | RichTextLink
 
-export type RichTextBlock = {
-  type: RichTextBlockType
+/** A block of text: a paragraph, a heading, a quote, or an item of a list */
+export type RichTextTextBlock = {
+  type: 'paragraph' | 'heading' | 'quote' | 'bulletListItem' | 'numberedListItem' | 'checkListItem'
   /** A heading's level when it is not the second, a numbered list's first number when it is not 1, and a check item's tick */
   props?: {
     level?: Exclude<RichTextHeadingLevel, 2>
@@ -111,3 +267,91 @@ export type RichTextBlock = {
   /** The blocks nested under it, which is how a list is indented */
   children?: RichTextBlock[]
 }
+
+/** Code, as typed: one run of text without styles, its line breaks in it */
+export type RichTextCodeBlock = {
+  type: 'codeBlock'
+  /** Its language when it is not plain text */
+  props?: { language: Exclude<RichTextCodeLanguage, 'text'> }
+  content?: [{ type: 'text'; text: string }]
+  children?: RichTextBlock[]
+}
+
+/**
+ * A table's cells, row by row, every row as wide as the widest: each cell its text, empty when it
+ * holds none. Its first row, its first column or both are headers when it says so
+ */
+export type RichTextTableContent = {
+  type: 'tableContent'
+  headerRows?: 1
+  headerCols?: 1
+  /** Each column's width in pixels, as it was resized, or null for one as wide as its text */
+  columnWidths?: (number | null)[]
+  rows: { cells: RichTextInline[][] }[]
+}
+
+export type RichTextTableBlock = {
+  type: 'table'
+  content: RichTextTableContent
+  children?: RichTextBlock[]
+}
+
+/**
+ * A picture, uploaded to the organization's part of the bucket or linked from the web, with the
+ * text it reads as, a caption under it, and the width it was resized to. One with no address yet is
+ * the place a picture is about to go, which draws nothing
+ */
+export type RichTextImageBlock = {
+  type: 'image'
+  props?: {
+    url?: string
+    name?: string
+    caption?: string
+    previewWidth?: number
+  }
+  children?: RichTextBlock[]
+}
+
+/**
+ * A YouTube, Vimeo or Loom video, by the address of its page, which `parseVideoEmbedUrl` writes one
+ * way. One with no address is the place a video is about to go, which draws nothing
+ */
+export type RichTextVideoEmbedBlock = {
+  type: 'videoEmbed'
+  props?: { url: string }
+  children?: RichTextBlock[]
+}
+
+/**
+ * What a web page says of itself, as the backend reads it for a card: its address, and whatever it
+ * names of its title, its description, its site and its picture
+ */
+export type RichTextLinkPreview = {
+  url: string
+  title?: string
+  description?: string
+  siteName?: string
+  /** An https picture, loaded from wherever the page names it */
+  imageUrl?: string
+}
+
+/**
+ * A card linking to a web page, with what the page said of itself when it was added. One with no
+ * address is the place a card is about to go, which draws nothing
+ */
+export type RichTextLinkPreviewBlock = {
+  type: 'linkPreview'
+  props?: RichTextLinkPreview
+  children?: RichTextBlock[]
+}
+
+export type RichTextBlock =
+  | RichTextTextBlock
+  | RichTextCodeBlock
+  | RichTextTableBlock
+  | RichTextImageBlock
+  | RichTextVideoEmbedBlock
+  | RichTextLinkPreviewBlock
+
+/** The blocks rich text is written in, by BlockNote's names */
+export type RichTextBlockType = RichTextBlock['type']

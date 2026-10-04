@@ -921,7 +921,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 
 Documents, top priorities and log entries are stored as BlockNote blocks (paragraphs, headings 1 to
 3, quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and
-mail links); the agent reads and writes Markdown. The stored model lives in the design system's
+mail links), and documents also as code, tables, pictures, YouTube, Vimeo and Loom videos and link
+preview cards; the agent reads and writes Markdown. The stored model lives in the design system's
 `lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`), beside
 the conversions between blocks and a document's shared text (`createRichTextYUpdate`,
 `readRichTextYDoc`), which go through a headless BlockNote editor and so need `@blocknote/core`
@@ -932,7 +933,14 @@ neither React nor the DOM, and whose tests already run them under Bun. M13 adds 
 paragraphs. Markdown has no underline, so the pair writes and reads it as `<u>…</u>`, the one tag
 `markdownToRichText` understands; any other tag stays literal text, nothing is ever rendered as
 HTML, and the system prompt says underline belongs in documents, never in replies. A document then
-keeps all four styles through an agent's edit.
+keeps all four styles through an agent's edit. The document blocks map onto Markdown too: code to a
+fenced block with its language, a table to a GFM table with its header row, and a picture, a video
+and a link preview to a link, read with its caption or title. The agent writes none of the last
+three but the link preview's link and words: `updateRichTextYDoc` drops pictures, videos and a
+card's picture from every block it writes (`normalizeRichText`'s `media: false`), since a model a
+page told to add a picture could make every reader's browser send the document to an address of
+the page's choosing. A `replaceBlocks` over a range holding one of them has to keep it, by leaving
+it out of the range.
 
 **A document's text is shared**, so the agent reads and writes it as an editor does (see
 `CLAUDE.md` § The database):

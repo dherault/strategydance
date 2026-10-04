@@ -2,7 +2,7 @@ import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRich
 import type { RichTextBlock, RichTextBlockType } from 'strategydance-design-system/lib/richText'
 
 type Options = {
-  /** The blocks to keep, all six unless it says fewer. Any other block holding text becomes a paragraph */
+  /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
   blockTypes?: readonly RichTextBlockType[]
 }
 

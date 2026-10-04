@@ -46,6 +46,25 @@ export type ChangeOrganizationImageData = {
   url: string | null
 }
 
+// What uploading a picture for a document's text answers with: where it is downloaded from
+export type RichTextImageData = {
+  url: string
+}
+
+/*
+  What a web page says of itself, as a link preview card in a document draws it: the address it
+  was asked for, and whatever the page names of its title, its description, its site and its
+  picture, each left out when it names none. A page that could not be read is its address alone
+*/
+export type LinkPreviewData = {
+  url: string
+  title?: string
+  description?: string
+  siteName?: string
+  /** An https picture on the page's own site or elsewhere, which the card loads from there */
+  imageUrl?: string
+}
+
 /* ---
   CONVERSATIONS
 --- */

@@ -264,6 +264,15 @@ export const MAX_DOCUMENT_UPDATE_LENGTH = 50000
 export const DOCUMENT_COMPACTION_THRESHOLD = 50
 export const DOCUMENT_UPDATES_LIMIT = 100
 
+/*
+  The pictures a document's text shows, uploaded through the backend into the organization's part
+  of the bucket: the raster types an organization's own pictures take, for the same reason, and up
+  to 10 megabytes, a phone's photo. The editor refuses a larger file before sending it, and the
+  backend refuses it again before reading it
+*/
+export const RICH_TEXT_IMAGE_CONTENT_TYPES = ORGANIZATION_IMAGE_CONTENT_TYPES
+export const MAX_RICH_TEXT_IMAGE_SIZE = 10 * 1024 * 1024
+
 /* ---
   CONVERSATIONS
 --- */

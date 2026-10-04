@@ -1,9 +1,19 @@
-import type {
-  RichTextBlock,
-  RichTextBlockType,
-  RichTextInline,
-  RichTextRun,
-  RichTextStyles,
+import { getRichTextInlineText } from 'strategydance-design-system/lib/getRichTextText'
+import { parseVideoEmbedUrl } from 'strategydance-design-system/lib/parseVideoEmbedUrl'
+import {
+  type RichTextBlock,
+  type RichTextBlockType,
+  type RichTextCodeBlock,
+  type RichTextImageBlock,
+  type RichTextInline,
+  type RichTextLinkPreviewBlock,
+  type RichTextRun,
+  type RichTextStyles,
+  type RichTextTableBlock,
+  type RichTextTableContent,
+  type RichTextTextBlock,
+  type RichTextVideoEmbedBlock,
+  getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
 
 // Deeper than any list anybody indents by hand, and shallow enough that a hostile value nesting
@@ -17,16 +27,70 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'bulletListItem',
   'numberedListItem',
   'checkListItem',
+  'codeBlock',
+  'table',
+  'image',
+  'videoEmbed',
+  'linkPreview',
 ]
+
+// More than a table written by hand ever has, and few enough that a hostile one stays small
+const MAX_TABLE_ROWS = 200
+const MAX_TABLE_COLUMNS = 25
+
+// The narrowest and widest a resized column may be, BlockNote's narrowest and a wide screen's width
+const MIN_COLUMN_WIDTH = 35
+const MAX_COLUMN_WIDTH = 2000
 
 const STYLES = ['bold', 'italic', 'underline', 'strike'] as const
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
 
+// What a picture may be loaded from: the web, and the Storage emulator, which development serves over http
+const MEDIA_PROTOCOLS = new Set(['http:', 'https:'])
+
+// What a card's picture may be loaded from, as the backend keeps it to
+const HTTPS = new Set(['https:'])
+
+// Longer than any caption or alternative text written by hand
+const MAX_MEDIA_TEXT_LENGTH = 1000
+
+// Longer than any web address a picture, a video or a page has, and short enough that one cannot
+// run a document past its length
+const MAX_MEDIA_URL_LENGTH = 2048
+
+// A card's, as the backend holds a page's words to
+const MAX_LINK_PREVIEW_LENGTHS = { title: 300, description: 1000, siteName: 100 }
+
 type Options = {
-  /** The blocks to keep, all six unless it says fewer. Any other block holding text becomes a paragraph */
+  /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
   blockTypes?: readonly RichTextBlockType[]
+  /**
+   * Whether to keep what loads from elsewhere: pictures, videos and a link preview's picture,
+   * kept unless it says not. Without, a picture and a video give way to their children, and a link
+   * preview keeps its words alone
+   */
+  media?: boolean
 }
+
+// What a value is held to as it is read, block by block
+type Rules = { blockTypes: ReadonlySet<string>; media: boolean }
+
+// What loads from elsewhere, which `media: false` drops
+const MEDIA_BLOCK_TYPES = new Set(['image', 'videoEmbed'])
+
+// BlockNote's blocks that never hold text, whatever content a writer gives them
+const BLOCKS_WITHOUT_TEXT = new Set([
+  'image',
+  'video',
+  'audio',
+  'file',
+  'videoEmbed',
+  'linkPreview',
+  'divider',
+  'pageBreak',
+  'table',
+])
 
 type UnknownRecord = Record<string, unknown>
 
@@ -38,17 +102,26 @@ type UnknownRecord = Record<string, unknown>
   wrote, so nothing in it is trusted. A block keeps its type when it is one the options allow, and
   becomes a paragraph otherwise when it holds text. One holding none, such as a table or an image,
   gives way to its children. Ids, colors, alignment and every other prop go, but a heading's level,
-  a numbered list's first number and a check item's tick. Text keeps four styles. A link keeps its address when it is
-  a web or mail one, written as the URL parser writes it, and is its text otherwise.
+  a numbered list's first number, a check item's tick and a code block's language. Text keeps four
+  styles, and code none. A table keeps its cells' text, laid out on its grid with merged cells
+  split, and the widths of its columns, and whether its first row and column are headers. A
+  picture keeps its web address, its alternative text, its caption and the width it was resized
+  to, a video the address of its page on YouTube, Vimeo or Loom, written one way, and a link
+  preview its web address, what the page said of itself, and its picture's https address. A link keeps its address when it is a web or mail one, written as the URL
+  parser writes it, and is its text otherwise.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
   are dropped, so the same document always serializes to the same string. Anything that is not an
   array, Lexical's editor state among them, reads as nothing
 */
-function normalizeRichText(value: unknown, { blockTypes = ALL_BLOCK_TYPES }: Options = {}): RichTextBlock[] {
+function normalizeRichText(
+  value: unknown,
+  { blockTypes = ALL_BLOCK_TYPES, media = true }: Options = {},
+): RichTextBlock[] {
   if (!Array.isArray(value)) return []
 
-  const blocks = normalizeBlocks(value, new Set(blockTypes), 0)
+  const allowed = blockTypes.filter(type => media || !MEDIA_BLOCK_TYPES.has(type))
+  const blocks = normalizeBlocks(value, { blockTypes: new Set(allowed), media }, 0)
   const end = blocks.findLastIndex(block => !isEmptyParagraph(block))
 
   return blocks.slice(0, end + 1)
@@ -58,34 +131,208 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function normalizeBlocks(values: unknown[], blockTypes: ReadonlySet<string>, depth: number): RichTextBlock[] {
+function normalizeBlocks(values: unknown[], rules: Rules, depth: number): RichTextBlock[] {
   if (depth >= MAX_DEPTH) return []
 
-  return values.flatMap(value => (isRecord(value) ? normalizeBlock(value, blockTypes, depth) : []))
+  return values.flatMap(value => (isRecord(value) ? normalizeBlock(value, rules, depth) : []))
 }
 
-function normalizeBlock(value: UnknownRecord, blockTypes: ReadonlySet<string>, depth: number): RichTextBlock[] {
-  const children = Array.isArray(value.children) ? normalizeBlocks(value.children, blockTypes, depth + 1) : []
-  const isKnown = typeof value.type === 'string' && blockTypes.has(value.type)
-  const hasContent = typeof value.content === 'string' || Array.isArray(value.content)
+function normalizeBlock(value: UnknownRecord, rules: Rules, depth: number): RichTextBlock[] {
+  const children = Array.isArray(value.children) ? normalizeBlocks(value.children, rules, depth + 1) : []
+  const isKnown = typeof value.type === 'string' && rules.blockTypes.has(value.type)
+  const hasContent =
+    (typeof value.content === 'string' || Array.isArray(value.content))
+    && !BLOCKS_WITHOUT_TEXT.has(value.type as string)
 
   if (!isKnown && !hasContent) return children
 
   const type = isKnown ? (value.type as RichTextBlockType) : 'paragraph'
-  const props = normalizeProps(type, value.props)
-  const content = normalizeInline(value.content)
+  const block =
+    type === 'codeBlock'
+      ? normalizeCodeBlock(value)
+      : type === 'table'
+        ? normalizeTable(value)
+        : type === 'image'
+          ? normalizeImage(value)
+          : type === 'videoEmbed'
+            ? normalizeVideoEmbed(value)
+            : type === 'linkPreview'
+              ? normalizeLinkPreview(value, rules.media)
+              : normalizeTextBlock(type, value)
 
-  return [
-    {
-      type,
-      ...(props ? { props } : {}),
-      ...(content.length ? { content } : {}),
-      ...(children.length ? { children } : {}),
-    },
-  ]
+  if (!block) return children
+
+  return [{ ...block, ...(children.length ? { children } : {}) }]
 }
 
-function normalizeProps(type: RichTextBlockType, props: unknown): RichTextBlock['props'] {
+function normalizeTextBlock(type: RichTextTextBlock['type'], value: UnknownRecord): RichTextTextBlock {
+  const props = normalizeTextProps(type, value.props)
+  const content = normalizeInline(value.content)
+
+  return { type, ...(props ? { props } : {}), ...(content.length ? { content } : {}) }
+}
+
+// Its text in one run without styles, whatever it was written in, and its language unless that is plain text
+function normalizeCodeBlock(value: UnknownRecord): RichTextCodeBlock {
+  const language = getRichTextCodeLanguage(isRecord(value.props) ? value.props.language : undefined)
+  const text = getRichTextInlineText(normalizeInline(value.content))
+
+  return {
+    type: 'codeBlock',
+    ...(language === 'text' ? {} : { props: { language } }),
+    ...(text ? { content: [{ type: 'text', text }] } : {}),
+  }
+}
+
+/*
+  A table as rows of cells of text, every row as wide as the widest. BlockNote hands a cell over as
+  a cell with props, and takes it back as its text alone, which is how it is stored. A merged cell,
+  which a paste can bring in, is split, its text in its first cell and the others empty, so every
+  cell keeps its column. Its first row and column are headers when it says they are: BlockNote
+  counts the columns of a table of one header row as header columns too, so those are not. A table
+  without a cell is nothing
+*/
+function normalizeTable(value: UnknownRecord): RichTextTableBlock | null {
+  const content = isRecord(value.content) ? value.content : {}
+  const rows = readRows(Array.isArray(content.rows) ? content.rows.slice(0, MAX_TABLE_ROWS) : [])
+  const width = Math.min(Math.max(0, ...rows.map(cells => cells.length)), MAX_TABLE_COLUMNS)
+
+  if (!width) return null
+
+  const hasHeaderRow = Number.isSafeInteger(content.headerRows) && (content.headerRows as number) >= 1
+  const hasHeaderColumn =
+    Number.isSafeInteger(content.headerCols)
+    && (content.headerCols as number) >= 1
+    && !(hasHeaderRow && rows.length === 1)
+  const columnWidths = normalizeColumnWidths(content.columnWidths, width)
+  const table: RichTextTableContent = {
+    type: 'tableContent',
+    ...(hasHeaderRow ? { headerRows: 1 } : {}),
+    ...(hasHeaderColumn ? { headerCols: 1 } : {}),
+    ...(columnWidths ? { columnWidths } : {}),
+    rows: rows.map(cells => ({ cells: Array.from({ length: width }, (_, index) => cells[index] ?? []) })),
+  }
+
+  return { type: 'table', content: table }
+}
+
+// Each row's cells on the table's grid, a cell spanning several columns or rows leaving empty cells in them
+function readRows(rows: unknown[]) {
+  // How many rows below each column is still covered by a cell spanning rows
+  const covered: number[] = []
+
+  return rows.map(row => {
+    const cells: RichTextInline[][] = []
+    const skipCovered = () => {
+      while (covered[cells.length] > 0) {
+        covered[cells.length] -= 1
+        cells.push([])
+      }
+    }
+
+    for (const cell of isRecord(row) && Array.isArray(row.cells) ? row.cells : []) {
+      skipCovered()
+
+      const { content, colspan, rowspan } = readCell(cell)
+
+      for (let index = 0; index < colspan && cells.length < MAX_TABLE_COLUMNS; index++) {
+        covered[cells.length] = rowspan - 1
+        cells.push(index ? [] : content)
+      }
+    }
+
+    skipCovered()
+
+    return cells
+  })
+}
+
+// A cell's text and how many columns and rows it spans, from a cell with props, its content or its text
+function readCell(cell: unknown) {
+  if (!isRecord(cell)) return { content: normalizeInline(cell), colspan: 1, rowspan: 1 }
+
+  const props = isRecord(cell.props) ? cell.props : {}
+
+  return {
+    content: normalizeInline(cell.content),
+    colspan: readSpan(props.colspan, MAX_TABLE_COLUMNS),
+    rowspan: readSpan(props.rowspan, MAX_TABLE_ROWS),
+  }
+}
+
+function readSpan(span: unknown, max: number) {
+  return Number.isSafeInteger(span) && (span as number) > 1 ? Math.min(span as number, max) : 1
+}
+
+// The width of each of a table's columns, whole and within bounds, or nothing when none has one
+function normalizeColumnWidths(widths: unknown, count: number) {
+  if (!Array.isArray(widths)) return null
+
+  const normalized = Array.from({ length: count }, (_, index) => {
+    const width: unknown = widths[index]
+
+    return typeof width === 'number' && Number.isFinite(width)
+      ? Math.min(Math.max(Math.round(width), MIN_COLUMN_WIDTH), MAX_COLUMN_WIDTH)
+      : null
+  })
+
+  return normalized.some(width => width !== null) ? normalized : null
+}
+
+// A picture as it is drawn. One with no web address keeps none, and is the place one is about to go
+function normalizeImage(value: UnknownRecord): RichTextImageBlock {
+  const props = isRecord(value.props) ? value.props : {}
+  const url = normalizeMediaUrl(props.url, MEDIA_PROTOCOLS)
+  const name = normalizeMediaText(props.name)
+  const caption = normalizeMediaText(props.caption)
+  const previewWidth =
+    typeof props.previewWidth === 'number' && Number.isFinite(props.previewWidth) && props.previewWidth >= 1
+      ? Math.min(Math.round(props.previewWidth), MAX_COLUMN_WIDTH)
+      : null
+  const normalized = {
+    ...(url ? { url } : {}),
+    ...(name ? { name } : {}),
+    ...(caption ? { caption } : {}),
+    ...(previewWidth ? { previewWidth } : {}),
+  }
+
+  return { type: 'image', ...(Object.keys(normalized).length ? { props: normalized } : {}) }
+}
+
+// A video by its page's address, or the place one is about to go when no provider plays it
+function normalizeVideoEmbed(value: UnknownRecord): RichTextVideoEmbedBlock {
+  const embed = parseVideoEmbedUrl(isRecord(value.props) ? value.props.url : undefined)
+
+  return { type: 'videoEmbed', ...(embed ? { props: { url: embed.url } } : {}) }
+}
+
+/*
+  A card by its web address and what the page said of itself, or the place one is about to go when
+  it has no web address. Its picture is kept at an https address only, and only with media
+*/
+function normalizeLinkPreview(value: UnknownRecord, media: boolean): RichTextLinkPreviewBlock {
+  const props = isRecord(value.props) ? value.props : {}
+  const url = normalizeMediaUrl(props.url, MEDIA_PROTOCOLS)
+
+  if (!url) return { type: 'linkPreview' }
+
+  const imageUrl = media ? normalizeMediaUrl(props.imageUrl, HTTPS) : null
+  const words = Object.fromEntries(
+    Object.entries(MAX_LINK_PREVIEW_LENGTHS).flatMap(([name, max]) => {
+      const text = props[name]
+
+      return typeof text === 'string' && text.trim() ? [[name, text.trim().slice(0, max)]] : []
+    }),
+  )
+
+  return { type: 'linkPreview', props: { url, ...words, ...(imageUrl ? { imageUrl } : {}) } }
+}
+
+function normalizeMediaText(text: unknown) {
+  return typeof text === 'string' ? text.slice(0, MAX_MEDIA_TEXT_LENGTH) : ''
+}
+
+function normalizeTextProps(type: RichTextTextBlock['type'], props: unknown): RichTextTextBlock['props'] {
   if (!isRecord(props)) return undefined
 
   // The second level is the default and goes unsaid, and one past the third reads as the third
@@ -152,12 +399,24 @@ function normalizeStyles(styles: unknown): RichTextStyles | undefined {
 }
 
 function normalizeHref(href: unknown) {
-  if (typeof href !== 'string') return null
+  return normalizeUrl(href, SAFE_PROTOCOLS)
+}
+
+// A media's address, as `normalizeUrl` has it, when it is no longer than a web address may be
+function normalizeMediaUrl(value: unknown, protocols: ReadonlySet<string>) {
+  const url = normalizeUrl(value, protocols)
+
+  return url && url.length <= MAX_MEDIA_URL_LENGTH ? url : null
+}
+
+// An address in one of the protocols, as the URL parser writes it, or null
+function normalizeUrl(value: unknown, protocols: ReadonlySet<string>) {
+  if (typeof value !== 'string') return null
 
   try {
-    const url = new URL(href)
+    const url = new URL(value)
 
-    return SAFE_PROTOCOLS.has(url.protocol) ? url.href : null
+    return protocols.has(url.protocol) ? url.href : null
   } catch {
     return null
   }

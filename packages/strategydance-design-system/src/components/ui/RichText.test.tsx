@@ -3,9 +3,20 @@ import { describe, expect, it, spyOn } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
+import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richText'
 
 function render(blocks: unknown) {
   return renderToStaticMarkup(<RichText value={JSON.stringify(blocks)} />)
+}
+
+// As a document draws its text, with every block its editor writes
+function renderDocument(blocks: unknown) {
+  return renderToStaticMarkup(
+    <RichText
+      value={JSON.stringify(blocks)}
+      blocks={RICH_TEXT_EDITOR_BLOCKS}
+    />,
+  )
 }
 
 function text(value: string, styles: Record<string, unknown> = {}) {
@@ -83,7 +94,7 @@ describe('RichText', () => {
     ])
 
     expect(markup).toBe(
-      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">plain!</p></div>',
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:first-child]:mt-0 [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">plain!</p></div>',
     )
   })
 
@@ -111,7 +122,7 @@ describe('RichText', () => {
     expect(markup).toContain(' script</p>')
   })
 
-  it('draws a block it does not know as a paragraph, or as what it holds', () => {
+  it('draws a block a post does not hold as a paragraph, or as what it holds', () => {
     expect(
       render([
         { type: 'codeBlock', content: [text('let a')] },
@@ -122,6 +133,94 @@ describe('RichText', () => {
         },
       ]),
     ).toContain('<p class="mb-2">let a</p><p class="mb-2">b</p>')
+  })
+
+  it('draws code as its lines, in its language, where a document draws it', () => {
+    const code = [{ type: 'codeBlock', props: { language: 'typescript' }, content: [text('let a = 1\n<b>bold</b>')] }]
+
+    expect(renderDocument(code)).toContain(
+      '<code data-language="typescript">let a = 1\n&lt;b&gt;bold&lt;/b&gt;</code></pre>',
+    )
+    expect(renderDocument([{ type: 'codeBlock' }])).toContain('<code data-language="text"></code>')
+    expect(render(code)).toContain('<p class="mb-2">let a = 1<br/>&lt;b&gt;bold&lt;/b&gt;</p>')
+  })
+
+  it('draws a table with its header row and column, and its resized columns, where a document draws it', () => {
+    const markup = renderDocument([
+      {
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          headerRows: 1,
+          headerCols: 1,
+          columnWidths: [200, null],
+          rows: [
+            { cells: [[text('Name')], [text('Score')]] },
+            { cells: [[text('Ada')], [text('<b>9</b>', { bold: true })]] },
+          ],
+        },
+      },
+    ])
+
+    expect(markup).toContain('<colgroup><col style="width:200px"/><col/></colgroup>')
+    expect(markup).toContain(
+      '<thead><tr><th scope="col" class="border border-neutral-200 px-2.5 py-1.5 text-left align-top bg-neutral-100 font-semibold">Name</th>',
+    )
+    expect(markup).toContain('min-w-[120px] bg-neutral-100 font-semibold">Score</th></tr></thead>')
+    expect(markup).toContain('<tbody><tr><th scope="row" ')
+    expect(markup).toContain('<span class="font-semibold">&lt;b&gt;9&lt;/b&gt;</span></td>')
+    expect(render([{ type: 'table', content: { type: 'tableContent', rows: [{ cells: [[text('a')]] }] } }])).toBe('')
+  })
+
+  it('draws a picture at its width with its caption, loaded lazily and telling its site nothing', () => {
+    const image = {
+      type: 'image',
+      props: { url: 'https://example.com/a.png', name: 'A chart', caption: 'Latency', previewWidth: 240 },
+    }
+
+    expect(renderDocument([image])).toBe(
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:first-child]:mt-0 [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><figure class="mb-2"><img src="https://example.com/a.png" alt="A chart" width="240" loading="lazy" decoding="async" referrerPolicy="no-referrer" class="block h-auto max-w-full rounded-xs"/><figcaption class="mt-1 text-[0.85em] text-neutral-500">Latency</figcaption></figure></div>',
+    )
+    expect(renderDocument([{ type: 'image', props: { url: 'javascript:alert(1)' } }])).not.toContain('<img')
+    expect(render([image])).toBe('')
+  })
+
+  it("draws a video in its provider's player, built from the video alone", () => {
+    const markup = renderDocument([{ type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } }])
+
+    expect(markup).toContain('<iframe src="https://player.vimeo.com/video/76979871" title="Vimeo" loading="lazy"')
+    expect(markup).toContain(
+      'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"',
+    )
+    expect(renderDocument([{ type: 'videoEmbed', props: { url: 'https://evil.example/player' } }])).not.toContain(
+      '<iframe',
+    )
+    expect(render([{ type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } }])).toBe('')
+  })
+
+  it('draws a link preview as a card opening the page, its words as text and its picture telling nothing', () => {
+    const markup = renderDocument([
+      {
+        type: 'linkPreview',
+        props: {
+          url: 'https://www.example.com/page',
+          title: '<b>Indexes</b>',
+          siteName: 'Example',
+          imageUrl: 'https://cdn.example.com/cover.png',
+        },
+      },
+      { type: 'linkPreview', props: { url: 'https://example.org/' } },
+    ])
+
+    expect(markup).toContain(
+      '<a href="https://www.example.com/page" target="_blank" rel="noopener noreferrer nofollow"',
+    )
+    expect(markup).toContain('&lt;b&gt;Indexes&lt;/b&gt;</span>')
+    expect(markup).toContain('>Example · example.com</span>')
+    expect(markup).toContain('<img src="https://cdn.example.com/cover.png" alt="" loading="lazy"')
+    expect(markup).toContain('referrerPolicy="no-referrer"')
+    expect(markup).toContain('example.org</span><span class="mt-auto truncate')
+    expect(render([{ type: 'linkPreview', props: { url: 'https://example.org/' } }])).toBe('')
   })
 
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {

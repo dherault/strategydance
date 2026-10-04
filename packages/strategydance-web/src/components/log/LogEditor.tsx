@@ -4,6 +4,7 @@ import { MAX_LOG_ENTRY_LENGTH } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import type { RichTextEditorChange } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
+import { RICH_TEXT_POST_BLOCKS } from 'strategydance-design-system/lib/richText'
 
 import useRichTextEditor from '~hooks/common/useRichTextEditor'
 
@@ -26,8 +27,8 @@ type Props = {
 }
 
 /*
-  The design system's rich text editor in the log's words, with the shortcut to post and the
-  buttons under it. Its code loads when the first one mounts, and what shows meanwhile holds the
+  The design system's rich text editor in the log's words, writing a post's blocks, with the
+  shortcut to post and the buttons under it. Its code loads when the first one mounts, and what shows meanwhile holds the
   editor's height, so the page does not jump when it arrives.
 
   Submitting waits for text, and holds an entry to the characters the server accepts
@@ -66,6 +67,7 @@ function LogEditor({
         <RichTextEditor
           initialValue={initialValue}
           placeholder={placeholder}
+          blocks={RICH_TEXT_POST_BLOCKS}
           locale={locale}
           autoFocus={autoFocus}
           onChange={setChange}

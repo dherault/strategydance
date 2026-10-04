@@ -12,6 +12,7 @@ import loggerMiddleware from '~middleware/logger'
 import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
+import createLinkPreviewsRouter from '~routes/linkPreviews'
 import createOrganizationsRouter from '~routes/organizations'
 import createUsersRouter from '~routes/users'
 
@@ -37,6 +38,7 @@ app.get('/health', (_request: Request, response: Response<ApiResponse>) => {
   response.json({ status: 'success' })
 })
 
+app.use('/link-previews', createLinkPreviewsRouter())
 app.use('/organizations', createOrganizationsRouter())
 app.use('/users', createUsersRouter())
 

@@ -86,6 +86,9 @@ describe('buildConversationPreview', () => {
       'Call read_knowledge first, see https://strategydance.com',
     )
     expect(previewText('Use \\*args\\* here')).toBe('Use *args* here')
+    expect(previewText('Write to <ana@example.com> or <mailto:ben@example.com>')).toBe(
+      'Write to ana@example.com or mailto:ben@example.com',
+    )
   })
 
   it('reads nested emphasis, and a link whose address holds parentheses', () => {

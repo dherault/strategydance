@@ -149,8 +149,8 @@ const INLINE_MARKUP_PATTERNS: [RegExp, string][] = [
   // opens none, and neither part reads past the next bracket that would open another, but for
   // one pair of parentheses in the address, as an address like `Function_(mathematics)` holds
   [/(?<!\\)!?\[((?:\\.|[^\\[\]])*)\]\((?:\\.|[^\\()]|\((?:\\.|[^\\()])*\))*\)/g, '$1'],
-  // An autolink, to its address
-  [/<((?:https?|mailto):[^\s<>]*)>/g, '$1'],
+  // An autolink, to its address, a web or mail one or an email address alone
+  [/<((?:https?|mailto):[^\s<>]*|[^\s<>@]+@[^\s<>@]+)>/g, '$1'],
   // Strong emphasis and strikethrough, which may wrap single delimiters of their own, as
   // **bold *italic* text** does, and stop at the next double one. The single ones come after
   [/(?<!\\)\*\*(?=[^*\s])((?:[^*]|\*(?!\*))*?[^*\s])\*\*/g, '$1'],

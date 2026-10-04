@@ -69,6 +69,15 @@ function readChild(container: Y.XmlElement) {
   return (container.get(1) as Y.XmlElement).get(0) as Y.XmlElement
 }
 
+// A document whose first block holds a second text it wrote itself, which y-prosemirror's read joins into the first
+function createDocWithOwnSecondText() {
+  const doc = createDoc([paragraph('Alpha')])
+
+  ;(readContainers(doc)[0].get(0) as Y.XmlElement).insert(1, [new Y.XmlText(' more')])
+
+  return doc
+}
+
 // Whether the shared text still reads as a document of the editor's schema
 function isWellFormed(doc: Y.Doc) {
   const { doc: root } = initProseMirrorDoc(
@@ -321,6 +330,16 @@ describe('updateRichTextYDoc', () => {
       expect(targets.every(target => target === doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0))).toBe(true)
     })
 
+    it('even when the read joins two texts the document wrote itself', () => {
+      const doc = createDocWithOwnSecondText()
+      const { origins } = watch(doc)
+
+      updateRichTextYDoc(doc, { type: 'append', blocks: [paragraph('Bravo')] }, { origin })
+
+      expect(origins).toEqual([origin])
+      expect(read(doc)).toEqual([paragraph('Alpha more'), paragraph('Bravo')])
+    })
+
     it('reaching only the edited block for a piece of text replaced', () => {
       const doc = createDoc([paragraph('Alpha'), paragraph('Bravo'), paragraph('Charlie')])
       const bravo = readContainers(doc)[1]
@@ -432,6 +451,12 @@ describe('updateRichTextYDoc', () => {
         },
         () => ({ type: 'append', blocks: [paragraph('Bravo')] }),
         { outcome: 'unknownContent' },
+      ],
+      [
+        'a text found nowhere, in a document whose read would join two texts it wrote itself',
+        createDocWithOwnSecondText,
+        () => ({ type: 'replaceText', find: 'Omega', replace: 'Beta' }),
+        { outcome: 'textNotFound' },
       ],
       [
         'a document holding no text yet',

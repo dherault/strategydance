@@ -71,8 +71,9 @@ type Plan = { next: ProseMirrorNode; removed?: { index: number; length: number }
   and unstable in y-prosemirror, which is pinned for it: this file's tests are what a newer
   version has to pass.
 
-  Nothing is written when the edit is refused. A document y-prosemirror cannot read as it stands
-  is refused before it is read, since its read deletes what it cannot build
+  Nothing is written when the edit is refused: the verdict comes from a copy, read first. Then the
+  document itself is read and written in one transaction from the caller's origin, since even a
+  read y-prosemirror can make sense of joins two texts the document wrote side by side
 */
 function updateRichTextYDoc(
   doc: Y.Doc,
@@ -84,21 +85,33 @@ function updateRichTextYDoc(
   if (!fragment.length) return { outcome: 'notSeeded' }
 
   const editor = getHeadlessRichTextEditor(blocks)
+  const copy = readCopy(doc, editor.pmSchema)
 
-  if (!isReadable(doc, editor.pmSchema)) return { outcome: 'unknownContent' }
+  if (!copy) return { outcome: 'unknownContent' }
 
-  const { doc: root, meta } = initProseMirrorDoc(fragment, editor.pmSchema)
-  const plan = planEdit(root, edit, editor, blocks)
+  const verdict = planEdit(copy, edit, editor, blocks)
 
-  if ('outcome' in plan) return plan
+  if ('outcome' in verdict) return verdict
+
+  // The document reads as its copy did, joined texts aside, so its plan is the copy's, on its own nodes
+  let result: UpdateRichTextYDocResult = { outcome: 'updated' }
 
   doc.transact(() => {
+    const { doc: root, meta } = initProseMirrorDoc(fragment, editor.pmSchema)
+    const plan = planEdit(root, edit, editor, blocks)
+
+    if ('outcome' in plan) {
+      result = plan
+
+      return
+    }
+
     if (plan.removed) (fragment.get(0) as Y.XmlElement).delete(plan.removed.index, plan.removed.length)
 
     updateYFragment(doc, fragment, plan.next, meta)
   }, origin)
 
-  return { outcome: 'updated' }
+  return result
 }
 
 function planEdit(
@@ -241,13 +254,13 @@ function readChildren(node: Pick<ProseMirrorNode, 'forEach'>) {
 }
 
 /*
-  Whether y-prosemirror reads the shared text without changing it, tried on a copy. Its read
-  deletes an element or a text it cannot build, such as a node or a style the schema lacks, a newer
-  editor's say, and builds nodes without checking how they are arranged, so what it built is
-  checked against the schema too. The one other change a read makes, joining a text into the one
+  The shared text as y-prosemirror reads it, read from a copy, or null when that read changed the
+  copy or built what the schema refuses. Its read deletes an element or a text it cannot build,
+  such as a node or a style the schema lacks, a newer editor's say, and builds nodes without
+  checking how they are arranged. The one other change a read makes, joining a text into the one
   before it when the reading document wrote both, cannot happen on a copy, whose client is new
 */
-function isReadable(doc: Y.Doc, schema: ProseMirrorSchema) {
+function readCopy(doc: Y.Doc, schema: ProseMirrorSchema) {
   const copy = new Y.Doc()
   let isChanged = false
 
@@ -261,10 +274,10 @@ function isReadable(doc: Y.Doc, schema: ProseMirrorSchema) {
   try {
     root.check()
   } catch {
-    return false
+    return null
   }
 
-  return !isChanged
+  return isChanged ? null : root
 }
 
 export { updateRichTextYDoc }

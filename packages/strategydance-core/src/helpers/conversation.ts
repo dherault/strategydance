@@ -171,8 +171,12 @@ function stripInlineMarkdown(text: string) {
   )
 }
 
-// A run of backticks no backslash escapes
-const BACKTICK_RUN_PATTERN = /(?<!\\)`+/g
+/*
+  A run of backticks whose first one no backslash escapes: one behind an even number of
+  backslashes is not escaped, since each pair is an escaped backslash. The look behind follows the
+  first backtick, so it runs only where there is one, never along a long run of backslashes
+*/
+const BACKTICK_RUN_PATTERN = /`(?<=(?:^|[^\\])(?:\\\\)*`)`*/g
 
 /*
   Code spans, to their text, first, so emphasis around one is still found. As CommonMark has it, a

@@ -107,6 +107,8 @@ describe('buildConversationPreview', () => {
     expect(previewText('A ``span with ` inside`` and `one`')).toBe('A span with ` inside and one')
     expect(previewText('It`s left ``open')).toBe('It`s left ``open')
     expect(previewText('Not \\`code` here')).toBe('Not `code` here')
+    expect(previewText('A \\\\`code` here')).toBe('A \\code here')
+    expect(previewText('Not \\\\\\`code` here')).toBe('Not \\`code` here')
   })
 
   it('keeps an underscore inside a word', () => {

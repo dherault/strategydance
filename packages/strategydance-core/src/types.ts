@@ -46,6 +46,11 @@ export type ChangeOrganizationImageData = {
   url: string | null
 }
 
+// What uploading a picture for a document's text answers with: where it is downloaded from
+export type RichTextImageData = {
+  url: string
+}
+
 /* ---
   CONVERSATIONS
 --- */

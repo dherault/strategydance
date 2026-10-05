@@ -466,3 +466,406 @@ mutation InterruptDeadConversationRun(
     }
   )
 }
+
+# Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
+# attempt, which every later write of that worker matches, so a worker that lost the run writes
+# nothing more. `$attempts` is the count the worker read, so of two workers claiming at once only
+# one moves it. The author's membership has to be the one the run was queued under.
+#
+# One conditional update, as `ClaimWelcomeEmail` is, and no transaction: it claims 1 run or 0,
+# and the backend reads which
+mutation ClaimQueuedConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+) @auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: {
+      status: RUNNING
+      attempts_update: { inc: 1 }
+      leaseExpiresAt_time: { now: true, add: { seconds: 60 } }
+      startedAt_expr: "request.time"
+    }
+  )
+}
+
+# Takes over a run whose worker stopped renewing its lease, a minute after its last write, with
+# one more attempt, as claiming a queued run does. `startedAt` stays when the first worker claimed
+# it
+mutation ReclaimConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+) @auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      leaseExpiresAt: { lt_time: { now: true } }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { attempts_update: { inc: 1 }, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+}
+
+# Renews a claimed run's lease for another minute, and writes the progress line the thinking
+# indicator shows when there is a new one: an omitted `$step` leaves the one before.
+#
+# This is the fence every write of a worker starts with: the run still `RUNNING`, at the attempt
+# the worker claimed (`$attempts`, after its claim), and its author still the member it was queued
+# under, so removing them, or a run claimed again, stops the worker at its next write. One
+# conditional update and no transaction, and the backend reads whether it renewed
+mutation RenewConversationRunLease(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $step: String
+) @auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { step: $step, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+}
+
+# Stores a turn of the agent in the transcript, as the JSON text of exactly what it answered, after
+# the last entry. Fenced as `RenewConversationRunLease` is, which renews the lease in the same
+# write. The entry's id is the backend's, so the messages drawn from it can derive theirs
+mutation StoreConversationTurn(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $position: Int!
+  $content: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationTranscriptEntry_insert(
+    data: {
+      id: $entryId
+      conversationId: $conversationId
+      runId: $runId
+      position: $position
+      role: ASSISTANT
+      content: $content
+    }
+  )
+}
+
+# Draws text the agent wrote as a message of the thread, at a position claimed on the
+# conversation's counter, and moves its transcript entry's cursor past the blocks it was drawn
+# from, in one mutation, so a worker taking over after a crash draws the rest and nothing twice.
+# The message's id derives from the entry and the blocks, so drawing it twice is a conflict anyway.
+#
+# A reply adds one to the unread count and becomes the preview. A conversation deleted meanwhile
+# takes nothing, and its worker stops. Fenced as `RenewConversationRunLease` is
+mutation DrawConversationAgentText(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $text: String!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.toBlock > vars.fromBlock && size(vars.text) <= 20000"
+      message: "A message is drawn from one block or more, and holds at most 20000 characters"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      unreadCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: { id: { eq: $entryId }, runId: { eq: $runId }, drawnBlocks: { eq: $fromBlock } }
+    data: { drawnBlocks: $toBlock }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: AGENT_TEXT
+      text: $text
+      position: $position
+    }
+  )
+}
+
+# Ends a run its worker brought to an end: `COMPLETED`, or `STOPPED` in a conversation deleted
+# meanwhile. The conversation lets go of it only while it still names it, deleted or not, so a
+# conversation restored later is not stuck busy. Fenced as `RenewConversationRunLease` is
+mutation FinishConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $status: ConversationRunStatus!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: $status, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.status == 'COMPLETED' || vars.status == 'STOPPED'"
+      message: "A run ends this way completed or stopped"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, activeRunId: { eq: $runId } }
+    data: { activeRunId: null }
+  )
+}
+
+# Ends a run its worker brought to an end with a note the thread draws, such as a run at a limit
+# that sends no further request: the conversation takes the note at a position claimed on its
+# counter and lets go of the run in the same write. A note can take a conversation past its 2000
+# messages, as the turn before it can. Fenced as `RenewConversationRunLease` is
+mutation FinishConversationRunWithNote(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $status: ConversationRunStatus!
+  $noteKind: ConversationNoteKind!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: $status, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.status == 'FAILED' || vars.status == 'STOPPED' || vars.status == 'REFUSED'"
+      message: "A run ends with a note failed, stopped or refused"
+    )
+  conversationMessage_updateMany(
+    where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: $noteKind
+      position: $position
+    }
+  )
+}
+
+# Ends a run whose author is no longer the member it was queued under, removed, invited back since
+# or no longer staff, as `INTERRUPTED`, with its note, so nothing is left for a later delivery to
+# take up. Fenced on the run alone, at the attempt the worker read or claimed, since the membership
+# the other writes match is the one that is gone
+mutation InterruptConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { in: [QUEUED, RUNNING] }
+      attempts: { eq: $attempts }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { status: INTERRUPTED, endedAt_expr: "request.time", leaseExpiresAt: null }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationMessage_updateMany(
+    where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: INTERRUPTED
+      position: $position
+    }
+  )
+}

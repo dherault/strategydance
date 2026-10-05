@@ -131,3 +131,70 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     }
   }
 }
+
+# What a worker reads of a run before each step it takes, in one read:
+#
+# - the run, matched with the conversation, its author and its organization it was queued for, so a
+#   worker told of a run elsewhere finds nothing
+# - the conversation: whether it is deleted, the run it names, its counter and how many messages it
+#   holds
+# - the author's membership, whose `createdAt` has to be the one the run records, and whether they
+#   are still staff
+# - the transcript's last entry, with how many of its blocks the thread has drawn, which is where a
+#   worker taking over after a crash carries on
+# - the messages the run has drawn, which it may draw 100 of (`MAX_CONVERSATION_RUN_ENTRIES` in
+#   strategydance-core): the member's message that started it is not one
+#
+# The reconcile route reads it too, with the caller the backend verified as `$userId`
+query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationRuns(
+    where: {
+      id: { eq: $runId }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    id
+    number
+    trigger
+    status
+    attempts
+    membershipCreatedAt
+    leaseExpiresAt
+    stopRequestedAt
+    anchorPosition
+  }
+  conversation(id: $conversationId) {
+    deletedAt
+    activeRunId
+    nextMessagePosition
+    messageCount
+  }
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  user(key: { id: $userId }) {
+    isAdministrator
+  }
+  conversationTranscriptEntries(
+    where: { conversationId: { eq: $conversationId } }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    id
+    position
+    role
+    content
+    drawnBlocks
+    run {
+      id
+    }
+  }
+  # A note's kind is selected at the top level here, which has the generated SDK declare its enum
+  conversationMessages(where: { runId: { eq: $runId }, kind: { ne: MEMBER_TEXT } }, limit: 100) {
+    id
+    kind
+    noteKind
+  }
+}

@@ -169,3 +169,300 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
   }
   organization_delete(id: $organizationId) @check(expr: "this != null", message: "The organization is gone")
 }
+
+# Starts a conversation with its first message, for its author: the conversation, its first run,
+# queued, the message, which names that run, and the transcript's first entry, in one mutation, so a
+# conversation exists only once something was sent, and whole. The ids are the browser's, the
+# conversation's and the message's, so a send retried after this went through finds them, and the
+# run's is the backend's.
+#
+# The first step writes the caller's membership, which is the lock every start and every restore
+# takes (see `RestoreConversation`), so the counts after it see what the ones before committed:
+# somebody keeps at most 1000 conversations in an organization (`MAX_CONVERSATIONS` in
+# strategydance-core), and has at most 3 runs in flight there (`MAX_ACTIVE_RUNS_PER_MEMBER`), dead
+# ones included, which the backend finalizes before it sends. The membership has to be the one the
+# backend read, whose `createdAt` the run records.
+#
+# It also removes the caller's conversations deleted over a day ago, past their Undo, with their
+# messages, runs and transcript. A restore takes the same lock, so the two never both win. Directly,
+# while a conversation holds nothing but rows: once it keeps files, a prune claims it first.
+#
+# `$userId` is the uid the backend verified. `$conversationId` and `$organizationId` are what the
+# conversation's live queries refresh on
+mutation StartConversation(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $title: String!
+  $messageId: UUID!
+  $text: String!
+  $preview: Any!
+  $runId: UUID!
+  $content: String!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(
+      expr: "size(vars.title) <= 120 && size(vars.text) <= 20000"
+      message: "A conversation's title holds at most 120 characters, and a message 20000"
+    )
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the send read it") {
+      userId
+    }
+    existing: conversations(where: { id: { eq: $conversationId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The conversation exists already") {
+      id
+    }
+    sent: conversationMessages(where: { id: { eq: $messageId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The message was sent already") {
+      id
+    }
+    kept: conversations(
+      where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "Somebody keeps at most 1000 conversations in an organization") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_deleteMany(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
+    }
+  )
+  conversation_insert(
+    data: {
+      id: $conversationId
+      userId: $userId
+      organizationId: $organizationId
+      title: $title
+      activeRunId: $runId
+      preview: $preview
+      previewMessageId: $messageId
+      nextRunNumber: 1
+      nextMessagePosition: 1
+      messageCount: 1
+    }
+  )
+  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: 0
+      trigger: MESSAGE
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: 0
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: MEMBER_TEXT
+      text: $text
+      position: 0
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
+  )
+}
+
+# Sends a message to one of the caller's conversations and queues the run that answers it: the
+# message, which names that run, and its transcript entry, after the last.
+#
+# The membership lock and the counts are `StartConversation`'s. Then the conversation's row, written
+# once, is the guard: it takes the message only while it is not deleted, has no run in flight, is
+# not full, holds fewer than 2000 messages (`MAX_CONVERSATION_MESSAGES` in strategydance-core), and
+# still has the counters the backend read, which it moves on, the message's position and the run's
+# number. A run or an aspects note that got there first moved them, and the backend reads again
+mutation SendConversationMessage(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $messageId: UUID!
+  $text: String!
+  $preview: Any!
+  $position: Int!
+  $runId: UUID!
+  $runNumber: Int!
+  $content: String!
+  $transcriptPosition: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(expr: "size(vars.text) <= 20000", message: "A message holds at most 20000 characters")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the send read it") {
+      userId
+    }
+    sent: conversationMessages(where: { id: { eq: $messageId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The message was sent already") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      isFull: { eq: false }
+      messageCount: { lt: 2000 }
+      nextMessagePosition: { eq: $position }
+      nextRunNumber: { eq: $runNumber }
+    }
+    data: {
+      activeRunId: $runId
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      nextRunNumber_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message")
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: MESSAGE
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $transcriptPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: MEMBER_TEXT
+      text: $text
+      position: $position
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: {
+      conversationId: $conversationId
+      runId: $runId
+      position: $transcriptPosition
+      role: USER
+      content: $content
+    }
+  )
+}
+
+# Finalizes a run that died with its worker, which a route finds past its lease: queued and never
+# claimed in time, or claimed by a worker that stopped renewing. It ends `INTERRUPTED`, its calls
+# still running are cancelled, and the thread says so in a note, at a position claimed on the
+# conversation's counter. Only while the run is still dead, so a worker that renewed its lease in
+# the meantime keeps it.
+#
+# The conversation's row is written once: it takes the note and lets go of the run, which it names.
+# Or which it names no longer, which can only be a run something else let go of, and the note is
+# still right. A deleted conversation is finalized too, so it is not stuck busy once restored.
+#
+# `$conversationId` is the run's own, which its page's live queries refresh on
+mutation InterruptDeadConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { in: [QUEUED, RUNNING] }
+      leaseExpiresAt: { lt_time: { now: true } }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { status: INTERRUPTED, endedAt_expr: "request.time", leaseExpiresAt: null }
+  ) @check(expr: "this == 1", message: "The run is not dead")
+  conversationMessage_updateMany(
+    where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: INTERRUPTED
+      position: $position
+    }
+  )
+}

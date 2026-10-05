@@ -55,3 +55,79 @@ query GetOrganizationMembership($organizationId: UUID!, $userId: String!) @auth(
     role
   }
 }
+
+# Whether somebody is one of Strategy Dance's own administrators, which conversations are open to
+# alone until they launch (`ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core)
+query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
+  user(key: { id: $userId }) {
+    isAdministrator
+  }
+}
+
+# What sending a message to a conversation has to know first, in one read:
+#
+# - the caller's membership, whose `createdAt` the run records, so a member removed and invited
+#   back never passes for the one who sent
+# - the conversation, when it exists: whose it is, whether it is deleted, the run in flight, its
+#   counters and whether it is full
+# - its transcript's last entry, after which the message's entry goes
+# - the message by the id the browser made for it, when a send with that id went through already,
+#   with the run it started, so a retried send answers with that run
+# - the caller's runs in flight in the organization, deleted conversations' included, each with its
+#   lease, so the dead ones are finalized before they are counted. Never more than 3
+#   (`MAX_ACTIVE_RUNS_PER_MEMBER` in strategydance-core), since every start counts them under a lock
+#
+# `$userId` is the uid the backend verified, never one a client sent
+query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+    activeRunId
+    nextMessagePosition
+    nextRunNumber
+    messageCount
+    isFull
+  }
+  conversationTranscriptEntries(
+    where: { conversationId: { eq: $conversationId } }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    position
+    role
+  }
+  # The message's kind is selected at the top level of the operation, which is what has the
+  # generated SDK declare its enum, here and for the other operations of the connector
+  conversationMessages(where: { id: { eq: $messageId } }, limit: 1) {
+    kind
+    conversation {
+      id
+      userId
+      organizationId
+    }
+    run {
+      id
+      status
+      leaseExpiresAt
+    }
+  }
+  conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 3
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+}

@@ -285,6 +285,10 @@ describe('buildConversationTitle', () => {
     expect(buildConversationTitle(`${'a'.repeat(46)}e\u0301${'a'.repeat(10)}`)).toBe(`${'a'.repeat(46)}…`)
   })
 
+  it('cuts a first word longer than the cut between its graphemes behind an opening quote too', () => {
+    expect(buildConversationTitle(`“${'x'.repeat(60)}”`)).toBe(`“${'x'.repeat(46)}…`)
+  })
+
   it('titles a message its preview reads nothing of after its text as written', () => {
     expect(buildConversationTitle('| Plan | Price |\n| --- | --- |\n| Solo | 19 |')).toBe(
       '| Plan | Price | | --- | --- | | Solo | 19 |',

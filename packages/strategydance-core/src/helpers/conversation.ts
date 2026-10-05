@@ -50,15 +50,34 @@ export function buildConversationTitle(text: string) {
 
   // Room for the "…"
   const length = CONVERSATION_TITLE_CUT_LENGTH - 1
-  const cut = takeSegments(line, 'word', length).trimEnd() || takeSegments(line, 'grapheme', length).trimEnd()
+  const cut = takeWords(line, length).trimEnd() || takeGraphemes(line, length).trimEnd()
 
   return `${cut}…`
 }
 
-// The longest start of a text that ends on a segment's boundary and fits in a length. The segments
-// are read lazily, so a long text is never segmented whole
-function takeSegments(text: string, granularity: 'word' | 'grapheme', length: number) {
-  const segmenter = new Intl.Segmenter(undefined, { granularity })
+/*
+  The longest start of a text that ends between two words and fits in a length, or nothing when it
+  holds no whole word, as when the first word is longer than the cut, behind an opening quote say.
+  The segments are read lazily, so a long text is never segmented whole
+*/
+function takeWords(text: string, length: number) {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' })
+  let cut = ''
+  let hasWord = false
+
+  for (const { segment, isWordLike } of segmenter.segment(text)) {
+    if (cut.length + segment.length > length) break
+
+    cut += segment
+    hasWord ||= Boolean(isWordLike)
+  }
+
+  return hasWord ? cut : ''
+}
+
+// The longest start of a text that ends between two graphemes and fits in a length
+function takeGraphemes(text: string, length: number) {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
   let cut = ''
 
   for (const { segment } of segmenter.segment(text)) {

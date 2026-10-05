@@ -16,3 +16,23 @@ declare module 'express' {
     viewer?: Viewer
   }
 }
+
+/* ---
+  CONVERSATIONS
+--- */
+
+/*
+  A content block of a conversation's transcript, as Claude's API writes and reads one: its type,
+  and whatever fields that type has, in the order they came in, since a turn is replayed byte for
+  byte
+*/
+export type ConversationContentBlock = {
+  type: string
+  [field: string]: unknown
+}
+
+// The block a member's message and a reply's text are written in
+export type ConversationTextBlock = {
+  type: 'text'
+  text: string
+}

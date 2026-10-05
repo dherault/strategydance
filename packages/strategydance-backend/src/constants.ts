@@ -53,6 +53,14 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
   : true
 
 /* ---
+  REQUESTS
+--- */
+
+// A UUID as a route takes one: Data Connect writes it as 32 hex digits and reads it with or without
+// hyphens, so a caller may send either. `toCanonicalUuid` gives the one form an id is kept in
+export const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`

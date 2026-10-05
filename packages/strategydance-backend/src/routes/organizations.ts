@@ -20,6 +20,8 @@ import {
 } from 'strategydance-core'
 import { z } from 'zod'
 
+import { UUID_PATTERN } from '~constants'
+
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import sniffImageContentType from '~utils/sniffImageContentType'
@@ -38,9 +40,6 @@ import deleteOrganization from '~domain/organizations/deleteOrganization'
 import removeOrganizationImage from '~domain/organizations/removeOrganizationImage'
 import replaceOrganizationImage from '~domain/organizations/replaceOrganizationImage'
 import storeRichTextImage from '~domain/richText/storeRichTextImage'
-
-// Data Connect writes a UUID as 32 hex digits and reads it with or without hyphens
-const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
 
 function createOrganizationsRouter() {
   const router = Router()

@@ -48,7 +48,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | M3 | The Markdown component | design-system | | #94 |
 | M4 | Navigation, the list and delete | web, backend, database, root | M2 | #102 |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | #104 |
-| M6 | Runs without a model, in the backend's process | backend, database, root, web | M5 | |
+| M6 | Runs without a model, in the backend's process | backend, database, root, web | M5 | #105 |
 | M7 | The composer and drafts | web | M6 | |
 | M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | |
 | M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | |

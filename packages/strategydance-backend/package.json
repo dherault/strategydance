@@ -13,6 +13,7 @@
     "check:conversation-page": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationPage.ts",
     "check:conversation-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationRuns.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
+    "send:conversation": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/sendConversationMessage.ts",
     "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
   },
   "dependencies": {

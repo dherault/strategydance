@@ -52,3 +52,21 @@ export type ConversationRunFence = ConversationRunReference & {
   attempts: number
   membershipCreatedAt: string
 }
+
+// What the agent answers a run's turn with: its content blocks, as the API answered them
+export type ConversationAgentTurn = {
+  content: ConversationContentBlock[]
+}
+
+/*
+  What answers a conversation: given the transcript's last entry, the member's message, it answers
+  a turn, reporting the progress lines it has along the way, and gives up when the signal aborts,
+  which a worker that lost its run does
+*/
+export type ConversationAgent = {
+  respond(input: {
+    lastEntry: ConversationContentBlock[]
+    signal: AbortSignal
+    onStep: (step: string) => void
+  }): Promise<ConversationAgentTurn>
+}

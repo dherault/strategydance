@@ -88,7 +88,23 @@ async function runConversation(
     membershipCreatedAt: run.membershipCreatedAt,
   })
 
-  if (data.conversationRun_updateMany !== 1) return 'held'
+  // Another worker claimed it first, or its author changed between the read and the claim, whose
+  // run nothing else would end: a removed author's can no longer reach its page to reconcile it
+  if (data.conversationRun_updateMany !== 1) {
+    const claimedContext = await readContext(reference)
+    const [claimedRun] = claimedContext.conversationRuns
+
+    if (
+      claimedRun
+      && isInFlight(claimedRun.status)
+      && claimedRun.attempts === run.attempts
+      && !isAuthorStill(claimedContext, claimedRun.membershipCreatedAt)
+    ) {
+      return interruptBeforeClaiming(reference, claimedRun.attempts, claimedContext, retryDelayMs)
+    }
+
+    return 'held'
+  }
 
   const fence: ConversationRunFence = {
     ...reference,

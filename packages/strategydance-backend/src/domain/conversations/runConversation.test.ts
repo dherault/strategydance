@@ -249,6 +249,20 @@ describe('runConversation', () => {
     expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
+  test('interrupts the run of a member removed between its read and its claim', async () => {
+    const reference = await start()
+    const agent = createAgent()
+
+    fake.beforeOperation = async name => {
+      if (name === 'ClaimQueuedConversationRun') fake.removeMember(AUTHOR, ORGANIZATION_ID)
+    }
+
+    expect(await runConversation(reference, { agent })).toBe('finished')
+    expect(agent.respond).not.toHaveBeenCalled()
+    expect(readRun(reference)).toMatchObject({ status: 'INTERRUPTED', attempts: 0 })
+    expect(readConversation(reference)?.activeRunId).toBeNull()
+  })
+
   test('interrupts the run of somebody who is no longer staff', async () => {
     const reference = await start()
     const agent = createAgent()

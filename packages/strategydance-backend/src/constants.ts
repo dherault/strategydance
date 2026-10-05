@@ -72,6 +72,13 @@ export const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}
 export const CONVERSATION_RUN_RENEWAL_INTERVAL_MS = 20 * 1000
 export const CONVERSATION_RUN_STEP_INTERVAL_MS = 1000
 
+/*
+  Whether a conversation's run goes in the backend's own process, after the response, as it always
+  does in development, where nothing throttles it. Production refuses sends until runs go through a
+  queue instead: Cloud Run throttles the CPU once a response is sent, which would stall the run
+*/
+export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
+
 /* ---
   SECRETS
 

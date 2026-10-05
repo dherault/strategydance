@@ -61,6 +61,18 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
 export const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
 
 /* ---
+  CONVERSATIONS
+--- */
+
+/*
+  How often a worker renews its run's lease while it writes nothing else, and how often it writes a
+  progress line at most. Every write of a worker renews the lease for a minute, which the
+  operations set from the database's clock
+*/
+export const CONVERSATION_RUN_RENEWAL_INTERVAL_MS = 20 * 1000
+export const CONVERSATION_RUN_STEP_INTERVAL_MS = 1000
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`

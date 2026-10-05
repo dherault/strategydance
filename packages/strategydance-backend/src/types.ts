@@ -36,3 +36,19 @@ export type ConversationTextBlock = {
   type: 'text'
   text: string
 }
+
+// A run, by its conversation, its author and its organization, which every operation on it is
+// keyed by, so a worker told of a run elsewhere finds nothing
+export type ConversationRunReference = {
+  organizationId: string
+  userId: string
+  conversationId: string
+  runId: string
+}
+
+// What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
+// membership the run was started under
+export type ConversationRunFence = ConversationRunReference & {
+  attempts: number
+  membershipCreatedAt: string
+}

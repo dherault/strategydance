@@ -26,23 +26,26 @@ type Options = {
   Finalizes a run that died with its worker, as a route finds it before it starts another: queued or
   claimed, past its lease. It ends interrupted, with its note at the counter of its own
   conversation, which may not be the one the route is about, so that conversation's page is the one
-  that refreshes. Answers whether the run has ended, by this or before it, and false for one still
-  alive.
+  that refreshes. Answers `ended` once it has, by this or before it, `alive` for a run whose lease
+  holds, and `missing` for none in that conversation, the caller's, in that organization.
 
   A refusal is read again, since something can move the counter or end the run meanwhile: a worker
   that renewed its lease keeps it, and a run something else ended is left as it is. Throws once the
   counter keeps moving
 */
-async function finalizeDeadConversationRun(reference: ConversationRunReference, { retryDelayMs = 200 }: Options = {}) {
+async function finalizeDeadConversationRun(
+  reference: ConversationRunReference,
+  { retryDelayMs = 200 }: Options = {},
+): Promise<'missing' | 'ended' | 'alive'> {
   for (let tries = 1; ; tries++) {
     const { data } = await getConversationRunContext(dataConnect, reference)
     const [run] = data.conversationRuns
 
-    if (!run || (run.status !== ConversationRunStatus.QUEUED && run.status !== ConversationRunStatus.RUNNING)) {
-      return true
-    }
+    if (!run) return 'missing'
 
-    if (!run.leaseExpiresAt || Date.parse(run.leaseExpiresAt) >= Date.now()) return false
+    if (run.status !== ConversationRunStatus.QUEUED && run.status !== ConversationRunStatus.RUNNING) return 'ended'
+
+    if (!run.leaseExpiresAt || Date.parse(run.leaseExpiresAt) >= Date.now()) return 'alive'
 
     try {
       await interruptDeadConversationRun(dataConnect, {
@@ -52,7 +55,7 @@ async function finalizeDeadConversationRun(reference: ConversationRunReference, 
         preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
       })
 
-      return true
+      return 'ended'
     } catch (error) {
       if (tries === MAX_TRIES) throw error
 

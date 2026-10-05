@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import {
   MAX_ACTIVE_RUNS_PER_MEMBER,
+  MAX_CONVERSATIONS,
   MAX_CONVERSATION_MESSAGES,
   buildConversationPreview,
   buildConversationTitle,
@@ -46,6 +47,8 @@ type SendConversationMessageResult =
   // A run goes in the conversation, or the caller has 3 in flight
   | { outcome: 'busy' }
   | { outcome: 'full' }
+  // The message would start a conversation, and the caller keeps 1000 already
+  | { outcome: 'tooMany' }
 
 /*
   Sends a member's message, which starts the conversation with it when there is none yet, and
@@ -56,8 +59,9 @@ type SendConversationMessageResult =
     completes what that one did not
   - a run of the caller's is in flight past its lease: it died with its worker, and is finalized
     before anything is counted, its own conversation's or another's
-  - then the conversation has to be the caller's and not deleted, idle, and not full, and the caller
-    to have fewer than 3 runs in flight
+  - then the conversation has to be the caller's and not deleted, idle, and not full, or, when it
+    does not exist yet, the caller to keep fewer than 1000, and the caller to have fewer than 3 runs
+    in flight
 
   A write refused anyway, because a send with the same id, a run or an aspects note got there in
   between, starts another round
@@ -120,6 +124,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     if (conversation && (conversation.isFull || conversation.messageCount >= MAX_CONVERSATION_MESSAGES)) {
       return { outcome: 'full' }
     }
+    if (!conversation && (data.keptConversations[0]?._count ?? 0) >= MAX_CONVERSATIONS) return { outcome: 'tooMany' }
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
 
     const runId = randomUUID().replaceAll('-', '')

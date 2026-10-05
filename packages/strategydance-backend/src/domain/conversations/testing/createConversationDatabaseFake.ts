@@ -200,6 +200,16 @@ function createConversationDatabaseFake() {
     })
   }
 
+  // The caller's conversations in the organization, deleted ones aside
+  function keptConversations(variables: AnyVariables) {
+    return [...conversations.values()].filter(
+      conversation =>
+        conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+        && conversation.deletedAt === null,
+    )
+  }
+
   function conversationMessages(conversationId: string) {
     return [...messages.values()].filter(message => message.conversationId === conversationId)
   }
@@ -362,6 +372,7 @@ function createConversationDatabaseFake() {
           leaseExpiresAt: run.leaseExpiresAt,
           conversation: { id: run.conversationId },
         })),
+        keptConversations: [{ _count: keptConversations(variables).length }],
       }
     },
 
@@ -397,14 +408,8 @@ function createConversationDatabaseFake() {
 
       if (conversations.has(conversationId)) refuse('The conversation exists already')
 
-      const kept = [...conversations.values()].filter(
-        conversation =>
-          conversation.userId === variables.userId
-          && conversation.organizationId === id(variables.organizationId)
-          && conversation.deletedAt === null,
-      )
-
-      if (kept.length >= MAX_CONVERSATIONS) refuse('Somebody keeps at most 1000 conversations in an organization')
+      if (keptConversations(variables).length >= MAX_CONVERSATIONS)
+        refuse('Somebody keeps at most 1000 conversations in an organization')
       if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
 
       // Deleting from a map while iterating it visits every entry left once

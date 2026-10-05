@@ -250,6 +250,36 @@ describe('sendConversationMessage', () => {
     expect(await send(conversationId)).toEqual({ outcome: 'missing' })
   })
 
+  test('refuses to start a conversation past the thousand the member keeps, and still sends to one of them', async () => {
+    const conversationId = createId()
+
+    await complete(conversationId, await sent(conversationId))
+
+    for (let count = 1; count < 1000; count++) {
+      const id = createId()
+
+      fake.conversations.set(id, {
+        id,
+        userId: AUTHOR,
+        organizationId: ORGANIZATION_ID,
+        title: 'Kept',
+        activeRunId: null,
+        preview: null,
+        previewMessageId: null,
+        unreadCount: 0,
+        nextRunNumber: 0,
+        nextMessagePosition: 0,
+        messageCount: 0,
+        isFull: false,
+        deletedAt: null,
+        updatedAt: new Date().toISOString(),
+      })
+    }
+
+    expect(await send(createId())).toEqual({ outcome: 'tooMany' })
+    expect((await send(conversationId)).outcome).toBe('sent')
+  })
+
   test('answers conflict for a message’s id sent in another conversation', async () => {
     const messageId = createId()
 

@@ -8,6 +8,8 @@ import {
   ERROR_CODE_FORBIDDEN,
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_SERVICE_UNAVAILABLE,
+  ERROR_CODE_TOO_MANY_CONVERSATIONS,
+  MAX_CONVERSATIONS,
   type SendConversationMessageData,
 } from 'strategydance-core'
 import { z } from 'zod'
@@ -67,6 +69,7 @@ function createConversationsRouter() {
     yet, under the id the browser made for it, and queues the run that answers it: 202 with the
     run's id, the one a send with the same message's id started the first time when it is retried.
     The text is trimmed, and refused with a 400 when it holds nothing or more than 20000 characters.
+    A conversation it would start past the thousand the caller keeps is refused with a 409.
 
     Refused with a 503 in production before anything is written, until runs go through a queue
     there. 20000 characters escaped as JSON can take six bytes each, which the body's limit allows
@@ -122,6 +125,15 @@ function createConversationsRouter() {
           return
         case 'full':
           respondError(response, 409, ERROR_CODE_CONVERSATION_FULL, 'This conversation is full')
+
+          return
+        case 'tooMany':
+          respondError(
+            response,
+            409,
+            ERROR_CODE_TOO_MANY_CONVERSATIONS,
+            `Somebody keeps at most ${MAX_CONVERSATIONS} conversations in an organization`,
+          )
 
           return
         case 'sent':

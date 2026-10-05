@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 
 import { MAX_CONVERSATION_PREVIEW_LENGTH } from '../constants'
 
-import { buildConversationPreview } from './conversation'
+import { buildConversationPreview, buildConversationTitle } from './conversation'
 
 function previewText(text: string) {
   const preview = buildConversationPreview({ kind: 'AGENT_TEXT', text })
@@ -251,5 +251,43 @@ describe('buildConversationPreview', () => {
   it('refuses a tool call or a note missing what its preview shows', () => {
     expect(() => buildConversationPreview({ kind: 'TOOL_CALL', toolStatus: 'RUNNING' })).toThrow()
     expect(() => buildConversationPreview({ kind: 'NOTE' })).toThrow()
+  })
+})
+
+describe('buildConversationTitle', () => {
+  it('titles a conversation after a short first message as it is', () => {
+    expect(buildConversationTitle('Help me price the beta')).toBe('Help me price the beta')
+  })
+
+  it('reads the message as its preview does, on one line and without its markup', () => {
+    expect(buildConversationTitle('  **Pricing** for\n\n[the beta](doc:d4)\u0000  ')).toBe('Pricing for the beta')
+  })
+
+  it('cuts a long message at a word’s boundary, its "…" within 48 characters', () => {
+    const title = buildConversationTitle(
+      'Help me price the beta, then plan the launch for next month with the whole team',
+    )
+
+    expect(title).toBe('Help me price the beta, then plan the launch…')
+    expect(title.length).toBeLessThanOrEqual(48)
+  })
+
+  it('cuts text written without spaces between its words', () => {
+    const title = buildConversationTitle('我们应该如何为测试版定价并规划下个月的发布'.repeat(3))
+
+    expect(title.length).toBeLessThanOrEqual(48)
+    expect(title.endsWith('…')).toBe(true)
+    expect('我们应该如何为测试版定价并规划下个月的发布'.repeat(3).startsWith(title.slice(0, -1))).toBe(true)
+  })
+
+  it('cuts a first word longer than the cut between its graphemes, an accent kept with its letter', () => {
+    expect(buildConversationTitle('x'.repeat(60))).toBe(`${'x'.repeat(47)}…`)
+    expect(buildConversationTitle(`${'a'.repeat(46)}e\u0301${'a'.repeat(10)}`)).toBe(`${'a'.repeat(46)}…`)
+  })
+
+  it('titles a message its preview reads nothing of after its text as written', () => {
+    expect(buildConversationTitle('| Plan | Price |\n| --- | --- |\n| Solo | 19 |')).toBe(
+      '| Plan | Price | | --- | --- | | Solo | 19 |',
+    )
   })
 })

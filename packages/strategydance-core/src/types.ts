@@ -112,3 +112,9 @@ export type ConversationPreview =
       kind: 'NOTE'
       noteKind: NonNullable<ConversationPreviewSource['noteKind']>
     }
+
+// What sending a message answers with: the run it started, or the one a send retried with the same
+// message's id started the first time
+export type SendConversationMessageData = {
+  runId: string
+}

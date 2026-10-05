@@ -90,6 +90,10 @@ export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
 
+// The server cannot take the request now, and the same request later can succeed, so the reader
+// tries again: a conversation's run, until runs go through the queue in production
+export const ERROR_CODE_SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE' // 503
+
 // Never sent by the backend: what a client reports when the answer was not an envelope at all
 export const ERROR_CODE_UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 

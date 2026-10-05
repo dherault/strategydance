@@ -30,6 +30,46 @@ export function buildConversationPreview(source: ConversationPreviewSource): Con
   }
 }
 
+// How long a title built from a message is, its "…" included
+const CONVERSATION_TITLE_CUT_LENGTH = 48
+
+/*
+  A conversation's title, from its first message: the message's plain text as its preview reads it,
+  on one line, cut at a word's boundary to 48 characters with the "…" counted within them, so no
+  title built from a message nears `MAX_CONVERSATION_TITLE_LENGTH`. The words are a word
+  segmenter's, so a text written without spaces, as Chinese and Japanese are, is cut between words
+  too, and a first word longer than the cut is cut between graphemes.
+
+  A message the preview reads nothing of, a table alone say, is titled after its text as written.
+  Empty only for a text with nothing to show, which the backend refuses before it comes here
+*/
+export function buildConversationTitle(text: string) {
+  const line = getMarkdownPreviewText(text) || getPlainPreviewText(text)
+
+  if (line.length <= CONVERSATION_TITLE_CUT_LENGTH) return line
+
+  // Room for the "…"
+  const length = CONVERSATION_TITLE_CUT_LENGTH - 1
+  const cut = takeSegments(line, 'word', length).trimEnd() || takeSegments(line, 'grapheme', length).trimEnd()
+
+  return `${cut}…`
+}
+
+// The longest start of a text that ends on a segment's boundary and fits in a length. The segments
+// are read lazily, so a long text is never segmented whole
+function takeSegments(text: string, granularity: 'word' | 'grapheme', length: number) {
+  const segmenter = new Intl.Segmenter(undefined, { granularity })
+  let cut = ''
+
+  for (const { segment } of segmenter.segment(text)) {
+    if (cut.length + segment.length > length) break
+
+    cut += segment
+  }
+
+  return cut
+}
+
 // A question shows its prompt until it is answered, and then the answer: the options chosen, then
 // the member's own words, in the order the thread ticks them
 function buildQuestionPreview(source: ConversationPreviewSource): ConversationPreview {

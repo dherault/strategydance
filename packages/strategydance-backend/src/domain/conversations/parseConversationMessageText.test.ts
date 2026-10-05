@@ -17,6 +17,7 @@ describe('parseConversationMessageText', () => {
     expect(parseConversationMessageText('').outcome).toBe('invalid')
     expect(parseConversationMessageText(' \n\t ').outcome).toBe('invalid')
     expect(parseConversationMessageText('\u0000 \u0007').outcome).toBe('invalid')
+    expect(parseConversationMessageText('\u200B\u200D\uFEFF').outcome).toBe('invalid')
   })
 
   test('refuses a message past its length, once trimmed', () => {

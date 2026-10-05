@@ -15,13 +15,14 @@ type ParsedConversationMessageText =
 
 /*
   A member's message as a send takes it, trimmed. Refused when it holds nothing to show, only
-  whitespace and control characters, when it is not well-formed, and past
+  whitespace, control and format characters such as a zero-width space, when it is not well-formed,
+  and past
   `MAX_CONVERSATION_MESSAGE_LENGTH`
 */
 function parseConversationMessageText(rawText: string): ParsedConversationMessageText {
   const text = rawText.trim()
 
-  if (!text.replace(/[\p{Cc}\s]/gu, '')) return { outcome: 'invalid', reason: 'A message holds some text' }
+  if (!text.replace(/[\p{Cc}\p{Cf}\s]/gu, '')) return { outcome: 'invalid', reason: 'A message holds some text' }
 
   if (LONE_SURROGATE_PATTERN.test(text)) return { outcome: 'invalid', reason: 'A message is well-formed text' }
 

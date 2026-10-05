@@ -17,6 +17,16 @@ describe('createPlaceholderAgent', () => {
     expect(String(content[0]?.text)).toContain('**22**')
   })
 
+  test('counts an emoji, however many code units it takes, as one character', async () => {
+    const { content } = await createPlaceholderAgent({ stepDurationMs: 0 }).respond({
+      lastEntry: [{ type: 'text', text: 'Ship it 👍🏽' }],
+      signal: new AbortController().signal,
+      onStep: () => {},
+    })
+
+    expect(String(content[0]?.text)).toContain('**9**')
+  })
+
   test('gives up when its worker aborts', async () => {
     const controller = new AbortController()
     const answer = createPlaceholderAgent({ stepDurationMs: 1000 }).respond({

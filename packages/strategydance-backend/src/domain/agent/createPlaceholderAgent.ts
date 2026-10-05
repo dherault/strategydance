@@ -25,7 +25,12 @@ function createPlaceholderAgent({ stepDurationMs = 2000 }: Options = {}): Conver
         await wait(stepDurationMs, undefined, { signal })
       }
 
-      const length = lastEntry.filter(isTextBlock).reduce((sum, block) => sum + block.text.length, 0)
+      // In graphemes, as the member counts them, so an emoji is one
+      const text = lastEntry
+        .filter(isTextBlock)
+        .map(block => block.text)
+        .join('')
+      const length = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)].length
 
       return {
         content: [

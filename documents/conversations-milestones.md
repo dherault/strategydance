@@ -48,7 +48,7 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M18 and M21 well befor
 | M3 | The Markdown component | design-system | | #94 |
 | M4 | Navigation, the list and delete | web, backend, database, root | M2 | #102 |
 | M5 | The conversation page and its thread, read-only | web, database | M3, M4 | #104 |
-| M6 | Runs without a model, in the backend's process | backend, database, root | M5 | |
+| M6 | Runs without a model, in the backend's process | backend, database, root, web | M5 | |
 | M7 | The composer and drafts | web | M6 | |
 | M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | |
 | M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | |
@@ -224,10 +224,13 @@ process. No queue and no composer yet: a script sends, and the page from M5 show
   anything, since a run left going after the response would stall once Cloud Run throttles the CPU.
 - `runConversation`: claiming, leases, fencing, finishing, drawing with its cursor and deterministic
   ids, and a placeholder agent that writes one `AGENT_TEXT` through the code paths M9 uses.
-  `POST …/runs/:runId/reconcile`, which the page calls for a queued run past its lease, finalizing it
-  as interrupted (M8 has it ask Cloud Tasks first). The backend operations for all of it.
+  `POST …/runs/:runId/reconcile`, which the page calls once its latest run's lease has passed,
+  queued or claimed, finalizing a dead one as interrupted (M8 has it ask Cloud Tasks first for a
+  queued one). The backend operations for all of it. The page's call was M10's at first; David
+  moved it here on 2026-10-05, so a run left by a restarted backend ends with its note rather than
+  spinning on the page.
 - A script under `scripts/` signs in to the Auth emulator and sends through the route, which is how
-  this milestone is driven before the composer.
+  this milestone is driven before the composer: `bun run send:conversation`.
 - Tests (database mocked): claiming twice, an expired lease, fencing, finishing only the active run,
   a removed member's run finalized by the worker at its next step, and one whose member was invited
   back before its delivery never resuming, busy, a dead run finalized, a send retried with the same
@@ -236,7 +239,8 @@ process. No queue and no composer yet: a script sends, and the page from M5 show
   whose `tool_use` input has its keys out of alphabetical order and whose text holds U+0000, stored
   and read back as the same bytes.
   Against the emulators, a script under `scripts/` sends from two conversations at once with two
-  runs already in flight, and exactly one goes through.
+  runs already in flight, and exactly one goes through: `check:conversation-runs`, which checks
+  every condition of the run operations, the ones the domain's tests run against a fake of.
 - Verify: locally, send with the script while the conversation's page is open in two tabs, and watch
   the reply arrive in both; restart the backend mid-run, see the run shown interrupted a minute
   later, and send again.
@@ -328,8 +332,8 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
 - The worker: aborting on the stop flag, cancelled calls, notes; failures (`FAILED`, the reason in
   `failure`, a note) after the SDK's retries, at the step and time limits, and on `max_tokens`;
   refusals and their fallback, as The agent describes.
-- The composer's Stop button; the notes with Resume and Retry as the design offers them; a run past
-  its lease shown as interrupted.
+- The composer's Stop button; the notes with Resume and Retry as the design offers them. A run past
+  its lease already ends interrupted, with its note, through M6's reconcile.
 - Tests: a stop mid-stream drops the turn and stores no context message; resume runs the unanswered
   `tool_use` blocks; a turn of more tool calls than the tail holds drawn whole, and its run retried
   from a thread whose tail no longer reaches its first entry; retry goes back to the run's anchor,

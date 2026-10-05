@@ -114,6 +114,14 @@ export const CONVERSATION_PAGE_LENGTH = 100
 // How many messages' bodies one read takes, as `GetConversationMessageBodies` reads them
 export const CONVERSATION_BODIES_LENGTH = 50
 
+/*
+  How long after a run's lease has passed its page asks the backend to reconcile it, so a clock a
+  little ahead of the database's does not ask too soon, and how often it asks again while the run
+  stays as it is
+*/
+export const CONVERSATION_RUN_RECONCILE_MARGIN_MS = 2000
+export const CONVERSATION_RUN_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
+
 /* ---
   BUILD IN PUBLIC
 --- */

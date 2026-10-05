@@ -83,6 +83,10 @@ export const ERROR_CODE_CONVERSATION_BUSY = 'CONVERSATION_BUSY' // 409
 // messages, and the reader's way on is a new conversation
 export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
 
+// A 409 for a member who keeps as many conversations in an organization as they may
+// (`MAX_CONVERSATIONS`): starting another takes deleting one first
+export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
+
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 

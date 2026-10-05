@@ -76,6 +76,9 @@ query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
 # - the caller's runs in flight in the organization, deleted conversations' included, each with its
 #   lease, so the dead ones are finalized before they are counted. Never more than 3
 #   (`MAX_ACTIVE_RUNS_PER_MEMBER` in strategydance-core), since every start counts them under a lock
+# - how many conversations the caller keeps there, deleted ones aside, so a send that would start
+#   one past the 1000 (`MAX_CONVERSATIONS`) is refused as such. `StartConversation` counts them again
+#   under its lock
 #
 # `$userId` is the uid the backend verified, never one a client sent
 query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
@@ -129,6 +132,11 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     conversation {
       id
     }
+  }
+  keptConversations: conversations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+  ) {
+    _count
   }
 }
 

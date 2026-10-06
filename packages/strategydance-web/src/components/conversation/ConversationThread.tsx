@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { ConversationMessageKind, ConversationRunStatus, ConversationToolStatus } from 'strategydance-database/web'
+import { ConversationMessageKind, ConversationToolStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -13,6 +13,7 @@ import useReconcileConversationRun from '~hooks/conversation/useReconcileConvers
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
+import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -89,7 +90,7 @@ function ConversationThread({ conversation, run }: Props) {
     if (bottom >= -OLDER_MARGIN_PX && top <= window.innerHeight) loadOlder()
   }, [olderStatus, hasOlder, entries, loadOlder])
 
-  const isWorking = run?.status === ConversationRunStatus.QUEUED || run?.status === ConversationRunStatus.RUNNING
+  const isWorking = isConversationRunGoing(run)
   const runningCall = entries.findLast(
     ({ kind, toolStatus }) =>
       kind === ConversationMessageKind.TOOL_CALL && toolStatus === ConversationToolStatus.RUNNING,

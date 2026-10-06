@@ -96,9 +96,15 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
       setText(current => (current === sentValue ? '' : current))
       setFailedSend(null)
       setStartedRun(isRetry ? null : { runId, previousRunId })
-      textareaRef.current?.focus()
-      // The thread follows what lands while the reader is at its foot, their own message included
-      window.scrollTo({ top: document.documentElement.scrollHeight })
+
+      // Unless the reader has left the page while it went, for one this must not move
+      const textarea = textareaRef.current
+
+      if (textarea) {
+        textarea.focus()
+        // The thread follows what lands while the reader is at its foot, their own message included
+        window.scrollTo({ top: document.documentElement.scrollHeight })
+      }
     } catch (error) {
       console.error('The message could not be sent', error)
 

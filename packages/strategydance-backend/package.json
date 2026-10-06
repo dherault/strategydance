@@ -9,6 +9,7 @@
     "typecheck": "tsc -b",
     "lint": "oxlint -c ../../.oxlintrc.json src scripts",
     "grant:administrator": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/grantAdministrator.ts",
+    "backfill:organization-slugs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/backfillOrganizationSlugs.ts",
     "check:conversation-list": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationList.ts",
     "check:conversation-page": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationPage.ts",
     "check:conversation-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationRuns.ts",

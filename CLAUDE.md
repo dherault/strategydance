@@ -483,6 +483,13 @@ No path prefix marks a page as authenticated, so code that needs to know asks th
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
 screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
 
+The page a signed-out reader asked for is kept in localStorage, never in the sign-in screen's
+URL: `AuthenticationBouncer` keeps it before sending them to `/authentication`,
+`AuthenticationRedirect` returns them there once they are in, for an hour at most, and the
+bouncer forgets it once a signed-in reader reaches a page of the app. A new way into the app
+from the sign-in screen goes through a page that mounts the bouncer, or the kept page waits for
+whoever signs in next.
+
 An address nothing matches, and a `notFound()` any page throws, render `NotFound` full screen:
 it is the root's `notFoundComponent`, and no other route sets one. The root stays mounted as the
 boundary and shows it in its outlet, so its strings live in `global`, the one catalogue the root
@@ -497,8 +504,8 @@ would otherwise answer `Location: //evil.example`, which a browser reads as anot
 
 A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
 the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be
-overwritten with `undefined`. The sign-in screen's `redirect` is the case that matters, since
-following an unchecked one is how a link sends somebody elsewhere.
+overwritten with `undefined`, above all one that is followed, since following an unchecked one
+is how a link sends somebody elsewhere.
 
 `<Navigate>` navigates again whenever its props change. Fed anything that follows the location,
 it redirects to its own redirect: navigate from an effect on the verdict instead, reading the

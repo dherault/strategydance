@@ -83,12 +83,20 @@ export const ERROR_CODE_CONVERSATION_BUSY = 'CONVERSATION_BUSY' // 409
 // messages, and the reader's way on is a new conversation
 export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
 
+// A 409 for a member who keeps as many conversations in an organization as they may
+// (`MAX_CONVERSATIONS`): starting another takes deleting one first
+export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
+
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
+
+// The server cannot take the request now, and the same request later can succeed, so the reader
+// tries again: a conversation's run, until runs go through the queue in production
+export const ERROR_CODE_SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE' // 503
 
 // Never sent by the backend: what a client reports when the answer was not an envelope at all
 export const ERROR_CODE_UNKNOWN_ERROR = 'UNKNOWN_ERROR'

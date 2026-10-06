@@ -89,6 +89,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
+| `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. How a conversation is written until its page has a composer. `--organization <id>` names the organization when the account is in several |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -435,6 +436,26 @@ A conversation is kept twice, once for Claude and once for the page, and
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
   mutations, run through the Admin SDK, carry no `mutation.auth.uid` and take the verified
   `$userId` anyway
+- A run is `QUEUED` or `RUNNING` exactly while its conversation's `activeRunId` names it. Every
+  write that ends a run lets go of it in the same mutation, matching `activeRunId` on the run and
+  never filtering on `deletedAt`, or a conversation restored later stays busy for good. A run's
+  lease is set from the database's clock (`leaseExpiresAt_time`), the clock the filters that find
+  it dead read: twenty minutes while it is queued, then a minute, which every write of its worker
+  renews. A run past its lease is dead, and a route finalizes it as interrupted before it counts or
+  starts another, as the page's reconcile does
+- Every write of a worker is fenced: its first step is the run's own update, matching the run
+  `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
+  recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,
+  so its end, its step and its lease ride in its data. A worker whose run was claimed again, or
+  whose author left or was invited back since, writes nothing more. A `Timestamp` read back from
+  Data Connect keeps its microseconds and matches itself in a filter, which is what that match
+  relies on, and `check:conversation-runs` checks it
+- A message the backend draws takes an id derived from what it is drawn from
+  (`deriveConversationMessageId`): a transcript entry with its first block and its piece, or a run
+  with its note. A worker taking over after a crash draws from the entry's cursor, `drawnBlocks`,
+  and derives the same ids, so drawing a message twice is a conflict rather than a copy. The
+  member's message keeps the browser's id, which makes a retried send store it once, and names the
+  run it started, so a Retry deletes a run's messages but that one
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under `/conversations/` sits behind the bouncer its layout route mounts. Locally,
@@ -553,6 +574,21 @@ in `utils/`, one concern per file.
 - Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
   logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
   is how an invitation gets accepted locally
+- Conversations' routes sit in `routes/conversations.ts`, mounted at
+  `/organizations/:organizationId/conversations` with `mergeParams`, and each runs
+  `organizationMemberMiddleware`, then `staffOnlyMiddleware` until conversations launch. A send
+  queues a run, and `enqueueRun` starts it in the backend's own process, as development always
+  does. Production answers a send 503 before writing anything (`ARE_CONVERSATION_RUNS_IN_PROCESS`)
+  until runs go through a queue, since Cloud Run throttles the CPU once a response is sent, which
+  would stall a run left going
+- A worker's writes go through its run's lease (`createConversationRunLease`), one after the
+  other, so they land in the order it made them and never beside a renewal of its own, and its
+  steps are read afresh each time (`runConversation`), so taking over after a crash follows the
+  same path as carrying on
+- The conversation domain's tests run against `createConversationDatabaseFake`: the backend
+  connector's conversation operations over tables in memory, each mirroring its namesake's
+  conditions and refusals. `bun run check:conversation-runs`, in the backend's package, checks
+  those conditions against the emulators. An operation changed is changed in both
 
 ## Email conventions
 

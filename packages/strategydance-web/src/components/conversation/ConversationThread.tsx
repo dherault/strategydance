@@ -9,6 +9,7 @@ import type { Conversation, ConversationRun, ConversationThreadEntry } from '~ty
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
+import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
@@ -37,7 +38,8 @@ type Props = {
 
 /*
   A conversation's thread, read-only: each entry as the design draws its kind, oldest first, and
-  the thinking indicator after them while a run goes. Older entries load as the reader scrolls up
+  the thinking indicator after them while a run goes, until its lease passes, when the backend is
+  asked to reconcile it. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
   The replies it shows are marked read once the latest is drawn whole.
 
@@ -58,6 +60,7 @@ function ConversationThread({ conversation, run }: Props) {
 
   useConversationThreadScroll(listRef)
   useMarkConversationRead(conversation, isLatestShown)
+  useReconcileConversationRun(conversation.id, run)
 
   useEffect(() => {
     const sentinel = sentinelRef.current

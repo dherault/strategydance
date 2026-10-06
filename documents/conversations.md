@@ -422,7 +422,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
   win; files and rows go only after the claim, and every sweep also finishes the conversations
   claimed before and still present, its deletions idempotent, so a prune that failed after claiming
-  is completed by the next. Each milestone adds the operations it
+  is completed by the next. Until conversations keep files (M19), `StartConversation` deletes the
+  member's conversations deleted over a day ago directly, under the membership lock
+  `RestoreConversation` also takes, so the two never both win without a claim; M19 moves the prune
+  out to claim, files, then rows. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
 - **Search** is the backend's too: `POST …/conversations/search`, the query in the JSON body so
@@ -488,10 +491,13 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   since a backlog can outlast any deadline: past it, a route looks the named task up and pushes the
   lease back while the task exists; once it is gone, or never existed, the run is dead. Send,
   answer, stop, resume and retry first finalize a dead active run as `INTERRUPTED` (running calls
-  `CANCELLED`, a note, `activeRunId` cleared). The web shows a claimed run past its lease as
-  interrupted, with Resume and Retry, and a queued one as waiting, calling `POST
-  …/runs/:runId/reconcile` every two minutes meanwhile, so a run whose task vanished never spins
-  forever, with nothing asked of the member.
+  `CANCELLED`, a note, `activeRunId` cleared). The page calls `POST …/runs/:runId/reconcile` once
+  its latest run's lease has passed, queued or claimed, and every two minutes after while the run
+  stays as it is: a claimed run past its lease is finalized at once, and its interrupted note,
+  with Resume and Retry, replaces the thinking indicator; a queued one is finalized once its task
+  is gone, the route asking Cloud Tasks first (M8), so a run whose task vanished never spins
+  forever, with nothing asked of the member. M6 built this, where the plan first had the page draw
+  a claimed run past its lease as interrupted without finalizing it.
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
@@ -706,7 +712,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   resumes, since it carries that run's response on and its own results entry may never be stored
   if it crashes first. Retry cuts the transcript after the last run's anchor, its context message
   included, deletes the messages drawn by every run on that anchor (the last run and the runs it
-  resumed), and starts a run on that anchor with a fresh context message; the remaining prefix is
+  resumed), never the member's message that started one, which names the run it started too (`run
+  in X and kind != MEMBER_TEXT`), and starts a run on that anchor with a fresh context message; the remaining prefix is
   what the thinking blocks were made with, and what the cut part wrote stays written. The same
   mutation lowers `messageCount` by what it deletes, bumps `historyRevision`, rebuilds the preview
   from the last entry kept, and sets `unreadCount` to 0: the member is looking at the conversation

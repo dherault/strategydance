@@ -32,10 +32,11 @@ type Props = {
   the organization's files, then the row, which takes the memberships and invitations with it.
 
   Then away from a page about an organization that is gone, to the today of another of the
-  reader's, before the memberships drop it: the other way round, the path would name an
-  organization the list no longer holds, and show it not found for a moment. With no other,
-  forgetting it empties the list, and `UserOrganizationsBouncer` takes the reader to the prologue.
-  The persisted choice needs no clearing, since the next organization's page remembers that one
+  reader's, and only then out of the memberships. The team's live query often drops it first,
+  while the backend is still sweeping its files, and `CurrentOrganizationBouncer` moves the reader
+  on to the same place then. With no other, forgetting it empties the list, and
+  `UserOrganizationsBouncer` takes the reader to the prologue. The persisted choice needs no
+  clearing, since the next organization's page remembers that one
 */
 function OrganizationProfileDeleteDialog({ organizationId, organizationName, onClose }: Props) {
   const { formatMessage } = useIntl()

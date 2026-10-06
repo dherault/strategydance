@@ -70,3 +70,16 @@ export function createOrganizationSlug(name: string) {
 export function isOrganizationSlug(value: string) {
   return ORGANIZATION_SLUG_PATTERN.test(value)
 }
+
+// The unique index Data Connect builds on `Organization.slug`, named after the table and column
+const ORGANIZATION_SLUG_INDEX = 'organization_slug_uidx'
+
+/*
+  Whether a write failed because another organization holds the slug it gave. The message of the
+  error Data Connect answers names the index, in the web SDK's errors and the Admin SDK's alike,
+  and nothing else a write of a slug does can trip it: a writer told so draws another and tries
+  again
+*/
+export function isOrganizationSlugTakenError(error: unknown) {
+  return error instanceof Error && error.message.includes(ORGANIZATION_SLUG_INDEX)
+}

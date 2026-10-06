@@ -2,7 +2,12 @@ import { describe, expect, it } from 'bun:test'
 
 import { ORGANIZATION_SLUG_BASE_MAX_LENGTH } from '../constants'
 
-import { createOrganizationSlug, isOrganizationSlug, slugifyOrganizationName } from './organization'
+import {
+  createOrganizationSlug,
+  isOrganizationSlug,
+  isOrganizationSlugTakenError,
+  slugifyOrganizationName,
+} from './organization'
 
 describe('slugifyOrganizationName', () => {
   it('joins the words of a name with dashes, in lowercase', () => {
@@ -83,5 +88,24 @@ describe('isOrganizationSlug', () => {
     ]) {
       expect(isOrganizationSlug(value)).toBe(false)
     }
+  })
+})
+
+describe('isOrganizationSlugTakenError', () => {
+  it('recognises the unique index on the slug, as either SDK reports it', () => {
+    expect(isOrganizationSlugTakenError(new Error('violates SQL unique constraint: organization_slug_uidx'))).toBe(true)
+    expect(
+      isOrganizationSlugTakenError(
+        new Error(
+          'DataConnect error while performing request: [{"message":"violates SQL unique constraint: organization_slug_uidx"}]',
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  it('refuses any other failure', () => {
+    expect(isOrganizationSlugTakenError(new Error('A name is 1 to 80 characters'))).toBe(false)
+    expect(isOrganizationSlugTakenError('organization_slug_uidx')).toBe(false)
+    expect(isOrganizationSlugTakenError(null)).toBe(false)
   })
 })

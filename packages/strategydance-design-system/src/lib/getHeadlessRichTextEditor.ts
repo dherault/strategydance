@@ -1,5 +1,6 @@
 import { BlockNoteEditor } from '@blocknote/core'
-import { type RichTextEditorBlock, createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
+import type { RichTextEditorBlock } from 'strategydance-design-system/lib/richText'
+import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 
 // One per set of blocks, made the first time it is asked for
 const editors = new Map<string, ReturnType<typeof createEditor>>()

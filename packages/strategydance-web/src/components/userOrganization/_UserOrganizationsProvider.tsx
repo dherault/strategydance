@@ -1,6 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import type { PropsWithChildren } from 'react'
-import type { ChangeOrganizationImageData, OrganizationImageKind } from 'strategydance-core'
+import {
+  type ChangeOrganizationImageData,
+  type OrganizationImageKind,
+  createOrganizationSlug,
+  isOrganizationSlugTakenError,
+} from 'strategydance-core'
 import type { CompanyAspect, GetCurrentUserOrganizationsData } from 'strategydance-database/web'
 import {
   useAcceptOrganizationInvitation,
@@ -19,6 +24,9 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 
 import { requestApi } from '~data/api'
 import { dataConnect } from '~data/firebase'
+
+// How many slugs a create draws before it gives up on the ones another organization holds
+const MAX_SLUG_ATTEMPTS = 3
 
 /*
   Owns the reader's memberships: reads them, and creates one more when asked.
@@ -95,17 +103,38 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
     the list again rather than writing again
   */
   async function createOrganization(name: string, brief: string | null) {
-    const { organization } = await createOrganizationMutation({ name, brief })
+    const { organization, slug } = await insertOrganization(name, brief)
 
     try {
       const { data: refetched } = await refetchUserOrganizations({ throwOnError: true })
       const isRead = !!refetched?.userOrganizations.some(({ organization: { id } }) => id === organization.id)
 
-      return { organizationId: organization.id, isRead }
+      return { organizationId: organization.id, organizationSlug: slug, isRead }
     } catch (error) {
       console.error('Failed to read the memberships back after creating an organization', error)
 
-      return { organizationId: organization.id, isRead: false }
+      return { organizationId: organization.id, organizationSlug: slug, isRead: false }
+    }
+  }
+
+  /*
+    The slug is drawn here, from the name and a random suffix. One that another organization holds
+    fails the insert, which wrote nothing, so a fresh draw is safe to send: four characters make a
+    second clash on one name rare, a third rarer, and past that the failure is the caller's to show
+  */
+  async function insertOrganization(name: string, brief: string | null, attempt = 1) {
+    const slug = createOrganizationSlug(name)
+
+    try {
+      const { organization } = await createOrganizationMutation({ name, brief, slug })
+
+      return { organization, slug }
+    } catch (error) {
+      if (attempt < MAX_SLUG_ATTEMPTS && isOrganizationSlugTakenError(error)) {
+        return insertOrganization(name, brief, attempt + 1)
+      }
+
+      throw error
     }
   }
 

@@ -1220,6 +1220,404 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "conversation": {
+      "conversation.addAspects": {
+        "hash": "dbdccbe464e1e3cd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.allConversations": {
+        "hash": "fd5ad4bc21fb59b9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsDescription": {
+        "hash": "655ff0ac797b2bbc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsError": {
+        "hash": "552933cf21567964",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsFull": {
+        "hash": "5db7be66f3bf79e6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsNote.changed": {
+        "hash": "a2297398ec5a6123",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsNote.removed": {
+        "hash": "e0bb562e44b8577f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsNote.tagged": {
+        "hash": "38417c4f5a044644",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsSelected": {
+        "hash": "1117d855cf2b2809",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.aspectsTitle": {
+        "hash": "fd1b6e0f58e02454",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cancel": {
+        "hash": "07ff79083e4440c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.close": {
+        "hash": "7db3ec69e40c2c0d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.actions": {
+        "hash": "577a3ef4b4172b75",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.aspects": {
+        "hash": "e3d8fc14c4f37054",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.conversation": {
+        "hash": "f4b2ca6cfd4ba863",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.updated": {
+        "hash": "713f0ab16a18ab7d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirm": {
+        "hash": "35e5b22bdee1f919",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.conversationLoadError": {
+        "hash": "b4e97550742f4c65",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.copied": {
+        "hash": "a36ce10cc62f8718",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.copyError": {
+        "hash": "a6c7d09c6327f107",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.copyOutput": {
+        "hash": "852d6f97d28b3b48",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.delete": {
+        "hash": "b81265c3281576b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.deleteError": {
+        "hash": "7c9ae5ec8615de13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.deleteLabel": {
+        "hash": "dc47ad425d726339",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.deleted": {
+        "hash": "0485437548c5178d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.editAspects": {
+        "hash": "8751981768e6d041",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.elapsedMinutes": {
+        "hash": "9511194c348bea16",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.elapsedSeconds": {
+        "hash": "b46ebd2eea65f0b0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.emptyText": {
+        "hash": "a5839264f0d4c449",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.emptyTitle": {
+        "hash": "632d821f3aba3d1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.lead": {
+        "hash": "c59f04ee6853d43e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.loadError": {
+        "hash": "536b6bf6c940fe86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.messageLoading": {
+        "hash": "754a6fd1cba5926b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.missingText": {
+        "hash": "d74661be2197d42c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.missingTitle": {
+        "hash": "d3d483fcadce460c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.needsAnswer": {
+        "hash": "ae937983da267d2b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.newTitle": {
+        "hash": "f928f30cc43b5189",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.notSaved": {
+        "hash": "9384b8170befd995",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.failed": {
+        "hash": "450490e158ec8bb6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.full": {
+        "hash": "742414db2586b987",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.interrupted": {
+        "hash": "3186eeacaf449a01",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.refused": {
+        "hash": "47f40f9d527bcc56",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.stopped": {
+        "hash": "7d6a3e4f53fe2a93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.olderError": {
+        "hash": "410b2e2f9b9d16e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.answered": {
+        "hash": "0de015f6556626f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.empty": {
+        "hash": "1dadc3e7856a8584",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.member": {
+        "hash": "4daa3c66a3c765d7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.question": {
+        "hash": "74710c28fae08618",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.skipped": {
+        "hash": "fd3b0d4d769d96f4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.thinking": {
+        "hash": "7dc2b33102a693a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.toolCancelled": {
+        "hash": "6aba279b255a9662",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.toolFailed": {
+        "hash": "b4e783c88f45901d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.private": {
+        "hash": "910feb7550c9d387",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.privateTooltip": {
+        "hash": "f8489243bcbed317",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.answered": {
+        "hash": "d6cb1f0d62147910",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.ownAnswer": {
+        "hash": "fb71814d8d016158",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.selectAll": {
+        "hash": "af4f96775ba0303f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.selectOne": {
+        "hash": "4709d959da8d6b0d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.send": {
+        "hash": "3a0f747c6013c8ef",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.skipped": {
+        "hash": "16be7a9c987ade4a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.waiting": {
+        "hash": "94dbb2b7f629d8e6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.writeOwn": {
+        "hash": "7e0762a3dc21017a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreError": {
+        "hash": "555883b091f28f04",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retry": {
+        "hash": "1f65e210a1787c7c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.save": {
+        "hash": "f70380a62bf55317",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.thinking": {
+        "hash": "534369c93d42cbe3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.threadEmpty": {
+        "hash": "32739d8d2a72512a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.threadLabel": {
+        "hash": "70fb6bd711b246b5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.createKnowledge.done": {
+        "hash": "af6c64105219dac1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.createKnowledge.running": {
+        "hash": "80e599362e8ee722",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.getTeam.done": {
+        "hash": "159c7996f561814d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.getTeam.running": {
+        "hash": "c1c3b0d8c2831bb0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readKnowledge.done": {
+        "hash": "acd91b26f15c3ba0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readKnowledge.running": {
+        "hash": "64c2f903f021241f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readLog.done": {
+        "hash": "f7d19eedda955e13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readLog.running": {
+        "hash": "3c79dc14e571fa7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.searchKnowledge.done": {
+        "hash": "a7c76337b7c4980e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.searchKnowledge.running": {
+        "hash": "ad4aa23eae02d820",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setTopPriority.done": {
+        "hash": "a11f670f678327d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setTopPriority.running": {
+        "hash": "f7c8e189dadab232",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateKnowledge.done": {
+        "hash": "551c441649f73049",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateKnowledge.running": {
+        "hash": "d7d1258752b01334",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.webSearch.done": {
+        "hash": "d87c720132d9cffd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.webSearch.running": {
+        "hash": "cfd069bfb5bde2c7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolBadge": {
+        "hash": "34c5dd1fea693421",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolCall": {
+        "hash": "150d78766f5248b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolCallLoadError": {
+        "hash": "797df8b3272b4d9e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolError": {
+        "hash": "61836d7de69854ab",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolInput": {
+        "hash": "7db22830484623f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolOutput": {
+        "hash": "51bb639b99c70cf5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolStatus.cancelled": {
+        "hash": "7e5ee3a9221f2d4e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolStatus.failed": {
+        "hash": "98b52a45941ba28d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.toolStatus.running": {
+        "hash": "2900abf83a8d97ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.undo": {
+        "hash": "6cac6edbe5aa0efe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.updated": {
+        "hash": "1aaa838421918d61",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.updatedJustNow": {
+        "hash": "996b701e92458726",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.viewError": {
+        "hash": "df2def49d0308961",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.viewOutput": {
+        "hash": "afaaf4738855278a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.working": {
+        "hash": "81f56f56f069b62c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "explore": {
       "explore.blurbDesign": {
         "hash": "732e8bf4219df317",
@@ -1555,8 +1953,48 @@
         "hash": "fef0fb6d952496b7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.editorImageSizeError": {
+        "hash": "eca8d68fa206d342",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorImageTypeError": {
+        "hash": "b01a32209790c359",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorImageUploadError": {
+        "hash": "ca85f3d4ac2ac320",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewAdd": {
+        "hash": "d4429250f7fb1d08",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewButton": {
+        "hash": "ff45661568feea30",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewInvalid": {
+        "hash": "49dd16c48df72b27",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewSubtext": {
+        "hash": "239070c29323db5f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorLinkPreviewTitle": {
+        "hash": "85b125e50ef55ed7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.editorTurnInto": {
         "hash": "5ec56d5ad4433055",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorVideoSubtext": {
+        "hash": "7e206de7e8378567",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorVideoUnsupported": {
+        "hash": "fdeb040411c9477d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.emptyText": {
@@ -1565,10 +2003,6 @@
       },
       "knowledge.emptyTitle": {
         "hash": "84ec0a09e0f7a7a1",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.eyebrow": {
-        "hash": "69a6818c290b5206",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.goToAll": {
@@ -1913,6 +2347,14 @@
         "hash": "9a38a14f5506e5ea",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.conversations": {
+        "hash": "7fe9ccc967c675b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.conversationsAwaitingAnswer": {
+        "hash": "b7eac36e22480f93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.exploreMore": {
         "hash": "c06a5db77d6a5de1",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1953,12 +2395,28 @@
         "hash": "b689838dc779576f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.organizationNotFoundAction": {
+        "hash": "3f3cf5b13345aa14",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationNotFoundText": {
+        "hash": "22080214a5d4be85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationNotFoundTitle": {
+        "hash": "2eb2eb5372292789",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.organizations": {
         "hash": "3064d4491394ac6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.profile": {
         "hash": "7daadd2d0e2e55df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.reflection": {
+        "hash": "84c655bf63091991",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.sidebar": {

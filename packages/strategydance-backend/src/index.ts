@@ -12,6 +12,8 @@ import loggerMiddleware from '~middleware/logger'
 import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
+import createConversationsRouter from '~routes/conversations'
+import createLinkPreviewsRouter from '~routes/linkPreviews'
 import createOrganizationsRouter from '~routes/organizations'
 import createUsersRouter from '~routes/users'
 
@@ -37,6 +39,9 @@ app.get('/health', (_request: Request, response: Response<ApiResponse>) => {
   response.json({ status: 'success' })
 })
 
+app.use('/link-previews', createLinkPreviewsRouter())
+// Ahead of the organizations' router, so its paths are matched first
+app.use('/organizations/:organizationId/conversations', createConversationsRouter())
 app.use('/organizations', createOrganizationsRouter())
 app.use('/users', createUsersRouter())
 

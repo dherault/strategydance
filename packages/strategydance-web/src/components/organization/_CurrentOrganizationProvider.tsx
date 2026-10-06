@@ -1,4 +1,5 @@
-import type { PropsWithChildren } from 'react'
+import { useMatch } from '@tanstack/react-router'
+import { type PropsWithChildren, useEffect } from 'react'
 
 import type { CurrentOrganizationContextType } from '~contexts/CurrentOrganizationContext'
 import CurrentOrganizationContext from '~contexts/CurrentOrganizationContext'
@@ -6,11 +7,15 @@ import CurrentOrganizationContext from '~contexts/CurrentOrganizationContext'
 import usePersistedState from '~hooks/common/usePersistedState'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
+import toOrganizationPathSegment from '~utils/organization/toOrganizationPathSegment'
+
 /*
   Owns the choice of organization, and nothing else. `_UserOrganizationsProvider` owns the list,
   and this one is mounted below it because resolving a choice means reading that list.
 
-  Like every provider in `Wrap` it renders its children unconditionally
+  Mounted in `InnerWrap` rather than `Wrap`, since it reads the path, and only `InnerWrap` is
+  inside the router. It is above the document shell all the same, so like every provider there
+  it renders its children unconditionally
 */
 function CurrentOrganizationProvider({ children }: PropsWithChildren) {
   const { data: userOrganizations } = useUserOrganizations()
@@ -23,22 +28,56 @@ function CurrentOrganizationProvider({ children }: PropsWithChildren) {
   */
   const [organizationId, setOrganizationId] = usePersistedState<string | null>('organizationId', null)
 
+  // The segment an organization's page's path leads with, and undefined on any other page
+  const routeOrganizationSlug = useMatch({
+    from: '/_authenticated/_app/$organizationSlug',
+    shouldThrow: false,
+    select: match => match.params.organizationSlug,
+  })
+
   /*
     The choice, resolved during render rather than synced into state.
 
-    The persisted id is a preference; the list is the authority on what it can mean. An id naming
-    an organization the reader has left, or one belonging to another account on this browser,
-    matches nothing and falls through to the first membership. Nothing writes the stored value
-    back, which is both why there is no state syncing effect here and why somebody re-invited to
-    that organization later gets their old choice returned to them
+    On an organization's page the path decides, by its slug or by its id for an organization that
+    has none yet. Anywhere else the persisted id is a preference, and the list is the authority on
+    what it can mean. An id naming an organization the reader has left, or one belonging to
+    another account on this browser, matches nothing and falls through to the first membership.
+    So does a path naming an organization the reader is not in, which leaves the sidebar on one
+    they are, beside the page saying so
   */
+  const routeUserOrganization =
+    routeOrganizationSlug === undefined
+      ? undefined
+      : userOrganizations.find(
+          ({ organization }) =>
+            organization.slug === routeOrganizationSlug || organization.id === routeOrganizationSlug,
+        )
   const userOrganization =
-    userOrganizations.find(({ organization }) => organization.id === organizationId) ?? userOrganizations[0] ?? null
+    routeUserOrganization
+    ?? userOrganizations.find(({ organization }) => organization.id === organizationId)
+    ?? userOrganizations[0]
+    ?? null
+
+  const routeOrganizationId = routeUserOrganization?.organization.id ?? null
+
+  /*
+    An organization opened by its path is remembered as the one last had open, so the pages
+    outside any organization, `/today` and the next visit follow it. Only one the path names is
+    written: a fallback never is, which is why somebody re-invited to the organization they had
+    open gets it back
+  */
+  useEffect(() => {
+    if (routeOrganizationId && routeOrganizationId !== organizationId) setOrganizationId(routeOrganizationId)
+  }, [routeOrganizationId, organizationId, setOrganizationId])
+
+  const organization = userOrganization?.organization ?? null
 
   const contextValue: CurrentOrganizationContextType = {
-    organization: userOrganization?.organization ?? null,
+    organization,
     role: userOrganization?.role ?? null,
     jobTitle: userOrganization?.jobTitle ?? null,
+    organizationSlug: organization ? toOrganizationPathSegment(organization) : null,
+    isRouteOrganizationMissing: routeOrganizationSlug !== undefined && !routeUserOrganization,
     setOrganizationId,
   }
 

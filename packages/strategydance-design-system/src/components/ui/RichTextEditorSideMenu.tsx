@@ -1,4 +1,4 @@
-import type { PartialBlock } from '@blocknote/core'
+import type { BlockConfig, PartialBlock } from '@blocknote/core'
 import { SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
 import {
   type BlockTypeSelectItem,
@@ -95,11 +95,13 @@ function AddBlockButton() {
 
   if (!block) return null
 
+  // An empty block of text takes the menu itself. Any other block gets a paragraph after it, as
+  // the menu never opens in code, where "/" is typed as code
   function addBlock() {
     if (!block) return
 
-    const isEmpty = Array.isArray(block.content) && block.content.length === 0
-    const target = isEmpty ? block : editor.insertBlocks([{ type: 'paragraph' }], block, 'after')[0]
+    const isEmptyText = hasInlineContent(editor, block.type) && Array.isArray(block.content) && !block.content.length
+    const target = isEmptyText ? block : editor.insertBlocks([{ type: 'paragraph' }], block, 'after')[0]
 
     editor.setTextCursorPosition(target)
     suggestionMenu.openSuggestionMenu('/')
@@ -160,7 +162,10 @@ function DragHandleButton() {
   The block's menu: "Turn into", a submenu of the blocks the editor writes, which the toolbar's
   select offers too, then BlockNote's delete. Over a selection holding the block, both act on every
   block it holds. The block's own type is a checked item, so it is announced as the current one; the
-  others stay plain items, since a checkbox item would keep the menu open once it is chosen
+  others stay plain items, since a checkbox item would keep the menu open once it is chosen.
+
+  Only a block of text or code turns into another, which keeps its text: any other would lose what
+  it holds, so a selection's pictures, videos, cards and tables stay as they are
 */
 function BlockMenu() {
   const Components = useComponentsContext()!
@@ -183,7 +188,10 @@ function BlockMenu() {
     if (!block) return
 
     const selectedBlocks = editor.getSelection()?.blocks
-    const blocks = selectedBlocks?.some(selected => selected.id === block.id) ? selectedBlocks : [block]
+    // Of a selection, only the blocks holding text turn, as a picture or a table would lose what it holds
+    const blocks = selectedBlocks?.some(selected => selected.id === block.id)
+      ? selectedBlocks.filter(selected => hasText(editor, selected.type))
+      : [block]
     const update = { type: item.type, props: item.props } as PartialBlock
 
     editor.transact(() => {
@@ -193,7 +201,7 @@ function BlockMenu() {
 
   return (
     <Components.Generic.Menu.Dropdown className="bn-menu-dropdown bn-drag-handle-menu">
-      {block ? (
+      {block && hasText(editor, block.type) ? (
         <Components.Generic.Menu.Root
           position="right"
           sub
@@ -232,6 +240,23 @@ function BlockMenu() {
       <RemoveBlockItem>{dictionary.drag_handle.delete_menuitem}</RemoveBlockItem>
     </Components.Generic.Menu.Dropdown>
   )
+}
+
+// What a block of the type holds: text with styles and links, plain text, a table, or none
+function readContent(editor: { schema: { blockSchema: object } }, type: string) {
+  return (editor.schema.blockSchema as Partial<Record<string, BlockConfig>>)[type]?.content
+}
+
+// Whether a block of the type holds text with styles and links: a paragraph, a heading, a list item
+function hasInlineContent(editor: { schema: { blockSchema: object } }, type: string) {
+  return readContent(editor, type) === 'inline'
+}
+
+// Whether a block of the type holds text, code's plain text included
+function hasText(editor: { schema: { blockSchema: object } }, type: string) {
+  const content = readContent(editor, type)
+
+  return content === 'inline' || content === 'plain'
 }
 
 export { RichTextEditorSideMenuController }

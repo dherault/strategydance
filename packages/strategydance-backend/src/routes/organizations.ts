@@ -10,12 +10,17 @@ import {
   type InviteOrganizationMembersData,
   MAX_INVITATIONS_PER_REQUEST,
   MAX_ORGANIZATION_IMAGE_SIZES,
+  MAX_RICH_TEXT_IMAGE_SIZE,
   ORGANIZATION_IMAGE_CONTENT_TYPES,
   ORGANIZATION_IMAGE_KINDS,
+  RICH_TEXT_IMAGE_CONTENT_TYPES,
+  type RichTextImageData,
   isEmailAddress,
   normalizeEmailAddress,
 } from 'strategydance-core'
 import { z } from 'zod'
+
+import { UUID_PATTERN } from '~constants'
 
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
@@ -26,15 +31,15 @@ import authenticationMiddleware from '~middleware/authentication'
 import invitationRateLimitMiddleware from '~middleware/invitationRateLimit'
 import organizationAdministratorMiddleware from '~middleware/organizationAdministrator'
 import organizationImageRateLimitMiddleware from '~middleware/organizationImageRateLimit'
+import organizationMemberMiddleware from '~middleware/organizationMember'
+import richTextImageRateLimitMiddleware from '~middleware/richTextImageRateLimit'
 import validateMiddleware from '~middleware/validate'
 
 import createOrganizationInvitations from '~domain/organizations/createOrganizationInvitations'
 import deleteOrganization from '~domain/organizations/deleteOrganization'
 import removeOrganizationImage from '~domain/organizations/removeOrganizationImage'
 import replaceOrganizationImage from '~domain/organizations/replaceOrganizationImage'
-
-// Data Connect writes a UUID as 32 hex digits and reads it with or without hyphens
-const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
+import storeRichTextImage from '~domain/richText/storeRichTextImage'
 
 function createOrganizationsRouter() {
   const router = Router()
@@ -275,6 +280,58 @@ function createOrganizationsRouter() {
       },
     )
   })
+
+  /* ---
+    RICH TEXT IMAGES
+  --- */
+
+  type RichTextImageRequest = Request<z.infer<typeof organizationParamsSchema>, ApiResponse<RichTextImageData>, unknown>
+
+  /*
+    Stores a picture for one of the organization's documents, answering with the URL its text
+    keeps. Any member may, as any member writes the documents, and a draft not saved yet takes
+    pictures too, so no document is named. The body is parsed last, as a logo's is, and only when
+    it is one of the picture types, which its bytes have to say again
+  */
+  router.post(
+    '/:organizationId/rich-text/images',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    richTextImageRateLimitMiddleware,
+    validateMiddleware({ params: organizationParamsSchema }),
+    organizationMemberMiddleware,
+    express.raw({ type: RICH_TEXT_IMAGE_CONTENT_TYPES, limit: MAX_RICH_TEXT_IMAGE_SIZE }),
+    async (request: RichTextImageRequest, response: Response<ApiResponse<RichTextImageData>>) => {
+      const bytes = Buffer.isBuffer(request.body) ? request.body : null
+      const contentType = bytes ? sniffImageContentType(bytes) : null
+
+      if (!bytes || !contentType) {
+        respondError(response, 415, ERROR_CODE_UNSUPPORTED_MEDIA_TYPE, 'A picture is a PNG, JPEG, GIF or WebP file')
+
+        return
+      }
+
+      const result = await storeRichTextImage({
+        organizationId: request.params.organizationId,
+        userId: readViewer(request).id,
+        bytes,
+        contentType,
+      })
+
+      if (result.outcome === 'forbidden') {
+        respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+        return
+      }
+
+      response.json({
+        status: 'success',
+        data: {
+          url: result.url,
+        },
+      })
+    },
+  )
 
   return router
 }

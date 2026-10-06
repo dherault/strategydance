@@ -1,12 +1,13 @@
-import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
+import { isRichTextEmpty } from 'strategydance-design-system/lib/isRichTextEmpty'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 
 /*
   Whether a stored rich text value says anything: false for nothing, for blocks holding only
-  blanks, and for a value the renderer cannot read, which then draws nothing either
+  blanks, and for a value the renderer cannot read, which then draws nothing either. A picture
+  says something
 */
 function hasRichText(value: string | null | undefined) {
-  return getRichTextText(parseRichText(value)).trim() !== ''
+  return !isRichTextEmpty(parseRichText(value))
 }
 
 export { hasRichText }

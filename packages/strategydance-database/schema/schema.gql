@@ -93,6 +93,12 @@ type Organization @table {
   # refers to something on the page
   id: UUID! @default(expr: "uuidV4()")
   name: String!
+  # The segment that leads each of its pages' paths, as in `/strategy-dance-ad34/today`: its name
+  # in lowercase words joined by dashes, then a dash and four random letters or digits, as
+  # strategydance-core's `createOrganizationSlug` draws it. Set once, when it is created, and kept
+  # through a rename, so a link to it never breaks. Null for an organization made before slugs,
+  # until `backfillOrganizationSlugs` gives it one, and the app addresses it by its id meanwhile
+  slug: String @unique
   # The aspects the organization has started working on, each once. None to begin with: the
   # sidebar lists these, and the rest wait behind the explore page
   exploredAspects: [CompanyAspect!]! @default(sql: "'{}'")
@@ -570,8 +576,12 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
 
 # One go of the agent in a conversation, from the member's action to its end: queued by the
 # backend, then claimed and finished by a worker. Only the backend writes it; the page reads its
-# status, its step and its times to draw the thinking indicator
-type ConversationRun @table @unique(fields: ["conversation", "number"]) {
+# status, its step and its times to draw the thinking indicator.
+#
+# Indexed on its status, then its conversation, so the runs a member has in flight, which every
+# send counts, are found among the few runs in flight rather than through every run their
+# conversations ever had
+type ConversationRun @table @unique(fields: ["conversation", "number"]) @index(fields: ["status", "conversationId"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Implies a `conversationId: UUID!` column, cascade deleting
   conversation: Conversation!

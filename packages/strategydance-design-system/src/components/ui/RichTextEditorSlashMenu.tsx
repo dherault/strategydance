@@ -79,12 +79,17 @@ function RichTextEditorSlashMenuController({ getItems }: Props) {
   return (
     <SuggestionMenuController
       triggerCharacter="/"
+      shouldOpen={isOutsideTable}
       getItems={getItems}
       suggestionMenuComponent={RichTextEditorSlashMenu}
       floatingUIOptions={FLOATING_OPTIONS}
     />
   )
 }
+
+// Whether the caret is outside a table, whose cells hold text alone: "/" types a slash there
+const isOutsideTable: NonNullable<ComponentProps<typeof SuggestionMenuController>['shouldOpen']> = state =>
+  !state.selection.$from.parent.type.isInGroup('tableContent')
 
 // BlockNote's menu, its groups' names, its loader and its empty row, with the rows below
 function RichTextEditorSlashMenu({

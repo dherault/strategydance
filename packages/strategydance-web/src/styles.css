@@ -22,3 +22,38 @@
   --background: var(--color-white);
   --sidebar: var(--color-white);
 }
+
+/*
+  A conversation's thinking indicator, as the design draws it: the mark pulsing, and the step
+  sliding in, then shimmering over its words. Where they are used, `motion-reduce:` stops both
+*/
+@theme {
+  --animate-conversation-pulse: conversation-pulse 1.6s ease-in-out infinite;
+  --animate-conversation-step: conversation-shimmer 2s linear infinite, conversation-step 300ms ease-in-out;
+
+  @keyframes conversation-pulse {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes conversation-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+
+  @keyframes conversation-step {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+  }
+}

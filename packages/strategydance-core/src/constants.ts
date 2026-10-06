@@ -83,12 +83,20 @@ export const ERROR_CODE_CONVERSATION_BUSY = 'CONVERSATION_BUSY' // 409
 // messages, and the reader's way on is a new conversation
 export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
 
+// A 409 for a member who keeps as many conversations in an organization as they may
+// (`MAX_CONVERSATIONS`): starting another takes deleting one first
+export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
+
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
+
+// The server cannot take the request now, and the same request later can succeed, so the reader
+// tries again: a conversation's run, until runs go through the queue in production
+export const ERROR_CODE_SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE' // 503
 
 // Never sent by the backend: what a client reports when the answer was not an envelope at all
 export const ERROR_CODE_UNKNOWN_ERROR = 'UNKNOWN_ERROR'
@@ -124,6 +132,23 @@ export const MAX_ORGANIZATION_NAME_LENGTH = 80
   change the three together
 */
 export const MAX_ORGANIZATION_BRIEF_LENGTH = 500
+
+/*
+  An organization's slug, the segment that leads each of its pages' paths: its name made into
+  words of lowercase letters and digits joined by dashes, at most this long, then a dash and a few
+  random characters, as in `strategy-dance-ad34`
+*/
+export const ORGANIZATION_SLUG_BASE_MAX_LENGTH = 32
+
+export const ORGANIZATION_SLUG_SUFFIX_LENGTH = 4
+
+/*
+  What a slug looks like. It always ends in a dash and four characters, so no slug can be one of
+  the app's own pages at the root, like `legal` or `today`, which no organization could then reach.
+  Written out again in `CreateOrganization`'s check, which cannot import it: the database's
+  `schema.test.ts` fails when the two differ
+*/
+export const ORGANIZATION_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*-[a-z0-9]{4}$/
 
 /*
   The color an organization's mark takes until somebody picks one: the brand's primary, the design
@@ -263,6 +288,15 @@ export const MAX_DOCUMENT_STATE_LENGTH = 2000000
 export const MAX_DOCUMENT_UPDATE_LENGTH = 50000
 export const DOCUMENT_COMPACTION_THRESHOLD = 50
 export const DOCUMENT_UPDATES_LIMIT = 100
+
+/*
+  The pictures a document's text shows, uploaded through the backend into the organization's part
+  of the bucket: the raster types an organization's own pictures take, for the same reason, and up
+  to 10 megabytes, a phone's photo. The editor refuses a larger file before sending it, and the
+  backend refuses it again before reading it
+*/
+export const RICH_TEXT_IMAGE_CONTENT_TYPES = ORGANIZATION_IMAGE_CONTENT_TYPES
+export const MAX_RICH_TEXT_IMAGE_SIZE = 10 * 1024 * 1024
 
 /* ---
   CONVERSATIONS

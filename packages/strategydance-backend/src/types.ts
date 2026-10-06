@@ -16,3 +16,57 @@ declare module 'express' {
     viewer?: Viewer
   }
 }
+
+/* ---
+  CONVERSATIONS
+--- */
+
+/*
+  A content block of a conversation's transcript, as Claude's API writes and reads one: its type,
+  and whatever fields that type has, in the order they came in, since a turn is replayed byte for
+  byte
+*/
+export type ConversationContentBlock = {
+  type: string
+  [field: string]: unknown
+}
+
+// The block a member's message and a reply's text are written in
+export type ConversationTextBlock = {
+  type: 'text'
+  text: string
+}
+
+// A run, by its conversation, its author and its organization, which every operation on it is
+// keyed by, so a worker told of a run elsewhere finds nothing
+export type ConversationRunReference = {
+  organizationId: string
+  userId: string
+  conversationId: string
+  runId: string
+}
+
+// What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
+// membership the run was started under
+export type ConversationRunFence = ConversationRunReference & {
+  attempts: number
+  membershipCreatedAt: string
+}
+
+// What the agent answers a run's turn with: its content blocks, as the API answered them
+export type ConversationAgentTurn = {
+  content: ConversationContentBlock[]
+}
+
+/*
+  What answers a conversation: given the transcript's last entry, the member's message, it answers
+  a turn, reporting the progress lines it has along the way, and gives up when the signal aborts,
+  which a worker that lost its run does
+*/
+export type ConversationAgent = {
+  respond(input: {
+    lastEntry: ConversationContentBlock[]
+    signal: AbortSignal
+    onStep: (step: string) => void
+  }): Promise<ConversationAgentTurn>
+}

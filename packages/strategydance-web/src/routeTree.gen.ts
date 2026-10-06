@@ -18,22 +18,28 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/_app'
 import { Route as AuthenticationIndexRouteImport } from './routes/authentication/index'
 import { Route as AuthenticationPasswordResetRouteImport } from './routes/authentication/password-reset'
+import { Route as AuthenticatedAppOrganizationSlugRouteImport } from './routes/_authenticated/_app/$organizationSlug'
 import { Route as AuthenticatedAppAccountRouteImport } from './routes/_authenticated/_app/account'
 import { Route as AuthenticatedAppAdministrationRouteImport } from './routes/_authenticated/_app/administration'
-import { Route as AuthenticatedAppBuildInPublicRouteImport } from './routes/_authenticated/_app/build-in-public'
-import { Route as AuthenticatedAppExploreRouteImport } from './routes/_authenticated/_app/explore'
-import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/_app/profile'
-import { Route as AuthenticatedAppTeamRouteImport } from './routes/_authenticated/_app/team'
 import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/_app/today'
 import { Route as AuthenticatedInvitationInvitationIdRouteImport } from './routes/_authenticated/invitation.$invitationId'
+import { Route as AuthenticatedAppOrganizationSlugIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/index'
+import { Route as AuthenticatedAppOrganizationSlugBuildInPublicRouteImport } from './routes/_authenticated/_app/$organizationSlug/build-in-public'
+import { Route as AuthenticatedAppOrganizationSlugConversationsRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations'
+import { Route as AuthenticatedAppOrganizationSlugExploreRouteImport } from './routes/_authenticated/_app/$organizationSlug/explore'
+import { Route as AuthenticatedAppOrganizationSlugProfileRouteImport } from './routes/_authenticated/_app/$organizationSlug/profile'
+import { Route as AuthenticatedAppOrganizationSlugTeamRouteImport } from './routes/_authenticated/_app/$organizationSlug/team'
+import { Route as AuthenticatedAppOrganizationSlugTodayRouteImport } from './routes/_authenticated/_app/$organizationSlug/today'
 import { Route as AuthenticatedAppAccountIndexRouteImport } from './routes/_authenticated/_app/account/index'
 import { Route as AuthenticatedAppAccountSecurityRouteImport } from './routes/_authenticated/_app/account/security'
 import { Route as AuthenticatedAppAdministrationIndexRouteImport } from './routes/_authenticated/_app/administration/index'
 import { Route as AuthenticatedAppAdministrationOrganizationsRouteImport } from './routes/_authenticated/_app/administration/organizations'
 import { Route as AuthenticatedAppAdministrationUsersRouteImport } from './routes/_authenticated/_app/administration/users'
-import { Route as AuthenticatedAppAspectsAspectRouteImport } from './routes/_authenticated/_app/aspects.$aspect'
-import { Route as AuthenticatedAppKnowledgeIndexRouteImport } from './routes/_authenticated/_app/knowledge.index'
-import { Route as AuthenticatedAppKnowledgeDocumentIdRouteImport } from './routes/_authenticated/_app/knowledge.$documentId'
+import { Route as AuthenticatedAppOrganizationSlugAspectsAspectRouteImport } from './routes/_authenticated/_app/$organizationSlug/aspects.$aspect'
+import { Route as AuthenticatedAppOrganizationSlugConversationsIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations.index'
+import { Route as AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations.$conversationId'
+import { Route as AuthenticatedAppOrganizationSlugKnowledgeIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/knowledge.index'
+import { Route as AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/knowledge.$documentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -79,6 +85,12 @@ const AuthenticationPasswordResetRoute =
     path: '/password-reset',
     getParentRoute: () => AuthenticationRoute,
   } as any)
+const AuthenticatedAppOrganizationSlugRoute =
+  AuthenticatedAppOrganizationSlugRouteImport.update({
+    id: '/$organizationSlug',
+    path: '/$organizationSlug',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppAccountRoute = AuthenticatedAppAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -90,27 +102,6 @@ const AuthenticatedAppAdministrationRoute =
     path: '/administration',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
-const AuthenticatedAppBuildInPublicRoute =
-  AuthenticatedAppBuildInPublicRouteImport.update({
-    id: '/build-in-public',
-    path: '/build-in-public',
-    getParentRoute: () => AuthenticatedAppRoute,
-  } as any)
-const AuthenticatedAppExploreRoute = AuthenticatedAppExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
-const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
-const AuthenticatedAppTeamRoute = AuthenticatedAppTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => AuthenticatedAppRoute,
-} as any)
 const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
   id: '/today',
   path: '/today',
@@ -121,6 +112,48 @@ const AuthenticatedInvitationInvitationIdRoute =
     id: '/invitation/$invitationId',
     path: '/invitation/$invitationId',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugIndexRoute =
+  AuthenticatedAppOrganizationSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugBuildInPublicRoute =
+  AuthenticatedAppOrganizationSlugBuildInPublicRouteImport.update({
+    id: '/build-in-public',
+    path: '/build-in-public',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugConversationsRoute =
+  AuthenticatedAppOrganizationSlugConversationsRouteImport.update({
+    id: '/conversations',
+    path: '/conversations',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugExploreRoute =
+  AuthenticatedAppOrganizationSlugExploreRouteImport.update({
+    id: '/explore',
+    path: '/explore',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugProfileRoute =
+  AuthenticatedAppOrganizationSlugProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugTeamRoute =
+  AuthenticatedAppOrganizationSlugTeamRouteImport.update({
+    id: '/team',
+    path: '/team',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugTodayRoute =
+  AuthenticatedAppOrganizationSlugTodayRouteImport.update({
+    id: '/today',
+    path: '/today',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
 const AuthenticatedAppAccountIndexRoute =
   AuthenticatedAppAccountIndexRouteImport.update({
@@ -152,23 +185,37 @@ const AuthenticatedAppAdministrationUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedAppAdministrationRoute,
   } as any)
-const AuthenticatedAppAspectsAspectRoute =
-  AuthenticatedAppAspectsAspectRouteImport.update({
+const AuthenticatedAppOrganizationSlugAspectsAspectRoute =
+  AuthenticatedAppOrganizationSlugAspectsAspectRouteImport.update({
     id: '/aspects/$aspect',
     path: '/aspects/$aspect',
-    getParentRoute: () => AuthenticatedAppRoute,
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
-const AuthenticatedAppKnowledgeIndexRoute =
-  AuthenticatedAppKnowledgeIndexRouteImport.update({
+const AuthenticatedAppOrganizationSlugConversationsIndexRoute =
+  AuthenticatedAppOrganizationSlugConversationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugConversationsRoute,
+  } as any)
+const AuthenticatedAppOrganizationSlugConversationsConversationIdRoute =
+  AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport.update(
+    {
+      id: '/$conversationId',
+      path: '/$conversationId',
+      getParentRoute: () => AuthenticatedAppOrganizationSlugConversationsRoute,
+    } as any,
+  )
+const AuthenticatedAppOrganizationSlugKnowledgeIndexRoute =
+  AuthenticatedAppOrganizationSlugKnowledgeIndexRouteImport.update({
     id: '/knowledge/',
     path: '/knowledge/',
-    getParentRoute: () => AuthenticatedAppRoute,
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
-const AuthenticatedAppKnowledgeDocumentIdRoute =
-  AuthenticatedAppKnowledgeDocumentIdRouteImport.update({
+const AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute =
+  AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRouteImport.update({
     id: '/knowledge/$documentId',
     path: '/knowledge/$documentId',
-    getParentRoute: () => AuthenticatedAppRoute,
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -179,22 +226,28 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication/': typeof AuthenticationIndexRoute
+  '/$organizationSlug': typeof AuthenticatedAppOrganizationSlugRouteWithChildren
   '/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
-  '/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
-  '/explore': typeof AuthenticatedAppExploreRoute
-  '/profile': typeof AuthenticatedAppProfileRoute
-  '/team': typeof AuthenticatedAppTeamRoute
   '/today': typeof AuthenticatedAppTodayRoute
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
+  '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
+  '/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
+  '/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
+  '/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
+  '/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
+  '/$organizationSlug/today': typeof AuthenticatedAppOrganizationSlugTodayRoute
   '/account/security': typeof AuthenticatedAppAccountSecurityRoute
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
-  '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
-  '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
+  '/$organizationSlug/': typeof AuthenticatedAppOrganizationSlugIndexRoute
   '/account/': typeof AuthenticatedAppAccountIndexRoute
   '/administration/': typeof AuthenticatedAppAdministrationIndexRoute
-  '/knowledge/': typeof AuthenticatedAppKnowledgeIndexRoute
+  '/$organizationSlug/aspects/$aspect': typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
+  '/$organizationSlug/conversations/$conversationId': typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
+  '/$organizationSlug/knowledge/$documentId': typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  '/$organizationSlug/conversations/': typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
+  '/$organizationSlug/knowledge/': typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -203,20 +256,24 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication': typeof AuthenticationIndexRoute
-  '/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
-  '/explore': typeof AuthenticatedAppExploreRoute
-  '/profile': typeof AuthenticatedAppProfileRoute
-  '/team': typeof AuthenticatedAppTeamRoute
   '/today': typeof AuthenticatedAppTodayRoute
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
+  '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
+  '/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
+  '/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
+  '/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
+  '/$organizationSlug/today': typeof AuthenticatedAppOrganizationSlugTodayRoute
   '/account/security': typeof AuthenticatedAppAccountSecurityRoute
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
-  '/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
-  '/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
+  '/$organizationSlug': typeof AuthenticatedAppOrganizationSlugIndexRoute
   '/account': typeof AuthenticatedAppAccountIndexRoute
   '/administration': typeof AuthenticatedAppAdministrationIndexRoute
-  '/knowledge': typeof AuthenticatedAppKnowledgeIndexRoute
+  '/$organizationSlug/aspects/$aspect': typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
+  '/$organizationSlug/conversations/$conversationId': typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
+  '/$organizationSlug/knowledge/$documentId': typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  '/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
+  '/$organizationSlug/knowledge': typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -229,22 +286,28 @@ export interface FileRoutesById {
   '/_authenticated/_app': typeof AuthenticatedAppRouteWithChildren
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication/': typeof AuthenticationIndexRoute
+  '/_authenticated/_app/$organizationSlug': typeof AuthenticatedAppOrganizationSlugRouteWithChildren
   '/_authenticated/_app/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/_authenticated/_app/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
-  '/_authenticated/_app/build-in-public': typeof AuthenticatedAppBuildInPublicRoute
-  '/_authenticated/_app/explore': typeof AuthenticatedAppExploreRoute
-  '/_authenticated/_app/profile': typeof AuthenticatedAppProfileRoute
-  '/_authenticated/_app/team': typeof AuthenticatedAppTeamRoute
   '/_authenticated/_app/today': typeof AuthenticatedAppTodayRoute
   '/_authenticated/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
+  '/_authenticated/_app/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
+  '/_authenticated/_app/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
+  '/_authenticated/_app/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
+  '/_authenticated/_app/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
+  '/_authenticated/_app/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
+  '/_authenticated/_app/$organizationSlug/today': typeof AuthenticatedAppOrganizationSlugTodayRoute
   '/_authenticated/_app/account/security': typeof AuthenticatedAppAccountSecurityRoute
   '/_authenticated/_app/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/_authenticated/_app/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
-  '/_authenticated/_app/aspects/$aspect': typeof AuthenticatedAppAspectsAspectRoute
-  '/_authenticated/_app/knowledge/$documentId': typeof AuthenticatedAppKnowledgeDocumentIdRoute
+  '/_authenticated/_app/$organizationSlug/': typeof AuthenticatedAppOrganizationSlugIndexRoute
   '/_authenticated/_app/account/': typeof AuthenticatedAppAccountIndexRoute
   '/_authenticated/_app/administration/': typeof AuthenticatedAppAdministrationIndexRoute
-  '/_authenticated/_app/knowledge/': typeof AuthenticatedAppKnowledgeIndexRoute
+  '/_authenticated/_app/$organizationSlug/aspects/$aspect': typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
+  '/_authenticated/_app/$organizationSlug/conversations/$conversationId': typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
+  '/_authenticated/_app/$organizationSlug/knowledge/$documentId': typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  '/_authenticated/_app/$organizationSlug/conversations/': typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
+  '/_authenticated/_app/$organizationSlug/knowledge/': typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -256,22 +319,28 @@ export interface FileRouteTypes {
     | '/support'
     | '/authentication/password-reset'
     | '/authentication/'
+    | '/$organizationSlug'
     | '/account'
     | '/administration'
-    | '/build-in-public'
-    | '/explore'
-    | '/profile'
-    | '/team'
     | '/today'
     | '/invitation/$invitationId'
+    | '/$organizationSlug/build-in-public'
+    | '/$organizationSlug/conversations'
+    | '/$organizationSlug/explore'
+    | '/$organizationSlug/profile'
+    | '/$organizationSlug/team'
+    | '/$organizationSlug/today'
     | '/account/security'
     | '/administration/organizations'
     | '/administration/users'
-    | '/aspects/$aspect'
-    | '/knowledge/$documentId'
+    | '/$organizationSlug/'
     | '/account/'
     | '/administration/'
-    | '/knowledge/'
+    | '/$organizationSlug/aspects/$aspect'
+    | '/$organizationSlug/conversations/$conversationId'
+    | '/$organizationSlug/knowledge/$documentId'
+    | '/$organizationSlug/conversations/'
+    | '/$organizationSlug/knowledge/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -280,20 +349,24 @@ export interface FileRouteTypes {
     | '/support'
     | '/authentication/password-reset'
     | '/authentication'
-    | '/build-in-public'
-    | '/explore'
-    | '/profile'
-    | '/team'
     | '/today'
     | '/invitation/$invitationId'
+    | '/$organizationSlug/build-in-public'
+    | '/$organizationSlug/explore'
+    | '/$organizationSlug/profile'
+    | '/$organizationSlug/team'
+    | '/$organizationSlug/today'
     | '/account/security'
     | '/administration/organizations'
     | '/administration/users'
-    | '/aspects/$aspect'
-    | '/knowledge/$documentId'
+    | '/$organizationSlug'
     | '/account'
     | '/administration'
-    | '/knowledge'
+    | '/$organizationSlug/aspects/$aspect'
+    | '/$organizationSlug/conversations/$conversationId'
+    | '/$organizationSlug/knowledge/$documentId'
+    | '/$organizationSlug/conversations'
+    | '/$organizationSlug/knowledge'
   id:
     | '__root__'
     | '/'
@@ -305,22 +378,28 @@ export interface FileRouteTypes {
     | '/_authenticated/_app'
     | '/authentication/password-reset'
     | '/authentication/'
+    | '/_authenticated/_app/$organizationSlug'
     | '/_authenticated/_app/account'
     | '/_authenticated/_app/administration'
-    | '/_authenticated/_app/build-in-public'
-    | '/_authenticated/_app/explore'
-    | '/_authenticated/_app/profile'
-    | '/_authenticated/_app/team'
     | '/_authenticated/_app/today'
     | '/_authenticated/invitation/$invitationId'
+    | '/_authenticated/_app/$organizationSlug/build-in-public'
+    | '/_authenticated/_app/$organizationSlug/conversations'
+    | '/_authenticated/_app/$organizationSlug/explore'
+    | '/_authenticated/_app/$organizationSlug/profile'
+    | '/_authenticated/_app/$organizationSlug/team'
+    | '/_authenticated/_app/$organizationSlug/today'
     | '/_authenticated/_app/account/security'
     | '/_authenticated/_app/administration/organizations'
     | '/_authenticated/_app/administration/users'
-    | '/_authenticated/_app/aspects/$aspect'
-    | '/_authenticated/_app/knowledge/$documentId'
+    | '/_authenticated/_app/$organizationSlug/'
     | '/_authenticated/_app/account/'
     | '/_authenticated/_app/administration/'
-    | '/_authenticated/_app/knowledge/'
+    | '/_authenticated/_app/$organizationSlug/aspects/$aspect'
+    | '/_authenticated/_app/$organizationSlug/conversations/$conversationId'
+    | '/_authenticated/_app/$organizationSlug/knowledge/$documentId'
+    | '/_authenticated/_app/$organizationSlug/conversations/'
+    | '/_authenticated/_app/$organizationSlug/knowledge/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -397,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticationPasswordResetRouteImport
       parentRoute: typeof AuthenticationRoute
     }
+    '/_authenticated/_app/$organizationSlug': {
+      id: '/_authenticated/_app/$organizationSlug'
+      path: '/$organizationSlug'
+      fullPath: '/$organizationSlug'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/_app/account': {
       id: '/_authenticated/_app/account'
       path: '/account'
@@ -409,34 +495,6 @@ declare module '@tanstack/react-router' {
       path: '/administration'
       fullPath: '/administration'
       preLoaderRoute: typeof AuthenticatedAppAdministrationRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
-    '/_authenticated/_app/build-in-public': {
-      id: '/_authenticated/_app/build-in-public'
-      path: '/build-in-public'
-      fullPath: '/build-in-public'
-      preLoaderRoute: typeof AuthenticatedAppBuildInPublicRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
-    '/_authenticated/_app/explore': {
-      id: '/_authenticated/_app/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof AuthenticatedAppExploreRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
-    '/_authenticated/_app/profile': {
-      id: '/_authenticated/_app/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
-    }
-    '/_authenticated/_app/team': {
-      id: '/_authenticated/_app/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof AuthenticatedAppTeamRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/_app/today': {
@@ -452,6 +510,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/invitation/$invitationId'
       preLoaderRoute: typeof AuthenticatedInvitationInvitationIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/_app/$organizationSlug/': {
+      id: '/_authenticated/_app/$organizationSlug/'
+      path: '/'
+      fullPath: '/$organizationSlug/'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugIndexRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
+    '/_authenticated/_app/$organizationSlug/build-in-public': {
+      id: '/_authenticated/_app/$organizationSlug/build-in-public'
+      path: '/build-in-public'
+      fullPath: '/$organizationSlug/build-in-public'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugBuildInPublicRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
+    '/_authenticated/_app/$organizationSlug/conversations': {
+      id: '/_authenticated/_app/$organizationSlug/conversations'
+      path: '/conversations'
+      fullPath: '/$organizationSlug/conversations'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
+    '/_authenticated/_app/$organizationSlug/explore': {
+      id: '/_authenticated/_app/$organizationSlug/explore'
+      path: '/explore'
+      fullPath: '/$organizationSlug/explore'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugExploreRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
+    '/_authenticated/_app/$organizationSlug/profile': {
+      id: '/_authenticated/_app/$organizationSlug/profile'
+      path: '/profile'
+      fullPath: '/$organizationSlug/profile'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugProfileRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
+    '/_authenticated/_app/$organizationSlug/team': {
+      id: '/_authenticated/_app/$organizationSlug/team'
+      path: '/team'
+      fullPath: '/$organizationSlug/team'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugTeamRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
+    '/_authenticated/_app/$organizationSlug/today': {
+      id: '/_authenticated/_app/$organizationSlug/today'
+      path: '/today'
+      fullPath: '/$organizationSlug/today'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugTodayRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
     '/_authenticated/_app/account/': {
       id: '/_authenticated/_app/account/'
@@ -488,29 +595,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdministrationUsersRouteImport
       parentRoute: typeof AuthenticatedAppAdministrationRoute
     }
-    '/_authenticated/_app/aspects/$aspect': {
-      id: '/_authenticated/_app/aspects/$aspect'
+    '/_authenticated/_app/$organizationSlug/aspects/$aspect': {
+      id: '/_authenticated/_app/$organizationSlug/aspects/$aspect'
       path: '/aspects/$aspect'
-      fullPath: '/aspects/$aspect'
-      preLoaderRoute: typeof AuthenticatedAppAspectsAspectRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
+      fullPath: '/$organizationSlug/aspects/$aspect'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugAspectsAspectRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
-    '/_authenticated/_app/knowledge/': {
-      id: '/_authenticated/_app/knowledge/'
+    '/_authenticated/_app/$organizationSlug/conversations/': {
+      id: '/_authenticated/_app/$organizationSlug/conversations/'
+      path: '/'
+      fullPath: '/$organizationSlug/conversations/'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsIndexRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugConversationsRoute
+    }
+    '/_authenticated/_app/$organizationSlug/conversations/$conversationId': {
+      id: '/_authenticated/_app/$organizationSlug/conversations/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/$organizationSlug/conversations/$conversationId'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugConversationsRoute
+    }
+    '/_authenticated/_app/$organizationSlug/knowledge/': {
+      id: '/_authenticated/_app/$organizationSlug/knowledge/'
       path: '/knowledge'
-      fullPath: '/knowledge/'
-      preLoaderRoute: typeof AuthenticatedAppKnowledgeIndexRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
+      fullPath: '/$organizationSlug/knowledge/'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
-    '/_authenticated/_app/knowledge/$documentId': {
-      id: '/_authenticated/_app/knowledge/$documentId'
+    '/_authenticated/_app/$organizationSlug/knowledge/$documentId': {
+      id: '/_authenticated/_app/$organizationSlug/knowledge/$documentId'
       path: '/knowledge/$documentId'
-      fullPath: '/knowledge/$documentId'
-      preLoaderRoute: typeof AuthenticatedAppKnowledgeDocumentIdRouteImport
-      parentRoute: typeof AuthenticatedAppRoute
+      fullPath: '/$organizationSlug/knowledge/$documentId'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
   }
 }
+
+interface AuthenticatedAppOrganizationSlugConversationsRouteChildren {
+  AuthenticatedAppOrganizationSlugConversationsConversationIdRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
+  AuthenticatedAppOrganizationSlugConversationsIndexRoute: typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
+}
+
+const AuthenticatedAppOrganizationSlugConversationsRouteChildren: AuthenticatedAppOrganizationSlugConversationsRouteChildren =
+  {
+    AuthenticatedAppOrganizationSlugConversationsConversationIdRoute:
+      AuthenticatedAppOrganizationSlugConversationsConversationIdRoute,
+    AuthenticatedAppOrganizationSlugConversationsIndexRoute:
+      AuthenticatedAppOrganizationSlugConversationsIndexRoute,
+  }
+
+const AuthenticatedAppOrganizationSlugConversationsRouteWithChildren =
+  AuthenticatedAppOrganizationSlugConversationsRoute._addFileChildren(
+    AuthenticatedAppOrganizationSlugConversationsRouteChildren,
+  )
+
+interface AuthenticatedAppOrganizationSlugRouteChildren {
+  AuthenticatedAppOrganizationSlugBuildInPublicRoute: typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
+  AuthenticatedAppOrganizationSlugConversationsRoute: typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
+  AuthenticatedAppOrganizationSlugExploreRoute: typeof AuthenticatedAppOrganizationSlugExploreRoute
+  AuthenticatedAppOrganizationSlugProfileRoute: typeof AuthenticatedAppOrganizationSlugProfileRoute
+  AuthenticatedAppOrganizationSlugTeamRoute: typeof AuthenticatedAppOrganizationSlugTeamRoute
+  AuthenticatedAppOrganizationSlugTodayRoute: typeof AuthenticatedAppOrganizationSlugTodayRoute
+  AuthenticatedAppOrganizationSlugIndexRoute: typeof AuthenticatedAppOrganizationSlugIndexRoute
+  AuthenticatedAppOrganizationSlugAspectsAspectRoute: typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
+  AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  AuthenticatedAppOrganizationSlugKnowledgeIndexRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
+}
+
+const AuthenticatedAppOrganizationSlugRouteChildren: AuthenticatedAppOrganizationSlugRouteChildren =
+  {
+    AuthenticatedAppOrganizationSlugBuildInPublicRoute:
+      AuthenticatedAppOrganizationSlugBuildInPublicRoute,
+    AuthenticatedAppOrganizationSlugConversationsRoute:
+      AuthenticatedAppOrganizationSlugConversationsRouteWithChildren,
+    AuthenticatedAppOrganizationSlugExploreRoute:
+      AuthenticatedAppOrganizationSlugExploreRoute,
+    AuthenticatedAppOrganizationSlugProfileRoute:
+      AuthenticatedAppOrganizationSlugProfileRoute,
+    AuthenticatedAppOrganizationSlugTeamRoute:
+      AuthenticatedAppOrganizationSlugTeamRoute,
+    AuthenticatedAppOrganizationSlugTodayRoute:
+      AuthenticatedAppOrganizationSlugTodayRoute,
+    AuthenticatedAppOrganizationSlugIndexRoute:
+      AuthenticatedAppOrganizationSlugIndexRoute,
+    AuthenticatedAppOrganizationSlugAspectsAspectRoute:
+      AuthenticatedAppOrganizationSlugAspectsAspectRoute,
+    AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute:
+      AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute,
+    AuthenticatedAppOrganizationSlugKnowledgeIndexRoute:
+      AuthenticatedAppOrganizationSlugKnowledgeIndexRoute,
+  }
+
+const AuthenticatedAppOrganizationSlugRouteWithChildren =
+  AuthenticatedAppOrganizationSlugRoute._addFileChildren(
+    AuthenticatedAppOrganizationSlugRouteChildren,
+  )
 
 interface AuthenticatedAppAccountRouteChildren {
   AuthenticatedAppAccountSecurityRoute: typeof AuthenticatedAppAccountSecurityRoute
@@ -550,31 +731,19 @@ const AuthenticatedAppAdministrationRouteWithChildren =
   )
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppOrganizationSlugRoute: typeof AuthenticatedAppOrganizationSlugRouteWithChildren
   AuthenticatedAppAccountRoute: typeof AuthenticatedAppAccountRouteWithChildren
   AuthenticatedAppAdministrationRoute: typeof AuthenticatedAppAdministrationRouteWithChildren
-  AuthenticatedAppBuildInPublicRoute: typeof AuthenticatedAppBuildInPublicRoute
-  AuthenticatedAppExploreRoute: typeof AuthenticatedAppExploreRoute
-  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
-  AuthenticatedAppTeamRoute: typeof AuthenticatedAppTeamRoute
   AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
-  AuthenticatedAppAspectsAspectRoute: typeof AuthenticatedAppAspectsAspectRoute
-  AuthenticatedAppKnowledgeDocumentIdRoute: typeof AuthenticatedAppKnowledgeDocumentIdRoute
-  AuthenticatedAppKnowledgeIndexRoute: typeof AuthenticatedAppKnowledgeIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppOrganizationSlugRoute:
+    AuthenticatedAppOrganizationSlugRouteWithChildren,
   AuthenticatedAppAccountRoute: AuthenticatedAppAccountRouteWithChildren,
   AuthenticatedAppAdministrationRoute:
     AuthenticatedAppAdministrationRouteWithChildren,
-  AuthenticatedAppBuildInPublicRoute: AuthenticatedAppBuildInPublicRoute,
-  AuthenticatedAppExploreRoute: AuthenticatedAppExploreRoute,
-  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
-  AuthenticatedAppTeamRoute: AuthenticatedAppTeamRoute,
   AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
-  AuthenticatedAppAspectsAspectRoute: AuthenticatedAppAspectsAspectRoute,
-  AuthenticatedAppKnowledgeDocumentIdRoute:
-    AuthenticatedAppKnowledgeDocumentIdRoute,
-  AuthenticatedAppKnowledgeIndexRoute: AuthenticatedAppKnowledgeIndexRoute,
 }
 
 const AuthenticatedAppRouteWithChildren =

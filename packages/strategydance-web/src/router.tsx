@@ -35,14 +35,18 @@ export function getRouter() {
           <AuthenticationProvider>
             <UserProvider>
               <UserOrganizationsProvider>
-                <CurrentOrganizationProvider>
-                  <AspectChapterProvider>{children}</AspectChapterProvider>
-                </CurrentOrganizationProvider>
+                <AspectChapterProvider>{children}</AspectChapterProvider>
               </UserOrganizationsProvider>
             </UserProvider>
           </AuthenticationProvider>
         </IntlProvider>
       </QueryClientProvider>
     ),
+    /*
+      Inside `Wrap` and inside the router's context, for a provider that reads the router: the
+      current organization is the one the path leads with. Still above the document shell, so the
+      same holds as in `Wrap`: render children unconditionally
+    */
+    InnerWrap: ({ children }) => <CurrentOrganizationProvider>{children}</CurrentOrganizationProvider>,
   })
 }

@@ -42,13 +42,19 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   hooks, and the backend as `strategydance-database/backend`. See below
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
-  inviting people, which emails them. See below
+  inviting people, which emails them, storing the pictures of documents' text, and reading what a
+  web page says of itself for a link preview. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
-  drawn by `RichText` without it. BlockNote's menus are built from its own Base UI copies of
-  shadcn's components, which the design system's never reach, so `RichTextEditor.css` dresses them
-  in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
+  drawn by `RichText` without it. A post's editor writes text and lists (`RICH_TEXT_POST_BLOCKS`),
+  and a knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos and link
+  preview cards (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks unless
+  told a document's, since a feed and a public page draw posts. The editor's own blocks, the video
+  and the card, are the core's `createBlockSpec` with plain DOM, never React's, so the headless
+  editor the Yjs helpers convert through loads no React. BlockNote's menus are built from its own
+  Base UI copies of shadcn's components, which the design system's never reach, so
+  `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
   text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last, and never
   loads an image: draw the agent's text through it, never through `react-markdown` directly. It
@@ -83,6 +89,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
+| `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. How a conversation is written until its page has a composer. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run backfill:organization-slugs [--apply]` | Gives every organization without a slug one, in the emulators: a dry run, or the writes with `--apply`. `--production`, run from the backend's package without the emulator variable, aims it at the real database, and its header says how |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -105,7 +113,8 @@ husky `pre-commit` hook only lints.
 **The `deploy:*` scripts and `bun run ship` are run by humans only.** `ship` sets the release
 pull request to merge itself once CI passes, a merge into `main` deploys the release by itself,
 and a migration that stops it waits for a human to read its SQL, as
-[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says.
+[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says. So is any script run
+with `--production`, `backfill:organization-slugs` among them: it writes the real database.
 
 Two things are generated and never edited by hand.
 `packages/strategydance-web/src/routeTree.gen.ts` is written by the TanStack Router plugin on
@@ -193,7 +202,10 @@ waits on.
 
 ### Where a provider is mounted
 
-Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not.
+Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not. A provider
+that reads the router goes in `InnerWrap` beside it, which is inside the router's context and
+still above the document shell: `_CurrentOrganizationProvider`, which reads the organization off
+the path.
 
 `Wrap` sits above the document shell, so anything mounted there that withholds its children
 replaces the whole document, `<Scripts />` included. The page then has no client bundle to boot
@@ -230,8 +242,9 @@ English, like the spinner's "Loading", gets its label from `react-intl` where th
 it: `~components/common/Spinner` is the design system's spinner with that label. The one
 exception is BlockNote's menus, dozens of strings that BlockNote translates into every locale the
 app speaks: `RichTextEditor` takes the app's `locale` for them, and only its placeholder and the
-block menu's "Turn into", which BlockNote has no words for, come from a catalogue. Every caller
-passes both: `log.editorTurnInto` is the label's.
+words BlockNote has none for come from a catalogue, through `labels`: the block menu's "Turn into",
+which every caller passes (`log.editorTurnInto` is the label's), and the video's and the link
+preview's words, which the knowledge editor passes.
 
 shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
 its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer
@@ -330,6 +343,12 @@ only way the app talks to them.
 - Server values over variables wherever the server knows better: `id_expr: "auth.uid"`,
   `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`. A client that fills these
   in can write a row as somebody else
+- `Organization.slug` leads its pages' paths. The browser draws it at creation, from the name
+  and four random characters (strategydance-core's `createOrganizationSlug`), the column's unique
+  index refuses one another organization holds, and it never changes, so a link to an
+  organization outlives a rename. An organization made before slugs has none until
+  `backfill:organization-slugs` gives it one, and is addressed by its id meanwhile. The UUID stays
+  the key everywhere else: the database, the backend's routes and Storage's paths
 - An operation gains a variable without a breaking connector change by making it optional, which
   a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
   vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses
@@ -340,6 +359,10 @@ only way the app talks to them.
 - Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
   exports each as values in the schema's order, and the frontend imports them from
   `strategydance-database/web`
+- The generator declares an enum only when some operation of the connector selects a field of
+  that type at its top level. One selected only under a nested relation is named in the types and
+  never declared, which `tsc` does not catch past `skipLibCheck`: `GetConversationMessagesBefore`
+  reads its messages at the top level for that reason
 - That order is the Postgres enum's, and reordering an enum's values is a breaking migration.
   Append a value; never reorder. The order the aspects are shown in is `COMPANY_ASPECTS` in the
   web package's `constants.ts`, and `constants.test.ts` fails when it stops matching the enum
@@ -385,7 +408,9 @@ caret is, and `GetDocumentPresences` keeps them live for the carets and the face
   and delete it, with whatever somebody typed in it
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
-  text. A new block type reaches every tab before anybody can write one
+  text. A new block type reaches every tab before anybody can write one. The Yjs helpers read with
+  a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another, and their read deletes a block it
+  lacks as surely: a document's editor and its helpers keep to one list
 - A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's
   database stuck in its transaction, refusing every mutation after until the emulator restarts.
   A document's page folds nothing as it goes away, as `CompactDocument` is a transaction, and the
@@ -410,6 +435,42 @@ A conversation is kept twice, once for Claude and once for the page, and
   `nextMessagePosition`, moving it on under `@check(this == 1)`, and a writer that loses the race
   reads it again and retries. The counter only grows, so a deleted message leaves a gap rather
   than a position used twice
+- The page reads the thread in three parts: `GetConversation`'s live tail of the latest 150
+  messages, carrying only what is small or changes in place (kind, position, run, a call's status,
+  an answer), each message's body once by id through `GetConversationMessageBodies`, and older
+  messages in pages through `GetConversationMessagesBefore`. `createConversationThread` merges
+  them, and reads every page it holds again when `historyRevision` moves. A field that changes in
+  place belongs in the tail, one that never changes once written in the bodies, and the history
+  page carries both
+- A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
+  auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
+  the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
+  mutations, run through the Admin SDK, carry no `mutation.auth.uid` and take the verified
+  `$userId` anyway
+- A run is `QUEUED` or `RUNNING` exactly while its conversation's `activeRunId` names it. Every
+  write that ends a run lets go of it in the same mutation, matching `activeRunId` on the run and
+  never filtering on `deletedAt`, or a conversation restored later stays busy for good. A run's
+  lease is set from the database's clock (`leaseExpiresAt_time`), the clock the filters that find
+  it dead read: twenty minutes while it is queued, then a minute, which every write of its worker
+  renews. A run past its lease is dead, and a route finalizes it as interrupted before it counts or
+  starts another, as the page's reconcile does
+- Every write of a worker is fenced: its first step is the run's own update, matching the run
+  `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
+  recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,
+  so its end, its step and its lease ride in its data. A worker whose run was claimed again, or
+  whose author left or was invited back since, writes nothing more. A `Timestamp` read back from
+  Data Connect keeps its microseconds and matches itself in a filter, which is what that match
+  relies on, and `check:conversation-runs` checks it
+- A message the backend draws takes an id derived from what it is drawn from
+  (`deriveConversationMessageId`): a transcript entry with its first block and its piece, or a run
+  with its note. A worker taking over after a crash draws from the entry's cursor, `drawnBlocks`,
+  and derives the same ids, so drawing a message twice is a conflict rather than a copy. The
+  member's message keeps the browser's id, which makes a retried send store it once, and names the
+  run it started, so a Retry deletes a run's messages but that one
+- Until conversations launch, they are for administrators of Strategy Dance alone
+  (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
+  every page under an organization's `conversations/` sits behind the bouncer its layout route
+  mounts. Locally, `bun run grant:administrator` makes an account staff
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task
@@ -424,14 +485,38 @@ the days it is used on go uncounted.
 ### Routing
 
 The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the
-root with the public ones: `/today` beside `/legal`. A page there takes a name no public page
-has. Two static routes at one path fail the build ("Conflicting configuration paths"), but a
-static route outranks a dynamic segment silently, so a `$param` never sits at the root: the
-aspects are under `/aspects/`, where the public `/legal` cannot hide the Legal aspect.
+root with the public ones: `/account` beside `/legal`. A page there takes a name no public page
+has. Two static routes at one path fail the build ("Conflicting configuration paths").
+
+An organization's pages sit under the segment its paths lead with, `$organizationSlug`, as in
+`/strategy-dance-ad34/today`: its slug, or its id while it has none. That dynamic segment is the
+one at the root, and a static route outranks it silently, so an organization whose slug was a
+page's name could never be reached. A slug always ends in a dash and four letters or digits,
+which no page's name does, and `routeTree.test.ts` fails the day one does: name a page at the
+root accordingly. Any other `$param` stays off the root, as the aspects sit under an
+organization's `aspects/`. A first segment that can be neither a slug nor an id is the app's not
+found page, before anything asks the reader to sign in.
+
+The path says which organization is current: `_CurrentOrganizationProvider` reads it, and
+remembers the last one opened for the pages outside any organization, the account and the
+administration, and for `/today`, which stays as the landing every "go home" leads to and sends
+the reader on to that organization's today. A link to an organization's page takes its segment
+from `useCurrentOrganizationSlug`. Switching organization is a navigation, to the same page in the
+other one (`useSwitchOrganization`), a document or a conversation back to its list. A path
+naming an organization the reader is not in is the organization not found page, inside the app's
+frame, and one whose organization goes while its page is open, deleted or the reader removed,
+moves the reader on instead: `CurrentOrganizationBouncer` decides both.
 
 No path prefix marks a page as authenticated, so code that needs to know asks the question it
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
 screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
+
+The page a signed-out reader asked for is kept in localStorage, never in the sign-in screen's
+URL: `AuthenticationBouncer` keeps it before sending them to `/authentication`,
+`AuthenticationRedirect` returns them there once they are in, for an hour at most, and the
+bouncer forgets it once a signed-in reader reaches a page of the app. A new way into the app
+from the sign-in screen goes through a page that mounts the bouncer, or the kept page waits for
+whoever signs in next.
 
 An address nothing matches, and a `notFound()` any page throws, render `NotFound` full screen:
 it is the root's `notFoundComponent`, and no other route sets one. The root stays mounted as the
@@ -447,8 +532,8 @@ would otherwise answer `Location: //evil.example`, which a browser reads as anot
 
 A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
 the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be
-overwritten with `undefined`. The sign-in screen's `redirect` is the case that matters, since
-following an unchecked one is how a link sends somebody elsewhere.
+overwritten with `undefined`, above all one that is followed, since following an unchecked one
+is how a link sends somebody elsewhere.
 
 `<Navigate>` navigates again whenever its props change. Fed anything that follows the location,
 it redirects to its own redirect: navigate from an effect on the verdict instead, reading the
@@ -507,6 +592,14 @@ in `utils/`, one concern per file.
   and a Storage rule cannot read who administers what. It stores each under a fresh name with
   its own download token, writes that URL to the row, and deletes the file the row pointed at
   before. `storage.rules` grants clients nothing under `organizations/`
+- So are the pictures of documents' text, which any member may put in, under
+  `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
+  at it by its URL alone, and an undo or another tab can bring a deleted picture back
+- A request to an address somebody else gave, a link preview's page today, goes through
+  `fetchOutbound` in `utils/`, never `fetch`: http or https on its own port, every address the
+  hostname resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address
+  checked, each redirect checked again, a deadline and a byte cap. The server otherwise reaches its
+  metadata server and its own network on anybody's say
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
@@ -516,6 +609,21 @@ in `utils/`, one concern per file.
 - Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
   logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
   is how an invitation gets accepted locally
+- Conversations' routes sit in `routes/conversations.ts`, mounted at
+  `/organizations/:organizationId/conversations` with `mergeParams`, and each runs
+  `organizationMemberMiddleware`, then `staffOnlyMiddleware` until conversations launch. A send
+  queues a run, and `enqueueRun` starts it in the backend's own process, as development always
+  does. Production answers a send 503 before writing anything (`ARE_CONVERSATION_RUNS_IN_PROCESS`)
+  until runs go through a queue, since Cloud Run throttles the CPU once a response is sent, which
+  would stall a run left going
+- A worker's writes go through its run's lease (`createConversationRunLease`), one after the
+  other, so they land in the order it made them and never beside a renewal of its own, and its
+  steps are read afresh each time (`runConversation`), so taking over after a crash follows the
+  same path as carrying on
+- The conversation domain's tests run against `createConversationDatabaseFake`: the backend
+  connector's conversation operations over tables in memory, each mirroring its namesake's
+  conditions and refusals. `bun run check:conversation-runs`, in the backend's package, checks
+  those conditions against the emulators. An operation changed is changed in both
 
 ## Email conventions
 

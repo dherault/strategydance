@@ -8,6 +8,7 @@ import { COMPANY_ASPECTS } from '~constants'
 
 import useAspectChapter from '~hooks/company/useAspectChapter'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import ExploreAspectCard from '~components/company/ExploreAspectCard'
@@ -25,6 +26,7 @@ import navigationMessages from '~data/intl/messages/navigation'
 function ExploreAspects() {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
   const { organization } = useCurrentOrganization()
   const { exploreCompanyAspect } = useUserOrganizations()
   const { chapter, playChapter } = useAspectChapter()
@@ -36,7 +38,7 @@ function ExploreAspects() {
 
   async function openAspect(organizationId: string, aspect: CompanyAspect) {
     await exploreCompanyAspect(organizationId, aspect)
-    await navigate({ to: '/aspects/$aspect', params: { aspect } })
+    await navigate({ to: '/$organizationSlug/aspects/$aspect', params: { organizationSlug, aspect } })
   }
 
   /*

@@ -96,8 +96,14 @@ mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio
 # The name and the brief are held to what `UpdateOrganization` holds them to, so an organization
 # never starts with details its profile page would refuse to save. The brief is null when there
 # is none. The checks sit on the caller's own row, read first and redacted, because an operation
-# takes no `@check` of its own
-mutation CreateOrganization($name: String!, $brief: String) @auth(level: USER) @transaction {
+# takes no `@check` of its own.
+#
+# The slug is the browser's to draw, from the name and a random suffix, since a check can test a
+# string but not build one. It is held to strategydance-core's `ORGANIZATION_SLUG_PATTERN`, which
+# `schema.test.ts` keeps this one agreeing with, and a slug somebody else holds fails the column's
+# unique index, upon which the browser draws again. It is optional so a page from before slugs can
+# still create one, which `backfillOrganizationSlugs` then gives a slug
+mutation CreateOrganization($name: String!, $brief: String, $slug: String) @auth(level: USER) @transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {
       id
@@ -106,9 +112,13 @@ mutation CreateOrganization($name: String!, $brief: String) @auth(level: USER) @
           message: "A name is 1 to 80 characters on one line, with no space at either end"
         )
         @check(expr: "vars.brief == null || size(vars.brief) <= 500", message: "A brief is at most 500 characters")
+        @check(
+          expr: "!has(vars.slug) || vars.slug == null || (size(vars.slug) <= 37 && vars.slug.matches('^[a-z0-9]+(-[a-z0-9]+)*-[a-z0-9]{4}$'))"
+          message: "A slug is lowercase words joined by dashes, then a dash and four letters or digits"
+        )
     }
   }
-  organization: organization_insert(data: { name: $name, brief: $brief })
+  organization: organization_insert(data: { name: $name, brief: $brief, slug: $slug })
   userOrganization: userOrganization_insert(
     data: {
       organizationId_expr: "response.organization.id"
@@ -1370,4 +1380,159 @@ mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: U
     }
   }
   documentPresence_delete(key: { documentId: $documentId, userId_expr: "auth.uid", sessionId: $sessionId })
+}
+
+# Deletes one of the caller's conversations by setting `deletedAt`, so `RestoreConversation` can
+# take it back, and asks its run to stop, if one goes: the worker reads `stopRequestedAt` at its next
+# step, and stops at its next write once the conversation is deleted anyway. Two rows, each written
+# once. Deleting one that is gone already changes nothing and succeeds, since the outcome is the one
+# asked for. `updatedAt` is left alone, so a conversation brought back takes its place in the list
+# again rather than the top.
+#
+# `$userId` is the caller's own, checked against the token: the conversations list's refresh
+# condition reads it, since a mutation's variables are all a condition can match. Nothing here
+# prunes, since a conversation's files live in Storage beside its rows: the backend removes what
+# was deleted over a day ago
+mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+      @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
+      role
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    data: { deletedAt_expr: "request.time" }
+  )
+  conversationRun_updateMany(
+    where: {
+      conversation: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }
+      status: { in: [QUEUED, RUNNING] }
+      stopRequestedAt: { isNull: true }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Takes back a delete, which the page offers for a few seconds after one. Fails once a prune has
+# claimed the conversation, a day after it was deleted, so an Undo and a prune never both win.
+#
+# A conversation brought back counts against the 1000 as a new one does, under the same lock: the
+# first step writes the caller's own membership, as starting a conversation does, so deleting one at
+# the cap, starting another and taking the delete back cannot keep 1001
+mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
+  userOrganization_update(
+    key: { userId_expr: "auth.uid", organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone")
+  query @redact {
+    conversations(
+      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "Somebody keeps at most 1000 conversations in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: false }
+      pruneClaimedAt: { isNull: true }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The conversation is gone for good")
+}
+
+# Marks the caller's conversation read, setting `unreadCount` back to 0 once its page has shown
+# what it counted. `$previewMessageId` is the latest entry the page showed, and the count is
+# cleared only while that is still the conversation's latest, so a reply that lands meanwhile stays
+# unread until the page shows it too. Neither that nor a conversation read already is an error.
+#
+# `updatedAt` is left alone: reading is not activity, and the list would move the conversation up
+mutation MarkConversationRead($organizationId: UUID!, $userId: String!, $id: UUID!, $previewMessageId: UUID!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+      @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
+      role
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      previewMessageId: { eq: $previewMessageId }
+      unreadCount: { gt: 0 }
+    }
+    data: { unreadCount: 0 }
+  )
+}
+
+# Sets which aspects the caller's conversation is tagged with, as theirs, so Strategy Dance never
+# tags it after, and adds the note that says so to the thread, at `$position`. The list is written
+# whole, each aspect once.
+#
+# The note's position is claimed on the conversation's counter, in the write that sets the aspects:
+# it holds only while `nextMessagePosition` is still `$position`, and moves it on by one, as every
+# insert of a message does. A run that inserted first moved it, and the page reads the counter
+# again and retries. The same write counts the note in `messageCount`, and refuses once the
+# conversation holds 2000 entries (`MAX_CONVERSATION_MESSAGES` in strategydance-core), when the
+# page says it is full. Its refusal reads the same for all three, a moved counter, a full
+# conversation and one that is gone, and the page reads the conversation again to tell them apart.
+#
+# Nothing else moves: an aspects note never shows as the conversation's preview, so `preview` and
+# `unreadCount` stay, and neither does `updatedAt`, so retagging does not move the conversation up
+# the list
+mutation UpdateConversationAspects(
+  $organizationId: UUID!
+  $userId: String!
+  $id: UUID!
+  $aspects: [CompanyAspect!]!
+  $position: Int!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+      @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
+      role
+        @check(
+          expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+          message: "A conversation is tagged with each aspect at most once"
+        )
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      nextMessagePosition: { eq: $position }
+      messageCount: { lt: 2000 }
+    }
+    data: {
+      aspects: $aspects
+      aspectsSetBy: MEMBER
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+    }
+  ) @check(expr: "this == 1", message: "The conversation's aspects could not take a note at that position")
+  conversationMessage_insert(
+    data: { conversationId: $id, kind: ASPECTS, aspects: $aspects, aspectsSetBy: MEMBER, position: $position }
+  )
 }

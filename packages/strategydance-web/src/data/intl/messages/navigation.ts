@@ -38,6 +38,24 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Explore more aspects',
     description: 'Sidebar link to the page where the reader adds more aspects of their company to work on.',
   },
+  reflection: {
+    id: 'navigation.reflection',
+    defaultMessage: 'Reflection',
+    description:
+      "Sidebar heading above the links to the reader's conversations with Strategy Dance, the app's AI, and to the knowledge their team wrote down about its company.",
+  },
+  conversations: {
+    id: 'navigation.conversations',
+    defaultMessage: 'Conversations',
+    description:
+      "Sidebar link to the page that lists the reader's private conversations with Strategy Dance, the app's AI, and that page's title.",
+  },
+  conversationsAwaitingAnswer: {
+    id: 'navigation.conversationsAwaitingAnswer',
+    defaultMessage: '{count, plural, one {# conversation needs your answer} other {# conversations need your answer}}',
+    description:
+      "What a screen reader says after the Conversations link of the sidebar, where a small count shows how many of the reader's conversations hold a question from Strategy Dance, the app's AI, waiting for their answer.",
+  },
   knowledge: {
     id: 'navigation.knowledge',
     defaultMessage: 'Knowledge',
@@ -230,6 +248,25 @@ const navigationMessages = defineMessages({
     id: 'navigation.comingSoonDescription',
     defaultMessage: '{page} is on its way.',
     description: "Text of the notice on a page that is not built yet. {page} is the page's name, such as Today.",
+  },
+  organizationNotFoundTitle: {
+    id: 'navigation.organizationNotFoundTitle',
+    defaultMessage: 'Organization not found',
+    description:
+      'Title of the page shown when the address names an organization the reader does not belong to, or one that does not exist.',
+  },
+  organizationNotFoundText: {
+    id: 'navigation.organizationNotFoundText',
+    defaultMessage:
+      'It may have been deleted, or you may not be a member of it. Check the address, or ask one of its administrators to invite you.',
+    description:
+      'Text under the title of the page shown when the address names an organization the reader does not belong to, or one that does not exist.',
+  },
+  organizationNotFoundAction: {
+    id: 'navigation.organizationNotFoundAction',
+    defaultMessage: 'Go to {organizationName}',
+    description:
+      "Button on the organization not found page, leading to one of the reader's own organizations. {organizationName} is that organization's name, such as Acme.",
   },
 })
 

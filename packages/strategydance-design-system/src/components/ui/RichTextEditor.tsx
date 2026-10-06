@@ -1,25 +1,35 @@
+import { syntaxHighlighter } from '@blocknote/code-block'
 import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
-import { FormattingToolbarExtension, SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
+import {
+  FilePanelExtension,
+  FormattingToolbarExtension,
+  SideMenuExtension,
+  SuggestionMenu,
+  TableHandlesExtension,
+} from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
-import { DesktopFormattingToolbarController } from '@blocknote/react'
+import { DesktopFormattingToolbarController, FilePanelController, TableHandlesController } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
+import { createRichTextEditorFilePanel } from 'strategydance-design-system/components/ui/RichTextEditorFilePanel'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorSlashMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSlashMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
-import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
+import { type RichTextLabels, getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
+import { isRichTextEmpty } from 'strategydance-design-system/lib/isRichTextEmpty'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
-import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
-import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
-  createRichTextSchema,
-  getRichTextBlockTypes,
+  RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
-} from 'strategydance-design-system/lib/richTextEditorSchema'
+  type RichTextLinkPreview,
+  getRichTextBlockTypes,
+} from 'strategydance-design-system/lib/richText'
+import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
+import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 import { cn } from 'strategydance-design-system/lib/utils'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
@@ -27,10 +37,8 @@ import type * as Y from 'yjs'
 // Relative, since the package's `components/*` export resolves to `.tsx` modules only
 import './RichTextEditor.css'
 
-type RichTextEditorLabels = {
-  /** The block menu's item that turns a block into another, which BlockNote has no words for */
-  turnInto: string
-}
+/** The menus' words BlockNote has none for, in English unless the caller's catalogue says otherwise */
+type RichTextEditorLabels = RichTextLabels
 
 /** What a parent can do to the editor from outside it */
 type RichTextEditorHandle = {
@@ -47,7 +55,7 @@ type RichTextEditorAppearance = 'field' | 'document'
 type RichTextEditorChange = {
   /** BlockNote's blocks, serialized, which is what `RichText` draws and `initialValue` takes back */
   value: string
-  /** No text anywhere: nothing worth saving */
+  /** No text anywhere, nor any picture: nothing worth saving */
   isEmpty: boolean
   /** How many characters its text runs to, a break between two blocks counting as one */
   textLength: number
@@ -77,6 +85,17 @@ type Props = {
   /** What the empty document says, and its accessible name unless `aria-label` says otherwise */
   placeholder: string
   onChange?: (change: RichTextEditorChange) => void
+  /**
+   * Stores a picture and answers with the address it is loaded from, or throws, having said why:
+   * what puts a picture in from a file, the file panel's Upload tab, a paste or a drop. Left out,
+   * a picture comes in by its address only. Read once, as `initialValue` is
+   */
+  uploadImage?: (file: File) => Promise<string>
+  /**
+   * What a web page says of itself, which a link preview's card shows: the backend's to read, as
+   * the browser cannot read another site's page. Left out, a card is its address alone. Read once
+   */
+  previewLink?: (url: string) => Promise<RichTextLinkPreview>
   /** Called on ⌘Enter, or Ctrl+Enter, the shortcut to post */
   onSubmit?: () => void
   autoFocus?: boolean
@@ -85,7 +104,7 @@ type Props = {
   /** The menus' words BlockNote lacks, in English unless the caller's catalogue says otherwise */
   labels?: Partial<RichTextEditorLabels>
   /**
-   * The blocks it writes besides paragraphs, all four unless it says fewer. One left out is not
+   * The blocks it writes besides paragraphs, every one unless it says fewer. One left out is not
    * offered, and pastes as paragraphs
    */
   blocks?: readonly RichTextEditorBlock[]
@@ -97,7 +116,7 @@ type Props = {
 
 type EditorOptions = Pick<
   Props,
-  'initialValue' | 'collaboration' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'aria-label'
+  'initialValue' | 'collaboration' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'uploadImage' | 'aria-label'
 > & {
   blocks: readonly RichTextEditorBlock[]
   appearance: RichTextEditorAppearance
@@ -116,11 +135,13 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   a selection raises a toolbar of the four styles, a link and the block it is in. Markdown's
   shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
-  nested by Tab, text in bold, italic, underline and strikethrough, and links, which is everything
-  `RichText` draws back.
+  nested by Tab, text in bold, italic, underline and strikethrough, links, code, colored in the
+  language picked over it, tables, grown and headed from the handles on their edges, pictures,
+  YouTube, Vimeo and Loom videos, and cards linking to web pages, which is everything `RichText`
+  draws back.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
-  `normalizeRichText` keeps, serialized, whether they hold any text and how much, and a parent that
+  `normalizeRichText` keeps, serialized, whether they say anything and how much text, and a parent that
   wants it empty again changes its `key`. `blocks` narrows what it writes, for a text shorter than
   a post. A value it cannot read, an old Lexical one included, starts it empty.
 
@@ -153,6 +174,8 @@ function RichTextEditor({
   labels,
   blocks = RICH_TEXT_EDITOR_BLOCKS,
   appearance = 'field',
+  uploadImage,
+  previewLink,
   className,
   'aria-label': ariaLabel,
   ref,
@@ -167,10 +190,12 @@ function RichTextEditor({
       labels,
       blocks,
       appearance,
+      uploadImage,
       'aria-label': ariaLabel,
     }),
   )
   const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor))
+  const [filePanel] = useState(() => createRichTextEditorFilePanel(previewLink))
 
   useImperativeHandle(ref, () => ({ focus: () => editor.focus() }), [editor])
 
@@ -190,6 +215,7 @@ function RichTextEditor({
         !!editor.getExtension(SuggestionMenu)?.shown()
         || !!editor.getExtension(FormattingToolbarExtension)?.store.state
         || !!editor.getExtension(SideMenuExtension)?.menuFrozen
+        || !!editor.getExtension(FilePanelExtension)?.store.state
 
       if (isInPopover || isMenuOpen) event.preventDefault()
     }
@@ -207,7 +233,7 @@ function RichTextEditor({
     const document = normalizeRichText(editor.document, { blockTypes })
     const text = getRichTextText(document)
 
-    onChange({ value: JSON.stringify(document), isEmpty: text.trim() === '', textLength: text.length })
+    onChange({ value: JSON.stringify(document), isEmpty: isRichTextEmpty(document), textLength: text.length })
   }
 
   // ⌘Enter, or Ctrl+Enter, submits rather than breaking the line, ahead of the slash menu's Enter
@@ -247,6 +273,12 @@ function RichTextEditor({
         <RichTextEditorSlashMenuController getItems={getSlashMenuItems} />
         <RichTextEditorSideMenuController />
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
+        {/* Only an editor writing tables has the extension, which the handles throw without */}
+        {editor.getExtension(TableHandlesExtension) ? <TableHandlesController /> : null}
+        {/* Where a picture's file, a video's address or a page's is given, which opens over an empty one */}
+        {blocks.includes('image') || blocks.includes('video') || blocks.includes('linkPreview') ? (
+          <FilePanelController filePanel={filePanel} />
+        ) : null}
       </BlockNoteView>
     </div>
   )
@@ -261,22 +293,50 @@ function createEditor({
   labels,
   blocks,
   appearance,
+  uploadImage,
   'aria-label': ariaLabel,
 }: EditorOptions) {
+  // The editor once made, for an upload that fails to take its block away
+  const made: { editor?: Pick<BlockNoteEditor, 'getBlock' | 'removeBlocks'> } = {}
+
+  /*
+    A picture goes up through the caller, from the Upload tab, a paste and a drop alike, and
+    keeps no file name, which BlockNote would read out as its alternative text. A failed upload
+    takes its block away, which BlockNote would leave reading "Loading..." in every tab
+  */
+  async function uploadFile(upload: (file: File) => Promise<string>, file: File, blockId?: string) {
+    try {
+      const url = await upload(file)
+
+      return { props: { url, name: '' } }
+    } catch (error) {
+      const block = blockId ? made.editor?.getBlock(blockId) : undefined
+
+      if (block && !(block.props as { url?: string }).url) made.editor?.removeBlocks([block])
+
+      throw error
+    }
+  }
+
   const options = {
     schema: createRichTextSchema(blocks),
-    dictionary: getRichTextDictionary(locale, { placeholder, turnInto: labels?.turnInto }),
+    dictionary: getRichTextDictionary(locale, { ...labels, placeholder }),
     domAttributes: {
       editor: { 'aria-label': ariaLabel ?? placeholder, class: EDITOR_CLASS_NAMES[appearance] },
     },
     autofocus: autoFocus ? ('end' as const) : false,
     trailingBlock: false,
+    // Colors code as shiki does, each language's grammar loaded the first time a block is in it
+    extensions: blocks.includes('code') ? [syntaxHighlighter] : [],
+    // A table's first row or column made a header from its handles, and no colors nor merged cells
+    tables: { headers: true },
+    uploadFile: uploadImage ? (file: File, blockId?: string) => uploadFile(uploadImage, file, blockId) : undefined,
   }
 
   // A shared text opens on its document, so nothing seeds it, and its history is Yjs' own, which
   // `withCollaboration` puts in place of BlockNote's
   if (collaboration) {
-    return BlockNoteEditor.create(
+    const editor = BlockNoteEditor.create(
       withCollaboration({
         ...options,
         collaboration: {
@@ -286,15 +346,22 @@ function createEditor({
         },
       }),
     )
+
+    made.editor = editor
+
+    return editor
   }
 
   // BlockNote throws on an empty document, which it makes itself when given none
   const initialContent = parseRichText(initialValue, { blockTypes: getRichTextBlockTypes(blocks) })
-
-  return BlockNoteEditor.create({
+  const editor = BlockNoteEditor.create({
     ...options,
     initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,
   })
+
+  made.editor = editor
+
+  return editor
 }
 
 export {

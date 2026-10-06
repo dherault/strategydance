@@ -13,4 +13,9 @@ describe('hasRichText', () => {
     expect(hasRichText('[{"type":"paragraph","content":"  "},{"type":"paragraph"}]')).toBe(false)
     expect(hasRichText('{"root":{"type":"root","children":[{"type":"paragraph"}]}}')).toBe(false)
   })
+
+  it('says a picture says something', () => {
+    expect(hasRichText('[{"type":"image","props":{"url":"https://example.com/a.png"}}]')).toBe(true)
+    expect(hasRichText('[{"type":"image"}]')).toBe(false)
+  })
 })

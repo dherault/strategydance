@@ -2,12 +2,13 @@ import type { PartialBlock } from '@blocknote/core'
 import { _blocksToProsemirrorNode } from '@blocknote/core/yjs'
 import { getHeadlessRichTextEditor } from 'strategydance-design-system/lib/getHeadlessRichTextEditor'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
-import { RICH_TEXT_YJS_FRAGMENT, type RichTextBlock } from 'strategydance-design-system/lib/richText'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
+  RICH_TEXT_YJS_FRAGMENT,
+  type RichTextBlock,
   type RichTextEditorBlock,
   getRichTextBlockTypes,
-} from 'strategydance-design-system/lib/richTextEditorSchema'
+} from 'strategydance-design-system/lib/richText'
 import { initProseMirrorDoc, updateYFragment } from 'y-prosemirror'
 import * as Y from 'yjs'
 
@@ -42,9 +43,11 @@ export type UpdateRichTextYDocResult =
   | { outcome: 'textNotFound' }
   /** The text occurs more than once, overlapping occurrences included */
   | { outcome: 'textNotUnique'; count: number }
+  /** The edit makes a document the schema refuses, which every reader would delete from */
+  | { outcome: 'invalidEdit' }
 
 type Options = {
-  // The blocks the editor writing in it writes, all four unless it says fewer
+  // The blocks the editor writing in it writes, every one unless it says fewer
   blocks?: readonly RichTextEditorBlock[]
   // The origin of the one transaction the edit is written in
   origin?: unknown
@@ -92,7 +95,7 @@ function updateRichTextYDoc(
 
   if (!copy) return { outcome: 'unknownContent' }
 
-  const verdict = planEdit(copy, edit, editor, blocks)
+  const verdict = planChecked(copy, edit, editor, blocks)
 
   if ('outcome' in verdict) return verdict
 
@@ -117,6 +120,27 @@ function updateRichTextYDoc(
   return result
 }
 
+/*
+  The plan for the copy, or a refusal when it would build a document the schema refuses: a
+  y-prosemirror read deletes a node it cannot build, so every reader would lose the block
+*/
+function planChecked(
+  root: ProseMirrorNode,
+  edit: RichTextYDocEdit,
+  editor: HeadlessRichTextEditor,
+  blocks: readonly RichTextEditorBlock[],
+): ReturnType<typeof planEdit> {
+  try {
+    const plan = planEdit(root, edit, editor, blocks)
+
+    if (!('outcome' in plan)) plan.next.check()
+
+    return plan
+  } catch {
+    return { outcome: 'invalidEdit' }
+  }
+}
+
 function planEdit(
   root: ProseMirrorNode,
   edit: RichTextYDocEdit,
@@ -128,7 +152,15 @@ function planEdit(
 
   if (edit.type === 'replaceText') return planReplaceText(root, edit.find, edit.replace)
 
-  const added = createNodes(editor, normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks) }))
+  /*
+    The blocks an agent writes load nothing from elsewhere: no picture, no video and no link
+    preview's picture. A model told by a page it read to put a picture in could make every reader's
+    browser send what the document says to an address of the page's choosing
+  */
+  const added = createNodes(
+    editor,
+    normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks), media: false }),
+  )
 
   // A document with no text yet is one empty paragraph, which the first block appended to it takes
   // the place of. Nothing deletes it first, so `updateYFragment` turns it into that block in place,
@@ -178,7 +210,7 @@ function findBlock(children: ProseMirrorNode[], id: string) {
   `replace` in the marks of the first character it replaces: a match right after a bold word does
   not turn bold, and one inside a link stays in it. A block's text counts a hard break as a line
   break, so its offsets are the block's own, and so does `replace`, whose line breaks become hard
-  breaks as BlockNote writes them
+  breaks as BlockNote writes them, but in code, whose text holds its line breaks
 */
 function planReplaceText(root: ProseMirrorNode, find: string, replace: string) {
   if (!find) return { outcome: 'textNotFound' as const }
@@ -216,26 +248,32 @@ function collectMatches(
 }
 
 function replaceInContent(content: ProseMirrorNode, offset: number, length: number, replace: string) {
-  const { schema } = content.type
   const marks = content.nodeAt(offset)?.marks ?? []
   const nodes = [
     ...readChildren(content.content.cut(0, offset)),
-    ...createInline(schema, replace, marks),
+    ...createInline(content.type, replace, marks),
     ...readChildren(content.content.cut(offset + length)),
   ]
 
   // Creating the block from the array joins neighbouring runs that carry the same marks
-  return content.type.create(content.attrs, nodes, content.marks)
+  return content.type.createChecked(content.attrs, nodes, content.marks)
 }
 
-// Text with line breaks, as text nodes and the hard breaks between them
-function createInline(schema: ProseMirrorSchema, text: string, marks: ProseMirrorNode['marks']) {
+/*
+  Text with line breaks for a block of `type`, in the marks it allows: text nodes and the hard
+  breaks between them where it takes hard breaks, and one text holding its line breaks where it
+  does not, as code does
+*/
+function createInline(type: ProseMirrorNode['type'], text: string, marks: ProseMirrorNode['marks']) {
+  const { schema } = type
+  const allowed = type.allowedMarks(marks)
+  const { hardBreak } = schema.nodes
+
+  if (!hardBreak || !type.contentMatch.matchType(hardBreak)) return text ? [schema.text(text, allowed)] : []
+
   return text
     .split('\n')
-    .flatMap((line, index) => [
-      ...(index ? [schema.nodes.hardBreak.create()] : []),
-      ...(line ? [schema.text(line, marks)] : []),
-    ])
+    .flatMap((line, index) => [...(index ? [hardBreak.create()] : []), ...(line ? [schema.text(line, allowed)] : [])])
 }
 
 // `node` with the descendant at `path` replaced, every node off that path kept as it is

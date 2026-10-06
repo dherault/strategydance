@@ -22,6 +22,7 @@ export const MESSAGE_TYPES = [
   'authentication',
   'buildInPublic',
   'checklist',
+  'conversation',
   'explore',
   'global',
   'invitation',
@@ -43,9 +44,16 @@ export const MESSAGE_TYPES = [
 
 export const LOCAL_STORAGE_PREFIX = 'strategydance:'
 
+// The page a signed-out reader asked for, kept while they sign in
+export const REDIRECT_PATH_STORAGE_KEY = `${LOCAL_STORAGE_PREFIX}redirectPath`
+
 /* ---
   AUTHENTICATION
 --- */
+
+// How long the page a signed-out reader asked for waits for them to sign in: long enough to reset
+// a password from its email, short enough that whoever signs in on that browser later starts on Today
+export const REDIRECT_PATH_LIFETIME_MS = 60 * 60 * 1000
 
 export const MIN_PASSWORD_LENGTH = 8
 
@@ -99,6 +107,27 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
   CompanyAspect.FINANCES,
   CompanyAspect.LEGAL,
 ]
+
+/* ---
+  CONVERSATIONS
+--- */
+
+// How many of a conversation's latest messages its page keeps live, as `GetConversation` reads them
+export const CONVERSATION_TAIL_LENGTH = 150
+
+// How many older messages one history page reads, as `GetConversationMessagesBefore` reads them
+export const CONVERSATION_PAGE_LENGTH = 100
+
+// How many messages' bodies one read takes, as `GetConversationMessageBodies` reads them
+export const CONVERSATION_BODIES_LENGTH = 50
+
+/*
+  How long after a run's lease has passed its page asks the backend to reconcile it, so a clock a
+  little ahead of the database's does not ask too soon, and how often it asks again while the run
+  stays as it is
+*/
+export const CONVERSATION_RUN_RECONCILE_MARGIN_MS = 2000
+export const CONVERSATION_RUN_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
 
 /* ---
   BUILD IN PUBLIC

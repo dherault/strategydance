@@ -6,6 +6,12 @@ import type {
   GetAdministrationUsersData,
   GetChecklistData,
   GetCurrentUserData,
+  GetConversationData,
+  GetConversationMessageBodiesData,
+  GetConversationMessagesBeforeData,
+  GetConversationRunData,
+  GetConversationToolCallData,
+  GetConversationsData,
   GetCurrentUserOrganizationsData,
   GetDocumentData,
   GetOrganizationDocumentsData,
@@ -224,4 +230,71 @@ export type StreakDay = {
   isCharged: boolean
   isToday: boolean
   isFuture: boolean
+}
+
+/*
+  One of the reader's conversations as the list reads it: its title, aspects, whether a run goes or
+  a question waits, the preview of its last entry and when it last changed, never a message's text
+*/
+export type ConversationSummary = GetConversationsData['conversations'][number]
+
+// One of the reader's conversations as its page reads it, with the latest messages of its thread
+export type Conversation = GetConversationData['conversations'][number]
+
+/*
+  A message of a thread without its body: what it is, where it sits and what changes in place, as
+  the live tail carries it. A history page carries the same fields with the body beside them
+*/
+export type ConversationThreadEntry = Conversation['conversationMessages_on_conversation'][number]
+
+// A message as a history page reads it, its body included
+export type ConversationPageMessage = GetConversationMessagesBeforeData['conversationMessages'][number]
+
+// What a message says, which never changes once written, read once by id
+export type ConversationMessageBody = GetConversationMessageBodiesData['conversationMessages'][number]
+
+// A conversation's latest run, which says whether Strategy Dance is working on it
+export type ConversationRun = GetConversationRunData['conversationRuns'][number]
+
+// A tool call's input and output, as its dialog shows them
+export type ConversationToolCall = GetConversationToolCallData['conversationMessages'][number]
+
+/*
+  What a conversation's page holds of its thread, merged from the live tail and the history pages
+  it read: see `mergeConversationTail`
+*/
+export type ConversationThreadState = {
+  // The history the entries belong to, and the conversation's counter as the latest tail read it.
+  // Both only grow, so a tail below them is an old one
+  revision: number
+  counter: number
+  // Oldest first
+  entries: ConversationThreadEntry[]
+  // The lowest position from which every entry is held and current, -Infinity once the whole
+  // thread is
+  verifiedFrom: number
+  // Pages are read below `verifiedFrom` until it reaches this position: down to the newest entry
+  // held below a gap, or to the lowest one held from before another tab's Retry. Null when nothing
+  // has to be read
+  fillTo: number | null
+  // Where the entries held below a gap were verified from, which filling the gap restores
+  resume: { verifiedFrom: number; hasOlder: boolean } | null
+  // Whether messages may sit below `verifiedFrom`
+  hasOlder: boolean
+}
+
+// The live tail as the page hands it to its thread
+export type ConversationTail = {
+  historyRevision: number
+  nextMessagePosition: number
+  // Newest first, as `GetConversation` reads them
+  messages: ConversationThreadEntry[]
+}
+
+// A history page, read below `before`
+export type ConversationPage = {
+  before: number
+  historyRevision: number
+  // Newest first, as `GetConversationMessagesBefore` reads them
+  messages: ConversationPageMessage[]
 }

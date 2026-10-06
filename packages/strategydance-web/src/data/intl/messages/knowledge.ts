@@ -6,12 +6,6 @@ import { defineMessages } from 'react-intl'
   an item here, since it can be a note, a plan or a decision
 */
 const knowledgeMessages = defineMessages({
-  eyebrow: {
-    id: 'knowledge.eyebrow',
-    defaultMessage: 'What your company knows',
-    description:
-      'Small uppercase label above the title of the Knowledge page, which lists everything the team wrote down about its company.',
-  },
   lead: {
     id: 'knowledge.lead',
     defaultMessage: '{count, plural, one {# item} other {# items}} across your aspects',
@@ -166,6 +160,62 @@ const knowledgeMessages = defineMessages({
     defaultMessage: 'Turn into',
     description:
       "Item of the rich text editor's block menu, opened from the handle beside a block, leading to a list of block types the block can become: paragraph, heading, quote, list.",
+  },
+  editorVideoSubtext: {
+    id: 'knowledge.editorVideoSubtext',
+    defaultMessage: 'A YouTube, Vimeo or Loom video',
+    description:
+      'Line under "Video" in the rich text editor\'s menu of blocks, opened by typing a slash. The block plays a video from one of these sites. Keep the site names as they are.',
+  },
+  editorVideoUnsupported: {
+    id: 'knowledge.editorVideoUnsupported',
+    defaultMessage: 'Paste a link to a YouTube, Vimeo or Loom video',
+    description:
+      'Message under the field where the link of a video block is pasted, when the link is not to a video on one of these sites. Keep the site names as they are.',
+  },
+  editorLinkPreviewTitle: {
+    id: 'knowledge.editorLinkPreviewTitle',
+    defaultMessage: 'Link preview',
+    description:
+      "Item of the rich text editor's menu of blocks, opened by typing a slash, that adds a card showing a web page's title, description and picture.",
+  },
+  editorLinkPreviewSubtext: {
+    id: 'knowledge.editorLinkPreviewSubtext',
+    defaultMessage: "A card with the page's title and picture",
+    description: 'Line under "Link preview" in the rich text editor\'s menu of blocks, saying what the block shows.',
+  },
+  editorLinkPreviewAdd: {
+    id: 'knowledge.editorLinkPreviewAdd',
+    defaultMessage: 'Add a link preview',
+    description:
+      'What a link preview block says before it has a link, in the place the card will go. Clicking it opens the field to paste the link in.',
+  },
+  editorLinkPreviewButton: {
+    id: 'knowledge.editorLinkPreviewButton',
+    defaultMessage: 'Preview link',
+    description:
+      'Button beside the field where the link of a link preview block is pasted, which reads the page and makes the card.',
+  },
+  editorLinkPreviewInvalid: {
+    id: 'knowledge.editorLinkPreviewInvalid',
+    defaultMessage: 'Paste a web address, starting with https://',
+    description:
+      'Message under the field where the link of a link preview block is pasted, when what was pasted is not a web address.',
+  },
+  editorImageTypeError: {
+    id: 'knowledge.editorImageTypeError',
+    defaultMessage: 'A picture is a PNG, JPEG, GIF or WebP file.',
+    description: 'Message shown when somebody puts a file that is not a supported picture into an item of knowledge.',
+  },
+  editorImageSizeError: {
+    id: 'knowledge.editorImageSizeError',
+    defaultMessage: 'A picture can weigh up to {megabytes, number} MB.',
+    description: 'Message shown when somebody puts a picture too large into an item of knowledge.',
+  },
+  editorImageUploadError: {
+    id: 'knowledge.editorImageUploadError',
+    defaultMessage: 'The picture could not be uploaded. Check your connection and try again.',
+    description: 'Message shown when a picture put into an item of knowledge could not be stored.',
   },
   addAspects: {
     id: 'knowledge.addAspects',

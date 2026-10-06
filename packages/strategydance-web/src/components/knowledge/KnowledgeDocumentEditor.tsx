@@ -2,7 +2,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { type FocusEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_DOCUMENTS, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
+import {
+  MAX_DOCUMENTS,
+  MAX_DOCUMENT_TITLE_LENGTH,
+  MAX_RICH_TEXT_IMAGE_SIZE,
+  RICH_TEXT_IMAGE_CONTENT_TYPES,
+} from 'strategydance-core'
 import {
   type CompanyAspect,
   type GetOrganizationDocumentsData,
@@ -28,17 +33,20 @@ import useKnowledgeDocumentPresence from '~hooks/knowledge/useKnowledgeDocumentP
 import useKnowledgeDocumentSaver from '~hooks/knowledge/useKnowledgeDocumentSaver'
 import useKnowledgeDocumentSync from '~hooks/knowledge/useKnowledgeDocumentSync'
 import useLiveKnowledgeDocument from '~hooks/knowledge/useLiveKnowledgeDocument'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useUser from '~hooks/user/useUser'
 
 import createId from '~utils/common/createId'
 import writeOptimistically from '~utils/common/writeOptimistically'
 import getPresenceColor from '~utils/knowledge/getPresenceColor'
+import readLinkPreview from '~utils/knowledge/readLinkPreview'
+import uploadRichTextImage from '~utils/knowledge/uploadRichTextImage'
 
 import Spinner from '~components/common/Spinner'
+import AspectsDialog from '~components/company/AspectsDialog'
+import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
 import KnowledgeDocumentAiMenu from '~components/knowledge/KnowledgeDocumentAiMenu'
-import KnowledgeDocumentAspectIcons from '~components/knowledge/KnowledgeDocumentAspectIcons'
-import KnowledgeDocumentAspectsDialog from '~components/knowledge/KnowledgeDocumentAspectsDialog'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
 import KnowledgeDocumentPresences from '~components/knowledge/KnowledgeDocumentPresences'
@@ -48,6 +56,16 @@ import KnowledgeLeaveDialog from '~components/knowledge/KnowledgeLeaveDialog'
 import { dataConnect } from '~data/firebase'
 import aspectMessages from '~data/intl/aspectMessages'
 import knowledgeMessages from '~data/intl/messages/knowledge'
+
+// The aspects dialog's words, for a document. At module scope so the reference is stable
+const KNOWLEDGE_ASPECTS_DIALOG_MESSAGES = {
+  title: knowledgeMessages.aspectsTitle,
+  description: knowledgeMessages.aspectsDescription,
+  selected: knowledgeMessages.aspectsSelected,
+  cancel: knowledgeMessages.cancel,
+  save: knowledgeMessages.save,
+  close: knowledgeMessages.close,
+}
 
 type Props = {
   organizationId: string
@@ -79,6 +97,7 @@ type Props = {
 function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument, draftAspect }: Props) {
   const { formatMessage, formatList, locale } = useIntl()
   const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
   const queryClient = useQueryClient()
   const now = useNow()
   const { data: viewer } = useAuthentication()
@@ -135,8 +154,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     onCreated: () => {
       setIsStored(true)
       navigate({
-        to: '/knowledge/$documentId',
-        params: { documentId },
+        to: '/$organizationSlug/knowledge/$documentId',
+        params: { organizationSlug, documentId },
         search: {},
         replace: true,
         resetScroll: false,
@@ -216,6 +235,34 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     sync.setContent(content)
   }
 
+  /*
+    Stores a picture put in the text, saying why it will not when the file is not one or too large,
+    or when the upload fails. Throwing tells the editor, which takes away the picture's place
+  */
+  async function uploadImage(file: File) {
+    if (!RICH_TEXT_IMAGE_CONTENT_TYPES.includes(file.type)) {
+      toast.error(formatMessage(knowledgeMessages.editorImageTypeError))
+
+      throw new Error(`Not a picture: ${file.type || file.name}`)
+    }
+
+    if (file.size > MAX_RICH_TEXT_IMAGE_SIZE) {
+      toast.error(
+        formatMessage(knowledgeMessages.editorImageSizeError, { megabytes: MAX_RICH_TEXT_IMAGE_SIZE / 1024 / 1024 }),
+      )
+
+      throw new Error(`A picture too large: ${file.size} bytes`)
+    }
+
+    try {
+      return await uploadRichTextImage(organizationId, file)
+    } catch (error) {
+      toast.error(formatMessage(knowledgeMessages.editorImageUploadError))
+
+      throw error
+    }
+  }
+
   function saveAspects(next: CompanyAspect[]) {
     setAspects(next)
     setIsPickingAspects(false)
@@ -270,7 +317,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
       return
     }
 
-    navigate({ to: '/knowledge' })
+    navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })
     toast(formatMessage(knowledgeMessages.deleted, { title: deletedTitle }), {
       action: {
         label: formatMessage(knowledgeMessages.undo),
@@ -331,7 +378,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate({ to: '/knowledge' })}
+              onClick={() => navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })}
             >
               {formatMessage(knowledgeMessages.goToAll)}
             </Button>
@@ -377,7 +424,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             className="flex h-8 cursor-pointer items-center rounded-xs border-0 bg-transparent px-1 font-sans text-sm text-neutral-600 transition-colors duration-150 ease-in-out hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
           >
             {aspects.length ? (
-              <KnowledgeDocumentAspectIcons
+              <CompanyAspectIcons
                 aspects={aspects}
                 size={18}
                 className="gap-2 px-1"
@@ -427,7 +474,18 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             placeholder={formatMessage(knowledgeMessages.bodyPlaceholder)}
             aria-label={formatMessage(knowledgeMessages.bodyLabel)}
             locale={locale}
-            labels={{ turnInto: formatMessage(knowledgeMessages.editorTurnInto) }}
+            labels={{
+              turnInto: formatMessage(knowledgeMessages.editorTurnInto),
+              videoEmbedSubtext: formatMessage(knowledgeMessages.editorVideoSubtext),
+              videoEmbedUnsupported: formatMessage(knowledgeMessages.editorVideoUnsupported),
+              linkPreviewTitle: formatMessage(knowledgeMessages.editorLinkPreviewTitle),
+              linkPreviewSubtext: formatMessage(knowledgeMessages.editorLinkPreviewSubtext),
+              linkPreviewAdd: formatMessage(knowledgeMessages.editorLinkPreviewAdd),
+              linkPreviewButton: formatMessage(knowledgeMessages.editorLinkPreviewButton),
+              linkPreviewInvalid: formatMessage(knowledgeMessages.editorLinkPreviewInvalid),
+            }}
+            uploadImage={uploadImage}
+            previewLink={readLinkPreview}
             onChange={changeContent}
             className="border-t border-neutral-200"
           />
@@ -455,8 +513,9 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
         />
       ) : null}
       {isPickingAspects ? (
-        <KnowledgeDocumentAspectsDialog
+        <AspectsDialog
           aspects={aspects}
+          messages={KNOWLEDGE_ASPECTS_DIALOG_MESSAGES}
           onSave={saveAspects}
           onClose={() => setIsPickingAspects(false)}
         />

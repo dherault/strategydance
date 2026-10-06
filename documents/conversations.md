@@ -422,7 +422,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
   win; files and rows go only after the claim, and every sweep also finishes the conversations
   claimed before and still present, its deletions idempotent, so a prune that failed after claiming
-  is completed by the next. Each milestone adds the operations it
+  is completed by the next. Until conversations keep files (M19), `StartConversation` deletes the
+  member's conversations deleted over a day ago directly, under the membership lock
+  `RestoreConversation` also takes, so the two never both win without a claim; M19 moves the prune
+  out to claim, files, then rows. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
 - **Search** is the backend's too: `POST …/conversations/search`, the query in the JSON body so
@@ -488,10 +491,13 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   since a backlog can outlast any deadline: past it, a route looks the named task up and pushes the
   lease back while the task exists; once it is gone, or never existed, the run is dead. Send,
   answer, stop, resume and retry first finalize a dead active run as `INTERRUPTED` (running calls
-  `CANCELLED`, a note, `activeRunId` cleared). The web shows a claimed run past its lease as
-  interrupted, with Resume and Retry, and a queued one as waiting, calling `POST
-  …/runs/:runId/reconcile` every two minutes meanwhile, so a run whose task vanished never spins
-  forever, with nothing asked of the member.
+  `CANCELLED`, a note, `activeRunId` cleared). The page calls `POST …/runs/:runId/reconcile` once
+  its latest run's lease has passed, queued or claimed, and every two minutes after while the run
+  stays as it is: a claimed run past its lease is finalized at once, and its interrupted note,
+  with Resume and Retry, replaces the thinking indicator; a queued one is finalized once its task
+  is gone, the route asking Cloud Tasks first (M8), so a run whose task vanished never spins
+  forever, with nothing asked of the member. M6 built this, where the plan first had the page draw
+  a claimed run past its lease as interrupted without finalizing it.
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
@@ -696,14 +702,18 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   messages go back to `RUNNING`),
   answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the
-  stream was cut), it sends its context and the request straight away.
+  stream was cut), it sends its context and the request straight away. Resume refuses once
+  anything follows the note, since the page relies on it: it deletes the thread's newest entry
+  and moves no `historyRevision`, and the page's merge (`createConversationThread`, M5) finds
+  such a deletion only because it is the newest.
 - **Retry** (`POST …/retry`), offered with a stopped, interrupted, failed, refused or full note: every run
   records `anchorPosition` when it is created, before anything runs: the `USER` entry that started
   it (a message, files only included, or answers), and for a resumed run the anchor of the run it
   resumes, since it carries that run's response on and its own results entry may never be stored
   if it crashes first. Retry cuts the transcript after the last run's anchor, its context message
   included, deletes the messages drawn by every run on that anchor (the last run and the runs it
-  resumed), and starts a run on that anchor with a fresh context message; the remaining prefix is
+  resumed), never the member's message that started one, which names the run it started too (`run
+  in X and kind != MEMBER_TEXT`), and starts a run on that anchor with a fresh context message; the remaining prefix is
   what the thinking blocks were made with, and what the cut part wrote stays written. The same
   mutation lowers `messageCount` by what it deletes, bumps `historyRevision`, rebuilds the preview
   from the last entry kept, and sets `unreadCount` to 0: the member is looking at the conversation
@@ -918,7 +928,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 
 Documents, top priorities and log entries are stored as BlockNote blocks (paragraphs, headings 1 to
 3, quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and
-mail links); the agent reads and writes Markdown. The stored model lives in the design system's
+mail links), and documents also as code, tables, pictures, YouTube, Vimeo and Loom videos and link
+preview cards; the agent reads and writes Markdown. The stored model lives in the design system's
 `lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`), beside
 the conversions between blocks and a document's shared text (`createRichTextYUpdate`,
 `readRichTextYDoc`), which go through a headless BlockNote editor and so need `@blocknote/core`
@@ -929,7 +940,14 @@ neither React nor the DOM, and whose tests already run them under Bun. M13 adds 
 paragraphs. Markdown has no underline, so the pair writes and reads it as `<u>…</u>`, the one tag
 `markdownToRichText` understands; any other tag stays literal text, nothing is ever rendered as
 HTML, and the system prompt says underline belongs in documents, never in replies. A document then
-keeps all four styles through an agent's edit.
+keeps all four styles through an agent's edit. The document blocks map onto Markdown too: code to a
+fenced block with its language, a table to a GFM table with its header row, and a picture, a video
+and a link preview to a link, read with its caption or title. The agent writes none of the last
+three but the link preview's link and words: `updateRichTextYDoc` drops pictures, videos and a
+card's picture from every block it writes (`normalizeRichText`'s `media: false`), since a model a
+page told to add a picture could make every reader's browser send the document to an address of
+the page's choosing. A `replaceBlocks` over a range holding one of them has to keep it, by leaving
+it out of the range.
 
 **A document's text is shared**, so the agent reads and writes it as an editor does (see
 `CLAUDE.md` § The database):

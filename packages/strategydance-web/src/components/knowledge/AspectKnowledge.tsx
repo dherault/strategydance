@@ -12,6 +12,7 @@ import {
 } from 'strategydance-design-system/components/ui/Empty'
 
 import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationKnowledgeDocuments'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
 
@@ -38,6 +39,7 @@ type Props = {
 */
 function AspectKnowledge({ aspect }: Props) {
   const { formatMessage } = useIntl()
+  const organizationSlug = useCurrentOrganizationSlug()
   const { data: knowledgeDocuments, loading, refetch, hasFailed } = useOrganizationKnowledgeDocuments()
 
   const aspectName = formatMessage(aspectMessages[aspect])
@@ -83,7 +85,8 @@ function AspectKnowledge({ aspect }: Props) {
       {knowledgeDocuments.length ? (
         <div className="-mt-1 flex justify-end">
           <Link
-            to="/knowledge"
+            to="/$organizationSlug/knowledge"
+            params={{ organizationSlug }}
             className="inline-flex items-center gap-1.5 text-sm font-medium no-underline"
           >
             {formatMessage(knowledgeMessages.allKnowledge)}

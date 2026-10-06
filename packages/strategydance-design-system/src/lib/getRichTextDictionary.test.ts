@@ -21,6 +21,16 @@ describe('getRichTextDictionary', () => {
     expect(getRichTextDictionary('FR', { placeholder: 'Écrire' }).drag_handle.delete_menuitem).toBe('Supprimer')
   })
 
+  it("adds the words of the editor's own blocks, in English unless the caller names them", () => {
+    expect(getRichTextDictionary('FR', { placeholder: 'Écrire' }).rich_text.video_embed_subtext).toBe(
+      'A YouTube, Vimeo or Loom video',
+    )
+    expect(
+      getRichTextDictionary('FR', { placeholder: 'Écrire', videoEmbedUnsupported: 'Collez un lien YouTube' }).rich_text
+        .video_embed_unsupported,
+    ).toBe('Collez un lien YouTube')
+  })
+
   it("lays the field's placeholder over BlockNote's, and keeps its '/' hint", () => {
     const dictionary = getRichTextDictionary('EN', { placeholder: 'What moved forward today?' })
 

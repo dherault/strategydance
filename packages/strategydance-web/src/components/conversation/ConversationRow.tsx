@@ -1,0 +1,117 @@
+import { Link, useNavigate } from '@tanstack/react-router'
+import { Trash2Icon } from 'lucide-react'
+import type { MouseEvent } from 'react'
+import { useIntl } from 'react-intl'
+import { Badge } from 'strategydance-design-system/components/ui/Badge'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import { TableCell, TableRow } from 'strategydance-design-system/components/ui/Table'
+import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
+
+import type { ConversationSummary } from '~types'
+
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+
+import formatConversationPreview from '~utils/conversation/formatConversationPreview'
+
+import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
+import ConversationUpdatedAt from '~components/conversation/ConversationUpdatedAt'
+
+import conversationMessages from '~data/intl/messages/conversation'
+
+type Props = {
+  conversation: ConversationSummary
+  now: number
+  onDelete: (conversation: ConversationSummary) => void
+}
+
+/*
+  One conversation of the list: its title, with a badge when a question waits for the reader, a
+  line of its last entry under it, its aspects, when it last changed, and Delete, which asks twice.
+
+  The title links to the conversation, which is what the keyboard and a new tab use, and a click
+  anywhere else on the row opens it too, as the design has it, unless it selected some text. The
+  actions keep their clicks to themselves: Delete's confirmation sits in a portal, whose clicks
+  React passes up to the row all the same
+*/
+function ConversationRow({ conversation, now, onDelete }: Props) {
+  const intl = useIntl()
+  const { formatMessage } = intl
+  const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
+
+  const preview = formatConversationPreview(intl, conversation)
+
+  function handleClick(event: MouseEvent<HTMLTableRowElement>) {
+    if (event.target instanceof Element && event.target.closest('a, button')) return
+    if (window.getSelection()?.toString()) return
+
+    navigate({
+      to: '/$organizationSlug/conversations/$conversationId',
+      params: { organizationSlug, conversationId: conversation.id },
+    })
+  }
+
+  return (
+    <TableRow
+      onClick={handleClick}
+      className="cursor-pointer"
+    >
+      {/* The column takes what the others leave, and its lines are cut short to fit it */}
+      <TableCell className="w-full max-w-0">
+        {/* On a phone the badge goes under the title rather than leave it a letter or two */}
+        <div className="flex min-w-0 items-center gap-x-2 gap-y-1 overflow-hidden max-sm:flex-wrap">
+          <Link
+            to="/$organizationSlug/conversations/$conversationId"
+            params={{ organizationSlug, conversationId: conversation.id }}
+            className="max-w-full truncate rounded-xs font-medium text-secondary no-underline hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+          >
+            {conversation.title}
+          </Link>
+          {conversation.isAwaitingAnswer ? (
+            <Badge
+              variant="primary"
+              size="sm"
+              className="shrink-0"
+            >
+              {formatMessage(conversationMessages.needsAnswer)}
+            </Badge>
+          ) : null}
+        </div>
+        {preview ? <p className="m-0 mt-0.5 truncate text-sm text-muted-foreground">{preview}</p> : null}
+      </TableCell>
+      {/* A phone has no room for them beside the title, which matters more */}
+      <TableCell className="max-sm:hidden">
+        <CompanyAspectIcons
+          aspects={conversation.aspects}
+          size={14}
+          className="gap-1.5 text-neutral-500"
+        />
+      </TableCell>
+      <TableCell
+        align="right"
+        className="whitespace-nowrap text-muted-foreground"
+      >
+        <ConversationUpdatedAt
+          updatedAt={conversation.updatedAt}
+          now={now}
+        />
+      </TableCell>
+      <TableCell onClick={event => event.stopPropagation()}>
+        <div className="flex justify-end gap-1">
+          <Tooltip content={formatMessage(conversationMessages.delete)}>
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<Trash2Icon />}
+              confirm={formatMessage(conversationMessages.confirm)}
+              aria-label={formatMessage(conversationMessages.deleteLabel, { title: conversation.title })}
+              onClick={() => onDelete(conversation)}
+            />
+          </Tooltip>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+export default ConversationRow

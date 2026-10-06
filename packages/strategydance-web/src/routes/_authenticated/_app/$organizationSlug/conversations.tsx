@@ -2,7 +2,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 import ConversationsReleaseBouncer from '~components/conversation/ConversationsReleaseBouncer'
 
-export const Route = createFileRoute('/_authenticated/_app/conversations')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/conversations')({
   component: ConversationsRoute,
 })
 

@@ -4,6 +4,8 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { KnowledgeDocumentSummary } from '~types'
 
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+
 import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import KnowledgeEditedAt from '~components/knowledge/KnowledgeEditedAt'
 
@@ -17,12 +19,13 @@ type Props = {
 // One document in a grid of them: its title, the aspects it is about, and when it last changed
 function KnowledgeDocumentCard({ knowledgeDocument, now }: Props) {
   const { formatMessage } = useIntl()
+  const organizationSlug = useCurrentOrganizationSlug()
   const title = knowledgeDocument.title.trim()
 
   return (
     <Link
-      to="/knowledge/$documentId"
-      params={{ documentId: knowledgeDocument.id }}
+      to="/$organizationSlug/knowledge/$documentId"
+      params={{ organizationSlug, documentId: knowledgeDocument.id }}
       className="box-border flex min-h-28 min-w-0 flex-col gap-2 rounded-xs border border-neutral-200 bg-white p-4 text-foreground no-underline transition-colors duration-150 ease-in-out hover:border-neutral-300 hover:bg-neutral-50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
     >
       <h3

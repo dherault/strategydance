@@ -23,9 +23,9 @@ type Props = {
   address, and the page stays mounted through that: the editor goes on as it was, and nothing
   reads the document it has just stored.
 
-  So is the organization, which the document belongs to whatever the sidebar switches to: the page
-  stays on it until the navigation `KnowledgeOrganizationBouncer` starts has gone through the
-  editor's, which sends what is left first
+  So is the organization, which the document belongs to: switching to another leaves for that one's
+  knowledge, and the page stays on its own until the navigation has gone through the editor's,
+  which sends what is left first
 */
 function KnowledgeDocumentPage({ documentId, isNew, aspect }: Props) {
   const { organization } = useCurrentOrganization()

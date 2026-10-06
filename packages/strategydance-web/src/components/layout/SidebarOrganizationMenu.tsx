@@ -13,6 +13,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from 'strategydance-d
 import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useSwitchOrganization from '~hooks/organization/useSwitchOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import AddOrganizationDialog from '~components/layout/AddOrganizationDialog'
@@ -24,7 +25,8 @@ import navigationMessages from '~data/intl/messages/navigation'
 function SidebarOrganizationMenu() {
   const { formatMessage } = useIntl()
   const { data: userOrganizations } = useUserOrganizations()
-  const { organization, setOrganizationId } = useCurrentOrganization()
+  const { organization } = useCurrentOrganization()
+  const switchOrganization = useSwitchOrganization()
   const { isMobile } = useSidebar()
 
   const [isAdding, setIsAdding] = useState(false)
@@ -58,10 +60,10 @@ function SidebarOrganizationMenu() {
               {userOrganizations.length ? (
                 <>
                   <DropdownMenuLabel>{formatMessage(navigationMessages.organizations)}</DropdownMenuLabel>
-                  {userOrganizations.map(({ organization: { id, name, logoUrl, color } }) => (
+                  {userOrganizations.map(({ organization: { id, slug, name, logoUrl, color } }) => (
                     <DropdownMenuItem
                       key={id}
-                      onSelect={() => setOrganizationId(id)}
+                      onSelect={() => switchOrganization({ id, slug })}
                     >
                       <OrganizationMark
                         name={name}

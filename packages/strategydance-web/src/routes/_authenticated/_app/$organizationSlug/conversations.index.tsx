@@ -6,7 +6,7 @@ import Conversations from '~components/conversation/Conversations'
 import ConversationsWait from '~components/conversation/ConversationsWait'
 
 // The reader's conversations in the current organization
-export const Route = createFileRoute('/_authenticated/_app/conversations/')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/conversations/')({
   component: ConversationsIndexRoute,
 })
 

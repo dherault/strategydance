@@ -7,6 +7,7 @@ import { Button } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationKnowledgeDocuments'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import createId from '~utils/common/createId'
 
@@ -27,6 +28,7 @@ type Props = {
 function AddKnowledgeDocumentButton({ aspect }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
   const { data: knowledgeDocuments } = useOrganizationKnowledgeDocuments()
 
   function add() {
@@ -37,8 +39,8 @@ function AddKnowledgeDocumentButton({ aspect }: Props) {
     }
 
     navigate({
-      to: '/knowledge/$documentId',
-      params: { documentId: createId() },
+      to: '/$organizationSlug/knowledge/$documentId',
+      params: { organizationSlug, documentId: createId() },
       search: { isNew: true, aspect },
     })
   }

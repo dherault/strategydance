@@ -17,6 +17,7 @@ import { COMPANY_ASPECTS } from '~constants'
 
 import useCanUseConversations from '~hooks/conversation/useCanUseConversations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useUser from '~hooks/user/useUser'
 
 import toAspectSlug from '~utils/company/toAspectSlug'
@@ -30,6 +31,7 @@ import navigationMessages from '~data/intl/messages/navigation'
 function SidebarNavigation() {
   const { formatMessage } = useIntl()
   const { organization, role } = useCurrentOrganization()
+  const organizationSlug = useCurrentOrganizationSlug()
   const { data: user } = useUser()
   const canUseConversations = useCanUseConversations()
 
@@ -49,16 +51,16 @@ function SidebarNavigation() {
       <SidebarGroup>
         <SidebarMenu>
           <NavigationLink
-            path="/today"
+            path={`/${organizationSlug}/today`}
             label={formatMessage(navigationMessages.today)}
             icon={<CalendarIcon />}
-            link={{ to: '/today' }}
+            link={{ to: '/$organizationSlug/today', params: { organizationSlug } }}
           />
           <NavigationLink
-            path="/build-in-public"
+            path={`/${organizationSlug}/build-in-public`}
             label={formatMessage(navigationMessages.buildInPublic)}
             icon={<LighthouseIcon />}
-            link={{ to: '/build-in-public' }}
+            link={{ to: '/$organizationSlug/build-in-public', params: { organizationSlug } }}
           />
         </SidebarMenu>
       </SidebarGroup>
@@ -68,18 +70,18 @@ function SidebarNavigation() {
           {exploredAspects.map(aspect => (
             <NavigationLink
               key={aspect}
-              path={`/aspects/${toAspectSlug(aspect)}`}
+              path={`/${organizationSlug}/aspects/${toAspectSlug(aspect)}`}
               label={formatMessage(aspectMessages[aspect])}
               icon={<CompanyAspectIcon aspect={toAspectSlug(aspect)} />}
-              link={{ to: '/aspects/$aspect', params: { aspect } }}
+              link={{ to: '/$organizationSlug/aspects/$aspect', params: { organizationSlug, aspect } }}
             />
           ))}
           {exploredAspects.length < COMPANY_ASPECTS.length ? (
             <NavigationLink
-              path="/explore"
+              path={`/${organizationSlug}/explore`}
               label={formatMessage(navigationMessages.exploreMore)}
               icon={<CompassIcon />}
-              link={{ to: '/explore' }}
+              link={{ to: '/$organizationSlug/explore', params: { organizationSlug } }}
             />
           ) : null}
         </SidebarMenu>
@@ -89,11 +91,11 @@ function SidebarNavigation() {
         <SidebarMenu>
           {canUseConversations ? <ConversationsNavigationLink /> : null}
           <NavigationLink
-            path="/knowledge"
+            path={`/${organizationSlug}/knowledge`}
             isNested
             label={formatMessage(navigationMessages.knowledge)}
             icon={<FileTextIcon />}
-            link={{ to: '/knowledge' }}
+            link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
           />
         </SidebarMenu>
       </SidebarGroup>
@@ -101,17 +103,17 @@ function SidebarNavigation() {
         <SidebarGroupLabel>{formatMessage(navigationMessages.company)}</SidebarGroupLabel>
         <SidebarMenu>
           <NavigationLink
-            path="/team"
+            path={`/${organizationSlug}/team`}
             label={formatMessage(navigationMessages.team)}
             icon={<UsersRoundIcon />}
-            link={{ to: '/team' }}
+            link={{ to: '/$organizationSlug/team', params: { organizationSlug } }}
           />
           {isAdministrator ? (
             <NavigationLink
-              path="/profile"
+              path={`/${organizationSlug}/profile`}
               label={formatMessage(navigationMessages.profile)}
               icon={<StoreIcon />}
-              link={{ to: '/profile' }}
+              link={{ to: '/$organizationSlug/profile', params: { organizationSlug } }}
             />
           ) : null}
         </SidebarMenu>

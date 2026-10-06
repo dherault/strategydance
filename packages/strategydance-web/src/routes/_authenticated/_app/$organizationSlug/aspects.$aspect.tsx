@@ -23,7 +23,7 @@ const ASPECT_MESSAGE_TYPES: MessageType[] = ['aspect', 'knowledge']
 
   The page waits for the organization's knowledge, which its section lists the latest of
 */
-export const Route = createFileRoute('/_authenticated/_app/aspects/$aspect')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/aspects/$aspect')({
   params: {
     parse: ({ aspect }) => ({ aspect: parseAspectSlug(aspect) }),
     stringify: ({ aspect }) => ({ aspect: aspect ? toAspectSlug(aspect) : '' }),

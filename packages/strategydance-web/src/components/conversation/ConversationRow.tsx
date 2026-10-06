@@ -9,6 +9,8 @@ import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import type { ConversationSummary } from '~types'
 
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+
 import formatConversationPreview from '~utils/conversation/formatConversationPreview'
 
 import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
@@ -35,6 +37,7 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
 
   const preview = formatConversationPreview(intl, conversation)
 
@@ -42,7 +45,10 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
     if (event.target instanceof Element && event.target.closest('a, button')) return
     if (window.getSelection()?.toString()) return
 
-    navigate({ to: '/conversations/$conversationId', params: { conversationId: conversation.id } })
+    navigate({
+      to: '/$organizationSlug/conversations/$conversationId',
+      params: { organizationSlug, conversationId: conversation.id },
+    })
   }
 
   return (
@@ -55,8 +61,8 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
         {/* On a phone the badge goes under the title rather than leave it a letter or two */}
         <div className="flex min-w-0 items-center gap-x-2 gap-y-1 overflow-hidden max-sm:flex-wrap">
           <Link
-            to="/conversations/$conversationId"
-            params={{ conversationId: conversation.id }}
+            to="/$organizationSlug/conversations/$conversationId"
+            params={{ organizationSlug, conversationId: conversation.id }}
             className="max-w-full truncate rounded-xs font-medium text-secondary no-underline hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
           >
             {conversation.title}

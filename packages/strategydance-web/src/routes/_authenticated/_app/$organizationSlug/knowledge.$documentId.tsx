@@ -7,7 +7,6 @@ import isKnowledgeDocumentId from '~utils/knowledge/isKnowledgeDocumentId'
 
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 import KnowledgeDocumentPage from '~components/knowledge/KnowledgeDocumentPage'
-import KnowledgeOrganizationBouncer from '~components/knowledge/KnowledgeOrganizationBouncer'
 
 // At module scope so the reference is stable across renders
 const KNOWLEDGE_MESSAGE_TYPES: MessageType[] = ['knowledge']
@@ -32,7 +31,7 @@ type KnowledgeDocumentSearch = {
   Each search key is overwritten with `undefined` when it fails validation, since TanStack lays
   what this returns over the raw query rather than replacing it
 */
-export const Route = createFileRoute('/_authenticated/_app/knowledge/$documentId')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/$documentId')({
   validateSearch: (search: Record<string, unknown>): KnowledgeDocumentSearch => ({
     isNew: search.isNew === true ? true : undefined,
     aspect: Object.values(CompanyAspect).find(aspect => aspect === search.aspect),
@@ -49,14 +48,12 @@ function KnowledgeDocumentRoute() {
 
   return (
     <IntlMessagesRegistration messageTypes={KNOWLEDGE_MESSAGE_TYPES}>
-      <KnowledgeOrganizationBouncer>
-        <KnowledgeDocumentPage
-          key={documentId}
-          documentId={documentId}
-          isNew={isNew === true}
-          aspect={aspect ?? null}
-        />
-      </KnowledgeOrganizationBouncer>
+      <KnowledgeDocumentPage
+        key={documentId}
+        documentId={documentId}
+        isNew={isNew === true}
+        aspect={aspect ?? null}
+      />
     </IntlMessagesRegistration>
   )
 }

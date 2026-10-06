@@ -171,7 +171,7 @@ function ConversationThread({ conversation, run }: Props) {
   }
 
   return (
-    <div className="flex flex-col pt-2 pb-10 [overflow-anchor:none]">
+    <div className="flex grow flex-col py-2 [overflow-anchor:none]">
       {renderOlder()}
       <div
         ref={listRef}

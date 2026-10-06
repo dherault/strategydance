@@ -1285,6 +1285,30 @@
         "hash": "713f0ab16a18ab7d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.busy": {
+        "hash": "132ab4e5616ead0f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.error": {
+        "hash": "a8d49cfc5980d15b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.label": {
+        "hash": "16ac60d21b24a121",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.placeholder": {
+        "hash": "9a914ed52cfb3123",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.send": {
+        "hash": "6374f3f4c149ceb4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.unavailable": {
+        "hash": "bfe13c28829ece15",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.confirm": {
         "hash": "35e5b22bdee1f919",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1491,6 +1515,10 @@
       },
       "conversation.threadLabel": {
         "hash": "70fb6bd711b246b5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tooMany": {
+        "hash": "079c610b34e26d1c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.createKnowledge.done": {

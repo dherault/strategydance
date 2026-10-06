@@ -102,7 +102,7 @@ mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio
 # string but not build one. It is held to strategydance-core's `ORGANIZATION_SLUG_PATTERN`, which
 # `schema.test.ts` keeps this one agreeing with, and a slug somebody else holds fails the column's
 # unique index, upon which the browser draws again. It is optional so a page from before slugs can
-# still create one, which `backfillOrganizationSlugs` then gives a slug
+# still create one, which the app then addresses by its id
 mutation CreateOrganization($name: String!, $brief: String, $slug: String) @auth(level: USER) @transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {

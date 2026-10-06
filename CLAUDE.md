@@ -90,7 +90,6 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. How a conversation is written until its page has a composer. `--organization <id or slug>` names the organization when the account is in several |
-| `bun run backfill:organization-slugs [--apply]` | Gives every organization without a slug one, in the emulators: a dry run, or the writes with `--apply`. `--production`, run from the backend's package without the emulator variable, aims it at the real database, and its header says how |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -113,8 +112,7 @@ husky `pre-commit` hook only lints.
 **The `deploy:*` scripts and `bun run ship` are run by humans only.** `ship` sets the release
 pull request to merge itself once CI passes, a merge into `main` deploys the release by itself,
 and a migration that stops it waits for a human to read its SQL, as
-[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says. So is any script run
-with `--production`, `backfill:organization-slugs` among them: it writes the real database.
+[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says.
 
 Two things are generated and never edited by hand.
 `packages/strategydance-web/src/routeTree.gen.ts` is written by the TanStack Router plugin on
@@ -346,9 +344,9 @@ only way the app talks to them.
 - `Organization.slug` leads its pages' paths. The browser draws it at creation, from the name
   and four random characters (strategydance-core's `createOrganizationSlug`), the column's unique
   index refuses one another organization holds, and it never changes, so a link to an
-  organization outlives a rename. An organization made before slugs has none until
-  `backfill:organization-slugs` gives it one, and is addressed by its id meanwhile. The UUID stays
-  the key everywhere else: the database, the backend's routes and Storage's paths
+  organization outlives a rename. One a page from before slugs created has none, and is addressed
+  by its id. The UUID stays the key everywhere else: the database, the backend's routes and
+  Storage's paths
 - An operation gains a variable without a breaking connector change by making it optional, which
   a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
   vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses

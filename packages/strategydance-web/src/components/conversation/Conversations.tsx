@@ -70,7 +70,6 @@ function Conversations() {
   return (
     <ContainerLayout className="gap-8">
       <PageHeader
-        eyebrow={formatMessage(navigationMessages.reflection)}
         title={formatMessage(navigationMessages.conversations)}
         lead={formatMessage(conversationMessages.lead)}
       />

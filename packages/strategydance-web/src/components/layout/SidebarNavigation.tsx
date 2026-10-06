@@ -3,8 +3,8 @@ import {
   CalendarIcon,
   CompassIcon,
   ContactRoundIcon,
+  FileTextIcon,
   LighthouseIcon,
-  LightbulbIcon,
   StoreIcon,
   UsersRoundIcon,
 } from 'lucide-react'
@@ -92,7 +92,7 @@ function SidebarNavigation() {
             path="/knowledge"
             isNested
             label={formatMessage(navigationMessages.knowledge)}
-            icon={<LightbulbIcon />}
+            icon={<FileTextIcon />}
             link={{ to: '/knowledge' }}
           />
         </SidebarMenu>

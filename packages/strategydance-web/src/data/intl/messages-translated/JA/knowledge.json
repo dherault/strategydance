@@ -45,7 +45,6 @@
   "knowledge.editorVideoUnsupported": "YouTube、Vimeo、またはLoomの動画リンクを貼り付けてください",
   "knowledge.emptyText": "会社に関するノート、計画、決定事項を追加しましょう。各項目にアスペクトのタグを付けると、そのページに表示されます。",
   "knowledge.emptyTitle": "ナレッジがまだありません",
-  "knowledge.eyebrow": "会社が把握していること",
   "knowledge.goToAll": "すべてのナレッジへ移動",
   "knowledge.lead": "各アスペクト全体で{count, plural, one {#件} other {#件}}",
   "knowledge.leave": "離れる",

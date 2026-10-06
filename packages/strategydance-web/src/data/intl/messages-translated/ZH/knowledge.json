@@ -45,7 +45,6 @@
   "knowledge.editorVideoUnsupported": "请粘贴 YouTube、Vimeo 或 Loom 视频链接",
   "knowledge.emptyText": "添加关于公司的笔记、计划和决策。为每个条目添加业务方面标签，以便在对应页面中显示。",
   "knowledge.emptyTitle": "暂无知识内容",
-  "knowledge.eyebrow": "公司积累的知识",
   "knowledge.goToAll": "查看所有知识",
   "knowledge.lead": "{count, plural, one {# 个条目} other {# 个条目}}，涵盖各个业务方面",
   "knowledge.leave": "离开",

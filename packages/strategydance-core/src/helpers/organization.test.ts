@@ -69,6 +69,12 @@ describe('isOrganizationSlug', () => {
   it('accepts a slug', () => {
     expect(isOrganizationSlug('strategy-dance-ad34')).toBe(true)
     expect(isOrganizationSlug('organization-0000')).toBe(true)
+    expect(isOrganizationSlug(`${'a'.repeat(ORGANIZATION_SLUG_BASE_MAX_LENGTH)}-ad34`)).toBe(true)
+  })
+
+  it('refuses one longer than any it draws, as CreateOrganization does', () => {
+    expect(isOrganizationSlug(`${'a'.repeat(ORGANIZATION_SLUG_BASE_MAX_LENGTH + 1)}-ad34`)).toBe(false)
+    expect(isOrganizationSlug(`${'abc-'.repeat(20)}ad34`)).toBe(false)
   })
 
   it('refuses a page of the app, an id, and anything not a slug', () => {

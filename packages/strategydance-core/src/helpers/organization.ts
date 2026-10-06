@@ -67,8 +67,12 @@ export function createOrganizationSlug(name: string) {
   return `${slugifyOrganizationName(name)}-${createSlugSuffix()}`
 }
 
+// The longest a slug gets: the longest base, a dash and the suffix
+const ORGANIZATION_SLUG_MAX_LENGTH = ORGANIZATION_SLUG_BASE_MAX_LENGTH + 1 + ORGANIZATION_SLUG_SUFFIX_LENGTH
+
+// Whether a value is a slug as `createOrganizationSlug` draws one, and `CreateOrganization` accepts
 export function isOrganizationSlug(value: string) {
-  return ORGANIZATION_SLUG_PATTERN.test(value)
+  return value.length <= ORGANIZATION_SLUG_MAX_LENGTH && ORGANIZATION_SLUG_PATTERN.test(value)
 }
 
 // The unique index Data Connect builds on `Organization.slug`, named after the table and column

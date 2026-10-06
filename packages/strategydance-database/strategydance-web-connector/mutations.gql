@@ -96,8 +96,14 @@ mutation UpdateCurrentUserProfile($displayName: String!, $imageUrl: String, $bio
 # The name and the brief are held to what `UpdateOrganization` holds them to, so an organization
 # never starts with details its profile page would refuse to save. The brief is null when there
 # is none. The checks sit on the caller's own row, read first and redacted, because an operation
-# takes no `@check` of its own
-mutation CreateOrganization($name: String!, $brief: String) @auth(level: USER) @transaction {
+# takes no `@check` of its own.
+#
+# The slug is the browser's to draw, from the name and a random suffix, since a check can test a
+# string but not build one. It is held to strategydance-core's `ORGANIZATION_SLUG_PATTERN`, which
+# `schema.test.ts` keeps this one agreeing with, and a slug somebody else holds fails the column's
+# unique index, upon which the browser draws again. It is optional so a page from before slugs can
+# still create one, which `backfillOrganizationSlugs` then gives a slug
+mutation CreateOrganization($name: String!, $brief: String, $slug: String) @auth(level: USER) @transaction {
   query @redact {
     user(key: { id_expr: "auth.uid" }) {
       id
@@ -106,9 +112,13 @@ mutation CreateOrganization($name: String!, $brief: String) @auth(level: USER) @
           message: "A name is 1 to 80 characters on one line, with no space at either end"
         )
         @check(expr: "vars.brief == null || size(vars.brief) <= 500", message: "A brief is at most 500 characters")
+        @check(
+          expr: "!has(vars.slug) || vars.slug == null || (size(vars.slug) <= 37 && vars.slug.matches('^[a-z0-9]+(-[a-z0-9]+)*-[a-z0-9]{4}$'))"
+          message: "A slug is lowercase words joined by dashes, then a dash and four letters or digits"
+        )
     }
   }
-  organization: organization_insert(data: { name: $name, brief: $brief })
+  organization: organization_insert(data: { name: $name, brief: $brief, slug: $slug })
   userOrganization: userOrganization_insert(
     data: {
       organizationId_expr: "response.organization.id"

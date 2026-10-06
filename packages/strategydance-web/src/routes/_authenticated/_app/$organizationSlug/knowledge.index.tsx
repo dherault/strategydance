@@ -12,7 +12,7 @@ import KnowledgeDocumentsWait from '~components/knowledge/KnowledgeDocumentsWait
 const KNOWLEDGE_MESSAGE_TYPES: MessageType[] = ['knowledge']
 
 // Every document of the current organization's knowledge
-export const Route = createFileRoute('/_authenticated/_app/knowledge/')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/')({
   component: KnowledgeRoute,
 })
 

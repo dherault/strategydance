@@ -5,7 +5,6 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import isConversationId from '~utils/conversation/isConversationId'
 
 import ConversationBouncer from '~components/conversation/ConversationBouncer'
-import ConversationOrganizationBouncer from '~components/conversation/ConversationOrganizationBouncer'
 import ConversationPage from '~components/conversation/ConversationPage'
 import ConversationWait from '~components/conversation/ConversationWait'
 
@@ -24,7 +23,7 @@ type ConversationSearch = {
   is the app's not found page. Each search key is overwritten with `undefined` when it fails
   validation, since TanStack lays what this returns over the raw query rather than replacing it
 */
-export const Route = createFileRoute('/_authenticated/_app/conversations/$conversationId')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/conversations/$conversationId')({
   validateSearch: (search: Record<string, unknown>): ConversationSearch => ({
     isNew: search.isNew === true ? true : undefined,
   }),
@@ -40,21 +39,19 @@ function ConversationRoute() {
   const { organization } = useCurrentOrganization()
 
   return (
-    <ConversationOrganizationBouncer>
-      <ConversationWait
-        key={organization?.id ?? 'none'}
+    <ConversationWait
+      key={organization?.id ?? 'none'}
+      conversationId={conversationId}
+    >
+      <ConversationBouncer
         conversationId={conversationId}
+        isNew={isNew === true}
       >
-        <ConversationBouncer
+        <ConversationPage
+          key={conversationId}
           conversationId={conversationId}
-          isNew={isNew === true}
-        >
-          <ConversationPage
-            key={conversationId}
-            conversationId={conversationId}
-          />
-        </ConversationBouncer>
-      </ConversationWait>
-    </ConversationOrganizationBouncer>
+        />
+      </ConversationBouncer>
+    </ConversationWait>
   )
 }

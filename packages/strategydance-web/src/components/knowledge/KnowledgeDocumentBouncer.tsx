@@ -13,6 +13,7 @@ import {
 } from 'strategydance-design-system/components/ui/Empty'
 
 import useKnowledgeDocument from '~hooks/knowledge/useKnowledgeDocument'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
@@ -34,6 +35,7 @@ type Props = PropsWithChildren<{
 */
 function KnowledgeDocumentBouncer({ organizationId, documentId, isEnabled, children }: Props) {
   const { formatMessage } = useIntl()
+  const organizationSlug = useCurrentOrganizationSlug()
   const {
     data: knowledgeDocument,
     loading,
@@ -74,7 +76,8 @@ function KnowledgeDocumentBouncer({ organizationId, documentId, isEnabled, child
           </EmptyHeader>
           <EmptyContent>
             <Link
-              to="/knowledge"
+              to="/$organizationSlug/knowledge"
+              params={{ organizationSlug }}
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               {formatMessage(knowledgeMessages.goToAll)}

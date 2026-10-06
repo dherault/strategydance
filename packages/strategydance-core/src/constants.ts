@@ -134,6 +134,23 @@ export const MAX_ORGANIZATION_NAME_LENGTH = 80
 export const MAX_ORGANIZATION_BRIEF_LENGTH = 500
 
 /*
+  An organization's slug, the segment that leads each of its pages' paths: its name made into
+  words of lowercase letters and digits joined by dashes, at most this long, then a dash and a few
+  random characters, as in `strategy-dance-ad34`
+*/
+export const ORGANIZATION_SLUG_BASE_MAX_LENGTH = 32
+
+export const ORGANIZATION_SLUG_SUFFIX_LENGTH = 4
+
+/*
+  What a slug looks like. It always ends in a dash and four characters, so no slug can be one of
+  the app's own pages at the root, like `legal` or `today`, which no organization could then reach.
+  Written out again in `CreateOrganization`'s check, which cannot import it: the database's
+  `schema.test.ts` fails when the two differ
+*/
+export const ORGANIZATION_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*-[a-z0-9]{4}$/
+
+/*
   The color an organization's mark takes until somebody picks one: the brand's primary, the design
   system's `--color-primary-700`. A null `Organization.color` means this one, so an organization
   that never chose follows the brand if it changes

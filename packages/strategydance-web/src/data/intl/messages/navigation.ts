@@ -249,6 +249,25 @@ const navigationMessages = defineMessages({
     defaultMessage: '{page} is on its way.',
     description: "Text of the notice on a page that is not built yet. {page} is the page's name, such as Today.",
   },
+  organizationNotFoundTitle: {
+    id: 'navigation.organizationNotFoundTitle',
+    defaultMessage: 'Organization not found',
+    description:
+      'Title of the page shown when the address names an organization the reader does not belong to, or one that does not exist.',
+  },
+  organizationNotFoundText: {
+    id: 'navigation.organizationNotFoundText',
+    defaultMessage:
+      'It may have been deleted, or you may not be a member of it. Check the address, or ask one of its administrators to invite you.',
+    description:
+      'Text under the title of the page shown when the address names an organization the reader does not belong to, or one that does not exist.',
+  },
+  organizationNotFoundAction: {
+    id: 'navigation.organizationNotFoundAction',
+    defaultMessage: 'Go to {organizationName}',
+    description:
+      "Button on the organization not found page, leading to one of the reader's own organizations. {organizationName} is that organization's name, such as Acme.",
+  },
 })
 
 export default navigationMessages

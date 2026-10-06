@@ -11,7 +11,7 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 // At module scope so the reference is stable across renders
 const BUILD_IN_PUBLIC_MESSAGE_TYPES: MessageType[] = ['buildInPublic']
 
-export const Route = createFileRoute('/_authenticated/_app/build-in-public')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/build-in-public')({
   component: BuildInPublicRoute,
 })
 

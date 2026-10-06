@@ -14,6 +14,8 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
+import toOrganizationPathSegment from '~utils/organization/toOrganizationPathSegment'
+
 import Spinner from '~components/common/Spinner'
 
 import { requestApi } from '~data/api'
@@ -29,15 +31,17 @@ type Props = {
   Deletes the organization, after a second click on the button that says so. The backend deletes
   the organization's files, then the row, which takes the memberships and invitations with it.
 
-  Then away from a page about an organization that is gone, before the memberships drop it: the
-  other way round, the current organization would move on to the next one while this page is
-  still up, and show that one's profile for a moment. The persisted choice needs no clearing,
-  since an id that matches no membership falls through to the first one
+  Then away from a page about an organization that is gone, to the today of another of the
+  reader's, and only then out of the memberships. The team's live query often drops it first,
+  while the backend is still sweeping its files, and `CurrentOrganizationBouncer` moves the reader
+  on to the same place then. With no other, forgetting it empties the list, and
+  `UserOrganizationsBouncer` takes the reader to the prologue. The persisted choice needs no
+  clearing, since the next organization's page remembers that one
 */
 function OrganizationProfileDeleteDialog({ organizationId, organizationName, onClose }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
-  const { forgetOrganization } = useUserOrganizations()
+  const { data: userOrganizations, forgetOrganization } = useUserOrganizations()
 
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -62,7 +66,16 @@ function OrganizationProfileDeleteDialog({ organizationId, organizationName, onC
 
     toast.success(formatMessage(organizationProfileMessages.deleted))
 
-    await navigate({ to: '/today', replace: true })
+    const next = userOrganizations.find(({ organization }) => organization.id !== organizationId)?.organization
+
+    if (next) {
+      await navigate({
+        to: '/$organizationSlug/today',
+        params: { organizationSlug: toOrganizationPathSegment(next) },
+        replace: true,
+      })
+    }
+
     await forgetOrganization(organizationId)
   }
 

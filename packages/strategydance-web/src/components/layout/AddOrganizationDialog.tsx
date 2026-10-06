@@ -14,7 +14,7 @@ import { Input } from 'strategydance-design-system/components/ui/Input'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
-import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useSwitchOrganization from '~hooks/organization/useSwitchOrganization'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
 import Spinner from '~components/common/Spinner'
@@ -30,7 +30,7 @@ type Props = {
 function AddOrganizationDialog({ open, onOpenChange }: Props) {
   const { formatMessage } = useIntl()
   const { createOrganization } = useUserOrganizations()
-  const { setOrganizationId } = useCurrentOrganization()
+  const switchOrganization = useSwitchOrganization()
 
   const [name, setName] = useState('')
   const [brief, setBrief] = useState('')
@@ -51,16 +51,16 @@ function AddOrganizationDialog({ open, onOpenChange }: Props) {
     try {
       /*
         Creating and choosing are two concerns and two providers, so this is what joins them. The
-        id is safe to choose the moment it arrives: the create refetched before answering, so the
-        list already holds the row it names.
+        organization is safe to switch to the moment it arrives: the create refetched before
+        answering, so the list already holds the row it names.
 
         Unless that read failed. The organization exists all the same, so the dialog closes rather
-        than offer to create it again, and says to reload: the choice is kept, and takes effect
-        once the list shows the row
+        than offer to create it again, and says to reload: the path and the choice name it already,
+        and its page shows once the list holds the row
       */
-      const { organizationId, isRead } = await createOrganization(trimmedName, trimmedBrief)
+      const { organizationId, organizationSlug, isRead } = await createOrganization(trimmedName, trimmedBrief)
 
-      setOrganizationId(organizationId)
+      switchOrganization({ id: organizationId, slug: organizationSlug })
 
       if (!isRead)
         toast.error(formatMessage(navigationMessages.addOrganizationUnread, { organizationName: trimmedName }))

@@ -60,6 +60,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
     jobTitle
     organization {
       id
+      # What its pages' paths lead with
+      slug
       name
       exploredAspects
       logoUrl

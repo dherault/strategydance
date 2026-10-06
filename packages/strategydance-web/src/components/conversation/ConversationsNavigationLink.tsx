@@ -2,6 +2,7 @@ import { MessagesSquareIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 
 import useConversationsAwaitingAnswer from '~hooks/conversation/useConversationsAwaitingAnswer'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import NavigationLink from '~components/layout/NavigationLink'
 
@@ -14,16 +15,17 @@ import navigationMessages from '~data/intl/messages/navigation'
 */
 function ConversationsNavigationLink() {
   const { formatMessage } = useIntl()
+  const organizationSlug = useCurrentOrganizationSlug()
   const awaitingAnswerIds = useConversationsAwaitingAnswer()
   const count = awaitingAnswerIds.length
 
   return (
     <NavigationLink
-      path="/conversations"
+      path={`/${organizationSlug}/conversations`}
       isNested
       label={formatMessage(navigationMessages.conversations)}
       icon={<MessagesSquareIcon />}
-      link={{ to: '/conversations' }}
+      link={{ to: '/$organizationSlug/conversations', params: { organizationSlug } }}
       badge={
         count ? { count, label: formatMessage(navigationMessages.conversationsAwaitingAnswer, { count }) } : undefined
       }

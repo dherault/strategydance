@@ -33,6 +33,7 @@ import useKnowledgeDocumentPresence from '~hooks/knowledge/useKnowledgeDocumentP
 import useKnowledgeDocumentSaver from '~hooks/knowledge/useKnowledgeDocumentSaver'
 import useKnowledgeDocumentSync from '~hooks/knowledge/useKnowledgeDocumentSync'
 import useLiveKnowledgeDocument from '~hooks/knowledge/useLiveKnowledgeDocument'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useUser from '~hooks/user/useUser'
 
 import createId from '~utils/common/createId'
@@ -96,6 +97,7 @@ type Props = {
 function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument, draftAspect }: Props) {
   const { formatMessage, formatList, locale } = useIntl()
   const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
   const queryClient = useQueryClient()
   const now = useNow()
   const { data: viewer } = useAuthentication()
@@ -152,8 +154,8 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     onCreated: () => {
       setIsStored(true)
       navigate({
-        to: '/knowledge/$documentId',
-        params: { documentId },
+        to: '/$organizationSlug/knowledge/$documentId',
+        params: { organizationSlug, documentId },
         search: {},
         replace: true,
         resetScroll: false,
@@ -315,7 +317,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
       return
     }
 
-    navigate({ to: '/knowledge' })
+    navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })
     toast(formatMessage(knowledgeMessages.deleted, { title: deletedTitle }), {
       action: {
         label: formatMessage(knowledgeMessages.undo),
@@ -376,7 +378,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate({ to: '/knowledge' })}
+              onClick={() => navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })}
             >
               {formatMessage(knowledgeMessages.goToAll)}
             </Button>

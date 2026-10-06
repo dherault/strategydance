@@ -89,7 +89,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
-| `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. How a conversation is written until its page has a composer. `--organization <id>` names the organization when the account is in several |
+| `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. How a conversation is written until its page has a composer. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run backfill:organization-slugs [--apply]` | Gives every organization without a slug one, in the emulators: a dry run, or the writes with `--apply`. `--production`, run from the backend's package without the emulator variable, aims it at the real database, and its header says how |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -112,7 +113,8 @@ husky `pre-commit` hook only lints.
 **The `deploy:*` scripts and `bun run ship` are run by humans only.** `ship` sets the release
 pull request to merge itself once CI passes, a merge into `main` deploys the release by itself,
 and a migration that stops it waits for a human to read its SQL, as
-[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says.
+[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says. So is any script run
+with `--production`, `backfill:organization-slugs` among them: it writes the real database.
 
 Two things are generated and never edited by hand.
 `packages/strategydance-web/src/routeTree.gen.ts` is written by the TanStack Router plugin on
@@ -200,7 +202,10 @@ waits on.
 
 ### Where a provider is mounted
 
-Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not.
+Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not. A provider
+that reads the router goes in `InnerWrap` beside it, which is inside the router's context and
+still above the document shell: `_CurrentOrganizationProvider`, which reads the organization off
+the path.
 
 `Wrap` sits above the document shell, so anything mounted there that withholds its children
 replaces the whole document, `<Scripts />` included. The page then has no client bundle to boot
@@ -338,6 +343,12 @@ only way the app talks to them.
 - Server values over variables wherever the server knows better: `id_expr: "auth.uid"`,
   `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`. A client that fills these
   in can write a row as somebody else
+- `Organization.slug` leads its pages' paths. The browser draws it at creation, from the name
+  and four random characters (strategydance-core's `createOrganizationSlug`), the column's unique
+  index refuses one another organization holds, and it never changes, so a link to an
+  organization outlives a rename. An organization made before slugs has none until
+  `backfill:organization-slugs` gives it one, and is addressed by its id meanwhile. The UUID stays
+  the key everywhere else: the database, the backend's routes and Storage's paths
 - An operation gains a variable without a breaking connector change by making it optional, which
   a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
   vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses
@@ -458,8 +469,8 @@ A conversation is kept twice, once for Claude and once for the page, and
   run it started, so a Retry deletes a run's messages but that one
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
-  every page under `/conversations/` sits behind the bouncer its layout route mounts. Locally,
-  `bun run grant:administrator` makes an account staff
+  every page under an organization's `conversations/` sits behind the bouncer its layout route
+  mounts. Locally, `bun run grant:administrator` makes an account staff
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task
@@ -474,10 +485,27 @@ the days it is used on go uncounted.
 ### Routing
 
 The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the
-root with the public ones: `/today` beside `/legal`. A page there takes a name no public page
-has. Two static routes at one path fail the build ("Conflicting configuration paths"), but a
-static route outranks a dynamic segment silently, so a `$param` never sits at the root: the
-aspects are under `/aspects/`, where the public `/legal` cannot hide the Legal aspect.
+root with the public ones: `/account` beside `/legal`. A page there takes a name no public page
+has. Two static routes at one path fail the build ("Conflicting configuration paths").
+
+An organization's pages sit under the segment its paths lead with, `$organizationSlug`, as in
+`/strategy-dance-ad34/today`: its slug, or its id while it has none. That dynamic segment is the
+one at the root, and a static route outranks it silently, so an organization whose slug was a
+page's name could never be reached. A slug always ends in a dash and four letters or digits,
+which no page's name does, and `routeTree.test.ts` fails the day one does: name a page at the
+root accordingly. Any other `$param` stays off the root, as the aspects sit under an
+organization's `aspects/`. A first segment that can be neither a slug nor an id is the app's not
+found page, before anything asks the reader to sign in.
+
+The path says which organization is current: `_CurrentOrganizationProvider` reads it, and
+remembers the last one opened for the pages outside any organization, the account and the
+administration, and for `/today`, which stays as the landing every "go home" leads to and sends
+the reader on to that organization's today. A link to an organization's page takes its segment
+from `useCurrentOrganizationSlug`. Switching organization is a navigation, to the same page in the
+other one (`useSwitchOrganization`), a document or a conversation back to its list. A path
+naming an organization the reader is not in is the organization not found page, inside the app's
+frame, and one whose organization goes while its page is open, deleted or the reader removed,
+moves the reader on instead: `CurrentOrganizationBouncer` decides both.
 
 No path prefix marks a page as authenticated, so code that needs to know asks the question it
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in

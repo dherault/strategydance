@@ -7,6 +7,8 @@ import { CompanyAspectIcon } from 'strategydance-design-system/components/compan
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+
 import toAspectSlug from '~utils/company/toAspectSlug'
 
 import aspectMessages from '~data/intl/aspectMessages'
@@ -43,6 +45,7 @@ type Props = {
 */
 function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
   const { formatMessage } = useIntl()
+  const organizationSlug = useCurrentOrganizationSlug()
 
   const body = (
     <>
@@ -71,8 +74,8 @@ function ExploreAspectCard({ aspect, isExplored, isDisabled, onStart }: Props) {
   if (isExplored) {
     return (
       <Link
-        to="/aspects/$aspect"
-        params={{ aspect }}
+        to="/$organizationSlug/aspects/$aspect"
+        params={{ organizationSlug, aspect }}
         className={cn(
           cardClassName,
           'group border-neutral-200 text-inherit no-underline hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',

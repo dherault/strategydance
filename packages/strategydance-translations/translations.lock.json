@@ -2395,6 +2395,18 @@
         "hash": "b689838dc779576f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.organizationNotFoundAction": {
+        "hash": "3f3cf5b13345aa14",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationNotFoundText": {
+        "hash": "22080214a5d4be85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.organizationNotFoundTitle": {
+        "hash": "2eb2eb5372292789",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.organizations": {
         "hash": "3064d4491394ac6c",
         "locales": "DE,ES,FR,JA,PT,ZH"

@@ -41,6 +41,7 @@
   "conversation.missingText": "Sie wurde gelöscht oder der Link ist veraltet.",
   "conversation.missingTitle": "Diese Unterhaltung existiert nicht mehr",
   "conversation.needsAnswer": "Wartet auf deine Antwort",
+  "conversation.new": "Neue Unterhaltung",
   "conversation.newTitle": "Neue Unterhaltung",
   "conversation.notSaved": "Wird erst gespeichert, wenn du eine Nachricht sendest",
   "conversation.note.failed": "Etwas ist schiefgelaufen und diese Antwort wurde abgebrochen.",

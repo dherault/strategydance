@@ -41,6 +41,7 @@
   "conversation.missingText": "削除されたか、リンクが無効になっています。",
   "conversation.missingTitle": "この会話は存在しません",
   "conversation.needsAnswer": "要回答",
+  "conversation.new": "新しい会話",
   "conversation.newTitle": "新しい会話",
   "conversation.notSaved": "メッセージを送信するまで保存されません",
   "conversation.note.failed": "問題が発生したため、応答が停止しました。",

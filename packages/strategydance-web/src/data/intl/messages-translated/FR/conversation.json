@@ -41,6 +41,7 @@
   "conversation.missingText": "Elle a été supprimée ou le lien est obsolète.",
   "conversation.missingTitle": "Cette conversation n'existe plus",
   "conversation.needsAnswer": "Attend votre réponse",
+  "conversation.new": "Nouvelle conversation",
   "conversation.newTitle": "Nouvelle conversation",
   "conversation.notSaved": "Non enregistré tant que vous n'envoyez pas de message",
   "conversation.note.failed": "Une erreur est survenue et cette réponse s'est arrêtée.",

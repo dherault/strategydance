@@ -1389,6 +1389,10 @@
         "hash": "ae937983da267d2b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.new": {
+        "hash": "dce5e907b92308e0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.newTitle": {
         "hash": "f928f30cc43b5189",
         "locales": "DE,ES,FR,JA,PT,ZH"

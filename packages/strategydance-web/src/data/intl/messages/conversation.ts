@@ -26,6 +26,11 @@ const conversationMessages = defineMessages({
     description:
       "Line under the title of the Conversations page's empty state. Strategy Dance is the product's name, and the name of its AI.",
   },
+  new: {
+    id: 'conversation.new',
+    defaultMessage: 'New conversation',
+    description: 'Button that starts a new conversation with the AI, on the page that lists them.',
+  },
   loadError: {
     id: 'conversation.loadError',
     defaultMessage: 'Your conversations could not be loaded. Check your connection and try again.',

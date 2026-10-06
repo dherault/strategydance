@@ -41,6 +41,7 @@
   "conversation.missingText": "Se eliminó o el enlace está desactualizado.",
   "conversation.missingTitle": "Esta conversación ya no existe",
   "conversation.needsAnswer": "Necesita tu respuesta",
+  "conversation.new": "Nueva conversación",
   "conversation.newTitle": "Nueva conversación",
   "conversation.notSaved": "No se guarda hasta que envíes un mensaje",
   "conversation.note.failed": "Algo salió mal y se detuvo esta respuesta.",

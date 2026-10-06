@@ -49,11 +49,15 @@ type Props = {
   and attachments come later.
 
   Nothing is sent while a run goes, nor once the conversation is full, though the reader can
-  write meanwhile. The run a send started counts as going from the moment the backend answers,
-  before the page's live read of it lands, so a second send never races it. A send that fails keeps its words in the field, and says why. Sending the same
-  words again sends them under the same message's id, so a send that did reach the backend, and
-  only lost its answer, is stored once. Words changed since are a new message, with an id of its
-  own, rather than a retry the backend would answer with the first words.
+  write meanwhile. A first send's run counts as going from the moment the backend answers, before
+  the page's live read of it lands, so a second send never races it.
+
+  A send that fails keeps its words in the field, and says why. Sending the same words again sends
+  them under the same message's id, so a send that did reach the backend, and only lost its answer,
+  is stored once. Words changed since are a new message, with an id of its own, rather than a retry
+  the backend would answer with the first words. A retry's answer is not waited on: it can name the
+  run the first send started, older than one another tab has started since, which the read would
+  never move on from. Only a message's first send is sure to start a run newer than any read
 
   It is the last thing on its page, so a draft keeps it, and what is written in it, when its first
   message stores it
@@ -78,7 +82,8 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
     if (!canSend) return
 
     const sentValue = text
-    const messageId = failedSend?.text === trimmedText ? failedSend.messageId : createId()
+    const isRetry = failedSend?.text === trimmedText
+    const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
 
     setIsSending(true)
@@ -90,7 +95,7 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
       // What was written while it went is the reader's next message
       setText(current => (current === sentValue ? '' : current))
       setFailedSend(null)
-      setStartedRun({ runId, previousRunId })
+      setStartedRun(isRetry ? null : { runId, previousRunId })
       textareaRef.current?.focus()
       // The thread follows what lands while the reader is at its foot, their own message included
       window.scrollTo({ top: document.documentElement.scrollHeight })

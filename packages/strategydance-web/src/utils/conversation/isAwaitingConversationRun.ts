@@ -1,6 +1,7 @@
 import type { ConversationRun } from '~types'
 
-// A run a send started, before the page's read of the latest run has shown it
+// The run a message's first send started, before the page's read of the latest run has shown it.
+// A first send always starts a run of its own, the conversation's latest, which the read moves to
 export type StartedConversationRun = {
   runId: string
   // The latest run the page had read when the send went, or null before the first

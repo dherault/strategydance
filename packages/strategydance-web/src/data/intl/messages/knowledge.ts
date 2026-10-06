@@ -6,12 +6,6 @@ import { defineMessages } from 'react-intl'
   an item here, since it can be a note, a plan or a decision
 */
 const knowledgeMessages = defineMessages({
-  eyebrow: {
-    id: 'knowledge.eyebrow',
-    defaultMessage: 'What your company knows',
-    description:
-      'Small uppercase label above the title of the Knowledge page, which lists everything the team wrote down about its company.',
-  },
   lead: {
     id: 'knowledge.lead',
     defaultMessage: '{count, plural, one {# item} other {# items}} across your aspects',

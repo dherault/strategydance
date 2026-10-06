@@ -62,7 +62,6 @@ function KnowledgeDocuments() {
   return (
     <ContainerLayout className="gap-8">
       <PageHeader
-        eyebrow={formatMessage(knowledgeMessages.eyebrow)}
         title={formatMessage(navigationMessages.knowledge)}
         lead={
           knowledgeDocuments.length

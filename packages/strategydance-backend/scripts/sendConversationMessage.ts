@@ -9,7 +9,7 @@ import { authentication, dataConnect } from '~firebase'
   Sends a message to a conversation through the backend, as the page's composer will, in
   development:
 
-    bun run send:conversation <email> [--organization <id>] [--conversation <id>] <text>
+    bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] <text>
 
   It signs in to the Auth emulator as the account with that address, which has to have signed in
   to the app once and be staff (`bun run grant:administrator <email>`), and sends the text to the
@@ -27,7 +27,7 @@ if (!process.env.FIREBASE_AUTH_EMULATOR_HOST || !process.env.DATA_CONNECT_EMULAT
   process.exit(1)
 }
 
-const USAGE = 'Usage: bun run send:conversation <email> [--organization <id>] [--conversation <id>] <text>'
+const USAGE = 'Usage: bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] <text>'
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -63,25 +63,40 @@ async function findUserId() {
   }
 }
 
-async function findOrganizationId(userId: string) {
+// The organization, with what its pages' paths lead with: its slug, or its id while it has none
+async function findOrganization(userId: string) {
   const { data } = await dataConnect.executeGraphql<
-    { userOrganizations: { organizationId: string; organization: { name: string } }[] },
+    { userOrganizations: { organizationId: string; organization: { name: string; slug: string | null } }[] },
     { userId: string }
   >(
     `query ReadMemberships($userId: String!) {
-      userOrganizations(where: { userId: { eq: $userId } }) { organizationId organization { name } }
+      userOrganizations(where: { userId: { eq: $userId } }) { organizationId organization { name slug } }
     }`,
     { variables: { userId } },
   )
   const memberships = data.userOrganizations
+  const named = values.organization
+  const membership = named
+    ? memberships.find(
+        ({ organizationId, organization }) =>
+          organizationId === named.replaceAll('-', '').toLowerCase() || organization.slug === named,
+      )
+    : memberships.length === 1
+      ? memberships[0]
+      : undefined
 
-  if (values.organization) return values.organization
+  if (named && !membership) {
+    console.error(`${email} is not a member of ${named}`)
+    process.exit(1)
+  }
 
-  if (memberships.length === 1 && memberships[0]) return memberships[0].organizationId
+  if (membership) {
+    return { id: membership.organizationId, pathSegment: membership.organization.slug ?? membership.organizationId }
+  }
 
   console.error(
     memberships.length
-      ? `${email} belongs to several organizations: name one with --organization\n${memberships.map(({ organizationId, organization }) => `  ${organizationId}  ${organization.name}`).join('\n')}`
+      ? `${email} belongs to several organizations: name one with --organization\n${memberships.map(({ organizationId, organization }) => `  ${organization.slug ?? organizationId}  ${organization.name}`).join('\n')}`
       : `${email} belongs to no organization yet`,
   )
   process.exit(1)
@@ -107,7 +122,7 @@ async function signIn(userId: string) {
 }
 
 const userId = await findUserId()
-const organizationId = await findOrganizationId(userId)
+const { id: organizationId, pathSegment } = await findOrganization(userId)
 const conversationId = values.conversation ?? createId()
 const idToken = await signIn(userId)
 
@@ -125,6 +140,6 @@ try {
 }
 
 console.log(`${response.status} ${JSON.stringify(await response.json())}`)
-console.log(`${DEVELOPMENT_APP_URL}/conversations/${conversationId}`)
+console.log(`${DEVELOPMENT_APP_URL}/${pathSegment}/conversations/${conversationId}`)
 
 if (!response.ok) process.exit(1)

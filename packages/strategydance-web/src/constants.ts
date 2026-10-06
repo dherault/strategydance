@@ -44,9 +44,16 @@ export const MESSAGE_TYPES = [
 
 export const LOCAL_STORAGE_PREFIX = 'strategydance:'
 
+// The page a signed-out reader asked for, kept while they sign in
+export const REDIRECT_PATH_STORAGE_KEY = `${LOCAL_STORAGE_PREFIX}redirectPath`
+
 /* ---
   AUTHENTICATION
 --- */
+
+// How long the page a signed-out reader asked for waits for them to sign in: long enough to reset
+// a password from its email, short enough that whoever signs in on that browser later starts on Today
+export const REDIRECT_PATH_LIFETIME_MS = 60 * 60 * 1000
 
 export const MIN_PASSWORD_LENGTH = 8
 

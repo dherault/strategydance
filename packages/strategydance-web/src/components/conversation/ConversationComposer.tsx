@@ -13,6 +13,7 @@ import createId from '~utils/common/createId'
 import getConversationSendFailure, {
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
+import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
 
@@ -48,7 +49,8 @@ type Props = {
   and attachments come later.
 
   Nothing is sent while a run goes, nor once the conversation is full, though the reader can
-  write meanwhile. A send that fails keeps its words in the field, and says why. Sending the same
+  write meanwhile. The run a send started counts as going from the moment the backend answers,
+  before the page's live read of it lands, so a second send never races it. A send that fails keeps its words in the field, and says why. Sending the same
   words again sends them under the same message's id, so a send that did reach the backend, and
   only lost its answer, is stored once. Words changed since are a new message, with an id of its
   own, rather than a retry the backend would answer with the first words.
@@ -64,10 +66,12 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
   const [isSending, setIsSending] = useState(false)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
   const [failedSend, setFailedSend] = useState<FailedSend | null>(null)
+  const [startedRun, setStartedRun] = useState<StartedConversationRun | null>(null)
 
   const trimmedText = text.trim()
   const isFull = conversation ? conversation.isFull || conversation.messageCount >= MAX_CONVERSATION_MESSAGES : false
-  const canSend = !!trimmedText && !isSending && !isConversationRunGoing(run) && !isFull
+  const isRunGoing = isConversationRunGoing(run) || isAwaitingConversationRun(startedRun, run)
+  const canSend = !!trimmedText && !isSending && !isRunGoing && !isFull
   const shownFailure = isFull ? 'full' : failure
 
   async function send() {
@@ -75,16 +79,18 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
 
     const sentValue = text
     const messageId = failedSend?.text === trimmedText ? failedSend.messageId : createId()
+    const previousRunId = run?.id ?? null
 
     setIsSending(true)
     setFailure(null)
 
     try {
-      await sendConversationMessage({ conversationId, messageId, text: trimmedText })
+      const { runId } = await sendConversationMessage({ conversationId, messageId, text: trimmedText })
 
       // What was written while it went is the reader's next message
       setText(current => (current === sentValue ? '' : current))
       setFailedSend(null)
+      setStartedRun({ runId, previousRunId })
       textareaRef.current?.focus()
       // The thread follows what lands while the reader is at its foot, their own message included
       window.scrollTo({ top: document.documentElement.scrollHeight })

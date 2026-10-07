@@ -505,10 +505,11 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   the same lock, per member and organization, and is refused past it with a result saying so (see
   Modules).
 - Every operation that changes what a live query shows is named in its `@refresh`. The Knowledge
-  module's writes are added to `GetOrganizationDocuments`' refreshes (creating, renaming, tagging,
-  deleting and restoring) and to `GetLiveDocument`'s, on the document's id, so an open editor sees
-  the revision move, whichever agent made the edit; the agent's top priority writes go to
-  `GetOrganizationTeam`'s.
+  module's writes are added to `GetOrganizationDocuments`' refreshes when they change what a card
+  shows (creating, renaming, tagging, deleting and restoring, and a fold only when it carries a
+  title; never a fold of the text alone, as no member's save is) and to `GetLiveDocument`'s, on the
+  document's id, so an open editor sees the revision move, whichever agent made the edit; the
+  agent's top priority writes go to `GetOrganizationTeam`'s.
 
 ### A run
 
@@ -1080,11 +1081,13 @@ agents in M18:
   day ago only when somebody deletes another, so a deleted document could linger and be restored
   long after. From M14 the daily sweeper prunes them too, and `restore_document` refuses one deleted
   over a day ago, so the result's promise, Undo and the agent's restore all mean one day.
-- **Writes go through the same operations' rules as the page's**: backend-connector operations
-  named `…ForAgent`, as `SetTopPriorityForAgent` is, each checking the membership, `deletedAt` and
-  the AI permissions, the creates and restores holding the knowledge cap under the organization's
-  lock, and named in `GetOrganizationDocuments`' and `GetLiveDocument`'s refreshes (see Who writes
-  what).
+- **Writes go through the same operations' rules as the page's**: backend-connector operations named
+  `…ForAgent`, as `SetTopPriorityForAgent` is, each checking the membership, `deletedAt` and the AI
+  permissions, the creates and restores holding the knowledge cap under the organization's lock, and
+  each named in `GetLiveDocument`'s refreshes, and in `GetOrganizationDocuments`' only when it
+  changes what a card shows, as the list asks of every mutation: a create, a rename, aspects, a
+  delete or a restore, and a fold only when it carries a title, a condition on its `title` variable,
+  so an agent's writing pushes the whole list to nobody (see Who writes what).
 
 **Idempotent writes.** MCP has no idempotency key (the specification's issue #3394 asks for one),
 so a write retried by a client that lost its answer would land twice. Every write tool takes one in

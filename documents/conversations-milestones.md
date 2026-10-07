@@ -501,14 +501,15 @@ it yet, and Claude Code reaches it locally over stdio.
   external caller only.
 - Backend-connector operations, named `…ForAgent`: search candidates, list, read one (title,
   aspects, AI permissions, `revision`, `state`, its pending updates and `content`), create, fold,
-  retried on a moved revision three times at most (the shared text with `content` and
-  `contentText`, the title, in one write of the row), set aspects, delete and restore. Each is
-  guarded on the membership and its `membershipCreatedAt`, `deletedAt`, `isAiReadable` and, for
-  writes, `isAiWritable`, and for delete and restore on both; each write is an `@transaction`
-  inserting its `ModuleCallResult` first when it carries a key; and each is named in
-  `GetOrganizationDocuments`' refreshes and `GetLiveDocument`'s. A delete prunes the organization's
-  documents deleted over a day ago, as `DeleteDocument` does, and a restore refuses a document
-  deleted over a day ago.
+  retried on a moved revision three times at most (the shared text with `content` and `contentText`,
+  the title, in one write of the row), set aspects, delete and restore. Each is guarded on the
+  membership and its `membershipCreatedAt`, `deletedAt`, `isAiReadable` and, for writes,
+  `isAiWritable`, and for delete and restore on both; each write is an `@transaction` inserting its
+  `ModuleCallResult` first when it carries a key; and each is named in `GetLiveDocument`'s
+  refreshes, and in `GetOrganizationDocuments`' only when it changes what a card shows: the create,
+  the aspects, the delete and the restore, and the fold on a condition that it carries a title,
+  never a fold of the text alone. A delete prunes the organization's documents deleted over a day
+  ago, as `DeleteDocument` does, and a restore refuses a document deleted over a day ago.
 - **`ModuleCallResult`**, keyed on its scope and key, as Modules § Idempotent writes describes. The
   daily sweeper deletes the expired rows, and prunes documents deleted over a day ago in every
   organization, so a day means a day whether or not anybody deletes another.

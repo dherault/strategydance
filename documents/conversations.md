@@ -1066,8 +1066,10 @@ agents in M18:
   may read reach that agent's provider. Members decide which agents they connect, as David chose on
   2026-10-07, and no organization setting governs it; the legal review before M28 names it.
 - **Addresses.** An external agent's results carry each document's web address,
-  `https://strategydance.com/<organization slug>/knowledge/<id>`. Strategy Dance's agent's carry
-  none, since it links with `doc:` (see The agent).
+  `https://strategydance.com/<organization>/knowledge/<id>`, where `<organization>` is the segment
+  the app's paths lead with: the organization's slug, or its id while it has none, as
+  `toOrganizationPathSegment` writes it. Strategy Dance's agent's carry none, since it links with
+  `doc:` (see The agent).
 - **A day means a day.** Today `DeleteDocument` prunes the organization's documents deleted over a
   day ago only when somebody deletes another, so a deleted document could linger and be restored
   long after. From M14 the daily sweeper prunes them too, and `restore_document` refuses one deleted

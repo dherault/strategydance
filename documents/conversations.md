@@ -551,8 +551,13 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   then queues a run whose task is gone again while the run is under twenty minutes old, pushing its
   lease back, and the page asks every two minutes while it fails, so a passing outage recovers
   with nothing asked of the member. Past twenty minutes, a run with no task is finalized as
-  interrupted. A task name stays taken for about an hour after its task ends, so queueing a run
-  whose task has come and gone reads as `ALREADY_EXISTS`, and the next reconcile finds no task.
+  interrupted. A task name stays taken for up to 24 hours after its task ends (Cloud Tasks'
+  `CreateTask` reference), so queueing a run whose task has come and gone reads as `ALREADY_EXISTS`,
+  and the next reconcile finds no task and, the run being older by then, finalizes it. That is
+  rare: the worker claims a queued run it is delivered, so a young queued run with no task is
+  almost always one whose task was never created, whose name is free. Telling a taken name from a
+  task another tab created a moment before is not possible, so `ALREADY_EXISTS` is never read as
+  gone.
 - **Which failures are unclear**, and asked again under the same name, up to three tries:
   `DEADLINE_EXCEEDED`, `UNAVAILABLE`, `UNKNOWN`, `INTERNAL`, `ABORTED`, and an error with no code,
   a connection lost. Anything else, `PERMISSION_DENIED` or a queue `NOT_FOUND` say, is definite.

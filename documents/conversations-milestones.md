@@ -61,7 +61,7 @@ before their neighbours.
 | M11 | Questions | backend, database, web | M10 | |
 | M12 | Searching conversations | backend, database, web | M8, M9 | |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |
-| M14 | The Knowledge module | database, core, backend, web | M12, M13 | |
+| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
 | M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
 | M16 | The authorization server | backend, database, core | M14 | |
 | M17 | The consent page and Connected agents | web, backend, database, root | M16 | |

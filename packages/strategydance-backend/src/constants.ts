@@ -51,7 +51,8 @@ export const WORKER_URL = `https://strategydance-worker-${GOOGLE_CLOUD_PROJECT_N
 */
 export const CONVERSATION_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/conversation-runs`
 
-// Who Cloud Tasks and Cloud Scheduler call the worker as, the only account that may invoke it
+// Who Cloud Tasks and Cloud Scheduler call the worker as, the one account granted the invoker role
+// on it. The project's owners and `deployer` can call it too, as they can any service there
 export const CONVERSATION_TASKS_SERVICE_ACCOUNT = 'conversation-tasks@strategydance.iam.gserviceaccount.com'
 
 /*

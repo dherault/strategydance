@@ -27,7 +27,8 @@ type Options = {
 
   - the backend, public, answers the browser: every route but the internal ones
   - the worker, private, answers Google Cloud: the internal routes, which Cloud Tasks and Cloud
-    Scheduler call, and nothing else. Cloud Run lets only their service account invoke it
+    Scheduler call, and nothing else. Their service account is the one granted the invoker role
+    on it, and Cloud Run refuses anybody without Cloud Run's invoke permission
 
   Neither answers the other's routes, so an internal route never sits on the public service, where
   it would have to check Google's token itself.

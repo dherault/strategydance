@@ -1197,15 +1197,18 @@ consent page from M17:
     for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address with a
     path, serving the client's metadata, fetched through `fetchOutbound` with no redirect and at
     most 5 KB, a truncated body refused, valid JSON holding at least `client_id`, `client_name` and
-    `redirect_uris`, its `client_id` equal to its address, kept for an hour and a failure for a
-    minute. It is fetched only once a member has signed in, when the consent page reads the request,
-    as the specification's flow has it, so nobody who is not signed in can make the backend fetch an
-    address of their choosing. Dynamic client registration (`POST /oauth/register`, RFC 7591), which
-    the specification deprecates and Cursor still needs, takes redirect addresses on loopback only:
-    the specification requires every redirect address to be `localhost` or `https`, which rules out
-    a private-use scheme such as `cursor://`, and an `https` one from a registration would prove no
-    domain, so a client redirecting to a website proves its domain through CIMD. Registration is
-    rate-limited per address and capped in all, and one unused a day later is pruned.
+    `redirect_uris`, and `token_endpoint_auth_method: "none"`, the one method the server takes: a
+    document that omits it means `client_secret_basic`, and one may declare `private_key_jwt`, and
+    serving either as public would drop what it declared. Its `client_id` equals its address, kept
+    for an hour and a failure for a minute. It is fetched only once a member has signed in, when the
+    consent page reads the request, as the specification's flow has it, so nobody who is not signed
+    in can make the backend fetch an address of their choosing. Dynamic client registration (`POST
+    /oauth/register`, RFC 7591), which the specification deprecates and Cursor still needs, takes
+    redirect addresses on loopback only: the specification requires every redirect address to be
+    `localhost` or `https`, which rules out a private-use scheme such as `cursor://`, and an `https`
+    one from a registration would prove no domain, so a client redirecting to a website proves its
+    domain through CIMD. Registration is rate-limited per address and capped in all, and one unused
+    a day later is pruned.
   - Every parameter of an authorization or a token request may occur once: a request repeating any
     of them, `client_id`, `redirect_uri`, `scope`, `state`, `code` or a PKCE field as much as
     `response_type`, `resource` or `grant_type`, is refused, since parsers disagree on which copy
@@ -1239,14 +1242,15 @@ consent page from M17:
     loser is refused, and a denied request is never approved after. Allow then makes an
     `AgentConnection` and a code: valid for a minute, once, bound to the client, the redirect
     address, the PKCE challenge, the resource and the scopes, and consumed under `@check(this ==
-    1)`; a code presented again revokes what was issued from it. The browser goes back to the
-    client's redirect address with `code`, `state` and `iss`, the exact issuer, since RFC 9207 has
-    every authorization response name it, a success as much as an error, and the metadata says it
-    does. Consenting again with the same client, organization and module replaces the earlier
-    connection, atomically: `AgentConnection` is unique on its membership, its client and its
-    module, and Allow locks the member's membership row, deletes the earlier connection with its
-    tokens and inserts the new one in one mutation, so two consents at once leave one connection and
-    one family of tokens.
+    1)`; a code presented again revokes the whole connection with every token it holds, since the
+    tokens the code issued may have rotated already, as RFC 6749 asks of a reused code. The browser
+    goes back to the client's redirect address with `code`, `state` and `iss`, the exact issuer,
+    since RFC 9207 has every authorization response name it, a success as much as an error, and the
+    metadata says it does. Consenting again with the same client, organization and module replaces
+    the earlier connection, atomically: `AgentConnection` is unique on its membership, its client
+    and its module, and Allow locks the member's membership row, deletes the earlier connection with
+    its tokens and inserts the new one in one mutation, so two consents at once leave one connection
+    and one family of tokens.
   - `POST /oauth/token` takes exactly one `grant_type`, `authorization_code` or `refresh_token`,
     reads that grant's parameters and no other's, and refuses anything else. It exchanges the code
     for an access token, valid for an hour, and a refresh token, for 30 days: 256 random bits each,
@@ -1289,13 +1293,12 @@ consent page from M17:
   client's id and name, the module, the scopes granted, `createdAt`, `lastUsedAt`) and
   `AgentConnectionToken` (its connection, its kind, its hash, its resource, `issuedFrom`,
   `expiresAt`, `usedAt`, `successorKeyVersion`). `issuedFrom` names what a token was issued from,
-  the authorization request whose code was exchanged or the refresh token rotated, so a code
-  presented again revokes exactly what it issued, and a replayed refresh token is traced to its
-  connection. `AgentConnection` references the member's `UserOrganization` row, unlike every other
-  table, which references the account and the organization apart: a connection belongs to the
-  membership, so removing the member or deleting the organization deletes it with its tokens, and a
-  member invited back connects again. The verifier still checks the membership and the staff gate on
-  every request.
+  the authorization request whose code was exchanged or the refresh token rotated, so a replayed
+  refresh token is traced to its connection, as a reused code is to the request it was issued for.
+  `AgentConnection` references the member's `UserOrganization` row, unlike every other table, which
+  references the account and the organization apart: a connection belongs to the membership, so
+  removing the member or deleting the organization deletes it with its tokens, and a member invited
+  back connects again. The verifier still checks the membership and the staff gate on every request.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
   by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
   `DeleteOrganization` for every reader, since it names only the administrator deleting and every

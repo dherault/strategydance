@@ -641,7 +641,8 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   page reads it; the metadata exactly as Modules lists it, every field RFC 8414 requires included; a
   client ID metadata document fetched and kept, and refused when its `client_id` differs from its
   address, when its body was cut, when it redirects, when it is not valid JSON or lacks `client_id`,
-  `client_name` or `redirect_uris`, and when the client ID has no path; any parameter repeated in an
+  `client_name` or `redirect_uris`, when the client ID has no path, and when it declares a token
+  endpoint authentication other than `none` or none at all; any parameter repeated in an
   authorization or a token request refused, `state` and `code_verifier` among them; a registration
   with an `https` redirect or a private-use one such as `cursor://` refused, and a loopback one
   accepted; a loopback redirect matching on any port, and every other one exactly; an error before
@@ -653,23 +654,24 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   missing `resource`, or naming another than its code's or its refresh token's, refused; an exchange
   missing its `client_id` or its `redirect_uri`, or naming another client or address than its
   code's, refused, and a refresh from another client than its token's refused; a `plain` challenge
-  and a wrong verifier refused; a code used twice refused, the second use revoking what the first
-  issued, and a code past its minute refused; a token for one module refused for another; a refresh
-  rotating; the spent token presented again within 30 seconds answered with the very pair its first
-  use issued, however many times and in whichever order the answers return, and presented after 30
-  seconds revoking the connection; the two successors of one spent token differing; a duplicate
-  across a rotation of the secret, served by an instance holding the newer version, answered with
-  the first use's pair; consenting again replacing the earlier connection and its tokens, and two
-  approvals at once for one client, organization and module leaving one connection; Allow sent twice
-  making one connection and one code, an Allow racing a Deny deciding the request once, and a denied
-  request refused by a later Allow; a code presented again revoking the tokens it issued and leaving
-  another connection's alone; approving refused for an account that is not staff and for an
-  organization it is not in; removing the member deleting the connection with its tokens; a revoked
-  token refused; an access token presented to the refresh grant refused, and a refresh token to the
-  verifier; every token answer carrying `Cache-Control: no-store` and `Pragma: no-cache`;
-  `response_type` missing, repeated or other than `code` refused; `grant_type` missing, repeated or
-  unknown refused, and a code exchange carrying a refresh token's parameters reading none of them; a
-  revocation naming another client than the token's refused, the connection left as it was.
+  and a wrong verifier refused; a code used twice refused, the second use revoking the connection
+  with all its tokens, after the first use's refresh token has rotated too, and a code past its
+  minute refused; a token for one module refused for another; a refresh rotating; the spent token
+  presented again within 30 seconds answered with the very pair its first use issued, however many
+  times and in whichever order the answers return, and presented after 30 seconds revoking the
+  connection; the two successors of one spent token differing; a duplicate across a rotation of the
+  secret, served by an instance holding the newer version, answered with the first use's pair;
+  consenting again replacing the earlier connection and its tokens, and two approvals at once for
+  one client, organization and module leaving one connection; Allow sent twice making one connection
+  and one code, an Allow racing a Deny deciding the request once, and a denied request refused by a
+  later Allow; a code presented again leaving another connection's tokens alone; approving refused
+  for an account that is not staff and for an organization it is not in; removing the member
+  deleting the connection with its tokens; a revoked token refused; an access token presented to the
+  refresh grant refused, and a refresh token to the verifier; every token answer carrying
+  `Cache-Control: no-store` and `Pragma: no-cache`; `response_type` missing, repeated or other than
+  `code` refused; `grant_type` missing, repeated or unknown refused, and a code exchange carrying a
+  refresh token's parameters reading none of them; a revocation naming another client than the
+  token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

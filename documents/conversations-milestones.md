@@ -550,9 +550,11 @@ it yet, and Claude Code reaches it locally over stdio.
   aspects replaced, and a repeated one refused; a delete refused when AI may read but not change,
   and when it may change but not read; a restore at the cap refused, and one past a day refused; an
   external caller's results carrying addresses, by its id for an organization without a slug, and
-  the agent's none; a caller without the write scope refused by every write tool, nothing written; a
-  removed member's call refused, and so is one carrying the `membershipCreatedAt` of a membership
-  since ended, after the member was invited back.
+  the agent's none; a caller without the write scope refused by every write tool, nothing written;
+  an argument past its schema's bound, a 101-character query say, answered as an `isError` result
+  the model can read, as the SDK turns a failed input validation into one; a removed member's call
+  refused, and so is one carrying the `membershipCreatedAt` of a membership since ended, after the
+  member was invited back.
 - Verify: with `bun run mcp:knowledge` added to Claude Code locally, search, list and read; with a
   document open in a tab, have Claude Code write into it and watch the edit arrive while you type
   elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write

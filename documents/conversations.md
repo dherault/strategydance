@@ -1249,11 +1249,12 @@ consent page from M17:
     or proxy keeps a token. A token works only as what it is: the verifier takes an unexpired access
     token alone, so a refresh token is never a bearer token, and the refresh grant a refresh token
     alone.
-  - A refresh rotates: the spent token is kept with `usedAt`, and the pair it was spent for is
-    linked to it. Within 30 seconds of its rotation, the spent token is honoured once more, since a
-    client whose answer was lost knows no other: it issues a new pair, and the pair issued before
-    stops refreshing, so a retry recovers and two refreshes at once leave one pair that refreshes.
-    Presented after that, or a third time, it revokes the connection, in a second mutation since a
+  - A refresh rotates: the spent token is kept with `usedAt`, and its successors are derived from
+    it, an HMAC of the spent token under a server secret (`oauth-token-secret`, read through
+    `retrieveSecret`). Presented again within 30 seconds of its rotation, as by a client whose
+    answer was lost or by two refreshes at once, it is answered with the very same pair, recomputed,
+    so whichever answer arrives last, the client holds tokens that work, and nothing but hashes is
+    ever stored. Presented after that, it revokes the connection, in a second mutation since a
     failed check rolls back the first: whoever holds it is replaying a token somebody else already
     used. `POST /oauth/revoke` follows RFC 7009: the request names its `client_id`, every client
     being public, and a token issued to another client is refused rather than revoked, so no client
@@ -1272,12 +1273,11 @@ consent page from M17:
   `AgentConnectionToken` (its connection, its kind, its hash, its resource, `issuedFrom`,
   `expiresAt`, `usedAt`). `issuedFrom` names what a token was issued from, the authorization request
   whose code was exchanged or the refresh token rotated, so a code presented again revokes exactly
-  what it issued, and a spent refresh token honoured in its grace window stops exactly the pair
-  issued from it, however many exchanges run at once. `AgentConnection` references the member's
-  `UserOrganization` row, unlike every other table, which references the account and the
-  organization apart: a connection belongs to the membership, so removing the member or deleting the
-  organization deletes it with its tokens, and a member invited back connects again. The verifier
-  still checks the membership and the staff gate on every request.
+  what it issued, and a replayed refresh token is traced to its connection. `AgentConnection`
+  references the member's `UserOrganization` row, unlike every other table, which references the
+  account and the organization apart: a connection belongs to the membership, so removing the member
+  or deleting the organization deletes it with its tokens, and a member invited back connects again.
+  The verifier still checks the membership and the staff gate on every request.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
   by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
   `DeleteOrganization` for every reader, since it names only the administrator deleting and every
@@ -1476,6 +1476,11 @@ account, and until both exist every send in production answers 503.
    at 50%, 90% and 100% (done on 2026-10-04).
 9. For M25 to M27: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
+10. For M16: the secret refresh tokens' successors are derived under, 32 random bytes typed into
+    Secret Manager as `oauth-token-secret` (`openssl rand -base64 32 | gcloud secrets create
+    oauth-token-secret --data-file=- --project strategydance`), with Secret Manager's accessor role
+    on it for the runtime service account. Development uses a fixed local value. Rotating it only
+    changes what a duplicate refresh in flight is answered with.
 
 ### Cost
 

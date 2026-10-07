@@ -63,7 +63,7 @@ before their neighbours.
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
 | M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
-| M16 | The authorization server | backend, database, core, root | M14 | |
+| M16 | The authorization server | backend, database, core, root | M14, setup 10 | |
 | M17 | The consent page and Connected agents | web, backend, database, root | M16 | |
 | M18 | The Knowledge module for external agents | backend, web, root | M17 | |
 | M19 | Mentioning knowledge in the composer | web | M7, M15 | |
@@ -650,20 +650,20 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   refused, and a refresh from another client than its token's refused; a `plain` challenge and a
   wrong verifier refused; a code used twice refused, the second use revoking what the first issued,
   and a code past its minute refused; a token for one module refused for another; a refresh
-  rotating; the spent token presented again within 30 seconds issuing a new pair and stopping the
-  one issued before it, presented a third time revoking the connection, and presented after 30
-  seconds revoking it too; consenting again replacing the earlier connection and its tokens, and two
-  approvals at once for one client, organization and module leaving one connection; Allow sent twice
-  making one connection and one code, an Allow racing a Deny deciding the request once, and a denied
-  request refused by a later Allow; a refresh honoured in its grace window stopping exactly the pair
-  its spent token issued, and leaving another connection's tokens, and the same connection's other
-  pair, alone; approving refused for an account that is not staff and for an organization it is not
-  in; removing the member deleting the connection with its tokens; a revoked token refused; an
-  access token presented to the refresh grant refused, and a refresh token to the verifier; every
-  token answer carrying `Cache-Control: no-store` and `Pragma: no-cache`; `response_type` missing,
-  repeated or other than `code` refused; `grant_type` missing, repeated or unknown refused, and a
-  code exchange carrying a refresh token's parameters reading none of them; a revocation naming
-  another client than the token's refused, the connection left as it was.
+  rotating; the spent token presented again within 30 seconds answered with the very pair its first
+  use issued, however many times and in whichever order the answers return, and presented after 30
+  seconds revoking the connection; consenting again replacing the earlier connection and its tokens,
+  and two approvals at once for one client, organization and module leaving one connection; Allow
+  sent twice making one connection and one code, an Allow racing a Deny deciding the request once,
+  and a denied request refused by a later Allow; a code presented again revoking the tokens it
+  issued and leaving another connection's alone; approving refused for an account that is not staff
+  and for an organization it is not in; removing the member deleting the connection with its tokens;
+  a revoked token refused; an access token presented to the refresh grant refused, and a refresh
+  token to the verifier; every token answer carrying `Cache-Control: no-store` and `Pragma:
+  no-cache`; `response_type` missing, repeated or other than `code` refused; `grant_type` missing,
+  repeated or unknown refused, and a code exchange carrying a refresh token's parameters reading
+  none of them; a revocation naming another client than the token's refused, the connection left as
+  it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

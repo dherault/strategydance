@@ -1038,9 +1038,10 @@ Strategy Dance's, which any agent a member connected may call as that member.
   this one. Each is its own OAuth resource, so a member connects modules one by one, and a module
   that touches money later asks for its own consent.
 - **Tool names** are snake_case, letters, digits and underscores, which Claude's tool names allow
-  (`^[a-zA-Z0-9_-]{1,128}$`: no dot, though MCP allows one), and unique across modules, since
-  Strategy Dance's agent puts every module's tools in one list: a test over `MODULES` fails on a
-  clash.
+  (`^[a-zA-Z0-9_-]{1,128}$`: no dot, though MCP allows one), and unique across modules and the
+  agent's built-in tools (`web_search`, `ask_user`, `get_team` and the rest), since Strategy Dance's
+  agent puts them all in one list: a test over `MODULES` fails on a clash between modules, and one
+  over the list the agent sends on any clash at all.
 - **Each tool** has a description saying when to call it, an input schema in zod, an
   `outputSchema` with its result as `structuredContent` and the same JSON as text, as the
   specification asks for clients that read only text, and annotations: `readOnlyHint` on reads,

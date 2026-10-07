@@ -574,16 +574,16 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted. A `delete_document` row offers Restore, through
   `RestoreDocument`, while the document is deleted and the day has not passed.
-- Tests (scripted client, database mocked): the converted tools list's bytes pinned, `minLength`
-  and its kin dropped, `strict` and eager input streaming set; a module write sent with its
-  `tool_use` id as its key; a crash between the module's write and the worker recording it, the
-  next worker calling again and the write landing once, `append` included; a worker fenced out
-  during a call landing its write, and the worker that took over answered with its result; an
-  interrupted run's started write found by its key and drawn `SUCCEEDED`, and one not found
-  answered as interrupted and may have run, by the next send too; a Resume after the write had
-  landed answered from its key; a Retry writing anew under new keys; a module's `isError` sent as
-  `is_error`; consecutive reads running four at a time and writes alone, in order; the conversation
-  prune deleting its rows.
+- Tests (scripted client, database mocked): the converted tools list's bytes pinned, every name in
+  it, built-in or a module's, unique, `minLength` and its kin dropped, `strict` and eager input
+  streaming set; a module write sent with its `tool_use` id as its key; a crash between the module's
+  write and the worker recording it, the next worker calling again and the write landing once,
+  `append` included; a worker fenced out during a call landing its write, and the worker that took
+  over answered with its result; an interrupted run's started write found by its key and drawn
+  `SUCCEEDED`, and one not found answered as interrupted and may have run, by the next send too; a
+  Resume after the write had landed answered from its key; a Retry writing anew under new keys; a
+  module's `isError` sent as `is_error`; consecutive reads running four at a time and writes alone,
+  in order; the conversation prune deleting its rows.
 - Verify: with a document open in another tab, ask the agent to write a decision into it and watch
   the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it
   to create one and tag it; open both in Knowledge; ask it to delete one and restore it from the

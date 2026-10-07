@@ -12,6 +12,14 @@ export const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 // Cloud Run tells the container which port to listen on, and nothing else does
 export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
 
+/*
+  Whether this process is the worker rather than the backend: the same image, which
+  `deploy:backend` deploys a second time as `strategydance-worker` with `SERVICE=worker`. The
+  worker serves the internal routes, which Cloud Tasks and Cloud Scheduler call, and nothing else,
+  and the backend everything but them
+*/
+export const IS_WORKER = process.env.SERVICE === 'worker'
+
 /* ---
   ARCHITECTURE
 --- */

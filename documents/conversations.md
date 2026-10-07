@@ -302,7 +302,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
     result holding a NUL character could not be stored at all. So `content`, the run's `context`
     and `pendingToolResults` are `String` columns holding `JSON.stringify` of exactly what was
     sent, which escapes U+0000, and are parsed again only to be sent. A call's `toolInput` and
-    `toolOutput` are JSON text the same way, lossless, since an approval (M23) shows the member
+    `toolOutput` are JSON text the same way, lossless, since an approval (M27) shows the member
     the exact arguments that will run: the dialog draws them with control characters escaped, so
     `acct\u0000admin` reads as such rather than as `acctadmin`. A question's prompt and options and
     an answer's own words go back into the transcript from their columns, so they are refused at
@@ -312,7 +312,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
     does not count key order as an edit: a replay with a `tool_use` input's keys reordered as
     `jsonb` reorders them dropped no thinking block and read as much from the cache. JSON text
     stays for what `jsonb` would lose, a duplicate key and U+0000.
-- **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
+- **`ConversationAttachment`**, added with the attachments in M23: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
   uploaded before the conversation exists), `message` (optional, set when sent), `status`
@@ -343,7 +343,7 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
 `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
-`CONVERSATION_SUGGESTION_IDS` (M17), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
+`CONVERSATION_SUGGESTION_IDS` (M21), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
 codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 
 ### Who writes what
@@ -435,9 +435,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
   win; files and rows go only after the claim, and every sweep also finishes the conversations
   claimed before and still present, its deletions idempotent, so a prune that failed after claiming
-  is completed by the next. Until conversations keep files (M19), `StartConversation` deletes the
+  is completed by the next. Until conversations keep files (M23), `StartConversation` deletes the
   member's conversations deleted over a day ago directly, under the membership lock
-  `RestoreConversation` also takes, so the two never both win without a claim; M19 moves the prune
+  `RestoreConversation` also takes, so the two never both win without a claim; M23 moves the prune
   out to claim, files, then rows. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
@@ -705,7 +705,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
-  mutation. An approval (M23) is answered the same way.
+  mutation. An approval (M27) is answered the same way.
 - **The continuation survives a crash between the two.** Starting it is idempotent (see Consuming a
   waiting turn) and reachable from three places: the answer route right after the answer, the same
   answer sent again (it finds the answer recorded, counts none left and starts it), and the reconcile
@@ -936,13 +936,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | M14 |
 | `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, in the mutation that records the call's result. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M14 |
 | `update_knowledge` | `{ id, version?, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_knowledge` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | M14 |
-| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M16 |
-| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M16 |
-| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M16 |
+| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M20 |
+| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M20 |
+| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M20 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M11 |
-| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M23 |
-| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M23 |
-| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M23 |
+| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M27 |
+| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M27 |
+| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M27 |
 
 - Each tool's description says when to call it, which is what Opus reads to decide.
 - A result goes back as JSON, cut to 50000 characters with a note saying so. A failure goes back
@@ -1043,7 +1043,7 @@ instruction wrote into it, out from the reader's browser.
 
 ### Release gate
 
-Until M24, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M28, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -1056,13 +1056,13 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M21 and M22, the OAuth initiation included: an authorization's state only exists once a staff
+  M25 and M26, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M24.
+  caller being staff until M28.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M24 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M28 removes.
   Locally, `bun run grant:administrator <email>` makes an account staff.
 
 ### Setup
@@ -1076,8 +1076,8 @@ account, and until both exist every send in production answers 503.
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
-   file or a chat). The workspace's default inference region is the legal review's call before M24.
-   Check the organization's rate limit tier before staff use, and raise it before M24.
+   file or a chat). The workspace's default inference region is the legal review's call before M28.
+   Check the organization's rate limit tier before staff use, and raise it before M28.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -1115,13 +1115,13 @@ account, and until both exist every send in production answers 503.
      --oidc-token-audience https://strategydance-worker-995028545701.us-central1.run.app \
      --attempt-deadline 15m
    ```
-7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
+7. For M23: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
    development run cost money from the first request: the workspace's spend limit (step 1), and a
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting
    at 50%, 90% and 100% (done on 2026-10-04).
-9. For M21 to M23: a Cloud KMS key for integration secrets, with
+9. For M25 to M27: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
 
 ### Cost
@@ -1130,7 +1130,7 @@ At first-party list prices ($4 per million input tokens, $20 per million output,
 cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M24
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M28
 adds a section on it to `operations-costs.md`.
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
@@ -1146,7 +1146,7 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Spend**: nothing caps usage until credits exist; the budget alert is the guard.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
-  checked before staff use and raised before M24.
+  checked before staff use and raised before M28.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
@@ -1163,7 +1163,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   against it. BlockNote already ships a binding for y-prosemirror's second major version, which has
   no `updateYFragment`, so moving to it means writing the function again.
 - **Processing location**: the API runs inference in the workspace's default region unless a
-  request names one (`inference_geo`). The legal review before M24 picks it, and names Anthropic as
+  request names one (`inference_geo`). The legal review before M28 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
   they are deleted.
 - **Prompt injection**: knowledge, the log, the web, files and integrations carry text others wrote,
@@ -1174,7 +1174,7 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Built-in writes run without approval, by David's decision**, as the design shows, so injected
   text could get the agent to change a document the team lets AI change, or the member's priority.
   The AI permissions, the tool call row each write leaves in the thread, and the version check
-  limit it; if that proves too loose, M23's approval entry can gate built-in writes too. The text of
+  limit it; if that proves too loose, M27's approval entry can gate built-in writes too. The text of
   a document the team keeps from AI never reaches the model, so nothing injected can get it read
   out.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are

@@ -343,6 +343,7 @@ describe('sendConversationMessage', () => {
         messageCount: 0,
         isFull: false,
         deletedAt: null,
+        pruneClaimedAt: null,
         updatedAt: new Date().toISOString(),
       })
     }

@@ -138,3 +138,20 @@ describe('POST /internal/conversation-runs', () => {
     expect(fake.runs.get(reference.runId)?.status).toBe('QUEUED')
   })
 })
+
+describe('POST /internal/sweep', () => {
+  test('removes the conversations deleted over a day ago, and keeps the rest', async () => {
+    const old = await start()
+    const kept = await start()
+    const conversation = fake.conversations.get(old.conversationId)
+
+    if (conversation) conversation.deletedAt = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+
+    const response = await fetch(`${origin}/internal/sweep`, { method: 'POST' })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'success' })
+    expect(fake.conversations.has(old.conversationId)).toBe(false)
+    expect(fake.conversations.has(kept.conversationId)).toBe(true)
+  })
+})

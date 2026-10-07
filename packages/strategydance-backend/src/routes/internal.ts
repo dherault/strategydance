@@ -9,6 +9,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import validateMiddleware from '~middleware/validate'
 
+import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
 import runConversation from '~domain/conversations/runConversation'
 
 /*
@@ -65,6 +66,22 @@ function createInternalRouter() {
       response.json({ status: 'success' })
     },
   )
+
+  /* ---
+    SWEEP
+  --- */
+
+  /*
+    Removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
+    Scheduler asks once a day: today the conversations deleted over a day ago. A milestone that
+    keeps something else deleted for a while adds its prune here. Every step is idempotent, so a
+    sweep that failed is finished by the next. Takes no body
+  */
+  router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
+    await pruneDeletedConversations()
+
+    response.json({ status: 'success' })
+  })
 
   return router
 }

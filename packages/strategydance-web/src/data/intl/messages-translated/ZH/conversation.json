@@ -35,7 +35,7 @@
   "conversation.elapsedSeconds": "{seconds} 秒",
   "conversation.emptyText": "向 Strategy Dance 咨询决策、规划或下一步行动。",
   "conversation.emptyTitle": "暂无对话",
-  "conversation.lead": "与 Strategy Dance 对话。准备好迎接挑战。只有您可以查看自己的对话。",
+  "conversation.lead": "与 Strategy Dance 对话。准备好迎接挑战。",
   "conversation.loadError": "无法加载您的对话。请检查网络连接后重试。",
   "conversation.messageLoading": "正在加载此消息",
   "conversation.missingText": "该对话已被删除，或链接已失效。",

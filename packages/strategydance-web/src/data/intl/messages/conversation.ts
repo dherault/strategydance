@@ -11,7 +11,7 @@ import { defineMessages } from 'react-intl'
 const conversationMessages = defineMessages({
   lead: {
     id: 'conversation.lead',
-    defaultMessage: 'Chats with Strategy Dance. Get ready to be challenged. Only you can see your conversations.',
+    defaultMessage: 'Chats with Strategy Dance. Get ready to be challenged.',
     description:
       "Line under the title of the Conversations page, which lists the reader's private conversations with Strategy Dance, the app's AI. Strategy Dance is the product's name.",
   },

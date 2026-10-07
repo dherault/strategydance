@@ -1212,7 +1212,10 @@ consent page from M17:
     with the resource they were issued for, which the verifier compares to the endpoint's, so a
     token for one module never opens another. Every token request names its `resource` too, as the
     specification asks of clients, and is refused unless it is exactly the canonical resource the
-    code or the refresh token is bound to.
+    code or the refresh token is bound to. Every client being public, the request also names its
+    `client_id`, and an exchange the exact `redirect_uri` its authorization carried: a code is
+    refused unless both are the ones it was issued for, and a refresh unless the token was issued to
+    that client.
   - A refresh rotates: the spent token is kept with `usedAt`, and the pair it was spent for is
     linked to it. Within 30 seconds of its rotation, the spent token is honoured once more, since a
     client whose answer was lost knows no other: it issues a new pair, and the pair issued before

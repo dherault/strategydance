@@ -1188,17 +1188,17 @@ consent page from M17:
     private-use scheme only, `cursor://` say, so a client redirecting to a website proves its
     domain through CIMD. Registration is rate-limited per address and capped in all, and one
     unused a day later is pruned.
-  - `GET /oauth/authorize` checks the client, its exact redirect address (a loopback one on any
-    port, as RFC 8252 asks), PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's
-    address, and its scopes: the module's read scope, alone or with its write scope, since the
-    consent offers read, or read and write, and write never comes without read; a request naming no
-    scope asks for both. The consent never grants more than was asked: a request for read offers
-    read alone, and one for read and write lets the member reduce it to read. Until the client and
-    its redirect address are checked, an error is a page and never a redirect, so nobody can bounce
-    a browser through it; after, an error redirects with `error`, `state` and `iss` (RFC 9207). A
-    valid request is stored as an `OAuthAuthorizationRequest` for ten minutes, and the browser goes
-    to the consent page, `https://strategydance.com/oauth/consent?request=<id>`. It is rate-limited
-    per address.
+  - `GET /oauth/authorize` checks `response_type`, exactly one and `code`, the only flow it serves,
+    the client, its exact redirect address (a loopback one on any port, as RFC 8252 asks), PKCE, and
+    `resource` (RFC 8707): exactly one, canonical, a module's address, and its scopes: the module's
+    read scope, alone or with its write scope, since the consent offers read, or read and write, and
+    write never comes without read; a request naming no scope asks for both. The consent never
+    grants more than was asked: a request for read offers read alone, and one for read and write
+    lets the member reduce it to read. Until the client and its redirect address are checked, an
+    error is a page and never a redirect, so nobody can bounce a browser through it; after, an error
+    redirects with `error`, `state` and `iss` (RFC 9207). A valid request is stored as an
+    `OAuthAuthorizationRequest` for ten minutes, and the browser goes to the consent page,
+    `https://strategydance.com/oauth/consent?request=<id>`. It is rate-limited per address.
   - **The consent page**, signed in as any page of the app is, full screen, outside the app's frame,
     and framed by nothing (`frame-ancestors 'none'`, from `firebase.json`), names the client, its
     name stripped of control and direction characters and cut to 80 characters, marked unverified
@@ -1217,24 +1217,27 @@ consent page from M17:
     every authorization response name it, a success as much as an error, and the metadata says it
     does. Consenting again with the same client, organization and module replaces the earlier
     connection.
-  - `POST /oauth/token` exchanges the code for an access token, valid for an hour, and a refresh
-    token, for 30 days: 256 random bits each, opaque, stored only as a SHA-256 hash (`@unique`),
-    with the resource they were issued for, which the verifier compares to the endpoint's, so a
-    token for one module never opens another. Every token request names its `resource` too, as the
-    specification asks of clients, and is refused unless it is exactly the canonical resource the
-    code or the refresh token is bound to. Every client being public, the request also names its
-    `client_id`, and an exchange the exact `redirect_uri` its authorization carried: a code is
-    refused unless both are the ones it was issued for, and a refresh unless the token was issued to
-    that client. Every answer names the scopes granted, `scope`, which RFC 6749 asks for when they
-    differ from those asked for, as a member's reduced consent makes them, so a client never assumes
-    a write it cannot make.
+  - `POST /oauth/token` takes exactly one `grant_type`, `authorization_code` or `refresh_token`,
+    reads that grant's parameters and no other's, and refuses anything else. It exchanges the code
+    for an access token, valid for an hour, and a refresh token, for 30 days: 256 random bits each,
+    opaque, stored only as a SHA-256 hash (`@unique`), with the resource they were issued for, which
+    the verifier compares to the endpoint's, so a token for one module never opens another. Every
+    token request names its `resource` too, as the specification asks of clients, and is refused
+    unless it is exactly the canonical resource the code or the refresh token is bound to. Every
+    client being public, the request also names its `client_id`, and an exchange the exact
+    `redirect_uri` its authorization carried: a code is refused unless both are the ones it was
+    issued for, and a refresh unless the token was issued to that client. Every answer names the
+    scopes granted, `scope`, which RFC 6749 asks for when they differ from those asked for, as a
+    member's reduced consent makes them, so a client never assumes a write it cannot make.
   - A refresh rotates: the spent token is kept with `usedAt`, and the pair it was spent for is
     linked to it. Within 30 seconds of its rotation, the spent token is honoured once more, since a
     client whose answer was lost knows no other: it issues a new pair, and the pair issued before
     stops refreshing, so a retry recovers and two refreshes at once leave one pair that refreshes.
     Presented after that, or a third time, it revokes the connection, in a second mutation since a
     failed check rolls back the first: whoever holds it is replaying a token somebody else already
-    used. `POST /oauth/revoke` follows RFC 7009.
+    used. `POST /oauth/revoke` follows RFC 7009: the request names its `client_id`, every client
+    being public, and a token issued to another client is refused rather than revoked, so no client
+    can end somebody else's connection.
   - The protocol's own endpoints, the metadata, registration, authorization, token and revocation,
     answer any origin, without credentials, since no cookie is involved, and in OAuth's own JSON
     (RFC 6749) rather than `ApiResponse`, with no App Check, which no client can carry. The consent

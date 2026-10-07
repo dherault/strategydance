@@ -650,7 +650,10 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   request refused by a later Allow; a refresh honoured in its grace window stopping exactly the pair
   its spent token issued, and leaving another connection's tokens, and the same connection's other
   pair, alone; approving refused for an account that is not staff and for an organization it is not
-  in; removing the member deleting the connection with its tokens; a revoked token refused.
+  in; removing the member deleting the connection with its tokens; a revoked token refused;
+  `response_type` missing, repeated or other than `code` refused; `grant_type` missing, repeated or
+  unknown refused, and a code exchange carrying a refresh token's parameters reading none of them; a
+  revocation naming another client than the token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

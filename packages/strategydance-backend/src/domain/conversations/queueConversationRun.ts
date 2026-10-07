@@ -46,8 +46,11 @@ type Options = {
 
   The task is named after its run, so asking again is safe: `ALREADY_EXISTS` counts as queued. A
   failure that leaves it unclear whether the task exists is asked again under the same name, and a
-  definite one is not. Cloud Tasks keeps a name for about an hour after its task ends, so a run whose
-  task has come and gone reads as queued too, until the reconcile route finds no task
+  definite one is not. Cloud Tasks keeps a name taken for up to 24 hours after its task ends, so a
+  run whose task has come and gone reads as queued too: the reconcile route then finds no task
+  again, and finalizes the run once it is twenty minutes old. A run's task rarely comes and goes
+  with the run still queued, since the worker claims a queued run it is delivered, so a young run
+  with no task is almost always one whose task was never queued, whose name is free
 */
 async function queueConversationRun(
   { organizationId, userId, conversationId, runId }: ConversationRunReference,

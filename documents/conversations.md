@@ -1152,11 +1152,12 @@ consent page from M17:
   - The connection's `lastUsedAt` is written at most once a minute, and no refresh names that
     write.
 - **The authorization server** is the public backend too, issuer `https://api.strategydance.com`:
-  - Its metadata, at `/.well-known/oauth-authorization-server` (RFC 8414), names the endpoints, the
-    scopes, `code_challenge_methods_supported: ["S256"]`, `token_endpoint_auth_methods_supported:
-    ["none"]`, `client_id_metadata_document_supported: true` and
-    `authorization_response_iss_parameter_supported: true`. claude.ai and ChatGPT use a client ID
-    metadata document when the metadata offers it; Cursor registers dynamically.
+  - Its metadata, at `/.well-known/oauth-authorization-server` (RFC 8414), names the `issuer`, the
+    endpoints, the scopes, `response_types_supported: ["code"]`, `grant_types_supported:
+    ["authorization_code", "refresh_token"]`, `code_challenge_methods_supported: ["S256"]`,
+    `token_endpoint_auth_methods_supported: ["none"]`, `client_id_metadata_document_supported: true`
+    and `authorization_response_iss_parameter_supported: true`. claude.ai and ChatGPT use a client
+    ID metadata document when the metadata offers it; Cursor registers dynamically.
   - Every client is public: PKCE, S256 only, proves that whoever exchanges a code is whoever asked
     for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address serving
     the client's metadata, fetched through `fetchOutbound` with no redirect and at most 5 KB, a
@@ -1188,11 +1189,16 @@ consent page from M17:
   - `POST /oauth/token` exchanges the code for an access token, valid for an hour, and a refresh
     token, for 30 days: 256 random bits each, opaque, stored only as a SHA-256 hash (`@unique`),
     with the resource they were issued for, which the verifier compares to the endpoint's, so a
-    token for one module never opens another. A refresh rotates: the spent token is kept with
-    `usedAt`, and presenting it again revokes the connection, in a second mutation since a failed
-    check rolls back the first, unless it comes within 30 seconds of its rotation, which is refused
-    alone, as a retry after a lost answer or two refreshes at once would be. `POST /oauth/revoke`
-    follows RFC 7009.
+    token for one module never opens another. Every token request names its `resource` too, as the
+    specification asks of clients, and is refused unless it is exactly the canonical resource the
+    code or the refresh token is bound to.
+  - A refresh rotates: the spent token is kept with `usedAt`, and the pair it was spent for is
+    linked to it. Within 30 seconds of its rotation, the spent token is honoured once more, since a
+    client whose answer was lost knows no other: it issues a new pair, and the pair issued before
+    stops refreshing, so a retry recovers and two refreshes at once leave one pair that refreshes.
+    Presented after that, or a third time, it revokes the connection, in a second mutation since a
+    failed check rolls back the first: whoever holds it is replaying a token somebody else already
+    used. `POST /oauth/revoke` follows RFC 7009.
   - These endpoints answer any origin, without credentials, since no cookie is involved, and in
     OAuth's own JSON (RFC 6749) rather than `ApiResponse`. Their operations find a token by its hash
     before any `$userId` has been verified, an exception `CLAUDE.md` records beside the sign-in

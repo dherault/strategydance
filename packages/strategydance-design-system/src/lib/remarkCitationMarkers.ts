@@ -28,8 +28,8 @@ const CLOSED_NODES = new Set(['link', 'linkReference', 'inlineCode', 'image', 'i
 /*
   A remark plugin placing a marker at each offset of the Markdown text a citation's span ends at,
   as an element of its own, `citation-marker`, carrying the citation's key, which agent text cannot
-  forge since its HTML is never parsed. It runs before any other transform, on the tree as parsed,
-  whose nodes still carry their offsets:
+  forge since its HTML is never parsed. The markers of one offset go together, in the order given.
+  It runs before any other transform, on the tree as parsed, whose nodes still carry their offsets:
 
   - in a text node whose source is its value, which an escape or an entity breaks, the text is
     split at the offset and the marker goes between
@@ -42,14 +42,16 @@ const CLOSED_NODES = new Set(['link', 'linkReference', 'inlineCode', 'image', 'i
 function remarkCitationMarkers(markers: MarkdownCitationMarker[]) {
   return (tree: MarkdownNode) => {
     const containers = collectContainers(tree)
+    const offsets = [...new Set(markers.map(({ offset }) => offset))]
 
-    // From the last, so a text split for a later marker leaves the offsets an earlier one reads
-    for (const marker of markers.toSorted((a, b) => b.offset - a.offset)) {
+    // From the last, so a text split for a later offset leaves the offsets an earlier one reads
+    for (const offset of offsets.toSorted((a, b) => b - a)) {
       const container =
-        containers.find(node => start(node) < marker.offset && marker.offset <= end(node))
-        ?? containers.findLast(node => end(node) <= marker.offset)
+        containers.find(node => start(node) < offset && offset <= end(node))
+        ?? containers.findLast(node => end(node) <= offset)
+      const nodes = markers.filter(marker => marker.offset === offset).map(createMarker)
 
-      if (container?.children) place(container.children, marker)
+      if (container?.children) place(container.children, offset, nodes)
     }
   }
 }
@@ -62,29 +64,30 @@ function collectContainers(node: MarkdownNode, found: MarkdownNode[] = []) {
   return found
 }
 
-// Places a marker among a container's children, or among the children of the one it falls in
-function place(children: MarkdownNode[], marker: MarkdownCitationMarker) {
-  const index = children.findIndex(child => start(child) < marker.offset && marker.offset <= end(child))
+// Places an offset's markers among a container's children, or among the children of the one it
+// falls in
+function place(children: MarkdownNode[], offset: number, nodes: MarkdownNode[]) {
+  const index = children.findIndex(child => start(child) < offset && offset <= end(child))
   const child = children[index]
 
   if (!child) {
-    const before = children.findLastIndex(node => end(node) <= marker.offset)
+    const before = children.findLastIndex(node => end(node) <= offset)
 
-    children.splice(before + 1, 0, createMarker(marker))
+    children.splice(before + 1, 0, ...nodes)
 
     return
   }
 
   if (child.type === 'text' && typeof child.value === 'string' && child.value.length === end(child) - start(child)) {
-    const cut = marker.offset - start(child)
+    const cut = offset - start(child)
 
     children.splice(
       index,
       1,
       ...[
-        createText(child.value.slice(0, cut), start(child), marker.offset),
-        createMarker(marker),
-        createText(child.value.slice(cut), marker.offset, end(child)),
+        createText(child.value.slice(0, cut), start(child), offset),
+        ...nodes,
+        createText(child.value.slice(cut), offset, end(child)),
       ].filter(node => node.type !== 'text' || node.value),
     )
 
@@ -92,12 +95,12 @@ function place(children: MarkdownNode[], marker: MarkdownCitationMarker) {
   }
 
   if (!CLOSED_NODES.has(child.type) && child.children?.length) {
-    place(child.children, marker)
+    place(child.children, offset, nodes)
 
     return
   }
 
-  children.splice(index + 1, 0, createMarker(marker))
+  children.splice(index + 1, 0, ...nodes)
 }
 
 // An empty emphasis renamed, which mdast's conversion to HTML makes the marker's element

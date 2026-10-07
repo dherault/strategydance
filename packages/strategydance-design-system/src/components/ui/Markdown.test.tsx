@@ -165,6 +165,23 @@ describe('Markdown', () => {
       )
     })
 
+    it('draws the markers of one offset together, in the order given, in text as after bold text', () => {
+      const citations = [
+        { offset: 17, key: '1' },
+        { offset: 17, key: '2' },
+      ]
+
+      expect(renderCited('Notion charges 10, Coda 12.', citations)).toBe(
+        '<div><p>Notion charges 10<sup>[1]</sup><sup>[2]</sup>, Coda 12.</p></div>',
+      )
+      expect(
+        renderCited('Notion charges **10**, Coda 12.', [
+          { offset: 21, key: '1' },
+          { offset: 21, key: '2' },
+        ]),
+      ).toBe('<div><p>Notion charges <strong>10<sup>[1]</sup><sup>[2]</sup></strong>, Coda 12.</p></div>')
+    })
+
     it('draws a marker between two blocks at the end of the first', () => {
       expect(renderCited('First paragraph.\n\nSecond.', [{ offset: 17, key: '1' }])).toBe(
         '<div><p>First paragraph.<sup>[1]</sup></p>\n<p>Second.</p></div>',

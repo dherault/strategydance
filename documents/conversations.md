@@ -1206,10 +1206,10 @@ consent page from M17:
     a private-use scheme such as `cursor://`, and an `https` one from a registration would prove no
     domain, so a client redirecting to a website proves its domain through CIMD. Registration is
     rate-limited per address and capped in all, and one unused a day later is pruned.
-    - Every parameter of an authorization or a token request may occur once: a request repeating any
-      of them, `client_id`, `redirect_uri`, `scope`, `state`, `code` or a PKCE field as much as
-      `response_type`, `resource` or `grant_type`, is refused, since parsers disagree on which copy
-      counts.
+  - Every parameter of an authorization or a token request may occur once: a request repeating any
+    of them, `client_id`, `redirect_uri`, `scope`, `state`, `code` or a PKCE field as much as
+    `response_type`, `resource` or `grant_type`, is refused, since parsers disagree on which copy
+    counts.
   - `GET /oauth/authorize` checks `response_type`, exactly one and `code`, the only flow it serves,
     the client, PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's address, and its
     scopes: the module's read scope, alone or with its write scope, since the consent offers read,

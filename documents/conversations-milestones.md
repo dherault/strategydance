@@ -695,9 +695,10 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Dependencies: `@modelcontextprotocol/node`, for `toNodeHandler`, and
   `@modelcontextprotocol/express`, for `requireBearerAuth` and `mcpAuthMetadataRouter`.
 - `routes/modules.ts`, mounted at `/mcp` on the public backend only: `POST /mcp/knowledge` through
-  the module's handler from M14, mounted with `toNodeHandler`, behind `requireBearerAuth` with M16's
-  verifier and the endpoint's address as `expectedResource`; the `Origin` check; a 1 MiB body;
-  `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE.
+  the module's handler from M14, mounted with `toNodeHandler` and handed the parsed body as its
+  third argument, `(request, response) => nodeHandler(request, response, request.body)`, behind
+  `requireBearerAuth` with M16's verifier and the endpoint's address as `expectedResource`; the
+  `Origin` check; a 1 MiB body; `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE.
   `/.well-known/oauth-protected-resource/mcp/knowledge` is served through `mcpAuthMetadataRouter`
   mounted at the app's root, beside the authorization server's metadata, never under `/mcp`, where
   it would answer at `/mcp/.well-known/…` rather than the address the 401 names. The caller comes
@@ -712,9 +713,10 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   resource, a revoked one, a removed member's and a refresh token presented as a bearer token
   refused; a read-only connection's `tools/list` holding the reads alone, and its direct
   `tools/call` of `create_document` refused with nothing written; a write retried with its key
-  applied once; an `Origin` from elsewhere answered 403, and a request with none served; a
-  2025-11-25 client's `initialize` and session header served statelessly; a search past the
-  allowance answered with a result saying so.
+  applied once; an `Origin` from elsewhere answered 403, and a request with none served; a POST's
+  JSON body reaching the handler whole through the route's parser; a 2025-11-25 client's
+  `initialize` and session header served statelessly; a search past the allowance answered with a
+  result saying so.
 - Verify: locally, add `http://localhost:3003/mcp/knowledge` to Claude Code (`claude mcp add
   --transport http`), consent, and run every tool against a document open in a tab, then the MCP
   Inspector; in production, as staff, add the module to claude.ai as a custom connector (which

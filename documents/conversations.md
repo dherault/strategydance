@@ -1164,8 +1164,10 @@ consent page from M17:
     9728), which names the authorization server.
   - A request whose `Origin` is present and is not the app's own answers 403, as the specification
     asks against DNS rebinding. No client running in a browser is served yet.
-  - The route parses its own body, at most 1 MiB, and an in-memory rate limit per connection
-    stands in front of it, as the backend's other limits do; GET and DELETE answer 405.
+  - The route parses its own body, at most 1 MiB, and hands it to the handler, `(request, response)
+    => nodeHandler(request, response, request.body)`, since the parser has consumed the stream the
+    adapter would otherwise read again; an in-memory rate limit per connection stands in front of
+    it, as the backend's other limits do; GET and DELETE answer 405.
   - No App Check, which an external agent cannot carry: the token is the guard. The answers are
     MCP's JSON-RPC, not `ApiResponse`.
   - A connection granted read only lists the read tools alone, since the specification lets

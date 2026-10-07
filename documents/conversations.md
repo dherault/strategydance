@@ -226,8 +226,11 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
   there would have to verify Cloud Tasks' and Cloud Scheduler's tokens itself, and a 15-minute run
   would share its instances and timeout with every interactive route. `strategydance-worker` is the same image started with `SERVICE=worker`, which mounts the
   internal routes and nothing else, while the backend mounts everything but them. Its invoker check
-  stays on, and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses
-  any other caller before the code runs and no token verification is written by hand. It has its own
+  stays on, and the `conversation-tasks` service account is the one account granted the invoker
+  role on it. Holders of Cloud Run's invoke permission across the project, its owners and
+  `deployer` through `roles/run.admin`, can call it too, as they can any service there, which M8's
+  check in production showed. Cloud Run refuses everybody else, a caller with no token included,
+  before the code runs, so no token verification is written by hand. It has its own
   15-minute timeout and a low concurrency (4), and scales to zero
   between runs. The backend keeps its defaults. Its address is Cloud Run's deterministic one,
   `https://strategydance-worker-995028545701.us-central1.run.app`, a constant in the backend

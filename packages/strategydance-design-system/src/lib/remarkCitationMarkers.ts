@@ -31,8 +31,9 @@ const CLOSED_NODES = new Set(['link', 'linkReference', 'inlineCode', 'image', 'i
   forge since its HTML is never parsed. The markers of one offset go together, in the order given.
   It runs before any other transform, on the tree as parsed, whose nodes still carry their offsets:
 
-  - in a text node whose source is its value, which an escape or an entity breaks, the text is
-    split at the offset and the marker goes between
+  - in a text node, the text is split at the offset and the marker goes between, the offset read
+    through the escapes, character references and stripped spaces that make a node's text shorter
+    than its source
   - in bold, italic or struck text the same, one level in, or after it
   - in a link or inline code, after it, since a marker inside a link would break it
   - between blocks, at the end of the last phrasing before the offset
@@ -40,7 +41,8 @@ const CLOSED_NODES = new Set(['link', 'linkReference', 'inlineCode', 'image', 'i
   A marker whose offset falls before any phrasing is dropped
 */
 function remarkCitationMarkers(markers: MarkdownCitationMarker[]) {
-  return (tree: MarkdownNode) => {
+  return (tree: MarkdownNode, file: { toString(): string }) => {
+    const source = String(file)
     const containers = collectContainers(tree)
     const offsets = [...new Set(markers.map(({ offset }) => offset))]
 
@@ -51,7 +53,7 @@ function remarkCitationMarkers(markers: MarkdownCitationMarker[]) {
         ?? containers.findLast(node => end(node) <= offset)
       const nodes = markers.filter(marker => marker.offset === offset).map(createMarker)
 
-      if (container?.children) place(container.children, offset, nodes)
+      if (container?.children) place(source, container.children, offset, nodes)
     }
   }
 }
@@ -66,7 +68,7 @@ function collectContainers(node: MarkdownNode, found: MarkdownNode[] = []) {
 
 // Places an offset's markers among a container's children, or among the children of the one it
 // falls in
-function place(children: MarkdownNode[], offset: number, nodes: MarkdownNode[]) {
+function place(source: string, children: MarkdownNode[], offset: number, nodes: MarkdownNode[]) {
   const index = children.findIndex(child => start(child) < offset && offset <= end(child))
   const child = children[index]
 
@@ -78,16 +80,18 @@ function place(children: MarkdownNode[], offset: number, nodes: MarkdownNode[]) 
     return
   }
 
-  if (child.type === 'text' && typeof child.value === 'string' && child.value.length === end(child) - start(child)) {
-    const cut = offset - start(child)
+  const value = child.type === 'text' ? child.value : undefined
+  const cut =
+    value === undefined ? null : readValueOffset(source.slice(start(child), end(child)), value, offset - start(child))
 
+  if (value !== undefined && cut !== null) {
     children.splice(
       index,
       1,
       ...[
-        createText(child.value.slice(0, cut), start(child), offset),
+        createText(value.slice(0, cut), start(child), offset),
         ...nodes,
-        createText(child.value.slice(cut), offset, end(child)),
+        createText(value.slice(cut), offset, end(child)),
       ].filter(node => node.type !== 'text' || node.value),
     )
 
@@ -95,12 +99,48 @@ function place(children: MarkdownNode[], offset: number, nodes: MarkdownNode[]) 
   }
 
   if (!CLOSED_NODES.has(child.type) && child.children?.length) {
-    place(child.children, offset, nodes)
+    place(source, child.children, offset, nodes)
 
     return
   }
 
   children.splice(index + 1, 0, ...nodes)
+}
+
+// A character reference, `&amp;` or `&#38;`, which a text node's value holds decoded
+const CHARACTER_REFERENCE = /^&(?:#\d{1,7}|#[Xx][\dA-Fa-f]{1,6}|[A-Za-z][\dA-Za-z]{1,31});/
+
+/*
+  Where an offset into a text node's source falls in its value, reading both together: a backslash
+  escape is two characters of source for one of value, a character reference the value holds
+  decoded several for one or two, and the spaces a line's start or end loses are source alone. Null
+  when the two part ways otherwise, and the marker goes after the node
+*/
+function readValueOffset(source: string, value: string, offset: number) {
+  let sourceIndex = 0
+  let valueIndex = 0
+
+  while (sourceIndex < offset) {
+    const reference = CHARACTER_REFERENCE.exec(source.slice(sourceIndex))?.[0]
+
+    if (source[sourceIndex] === '\\' && source[sourceIndex + 1] === value[valueIndex]) {
+      sourceIndex += 2
+      valueIndex++
+    } else if (reference && value.slice(valueIndex, valueIndex + reference.length) !== reference) {
+      sourceIndex += reference.length
+      // Most references decode to one code unit, a few to two, told apart by what follows
+      valueIndex += source[sourceIndex] === undefined || value[valueIndex + 1] === source[sourceIndex] ? 1 : 2
+    } else if (source[sourceIndex] === value[valueIndex]) {
+      sourceIndex++
+      valueIndex++
+    } else if (source[sourceIndex] === ' ' || source[sourceIndex] === '\t') {
+      sourceIndex++
+    } else {
+      return null
+    }
+  }
+
+  return Math.min(valueIndex, value.length)
 }
 
 // An empty emphasis renamed, which mdast's conversion to HTML makes the marker's element

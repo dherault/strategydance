@@ -188,9 +188,15 @@ describe('Markdown', () => {
       )
     })
 
-    it('draws a marker after text whose source an escape changed, rather than at a shifted place', () => {
-      expect(renderCited('A \\*star\\* here', [{ offset: 5, key: '1' }])).toBe(
-        '<div><p>A *star* here<sup>[1]</sup></p></div>',
+    it('draws a marker at its place in text whose source escapes, references or indents shortened', () => {
+      expect(renderCited('A \\*star\\* here', [{ offset: 10, key: '1' }])).toBe(
+        '<div><p>A *star*<sup>[1]</sup> here</p></div>',
+      )
+      expect(renderCited('Fish &amp; chips here', [{ offset: 16, key: '1' }])).toBe(
+        '<div><p>Fish &amp; chips<sup>[1]</sup> here</p></div>',
+      )
+      expect(renderCited('First line\n    second line here', [{ offset: 26, key: '1' }])).toBe(
+        '<div><p>First line<br/>\nsecond line<sup>[1]</sup> here</p></div>',
       )
     })
 

@@ -747,7 +747,8 @@ mutation StoreConversationTurnWithContext(
 # Its citations, the spans web search sources, go with it.
 #
 # A text past 20000 characters is drawn in pieces: this draws the first, with `$toPiece` 1 and the
-# cursor left at its block, and `DrawConversationAgentTextPiece` the rest. An omitted `$toPiece`
+# cursor moved to the text's first block, past the blocks before it that draw nothing, and
+# `DrawConversationAgentTextPiece` the rest. An omitted `$toPiece`
 # draws the whole text and leaves the cursor's piece at 0.
 #
 # A reply adds one to the unread count and becomes the preview. A conversation deleted meanwhile
@@ -790,7 +791,7 @@ mutation DrawConversationAgentText(
   )
     @check(expr: "this == 1", message: "The run is no longer this worker's")
     @check(
-      expr: "size(vars.text) <= 20000 && ((vars.toBlock > vars.fromBlock && (!has(vars.toPiece) || vars.toPiece == 0)) || (has(vars.toPiece) && vars.toPiece == 1 && vars.toBlock == vars.fromBlock))"
+      expr: "size(vars.text) <= 20000 && ((vars.toBlock > vars.fromBlock && (!has(vars.toPiece) || vars.toPiece == 0)) || (has(vars.toPiece) && vars.toPiece == 1 && vars.toBlock >= vars.fromBlock))"
       message: "A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters"
     )
   conversation_updateMany(

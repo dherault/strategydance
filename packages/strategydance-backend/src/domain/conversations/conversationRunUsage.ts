@@ -108,6 +108,22 @@ export function settleConversationRequest(
   )
 }
 
+// Settles a request Claude's API failed, which it does not bill: nothing used, by no model
+export function settleFailedConversationRequest(usage: ConversationRunUsage, index: number) {
+  return withTotals(
+    usage.requests.map((request, requestIndex) =>
+      requestIndex === index ? { ...request, stopReason: 'error', isSettled: true } : request,
+    ),
+  )
+}
+
+// Records where a request's part was stored, which the measurement starts from
+export function placeConversationRequest(usage: ConversationRunUsage, index: number, turnPosition: number) {
+  return withTotals(
+    usage.requests.map((request, requestIndex) => (requestIndex === index ? { ...request, turnPosition } : request)),
+  )
+}
+
 /*
   Charges every request a worker reserved and never settled, as one that takes the run over finds
   them: it was sent, and billed, so it counts at its measured input and the whole output it was

@@ -1166,8 +1166,8 @@ async function checkReplies() {
   }
 
   check(
-    'a first piece leaves the cursor at its block, never past it',
-    (await refusal(drawConversationAgentText(dataConnect, { ...first, toBlock: 4 }))) !== null,
+    'a first piece never moves the cursor back',
+    (await refusal(drawConversationAgentText(dataConnect, { ...first, toBlock: 1 }))) !== null,
   )
 
   await drawConversationAgentText(dataConnect, first)

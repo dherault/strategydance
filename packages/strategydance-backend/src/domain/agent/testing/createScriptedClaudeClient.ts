@@ -34,21 +34,23 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
     async stream(body, { signal, onProgress }) {
       requests.push(JSON.stringify(body))
 
-      await meanwhile()
-
-      signal.throwIfAborted()
-
       const next = queue.shift()
 
       if (!next) throw new Error(`The script has no answer for request ${requests.length}`)
 
       const answer = typeof next === 'function' ? next(body) : next
 
-      if (answer instanceof Error) throw answer
-
-      for (const block of answer.content) {
-        if (block.type === 'thinking' && block.thinking.trim()) onProgress(block.thinking.trim())
+      if (!(answer instanceof Error)) {
+        for (const block of answer.content) {
+          if (block.type === 'thinking' && block.thinking.trim()) onProgress(block.thinking.trim())
+        }
       }
+
+      await meanwhile()
+
+      signal.throwIfAborted()
+
+      if (answer instanceof Error) throw answer
 
       return answer
     },

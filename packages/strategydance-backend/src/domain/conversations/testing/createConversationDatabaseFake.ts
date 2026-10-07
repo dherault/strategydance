@@ -53,6 +53,13 @@ export const ConversationRunTrigger = {
   RETRY: 'RETRY',
 } as const
 
+export const ConversationToolStatus = {
+  RUNNING: 'RUNNING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+} as const
+
 export const ConversationTranscriptRole = {
   USER: 'USER',
   ASSISTANT: 'ASSISTANT',
@@ -880,7 +887,7 @@ function createConversationDatabaseFake() {
 
     DrawConversationAgentText: variables => {
       const run = requireFencedRun(variables)
-      const isFirstPiece = variables.toPiece === 1 && variables.toBlock === variables.fromBlock
+      const isFirstPiece = variables.toPiece === 1 && variables.toBlock >= variables.fromBlock
       const isWhole = variables.toBlock > variables.fromBlock && (variables.toPiece ?? 0) === 0
 
       if (variables.text.length > 20000 || (!isFirstPiece && !isWhole)) {
@@ -1122,6 +1129,7 @@ function createConversationDatabaseFake() {
     ConversationNoteKind,
     ConversationRunStatus,
     ConversationRunTrigger,
+    ConversationToolStatus,
     ConversationTranscriptRole,
   }
 

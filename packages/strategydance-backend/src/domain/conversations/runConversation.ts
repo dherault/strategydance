@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
 import {
@@ -14,31 +13,36 @@ import {
   claimQueuedConversationRun,
   getConversationRunContext,
   reclaimConversationRun,
-  storeConversationTurn,
 } from 'strategydance-database/backend'
 
-import type { ConversationAgent, ConversationRunFence, ConversationRunReference } from '~types'
+import type { ClaudeClient, ConversationRunFence, ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
-import conversationAgent from '~domain/agent/conversationAgent'
+import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
+import {
+  type ConversationRunUsage,
+  chargeUnsettledRequests,
+  parseConversationRunUsage,
+} from '~domain/conversations/conversationRunUsage'
 import createConversationRunLease, { type ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
 import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
-import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import requestConversationTurn, { type ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
+import storeConversationParts from '~domain/conversations/storeConversationParts'
 
-// How many steps a run takes at most, each a turn, a message drawn or its end. A run draws at most
-// 100 entries before it sends no further request, so only a loop that would never end reaches it
+// How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
+// most 100 entries before it sends no further request, so only a loop that would never end reaches it
 const MAX_RUN_STEPS = 4 * MAX_CONVERSATION_RUN_ENTRIES
 
 // How many steps in a row may fail before the worker leaves the run to its lease
 const MAX_FAILED_STEPS = 5
 
 type Options = {
-  agent?: ConversationAgent
+  client?: ClaudeClient
   // How long the worker waits after a failed step, times the failures in a row
   retryDelayMs?: number
 }
@@ -56,20 +60,23 @@ type ConversationRunContext = GetConversationRunContextData
   one step at a time, each read afresh, so a worker taking over after a crash carries on where the
   last one stopped:
 
-  - a stored turn not wholly drawn yet: the next message of it
-  - a turn wholly drawn: the run is complete, since no tool runs yet
-  - the member's message: the agent's turn, stored as it answered, unless the run has drawn its 100
-    entries, or the conversation holds its 2000, when the run fails with a note instead and costs
-    nothing
+  - the run's reply not wholly drawn yet: the next message of it
+  - a reply `pause_turn` paused, which a crash left stored part by part: its continuation
+  - a reply wholly drawn: the run is complete, since no tool of the member's runs yet
+  - the member's message: Claude's turn, stored part by part as it answered, unless the run has
+    drawn its 100 entries, or the conversation holds its 2000, when the run fails with a note
+    instead and costs nothing
 
-  Every write is fenced on the run's attempt and its author's membership, and the step after a
-  refused one reads which it was: a run claimed again or ended by somebody else is left alone, a
-  removed author's is interrupted, a deleted conversation's stops, and anything else, a counter an
-  aspects note moved say, is tried again
+  What a request came to, the turn to store or the run's end, is kept until it is written, so a
+  write refused once is tried again, never paid for again. Every write is fenced on the run's
+  attempt and its author's membership, and the step after a refused one reads which it was: a run
+  claimed again or ended by somebody else is left alone, a removed author's is interrupted, a
+  deleted conversation's stops, and anything else, a counter an aspects note moved say, is tried
+  again
 */
 async function runConversation(
   reference: ConversationRunReference,
-  { agent = conversationAgent, retryDelayMs = 500 }: Options = {},
+  { client = conversationClaudeClient, retryDelayMs = 500 }: Options = {},
 ): Promise<'finished' | 'held'> {
   const context = await readContext(reference)
   const [run] = context.conversationRuns
@@ -115,7 +122,7 @@ async function runConversation(
   const lease = createConversationRunLease({ fence, onLost: () => controller.abort() })
 
   try {
-    return await takeSteps({ fence, lease, signal: controller.signal, agent, retryDelayMs })
+    return await takeSteps({ fence, lease, signal: controller.signal, client, retryDelayMs })
   } finally {
     await lease.stop()
   }
@@ -125,13 +132,15 @@ type StepsInput = {
   fence: ConversationRunFence
   lease: ConversationRunLease
   signal: AbortSignal
-  agent: ConversationAgent
+  client: ClaudeClient
   retryDelayMs: number
 }
 
-async function takeSteps({ fence, lease, signal, agent, retryDelayMs }: StepsInput) {
+async function takeSteps({ fence, lease, signal, client, retryDelayMs }: StepsInput) {
   const reference = toReference(fence)
   let failedSteps = 0
+  // What a request came to and is not written yet
+  let outcome: ConversationTurnOutcome | null = null
 
   for (let step = 0; step < MAX_RUN_STEPS; step++) {
     const context = await readContext(reference)
@@ -140,11 +149,12 @@ async function takeSteps({ fence, lease, signal, agent, retryDelayMs }: StepsInp
     if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
 
     try {
-      const isEnded = await takeStep({ context, fence, lease, signal, agent })
+      const result = await takeStep({ context, fence, lease, signal, client, outcome })
 
-      if (isEnded) return 'finished'
-
+      outcome = result === 'ended' || result === 'next' ? null : result
       failedSteps = 0
+
+      if (result === 'ended') return 'finished'
     } catch (error) {
       failedSteps++
 
@@ -167,60 +177,161 @@ async function takeSteps({ fence, lease, signal, agent, retryDelayMs }: StepsInp
 
 type StepInput = Omit<StepsInput, 'retryDelayMs'> & {
   context: ConversationRunContext
+  // What a request came to and is not written yet, which this step writes
+  outcome: ConversationTurnOutcome | null
 }
 
-// Takes the run's next step, and answers whether it ended the run
-async function takeStep({ context, fence, lease, signal, agent }: StepInput) {
+/*
+  Takes the run's next step, and answers `ended` once it ended the run, `next` when there is
+  another, or what a request came to, for the next step to write. A run whose author left, or
+  whose conversation was deleted, ends first, a turn not written yet included
+*/
+async function takeStep({
+  context,
+  fence,
+  lease,
+  signal,
+  client,
+  outcome,
+}: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
   const { conversation } = context
+  const [run] = context.conversationRuns
   const [entry] = context.conversationTranscriptEntries
   const position = conversation?.nextMessagePosition ?? 0
+  // A request a worker reserved and never settled was sent, and is charged as such, unless the
+  // worker holds what it came to
+  const usage = readOutcomeUsage(outcome) ?? chargeUnsettledRequests(parseConversationRunUsage(run?.usage))
 
   async function end(ending: ConversationRunEnding) {
     await endConversationRun({ ending, fence, lease, position })
 
-    return true
+    return 'ended' as const
   }
 
   if (!isAuthorStill(context, fence.membershipCreatedAt)) {
     return end({ kind: 'interrupted', reference: toReference(fence), attempts: fence.attempts })
   }
 
-  if (!conversation || conversation.deletedAt) return end({ kind: 'finished', status: ConversationRunStatus.STOPPED })
+  if (!conversation || conversation.deletedAt) {
+    return end({ kind: 'finished', status: ConversationRunStatus.STOPPED, usage })
+  }
+
+  if (outcome) return (await writeOutcome({ outcome, context, fence, lease })) ? 'ended' : 'next'
 
   if (!entry) throw new Error('A run answers a transcript, and its conversation has none')
+  if (entry.role === ConversationTranscriptRole.SYSTEM) throw new Error('A transcript never ends on a context message')
 
   if (entry.role === ConversationTranscriptRole.ASSISTANT) {
-    const blocks = parseTranscriptContent(entry.content)
+    const drawn = await drawConversationTurn({
+      fence,
+      lease,
+      entries: context.runEntries.map(part => ({
+        id: part.id,
+        blocks: parseTranscriptContent(part.content),
+        drawnBlocks: part.drawnBlocks,
+        drawnPieces: part.drawnPieces,
+      })),
+      position,
+    })
 
-    if (await drawConversationTurn({ fence, lease, entry, blocks, position })) return false
+    if (drawn === 'drawn') return 'next'
 
-    return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED })
+    const pausedRequest = findPausedRequest(context, usage)
+
+    if (!pausedRequest) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
+
+    return requestConversationTurn({
+      fence,
+      lease,
+      signal,
+      client,
+      runContext: run?.context ?? null,
+      usage,
+      pausedRequest,
+      storedPauses: countStoredPauses(context, usage),
+    })
   }
 
   if (context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
-    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FAILED })
+    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FAILED, usage })
   }
 
   if (conversation.messageCount >= MAX_CONVERSATION_MESSAGES) {
-    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FULL })
+    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FULL, usage })
   }
 
-  const turn = await agent.respond({
-    lastEntry: parseTranscriptContent(entry.content),
+  return requestConversationTurn({
+    fence,
+    lease,
     signal,
-    onStep: step => lease.setStep(step),
+    client,
+    runContext: run?.context ?? null,
+    usage,
+    pausedRequest: null,
+    storedPauses: 0,
+  })
+}
+
+type WriteOutcomeInput = {
+  outcome: ConversationTurnOutcome
+  context: ConversationRunContext
+  fence: ConversationRunFence
+  lease: ConversationRunLease
+}
+
+// Writes what a request came to, and answers whether that ended the run
+async function writeOutcome({ outcome, context, fence, lease }: WriteOutcomeInput) {
+  if (outcome.kind === 'ending') {
+    await endConversationRun({
+      ending: outcome.ending,
+      fence,
+      lease,
+      position: context.conversation?.nextMessagePosition ?? 0,
+    })
+
+    return true
+  }
+
+  await storeConversationParts({
+    fence,
+    lease,
+    turn: outcome,
+    storedEntryIds: new Set(context.runEntries.map(({ id }) => id)),
   })
 
-  await lease.write(() =>
-    storeConversationTurn(dataConnect, {
-      ...fence,
-      entryId: randomUUID().replaceAll('-', ''),
-      position: entry.position + 1,
-      content: serializeTranscriptContent(turn.content),
-    }),
-  )
-
   return false
+}
+
+function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
+  if (!outcome) return null
+  if (outcome.kind === 'turn') return outcome.usage
+
+  return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
+}
+
+// The request whose part the transcript ends on, when `pause_turn` paused it: a crash came between
+// storing it and the turn's next part
+function findPausedRequest(context: ConversationRunContext, usage: ConversationRunUsage) {
+  const [entry] = context.conversationTranscriptEntries
+  const lastPart = context.runEntries.at(-1)
+
+  if (!entry || lastPart?.id !== entry.id) return null
+
+  return (
+    usage.requests.find(
+      ({ turnPosition, stopReason }) => turnPosition === lastPart.position && stopReason === 'pause_turn',
+    ) ?? null
+  )
+}
+
+// How many of the run's stored parts paused, which count toward its five pauses
+function countStoredPauses(context: ConversationRunContext, usage: ConversationRunUsage) {
+  const positions = new Set(context.runEntries.map(({ position }) => position))
+
+  return usage.requests.filter(
+    ({ turnPosition, stopReason }) =>
+      turnPosition !== null && positions.has(turnPosition) && stopReason === 'pause_turn',
+  ).length
 }
 
 /*

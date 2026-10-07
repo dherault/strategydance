@@ -33,6 +33,7 @@ import {
   reserveConversationRequest,
   settleConversationRequest,
   settleFailedConversationRequest,
+  settleInterruptedConversationRequest,
 } from '~domain/conversations/conversationRunUsage'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationRunEnding } from '~domain/conversations/endConversationRun'
@@ -90,7 +91,8 @@ export type ConversationTurnOutcome =
   - a request whose input would pass 800000 tokens: never sent, and the run ends full, its
     conversation marked so
   - an error of Claude's API, after the SDK's own retries, and any other stop: the run fails with a
-    note, the request sent once. M10 tells these apart
+    note, the request sent once, and charged what the stream reported it used when it failed
+    partway. M10 tells these apart
 */
 async function requestConversationTurn({
   fence,
@@ -175,11 +177,16 @@ async function requestConversationTurn({
     )
 
     let message: BetaMessage
+    // The message so far, once the stream has reported its usage
+    const streamed: { message: BetaMessage | null } = { message: null }
 
     try {
       message = await client.stream(buildConversationRequest(messages), {
         signal,
         onProgress: line => lease.setStep(line),
+        onUsage: snapshot => {
+          streamed.message = snapshot
+        },
       })
     } catch (error) {
       if (signal.aborted || !(error instanceof Anthropic.APIError)) throw error
@@ -188,7 +195,12 @@ async function requestConversationTurn({
 
       return {
         kind: 'ending',
-        ending: fail(ConversationNoteKind.FAILED, settleFailedConversationRequest(usage, reserved.index)),
+        ending: fail(
+          ConversationNoteKind.FAILED,
+          streamed.message
+            ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
+            : settleFailedConversationRequest(usage, reserved.index),
+        ),
       }
     }
 

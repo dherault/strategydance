@@ -6,9 +6,16 @@ import type {
 
 import type { ClaudeClient } from '~types'
 
-// What the client answers a request with: a message, an error it throws, or either worked out from
-// the request
-type ScriptedAnswer = BetaMessage | Error | ((body: BetaMessageStreamParams) => BetaMessage | Error)
+// A stream that starts, reporting the usage of the message it began, then fails
+type ScriptedFailure = { started: BetaMessage; error: Error }
+
+// What the client answers a request with: a message, an error it throws, a stream failing partway,
+// or any of them worked out from the request
+type ScriptedAnswer =
+  | BetaMessage
+  | Error
+  | ScriptedFailure
+  | ((body: BetaMessageStreamParams) => BetaMessage | Error | ScriptedFailure)
 
 type Options = {
   answers?: ScriptedAnswer[]
@@ -21,7 +28,7 @@ type Options = {
 /*
   A client for the tests, which reach no API: each request is recorded as the JSON text it would be
   sent as, then answered with the next scripted answer, a thinking block's text handed to
-  `onProgress` first as the real stream hands it. A request past the script is an error, so a test
+  `onProgress` and the message to `onUsage` first, as the real stream hands them. A request past the script is an error, so a test
   sees a request it did not expect. Counts are recorded as well, and answered by `count`
 */
 function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile = () => {} }: Options = {}) {
@@ -31,7 +38,7 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
   const counts: MessageCountTokensParams[] = []
 
   const client: ClaudeClient = {
-    async stream(body, { signal, onProgress }) {
+    async stream(body, { signal, onProgress, onUsage }) {
       requests.push(JSON.stringify(body))
 
       const next = queue.shift()
@@ -40,10 +47,14 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
 
       const answer = typeof next === 'function' ? next(body) : next
 
-      if (!(answer instanceof Error)) {
+      if (!(answer instanceof Error) && 'started' in answer) onUsage?.(answer.started)
+
+      if (!(answer instanceof Error) && !('started' in answer)) {
         for (const block of answer.content) {
           if (block.type === 'thinking' && block.thinking.trim()) onProgress(block.thinking.trim())
         }
+
+        onUsage?.(answer)
       }
 
       await meanwhile()
@@ -51,6 +62,7 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
       signal.throwIfAborted()
 
       if (answer instanceof Error) throw answer
+      if ('started' in answer) throw answer.error
 
       return answer
     },

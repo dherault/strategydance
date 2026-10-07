@@ -67,7 +67,13 @@ export type ConversationRunFence = ConversationRunReference & {
 export type ClaudeClient = {
   stream(
     body: BetaMessageStreamParams,
-    options: { signal: AbortSignal; onProgress: (line: string) => void },
+    options: {
+      signal: AbortSignal
+      onProgress: (line: string) => void
+      // The message so far, each time the stream reports its usage, so a stream that fails partway
+      // is charged what it used
+      onUsage?: (message: BetaMessage) => void
+    },
   ): Promise<BetaMessage>
   countTokens(body: MessageCountTokensParams): Promise<number>
 }

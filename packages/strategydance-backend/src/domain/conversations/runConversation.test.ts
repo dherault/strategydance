@@ -516,6 +516,37 @@ describe('runConversation', () => {
     }
   })
 
+  test('charges a stream that failed partway what it reported using, as an estimate, and one refused before it nothing', async () => {
+    const interrupted = await start()
+    const failing = createClient([
+      {
+        started: answer([], { inputTokens: 5000, outputTokens: 1 }),
+        error: new Anthropic.APIError(undefined, { type: 'error' }, 'Overloaded', undefined),
+      },
+    ])
+
+    expect(await runConversation(interrupted, { client: failing.client })).toBe('finished')
+    expect(readRun(interrupted)?.status).toBe('FAILED')
+    expect(readUsage(interrupted).requests[0]).toMatchObject({
+      inputTokens: 5000,
+      outputTokens: 1,
+      stopReason: 'error',
+      isEstimated: true,
+      isSettled: true,
+    })
+    expect(readUsage(interrupted).byModel['claude-opus-5-5']).toMatchObject({ requests: 1, inputTokens: 5000 })
+
+    const refused = await start()
+    const refusing = createClient([
+      new Anthropic.InternalServerError(529, { type: 'error' }, 'Overloaded', new Headers()),
+    ])
+
+    await runConversation(refused, { client: refusing.client })
+
+    expect(readUsage(refused).requests[0]).toMatchObject({ inputTokens: 0, isEstimated: false, isSettled: true })
+    expect(readUsage(refused).byModel).toEqual({})
+  })
+
   test('marks the conversation full and sends nothing when a request would pass 800000 input tokens', async () => {
     const reference = await start()
     const scripted = createClient([answer()], { count: () => 900000 })

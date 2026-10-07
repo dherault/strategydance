@@ -21,7 +21,8 @@ export type ConversationRequestUsage = {
   turnPosition: number | null
   // Its input as measured before it was sent
   estimatedInputTokens: number
-  // Whether its figures are estimates, a worker taking over having found it unsettled
+  // Whether its figures are estimates: a worker taking over found it unsettled, or its stream
+  // failed partway, before its output was counted
   isEstimated: boolean
   isSettled: boolean
 }
@@ -108,11 +109,27 @@ export function settleConversationRequest(
   )
 }
 
-// Settles a request Claude's API failed, which it does not bill: nothing used, by no model
+// Settles a request Claude's API refused before it started answering, which it does not bill:
+// nothing used, by no model
 export function settleFailedConversationRequest(usage: ConversationRunUsage, index: number) {
   return withTotals(
     usage.requests.map((request, requestIndex) =>
       requestIndex === index ? { ...request, stopReason: 'error', isSettled: true } : request,
+    ),
+  )
+}
+
+/*
+  Settles a request whose stream failed after it started, which is billed for what it had used: at
+  the usage the stream last reported, its input counted at the start and its output only by the
+  final delta, so marked as an estimate
+*/
+export function settleInterruptedConversationRequest(usage: ConversationRunUsage, index: number, message: BetaMessage) {
+  const settled = settleConversationRequest(usage, index, message, { turnPosition: null })
+
+  return withTotals(
+    settled.requests.map((request, requestIndex) =>
+      requestIndex === index ? { ...request, stopReason: 'error', isEstimated: true } : request,
     ),
   )
 }

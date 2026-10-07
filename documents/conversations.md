@@ -1181,9 +1181,11 @@ consent page from M17:
   - The connection's `lastUsedAt` is written at most once a minute, and no refresh names that
     write.
 - **The authorization server** is the public backend too, issuer `https://api.strategydance.com`:
-  - Its metadata, at `/.well-known/oauth-authorization-server` (RFC 8414), names the `issuer`, the
-    endpoints, the scopes, `response_types_supported: ["code"]`, `grant_types_supported:
-    ["authorization_code", "refresh_token"]`, `code_challenge_methods_supported: ["S256"]`,
+  - Its metadata, at `/.well-known/oauth-authorization-server` (RFC 8414), names the `issuer`,
+    `authorization_endpoint`, `token_endpoint`, `registration_endpoint`, which is how a client finds
+    dynamic registration at all, `revocation_endpoint`, `scopes_supported`,
+    `response_types_supported: ["code"]`, `grant_types_supported: ["authorization_code",
+    "refresh_token"]`, `code_challenge_methods_supported: ["S256"]`,
     `token_endpoint_auth_methods_supported: ["none"]`, `client_id_metadata_document_supported: true`
     and `authorization_response_iss_parameter_supported: true`. claude.ai and ChatGPT use a client
     ID metadata document when the metadata offers it; Cursor registers dynamically.

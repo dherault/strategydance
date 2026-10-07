@@ -460,9 +460,9 @@ it yet, and Claude Code reaches it locally over stdio.
 
 - Dependencies: `@modelcontextprotocol/server` and `@modelcontextprotocol/client`, the SDK's second
   major version, at its latest release past the seven-day cooldown. Tests drive the module as
-  Strategy Dance's agent will, through a `Client` whose transport's `fetch` is the module's handler
-  (see Modules § Strategy Dance's agent), never through the in-memory transport, which the SDK
-  keeps for tests of the 2025 revisions.
+  Strategy Dance's agent will, through a `Client` pinned to the 2026-07-28 revision whose
+  transport's `fetch` is the module's handler (see Modules § Strategy Dance's agent), never through
+  the in-memory transport, which the SDK keeps for tests of the 2025 revisions.
 - **A searchable plain text for documents.** `Document` gains `contentText`, the plain text of what
   `content` holds (`getRichTextText`), `@searchable(language: "simple")` beside a searchable
   `title`, so `search_documents` reads an index rather than scanning stored JSON. Like `content`, it
@@ -561,9 +561,9 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
 
 - The worker's module client: for each run, the Knowledge module's server for the run's member
   (`kind: 'agent'`, every scope, the run's `membershipCreatedAt`, the scope `conversation:<id>`), an
-  SDK `Client` connected to the module's handler through `handler.fetch`, the caller as `authInfo`,
-  and its tools converted and appended after the built-in ones. Reads run four at a time, writes
-  alone, each keyed with its `tool_use` id.
+  SDK `Client` pinned to the 2026-07-28 revision and connected to the module's handler through
+  `handler.fetch`, the caller as `authInfo`, and its tools converted and appended after the built-in
+  ones. Reads run four at a time, writes alone, each keyed with its `tool_use` id.
 - Recovery as A run § Recovery and side effects says: a worker taking over, and Resume, call a
   module write again with its key; finalizing an interrupted run, and a send answering it, read
   each started write's key first, recording a stored result as `SUCCEEDED` and answering the rest
@@ -574,16 +574,17 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
 - In the thread, `doc:` links resolve against the organization's live document list: the current
   title, or struck through when deleted. A `delete_document` row offers Restore, through
   `RestoreDocument`, while the document is deleted and the day has not passed.
-- Tests (scripted client, database mocked): the converted tools list's bytes pinned, every name in
-  it, built-in or a module's, unique, `minLength` and its kin dropped, `strict` and eager input
-  streaming set; a module write sent with its `tool_use` id as its key; a crash between the module's
-  write and the worker recording it, the next worker calling again and the write landing once,
-  `append` included; a worker fenced out during a call landing its write, and the worker that took
-  over answered with its result; an interrupted run's started write found by its key and drawn
-  `SUCCEEDED`, and one not found answered as interrupted and may have run, by the next send too; a
-  Resume after the write had landed answered from its key; a Retry writing anew under new keys; a
-  module's `isError` sent as `is_error`; consecutive reads running four at a time and writes alone,
-  in order; the conversation prune deleting its rows.
+- Tests (scripted client, database mocked): the client connecting with no `initialize` handshake;
+  the converted tools list's bytes pinned, every name in it, built-in or a module's, unique,
+  `minLength` and its kin dropped, `strict` and eager input streaming set; a module write sent with
+  its `tool_use` id as its key; a crash between the module's write and the worker recording it, the
+  next worker calling again and the write landing once, `append` included; a worker fenced out
+  during a call landing its write, and the worker that took over answered with its result; an
+  interrupted run's started write found by its key and drawn `SUCCEEDED`, and one not found answered
+  as interrupted and may have run, by the next send too; a Resume after the write had landed
+  answered from its key; a Retry writing anew under new keys; a module's `isError` sent as
+  `is_error`; consecutive reads running four at a time and writes alone, in order; the conversation
+  prune deleting its rows.
 - Verify: with a document open in another tab, ask the agent to write a decision into it and watch
   the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it
   to create one and tag it; open both in Knowledge; ask it to delete one and restore it from the

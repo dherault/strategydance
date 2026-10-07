@@ -1,10 +1,10 @@
 # Conversations: the milestones
 
-The twenty-four milestones that build the conversations feature, each one pull request into `dev`
+The twenty-eight milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
-data, A run, The transcript, The agent and Tools, are that document's. When a milestone merges,
-write its pull request number in the table below.
+data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
+merges, write its pull request number in the table below.
 
 ## Conventions for every milestone
 
@@ -12,7 +12,8 @@ write its pull request number in the table below.
   test and build, a pull request into `dev`, the Copilot loop, then a human merges.
 - Read the Architecture of [conversations.md](conversations.md) first. Load the `claude-api` skill
   before writing any Claude SDK code, and never guess an SDK name.
-- Strings go in the `conversation` catalogue (`integration` for the MCP pages), registered app-wide
+- Strings go in the `conversation` catalogue (`integration` for the MCP pages, `module` for the
+  consent page, Connected agents and the module's dialog), registered app-wide
   in `_app.tsx`'s `APP_MESSAGE_TYPES` since the dock and the sidebar need it everywhere, and
   `bun run translate` runs whenever one changes. No em dash in a message.
 - Web files: `components/conversation/`, `hooks/conversation/`, `utils/conversation/`,
@@ -21,7 +22,10 @@ write its pull request number in the table below.
 - Backend files: `routes/conversations.ts` (mounted at `/organizations/:organizationId/conversations`
   with `mergeParams`), `routes/internal.ts` (mounted by the worker service only),
   `middleware/organizationMember.ts`, `middleware/staffOnly.ts`,
-  `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`.
+  `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
+  modules, `modules/` (one folder per module), `domain/knowledge/`, `routes/oauth.ts` (mounted at
+  `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/` and
+  `middleware/moduleRateLimit.ts`.
 - Data Connect: a mutation writes each row once; messages are ordered by `position`, claimed on the
   conversation's counter; live queries name every mutation that changes them; backend operations
   take `$userId` and check it against the rows. Each milestone adds the tables, fields and
@@ -39,7 +43,8 @@ write its pull request number in the table below.
 ## Milestones
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
-M3 from the start, M13 as soon as M1 has merged, and M12, M22 and M25 well before their neighbours.
+M3 from the start, M13 as soon as M1 has merged, M16 as soon as M14 has, and M12, M22 and M25 well
+before their neighbours.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -56,8 +61,12 @@ M3 from the start, M13 as soon as M1 has merged, and M12, M22 and M25 well befor
 | M11 | Questions | backend, database, web | M10 | |
 | M12 | Searching conversations | backend, database, web | M8, M9 | |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |
-| M14 | Knowledge tools and knowledge links | backend, database, web | M9, M12, M13 | |
-| M19 | Mentioning knowledge in the composer | web | M7, M14 | |
+| M14 | The Knowledge module | database, core, backend, web | M12, M13 | |
+| M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
+| M16 | The authorization server | backend, database, core | M14 | |
+| M17 | The consent page and Connected agents | web, backend, root | M16 | |
+| M18 | The Knowledge module for external agents | backend, web, root | M17 | |
+| M19 | Mentioning knowledge in the composer | web | M7, M15 | |
 | M20 | Team, log and top priority tools | backend, database, web | M9, M13 | |
 | M21 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
 | M22 | The dock | web | M7 | |
@@ -417,8 +426,8 @@ plan's one open question about Data Connect.
 ### M13: Rich text, Markdown and shared documents on the backend
 
 Two pure functions and the backend's way into a document's shared text, no visible change and no
-database: the operations that read and fold a document arrive with the tools that call them, in
-M14.
+database: the operations that read and fold a document arrive with the Knowledge module, which
+calls them, in M14.
 
 - The backend gains `strategydance-design-system` as a workspace dependency and imports its
   `lib/` modules as the web does, by their exported `strategydance-design-system/lib/*` paths,
@@ -444,12 +453,18 @@ M14.
   an edit longer than an update may be folded whole.
 - Verify: the four checks; knowledge, the log, priorities and build in public cards draw as before.
 
-### M14: Knowledge tools and knowledge links
+### M14: The Knowledge module
 
+The module itself, its data and its MCP server, as Modules describes them: nothing in the app calls
+it yet, and Claude Code reaches it locally over stdio.
+
+- Dependencies: `@modelcontextprotocol/server` and `@modelcontextprotocol/client`, the SDK's second
+  major version, at its latest release past the seven-day cooldown. The two halves of the in-memory
+  transport come from one package.
 - **A searchable plain text for documents.** `Document` gains `contentText`, the plain text of what
   `content` holds (`getRichTextText`), `@searchable(language: "simple")` beside a searchable
-  `title`, so `search_knowledge` reads an index rather than scanning stored JSON. Like `content`, it
-  is as fresh as the last fold, which is enough to find a document; `read_knowledge` always reads
+  `title`, so `search_documents` reads an index rather than scanning stored JSON. Like `content`, it
+  is as fresh as the last fold, which is enough to find a document; `read_document` always reads
   the shared text. A null `contentText` means "not indexed yet", and nothing may leave it stale:
   - Every write of `content` writes it: the backend's folds and creates, and the web's through new
     operations, `CompactDocumentWithText` and `CreateDocumentWithText`, which take `$contentText` as
@@ -462,7 +477,7 @@ M14.
   - Existing documents, which start null, are filled by a backfill script under `scripts/`, run by
     hand after the release: it pages through null rows in batches and can stop and resume at any
     point, so no request ever carries it.
-  - Before `search_knowledge` reads the index, the backend reindexes up to 20 of the organization's
+  - Before `search_documents` reads the index, the backend reindexes up to 20 of the organization's
     null rows from their `content`, enough for the occasional fold from an old bundle. When null
     rows remain after that, the result says the index is still being built and the search may be
     incomplete, so the model can retry later or read the documents it already knows.
@@ -470,46 +485,202 @@ M14.
     `revision` is still the one they read, so a fold that lands in between, which nulls
     `contentText` again, is never overwritten with text from before it; a conflict stays null for
     the next pass. Tests cover a fold landing between the read and the write.
-- Creating keeps the knowledge cap as `CreateDocument` does: the backend's create locks the
-  organization's row and counts fewer than `MAX_DOCUMENTS` live documents before inserting, so the
-  agent and the browser cannot race past it, and a full organization comes back to the model as a
-  failure it can explain.
-- Backend-connector operations, on M13's `domain/knowledge/`: search candidates, read one (title,
-  aspects, AI permissions, `revision`, `state`, its pending updates and `content`), create, and
-  fold, retried on a moved revision three times at most (the shared text with `content` and
-  `contentText`, the title and the aspects, in one write of the row), each guarded on membership,
-  `deletedAt`, `isAiReadable` and, for writes, `isAiWritable`, each write recording its call's
-  result beside the fenced run write (see Recovery and side effects), and named in
-  `GetOrganizationDocuments`' refreshes and, for the fold, `GetLiveDocument`'s.
-- The four knowledge tools, their labels, and the system prompt's knowledge section.
-- In the thread, `doc:` links resolve against the organization's live document list: the current
-  title, or struck through when deleted.
-- Tests: a document kept from AI is neither found by search nor read, a mentioned one included;
-  one AI may not change refuses, including one whose permission goes off between the read and the
-  fold; a stale `version` refuses `content`, and so does `content` sent without one, before anything is written,
-  including when a push lands between the read and the fold, while
-  `replaceBlocks`, `append` and `replaceText` go through as somebody types elsewhere; two reads in
-  a row hand out the same block ids, and so do a document stored before the editor was shared and
-  read twice, and one a tab seeds while the backend reads it; a
-  create retried with the same `tool_use` id makes one document; a crash between a fold and the
-  next step leaving the edit applied once, `append` included; a create in a full organization
-  refuses; a 200000-character document read in pages that join back whole, and one made of a
-  single 200000-character paragraph too; a page asked for after somebody typed elsewhere carrying
-  on from its block, one after an edit inside the block it stopped in starting that block again,
-  and one whose block was deleted starting the document again; a fold refused on a moved
+- Creating and restoring keep the knowledge cap as `CreateDocument` and `RestoreDocument` do: the
+  backend's create and restore lock the organization's row and count fewer than `MAX_DOCUMENTS`
+  live documents before writing, so an agent and the browser cannot race past it, and a full
+  organization comes back to the model as a failure it can explain.
+- **The frame**: `MODULES` in strategydance-core, each module's name, path, title and scopes;
+  `src/modules/` in the backend, mapping each name to `createServer(caller)`; the caller's type;
+  and a test that every module's tool names are unique across `MODULES` and match Claude's
+  `^[a-zA-Z0-9_-]{1,128}$`.
+- **The eight tools**, as Modules describes them, on M13's `domain/knowledge/`: zod input schemas,
+  `outputSchema`s with `structuredContent` and its JSON as text, annotations, failures as `isError`
+  results with a sentence to act on, the server's instructions, and documents' web addresses for an
+  external caller only.
+- Backend-connector operations, named `…ForAgent`: search candidates, list, read one (title,
+  aspects, AI permissions, `revision`, `state`, its pending updates and `content`), create, fold,
+  retried on a moved revision three times at most (the shared text with `content` and
+  `contentText`, the title, in one write of the row), set aspects, delete and restore. Each is
+  guarded on the membership and its `membershipCreatedAt`, `deletedAt`, `isAiReadable` and, for
+  writes, `isAiWritable`, and for delete and restore on both; each write is an `@transaction`
+  inserting its `ModuleCallResult` first when it carries a key; and each is named in
+  `GetOrganizationDocuments`' refreshes and `GetLiveDocument`'s. A delete prunes the organization's
+  documents deleted over a day ago, as `DeleteDocument` does, and a restore refuses a document
+  deleted over a day ago.
+- **`ModuleCallResult`**, keyed on its scope and key, as Modules § Idempotent writes describes. The
+  daily sweeper deletes the expired rows, and prunes documents deleted over a day ago in every
+  organization, so a day means a day whether or not anybody deletes another.
+- `bun run mcp:knowledge <email> [--organization <id or slug>]`, under the backend's `scripts/`:
+  the module over the SDK's stdio transport, as that account, against the emulators only, as
+  `send:conversation` signs in, its idempotency scope a fresh `connection:<uuid>` each time it
+  starts. Claude Code adds it with `claude mcp add strategydance-knowledge-local -- bun run
+  mcp:knowledge <email>`.
+- `CLAUDE.md`: a Modules section, saying what a module is, where its code goes, how its tools are
+  named, that every write inserts its result under its key first, and that the AI permissions hold
+  for every caller.
+- Tests (database mocked, through an SDK `Client` on the in-memory transport): a document kept from
+  AI neither found, listed nor read; one AI may not change refused, including one whose permission
+  goes off between the read and the fold; a stale `version` refuses `content`, and so does
+  `content` sent without one, before anything is written, including when a push lands between the
+  read and the fold, while `replaceBlocks`, `append` and `replaceText` go through as somebody types
+  elsewhere; two reads in a row hand out the same block ids, and so do a document stored before
+  the editor was shared and read twice, and one a tab seeds while the backend reads it; a write
+  called twice with one key applied once, `append` included, the second answered with the first's
+  result; one key with other arguments refused; two calls at once with one key making one write; a
+  fold that loses a revision race checking its key again before it reapplies; a create in a full
+  organization refused; a 200000-character document read in pages that join back whole, and one
+  made of a single 200000-character paragraph too; a page asked for after somebody typed elsewhere
+  carrying on from its block, one after an edit inside the block it stopped in starting that block
+  again, and one whose block was deleted starting the document again; a fold refused on a moved
   revision read again and reapplied, and a push landing during a fold left pending; a block range
   replaced between two ids without touching the rest, and refused once one of them is gone; an
   append and a replacement that would take the document past 200000 characters of content
   refused, its text and its pending updates left as they were, and the same on a retry after
-  somebody else's fold; a unique piece of text replaced inside that paragraph,
-  and a text that occurs twice refused; search reading the index and loading the plain text of 20
-  candidates at most; a fold through the old operations nulling `contentText`, and the next search
-  reindexing it; a Chinese and a Japanese search finding a word inside a document's sentence,
-  reading the content of the 100 latest documents at most; Markdown in, the document draws as
-  written.
+  somebody else's fold; a unique piece of text replaced inside that paragraph, and a text that
+  occurs twice refused; search reading the index and loading the plain text of 20 candidates at
+  most; a fold through the old operations nulling `contentText`, and the next search reindexing
+  it; a Chinese and a Japanese search finding a word inside a document's sentence, reading the
+  content of the 100 latest documents at most; Markdown in, the document draws as written; the list
+  paged in fifties; aspects replaced, and a repeated one refused; a delete refused when AI may read
+  but not change, and when it may change but not read; a restore at the cap refused, and one past a
+  day refused; an external caller's results carrying addresses and the agent's none; a removed
+  member's call refused, and so is one carrying the `membershipCreatedAt` of a membership since
+  ended, after the member was invited back.
+- Verify: with `bun run mcp:knowledge` added to Claude Code locally, search, list and read; with a
+  document open in a tab, have Claude Code write into it and watch the edit arrive while you type
+  elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write
+  off on one and ask again; turn Read off on it and ask about it.
+
+### M15: Knowledge in conversations
+
+The agent's knowledge, through the module, in process (see Modules § Strategy Dance's agent).
+
+- The worker's module client: for each run, the Knowledge module's server for the run's member
+  (`kind: 'agent'`, every scope, the run's `membershipCreatedAt`, the scope `conversation:<id>`),
+  an SDK `Client` connected to it through the in-memory transport, and its tools converted and
+  appended after the built-in ones. Reads run four at a time, writes alone, each keyed with its
+  `tool_use` id.
+- Recovery as A run § Recovery and side effects says: a worker taking over, and Resume, call a
+  module write again with its key; finalizing an interrupted run, and a send answering it, read
+  each started write's key first, recording a stored result as `SUCCEEDED` and answering the rest
+  as interrupted calls that may have run. The conversation prune deletes its `ModuleCallResult`
+  rows by their scope.
+- The tools' labels in the `conversation` catalogue, running and done, and `bun run translate`;
+  the system prompt's knowledge section.
+- In the thread, `doc:` links resolve against the organization's live document list: the current
+  title, or struck through when deleted. A `delete_document` row offers Restore, through
+  `RestoreDocument`, while the document is deleted and the day has not passed.
+- Tests (scripted client, database mocked): the converted tools list's bytes pinned, `minLength`
+  and its kin dropped, `strict` and eager input streaming set; a module write sent with its
+  `tool_use` id as its key; a crash between the module's write and the worker recording it, the
+  next worker calling again and the write landing once, `append` included; a worker fenced out
+  during a call landing its write, and the worker that took over answered with its result; an
+  interrupted run's started write found by its key and drawn `SUCCEEDED`, and one not found
+  answered as interrupted and may have run, by the next send too; a Resume after the write had
+  landed answered from its key; a Retry writing anew under new keys; a module's `isError` sent as
+  `is_error`; consecutive reads running four at a time and writes alone, in order; the conversation
+  prune deleting its rows.
 - Verify: with a document open in another tab, ask the agent to write a decision into it and watch
-  the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it to create one; open both in Knowledge; turn
-  Write off on one and ask again; turn Read off on it and ask about it.
+  the edit arrive without a reload while you type elsewhere in it, your caret staying put; ask it
+  to create one and tag it; open both in Knowledge; ask it to delete one and restore it from the
+  thread's row; turn Write off on one and ask again; turn Read off on it and ask about it; kill the
+  local backend during a write and resume.
+
+### M16: The authorization server
+
+Strategy Dance's OAuth server on the public backend, as Modules § External agents describes it,
+with nothing to authorize yet but a script: the consent page comes in M17 and the endpoint in M18.
+
+- The tables, as Modules § The data lists them: `OAuthClient`, `OAuthAuthorizationRequest`,
+  `AgentConnection` and `AgentConnectionToken`, its hashes `@unique`. `AgentConnection`'s
+  reference to the member's `UserOrganization` row is the schema's first to that table: check the
+  fields the generator writes for its composite key in the emulator before anything names them, and
+  comment why this table breaks the convention.
+- Backend-connector operations for all of it. Those that find a request, a code or a token by its
+  id or its hash run before any `$userId` is verified, which `CLAUDE.md` § The database records as
+  an exception beside the sign-in screen's public lookup.
+- `routes/oauth.ts`, mounted at `/oauth`, and the metadata at
+  `/.well-known/oauth-authorization-server`, on the public backend only, with what they do in
+  `domain/oauth/`: the metadata, `POST /oauth/register`, `GET /oauth/authorize`, `POST
+  /oauth/token`, `POST /oauth/revoke`, and the consent page's `GET /oauth/requests/:requestId`,
+  `POST …/approve` and `POST …/deny`, which take the member's ID token and App Check and check
+  `ARE_MODULES_STAFF_ONLY`, a new constant in strategydance-core. Client ID metadata documents are
+  fetched through `fetchOutbound`. Registering and authorizing are rate-limited per address, and
+  registrations capped in all.
+- The token verifier M18 mounts: one read by the token's hash, with its connection, its membership
+  and the account's staff role, compared with the endpoint's resource.
+- The daily sweeper deletes expired authorization requests and tokens, and registrations over a day
+  old that no connection uses.
+- `bun run check:oauth`, under the backend's `scripts/`, runs the flow against the local backend
+  and the emulators: it registers a loopback client, authorizes, approves as an account signed in
+  to the Auth emulator, exchanges the code, refreshes, presents the spent refresh token again, and
+  revokes.
+- `CLAUDE.md` § Backend conventions: the OAuth routes answer in OAuth's own JSON rather than
+  `ApiResponse`, carry no App Check, answer any origin without credentials, and find tokens by their
+  hash.
+- Tests (database mocked, `fetchOutbound` faked): the metadata exactly as Modules lists it; a
+  client ID metadata document fetched and kept, and refused when its `client_id` differs from its
+  address, when its body was cut, or when it redirects; a registration with an `https` redirect
+  refused, and a loopback and a `cursor://` one accepted; a loopback redirect matching on any port,
+  and every other one exactly; an error before the client is checked rendered and never
+  redirected, and one after it redirected with `state` and `iss`; `resource` missing, repeated or
+  naming no module refused, and scopes past the module's; a `plain` challenge and a wrong verifier
+  refused; a code used twice refused, the second use revoking what the first issued, and a code
+  past its minute refused; a token for one module refused for another; a refresh rotating, the
+  spent token presented within 30 seconds refused alone and later revoking the connection;
+  consenting again replacing the earlier connection; approving refused for an account that is not
+  staff and for an organization it is not in; removing the member deleting the connection with its
+  tokens; a revoked token refused.
+- Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
+  merges, as Risks asks.
+
+### M17: The consent page and Connected agents
+
+- The `module` message type, for the consent page, Connected agents and M18's dialog, its module
+  and its `MESSAGE_TYPES` entry, registered on the consent page's route and in `_app.tsx`'s
+  `APP_MESSAGE_TYPES`, and `bun run translate`.
+- `/oauth/consent`, as Modules describes it: under `_authenticated` and outside `_app`'s frame, so a
+  signed-out member signs in and comes back through the page `AuthenticationBouncer` keeps; read
+  through `GET /oauth/requests/:requestId`; the client, the module, an organization chosen among the
+  member's, the access, Allow and Deny; an expired or unknown request's state; an account that is
+  not staff told the page is not available yet. `firebase.json` sends `frame-ancestors 'none'`
+  for `/oauth/**`.
+- The account page's Connected agents tab, staff only: `GetAgentConnections`, live, the caller's
+  own connections, refreshed by approving, disconnecting, `RemoveOrganizationMember` and
+  `DeleteOrganization` on `mutation.variables.userId == request.auth.uid`, never by the
+  `lastUsedAt` write, each with its client, organization, module, access, and when it connected and
+  was last used; and Disconnect, `DeleteAgentConnection`, which deletes it with its tokens.
+- Verify: `check:oauth`'s flow with the page approving in a browser instead of the script, at
+  desktop and phone widths; signed out first, the page coming back after signing in; Deny; an
+  expired request; a connection disconnected from the tab, and the script's next refresh refused.
+
+### M18: The Knowledge module for external agents
+
+- Dependencies: `@modelcontextprotocol/express`.
+- `routes/modules.ts`, mounted at `/mcp` on the public backend only: `POST /mcp/knowledge` through
+  `createMcpHandler` with `responseMode: 'json'` and `legacy: 'stateless'`, behind
+  `requireBearerAuth` with M16's verifier and the endpoint's address as `expectedResource`; the
+  `Origin` check; a 1 MiB body; `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE;
+  and `/.well-known/oauth-protected-resource/mcp/knowledge` through `mcpAuthMetadataRouter`. The
+  caller comes from the token (`kind: 'external'`, the connection's scopes, the scope
+  `connection:<id>`), so a read-only connection lists the reads alone; `lastUsedAt` is written at
+  most once a minute; an external `search_documents` draws on the member's `ConversationSearch`
+  allowance.
+- The Knowledge page's "Use with your agents" button and dialog, staff only.
+- `CLAUDE.md`: the Modules section gains the endpoint, how an external agent is authorized, and what
+  a new module needs; § Backend conventions, that `/mcp` answers JSON-RPC rather than `ApiResponse`
+  and carries no App Check.
+- Tests: no token answered 401, its `WWW-Authenticate` naming the metadata; a token for another
+  resource, a revoked one and a removed member's refused; a read-only connection's `tools/list`
+  holding the reads alone; a write retried with its key applied once; an `Origin` from elsewhere
+  answered 403, and a request with none served; a 2025-11-25 client's `initialize` and session
+  header served statelessly; a search past the allowance answered with a result saying so.
+- Verify: locally, add `http://localhost:3003/mcp/knowledge` to Claude Code (`claude mcp add
+  --transport http`), consent, and run every tool against a document open in a tab, then the MCP
+  Inspector; in production, as staff, add the module to claude.ai as a custom connector (which
+  takes the client ID metadata document), to ChatGPT in developer mode and to Cursor (which
+  registers), use it from each, and disconnect one from Connected agents and see its next call
+  refused.
 
 ### M19: Mentioning knowledge in the composer
 
@@ -660,12 +831,12 @@ M14.
 - The server dialog lists its tools with a switch each for running without approval. A tool's
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.
-- Backend routes for administrators: add (connects with `@modelcontextprotocol/sdk` over Streamable
-  HTTP and lists the tools), edit, delete, turn on and off, retry. An OAuth server answers 401
-  before any member has connected, so adding one runs only its discovery here, the protected
-  resource metadata and the issuer it names, and its tools wait for the first connection in M26:
-  until then the dialog says to connect an account to list them, and its auto-approval switches
-  wait with them. Deleting sets `deletedAt`, keeping
+- Backend routes for administrators: add (connects with `@modelcontextprotocol/client`, the SDK
+  M14 installed, over Streamable HTTP and lists the tools), edit, delete, turn on and off, retry.
+  An OAuth server answers 401 before any member has connected, so adding one runs only its
+  discovery here, the protected resource metadata and the issuer it names, and its tools wait for
+  the first connection in M26: until then the dialog says to connect an account to list them, and
+  its auto-approval switches wait with them. Deleting sets `deletedAt`, keeping
   the secrets for Undo; the daily sweeper (M8) removes it a day later, with its connections, pending
   authorizations and encrypted credentials, if it is still deleted.
   Encryption through Cloud KMS, and a local key in development.
@@ -775,10 +946,15 @@ M14.
 
 ### M28: Launch
 
-- Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`.
+- Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY` and
+  `ARE_MODULES_STAFF_ONLY`.
 - `CLAUDE.md`: a Conversations section with what a new tool needs, the transcript's rules and the
   run lifecycle, where earlier milestones have not written it.
+- Whether to list the modules in the MCP Registry, under the `com.strategydance` name a DNS record
+  proves, which is David's call.
 - `operations-costs.md`: Claude, Cloud Tasks and attachment storage, from the recorded usage.
 - Before merging: the rate limit tier raised, the spend limit and the budget alert's threshold looked
   at again against the recorded usage, and the legal page reviewed for AI processing, naming
-  Anthropic as processor and the region inference runs in, which are David's calls.
+  Anthropic as processor and the region inference runs in, and saying that what a member's
+  connected agents read reaches those agents' providers, at the member's choice, which are David's
+  calls.

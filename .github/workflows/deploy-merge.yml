@@ -1,9 +1,11 @@
 # Deploys a release whenever main moves, in the order it needs: Data Connect first, since the
-# backend and the frontend both query it, then the backend, then the Storage rules, and the
-# frontend last. A step runs only once the one before it has succeeded, so a run that stops
+# backend and the frontend both query it, then the backend and the worker, then the Storage rules,
+# and the frontend last. A step runs only once the one before it has succeeded, so a run that stops
 # partway stops before anything that relies on what failed. The backend deploys through
 # `bun run deploy:backend`, the same command a human runs, so its flags stay in one place: the
-# backend's package.json
+# backend's `scripts/deploy.sh`, which deploys the image it builds twice, as the public backend and
+# then as the private worker. A failure between the two leaves the backend queueing runs to the
+# worker's previous revision, whose tasks Cloud Tasks retries until the worker is there
 #
 # It holds no key. The organization forbids creating service account keys, and a key in the
 # repository's secrets is one a pull request's workflow could print, as
@@ -29,7 +31,9 @@
 # - For the backend, `roles/run.sourceDeveloper` to upload and build, `roles/run.admin` because
 #   `--no-invoker-iam-check` needs `run.services.setIamPolicy`, and
 #   `roles/iam.serviceAccountUser` on the Compute Engine default service account, which the build
-#   and the service both run as
+#   and both services run as. The worker asks for nothing more: `roles/run.admin` creates and
+#   updates it and turns its invoker check on, and it runs the image the backend's build already
+#   pushed. Who may invoke it, `conversation-tasks`, is granted by hand once, never by a deploy
 # - For the rules, `roles/firebaserules.admin`, and `roles/firebasestorage.viewer` to find the
 #   default bucket. For the frontend, `roles/firebasehosting.admin`
 #
@@ -102,7 +106,7 @@ jobs:
       # `schemaValidation: "COMPATIBLE"` lets keep serving
       - name: Deploy Data Connect
         run: bunx firebase deploy --only dataconnect --non-interactive
-      - name: Deploy the backend
+      - name: Deploy the backend and the worker
         run: bun run deploy:backend
         # Answers every prompt with its default, so a deploy that has to create the
         # `cloud-run-source-deploy` repository does instead of waiting on a question nobody

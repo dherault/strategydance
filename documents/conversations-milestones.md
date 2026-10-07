@@ -290,6 +290,11 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   task is gone; the sweeper claiming a conversation before deleting it, a restore refused once it is
   claimed, and a prune that failed after claiming finished by the next sweep; the backend answering
   404 on `/internal/*` and the worker on everything else.
+- Built with one addition, David's choice on 2026-10-07: M7's composer sends nothing while the run
+  it shows is queued, so a send whose task could not be queued brings the run's lease in to now,
+  and the reconcile route queues a run whose task is gone again while it is under twenty minutes
+  old (see A run § Queueing). The sweep claims everything at once and deletes twenty conversations
+  at a time.
 - Verify: setup steps 3 and 4 before the release, then, once it has deployed the worker, step 3's
   invoker grant on the worker and step 6; then,
   as staff in production, send and watch the task in Cloud Tasks' logs and the reply arrive; call

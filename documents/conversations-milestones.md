@@ -64,7 +64,7 @@ before their neighbours.
 | M14 | The Knowledge module | database, core, backend, web | M12, M13 | |
 | M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
 | M16 | The authorization server | backend, database, core | M14 | |
-| M17 | The consent page and Connected agents | web, backend, root | M16 | |
+| M17 | The consent page and Connected agents | web, backend, database, root | M16 | |
 | M18 | The Knowledge module for external agents | backend, web, root | M17 | |
 | M19 | Mentioning knowledge in the composer | web | M7, M15 | |
 | M20 | Team, log and top priority tools | backend, database, web | M9, M13 | |

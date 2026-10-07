@@ -113,6 +113,13 @@ export const CONVERSATION_RUN_STEP_INTERVAL_MS = 1000
 */
 export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
 
+/*
+  Whether conversations are answered by the placeholder client rather than Claude: in development
+  only, when `CONVERSATION_AGENT=placeholder` spares a developer what every request to the real
+  model costs. Production always asks Claude
+*/
+export const IS_CONVERSATION_AGENT_PLACEHOLDER = !IS_PRODUCTION && process.env.CONVERSATION_AGENT === 'placeholder'
+
 // How long a task's delivery may take, the run it delivers going the whole time: as long as the
 // worker's own timeout, which `deploy:backend` sets
 export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60

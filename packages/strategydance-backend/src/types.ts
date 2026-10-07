@@ -1,3 +1,9 @@
+import type {
+  BetaMessage,
+  BetaMessageStreamParams,
+  MessageCountTokensParams,
+} from '@anthropic-ai/sdk/resources/beta/messages/messages'
+
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
 /* ---
@@ -69,4 +75,17 @@ export type ConversationAgent = {
     signal: AbortSignal
     onStep: (step: string) => void
   }): Promise<ConversationAgentTurn>
+}
+
+/*
+  What a run asks Claude through: a request streamed until its final message, the progress lines
+  its thinking gives along the way handed over as they land, and a request's input counted. The
+  real one calls Anthropic's API; a placeholder and the tests' scripted double stand in for it
+*/
+export type ClaudeClient = {
+  stream(
+    body: BetaMessageStreamParams,
+    options: { signal: AbortSignal; onProgress: (line: string) => void },
+  ): Promise<BetaMessage>
+  countTokens(body: MessageCountTokensParams): Promise<number>
 }

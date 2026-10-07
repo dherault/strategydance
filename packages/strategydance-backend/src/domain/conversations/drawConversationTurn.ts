@@ -15,6 +15,7 @@ import deriveConversationMessageId from '~domain/conversations/deriveConversatio
 import mergeConversationText, {
   type ConversationTextBlockWithCitations,
 } from '~domain/conversations/mergeConversationText'
+import readPieceText from '~domain/conversations/readPieceText'
 import selectPieceCitations from '~domain/conversations/selectPieceCitations'
 import splitConversationText from '~domain/conversations/splitConversationText'
 
@@ -122,7 +123,7 @@ function findNextDrawing(entry: ConversationDrawEntry, laterEntries: Conversatio
       toBlock: isLast ? toBlock : cursor,
       toPiece: isLast ? 0 : drawnPieces + 1,
       messageId: deriveConversationMessageId(entry.id, cursor, drawnPieces),
-      text: text.slice(piece.start, piece.end),
+      text: readPieceText(text, piece),
       citations: selectPieceCitations(citations, piece),
     }
   }
@@ -142,7 +143,7 @@ function findNextDrawing(entry: ConversationDrawEntry, laterEntries: Conversatio
         toBlock: pieces.length > 1 ? index : toBlock,
         ...(pieces.length > 1 ? { toPiece: 1 } : {}),
         messageId: deriveConversationMessageId(entry.id, index, 0),
-        text: text.slice(first.start, first.end),
+        text: readPieceText(text, first),
         citations: selectPieceCitations(citations, first),
       }
     }

@@ -547,6 +547,24 @@ describe('runConversation', () => {
     expect(readUsage(refused).byModel).toEqual({})
   })
 
+  test('sends nothing once its reservation finds the run claimed again', async () => {
+    const reference = await start()
+    const scripted = createClient([answer()], {
+      // Another worker claims the run while this one measures its request
+      count: () => {
+        const run = readRun(reference)
+
+        if (run && run.attempts === 1) run.attempts = 2
+
+        return 1000
+      },
+    })
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(readUsage(reference).requests).toHaveLength(0)
+  })
+
   test('marks the conversation full and sends nothing when a request would pass 800000 input tokens', async () => {
     const reference = await start()
     const scripted = createClient([answer()], { count: () => 900000 })

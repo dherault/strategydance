@@ -168,13 +168,19 @@ async function requestConversationTurn({
 
     const reservedUsage = usage
 
-    await lease.write(() =>
+    const { data: reservation } = await lease.write(() =>
       renewConversationRunLease(dataConnect, {
         ...fence,
         usage: reservedUsage,
         ...(context ? { context: JSON.stringify(context) } : {}),
       }),
     )
+
+    // A run claimed again, or whose author left, is no longer this worker's, and its request is not
+    // reserved: nothing is sent, and the step's next read finds out which
+    if (reservation.conversationRun_updateMany !== 1) {
+      throw new Error(`Conversation run ${fence.runId}: its reservation renewed nothing, the run is not this worker's`)
+    }
 
     let message: BetaMessage
     // The message so far, once the stream has reported its usage

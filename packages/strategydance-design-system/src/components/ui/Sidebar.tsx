@@ -464,8 +464,8 @@ function SidebarMenuItem({ className, ...props }: ComponentProps<'li'>) {
   The row. An open menu's trigger keeps the hover colour while its menu is up, and the active row
   holds primary-50 even under the pointer, which is why it is `data-[active=true]` rather than
   shadcn's `data-active`: that one wraps its selector in `:where()`, so any `:hover` outranks it.
-  Icons are muted, and primary on the active row. Its colours change at once, as shadcn's do: faded,
-  the row the pointer just left stays lit while the next one lights, and reads as a flicker
+  Icons are muted, and primary on the active row. Its colours change at once, as shadcn's do: a fade
+  would keep the row the pointer just left lit while the next one lights, which reads as a flicker
 */
 const sidebarMenuButtonVariants = cva(
   `peer/menu-button group/menu-button flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xs p-2 text-left text-sm text-sidebar-foreground no-underline transition-[width,height,padding] ${focusClassName} group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground data-[active=true]:bg-primary-50 data-[active=true]:font-medium data-[active=true]:text-primary [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[active=true]:[&_svg]:text-primary [&>span:last-child]:truncate`,

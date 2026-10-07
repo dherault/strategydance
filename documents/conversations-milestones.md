@@ -703,20 +703,20 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   mounted at the app's root, beside the authorization server's metadata, never under `/mcp`, where
   it would answer at `/mcp/.well-known/…` rather than the address the 401 names. The caller comes
   from the token (`kind: 'external'`, the connection's scopes, the scope `connection:<id>`), so a
-  read-only connection lists the reads alone; `lastUsedAt` is written at most once a minute; an
-  external `search_documents` draws on the member's `ConversationSearch` allowance.
+  read-only connection's write calls are challenged; `lastUsedAt` is written at most once a minute;
+  an external `search_documents` draws on the member's `ConversationSearch` allowance.
 - The Knowledge page's "Use with your agents" button and dialog, staff only.
 - `CLAUDE.md`: the Modules section gains the endpoint, how an external agent is authorized, and what
   a new module needs; § Backend conventions, that `/mcp` answers JSON-RPC rather than `ApiResponse`
   and carries no App Check.
 - Tests: no token answered 401, its `WWW-Authenticate` naming the metadata; a token for another
   resource, a revoked one, a removed member's and a refresh token presented as a bearer token
-  refused; a read-only connection's `tools/list` holding the reads alone, and its direct
-  `tools/call` of `create_document` answered 403 with `insufficient_scope`, naming `knowledge:write`
-  and the resource metadata, nothing written, and a new consent for read and write replacing the
-  connection with one that may write; a write retried with its key applied once; an `Origin` from
-  elsewhere answered 403, and a request with none served; a POST's JSON body reaching the handler
-  whole through the route's parser; a 2025-11-25 client's `initialize` and session header served
+  refused; a read-only connection's `tools/list` holding every tool, and its direct `tools/call` of
+  `create_document` answered 403 with `insufficient_scope`, naming `knowledge:write` and the
+  resource metadata, nothing written, and a new consent for read and write replacing the connection
+  with one that may write; a write retried with its key applied once; an `Origin` from elsewhere
+  answered 403, and a request with none served; a POST's JSON body reaching the handler whole
+  through the route's parser; a 2025-11-25 client's `initialize` and session header served
   statelessly; a search past the allowance answered with a result saying so.
 - Verify: locally, add `http://localhost:3003/mcp/knowledge` to Claude Code (`claude mcp add
   --transport http`), consent, and run every tool against a document open in a tab, then the MCP

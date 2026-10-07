@@ -62,6 +62,22 @@ describe('groupConversationReplies', () => {
     expect(pieces.has('member')).toBe(false)
   })
 
+  test('orders the markers of a span citing several sources by their numbers', () => {
+    const entries = [entry('reply', ConversationMessageKind.AGENT_TEXT)]
+    const bodies = new Map([
+      cited('reply', [
+        { end: 4, urls: ['https://b.com'] },
+        { end: 12, urls: ['https://a.com', 'https://b.com'] },
+      ]),
+    ])
+
+    expect(groupConversationReplies(entries, bodies).get('reply')?.markers).toEqual([
+      { offset: 4, key: '1' },
+      { offset: 12, key: '1' },
+      { offset: 12, key: '2' },
+    ])
+  })
+
   test('starts a new reply after another kind of entry, or with another run', () => {
     const entries = [
       entry('first', ConversationMessageKind.AGENT_TEXT),

@@ -27,7 +27,8 @@ export type ConversationReplyPiece = {
 /*
   Finds the thread's replies, each the consecutive texts of one run, a reply past 20000 characters
   being drawn in several, and numbers each reply's sources across its pieces, in the order they are
-  first cited, an address once. A piece whose body has not landed yet cites nothing until it does
+  first cited, an address once. The markers of a span citing several sources read in their numbers'
+  order. A piece whose body has not landed yet cites nothing until it does
 */
 function groupConversationReplies(
   entries: ConversationThreadEntry[],
@@ -72,7 +73,12 @@ function groupConversationReplies(
     if (previousPiece) previousPiece.isLast = false
 
     reply.entryIds.push(entry.id)
-    pieces.set(entry.id, { markers, sources, isContinuation, isLast: true })
+    pieces.set(entry.id, {
+      markers: markers.toSorted((a, b) => a.offset - b.offset || Number(a.key) - Number(b.key)),
+      sources,
+      isContinuation,
+      isLast: true,
+    })
   }
 
   return pieces

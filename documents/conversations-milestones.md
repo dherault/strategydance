@@ -324,8 +324,20 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   crash between two pieces drawing the rest once; a web search becomes one finished call; usage
   adds up; a request that would pass 800000 input tokens never sent, the conversation marked full
   and the send route refusing, and a `pause_turn` continuation counted from the paused request, so
-  pieces held in memory that take it past the limit stop it too; a conversation near the limit
+  parts held in memory that take it past the limit stop it too; a conversation near the limit
   whose tools list grew in a release counted with the growth, and stopped by it.
+- Built with these settled, on 2026-10-08: a paused turn's responses are its parts, and a long
+  text's slices its pieces; the parts are stored after the turn ends, one write each, so a crash
+  between two leaves a paused part last, which the next worker continues, as the run's usage ledger
+  says it paused; the piece cursor is a column of its own, `drawnPieces`; the development backend
+  asks the real model unless started with `CONVERSATION_AGENT=placeholder`; a citation's marker is
+  placed by its offset in the Markdown, and a reply's sources are numbered across its pieces.
+  Verified with the real model: the second run of a conversation read from the cache exactly what
+  the first had written, so the first turn replays byte for byte, and `input_transformations` stayed
+  empty. Found: Opus 5.5 called every search from code, which leaves its replies without citations,
+  and `allowed_callers: ["direct"]` brings them back, which is David's call (see Drawing a turn).
+  Not seen with the real model: a `pause_turn`, a reply past 20000 characters, and the 800000 limit,
+  which the scripted tests cover.
 - Verify: ask a question that needs the web and one that does not; watch the indicator's progress
   lines when they come, across a run of several tool calls, and its tool labels otherwise; check the
   logs show `input_transformations` empty across turns, and cache reads on every request after a

@@ -1028,13 +1028,16 @@ Strategy Dance's, which any agent a member connected may call as that member.
   fresh server for each request from the caller its `authInfo` carries: the public endpoint and
   Strategy Dance's agent both go through that one handler. What a tool does lives in `domain/`,
   `domain/knowledge/` for this one, and a tool's file only validates, calls and shapes the result.
-- **The caller**,
-  `{ kind, userId, organizationId, membershipCreatedAt, scopes, idempotencyScope }`, is verified
-  before the server is built and handed to it as `authInfo`: from the run for Strategy Dance's
-  agent (`kind: 'agent'`), from the token for an external one (`kind: 'external'`). Nothing in it
-  comes from a tool's arguments, as the backend's rule for `$userId` asks. Every operation a tool
-  runs matches the membership on `membershipCreatedAt`, as a run's writes do, so removing a member
-  stops every agent acting as them at its next call.
+- **The caller**, `{ kind, userId, organizationId, membershipCreatedAt, scopes, idempotencyScope }`,
+  is verified before the server is built: from the run for Strategy Dance's agent (`kind: 'agent'`),
+  from the token for an external one (`kind: 'external'`). It reaches the server inside the SDK's
+  `AuthInfo`, which requires a `token`, a `clientId` and `scopes` and keeps whatever else in
+  `extra`: a small wrapper, `toModuleAuthInfo`, puts the caller in `extra` and fills the required
+  fields, from the token for an external agent and with fixed values naming the worker for Strategy
+  Dance's agent, and the factory reads the caller back out of `extra`, refusing a request that
+  carries none. Nothing in it comes from a tool's arguments, as the backend's rule for `$userId`
+  asks. Every operation a tool runs matches the membership on `membershipCreatedAt`, as a run's
+  writes do, so removing a member stops every agent acting as them at its next call.
 - **One server per module**, at its own address, `https://api.strategydance.com/mcp/knowledge` for
   this one. Each is its own OAuth resource, so a member connects modules one by one, and a module
   that touches money later asks for its own consent.

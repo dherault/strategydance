@@ -493,8 +493,9 @@ it yet, and Claude Code reaches it locally over stdio.
   organization comes back to the model as a failure it can explain.
 - **The frame**: `MODULES` in strategydance-core, each module's name, path, title and scopes;
   `src/modules/` in the backend, mapping each name to `createServer(caller)` and the
-  `createMcpHandler` around it; the caller's type; and a test that every module's tool names are
-  unique across `MODULES` and match Claude's `^[a-zA-Z0-9_-]{1,128}$`.
+  `createMcpHandler` around it; the caller's type and `toModuleAuthInfo`, which carries it in
+  `AuthInfo`'s `extra`; and a test that every module's tool names are unique across `MODULES` and
+  match Claude's `^[a-zA-Z0-9_-]{1,128}$`.
 - **The eight tools**, as Modules describes them, on M13's `domain/knowledge/`: zod input schemas,
   `outputSchema`s with `structuredContent` and its JSON as text, annotations, failures as `isError`
   results with a sentence to act on, the server's instructions, and documents' web addresses for an

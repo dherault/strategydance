@@ -658,9 +658,12 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   fence after the piece and opens it again before the next, and a cut inside a table repeats the
   table's head before the next, each piece within the bound with what it gains (M9). Each
   citation stays with the piece its span starts in, its offsets rebased to that piece as drawn and
-  its span clipped at the piece's end. The thread draws consecutive pieces as one reply, and only the first
-  adds to `unreadCount`. The transcript keeps the model's blocks as they came, since pieces are only
-  a drawing, and each piece's id adds its index to the entry and block it derives from. The live
+  its span clipped at the piece's end. The thread draws consecutive pieces as one reply, and only
+  the first adds to `unreadCount`. It numbers a reply's sources across the pieces it holds, so a
+  reply whose first pieces lie on an older page not read yet numbers the sources it shows, and
+  renumbers them once that page loads; each marker links to its own source either way (M9). The
+  transcript keeps the model's blocks as they came, since pieces are only a drawing, and each
+  piece's id adds its index to the entry and block it derives from. The live
   tail carries no text (see Who writes what), so a long reply costs the network once.
 - **Drawing survives a crash.** A turn is stored in the transcript first, then drawn block by block,
   so a crash can fall between the two. Each drawn message's id derives from its transcript entry and

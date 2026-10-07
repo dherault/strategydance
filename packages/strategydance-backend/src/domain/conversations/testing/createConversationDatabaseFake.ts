@@ -88,6 +88,7 @@ export type FakeRun = {
   stopRequestedAt: string | null
   leaseExpiresAt: string | null
   attempts: number
+  createdAt: string
   startedAt: string | null
   endedAt: string | null
 }
@@ -471,6 +472,7 @@ function createConversationDatabaseFake() {
         stopRequestedAt: null,
         leaseExpiresAt: inSeconds(20 * 60),
         attempts: 0,
+        createdAt: now(),
         startedAt: null,
         endedAt: null,
       })
@@ -544,6 +546,7 @@ function createConversationDatabaseFake() {
         stopRequestedAt: null,
         leaseExpiresAt: inSeconds(20 * 60),
         attempts: 0,
+        createdAt: now(),
         startedAt: null,
         endedAt: null,
       })
@@ -592,6 +595,16 @@ function createConversationDatabaseFake() {
 
       end(run, 'INTERRUPTED')
       writeNote(noteConversation, variables, 'INTERRUPTED')
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    RenewQueuedConversationRunLease: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run) return { conversationRun_updateMany: 0 }
+
+      run.leaseExpiresAt = inSeconds(20 * 60)
 
       return { conversationRun_updateMany: 1 }
     },

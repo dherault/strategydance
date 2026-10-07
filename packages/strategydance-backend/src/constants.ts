@@ -116,6 +116,14 @@ export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
 // worker's own timeout, which `deploy:backend` sets
 export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60
 
+/*
+  How long after a run was queued a route that finds its task gone queues it again, rather than
+  finalizing the run as interrupted: as long as a queued run's first lease. A task that could not be
+  queued, or was lost, is queued again while the member still waits on its page, which asks every
+  two minutes, and a run whose task keeps going missing ends once it is older
+*/
+export const CONVERSATION_RUN_REQUEUE_WINDOW_MS = 20 * 60 * 1000
+
 /* ---
   SECRETS
 

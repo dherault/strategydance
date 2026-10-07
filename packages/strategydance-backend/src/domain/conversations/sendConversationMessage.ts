@@ -61,7 +61,8 @@ type SendConversationMessageResult =
     queued again while it waits in the queue, so a send retried after its first try went through
     completes what that one did not
   - a run of the caller's is in flight past its lease: it died with its worker, and is finalized
-    before anything is counted, its own conversation's or another's
+    before anything is counted, its own conversation's or another's, unless it is queued and still
+    coming, as Cloud Tasks says
   - then the conversation has to be the caller's and not deleted, idle, and not full, or, when it
     does not exist yet, the caller to keep fewer than 1000, and the caller to have fewer than 3 runs
     in flight. A conversation whose run still waits in the queue has that run queued again before
@@ -100,28 +101,33 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
       const reference = { organizationId, userId, conversationId, runId: sent.run.id }
 
-      if (isDead(sent.run)) await finalizeDeadConversationRun(reference)
-      else if (sent.run.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
+      // A run past its lease that is still coming, its task found or queued again, is alive too, and
+      // is queued again like any other still waiting, which answers whether it is
+      const state = isDead(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
+
+      if (state === 'alive' && sent.run.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
         return { outcome: 'unavailable' }
       }
 
       return { outcome: 'sent', runId: sent.run.id }
     }
 
-    const deadRuns = data.conversationRuns.filter(isDead)
+    // Read again once one has ended, which freed its conversation and the caller's allowance. One
+    // still coming counts as in flight, as it was read, and asking the queue again changes nothing
+    let hasEnded = false
 
-    if (deadRuns.length) {
-      for (const run of deadRuns) {
-        await finalizeDeadConversationRun({
-          organizationId,
-          userId,
-          conversationId: run.conversation.id,
-          runId: run.id,
-        })
-      }
+    for (const run of data.conversationRuns.filter(isDead)) {
+      const state = await finalizeDeadConversationRun({
+        organizationId,
+        userId,
+        conversationId: run.conversation.id,
+        runId: run.id,
+      })
 
-      if (round < MAX_ROUNDS) continue
+      if (state === 'ended') hasEnded = true
     }
+
+    if (hasEnded && round < MAX_ROUNDS) continue
 
     if (conversation && (conversation.userId !== userId || conversation.organizationId !== organizationId)) {
       return { outcome: 'missing' }

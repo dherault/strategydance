@@ -17,6 +17,7 @@ import {
   interruptDeadConversationRun,
   reclaimConversationRun,
   renewConversationRunLease,
+  renewQueuedConversationRunLease,
   sendConversationMessage,
   startConversation,
   storeConversationTurn,
@@ -608,7 +609,10 @@ async function checkDeadRuns() {
   )
 }
 
-// A queued run's lease, which a failed queueing brings in to now so the page reconciles it at once
+/*
+  A queued run's lease, which the backend pushes back once it has seen the run's task still in the
+  queue, and brings in to now when the task could not be queued, so the page reconciles it at once
+*/
 async function checkQueuedLeases() {
   const membershipCreatedAt = await readMembershipCreatedAt(userIds.queuer)
   const started = await start(userIds.queuer, membershipCreatedAt)
@@ -637,6 +641,29 @@ async function checkQueuedLeases() {
       && (await readLease()) === queuedLease,
   )
 
+  const { data: context } = await getConversationRunContext(dataConnect, reference)
+  const createdAt = Date.parse(context.conversationRuns[0]?.createdAt ?? '')
+
+  check(
+    'a run’s context says when it was queued, which says whether its lost task is queued again',
+    createdAt <= Date.now() && createdAt > Date.now() - 60 * 1000,
+  )
+
+  await expireLease(started.runId)
+
+  const { data: strangerRenewal } = await renewQueuedConversationRunLease(dataConnect, {
+    ...reference,
+    userId: userIds.member,
+  })
+  const { data: renewed } = await renewQueuedConversationRunLease(dataConnect, reference)
+
+  check(
+    'a queued run’s lease past is pushed twenty minutes out again, for its author alone',
+    strangerRenewal.conversationRun_updateMany === 0
+      && renewed.conversationRun_updateMany === 1
+      && (await readLease()) > Date.now() + 19 * 60 * 1000,
+  )
+
   const { data: expired } = await expireQueuedConversationRunLease(dataConnect, reference)
 
   check(
@@ -651,9 +678,13 @@ async function checkQueuedLeases() {
   const claimedLease = await readLease()
   const { data: claimed } = await expireQueuedConversationRunLease(dataConnect, reference)
 
+  const { data: claimedRenewal } = await renewQueuedConversationRunLease(dataConnect, reference)
+
   check(
-    'a claimed run’s lease is not brought in',
-    claimed.conversationRun_updateMany === 0 && (await readLease()) === claimedLease,
+    'a claimed run’s lease is neither brought in nor pushed back as a queued one’s',
+    claimed.conversationRun_updateMany === 0
+      && claimedRenewal.conversationRun_updateMany === 0
+      && (await readLease()) === claimedLease,
   )
 
   await finishConversationRun(dataConnect, { ...fence(started, 1), status: ConversationRunStatus.COMPLETED })

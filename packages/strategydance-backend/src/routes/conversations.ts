@@ -162,7 +162,9 @@ function createConversationsRouter() {
   /*
     Asked by a conversation's page once the run it shows is past its lease, and every two minutes
     after: a run that died with its worker ends interrupted, with its note, which the page then
-    shows, and one whose lease holds is left as it is. Takes no body
+    shows, and one whose lease holds is left as it is. A queued run past its lease is first looked
+    up in Cloud Tasks' queue, where runs go through it: kept while its task is there, queued again
+    while it is young, and interrupted once its task is gone and it is older. Takes no body
   */
   router.post(
     '/:conversationId/runs/:runId/reconcile',

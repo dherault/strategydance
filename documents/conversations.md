@@ -651,8 +651,11 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   the model's text blocks first), at a line break only for a single block past the bound, and, for
   a single line past it, at the last space before the bound, else at the last grapheme boundary
   (`Intl.Segmenter`), so a piece never splits a character or a cluster and every piece fits. Each
-  citation stays with the piece its span starts in, its offsets rebased to that piece and its span
-  clipped at the piece's end. The thread draws consecutive pieces as one reply, and only the first
+  piece is drawn as Markdown of its own, so a cut inside a top-level fenced code block closes the
+  fence after the piece and opens it again before the next, and a cut inside a table repeats the
+  table's head before the next, each piece within the bound with what it gains (M9). Each
+  citation stays with the piece its span starts in, its offsets rebased to that piece as drawn and
+  its span clipped at the piece's end. The thread draws consecutive pieces as one reply, and only the first
   adds to `unreadCount`. The transcript keeps the model's blocks as they came, since pieces are only
   a drawing, and each piece's id adds its index to the entry and block it derives from. The live
   tail carries no text (see Who writes what), so a long reply costs the network once.

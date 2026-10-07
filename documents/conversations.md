@@ -1172,8 +1172,12 @@ consent page from M17:
     MCP's JSON-RPC, not `ApiResponse`.
   - A connection granted read only lists the read tools alone, since the specification lets
     `tools/list` follow authorization, so a write it may not make is never offered. Hiding is not
-    the guard: a client can call a tool it was never shown, so every write tool checks the caller's
-    `knowledge:write` itself, and refuses a caller without it before anything is read or written.
+    the guard, since a client can call a tool it was never shown: every write tool registers the
+    SDK's `scopeChallenge` for `knowledge:write`, so such a call answers 403 with `WWW-Authenticate:
+    Bearer error="insufficient_scope"`, the scope and the resource metadata, as the specification's
+    step-up asks. The client can then ask again for read and write, and the member's new consent
+    replaces the connection. The tool checks the scope itself too, a second guard that refuses
+    before anything is read or written.
   - The connection's `lastUsedAt` is written at most once a minute, and no refresh names that
     write.
 - **The authorization server** is the public backend too, issuer `https://api.strategydance.com`:

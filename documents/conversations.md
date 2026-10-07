@@ -1164,7 +1164,9 @@ consent page from M17:
   - No App Check, which an external agent cannot carry: the token is the guard. The answers are
     MCP's JSON-RPC, not `ApiResponse`.
   - A connection granted read only lists the read tools alone, since the specification lets
-    `tools/list` follow authorization, so a write it may not make is never offered.
+    `tools/list` follow authorization, so a write it may not make is never offered. Hiding is not
+    the guard: a client can call a tool it was never shown, so every write tool checks the caller's
+    `knowledge:write` itself, and refuses a caller without it before anything is read or written.
   - The connection's `lastUsedAt` is written at most once a minute, and no refresh names that
     write.
 - **The authorization server** is the public backend too, issuer `https://api.strategydance.com`:

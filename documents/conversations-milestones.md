@@ -548,8 +548,9 @@ it yet, and Claude Code reaches it locally over stdio.
   aspects replaced, and a repeated one refused; a delete refused when AI may read but not change,
   and when it may change but not read; a restore at the cap refused, and one past a day refused; an
   external caller's results carrying addresses, by its id for an organization without a slug, and
-  the agent's none; a removed member's call refused, and so is one carrying the
-  `membershipCreatedAt` of a membership since ended, after the member was invited back.
+  the agent's none; a caller without the write scope refused by every write tool, nothing written; a
+  removed member's call refused, and so is one carrying the `membershipCreatedAt` of a membership
+  since ended, after the member was invited back.
 - Verify: with `bun run mcp:knowledge` added to Claude Code locally, search, list and read; with a
   document open in a tab, have Claude Code write into it and watch the edit arrive while you type
   elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write
@@ -686,9 +687,10 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   and carries no App Check.
 - Tests: no token answered 401, its `WWW-Authenticate` naming the metadata; a token for another
   resource, a revoked one and a removed member's refused; a read-only connection's `tools/list`
-  holding the reads alone; a write retried with its key applied once; an `Origin` from elsewhere
-  answered 403, and a request with none served; a 2025-11-25 client's `initialize` and session
-  header served statelessly; a search past the allowance answered with a result saying so.
+  holding the reads alone, and its direct `tools/call` of `create_document` refused with nothing
+  written; a write retried with its key applied once; an `Origin` from elsewhere answered 403, and a
+  request with none served; a 2025-11-25 client's `initialize` and session header served
+  statelessly; a search past the allowance answered with a result saying so.
 - Verify: locally, add `http://localhost:3003/mcp/knowledge` to Claude Code (`claude mcp add
   --transport http`), consent, and run every tool against a document open in a tab, then the MCP
   Inspector; in production, as staff, add the module to claude.ai as a custom connector (which

@@ -634,16 +634,18 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   checked rendered and never redirected, and one after it redirected with `state` and `iss`; a
   success redirected with `code`, `state` and the exact `iss`; `resource` missing, repeated or
   naming no module refused, scopes past the module's refused, and the write scope without the read
-  one refused; a token request missing `resource`, or naming another than its code's or its refresh
-  token's, refused; an exchange missing its `client_id` or its `redirect_uri`, or naming another
-  client or address than its code's, refused, and a refresh from another client than its token's
-  refused; a `plain` challenge and a wrong verifier refused; a code used twice refused, the second
-  use revoking what the first issued, and a code past its minute refused; a token for one module
-  refused for another; a refresh rotating; the spent token presented again within 30 seconds issuing
-  a new pair and stopping the one issued before it, presented a third time revoking the connection,
-  and presented after 30 seconds revoking it too; consenting again replacing the earlier connection;
-  approving refused for an account that is not staff and for an organization it is not in; removing
-  the member deleting the connection with its tokens; a revoked token refused.
+  one refused; approving read and write for a client that asked for read refused, and a request for
+  read and write reduced to read, its token answer's `scope` saying read alone; a token request
+  missing `resource`, or naming another than its code's or its refresh token's, refused; an exchange
+  missing its `client_id` or its `redirect_uri`, or naming another client or address than its
+  code's, refused, and a refresh from another client than its token's refused; a `plain` challenge
+  and a wrong verifier refused; a code used twice refused, the second use revoking what the first
+  issued, and a code past its minute refused; a token for one module refused for another; a refresh
+  rotating; the spent token presented again within 30 seconds issuing a new pair and stopping the
+  one issued before it, presented a third time revoking the connection, and presented after 30
+  seconds revoking it too; consenting again replacing the earlier connection; approving refused for
+  an account that is not staff and for an organization it is not in; removing the member deleting
+  the connection with its tokens; a revoked token refused.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 
@@ -655,9 +657,10 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - `/oauth/consent`, as Modules describes it: under `_authenticated` and outside `_app`'s frame, so a
   signed-out member signs in and comes back through the page `AuthenticationBouncer` keeps; read
   through `GET /oauth/requests/:requestId`; the client, the module, an organization chosen among the
-  member's, the access, Allow and Deny, the module and its access worded from the `module` catalogue
-  by the module's name; an expired or unknown request's state; an account that is not staff told the
-  page is not available yet. `firebase.json` sends `frame-ancestors 'none'` for `/oauth/**`.
+  member's, the access, read and write offered only when the client asked for both, Allow and Deny,
+  the module and its access worded from the `module` catalogue by the module's name; an expired or
+  unknown request's state; an account that is not staff told the page is not available yet.
+  `firebase.json` sends `frame-ancestors 'none'` for `/oauth/**`.
 - The account page's Connected agents tab, staff only: `GetAgentConnections`, live, the caller's own
   connections, refreshed by approving, disconnecting and `RemoveOrganizationMember` on
   `mutation.variables.userId == request.auth.uid`, which for a removal is the member removed, and by

@@ -8,6 +8,7 @@ import {
   claimQueuedConversationRun,
   connectorConfig,
   drawConversationAgentText,
+  expireQueuedConversationRunLease,
   finishConversationRun,
   finishConversationRunWithNote,
   getConversationRunContext,
@@ -67,6 +68,7 @@ const userIds = {
   racer: `check-conversation-runs-${checkId}-racer`,
   hoarder: `check-conversation-runs-${checkId}-hoarder`,
   pruner: `check-conversation-runs-${checkId}-pruner`,
+  queuer: `check-conversation-runs-${checkId}-queuer`,
 }
 
 const failures: string[] = []
@@ -606,6 +608,57 @@ async function checkDeadRuns() {
   )
 }
 
+// A queued run's lease, which a failed queueing brings in to now so the page reconciles it at once
+async function checkQueuedLeases() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.queuer)
+  const started = await start(userIds.queuer, membershipCreatedAt)
+  const reference = {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    runId: started.runId,
+  }
+  const readLease = async () => Date.parse((await readRun(started.runId))?.leaseExpiresAt ?? '')
+  const queuedLease = await readLease()
+
+  const { data: strangers } = await expireQueuedConversationRunLease(dataConnect, {
+    ...reference,
+    userId: userIds.member,
+  })
+  const { data: elsewhere } = await expireQueuedConversationRunLease(dataConnect, {
+    ...reference,
+    conversationId: createId(),
+  })
+
+  check(
+    'a queued run’s lease is not brought in for another member, nor in another conversation',
+    strangers.conversationRun_updateMany === 0
+      && elsewhere.conversationRun_updateMany === 0
+      && (await readLease()) === queuedLease,
+  )
+
+  const { data: expired } = await expireQueuedConversationRunLease(dataConnect, reference)
+
+  check(
+    'a queued run’s lease is brought in to now, and the run stays queued',
+    expired.conversationRun_updateMany === 1
+      && (await readLease()) <= Date.now()
+      && (await readRun(started.runId))?.status === ConversationRunStatus.QUEUED,
+  )
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+
+  const claimedLease = await readLease()
+  const { data: claimed } = await expireQueuedConversationRunLease(dataConnect, reference)
+
+  check(
+    'a claimed run’s lease is not brought in',
+    claimed.conversationRun_updateMany === 0 && (await readLease()) === claimedLease,
+  )
+
+  await finishConversationRun(dataConnect, { ...fence(started, 1), status: ConversationRunStatus.COMPLETED })
+}
+
 async function checkSending(started: Started) {
   const send = (overrides: Variables = {}) =>
     sendConversationMessage(dataConnect, {
@@ -774,6 +827,7 @@ try {
   await checkFinishing()
   await checkMembership()
   await checkDeadRuns()
+  await checkQueuedLeases()
   // The claiming checks leave the sender's conversation idle, its next position 2 and its next run 1
   await checkSending(started)
   await checkCaps()

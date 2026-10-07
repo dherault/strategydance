@@ -6,8 +6,8 @@ import createConversationDatabaseFake from './testing/createConversationDatabase
 
 const fake = createConversationDatabaseFake()
 
-// The runs the sends started, which here nothing runs
-const enqueueRun = mock((_reference: ConversationRunReference) => {})
+// The runs the sends started, which here nothing runs: each is on its way, unless a test says not
+const enqueueRun = mock(async (_reference: ConversationRunReference) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
@@ -145,6 +145,77 @@ describe('sendConversationMessage', () => {
     expect(readThread(conversationId)).toHaveLength(1)
     expect(fake.runs.size).toBe(1)
     expect(enqueueRun).toHaveBeenCalledTimes(2)
+  })
+
+  test('answers unavailable when the run cannot be queued, keeping the message and its run queued', async () => {
+    const conversationId = createId()
+    const messageId = createId()
+
+    enqueueRun.mockResolvedValueOnce(false)
+
+    expect(await send(conversationId, { messageId })).toEqual({ outcome: 'unavailable' })
+
+    const [run] = fake.runs.values()
+
+    expect(run?.status).toBe('QUEUED')
+    expect(fake.conversations.get(conversationId)?.activeRunId).toBe(run?.id ?? '')
+    expect(readThread(conversationId)).toEqual([{ kind: 'MEMBER_TEXT', noteKind: null, position: 0 }])
+  })
+
+  test('queues the run again when the send its queueing failed is retried, and answers with it', async () => {
+    const conversationId = createId()
+    const messageId = createId()
+
+    enqueueRun.mockResolvedValueOnce(false)
+    await send(conversationId, { messageId })
+
+    const [run] = fake.runs.values()
+
+    expect(await send(conversationId, { messageId })).toEqual({ outcome: 'sent', runId: run?.id ?? '' })
+    expect(enqueueRun).toHaveBeenCalledTimes(2)
+    expect(enqueueRun.mock.calls[1]?.[0]).toEqual({
+      organizationId: ORGANIZATION_ID,
+      userId: AUTHOR,
+      conversationId,
+      runId: run?.id ?? '',
+    })
+    expect(fake.runs.size).toBe(1)
+  })
+
+  test('answers unavailable again when the retried send cannot queue the run either', async () => {
+    const conversationId = createId()
+    const messageId = createId()
+
+    enqueueRun.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
+    await send(conversationId, { messageId })
+
+    expect(await send(conversationId, { messageId })).toEqual({ outcome: 'unavailable' })
+    expect(fake.runs.size).toBe(1)
+  })
+
+  test('queues the conversation’s run again when it still waits in the queue, then answers busy', async () => {
+    const conversationId = createId()
+    const runId = await sent(conversationId)
+
+    enqueueRun.mockClear()
+
+    expect(await send(conversationId)).toEqual({ outcome: 'busy' })
+    expect(enqueueRun).toHaveBeenCalledWith({ organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId })
+  })
+
+  test('answers busy without queueing anything once the conversation’s run is claimed', async () => {
+    const conversationId = createId()
+    const runId = await sent(conversationId)
+    const membershipCreatedAt = fake.memberships.get(`${AUTHOR}:${ORGANIZATION_ID}`)?.createdAt
+
+    await sdk.claimQueuedConversationRun(
+      {},
+      { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId, attempts: 0, membershipCreatedAt },
+    )
+    enqueueRun.mockClear()
+
+    expect(await send(conversationId)).toEqual({ outcome: 'busy' })
+    expect(enqueueRun).not.toHaveBeenCalled()
   })
 
   test('answers a send retried after its run died with that run, finalized', async () => {

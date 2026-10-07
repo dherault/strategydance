@@ -30,6 +30,30 @@ export const FIREBASE_PROJECT_ID = 'strategydance'
 // The project's default bucket, the one the web app's config names too
 export const FIREBASE_STORAGE_BUCKET = 'strategydance.firebasestorage.app'
 
+// The project's number, which a Cloud Run service's address carries
+export const GOOGLE_CLOUD_PROJECT_NUMBER = '995028545701'
+
+// Where both services, the run queue and the database run
+export const GOOGLE_CLOUD_REGION = 'us-central1'
+
+/*
+  The worker's address, Cloud Run's deterministic one, `<service>-<project number>.<region>.run.app`,
+  known before the worker is first deployed, so the backend can be deployed ahead of it. It is also
+  the audience of the token a task carries, without a path: Cloud Run checks it against its own
+  addresses
+*/
+export const WORKER_URL = `https://strategydance-worker-${GOOGLE_CLOUD_PROJECT_NUMBER}.${GOOGLE_CLOUD_REGION}.run.app`
+
+/*
+  The Cloud Tasks queue every conversation's run is delivered through, created by hand (Setup 4 in
+  `documents/conversations.md`): 5 attempts at most, 90 seconds' backoff at least, 50 deliveries at
+  once
+*/
+export const CONVERSATION_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/conversation-runs`
+
+// Who Cloud Tasks and Cloud Scheduler call the worker as, the only account that may invoke it
+export const CONVERSATION_TASKS_SERVICE_ACCOUNT = 'conversation-tasks@strategydance.iam.gserviceaccount.com'
+
 /*
   Where a Storage download URL points: the emulator when `dev:backend` set its host, as the Admin
   SDK itself decides, and Firebase's download host otherwise. The URLs this server writes into the
@@ -82,10 +106,15 @@ export const CONVERSATION_RUN_STEP_INTERVAL_MS = 1000
 
 /*
   Whether a conversation's run goes in the backend's own process, after the response, as it always
-  does in development, where nothing throttles it. Production refuses sends until runs go through a
-  queue instead: Cloud Run throttles the CPU once a response is sent, which would stall the run
+  does in development, where nothing throttles it. In production it goes through the run queue to
+  the worker instead: Cloud Run throttles the CPU once a response is sent, which would stall a run
+  left going, while a task's request stays open for the whole run
 */
 export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
+
+// How long a task's delivery may take, the run it delivers going the whole time: as long as the
+// worker's own timeout, which `deploy:backend` sets
+export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60
 
 /* ---
   SECRETS

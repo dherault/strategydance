@@ -262,6 +262,25 @@ function createConversationDatabaseFake() {
     return run
   }
 
+  // A run still queued in the caller's conversation, as the queued run's lease mutations match it
+  function findQueuedRun(variables: AnyVariables) {
+    const run = runs.get(id(variables.runId))
+    const conversation = run && conversations.get(run.conversationId)
+
+    if (
+      !run
+      || !conversation
+      || run.status !== 'QUEUED'
+      || conversation.id !== id(variables.conversationId)
+      || conversation.userId !== variables.userId
+      || conversation.organizationId !== id(variables.organizationId)
+    ) {
+      return null
+    }
+
+    return run
+  }
+
   function requireFencedRun(variables: AnyVariables) {
     return findFencedRun(variables) ?? refuse("The run is no longer this worker's")
   }
@@ -573,6 +592,16 @@ function createConversationDatabaseFake() {
 
       end(run, 'INTERRUPTED')
       writeNote(noteConversation, variables, 'INTERRUPTED')
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    ExpireQueuedConversationRunLease: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run) return { conversationRun_updateMany: 0 }
+
+      run.leaseExpiresAt = now()
 
       return { conversationRun_updateMany: 1 }
     },

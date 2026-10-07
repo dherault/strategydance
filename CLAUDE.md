@@ -581,14 +581,16 @@ in `utils/`, one concern per file.
   `strategydance-worker`, started with `SERVICE=worker` (`IS_WORKER`), mounts `routes/internal.ts`
   at `/internal` and nothing else, so neither answers the other's routes. A route Cloud Tasks or
   Cloud Scheduler calls goes in `routes/internal.ts`, never beside the backend's
-- The worker is private where the backend is public: its invoker check stays on, and only
+- The worker is private where the backend is public: its invoker check stays on, and
   `conversation-tasks@strategydance.iam.gserviceaccount.com`, the account Cloud Tasks and Cloud
-  Scheduler call it as with an OIDC token, holds `roles/run.invoker` on it, granted on the service
-  alone, never on the project. Cloud Run refuses any other caller before the code runs, so no
-  internal route verifies a token by hand. On the public backend it would have to, and a run of
-  up to fifteen minutes would share its instances and its timeout. The worker's timeout is fifteen
-  minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its address is Cloud
-  Run's deterministic one, `WORKER_URL`, which is also the token's audience
+  Scheduler call it as with an OIDC token, is the one account granted `roles/run.invoker` on it,
+  on the service alone, never on the project. Anybody holding Cloud Run's invoke permission across
+  the project can call it too, as they can any service there: its owners, and `deployer` through
+  `roles/run.admin`. Cloud Run refuses everybody else before the code runs, a caller with no token
+  included, so no internal route verifies a token by hand. On the public backend it would have to,
+  and a run of up to fifteen minutes would share its instances and its timeout. The worker's
+  timeout is fifteen minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its
+  address is Cloud Run's deterministic one, `WORKER_URL`, which is also the token's audience
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
   but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. For conversations'

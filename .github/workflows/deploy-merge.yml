@@ -35,8 +35,9 @@
 #   updates it and turns its invoker check on, and it runs the image the backend's build already
 #   pushed, which deploying with `--image` needs read access to, as Artifact Registry Reader would
 #   give: `roles/run.sourceDeveloper` holds `artifactregistry.repositories.downloadArtifacts`,
-#   which the backend's own source deploy relies on too. Who may invoke the worker,
-#   `conversation-tasks`, is granted by hand once, never by a deploy
+#   which the backend's own source deploy relies on too. The invoker role on the worker,
+#   `conversation-tasks`', is granted by hand once, never by a deploy. `roles/run.admin` also lets
+#   this account call the worker itself, as it can any service in the project
 # - For the rules, `roles/firebaserules.admin`, and `roles/firebasestorage.viewer` to find the
 #   default bucket. For the frontend, `roles/firebasehosting.admin`
 #

@@ -96,6 +96,14 @@ describe('checkTranscript', () => {
     ])
   })
 
+  test('refuses a result no call before it asked for', () => {
+    const stray = { type: 'tool_result' as const, tool_use_id: 'toolu_3', content: 'C' }
+
+    refuses([member, calling, { role: 'user', content: [...(answering.content as []), stray] }])
+    refuses([member, reply, { role: 'user', content: [stray, { type: 'text', text: 'And the beta?' }] }])
+    refuses([{ role: 'user', content: [stray] }])
+  })
+
   test('refuses unanswered calls anywhere but last', () => {
     refuses([member, calling, context, reply])
   })

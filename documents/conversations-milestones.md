@@ -713,7 +713,8 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - `CLAUDE.md`: the Modules section gains the endpoint, how an external agent is authorized, and what
   a new module needs; § Backend conventions, that `/mcp` answers JSON-RPC rather than `ApiResponse`
   and carries no App Check.
-- Tests: no token answered 401, its `WWW-Authenticate` naming the metadata; a token for another
+- Tests: no token answered 401, its `WWW-Authenticate` naming the metadata; a valid access token
+  accepted, its `AuthInfo` carrying the row's `expiresAt` and `resource`; a token for another
   resource, a revoked one, a removed member's and a refresh token presented as a bearer token
   refused; a read-only connection's `tools/list` holding every tool, and its direct `tools/call` of
   `create_document` answered 403 with `insufficient_scope`, naming `knowledge:write` and the

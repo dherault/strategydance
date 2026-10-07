@@ -1182,23 +1182,28 @@ consent page from M17:
   - Every client is public: PKCE, S256 only, proves that whoever exchanges a code is whoever asked
     for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address serving
     the client's metadata, fetched through `fetchOutbound` with no redirect and at most 5 KB, a
-    truncated body refused, its `client_id` equal to its address, kept for an hour and a failure
-    for a minute. Dynamic client registration (`POST /oauth/register`, RFC 7591), which the
-    specification deprecates and Cursor still needs, takes redirect addresses on loopback or a
-    private-use scheme only, `cursor://` say, so a client redirecting to a website proves its
-    domain through CIMD. Registration is rate-limited per address and capped in all, and one
-    unused a day later is pruned.
+    truncated body refused, its `client_id` equal to its address, kept for an hour and a failure for
+    a minute. It is fetched only once a member has signed in, when the consent page reads the
+    request, as the specification's flow has it, so nobody who is not signed in can make the backend
+    fetch an address of their choosing. Dynamic client registration (`POST /oauth/register`, RFC
+    7591), which the specification deprecates and Cursor still needs, takes redirect addresses on
+    loopback or a private-use scheme only, `cursor://` say, so a client redirecting to a website
+    proves its domain through CIMD. Registration is rate-limited per address and capped in all, and
+    one unused a day later is pruned.
   - `GET /oauth/authorize` checks `response_type`, exactly one and `code`, the only flow it serves,
-    the client, its exact redirect address (a loopback one on any port, as RFC 8252 asks), PKCE, and
-    `resource` (RFC 8707): exactly one, canonical, a module's address, and its scopes: the module's
-    read scope, alone or with its write scope, since the consent offers read, or read and write, and
-    write never comes without read; a request naming no scope asks for both. The consent never
-    grants more than was asked: a request for read offers read alone, and one for read and write
-    lets the member reduce it to read. Until the client and its redirect address are checked, an
-    error is a page and never a redirect, so nobody can bounce a browser through it; after, an error
-    redirects with `error`, `state` and `iss` (RFC 9207). A valid request is stored as an
-    `OAuthAuthorizationRequest` for ten minutes, and the browser goes to the consent page,
-    `https://strategydance.com/oauth/consent?request=<id>`. It is rate-limited per address.
+    the client, PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's address, and its
+    scopes: the module's read scope, alone or with its write scope, since the consent offers read,
+    or read and write, and write never comes without read; a request naming no scope asks for both.
+    The consent never grants more than was asked: a request for read offers read alone, and one for
+    read and write lets the member reduce it to read. A registered client's exact redirect address
+    (a loopback one on any port, as RFC 8252 asks) is checked there, against its registration; a
+    client ID metadata document's, against the document, once the signed-in member's consent page
+    reads the request, which is when the document is fetched. Until the client and its redirect
+    address are checked, an error is a page and never a redirect, so nobody can bounce a browser
+    through it; after, an error redirects with `error`, `state` and `iss` (RFC 9207). A valid
+    request is stored as an `OAuthAuthorizationRequest` for ten minutes, and the browser goes to the
+    consent page, `https://strategydance.com/oauth/consent?request=<id>`. It is rate-limited per
+    address.
   - **The consent page**, signed in as any page of the app is, full screen, outside the app's frame,
     and framed by nothing (`frame-ancestors 'none'`, from `firebase.json`), names the client, its
     name stripped of control and direction characters and cut to 80 characters, marked unverified

@@ -195,6 +195,10 @@ describe('Markdown', () => {
       expect(renderCited('Fish &amp; chips here', [{ offset: 16, key: '1' }])).toBe(
         '<div><p>Fish &amp; chips<sup>[1]</sup> here</p></div>',
       )
+      expect(renderCited('Smile &#x1F600;', [{ offset: 15, key: '1' }])).toBe(
+        '<div><p>Smile 😀<sup>[1]</sup></p></div>',
+      )
+      expect(renderCited('A &#x1F600; b', [{ offset: 11, key: '1' }])).toBe('<div><p>A 😀<sup>[1]</sup> b</p></div>')
       expect(renderCited('First line\n    second line here', [{ offset: 26, key: '1' }])).toBe(
         '<div><p>First line<br/>\nsecond line<sup>[1]</sup> here</p></div>',
       )

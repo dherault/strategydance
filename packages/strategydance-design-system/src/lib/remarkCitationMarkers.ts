@@ -128,8 +128,7 @@ function readValueOffset(source: string, value: string, offset: number) {
       valueIndex++
     } else if (reference && value.slice(valueIndex, valueIndex + reference.length) !== reference) {
       sourceIndex += reference.length
-      // Most references decode to one code unit, a few to two, told apart by what follows
-      valueIndex += source[sourceIndex] === undefined || value[valueIndex + 1] === source[sourceIndex] ? 1 : 2
+      valueIndex += readDecodedLength(reference, source[sourceIndex], value, valueIndex)
     } else if (source[sourceIndex] === value[valueIndex]) {
       sourceIndex++
       valueIndex++
@@ -141,6 +140,25 @@ function readValueOffset(source: string, value: string, offset: number) {
   }
 
   return Math.min(valueIndex, value.length)
+}
+
+/*
+  How many code units a character reference decodes to: a numeric one exactly, two past U+FFFF and
+  one for what CommonMark replaces with U+FFFD; a named one, most of which are one and a few two, by
+  the source character after it, and at the source's end the rest of the value
+*/
+function readDecodedLength(reference: string, nextSource: string | undefined, value: string, valueIndex: number) {
+  const numeric = /^&#(?:[Xx]([\dA-Fa-f]+)|(\d+));$/.exec(reference)
+
+  if (numeric) {
+    const codePoint = numeric[1] ? Number.parseInt(numeric[1], 16) : Number(numeric[2])
+
+    return codePoint > 0xffff && codePoint <= 0x10ffff ? 2 : 1
+  }
+
+  if (nextSource === undefined) return value.length - valueIndex
+
+  return value[valueIndex + 1] === nextSource ? 1 : 2
 }
 
 // An empty emphasis renamed, which mdast's conversion to HTML makes the marker's element

@@ -1,10 +1,12 @@
-import type { PropsWithChildren } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { type PropsWithChildren, useEffect } from 'react'
 import { useIntl } from 'react-intl'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 
 import useConversation from '~hooks/conversation/useConversation'
 import useConversationRun from '~hooks/conversation/useConversationRun'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import Spinner from '~components/common/Spinner'
 import ConversationBackLink from '~components/conversation/ConversationBackLink'
@@ -23,15 +25,34 @@ type Props = PropsWithChildren<{
   Turns the first reads of the conversation and its latest run into a verdict: either failing
   offers to read again what failed, since a run that could not be read is not a conversation
   without one, and a conversation that is not there, and is not a draft, is missing. Below
-  `ConversationWait`, which holds it until both reads land
+  `ConversationWait`, which holds it until both reads land.
+
+  A draft whose first message has stored it leaves the address as a conversation's, once the
+  conversation is read rather than once the send answers: without `isNew` before the row is there,
+  it would read as missing. The route and its params stay, so the page stays mounted
 */
 function ConversationBouncer({ conversationId, isNew, children }: Props) {
   const { formatMessage } = useIntl()
+  const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
   const conversationRead = useConversation(conversationId)
   const runRead = useConversationRun(conversationId)
   const conversation = conversationRead.data
   const hasFailed = conversationRead.hasFailed || runRead.hasFailed
   const loading = conversationRead.loading || runRead.loading
+  const isStoredDraft = isNew && !!conversation
+
+  useEffect(() => {
+    if (!isStoredDraft) return
+
+    navigate({
+      to: '/$organizationSlug/conversations/$conversationId',
+      params: { organizationSlug, conversationId },
+      search: {},
+      replace: true,
+      resetScroll: false,
+    })
+  }, [isStoredDraft, navigate, organizationSlug, conversationId])
 
   async function refetch() {
     await Promise.all([

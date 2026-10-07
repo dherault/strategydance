@@ -125,7 +125,10 @@ knowledge."
 ### The composer
 
 - A textarea that grows from one line to 160px: "Message Strategy Dance". Enter sends, Shift+Enter
-  breaks the line, nothing sends while an input method is composing.
+  breaks the line, nothing sends while an input method is composing (Safari ends the composition
+  before it reports the Enter that commits it, which only its key code, 229, then gives away). On
+  a touch screen, which has no Shift key to hand, Enter breaks the line and the Send button sends,
+  as David chose in M7.
 - A "+" menu: "Files and images", and "Mention knowledge", which inserts an `@`.
 - Typing `@` opens a "Knowledge" list of up to six documents whose title matches, latest first,
   driven by the arrows, Enter or Tab to pick, Escape to close; "No knowledge matches “query”" when
@@ -135,6 +138,12 @@ knowledge."
 - Attachments: up to ten per message, picked or pasted, shown in a tray above the field with a
   remove button each.
 - Send is disabled when there is nothing to send. While a run goes, a Stop button replaces it.
+- A send that fails keeps its words in the field and says why: a run already going, a conversation
+  full, as many conversations kept as the member may, a server that cannot take it now, or anything
+  else, a lost connection included. Nothing retries by itself, as David chose in M7: the member
+  sends again. The same words go again under the same `messageId`, so a send that reached the
+  backend and only lost its answer is stored once. Words changed since are a new message with an
+  id of its own, since the route answers a reused id with the run of the words it first stored.
 - Sending while a question waits skips the question.
 
 ### The dock

@@ -4,6 +4,7 @@ import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -14,6 +15,7 @@ import useConversations from '~hooks/conversation/useConversations'
 
 import Spinner from '~components/common/Spinner'
 import ConversationTable from '~components/conversation/ConversationTable'
+import NewConversationButton from '~components/conversation/NewConversationButton'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
 
@@ -60,6 +62,9 @@ function Conversations() {
             <EmptyTitle>{formatMessage(conversationMessages.emptyTitle)}</EmptyTitle>
             <EmptyDescription>{formatMessage(conversationMessages.emptyText)}</EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <NewConversationButton />
+          </EmptyContent>
         </Empty>
       )
     }
@@ -72,6 +77,7 @@ function Conversations() {
       <PageHeader
         title={formatMessage(navigationMessages.conversations)}
         lead={formatMessage(conversationMessages.lead)}
+        actions={<NewConversationButton />}
       />
       {renderBody()}
     </ContainerLayout>

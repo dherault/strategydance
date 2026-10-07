@@ -544,7 +544,8 @@ it yet, and Claude Code reaches it locally over stdio.
   nulling `contentText`, and the next search reindexing it; a Chinese and a Japanese search finding
   a word inside a document's sentence, reading the content of the 100 latest documents at most;
   Markdown in, the document draws as written; an `update_document` naming `content` and `append`
-  together, or nothing to change, refused before anything is read; the list paged in fifties;
+  together, or nothing to change, refused before anything is read; the list paged in fifties, two
+  documents updated at one instant on either side of a page's end neither skipped nor repeated;
   aspects replaced, and a repeated one refused; a delete refused when AI may read but not change,
   and when it may change but not read; a restore at the cap refused, and one past a day refused; an
   external caller's results carrying addresses, by its id for an organization without a slug, and

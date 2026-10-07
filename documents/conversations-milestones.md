@@ -652,17 +652,18 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   token for one module refused for another; a refresh rotating; the spent token presented again
   within 30 seconds issuing a new pair and stopping the one issued before it, presented a third time
   revoking the connection, and presented after 30 seconds revoking it too; consenting again
-  replacing the earlier connection; Allow sent twice making one connection and one code, an Allow
-  racing a Deny deciding the request once, and a denied request refused by a later Allow; a refresh
-  honoured in its grace window stopping exactly the pair its spent token issued, and leaving another
-  connection's tokens, and the same connection's other pair, alone; approving refused for an account
-  that is not staff and for an organization it is not in; removing the member deleting the
-  connection with its tokens; a revoked token refused; an access token presented to the refresh
-  grant refused, and a refresh token to the verifier; every token answer carrying `Cache-Control:
-  no-store` and `Pragma: no-cache`; `response_type` missing, repeated or other than `code` refused;
-  `grant_type` missing, repeated or unknown refused, and a code exchange carrying a refresh token's
-  parameters reading none of them; a revocation naming another client than the token's refused, the
-  connection left as it was.
+  replacing the earlier connection and its tokens, and two approvals at once for one client,
+  organization and module leaving one connection; Allow sent twice making one connection and one
+  code, an Allow racing a Deny deciding the request once, and a denied request refused by a later
+  Allow; a refresh honoured in its grace window stopping exactly the pair its spent token issued,
+  and leaving another connection's tokens, and the same connection's other pair, alone; approving
+  refused for an account that is not staff and for an organization it is not in; removing the member
+  deleting the connection with its tokens; a revoked token refused; an access token presented to the
+  refresh grant refused, and a refresh token to the verifier; every token answer carrying
+  `Cache-Control: no-store` and `Pragma: no-cache`; `response_type` missing, repeated or other than
+  `code` refused; `grant_type` missing, repeated or unknown refused, and a code exchange carrying a
+  refresh token's parameters reading none of them; a revocation naming another client than the
+  token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

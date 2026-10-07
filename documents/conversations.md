@@ -1223,7 +1223,10 @@ consent page from M17:
     client's redirect address with `code`, `state` and `iss`, the exact issuer, since RFC 9207 has
     every authorization response name it, a success as much as an error, and the metadata says it
     does. Consenting again with the same client, organization and module replaces the earlier
-    connection.
+    connection, atomically: `AgentConnection` is unique on its membership, its client and its
+    module, and Allow locks the member's membership row, deletes the earlier connection with its
+    tokens and inserts the new one in one mutation, so two consents at once leave one connection and
+    one family of tokens.
   - `POST /oauth/token` takes exactly one `grant_type`, `authorization_code` or `refresh_token`,
     reads that grant's parameters and no other's, and refuses anything else. It exchanges the code
     for an access token, valid for an hour, and a refresh token, for 30 days: 256 random bits each,

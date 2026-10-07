@@ -1090,9 +1090,11 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   clients of one member choosing the same key never meet.
 - **Each write's mutation** is an `@transaction` that inserts that row first, right after the
   membership check, then writes. A second call with the same key, at once or later, finds the key
-  taken and fails before writing anything, and the module reads the row back: the same arguments get
-  the stored result, other arguments a refusal. A fold retried on a moved revision (see Rich text
-  and Markdown) checks the key again before it reapplies. A call without a key writes no row.
+  taken and fails before writing anything, and the module reads the row back: the same tool with the
+  same arguments gets the stored result, and anything else a refusal, another tool included, since
+  `delete_document` and `restore_document` both take `{ id }`. A fold retried on a moved revision
+  (see Rich text and Markdown) checks the key again before it reapplies. A call without a key writes
+  no row.
 - **Strategy Dance's agent** keys each call with its `tool_use` id, so recovery runs it again under
   the same key (see A run § Recovery and side effects). Its rows never expire: they go when the
   conversation is pruned, found by their scope, so a Resume however late still finds them. The

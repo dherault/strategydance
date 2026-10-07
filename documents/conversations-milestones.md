@@ -520,32 +520,32 @@ it yet, and Claude Code reaches it locally over stdio.
   for every caller.
 - Tests (database mocked, through an SDK `Client` on the in-memory transport): a document kept from
   AI neither found, listed nor read; one AI may not change refused, including one whose permission
-  goes off between the read and the fold; a stale `version` refuses `content`, and so does
-  `content` sent without one, before anything is written, including when a push lands between the
-  read and the fold, while `replaceBlocks`, `append` and `replaceText` go through as somebody types
-  elsewhere; two reads in a row hand out the same block ids, and so do a document stored before
-  the editor was shared and read twice, and one a tab seeds while the backend reads it; a write
-  called twice with one key applied once, `append` included, the second answered with the first's
-  result; one key with other arguments refused; two calls at once with one key making one write; a
-  fold that loses a revision race checking its key again before it reapplies; a create in a full
-  organization refused; a 200000-character document read in pages that join back whole, and one
-  made of a single 200000-character paragraph too; a page asked for after somebody typed elsewhere
-  carrying on from its block, one after an edit inside the block it stopped in starting that block
-  again, and one whose block was deleted starting the document again; a fold refused on a moved
-  revision read again and reapplied, and a push landing during a fold left pending; a block range
-  replaced between two ids without touching the rest, and refused once one of them is gone; an
-  append and a replacement that would take the document past 200000 characters of content
-  refused, its text and its pending updates left as they were, and the same on a retry after
-  somebody else's fold; a unique piece of text replaced inside that paragraph, and a text that
-  occurs twice refused; search reading the index and loading the plain text of 20 candidates at
-  most; a fold through the old operations nulling `contentText`, and the next search reindexing
-  it; a Chinese and a Japanese search finding a word inside a document's sentence, reading the
-  content of the 100 latest documents at most; Markdown in, the document draws as written; the list
-  paged in fifties; aspects replaced, and a repeated one refused; a delete refused when AI may read
-  but not change, and when it may change but not read; a restore at the cap refused, and one past a
-  day refused; an external caller's results carrying addresses and the agent's none; a removed
-  member's call refused, and so is one carrying the `membershipCreatedAt` of a membership since
-  ended, after the member was invited back.
+  goes off between the read and the fold; a stale `version` refuses `content`, and so does `content`
+  sent without one, before anything is written, including when a push lands between the read and the
+  fold, while `replaceBlocks`, `append` and `replaceText` go through as somebody types elsewhere;
+  two reads in a row hand out the same block ids, and so do a document stored before the editor was
+  shared and read twice, and one a tab seeds while the backend reads it; a write called twice with
+  one key applied once, `append` included, the second answered with the first's result; one key with
+  other arguments refused, and one key sent to `delete_document` then to `restore_document` with the
+  same `{ id }` refused; two calls at once with one key making one write; a fold that loses a
+  revision race checking its key again before it reapplies; a create in a full organization refused;
+  a 200000-character document read in pages that join back whole, and one made of a single
+  200000-character paragraph too; a page asked for after somebody typed elsewhere carrying on from
+  its block, one after an edit inside the block it stopped in starting that block again, and one
+  whose block was deleted starting the document again; a fold refused on a moved revision read again
+  and reapplied, and a push landing during a fold left pending; a block range replaced between two
+  ids without touching the rest, and refused once one of them is gone; an append and a replacement
+  that would take the document past 200000 characters of content refused, its text and its pending
+  updates left as they were, and the same on a retry after somebody else's fold; a unique piece of
+  text replaced inside that paragraph, and a text that occurs twice refused; search reading the
+  index and loading the plain text of 20 candidates at most; a fold through the old operations
+  nulling `contentText`, and the next search reindexing it; a Chinese and a Japanese search finding
+  a word inside a document's sentence, reading the content of the 100 latest documents at most;
+  Markdown in, the document draws as written; the list paged in fifties; aspects replaced, and a
+  repeated one refused; a delete refused when AI may read but not change, and when it may change but
+  not read; a restore at the cap refused, and one past a day refused; an external caller's results
+  carrying addresses and the agent's none; a removed member's call refused, and so is one carrying
+  the `membershipCreatedAt` of a membership since ended, after the member was invited back.
 - Verify: with `bun run mcp:knowledge` added to Claude Code locally, search, list and read; with a
   document open in a tab, have Claude Code write into it and watch the edit arrive while you type
   elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write

@@ -534,7 +534,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   (the last request's input plus what was appended); the write that stores its turn settles it with
   the real usage. A worker taking over after a crash charges an unsettled reservation at its
   estimate, with a conservative output allowance, marked as estimated: every request is billed, and
-  the credit system knows which figures are estimates.
+  the credit system knows which figures are estimates. A request whose stream fails after it started
+  is settled at the usage the stream last reported, its input as counted at the start, marked as
+  estimated since its output is counted only by the final delta; one the API refused before it
+  started is settled at nothing (M9).
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so every run

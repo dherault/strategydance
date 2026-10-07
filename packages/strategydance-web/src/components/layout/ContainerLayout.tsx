@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 /*
-  The column a page is laid out in: at most 1024px wide, with the same gutters everywhere, so a
+  The column a page is laid out in: at most 1280px wide, with the same gutters everywhere, so a
   page does not jump as the sidebar switches to another. Its children stack, and the gap between
   them is the page's own, passed through `className`.
 
@@ -12,7 +12,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 function ContainerLayout({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('page-column flex flex-col pt-6 pb-12 [--page-column-max-width:1024px]', className)}
+      className={cn('page-column flex flex-col pt-6 pb-12', className)}
       {...props}
     />
   )

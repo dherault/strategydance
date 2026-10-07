@@ -1021,14 +1021,17 @@ Strategy Dance's, which any agent a member connected may call as that member.
 - **The frame.** `MODULES` in strategydance-core lists each module's name (`knowledge`), path
   (`/mcp/knowledge`), title and scopes (`knowledge:read`, `knowledge:write`), which the consent page
   reads too. The backend's `src/modules/` maps each name to `createServer(caller)`, which builds an
-  `McpServer` with the module's tools. What a tool does lives in `domain/`, `domain/knowledge/` for
-  this one, and a tool's file only validates, calls and shapes the result.
-- **The caller** is `{ kind, userId, organizationId, membershipCreatedAt, scopes,
-  idempotencyScope }`, verified before the server is built: from the run for Strategy Dance's agent
-  (`kind: 'agent'`), from the token for an external one (`kind: 'external'`). Nothing in it comes
-  from a tool's arguments, as the backend's rule for `$userId` asks. Every operation a tool runs
-  matches the membership on `membershipCreatedAt`, as a run's writes do, so removing a member stops
-  every agent acting as them at its next call.
+  `McpServer` with the module's tools, and wraps it in the SDK's `createMcpHandler`, which builds a
+  fresh server for each request from the caller its `authInfo` carries: the public endpoint and
+  Strategy Dance's agent both go through that one handler. What a tool does lives in `domain/`,
+  `domain/knowledge/` for this one, and a tool's file only validates, calls and shapes the result.
+- **The caller**,
+  `{ kind, userId, organizationId, membershipCreatedAt, scopes, idempotencyScope }`, is verified
+  before the server is built and handed to it as `authInfo`: from the run for Strategy Dance's
+  agent (`kind: 'agent'`), from the token for an external one (`kind: 'external'`). Nothing in it
+  comes from a tool's arguments, as the backend's rule for `$userId` asks. Every operation a tool
+  runs matches the membership on `membershipCreatedAt`, as a run's writes do, so removing a member
+  stops every agent acting as them at its next call.
 - **One server per module**, at its own address, `https://api.strategydance.com/mcp/knowledge` for
   this one. Each is its own OAuth resource, so a member connects modules one by one, and a module
   that touches money later asks for its own consent.
@@ -1107,13 +1110,17 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
 
 **Strategy Dance's agent** reaches the module from M15:
 
-- **In process.** The worker builds the Knowledge module's server for the run's member, with every
-  scope, and connects the SDK's `Client` to it through the in-memory transport: the same server,
-  tools and checks an external agent gets, with no network, no token and no address, and
-  development uses it against the emulators like the rest. Not the Claude API's MCP connector,
-  which would have Anthropic's servers call the module: the module would have to be reachable from
-  the internet for every run, development could not use it, and its calls would leave the worker,
-  beyond its fencing, its recovery and its thread.
+- **In process, through the module's own handler.** The worker builds the Knowledge module's
+  handler, the one the public endpoint mounts, and connects the SDK's `Client` to it through a
+  `StreamableHTTPClientTransport` whose `fetch` is the handler's own, `handler.fetch(request, {
+  authInfo })`, the run's member as the caller, with every scope. The transport never dials its
+  address, so there is no network, no socket and no token, and the server, tools and checks are the
+  ones an external agent gets. That is what the SDK recommends for a client and a server in one
+  process in production: its in-memory transport is meant for tests, and speaks only the 2025
+  revisions. Development uses it against the emulators like the rest. Not the Claude API's MCP
+  connector, which would have Anthropic's servers call the module: the module would have to be
+  reachable from the internet for every run, development could not use it, and its calls would leave
+  the worker, beyond its fencing, its recovery and its thread.
 - **The tools list** is `tools/list`, converted into Claude tools in `MODULES`' order after the
   built-in ones: name, description, `input_schema`, `strict: true` and `eager_input_streaming:
   true`, as the agent's own tools are (see The agent). Strict tools refuse `minLength`, `maxLength`,
@@ -1133,10 +1140,11 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
 consent page from M17:
 
 - **The endpoint** is `POST https://api.strategydance.com/mcp/knowledge`, on the public backend
-  rather than the worker, since an MCP call is short and the worker is private. The SDK's
-  `createMcpHandler` builds a server per request from the verified caller, answering JSON
-  (`responseMode: 'json'`), stateless as the 2026-07-28 revision is, and serving the 2025 revisions'
-  clients, which still open sessions, statelessly too (`legacy: 'stateless'`). Around it:
+  rather than the worker, since an MCP call is short and the worker is private. The module's
+  handler, mounted with `toNodeHandler`, builds a server per request from the verified caller,
+  answering JSON (`responseMode: 'json'`), stateless as the 2026-07-28 revision is, and serving the
+  2025 revisions' clients, which still open sessions, statelessly too (`legacy: 'stateless'`).
+  Around it:
   - `requireBearerAuth`, with Strategy Dance's verifier and the endpoint's address as
     `expectedResource`: a request without a valid token answers 401, its `WWW-Authenticate` naming
     the Protected Resource Metadata, `/.well-known/oauth-protected-resource/mcp/knowledge` (RFC

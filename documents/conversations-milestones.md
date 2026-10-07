@@ -459,8 +459,10 @@ The module itself, its data and its MCP server, as Modules describes them: nothi
 it yet, and Claude Code reaches it locally over stdio.
 
 - Dependencies: `@modelcontextprotocol/server` and `@modelcontextprotocol/client`, the SDK's second
-  major version, at its latest release past the seven-day cooldown. The two halves of the in-memory
-  transport come from one package.
+  major version, at its latest release past the seven-day cooldown. Tests drive the module as
+  Strategy Dance's agent will, through a `Client` whose transport's `fetch` is the module's handler
+  (see Modules § Strategy Dance's agent), never through the in-memory transport, which the SDK
+  keeps for tests of the 2025 revisions.
 - **A searchable plain text for documents.** `Document` gains `contentText`, the plain text of what
   `content` holds (`getRichTextText`), `@searchable(language: "simple")` beside a searchable
   `title`, so `search_documents` reads an index rather than scanning stored JSON. Like `content`, it
@@ -490,9 +492,9 @@ it yet, and Claude Code reaches it locally over stdio.
   live documents before writing, so an agent and the browser cannot race past it, and a full
   organization comes back to the model as a failure it can explain.
 - **The frame**: `MODULES` in strategydance-core, each module's name, path, title and scopes;
-  `src/modules/` in the backend, mapping each name to `createServer(caller)`; the caller's type;
-  and a test that every module's tool names are unique across `MODULES` and match Claude's
-  `^[a-zA-Z0-9_-]{1,128}$`.
+  `src/modules/` in the backend, mapping each name to `createServer(caller)` and the
+  `createMcpHandler` around it; the caller's type; and a test that every module's tool names are
+  unique across `MODULES` and match Claude's `^[a-zA-Z0-9_-]{1,128}$`.
 - **The eight tools**, as Modules describes them, on M13's `domain/knowledge/`: zod input schemas,
   `outputSchema`s with `structuredContent` and its JSON as text, annotations, failures as `isError`
   results with a sentence to act on, the server's instructions, and documents' web addresses for an
@@ -518,10 +520,10 @@ it yet, and Claude Code reaches it locally over stdio.
 - `CLAUDE.md`: a Modules section, saying what a module is, where its code goes, how its tools are
   named, that every write inserts its result under its key first, and that the AI permissions hold
   for every caller.
-- Tests (database mocked, through an SDK `Client` on the in-memory transport): a document kept from
-  AI neither found, listed nor read; one AI may not change refused, including one whose permission
-  goes off between the read and the fold; a stale `version` refuses `content`, and so does `content`
-  sent without one, before anything is written, including when a push lands between the read and the
+- Tests (database mocked, through an SDK `Client` on the module's handler): a document kept from AI
+  neither found, listed nor read; one AI may not change refused, including one whose permission goes
+  off between the read and the fold; a stale `version` refuses `content`, and so does `content` sent
+  without one, before anything is written, including when a push lands between the read and the
   fold, while `replaceBlocks`, `append` and `replaceText` go through as somebody types elsewhere;
   two reads in a row hand out the same block ids, and so do a document stored before the editor was
   shared and read twice, and one a tab seeds while the backend reads it; a write called twice with
@@ -557,10 +559,10 @@ it yet, and Claude Code reaches it locally over stdio.
 The agent's knowledge, through the module, in process (see Modules § Strategy Dance's agent).
 
 - The worker's module client: for each run, the Knowledge module's server for the run's member
-  (`kind: 'agent'`, every scope, the run's `membershipCreatedAt`, the scope `conversation:<id>`),
-  an SDK `Client` connected to it through the in-memory transport, and its tools converted and
-  appended after the built-in ones. Reads run four at a time, writes alone, each keyed with its
-  `tool_use` id.
+  (`kind: 'agent'`, every scope, the run's `membershipCreatedAt`, the scope `conversation:<id>`), an
+  SDK `Client` connected to the module's handler through `handler.fetch`, the caller as `authInfo`,
+  and its tools converted and appended after the built-in ones. Reads run four at a time, writes
+  alone, each keyed with its `tool_use` id.
 - Recovery as A run § Recovery and side effects says: a worker taking over, and Resume, call a
   module write again with its key; finalizing an interrupted run, and a send answering it, read
   each started write's key first, recording a stored result as `SUCCEEDED` and answering the rest
@@ -659,16 +661,16 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 
 ### M18: The Knowledge module for external agents
 
-- Dependencies: `@modelcontextprotocol/express`.
+- Dependencies: `@modelcontextprotocol/node`, for `toNodeHandler`, and
+  `@modelcontextprotocol/express`, for `requireBearerAuth` and `mcpAuthMetadataRouter`.
 - `routes/modules.ts`, mounted at `/mcp` on the public backend only: `POST /mcp/knowledge` through
-  `createMcpHandler` with `responseMode: 'json'` and `legacy: 'stateless'`, behind
-  `requireBearerAuth` with M16's verifier and the endpoint's address as `expectedResource`; the
-  `Origin` check; a 1 MiB body; `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE;
-  and `/.well-known/oauth-protected-resource/mcp/knowledge` through `mcpAuthMetadataRouter`. The
-  caller comes from the token (`kind: 'external'`, the connection's scopes, the scope
-  `connection:<id>`), so a read-only connection lists the reads alone; `lastUsedAt` is written at
-  most once a minute; an external `search_documents` draws on the member's `ConversationSearch`
-  allowance.
+  the module's handler from M14, mounted with `toNodeHandler`, behind `requireBearerAuth` with M16's
+  verifier and the endpoint's address as `expectedResource`; the `Origin` check; a 1 MiB body;
+  `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE; and
+  `/.well-known/oauth-protected-resource/mcp/knowledge` through `mcpAuthMetadataRouter`. The caller
+  comes from the token (`kind: 'external'`, the connection's scopes, the scope `connection:<id>`),
+  so a read-only connection lists the reads alone; `lastUsedAt` is written at most once a minute; an
+  external `search_documents` draws on the member's `ConversationSearch` allowance.
 - The Knowledge page's "Use with your agents" button and dialog, staff only.
 - `CLAUDE.md`: the Modules section gains the endpoint, how an external agent is authorized, and what
   a new module needs; § Backend conventions, that `/mcp` answers JSON-RPC rather than `ApiResponse`

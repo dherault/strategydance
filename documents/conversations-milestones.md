@@ -637,33 +637,33 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   an authorization request naming a client ID metadata document fetching nothing until the consent
   page reads it; the metadata exactly as Modules lists it, every field RFC 8414 requires included; a
   client ID metadata document fetched and kept, and refused when its `client_id` differs from its
-  address, when its body was cut, or when it redirects; a registration with an `https` redirect
-  refused, and a loopback and a `cursor://` one accepted; a loopback redirect matching on any port,
-  and every other one exactly; an error before the client is checked rendered and never redirected,
-  and one after it redirected with `state` and `iss`; a success redirected with `code`, `state` and
-  the exact `iss`; `resource` missing, repeated or naming no module refused, scopes past the
-  module's refused, and the write scope without the read one refused; approving read and write for a
-  client that asked for read refused, and a request for read and write reduced to read, its token
-  answer's `scope` saying read alone; a token request missing `resource`, or naming another than its
-  code's or its refresh token's, refused; an exchange missing its `client_id` or its `redirect_uri`,
-  or naming another client or address than its code's, refused, and a refresh from another client
-  than its token's refused; a `plain` challenge and a wrong verifier refused; a code used twice
-  refused, the second use revoking what the first issued, and a code past its minute refused; a
-  token for one module refused for another; a refresh rotating; the spent token presented again
-  within 30 seconds issuing a new pair and stopping the one issued before it, presented a third time
-  revoking the connection, and presented after 30 seconds revoking it too; consenting again
-  replacing the earlier connection and its tokens, and two approvals at once for one client,
-  organization and module leaving one connection; Allow sent twice making one connection and one
-  code, an Allow racing a Deny deciding the request once, and a denied request refused by a later
-  Allow; a refresh honoured in its grace window stopping exactly the pair its spent token issued,
-  and leaving another connection's tokens, and the same connection's other pair, alone; approving
-  refused for an account that is not staff and for an organization it is not in; removing the member
-  deleting the connection with its tokens; a revoked token refused; an access token presented to the
-  refresh grant refused, and a refresh token to the verifier; every token answer carrying
-  `Cache-Control: no-store` and `Pragma: no-cache`; `response_type` missing, repeated or other than
-  `code` refused; `grant_type` missing, repeated or unknown refused, and a code exchange carrying a
-  refresh token's parameters reading none of them; a revocation naming another client than the
-  token's refused, the connection left as it was.
+  address, when its body was cut, or when it redirects; a registration with an `https` redirect or a
+  private-use one such as `cursor://` refused, and a loopback one accepted; a loopback redirect
+  matching on any port, and every other one exactly; an error before the client is checked rendered
+  and never redirected, and one after it redirected with `state` and `iss`; a success redirected
+  with `code`, `state` and the exact `iss`; `resource` missing, repeated or naming no module
+  refused, scopes past the module's refused, and the write scope without the read one refused;
+  approving read and write for a client that asked for read refused, and a request for read and
+  write reduced to read, its token answer's `scope` saying read alone; a token request missing
+  `resource`, or naming another than its code's or its refresh token's, refused; an exchange missing
+  its `client_id` or its `redirect_uri`, or naming another client or address than its code's,
+  refused, and a refresh from another client than its token's refused; a `plain` challenge and a
+  wrong verifier refused; a code used twice refused, the second use revoking what the first issued,
+  and a code past its minute refused; a token for one module refused for another; a refresh
+  rotating; the spent token presented again within 30 seconds issuing a new pair and stopping the
+  one issued before it, presented a third time revoking the connection, and presented after 30
+  seconds revoking it too; consenting again replacing the earlier connection and its tokens, and two
+  approvals at once for one client, organization and module leaving one connection; Allow sent twice
+  making one connection and one code, an Allow racing a Deny deciding the request once, and a denied
+  request refused by a later Allow; a refresh honoured in its grace window stopping exactly the pair
+  its spent token issued, and leaving another connection's tokens, and the same connection's other
+  pair, alone; approving refused for an account that is not staff and for an organization it is not
+  in; removing the member deleting the connection with its tokens; a revoked token refused; an
+  access token presented to the refresh grant refused, and a refresh token to the verifier; every
+  token answer carrying `Cache-Control: no-store` and `Pragma: no-cache`; `response_type` missing,
+  repeated or other than `code` refused; `grant_type` missing, repeated or unknown refused, and a
+  code exchange carrying a refresh token's parameters reading none of them; a revocation naming
+  another client than the token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 
@@ -719,10 +719,11 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   result saying so.
 - Verify: locally, add `http://localhost:3003/mcp/knowledge` to Claude Code (`claude mcp add
   --transport http`), consent, and run every tool against a document open in a tab, then the MCP
-  Inspector; in production, as staff, add the module to claude.ai as a custom connector (which
-  takes the client ID metadata document), to ChatGPT in developer mode and to Cursor (which
-  registers), use it from each, and disconnect one from Connected agents and see its next call
-  refused.
+  Inspector; in production, as staff, add the module to claude.ai as a custom connector (which takes
+  the client ID metadata document), to ChatGPT in developer mode and to Cursor (which registers:
+  should it insist on a `cursor://` redirect, which the specification rules out, accepting it, a
+  deviation PKCE mitigates, is David's call), use it from each, and disconnect one from Connected
+  agents and see its next call refused.
 
 ### M19: Mentioning knowledge in the composer
 

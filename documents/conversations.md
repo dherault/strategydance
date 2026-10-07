@@ -1191,9 +1191,11 @@ consent page from M17:
     request, as the specification's flow has it, so nobody who is not signed in can make the backend
     fetch an address of their choosing. Dynamic client registration (`POST /oauth/register`, RFC
     7591), which the specification deprecates and Cursor still needs, takes redirect addresses on
-    loopback or a private-use scheme only, `cursor://` say, so a client redirecting to a website
-    proves its domain through CIMD. Registration is rate-limited per address and capped in all, and
-    one unused a day later is pruned.
+    loopback only: the specification requires every redirect address to be `localhost` or `https`,
+    which rules out a private-use scheme such as `cursor://`, and an `https` one from a registration
+    would prove no domain, so a client redirecting to a website proves its domain through CIMD.
+    Registration is rate-limited per address and capped in all, and one unused a day later is
+    pruned.
   - `GET /oauth/authorize` checks `response_type`, exactly one and `code`, the only flow it serves,
     the client, PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's address, and its
     scopes: the module's read scope, alone or with its write scope, since the consent offers read,
@@ -1211,11 +1213,13 @@ consent page from M17:
   - **The consent page**, signed in as any page of the app is, full screen, outside the app's frame,
     and framed by nothing (`frame-ancestors 'none'`, from `firebase.json`), names the client, its
     name stripped of control and direction characters and cut to 80 characters, marked unverified
-    for a registered client and with its metadata document's domain otherwise, and where it will
-    send the member back; the module; the organization, chosen among the member's; and the access,
-    read, or read and write when the client asked for both. Never the client's logo, which would
-    load an address of its choosing. Allow and Deny call `POST /oauth/requests/:requestId/approve`
-    and `…/deny`, with the member's ID token and App Check, as every route the app calls.
+    for a registered client and with its metadata document's domain otherwise, and the host it will
+    send the member back to, with a warning when that is only a loopback address, which any program
+    on the member's computer could be listening on, as the specification asks; the module; the
+    organization, chosen among the member's; and the access, read, or read and write when the client
+    asked for both. Never the client's logo, which would load an address of its choosing. Allow and
+    Deny call `POST /oauth/requests/:requestId/approve` and `…/deny`, with the member's ID token and
+    App Check, as every route the app calls.
   - Allow and Deny each consume the request first, under `@check(this == 1)` on a request still
     undecided and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the
     loser is refused, and a denied request is never approved after. Allow then makes an

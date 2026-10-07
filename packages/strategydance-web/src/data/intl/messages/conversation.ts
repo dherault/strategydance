@@ -26,6 +26,11 @@ const conversationMessages = defineMessages({
     description:
       "Line under the title of the Conversations page's empty state. Strategy Dance is the product's name, and the name of its AI.",
   },
+  new: {
+    id: 'conversation.new',
+    defaultMessage: 'New conversation',
+    description: 'Button that starts a new conversation with the AI, on the page that lists them.',
+  },
   loadError: {
     id: 'conversation.loadError',
     defaultMessage: 'Your conversations could not be loaded. Check your connection and try again.',
@@ -561,6 +566,49 @@ const conversationMessages = defineMessages({
     defaultMessage: '{minutes}m {seconds}s',
     description:
       'How long the AI has been working on an answer, in minutes and seconds, kept short as a timer. {seconds} has two digits, such as 05.',
+  },
+
+  /* ---
+    COMPOSER: the field at the foot of a conversation where the reader writes to Strategy Dance
+  --- */
+  composerLabel: {
+    id: 'conversation.composer.label',
+    defaultMessage: 'Message',
+    description: 'Accessible name of the field where the reader writes their next message to the AI.',
+  },
+  composerPlaceholder: {
+    id: 'conversation.composer.placeholder',
+    defaultMessage: 'Message Strategy Dance',
+    description:
+      "Placeholder of the field where the reader writes their next message. Strategy Dance is the product's name, and the name of its AI.",
+  },
+  composerSend: {
+    id: 'conversation.composer.send',
+    defaultMessage: 'Send',
+    description: 'Accessible name of the button, an arrow, that sends what the reader wrote to the AI.',
+  },
+  composerError: {
+    id: 'conversation.composer.error',
+    defaultMessage: 'Your message could not be sent. Check your connection and try again.',
+    description: 'Shown above the message field when sending failed. What the reader wrote stays in the field.',
+  },
+  composerBusy: {
+    id: 'conversation.composer.busy',
+    defaultMessage: 'Strategy Dance is still answering you. Send this again once a reply is done.',
+    description:
+      "Shown above the message field when the AI is already answering, in this conversation or in several of the reader's others, so it cannot take another message yet. What the reader wrote stays in the field.",
+  },
+  composerUnavailable: {
+    id: 'conversation.composer.unavailable',
+    defaultMessage: 'Strategy Dance cannot take messages right now. Try again later.',
+    description:
+      'Shown above the message field when the server could not take the message for now. What the reader wrote stays in the field.',
+  },
+  tooMany: {
+    id: 'conversation.tooMany',
+    defaultMessage: 'You have {max, number} conversations, as many as you can keep. Delete one to start another.',
+    description:
+      'Shown when the reader tries to start a conversation while they keep as many as they may. {max} is a number such as 1000.',
   },
 })
 

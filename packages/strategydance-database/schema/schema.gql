@@ -96,8 +96,8 @@ type Organization @table {
   # The segment that leads each of its pages' paths, as in `/strategy-dance-ad34/today`: its name
   # in lowercase words joined by dashes, then a dash and four random letters or digits, as
   # strategydance-core's `createOrganizationSlug` draws it. Set once, when it is created, and kept
-  # through a rename, so a link to it never breaks. Null for an organization made before slugs,
-  # until `backfillOrganizationSlugs` gives it one, and the app addresses it by its id meanwhile
+  # through a rename, so a link to it never breaks. Null only for one a page from before slugs
+  # created, which the app addresses by its id
   slug: String @unique
   # The aspects the organization has started working on, each once. None to begin with: the
   # sidebar lists these, and the rest wait behind the explore page

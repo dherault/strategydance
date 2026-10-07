@@ -11,13 +11,13 @@ import { cn } from 'strategydance-design-system/lib/utils'
   the column runs nearly to the screen's edges and the editor keeps a gutter of its own on the
   left, where a tap on a block shows its menu.
 
-  The column, gutters and all, centers on the window as `ContainerLayout`'s does, with its own
-  width in the margin: once there is room for it and a sidebar's width to its right, the margin
-  grows by half of whatever is left over, and short of that it sits against the sidebar
+  The column, gutters and all, is a `page-column`, as `ContainerLayout`'s is, with its own width:
+  centered on the screen, with the sidebar's width clear on its right. From `md` the gutters are
+  the gap it keeps from the sidebar, and mirrors on its right, so it takes no other
 */
 function KnowledgeDocumentLayout({ className, ...props }: ComponentProps<'div'>) {
   return (
-    <div className="ml-[max(0px,calc((100%-884px-var(--sidebar-width))/2))] box-border w-full max-w-[884px] px-2 pt-5 pb-16 md:px-[58px]">
+    <div className="page-column box-border pt-5 pb-16 [--page-column-max-width:884px] md:px-[58px] md:[--page-column-gutter:0px]">
       <div
         className={cn('flex min-w-0 flex-col gap-6', className)}
         {...props}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { ConversationMessageKind, ConversationRunStatus, ConversationToolStatus } from 'strategydance-database/web'
+import { ConversationMessageKind, ConversationToolStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -13,6 +13,7 @@ import useReconcileConversationRun from '~hooks/conversation/useReconcileConvers
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
+import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -89,7 +90,7 @@ function ConversationThread({ conversation, run }: Props) {
     if (bottom >= -OLDER_MARGIN_PX && top <= window.innerHeight) loadOlder()
   }, [olderStatus, hasOlder, entries, loadOlder])
 
-  const isWorking = run?.status === ConversationRunStatus.QUEUED || run?.status === ConversationRunStatus.RUNNING
+  const isWorking = isConversationRunGoing(run)
   const runningCall = entries.findLast(
     ({ kind, toolStatus }) =>
       kind === ConversationMessageKind.TOOL_CALL && toolStatus === ConversationToolStatus.RUNNING,
@@ -170,7 +171,7 @@ function ConversationThread({ conversation, run }: Props) {
   }
 
   return (
-    <div className="flex flex-col pt-2 pb-10 [overflow-anchor:none]">
+    <div className="flex grow flex-col py-2 [overflow-anchor:none]">
       {renderOlder()}
       <div
         ref={listRef}

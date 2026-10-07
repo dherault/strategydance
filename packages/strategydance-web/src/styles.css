@@ -24,6 +24,44 @@
 }
 
 /*
+  The column a page beside the sidebar is laid out in. It centers on the screen rather than on the
+  space the sidebar leaves, as if a second sidebar mirrored the first on the right: the column
+  keeps the sidebar's width clear on its right, and the gap it leaves after the sidebar on its
+  left is mirrored there too.
+
+  It grows with the screen up to `--page-column-max-width`, and past that the margins on either
+  side grow evenly. It gives up centering only where that would leave it narrower than
+  `--page-column-min-width`: it then holds that width against the sidebar, losing the room
+  mirrored on its right first, and shrinks with the screen once only the gap is left there. A
+  layout sets either width, or `--page-column-gutter`, as a custom property on the column.
+
+  Below `md` the sidebar is a panel over the page and takes no room, so the column centers on the
+  screen with a narrower gap. `--sidebar-width` is set by `SidebarProvider`, and counts for
+  nothing outside it.
+
+  `100%` is the width of the page beside the sidebar. The column has a width of its own rather
+  than stretching, so the margin on its left is all that places it
+*/
+@utility page-column {
+  --page-column-sidebar: 0px;
+  --page-column-gap: var(--page-column-gutter, 8px);
+  --page-column-max: var(--page-column-max-width, 1280px);
+  --page-column-min: var(--page-column-min-width, 768px);
+
+  width: clamp(
+    min(var(--page-column-min), var(--page-column-max), 100% - 2 * var(--page-column-gap)),
+    100% - var(--page-column-sidebar) - 2 * var(--page-column-gap),
+    var(--page-column-max)
+  );
+  margin-left: max(var(--page-column-gap), (100% - var(--page-column-sidebar) - var(--page-column-max)) / 2);
+
+  @variant md {
+    --page-column-sidebar: var(--sidebar-width, 0px);
+    --page-column-gap: var(--page-column-gutter, 32px);
+  }
+}
+
+/*
   A conversation's thinking indicator, as the design draws it: the mark pulsing, and the step
   sliding in, then shimmering over its words. Where they are used, `motion-reduce:` stops both
 */

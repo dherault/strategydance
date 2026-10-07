@@ -73,6 +73,7 @@ export type FakeConversation = {
   messageCount: number
   isFull: boolean
   deletedAt: string | null
+  pruneClaimedAt: string | null
   updatedAt: string
 }
 
@@ -88,6 +89,7 @@ export type FakeRun = {
   stopRequestedAt: string | null
   leaseExpiresAt: string | null
   attempts: number
+  createdAt: string
   startedAt: string | null
   endedAt: string | null
 }
@@ -187,6 +189,43 @@ function createConversationDatabaseFake() {
     memberships.delete(membershipKey(userId, organizationId))
   }
 
+  // Whether a conversation was deleted over a day ago, past its Undo
+  function isPastUndo(conversation: FakeConversation) {
+    return conversation.deletedAt !== null && Date.parse(conversation.deletedAt) < Date.now() - 24 * 60 * 60 * 1000
+  }
+
+  // Deletes a conversation with what cascades from it: its runs, messages and transcript
+  function deleteConversation(conversationId: string) {
+    conversations.delete(conversationId)
+
+    for (const table of [runs, messages, entries]) {
+      for (const row of table.values()) {
+        if (row.conversationId === conversationId) table.delete(row.id)
+      }
+    }
+  }
+
+  /*
+    The web connector's `RestoreConversation`, as far as a sweep meets it: a deleted conversation of
+    the caller's comes back only while no sweep has claimed it, and is refused as the connector
+    refuses it otherwise. The membership's lock and the count of 1000 are left to its own checks
+  */
+  function restore(conversationId: string, userId: string, organizationId: string) {
+    const conversation = conversations.get(id(conversationId))
+
+    if (
+      !conversation
+      || conversation.userId !== userId
+      || conversation.organizationId !== id(organizationId)
+      || conversation.deletedAt === null
+      || conversation.pruneClaimedAt !== null
+    ) {
+      refuse('The conversation is gone for good')
+    }
+
+    conversation.deletedAt = null
+  }
+
   function runsInFlight(userId: unknown, organizationId: unknown) {
     return [...runs.values()].filter(run => {
       const conversation = conversations.get(run.conversationId)
@@ -255,6 +294,25 @@ function createConversationDatabaseFake() {
       || conversation.userId !== variables.userId
       || conversation.organizationId !== id(variables.organizationId)
       || membership?.createdAt !== variables.membershipCreatedAt
+    ) {
+      return null
+    }
+
+    return run
+  }
+
+  // A run still queued in the caller's conversation, as the queued run's lease mutations match it
+  function findQueuedRun(variables: AnyVariables) {
+    const run = runs.get(id(variables.runId))
+    const conversation = run && conversations.get(run.conversationId)
+
+    if (
+      !run
+      || !conversation
+      || run.status !== 'QUEUED'
+      || conversation.id !== id(variables.conversationId)
+      || conversation.userId !== variables.userId
+      || conversation.organizationId !== id(variables.organizationId)
     ) {
       return null
     }
@@ -417,10 +475,9 @@ function createConversationDatabaseFake() {
         if (
           conversation.userId === variables.userId
           && conversation.organizationId === id(variables.organizationId)
-          && conversation.deletedAt !== null
-          && Date.parse(conversation.deletedAt) < Date.now() - 24 * 60 * 60 * 1000
+          && isPastUndo(conversation)
         ) {
-          conversations.delete(conversation.id)
+          deleteConversation(conversation.id)
         }
       }
 
@@ -438,6 +495,7 @@ function createConversationDatabaseFake() {
         messageCount: 1,
         isFull: false,
         deletedAt: null,
+        pruneClaimedAt: null,
         updatedAt: now(),
       })
       runs.set(runId, {
@@ -452,6 +510,7 @@ function createConversationDatabaseFake() {
         stopRequestedAt: null,
         leaseExpiresAt: inSeconds(20 * 60),
         attempts: 0,
+        createdAt: now(),
         startedAt: null,
         endedAt: null,
       })
@@ -525,6 +584,7 @@ function createConversationDatabaseFake() {
         stopRequestedAt: null,
         leaseExpiresAt: inSeconds(20 * 60),
         attempts: 0,
+        createdAt: now(),
         startedAt: null,
         endedAt: null,
       })
@@ -573,6 +633,26 @@ function createConversationDatabaseFake() {
 
       end(run, 'INTERRUPTED')
       writeNote(noteConversation, variables, 'INTERRUPTED')
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    RenewQueuedConversationRunLease: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run) return { conversationRun_updateMany: 0 }
+
+      run.leaseExpiresAt = inSeconds(20 * 60)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    ExpireQueuedConversationRunLease: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run) return { conversationRun_updateMany: 0 }
+
+      run.leaseExpiresAt = now()
 
       return { conversationRun_updateMany: 1 }
     },
@@ -707,6 +787,41 @@ function createConversationDatabaseFake() {
       return { conversationRun_updateMany: 1 }
     },
 
+    ClaimDeletedConversations: () => {
+      let claimed = 0
+
+      for (const conversation of conversations.values()) {
+        if (isPastUndo(conversation) && conversation.pruneClaimedAt === null) {
+          conversation.pruneClaimedAt = now()
+          claimed++
+        }
+      }
+
+      return { conversation_updateMany: claimed }
+    },
+
+    GetClaimedConversations: () => ({
+      conversations: [...conversations.values()]
+        .filter(conversation => conversation.pruneClaimedAt !== null && isPastUndo(conversation))
+        .slice(0, 20)
+        .map(conversation => ({ id: conversation.id })),
+    }),
+
+    DeleteClaimedConversations: ({ ids }) => {
+      let deleted = 0
+
+      for (const conversationId of ids as string[]) {
+        const conversation = conversations.get(id(conversationId))
+
+        if (conversation && conversation.pruneClaimedAt !== null && isPastUndo(conversation)) {
+          deleteConversation(conversation.id)
+          deleted++
+        }
+      }
+
+      return { conversation_deleteMany: deleted }
+    },
+
     InterruptConversationRun: variables => {
       const run = runs.get(id(variables.runId))
       const conversation = run && conversations.get(run.conversationId)
@@ -761,7 +876,7 @@ function createConversationDatabaseFake() {
     fake.beforeOperation = async () => {}
   }
 
-  return Object.assign(fake, { sdk, addMember, removeMember, reset })
+  return Object.assign(fake, { sdk, addMember, removeMember, restore, reset })
 }
 
 export type ConversationDatabaseFake = ReturnType<typeof createConversationDatabaseFake>

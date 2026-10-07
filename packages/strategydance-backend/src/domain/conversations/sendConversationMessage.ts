@@ -49,19 +49,26 @@ type SendConversationMessageResult =
   | { outcome: 'full' }
   // The message would start a conversation, and the caller keeps 1000 already
   | { outcome: 'tooMany' }
+  // The message and its run are stored, but the run could not be queued: it stays queued, and the
+  // same send retried queues it again, as its page's reconcile does meanwhile
+  | { outcome: 'unavailable' }
 
 /*
   Sends a member's message, which starts the conversation with it when there is none yet, and
   queues the run that answers it, then starts that run. Each round reads where things stand first:
 
   - the message's id was sent already: the send is answered with the run it started, which is
-    started again while it waits in the queue, so a send retried after its first try went through
+    queued again while it waits in the queue, so a send retried after its first try went through
     completes what that one did not
   - a run of the caller's is in flight past its lease: it died with its worker, and is finalized
-    before anything is counted, its own conversation's or another's
+    before anything is counted, its own conversation's or another's, unless it is queued and still
+    coming, as Cloud Tasks says
   - then the conversation has to be the caller's and not deleted, idle, and not full, or, when it
     does not exist yet, the caller to keep fewer than 1000, and the caller to have fewer than 3 runs
-    in flight
+    in flight. A conversation whose run still waits in the queue has that run queued again before
+    the send is answered busy, so a run whose task was lost does not keep it busy
+
+  A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
   A write refused anyway, because a send with the same id, a run or an aspects note got there in
   between, starts another round
@@ -94,33 +101,49 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
       const reference = { organizationId, userId, conversationId, runId: sent.run.id }
 
-      if (isDead(sent.run)) await finalizeDeadConversationRun(reference)
-      else if (sent.run.status === ConversationRunStatus.QUEUED) enqueueRun(reference)
+      // A run past its lease that is still coming, its task found or queued again, is alive too, and
+      // is queued again like any other still waiting, which answers whether it is
+      const state = isDead(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
+
+      if (state === 'alive' && sent.run.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
+        return { outcome: 'unavailable' }
+      }
 
       return { outcome: 'sent', runId: sent.run.id }
     }
 
-    const deadRuns = data.conversationRuns.filter(isDead)
+    // Read again once one has ended, which freed its conversation and the caller's allowance. One
+    // still coming counts as in flight, as it was read, and asking the queue again changes nothing
+    let hasEnded = false
 
-    if (deadRuns.length) {
-      for (const run of deadRuns) {
-        await finalizeDeadConversationRun({
-          organizationId,
-          userId,
-          conversationId: run.conversation.id,
-          runId: run.id,
-        })
-      }
+    for (const run of data.conversationRuns.filter(isDead)) {
+      const state = await finalizeDeadConversationRun({
+        organizationId,
+        userId,
+        conversationId: run.conversation.id,
+        runId: run.id,
+      })
 
-      if (round < MAX_ROUNDS) continue
+      if (state === 'ended') hasEnded = true
     }
+
+    if (hasEnded && round < MAX_ROUNDS) continue
 
     if (conversation && (conversation.userId !== userId || conversation.organizationId !== organizationId)) {
       return { outcome: 'missing' }
     }
 
     if (conversation?.deletedAt) return { outcome: 'missing' }
-    if (conversation?.activeRunId) return { outcome: 'busy' }
+    if (conversation?.activeRunId) {
+      // Among the caller's runs in flight, since it is one
+      const activeRun = data.conversationRuns.find(run => run.id === conversation.activeRunId)
+
+      if (activeRun?.status === ConversationRunStatus.QUEUED) {
+        await enqueueRun({ organizationId, userId, conversationId, runId: activeRun.id })
+      }
+
+      return { outcome: 'busy' }
+    }
     if (conversation && (conversation.isFull || conversation.messageCount >= MAX_CONVERSATION_MESSAGES)) {
       return { outcome: 'full' }
     }
@@ -159,7 +182,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       continue
     }
 
-    enqueueRun({ organizationId, userId, conversationId, runId })
+    if (!(await enqueueRun({ organizationId, userId, conversationId, runId }))) return { outcome: 'unavailable' }
 
     return { outcome: 'sent', runId }
   }

@@ -168,6 +168,7 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     trigger
     status
     attempts
+    createdAt
     membershipCreatedAt
     leaseExpiresAt
     stopRequestedAt
@@ -204,5 +205,17 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     id
     kind
     noteKind
+  }
+}
+
+# A batch of the conversations the daily sweep has claimed and not deleted yet, whoever's they are,
+# which it deletes next. Only those still deleted over a day ago, as the delete takes them. Twenty
+# at a time, since each holds up to 2000 messages, which go with it
+query GetClaimedConversations @auth(level: NO_ACCESS) {
+  conversations(
+    where: { pruneClaimedAt: { isNull: false }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+    limit: 20
+  ) {
+    id
   }
 }

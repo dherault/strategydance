@@ -6,7 +6,7 @@ import { DEVELOPMENT_API_URL, DEVELOPMENT_APP_URL } from 'strategydance-core'
 import { authentication, dataConnect } from '~firebase'
 
 /*
-  Sends a message to a conversation through the backend, as the page's composer will, in
+  Sends a message to a conversation through the backend, as the page's composer does, in
   development:
 
     bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] <text>

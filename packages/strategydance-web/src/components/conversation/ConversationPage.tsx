@@ -4,6 +4,7 @@ import useConversation from '~hooks/conversation/useConversation'
 import useConversationRun from '~hooks/conversation/useConversationRun'
 
 import ConversationBar from '~components/conversation/ConversationBar'
+import ConversationComposer from '~components/conversation/ConversationComposer'
 import ConversationHead from '~components/conversation/ConversationHead'
 import ConversationLayout from '~components/conversation/ConversationLayout'
 import ConversationThread from '~components/conversation/ConversationThread'
@@ -15,9 +16,12 @@ type Props = {
 }
 
 /*
-  One conversation's page: the bar, the title and aspects, and the thread. Below
-  `ConversationBouncer`, so the conversation is there, or the page is a draft not stored yet, whose
-  thread is empty and says what to ask
+  One conversation's page: the bar, the title and aspects, the thread, and the composer at its
+  foot. Below `ConversationBouncer`, so the conversation is there, or the page is a draft not
+  stored yet, whose thread is empty and says what to ask.
+
+  The composer stays where it is whichever the page draws, so a draft's first message, which
+  stores the conversation, leaves it mounted with whatever is written in it
 */
 function ConversationPage({ conversationId }: Props) {
   const { formatMessage } = useIntl()
@@ -25,11 +29,10 @@ function ConversationPage({ conversationId }: Props) {
   const { data: run } = useConversationRun(conversationId)
 
   return (
-    // A draft's column fills the screen, its line in the middle of what is left, as the design has
-    // it: the screen less the column's top padding and, on a phone, the bar over the page
-    <ConversationLayout
-      className={conversation ? undefined : 'min-h-[calc(100svh-1.25rem)] max-md:min-h-[calc(100svh-4.25rem)]'}
-    >
+    // The column fills the screen, as the design has it, so the composer sits at its foot however
+    // short the thread, and a draft's line in the middle of what is left: the screen less the
+    // column's top padding and, on a phone, the bar over the page
+    <ConversationLayout className="min-h-[calc(100svh-1.25rem)] max-md:min-h-[calc(100svh-4.25rem)]">
       <ConversationBar updatedAt={conversation?.updatedAt ?? null} />
       <ConversationHead conversation={conversation} />
       {conversation ? (
@@ -42,6 +45,11 @@ function ConversationPage({ conversationId }: Props) {
           {formatMessage(conversationMessages.threadEmpty)}
         </p>
       )}
+      <ConversationComposer
+        conversationId={conversationId}
+        conversation={conversation}
+        run={run}
+      />
     </ConversationLayout>
   )
 }

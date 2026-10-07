@@ -125,7 +125,10 @@ knowledge."
 ### The composer
 
 - A textarea that grows from one line to 160px: "Message Strategy Dance". Enter sends, Shift+Enter
-  breaks the line, nothing sends while an input method is composing.
+  breaks the line, nothing sends while an input method is composing (Safari ends the composition
+  before it reports the Enter that commits it, which only its key code, 229, then gives away). On
+  a touch screen, which has no Shift key to hand, Enter breaks the line and the Send button sends,
+  as David chose in M7.
 - A "+" menu: "Files and images", and "Mention knowledge", which inserts an `@`.
 - Typing `@` opens a "Knowledge" list of up to six documents whose title matches, latest first,
   driven by the arrows, Enter or Tab to pick, Escape to close; "No knowledge matches “query”" when
@@ -135,6 +138,12 @@ knowledge."
 - Attachments: up to ten per message, picked or pasted, shown in a tray above the field with a
   remove button each.
 - Send is disabled when there is nothing to send. While a run goes, a Stop button replaces it.
+- A send that fails keeps its words in the field and says why: a run already going, a conversation
+  full, as many conversations kept as the member may, a server that cannot take it now, or anything
+  else, a lost connection included. Nothing retries by itself, as David chose in M7: the member
+  sends again. The same words go again under the same `messageId`, so a send that reached the
+  backend and only lost its answer is stored once. Words changed since are a new message with an
+  id of its own, since the route answers a reused id with the run of the words it first stored.
 - Sending while a question waits skips the question.
 
 ### The dock
@@ -220,7 +229,11 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
   stays on, and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses
   any other caller before the code runs and no token verification is written by hand. It has its own
   15-minute timeout and a low concurrency (4), and scales to zero
-  between runs. The backend keeps its defaults.
+  between runs. The backend keeps its defaults. Its address is Cloud Run's deterministic one,
+  `https://strategydance-worker-995028545701.us-central1.run.app`, a constant in the backend
+  (`WORKER_URL`), so the backend can be deployed before the worker first exists; it is also the
+  audience of the token a task carries, without a path. `deploy:backend` deploys the backend, then
+  the image its new revision runs, by digest, as the worker (M8).
 
 ### The data
 
@@ -497,7 +510,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   with Resume and Retry, replaces the thinking indicator; a queued one is finalized once its task
   is gone, the route asking Cloud Tasks first (M8), so a run whose task vanished never spins
   forever, with nothing asked of the member. M6 built this, where the plan first had the page draw
-  a claimed run past its lease as interrupted without finalizing it.
+  a claimed run past its lease as interrupted without finalizing it. When Cloud Tasks cannot say
+  whether the task is there, nothing changes and the page asks again two minutes later.
 - **The worker** claims a run with a conditional update (`QUEUED`, or `RUNNING` past its lease) that
   increments `attempts`. It answers 200 only once the run is finished, or was already, and 503 while
   another worker holds a live lease, so Cloud Tasks tries again later; the queue's backoff (90
@@ -529,6 +543,25 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   retry rather than by the reconcile route. A run whose task never comes to exist, because the
   retry never came, is found by the reconcile route once its lease passes (see Leases) and
   finalized as interrupted, with Retry.
+- **A failed queueing does not leave the member waiting.** M7's composer sends nothing while the
+  run it shows is queued, so the browser's retry the previous point counts on cannot come: the
+  member would watch the thinking indicator for twenty minutes. So, as David chose on 2026-10-07,
+  a run whose task could not be queued has its lease brought in to now
+  (`ExpireQueuedConversationRunLease`), and the page reconciles it at once. The reconcile route
+  then queues a run whose task is gone again while the run is under twenty minutes old, pushing its
+  lease back, and the page asks every two minutes while it fails, so a passing outage recovers
+  with nothing asked of the member. Past twenty minutes, a run with no task is finalized as
+  interrupted. A task name stays taken for up to 24 hours after its task ends (Cloud Tasks'
+  `CreateTask` reference), so queueing a run whose task has come and gone reads as `ALREADY_EXISTS`,
+  and the next reconcile finds no task and, the run being older by then, finalizes it. That is
+  rare: the worker claims a queued run it is delivered, so a young queued run with no task is
+  almost always one whose task was never created, whose name is free. Telling a taken name from a
+  task another tab created a moment before is not possible, so `ALREADY_EXISTS` is never read as
+  gone.
+- **Which failures are unclear**, and asked again under the same name, up to three tries:
+  `DEADLINE_EXCEEDED`, `UNAVAILABLE`, `UNKNOWN`, `INTERNAL`, `ABORTED`, and an error with no code,
+  a connection lost. Anything else, `PERMISSION_DENIED` or a queue `NOT_FOUND` say, is definite.
+  The client's own retries are off for these calls, since the backend's are the retries.
 - **Recovery and side effects.** A call's message is written `RUNNING`, with `toolStartedAt`, before
   the call is made. A worker that claims a run after a crash finds calls that started and have no
   result. Every built-in write (creating or editing knowledge, setting the top priority) stores its
@@ -1036,7 +1069,9 @@ worker's claim checks the role again, so a queued run stops too:
 
 Done once by a human. Steps 1, 2, 5 and 8 come before M1, whose spike is the first request to
 Claude; the rest before the milestone each names (development otherwise runs in the backend's
-process). Steps 2 and 8 were done on 2026-10-04.
+process). Steps 2 and 8 were done on 2026-10-04. Steps 3 and 4 were still to do on 2026-10-07,
+when M8 was built: the project had no `conversation-runs` queue and no `conversation-tasks`
+account, and until both exist every send in production answers 503.
 
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
@@ -1069,7 +1104,17 @@ process). Steps 2 and 8 were done on 2026-10-04.
    worker's base `run.app` address without the path, which is what Cloud Run checks the token
    against. Whoever creates the job needs `iam.serviceAccounts.actAs` on `conversation-tasks`: a
    project owner has it, and anybody else takes `roles/iam.serviceAccountUser` on that one account
-   first.
+   first. Cloud Scheduler gives up on a request after three minutes unless told otherwise, so the
+   job allows the worker's fifteen:
+
+   ```sh
+   gcloud scheduler jobs create http conversations-sweep --location us-central1 --project strategydance \
+     --schedule '0 4 * * *' --time-zone Etc/UTC --http-method POST \
+     --uri https://strategydance-worker-995028545701.us-central1.run.app/internal/sweep \
+     --oidc-service-account-email conversation-tasks@strategydance.iam.gserviceaccount.com \
+     --oidc-token-audience https://strategydance-worker-995028545701.us-central1.run.app \
+     --attempt-deadline 15m
+   ```
 7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every

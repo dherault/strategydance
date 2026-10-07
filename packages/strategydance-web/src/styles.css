@@ -46,7 +46,7 @@
   --page-column-sidebar: 0px;
   --page-column-gap: var(--page-column-gutter, 8px);
   --page-column-max: var(--page-column-max-width, 1280px);
-  --page-column-min: var(--page-column-min-width, 640px);
+  --page-column-min: var(--page-column-min-width, 768px);
 
   width: clamp(
     min(var(--page-column-min), var(--page-column-max), 100% - 2 * var(--page-column-gap)),

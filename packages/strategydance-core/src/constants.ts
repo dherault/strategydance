@@ -346,6 +346,13 @@ export const MAX_CONVERSATION_TITLE_LENGTH = 120
 export const MAX_CONVERSATION_MESSAGE_LENGTH = 20000
 
 /*
+  How many input tokens a request to Claude may take before its conversation counts as full, short
+  of the model's 1M-token context: a conversation whose next request would pass it takes no more
+  messages until a retry shortens it
+*/
+export const MAX_CONVERSATION_INPUT_TOKENS = 800000
+
+/*
   How much of a conversation's last entry its preview keeps, in characters of plain text, so the
   list of a member's conversations stays small however long their replies run
 */

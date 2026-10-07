@@ -113,6 +113,22 @@ export type ConversationPreview =
       noteKind: NonNullable<ConversationPreviewSource['noteKind']>
     }
 
+/*
+  What `ConversationMessage.citations` holds on a reply that cites the web: each cited span, by its
+  offsets in the message's `text`, with the sources web search gave for it, their address, title and
+  the words quoted from them. The backend writes it as it draws the reply, and the thread draws a
+  numbered link after each span and the sources under the reply
+*/
+export type ConversationCitation = {
+  start: number
+  end: number
+  sources: {
+    url: string
+    title: string | null
+    citedText: string
+  }[]
+}
+
 // What sending a message answers with: the run it started, or the one a send retried with the same
 // message's id started the first time
 export type SendConversationMessageData = {

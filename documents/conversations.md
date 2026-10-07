@@ -1235,7 +1235,11 @@ consent page from M17:
     `redirect_uri` its authorization carried: a code is refused unless both are the ones it was
     issued for, and a refresh unless the token was issued to that client. Every answer names the
     scopes granted, `scope`, which RFC 6749 asks for when they differ from those asked for, as a
-    member's reduced consent makes them, so a client never assumes a write it cannot make.
+    member's reduced consent makes them, so a client never assumes a write it cannot make. Every
+    answer carries `Cache-Control: no-store` and `Pragma: no-cache`, as RFC 6749 asks, so no browser
+    or proxy keeps a token. A token works only as what it is: the verifier takes an unexpired access
+    token alone, so a refresh token is never a bearer token, and the refresh grant a refresh token
+    alone.
   - A refresh rotates: the spent token is kept with `usedAt`, and the pair it was spent for is
     linked to it. Within 30 seconds of its rotation, the spent token is honoured once more, since a
     client whose answer was lost knows no other: it issues a new pair, and the pair issued before

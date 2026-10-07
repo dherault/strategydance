@@ -619,8 +619,9 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   fetched through `fetchOutbound`, and only when a signed-in member's consent page reads the
   request, which is also when such a client's redirect address is checked. Registering and
   authorizing are rate-limited per address, and registrations capped in all.
-- The token verifier M18 mounts: one read by the token's hash, with its connection, its membership
-  and the account's staff role, compared with the endpoint's resource.
+- The token verifier M18 mounts: one read by the token's hash, of an unexpired access token alone,
+  with its connection, its membership and the account's staff role, compared with the endpoint's
+  resource. The refresh grant likewise takes a refresh token alone.
 - The daily sweeper deletes expired authorization requests and tokens, and registrations over a day
   old that no connection uses.
 - `bun run check:oauth`, under the backend's `scripts/`, runs the flow against the local backend
@@ -656,10 +657,12 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   honoured in its grace window stopping exactly the pair its spent token issued, and leaving another
   connection's tokens, and the same connection's other pair, alone; approving refused for an account
   that is not staff and for an organization it is not in; removing the member deleting the
-  connection with its tokens; a revoked token refused; `response_type` missing, repeated or other
-  than `code` refused; `grant_type` missing, repeated or unknown refused, and a code exchange
-  carrying a refresh token's parameters reading none of them; a revocation naming another client
-  than the token's refused, the connection left as it was.
+  connection with its tokens; a revoked token refused; an access token presented to the refresh
+  grant refused, and a refresh token to the verifier; every token answer carrying `Cache-Control:
+  no-store` and `Pragma: no-cache`; `response_type` missing, repeated or other than `code` refused;
+  `grant_type` missing, repeated or unknown refused, and a code exchange carrying a refresh token's
+  parameters reading none of them; a revocation naming another client than the token's refused, the
+  connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 
@@ -705,11 +708,12 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   a new module needs; § Backend conventions, that `/mcp` answers JSON-RPC rather than `ApiResponse`
   and carries no App Check.
 - Tests: no token answered 401, its `WWW-Authenticate` naming the metadata; a token for another
-  resource, a revoked one and a removed member's refused; a read-only connection's `tools/list`
-  holding the reads alone, and its direct `tools/call` of `create_document` refused with nothing
-  written; a write retried with its key applied once; an `Origin` from elsewhere answered 403, and a
-  request with none served; a 2025-11-25 client's `initialize` and session header served
-  statelessly; a search past the allowance answered with a result saying so.
+  resource, a revoked one, a removed member's and a refresh token presented as a bearer token
+  refused; a read-only connection's `tools/list` holding the reads alone, and its direct
+  `tools/call` of `create_document` refused with nothing written; a write retried with its key
+  applied once; an `Origin` from elsewhere answered 403, and a request with none served; a
+  2025-11-25 client's `initialize` and session header served statelessly; a search past the
+  allowance answered with a result saying so.
 - Verify: locally, add `http://localhost:3003/mcp/knowledge` to Claude Code (`claude mcp add
   --transport http`), consent, and run every tool against a document open in a tab, then the MCP
   Inspector; in production, as staff, add the module to claude.ai as a custom connector (which

@@ -1175,9 +1175,9 @@ consent page from M17:
     it, as the backend's other limits do; GET and DELETE answer 405.
   - No App Check, which an external agent cannot carry: the token is the guard. The answers are
     MCP's JSON-RPC, not `ApiResponse`.
-    - A connection granted read only still lists every tool: every write tool registers the SDK's
-      `scopeChallenge` for `knowledge:write`, which keeps a challenged tool visible, so the model
-      knows the writes exist, and a call to one answers 403 with `WWW-Authenticate:
+  - A connection granted read only still lists every tool: every write tool registers the SDK's
+    `scopeChallenge` for `knowledge:write`, which keeps a challenged tool visible, so the model
+    knows the writes exist, and a call to one answers 403 with `WWW-Authenticate:
     Bearer error="insufficient_scope"`, the scope and the resource metadata, as the specification's
     step-up asks. The client can then ask again for read and write, and the member's new consent
     replaces the connection. The tool checks the scope itself too, a second guard that refuses

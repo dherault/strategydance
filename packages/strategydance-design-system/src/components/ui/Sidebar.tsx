@@ -418,7 +418,7 @@ function SidebarGroupAction({
       data-slot="sidebar-group-action"
       data-sidebar="group-action"
       className={cn(
-        'absolute top-1 right-1 flex aspect-square w-5 cursor-pointer items-center justify-center rounded-xs p-0 text-muted-foreground transition-colors group-data-[collapsible=icon]:hidden after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0',
+        'absolute top-1 right-1 flex aspect-square w-5 cursor-pointer items-center justify-center rounded-xs p-0 text-muted-foreground transition-transform group-data-[collapsible=icon]:hidden after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0',
         focusClassName,
         className,
       )}
@@ -464,10 +464,11 @@ function SidebarMenuItem({ className, ...props }: ComponentProps<'li'>) {
   The row. An open menu's trigger keeps the hover colour while its menu is up, and the active row
   holds primary-50 even under the pointer, which is why it is `data-[active=true]` rather than
   shadcn's `data-active`: that one wraps its selector in `:where()`, so any `:hover` outranks it.
-  Icons are muted, and primary on the active row
+  Icons are muted, and primary on the active row. Its colours change at once, as shadcn's do: faded,
+  the row the pointer just left stays lit while the next one lights, and reads as a flicker
 */
 const sidebarMenuButtonVariants = cva(
-  `peer/menu-button group/menu-button flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xs p-2 text-left text-sm text-sidebar-foreground no-underline transition-[width,height,padding,background-color,color] duration-150 ease-in-out ${focusClassName} group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground data-[active=true]:bg-primary-50 data-[active=true]:font-medium data-[active=true]:text-primary [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[active=true]:[&_svg]:text-primary [&>span:last-child]:truncate`,
+  `peer/menu-button group/menu-button flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xs p-2 text-left text-sm text-sidebar-foreground no-underline transition-[width,height,padding] ${focusClassName} group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground data-[active=true]:bg-primary-50 data-[active=true]:font-medium data-[active=true]:text-primary [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[active=true]:[&_svg]:text-primary [&>span:last-child]:truncate`,
   {
     variants: {
       variant: {
@@ -545,7 +546,7 @@ function SidebarMenuAction({
       data-slot="sidebar-menu-action"
       data-sidebar="menu-action"
       className={cn(
-        'absolute top-1.5 right-1 flex aspect-square w-5 cursor-pointer items-center justify-center rounded-xs p-0 text-muted-foreground transition-colors group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-3.5 peer-data-[size=sm]/menu-button:top-1 after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0',
+        'absolute top-1.5 right-1 flex aspect-square w-5 cursor-pointer items-center justify-center rounded-xs p-0 text-muted-foreground transition-transform group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-3.5 peer-data-[size=sm]/menu-button:top-1 after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0',
         focusClassName,
         showOnHover
           && 'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-[active=true]/menu-button:text-primary aria-expanded:opacity-100 md:opacity-0',

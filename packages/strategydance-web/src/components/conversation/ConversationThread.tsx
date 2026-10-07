@@ -12,6 +12,7 @@ import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
+import groupConversationReplies from '~utils/conversation/groupConversationReplies'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 
@@ -22,6 +23,7 @@ import ConversationMemberMessage from '~components/conversation/ConversationMemb
 import ConversationMessagePlaceholder from '~components/conversation/ConversationMessagePlaceholder'
 import ConversationNote from '~components/conversation/ConversationNote'
 import ConversationQuestion from '~components/conversation/ConversationQuestion'
+import ConversationSources from '~components/conversation/ConversationSources'
 import ConversationThinking from '~components/conversation/ConversationThinking'
 import ConversationToolCall from '~components/conversation/ConversationToolCall'
 import ConversationToolCallDialog from '~components/conversation/ConversationToolCallDialog'
@@ -90,6 +92,7 @@ function ConversationThread({ conversation, run }: Props) {
     if (bottom >= -OLDER_MARGIN_PX && top <= window.innerHeight) loadOlder()
   }, [olderStatus, hasOlder, entries, loadOlder])
 
+  const replies = groupConversationReplies(entries, bodies)
   const isWorking = isConversationRunGoing(run)
   const runningCall = entries.findLast(
     ({ kind, toolStatus }) =>
@@ -112,8 +115,22 @@ function ConversationThread({ conversation, run }: Props) {
     switch (entry.kind) {
       case ConversationMessageKind.MEMBER_TEXT:
         return body ? <ConversationMemberMessage text={body.text ?? ''} /> : <ConversationMessagePlaceholder isMember />
-      case ConversationMessageKind.AGENT_TEXT:
-        return body ? <ConversationAgentMessage text={body.text ?? ''} /> : <ConversationMessagePlaceholder />
+      case ConversationMessageKind.AGENT_TEXT: {
+        const piece = replies.get(entry.id)
+
+        if (!body) return <ConversationMessagePlaceholder />
+
+        return (
+          <>
+            <ConversationAgentMessage
+              text={body.text ?? ''}
+              markers={piece?.markers}
+              sources={piece?.sources}
+            />
+            {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
+          </>
+        )
+      }
       case ConversationMessageKind.TOOL_CALL:
         return (
           <ConversationToolCall
@@ -186,9 +203,11 @@ function ConversationThread({ conversation, run }: Props) {
             data-entry-id={entry.id}
             className={cn(
               'flex min-w-0 flex-col',
-              // Consecutive calls sit closer together, as one stretch of work
-              entry.kind === ConversationMessageKind.TOOL_CALL
-                && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL
+              // Consecutive calls sit closer together, as one stretch of work, and a reply's pieces as
+              // the paragraphs of one reply
+              ((entry.kind === ConversationMessageKind.TOOL_CALL
+                && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL)
+                || replies.get(entry.id)?.isContinuation)
                 && '-mt-2',
             )}
           >

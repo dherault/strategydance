@@ -1265,6 +1265,10 @@
         "hash": "07ff79083e4440c8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.citationLabel": {
+        "hash": "ef0d16a89a730eca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.close": {
         "hash": "7db3ec69e40c2c0d",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1507,6 +1511,10 @@
       },
       "conversation.save": {
         "hash": "f70380a62bf55317",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.sources": {
+        "hash": "0a3ba6016aa74bb6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.thinking": {

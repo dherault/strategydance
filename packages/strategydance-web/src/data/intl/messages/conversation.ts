@@ -544,6 +544,17 @@ const conversationMessages = defineMessages({
     defaultMessage: 'You removed all aspects',
     description: 'Line in a conversation, when the reader took every aspect off it.',
   },
+  sources: {
+    id: 'conversation.sources',
+    defaultMessage: 'Sources',
+    description: 'Label over the list of web pages a reply from the AI cites, under the reply.',
+  },
+  citationLabel: {
+    id: 'conversation.citationLabel',
+    defaultMessage: 'Source {number}: {title}',
+    description:
+      'Accessible name and tooltip of the small number after a sentence of a reply that cites a web page. {number} is the source in the list under the reply, {title} the page.',
+  },
   thinking: {
     id: 'conversation.thinking',
     defaultMessage: 'Thinking',

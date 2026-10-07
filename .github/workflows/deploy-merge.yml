@@ -33,7 +33,10 @@
 #   `roles/iam.serviceAccountUser` on the Compute Engine default service account, which the build
 #   and both services run as. The worker asks for nothing more: `roles/run.admin` creates and
 #   updates it and turns its invoker check on, and it runs the image the backend's build already
-#   pushed. Who may invoke it, `conversation-tasks`, is granted by hand once, never by a deploy
+#   pushed, which deploying with `--image` needs read access to, as Artifact Registry Reader would
+#   give: `roles/run.sourceDeveloper` holds `artifactregistry.repositories.downloadArtifacts`,
+#   which the backend's own source deploy relies on too. Who may invoke the worker,
+#   `conversation-tasks`, is granted by hand once, never by a deploy
 # - For the rules, `roles/firebaserules.admin`, and `roles/firebasestorage.viewer` to find the
 #   default bucket. For the frontend, `roles/firebasehosting.admin`
 #

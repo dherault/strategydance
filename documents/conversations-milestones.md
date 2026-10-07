@@ -566,9 +566,10 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
 
 - The worker's module client: for each run, the Knowledge module's server for the run's member
   (`kind: 'agent'`, every scope, the run's `membershipCreatedAt`, the scope `conversation:<id>`), an
-  SDK `Client` pinned to the 2026-07-28 revision and connected to the module's handler through
-  `handler.fetch`, the caller as `authInfo`, and its tools converted and appended after the built-in
-  ones. Reads run four at a time, writes alone, each keyed with its `tool_use` id.
+  SDK `Client` pinned to the 2026-07-28 revision and connected to the module's handler through a
+  transport whose `fetch` is `(url, init) => handler.fetch(new Request(url, init), { authInfo })`,
+  the caller as `authInfo`, and its tools converted and appended after the built-in ones. Reads run
+  four at a time, writes alone, each keyed with its `tool_use` id.
 - Recovery as A run § Recovery and side effects says: a worker taking over, and Resume, call a
   module write again with its key; finalizing an interrupted run, and a send answering it, read
   each started write's key first, recording a stored result as `SUCCEEDED` and answering the rest
@@ -692,10 +693,12 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - `routes/modules.ts`, mounted at `/mcp` on the public backend only: `POST /mcp/knowledge` through
   the module's handler from M14, mounted with `toNodeHandler`, behind `requireBearerAuth` with M16's
   verifier and the endpoint's address as `expectedResource`; the `Origin` check; a 1 MiB body;
-  `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE; and
-  `/.well-known/oauth-protected-resource/mcp/knowledge` through `mcpAuthMetadataRouter`. The caller
-  comes from the token (`kind: 'external'`, the connection's scopes, the scope `connection:<id>`),
-  so a read-only connection lists the reads alone; `lastUsedAt` is written at most once a minute; an
+  `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE.
+  `/.well-known/oauth-protected-resource/mcp/knowledge` is served through `mcpAuthMetadataRouter`
+  mounted at the app's root, beside the authorization server's metadata, never under `/mcp`, where
+  it would answer at `/mcp/.well-known/…` rather than the address the 401 names. The caller comes
+  from the token (`kind: 'external'`, the connection's scopes, the scope `connection:<id>`), so a
+  read-only connection lists the reads alone; `lastUsedAt` is written at most once a minute; an
   external `search_documents` draws on the member's `ConversationSearch` allowance.
 - The Knowledge page's "Use with your agents" button and dialog, staff only.
 - `CLAUDE.md`: the Modules section gains the endpoint, how an external agent is authorized, and what

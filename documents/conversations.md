@@ -1120,18 +1120,20 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
 
 - **In process, through the module's own handler.** The worker builds the Knowledge module's
   handler, the one the public endpoint mounts, and connects the SDK's `Client` to it through a
-  `StreamableHTTPClientTransport` whose `fetch` is the handler's own, `handler.fetch(request, {
-  authInfo })`, the run's member as the caller, with every scope. The client pins the protocol
-  revision, `versionNegotiation: { mode: { pin: '2026-07-28' } }`, since both ends are Strategy
-  Dance's: without it the SDK's `Client` performs the 2025 `initialize` handshake, and with `auto`
-  an SDK release that speaks a newer revision would change what runs unannounced. The transport
-  never dials its address, so there is no network, no socket and no token, and the server, tools and
-  checks are the ones an external agent gets. That is what the SDK recommends for a client and a
-  server in one process in production: its in-memory transport is meant for tests, and speaks only
-  the 2025 revisions. Development uses it against the emulators like the rest. Not the Claude API's
-  MCP connector, which would have Anthropic's servers call the module: the module would have to be
-  reachable from the internet for every run, development could not use it, and its calls would leave
-  the worker, beyond its fencing, its recovery and its thread.
+  `StreamableHTTPClientTransport` whose `fetch` hands each request to the handler's own, `(url,
+  init) => handler.fetch(new Request(url, init), { authInfo })`, since the transport calls its
+  `fetch` with an address and options rather than a `Request`, the run's member as the caller, with
+  every scope. The client pins the protocol revision, `versionNegotiation: { mode: { pin:
+  '2026-07-28' } }`, since both ends are Strategy Dance's: without it the SDK's `Client` performs
+  the 2025 `initialize` handshake, and with `auto` an SDK release that speaks a newer revision would
+  change what runs unannounced. The transport never dials its address, so there is no network, no
+  socket and no token, and the server, tools and checks are the ones an external agent gets. That is
+  what the SDK recommends for a client and a server in one process in production: its in-memory
+  transport is meant for tests, and speaks only the 2025 revisions. Development uses it against the
+  emulators like the rest. Not the Claude API's MCP connector, which would have Anthropic's servers
+  call the module: the module would have to be reachable from the internet for every run,
+  development could not use it, and its calls would leave the worker, beyond its fencing, its
+  recovery and its thread.
 - **The tools list** is `tools/list`, converted into Claude tools in `MODULES`' order after the
   built-in ones: name, description, `input_schema`, `strict: true` and `eager_input_streaming:
   true`, as the agent's own tools are (see The agent). Strict tools refuse `minLength`, `maxLength`,

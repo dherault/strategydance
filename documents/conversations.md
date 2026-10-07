@@ -1020,7 +1020,9 @@ Strategy Dance's, which any agent a member connected may call as that member.
   release from the last week cannot be installed yet.
 - **The frame.** `MODULES` in strategydance-core lists each module's name (`knowledge`), path
   (`/mcp/knowledge`), title and scopes (`knowledge:read`, `knowledge:write`), which the consent page
-  reads too. The backend's `src/modules/` maps each name to `createServer(caller)`, which builds an
+  reads too. The title is the server's own, in English, for what MCP clients show; the app words a
+  module and its access from the `module` catalogue by the module's name, as every string it shows
+  is worded. The backend's `src/modules/` maps each name to `createServer(caller)`, which builds an
   `McpServer` with the module's tools, and wraps it in the SDK's `createMcpHandler`, which builds a
   fresh server for each request from the caller its `authInfo` carries: the public endpoint and
   Strategy Dance's agent both go through that one handler. What a tool does lives in `domain/`,
@@ -1225,9 +1227,11 @@ consent page from M17:
   or deleting the organization deletes it with its tokens, and a member invited back connects
   again. The verifier still checks the membership and the staff gate on every request.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
-  by connecting, disconnecting, `RemoveOrganizationMember` and `DeleteOrganization`, never by
-  `lastUsedAt`: each with its client, organization, module and access, when it connected and when
-  it was last used, and Disconnect, which deletes it with its tokens.
+  by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
+  `DeleteOrganization` for every reader, since it names only the administrator deleting and every
+  member's connections go with it; never by `lastUsedAt`: each with its client, organization, module
+  and access, when it connected and when it was last used, and Disconnect, which deletes it with its
+  tokens.
 - **Use with your agents**, a button on the Knowledge page, opens a dialog with the module's
   address, a copy button, and how to add it to claude.ai (Settings, Connectors, Add custom
   connector), ChatGPT, Claude Code (`claude mcp add --transport http strategydance-knowledge

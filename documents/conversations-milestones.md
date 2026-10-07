@@ -649,12 +649,14 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - `/oauth/consent`, as Modules describes it: under `_authenticated` and outside `_app`'s frame, so a
   signed-out member signs in and comes back through the page `AuthenticationBouncer` keeps; read
   through `GET /oauth/requests/:requestId`; the client, the module, an organization chosen among the
-  member's, the access, Allow and Deny; an expired or unknown request's state; an account that is
-  not staff told the page is not available yet. `firebase.json` sends `frame-ancestors 'none'`
-  for `/oauth/**`.
-- The account page's Connected agents tab, staff only: `GetAgentConnections`, live, the caller's
-  own connections, refreshed by approving, disconnecting, `RemoveOrganizationMember` and
-  `DeleteOrganization` on `mutation.variables.userId == request.auth.uid`, never by the
+  member's, the access, Allow and Deny, the module and its access worded from the `module` catalogue
+  by the module's name; an expired or unknown request's state; an account that is not staff told the
+  page is not available yet. `firebase.json` sends `frame-ancestors 'none'` for `/oauth/**`.
+- The account page's Connected agents tab, staff only: `GetAgentConnections`, live, the caller's own
+  connections, refreshed by approving, disconnecting and `RemoveOrganizationMember` on
+  `mutation.variables.userId == request.auth.uid`, which for a removal is the member removed, and by
+  `DeleteOrganization` with no condition, since its `$userId` is the administrator deleting it and
+  every member's connections go with it, a rare enough event to refresh everybody; never by the
   `lastUsedAt` write, each with its client, organization, module, access, and when it connected and
   was last used; and Disconnect, `DeleteAgentConnection`, which deletes it with its tokens.
 - Verify: `check:oauth`'s flow with the page approving in a browser instead of the script, at

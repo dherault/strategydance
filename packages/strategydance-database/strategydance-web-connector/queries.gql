@@ -1416,6 +1416,18 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RenewQueuedConversationRunLease"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ExpireQueuedConversationRunLease"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }

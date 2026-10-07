@@ -14,16 +14,18 @@
     "check:conversation-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationRuns.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
     "send:conversation": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/sendConversationMessage.ts",
-    "deploy": "gcloud run deploy strategydance-backend --source ../.. --project strategydance --region us-central1 --no-invoker-iam-check"
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
     "@google-cloud/secret-manager": "^7.1.0",
+    "@google-cloud/tasks": "^7.2.1",
     "cors": "^2.8.6",
     "entities": "^4.5.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "firebase-admin": "^14.4.0",
+    "google-gax": "^6.4.0",
     "ipaddr.js": "^2.2.0",
     "resend": "^6.28.1",
     "strategydance-core": "workspace:*",

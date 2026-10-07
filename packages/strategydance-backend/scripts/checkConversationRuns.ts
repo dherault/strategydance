@@ -5,17 +5,22 @@ import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   ConversationNoteKind,
   ConversationRunStatus,
+  claimDeletedConversations,
   claimQueuedConversationRun,
   connectorConfig,
+  deleteClaimedConversations,
   drawConversationAgentText,
+  expireQueuedConversationRunLease,
   finishConversationRun,
   finishConversationRunWithNote,
+  getClaimedConversations,
   getConversationRunContext,
   getConversationSendContext,
   interruptConversationRun,
   interruptDeadConversationRun,
   reclaimConversationRun,
   renewConversationRunLease,
+  renewQueuedConversationRunLease,
   sendConversationMessage,
   startConversation,
   storeConversationTurn,
@@ -35,6 +40,9 @@ import { dataConnect } from '~firebase'
   finalizes runs through the backend connector's own operations, as the backend calls them, and
   removes everything it made, then exits non-zero naming each check that failed. The domain's tests
   run against a fake of these operations: this is what says the fake's conditions are the SQL's.
+
+  The daily sweep's operations take no organization: they reach every conversation in the emulator
+  deleted over a day ago, whoever's it is, which the next start of its author would prune anyway.
 
   Like `checkConversationPage.ts`, it refuses to run unless it points at the emulator
 */
@@ -67,6 +75,8 @@ const userIds = {
   racer: `check-conversation-runs-${checkId}-racer`,
   hoarder: `check-conversation-runs-${checkId}-hoarder`,
   pruner: `check-conversation-runs-${checkId}-pruner`,
+  queuer: `check-conversation-runs-${checkId}-queuer`,
+  sweeper: `check-conversation-runs-${checkId}-sweeper`,
 }
 
 const failures: string[] = []
@@ -606,6 +616,87 @@ async function checkDeadRuns() {
   )
 }
 
+/*
+  A queued run's lease, which the backend pushes back once it has seen the run's task still in the
+  queue, and brings in to now when the task could not be queued, so the page reconciles it at once
+*/
+async function checkQueuedLeases() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.queuer)
+  const started = await start(userIds.queuer, membershipCreatedAt)
+  const reference = {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    runId: started.runId,
+  }
+  const readLease = async () => Date.parse((await readRun(started.runId))?.leaseExpiresAt ?? '')
+  const queuedLease = await readLease()
+
+  const { data: strangers } = await expireQueuedConversationRunLease(dataConnect, {
+    ...reference,
+    userId: userIds.member,
+  })
+  const { data: elsewhere } = await expireQueuedConversationRunLease(dataConnect, {
+    ...reference,
+    conversationId: createId(),
+  })
+
+  check(
+    'a queued run’s lease is not brought in for another member, nor in another conversation',
+    strangers.conversationRun_updateMany === 0
+      && elsewhere.conversationRun_updateMany === 0
+      && (await readLease()) === queuedLease,
+  )
+
+  const { data: context } = await getConversationRunContext(dataConnect, reference)
+  const createdAt = Date.parse(context.conversationRuns[0]?.createdAt ?? '')
+
+  check(
+    'a run’s context says when it was queued, which says whether its lost task is queued again',
+    createdAt <= Date.now() && createdAt > Date.now() - 60 * 1000,
+  )
+
+  await expireLease(started.runId)
+
+  const { data: strangerRenewal } = await renewQueuedConversationRunLease(dataConnect, {
+    ...reference,
+    userId: userIds.member,
+  })
+  const { data: renewed } = await renewQueuedConversationRunLease(dataConnect, reference)
+
+  check(
+    'a queued run’s lease past is pushed twenty minutes out again, for its author alone',
+    strangerRenewal.conversationRun_updateMany === 0
+      && renewed.conversationRun_updateMany === 1
+      && (await readLease()) > Date.now() + 19 * 60 * 1000,
+  )
+
+  const { data: expired } = await expireQueuedConversationRunLease(dataConnect, reference)
+
+  check(
+    'a queued run’s lease is brought in to now, and the run stays queued',
+    expired.conversationRun_updateMany === 1
+      && (await readLease()) <= Date.now()
+      && (await readRun(started.runId))?.status === ConversationRunStatus.QUEUED,
+  )
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+
+  const claimedLease = await readLease()
+  const { data: claimed } = await expireQueuedConversationRunLease(dataConnect, reference)
+
+  const { data: claimedRenewal } = await renewQueuedConversationRunLease(dataConnect, reference)
+
+  check(
+    'a claimed run’s lease is neither brought in nor pushed back as a queued one’s',
+    claimed.conversationRun_updateMany === 0
+      && claimedRenewal.conversationRun_updateMany === 0
+      && (await readLease()) === claimedLease,
+  )
+
+  await finishConversationRun(dataConnect, { ...fence(started, 1), status: ConversationRunStatus.COMPLETED })
+}
+
 async function checkSending(started: Started) {
   const send = (overrides: Variables = {}) =>
     sendConversationMessage(dataConnect, {
@@ -765,6 +856,107 @@ async function checkPruning() {
   )
 }
 
+// The daily sweep: a claim that a restore then refuses, and a delete of what is claimed alone, with
+// what cascades from it
+async function checkSweeping() {
+  const insertDeleted = async (days: number, hours: number) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertDeleted($id: UUID!, $userId: String!, $organizationId: UUID!, $days: Int!, $hours: Int!) {
+        conversation_insert(data: { id: $id, userId: $userId, organizationId: $organizationId, title: "Deleted", deletedAt_time: { now: true, sub: { days: $days, hours: $hours } } })
+      }`,
+      { id, userId: userIds.sweeper, organizationId, days, hours },
+    )
+
+    return id
+  }
+  const readSwept = async (id: string) => {
+    const data = await read<{
+      conversation: { deletedAt: string | null; pruneClaimedAt: string | null } | null
+      conversationRuns: { id: string }[]
+      conversationMessages: { id: string }[]
+      conversationTranscriptEntries: { id: string }[]
+    }>(
+      `query ReadSwept($id: UUID!) {
+        conversation(id: $id) { deletedAt pruneClaimedAt }
+        conversationRuns(where: { conversationId: { eq: $id } }) { id }
+        conversationMessages(where: { conversationId: { eq: $id } }) { id }
+        conversationTranscriptEntries(where: { conversationId: { eq: $id } }) { id }
+      }`,
+      { id },
+    )
+
+    return {
+      ...data,
+      rowCount:
+        data.conversationRuns.length + data.conversationMessages.length + data.conversationTranscriptEntries.length,
+    }
+  }
+  const restore = (id: string) =>
+    refusal(
+      webConnector.executeMutation(
+        'RestoreConversation',
+        { organizationId, userId: userIds.sweeper, id },
+        { impersonate: { authClaims: { sub: userIds.sweeper } } },
+      ),
+    )
+
+  const old = await insertDeleted(2, 0)
+  const recent = await insertDeleted(0, 1)
+  const restoredFirst = await insertDeleted(2, 0)
+
+  // What cascades from a conversation: a run, its message and its transcript entry
+  await write(
+    `mutation InsertRows($conversationId: UUID!, $runId: UUID!) {
+      conversationRun_insert(data: { id: $runId, conversationId: $conversationId, number: 0, trigger: MESSAGE, status: COMPLETED, membershipCreatedAt_expr: "request.time", anchorPosition: 0 })
+      conversationMessage_insert(data: { conversationId: $conversationId, runId: $runId, kind: MEMBER_TEXT, text: "Swept", position: 0 })
+      conversationTranscriptEntry_insert(data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: "[]" })
+    }`,
+    { conversationId: old, runId: createId() },
+  )
+
+  check('a restore before the sweep brings a conversation back', (await restore(restoredFirst)) === null)
+
+  const { data: claim } = await claimDeletedConversations(dataConnect)
+
+  check(
+    'the sweep claims what was deleted over a day ago, and leaves what can still be taken back',
+    claim.conversation_updateMany >= 1
+      && (await readSwept(old)).conversation?.pruneClaimedAt != null
+      && (await readSwept(recent)).conversation?.pruneClaimedAt === null
+      && (await readSwept(restoredFirst)).conversation?.pruneClaimedAt === null,
+  )
+  check(
+    'a conversation the sweep claimed cannot be restored',
+    (await restore(old)) !== null && (await readSwept(old)).conversation?.deletedAt != null,
+  )
+
+  // Twenty at most, in no order, so `old` is among them unless the emulator holds twenty others
+  const { data: claimed } = await getClaimedConversations(dataConnect)
+  const claimedIds = claimed.conversations.map(({ id }) => id)
+
+  check(
+    'the claimed conversations read are claimed ones alone, twenty at most',
+    claimedIds.length <= 20
+      && (claimedIds.length === 20 || claimedIds.includes(old))
+      && !claimedIds.includes(recent)
+      && !claimedIds.includes(restoredFirst),
+  )
+
+  const { data: deletion } = await deleteClaimedConversations(dataConnect, { ids: [old, recent, restoredFirst] })
+  const swept = await readSwept(old)
+
+  check(
+    'the sweep deletes a claimed conversation with its run, message and transcript, and nothing unclaimed',
+    deletion.conversation_deleteMany === 1
+      && swept.conversation === null
+      && swept.rowCount === 0
+      && (await readSwept(recent)).conversation !== null
+      && (await readSwept(restoredFirst)).conversation !== null,
+  )
+}
+
 try {
   await setUp()
 
@@ -774,10 +966,12 @@ try {
   await checkFinishing()
   await checkMembership()
   await checkDeadRuns()
+  await checkQueuedLeases()
   // The claiming checks leave the sender's conversation idle, its next position 2 and its next run 1
   await checkSending(started)
   await checkCaps()
   await checkPruning()
+  await checkSweeping()
 } finally {
   await tearDown()
 }

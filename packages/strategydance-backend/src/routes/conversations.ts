@@ -14,7 +14,7 @@ import {
 } from 'strategydance-core'
 import { z } from 'zod'
 
-import { ARE_CONVERSATION_RUNS_IN_PROCESS, UUID_PATTERN } from '~constants'
+import { UUID_PATTERN } from '~constants'
 
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
@@ -71,8 +71,10 @@ function createConversationsRouter() {
     The text is trimmed, and refused with a 400 when it holds nothing or more than 20000 characters.
     A conversation it would start past the thousand the caller keeps is refused with a 409.
 
-    Refused with a 503 in production before anything is written, until runs go through a queue
-    there. 20000 characters escaped as JSON can take six bytes each, which the body's limit allows
+    Answered with a 503 when the run is stored but could not be queued for the worker: the browser
+    sends the same message again, under the same id, which queues it again, and the conversation's
+    page asks for its run to be reconciled meanwhile, which does too. 20000 characters escaped as
+    JSON can take six bytes each, which the body's limit allows
   */
   router.post(
     '/:conversationId/messages',
@@ -83,12 +85,6 @@ function createConversationsRouter() {
     organizationMemberMiddleware,
     staffOnlyMiddleware,
     async (request: MessagesRequest, response: Response<ApiResponse<SendConversationMessageData>>) => {
-      if (!ARE_CONVERSATION_RUNS_IN_PROCESS) {
-        respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'Conversations cannot be answered here yet')
-
-        return
-      }
-
       const text = parseConversationMessageText(request.body.text)
 
       if (text.outcome === 'invalid') {
@@ -136,6 +132,10 @@ function createConversationsRouter() {
           )
 
           return
+        case 'unavailable':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The message is kept, but cannot be answered now')
+
+          return
         case 'sent':
           response.status(202).json({
             status: 'success',
@@ -162,7 +162,9 @@ function createConversationsRouter() {
   /*
     Asked by a conversation's page once the run it shows is past its lease, and every two minutes
     after: a run that died with its worker ends interrupted, with its note, which the page then
-    shows, and one whose lease holds is left as it is. Takes no body
+    shows, and one whose lease holds is left as it is. A queued run past its lease is first looked
+    up in Cloud Tasks' queue, where runs go through it: kept while its task is there, queued again
+    while it is young, and interrupted once its task is gone and it is older. Takes no body
   */
   router.post(
     '/:conversationId/runs/:runId/reconcile',

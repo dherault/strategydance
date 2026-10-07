@@ -42,8 +42,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   hooks, and the backend as `strategydance-database/backend`. See below
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
-  inviting people, which emails them, storing the pictures of documents' text, and reading what a
-  web page says of itself for a link preview. See below
+  inviting people, which emails them, storing the pictures of documents' text, reading what a
+  web page says of itself for a link preview, and sending conversations' messages. Its image runs
+  a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
+  and sweeps what was deleted once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
@@ -102,7 +104,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open, and sets it to merge itself once CI passes |
 | `bun run review <command>` | The GitHub calls of the Copilot review loop: `count`, `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [Copilot review loop](#copilot-review-loop) |
-| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`. Every push to `main` runs it too |
+| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`, then the same image as `strategydance-worker` (`scripts/deploy.sh` in the backend's package). Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
 **CI's definition of green** is the pull request check: `bun run lint && bun run typecheck &&
@@ -450,8 +452,13 @@ A conversation is kept twice, once for Claude and once for the page, and
   never filtering on `deletedAt`, or a conversation restored later stays busy for good. A run's
   lease is set from the database's clock (`leaseExpiresAt_time`), the clock the filters that find
   it dead read: twenty minutes while it is queued, then a minute, which every write of its worker
-  renews. A run past its lease is dead, and a route finalizes it as interrupted before it counts or
-  starts another, as the page's reconcile does
+  renews. A claimed run past its lease is dead, and a route finalizes it as interrupted before it
+  counts or starts another, as the page's reconcile does. A queued run's lease only says when to
+  ask Cloud Tasks whether it is still coming (`finalizeDeadConversationRun`): its task there, the
+  lease is pushed back; gone, the run is queued again while it is under twenty minutes old, and
+  finalized once older. A run whose task could not be queued has its lease brought in to now, so
+  its page reconciles it at once. Development has no queue, and a queued run past its lease is dead
+  there
 - Every write of a worker is fenced: its first step is the run's own update, matching the run
   `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
   recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,
@@ -566,12 +573,30 @@ in `utils/`, one concern per file.
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
   A route taking a file parses last instead, after `organizationAdministratorMiddleware` or
-  whatever says the caller may send it, so nobody else gets megabytes buffered
+  whatever says the caller may send it, so nobody else gets megabytes buffered. The worker's
+  internal routes run neither App Check nor the token's check: Cloud Run's invoker check guards
+  them, as the next bullets say
+- The same image runs as two services, built by `createApp` in `src/app.ts`. The backend,
+  `strategydance-backend`, mounts every route but the internal ones. The worker,
+  `strategydance-worker`, started with `SERVICE=worker` (`IS_WORKER`), mounts `routes/internal.ts`
+  at `/internal` and nothing else, so neither answers the other's routes. A route Cloud Tasks or
+  Cloud Scheduler calls goes in `routes/internal.ts`, never beside the backend's
+- The worker is private where the backend is public: its invoker check stays on, and only
+  `conversation-tasks@strategydance.iam.gserviceaccount.com`, the account Cloud Tasks and Cloud
+  Scheduler call it as with an OIDC token, holds `roles/run.invoker` on it, granted on the service
+  alone, never on the project. Cloud Run refuses any other caller before the code runs, so no
+  internal route verifies a token by hand. On the public backend it would have to, and a run of
+  up to fifteen minutes would share its instances and its timeout. The worker's timeout is fifteen
+  minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its address is Cloud
+  Run's deterministic one, `WORKER_URL`, which is also the token's audience
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
-  but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. In development
-  `dev:backend` points Auth, Data Connect and Storage at the emulators, and App Check is skipped,
-  as the emulators skip it
+  but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. For conversations'
+  runs it also needs `roles/cloudtasks.enqueuer` and `roles/cloudtasks.viewer` (a queued run's
+  task is looked up, which the enqueuer role cannot), and `roles/iam.serviceAccountUser` on
+  `conversation-tasks`, which a task carrying that account's token takes. Both services run as
+  it. In development `dev:backend` points Auth, Data Connect and Storage at the emulators, and
+  App Check is skipped, as the emulators skip it
 - The service is public, and `deploy` makes it so with `--no-invoker-iam-check`, never
   `--allow-unauthenticated`. The project sits in the strategydance.com organization, whose
   domain restricted sharing refuses the `allUsers` member that flag grants. Turning the invoker
@@ -582,7 +607,7 @@ in `utils/`, one concern per file.
   is also the account the service runs as, so it starts with no roles: grant it
   `roles/run.builder` before the first deploy, beside the Data Connect and Storage roles it needs
   to run and Secret Manager's accessor role on each secret it reads
-- A push to `main` deploys the backend with the rest of the release, by running
+- A push to `main` deploys the backend and the worker with the rest of the release, by running
   `bun run deploy:backend`, as [What a merge into `main` deploys](#what-a-merge-into-main-deploys)
   says. `.gcloudignore` leaves out `gha-creds-*.json`, the credentials file the job writes into
   the workspace, which the upload would otherwise carry into the image
@@ -610,10 +635,17 @@ in `utils/`, one concern per file.
 - Conversations' routes sit in `routes/conversations.ts`, mounted at
   `/organizations/:organizationId/conversations` with `mergeParams`, and each runs
   `organizationMemberMiddleware`, then `staffOnlyMiddleware` until conversations launch. A send
-  queues a run, and `enqueueRun` starts it in the backend's own process, as development always
-  does. Production answers a send 503 before writing anything (`ARE_CONVERSATION_RUNS_IN_PROCESS`)
-  until runs go through a queue, since Cloud Run throttles the CPU once a response is sent, which
-  would stall a run left going
+  queues a run, and `enqueueRun` sends it on its way: in development it starts in the backend's
+  own process, and in production (`ARE_CONVERSATION_RUNS_IN_PROCESS` off) a Cloud Tasks task named
+  after the run, `run-<runId>` on the `conversation-runs` queue, delivers it to the worker's
+  `/internal/conversation-runs`, whose request stays open for the whole run, since Cloud Run
+  throttles the CPU once a response is sent. Queueing it twice queues it once (`ALREADY_EXISTS`),
+  and a run that could not be queued stays queued while the send answers 503
+- The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
+  still deleted past its Undo window whether or not anybody comes back: today the conversations
+  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches. A
+  milestone that keeps something deleted for a while adds its prune there, idempotent like the
+  rest, so a sweep that failed is finished by the next
 - A worker's writes go through its run's lease (`createConversationRunLease`), one after the
   other, so they land in the order it made them and never beside a renewal of its own, and its
   steps are read afresh each time (`runConversation`), so taking over after a crash follows the
@@ -953,9 +985,9 @@ pushes to `main` directly: its ruleset accepts only a pull request.
 ### What a merge into `main` deploys
 
 Every push to `main` runs `.github/workflows/deploy-merge.yml`, which deploys the release in the
-order it needs: Data Connect, the backend, the Storage rules, then the frontend. Each step waits
-on the one before it, so a release that stops partway stops before anything that relies on what
-failed.
+order it needs: Data Connect, the backend and the worker, the Storage rules, then the frontend.
+Each step waits on the one before it, so a release that stops partway stops before anything that
+relies on what failed.
 
 It runs as `deployer@strategydance.iam.gserviceaccount.com`, which has no key, since the
 organization forbids creating one: GitHub's OIDC token is traded for it through Workload

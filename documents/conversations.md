@@ -1257,16 +1257,19 @@ consent page from M17:
     or proxy keeps a token. A token works only as what it is: the verifier takes an unexpired access
     token alone, so a refresh token is never a bearer token, and the refresh grant a refresh token
     alone.
-  - A refresh rotates: the spent token is kept with `usedAt`, and its successors are derived from
-    it, an HMAC of the spent token under a server secret (`oauth-token-secret`, read through
-    `retrieveSecret`). Presented again within 30 seconds of its rotation, as by a client whose
-    answer was lost or by two refreshes at once, it is answered with the very same pair, recomputed,
-    so whichever answer arrives last, the client holds tokens that work, and nothing but hashes is
-    ever stored. Presented after that, it revokes the connection, in a second mutation since a
-    failed check rolls back the first: whoever holds it is replaying a token somebody else already
-    used. `POST /oauth/revoke` follows RFC 7009: the request names its `client_id`, every client
-    being public, and a token issued to another client is refused rather than revoked, so no client
-    can end somebody else's connection.
+  - A refresh rotates: the spent token is kept with `usedAt`, and its successors are derived from it
+    under a server secret, `oauth-token-secret`: the access token an HMAC of `access:` and the spent
+    token, the refresh token an HMAC of `refresh:` and it, so the two always differ. The spent
+    token's row records the secret's version it used, `successorKeyVersion`, and a duplicate derives
+    again with that very version, read from Secret Manager by its number and kept per version, so
+    instances a rotation left on different versions still answer one pair. Presented again within 30
+    seconds of its rotation, as by a client whose answer was lost or by two refreshes at once, it is
+    answered with the very same pair, recomputed, so whichever answer arrives last, the client holds
+    tokens that work, and nothing but hashes is ever stored. Presented after that, it revokes the
+    connection, in a second mutation since a failed check rolls back the first: whoever holds it is
+    replaying a token somebody else already used. `POST /oauth/revoke` follows RFC 7009: the request
+    names its `client_id`, every client being public, and a token issued to another client is
+    refused rather than revoked, so no client can end somebody else's connection.
   - The protocol's own endpoints, the metadata, registration, authorization, token and revocation,
     answer any origin, without credentials, since no cookie is involved, and in OAuth's own JSON
     (RFC 6749) rather than `ApiResponse`, with no App Check, which no client can carry. The consent
@@ -1279,13 +1282,14 @@ consent page from M17:
   Allow its connection and its code's hash and expiry), `AgentConnection` (the membership, the
   client's id and name, the module, the scopes granted, `createdAt`, `lastUsedAt`) and
   `AgentConnectionToken` (its connection, its kind, its hash, its resource, `issuedFrom`,
-  `expiresAt`, `usedAt`). `issuedFrom` names what a token was issued from, the authorization request
-  whose code was exchanged or the refresh token rotated, so a code presented again revokes exactly
-  what it issued, and a replayed refresh token is traced to its connection. `AgentConnection`
-  references the member's `UserOrganization` row, unlike every other table, which references the
-  account and the organization apart: a connection belongs to the membership, so removing the member
-  or deleting the organization deletes it with its tokens, and a member invited back connects again.
-  The verifier still checks the membership and the staff gate on every request.
+  `expiresAt`, `usedAt`, `successorKeyVersion`). `issuedFrom` names what a token was issued from,
+  the authorization request whose code was exchanged or the refresh token rotated, so a code
+  presented again revokes exactly what it issued, and a replayed refresh token is traced to its
+  connection. `AgentConnection` references the member's `UserOrganization` row, unlike every other
+  table, which references the account and the organization apart: a connection belongs to the
+  membership, so removing the member or deleting the organization deletes it with its tokens, and a
+  member invited back connects again. The verifier still checks the membership and the staff gate on
+  every request.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
   by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
   `DeleteOrganization` for every reader, since it names only the administrator deleting and every
@@ -1487,8 +1491,9 @@ account, and until both exist every send in production answers 503.
 10. For M16: the secret refresh tokens' successors are derived under, 32 random bytes typed into
     Secret Manager as `oauth-token-secret` (`openssl rand -base64 32 | gcloud secrets create
     oauth-token-secret --data-file=- --project strategydance`), with Secret Manager's accessor role
-    on it for the runtime service account. Development uses a fixed local value. Rotating it only
-    changes what a duplicate refresh in flight is answered with.
+    on it for the runtime service account. Development uses a fixed local value. Rotating it adds a
+    version: keep the previous one enabled for a day at least, since a duplicate refresh derives
+    with the version its first use recorded.
 
 ### Cost
 

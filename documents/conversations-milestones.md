@@ -622,7 +622,9 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   authorizing are rate-limited per address, and registrations capped in all.
 - The token verifier M18 mounts: one read by the token's hash, of an unexpired access token alone,
   with its connection, its membership and the account's staff role, compared with the endpoint's
-  resource. The refresh grant likewise takes a refresh token alone.
+  resource. The refresh grant likewise takes a refresh token alone, and derives its successors under
+  `oauth-token-secret` (setup step 10), read by version: `retrieveSecret` gains a version argument,
+  kept per version, beside its latest.
 - The daily sweeper deletes expired authorization requests and tokens, and registrations over a day
   old that no connection uses.
 - `bun run check:oauth`, under the backend's `scripts/`, runs the flow against the local backend
@@ -653,18 +655,19 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   and a code past its minute refused; a token for one module refused for another; a refresh
   rotating; the spent token presented again within 30 seconds answered with the very pair its first
   use issued, however many times and in whichever order the answers return, and presented after 30
-  seconds revoking the connection; consenting again replacing the earlier connection and its tokens,
-  and two approvals at once for one client, organization and module leaving one connection; Allow
-  sent twice making one connection and one code, an Allow racing a Deny deciding the request once,
-  and a denied request refused by a later Allow; a code presented again revoking the tokens it
-  issued and leaving another connection's alone; approving refused for an account that is not staff
-  and for an organization it is not in; removing the member deleting the connection with its tokens;
-  a revoked token refused; an access token presented to the refresh grant refused, and a refresh
-  token to the verifier; every token answer carrying `Cache-Control: no-store` and `Pragma:
-  no-cache`; `response_type` missing, repeated or other than `code` refused; `grant_type` missing,
-  repeated or unknown refused, and a code exchange carrying a refresh token's parameters reading
-  none of them; a revocation naming another client than the token's refused, the connection left as
-  it was.
+  seconds revoking the connection; the two successors of one spent token differing; a duplicate
+  across a rotation of the secret, served by an instance holding the newer version, answered with
+  the first use's pair; consenting again replacing the earlier connection and its tokens, and two
+  approvals at once for one client, organization and module leaving one connection; Allow sent twice
+  making one connection and one code, an Allow racing a Deny deciding the request once, and a denied
+  request refused by a later Allow; a code presented again revoking the tokens it issued and leaving
+  another connection's alone; approving refused for an account that is not staff and for an
+  organization it is not in; removing the member deleting the connection with its tokens; a revoked
+  token refused; an access token presented to the refresh grant refused, and a refresh token to the
+  verifier; every token answer carrying `Cache-Control: no-store` and `Pragma: no-cache`;
+  `response_type` missing, repeated or other than `code` refused; `grant_type` missing, repeated or
+  unknown refused, and a code exchange carrying a refresh token's parameters reading none of them; a
+  revocation naming another client than the token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

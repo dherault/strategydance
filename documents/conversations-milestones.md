@@ -620,9 +620,11 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   and the emulators: it registers a loopback client, authorizes, approves as an account signed in
   to the Auth emulator, exchanges the code, refreshes, presents the spent refresh token again, and
   revokes.
-- `CLAUDE.md` § Backend conventions: the OAuth routes answer in OAuth's own JSON rather than
-  `ApiResponse`, carry no App Check, answer any origin without credentials, and find tokens by their
-  hash.
+- `CLAUDE.md` § Backend conventions: the protocol's own OAuth endpoints, the metadata, `register`,
+  `authorize`, `token` and `revoke`, answer in OAuth's own JSON rather than `ApiResponse`, carry no
+  App Check, answer any origin without credentials, and find tokens by their hash; the consent
+  page's `requests` routes keep the app's middleware, its ID token and App Check, as every route the
+  app calls does.
 - Tests (database mocked, `fetchOutbound` faked): the metadata exactly as Modules lists it, every
   field RFC 8414 requires included; a client ID metadata document fetched and kept, and refused when
   its `client_id` differs from its address, when its body was cut, or when it redirects; a

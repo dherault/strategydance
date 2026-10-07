@@ -1223,10 +1223,12 @@ consent page from M17:
     Presented after that, or a third time, it revokes the connection, in a second mutation since a
     failed check rolls back the first: whoever holds it is replaying a token somebody else already
     used. `POST /oauth/revoke` follows RFC 7009.
-  - These endpoints answer any origin, without credentials, since no cookie is involved, and in
-    OAuth's own JSON (RFC 6749) rather than `ApiResponse`. Their operations find a token by its hash
-    before any `$userId` has been verified, an exception `CLAUDE.md` records beside the sign-in
-    screen's public lookup.
+  - The protocol's own endpoints, the metadata, registration, authorization, token and revocation,
+    answer any origin, without credentials, since no cookie is involved, and in OAuth's own JSON
+    (RFC 6749) rather than `ApiResponse`, with no App Check, which no client can carry. The consent
+    page's routes are the app's like any other, behind the member's ID token and App Check. Their
+    operations find a token by its hash before any `$userId` has been verified, an exception
+    `CLAUDE.md` records beside the sign-in screen's public lookup.
 - **The data**: `OAuthClient` (a registered client's name and redirect addresses, `createdAt`,
   `lastUsedAt`), `OAuthAuthorizationRequest`, `AgentConnection` (the membership, the client's id
   and name, the module, the scopes, `createdAt`, `lastUsedAt`) and `AgentConnectionToken` (its

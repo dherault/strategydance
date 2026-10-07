@@ -1109,7 +1109,9 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   module never learns what a scope means. Retry's new turn has new ids, so its calls write anew,
   and what the cut part wrote stays written, as for every tool.
 - **An external agent's** rows expire after a day, and the daily sweeper deletes them. Few clients
-  send a key yet; without one, a write is at most once, as any MCP call is.
+  send a key yet, and a write sent without one is not safe to retry: MCP promises nothing about a
+  call whose answer was lost, so a client that sends it again can apply it twice, `append` above
+  all. The server instructions say so, and ask clients to send a key.
 
 **Strategy Dance's agent** reaches the module from M15:
 

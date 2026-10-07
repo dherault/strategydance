@@ -532,30 +532,30 @@ it yet, and Claude Code reaches it locally over stdio.
   one key applied once, `append` included, the second answered with the first's result; one key with
   other arguments refused, and one key sent to `delete_document` then to `restore_document` with the
   same `{ id }` refused; two calls at once with one key making one write; a fold that loses a
-  revision race checking its key again before it reapplies; a create in a full organization refused;
-  a 200000-character document read in pages that join back whole, and one made of a single
-  200000-character paragraph too; a page asked for after somebody typed elsewhere carrying on from
-  its block, one after an edit inside the block it stopped in starting that block again, and one
-  whose block was deleted starting the document again; a fold refused on a moved revision read again
-  and reapplied, and a push landing during a fold left pending; a block range replaced between two
-  ids without touching the rest, and refused once one of them is gone; an append and a replacement
-  that would take the document past 200000 characters of content refused, its text and its pending
-  updates left as they were, and the same on a retry after somebody else's fold; a unique piece of
-  text replaced inside that paragraph, and a text that occurs twice refused; search reading the
-  index and loading the plain text of 20 candidates at most; a fold through the old operations
-  nulling `contentText`, and the next search reindexing it; a Chinese and a Japanese search finding
-  a word inside a document's sentence, reading the content of the 100 latest documents at most;
-  Markdown in, the document draws as written; an `update_document` naming `content` and `append`
-  together, or nothing to change, refused before anything is read; the list paged in fifties, two
-  documents updated at one instant on either side of a page's end neither skipped nor repeated;
-  aspects replaced, and a repeated one refused; a delete refused when AI may read but not change,
-  and when it may change but not read; a restore at the cap refused, and one past a day refused; an
-  external caller's results carrying addresses, by its id for an organization without a slug, and
-  the agent's none; a caller without the write scope refused by every write tool, nothing written;
-  an argument past its schema's bound, a 101-character query say, answered as an `isError` result
-  the model can read, as the SDK turns a failed input validation into one; a removed member's call
-  refused, and so is one carrying the `membershipCreatedAt` of a membership since ended, after the
-  member was invited back.
+  revision race checking its key again before it reapplies; a create in a full organization refused,
+  and a created document readable and writable by AI; a 200000-character document read in pages that
+  join back whole, and one made of a single 200000-character paragraph too; a page asked for after
+  somebody typed elsewhere carrying on from its block, one after an edit inside the block it stopped
+  in starting that block again, and one whose block was deleted starting the document again; a fold
+  refused on a moved revision read again and reapplied, and a push landing during a fold left
+  pending; a block range replaced between two ids without touching the rest, and refused once one of
+  them is gone; an append and a replacement that would take the document past 200000 characters of
+  content refused, its text and its pending updates left as they were, and the same on a retry after
+  somebody else's fold; a unique piece of text replaced inside that paragraph, and a text that
+  occurs twice refused; search reading the index and loading the plain text of 20 candidates at
+  most; a fold through the old operations nulling `contentText`, and the next search reindexing it;
+  a Chinese and a Japanese search finding a word inside a document's sentence, reading the content
+  of the 100 latest documents at most; Markdown in, the document draws as written; an
+  `update_document` naming `content` and `append` together, or nothing to change, refused before
+  anything is read; the list paged in fifties, two documents updated at one instant on either side
+  of a page's end neither skipped nor repeated; aspects replaced, and a repeated one refused; a
+  delete refused when AI may read but not change, and when it may change but not read; a restore at
+  the cap refused, and one past a day refused; an external caller's results carrying addresses, by
+  its id for an organization without a slug, and the agent's none; a caller without the write scope
+  refused by every write tool, nothing written; an argument past its schema's bound, a 101-character
+  query say, answered as an `isError` result the model can read, as the SDK turns a failed input
+  validation into one; a removed member's call refused, and so is one carrying the
+  `membershipCreatedAt` of a membership since ended, after the member was invited back.
 - Verify: with `bun run mcp:knowledge` added to Claude Code locally, search, list and read; with a
   document open in a tab, have Claude Code write into it and watch the edit arrive while you type
   elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write

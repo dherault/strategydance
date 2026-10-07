@@ -12,8 +12,8 @@ import { cn } from 'strategydance-design-system/lib/utils'
   margin is only positive once the column is already capped at 1024px, so `w-full` and the margin
   never add up past the parent.
 
-  `--sidebar-width` is set by `SidebarProvider`. Outside it, as on the invitation page, the
-  declaration is invalid at computed-value time and the margin falls back to 0
+  `--sidebar-width` is set by `SidebarProvider`. Outside it, the declaration is invalid at
+  computed-value time and the margin falls back to 0
 */
 function ContainerLayout({ className, ...props }: ComponentProps<'div'>) {
   return (

@@ -7,7 +7,6 @@ import OrganizationInvitationCard from '~components/invitation/OrganizationInvit
 import OrganizationInvitationFailed from '~components/invitation/OrganizationInvitationFailed'
 import OrganizationInvitationMissing from '~components/invitation/OrganizationInvitationMissing'
 import OrganizationInvitationUnverified from '~components/invitation/OrganizationInvitationUnverified'
-import ContainerLayout from '~components/layout/ContainerLayout'
 
 import invitationMessages from '~data/intl/messages/invitation'
 
@@ -23,7 +22,7 @@ function OrganizationInvitation({ invitationId }: Props) {
   const { data: invitation, loading, refetch, hasFailed } = useOrganizationInvitation(invitationId)
 
   return (
-    <ContainerLayout className="max-w-2xl gap-6 py-0">
+    <div className="flex w-full max-w-2xl flex-col gap-6 px-2">
       <p className="m-0 text-xs font-medium tracking-wider text-muted-foreground uppercase">
         {formatMessage(invitationMessages.eyebrow)}
       </p>
@@ -42,7 +41,7 @@ function OrganizationInvitation({ invitationId }: Props) {
       ) : (
         <OrganizationInvitationMissing />
       )}
-    </ContainerLayout>
+    </div>
   )
 }
 

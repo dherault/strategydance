@@ -35,7 +35,7 @@
   "conversation.elapsedSeconds": "{seconds}s",
   "conversation.emptyText": "Pregúntale a Strategy Dance sobre una decisión, un plan o qué hacer a continuación.",
   "conversation.emptyTitle": "Aún no hay conversaciones",
-  "conversation.lead": "Conversaciones con Strategy Dance. Prepárate para ponerte a prueba. Solo tú puedes ver tus conversaciones.",
+  "conversation.lead": "Conversaciones con Strategy Dance. Prepárate para ponerte a prueba.",
   "conversation.loadError": "No se pudieron cargar tus conversaciones. Comprueba tu conexión e inténtalo de nuevo.",
   "conversation.messageLoading": "Cargando este mensaje",
   "conversation.missingText": "Se eliminó o el enlace está desactualizado.",

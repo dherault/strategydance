@@ -35,7 +35,7 @@
   "conversation.elapsedSeconds": "{seconds}s",
   "conversation.emptyText": "Frage Strategy Dance nach einer Entscheidung, einem Plan oder dem nächsten Schritt.",
   "conversation.emptyTitle": "Noch keine Unterhaltungen",
-  "conversation.lead": "Chats mit Strategy Dance. Mach dich bereit, herausgefordert zu werden. Nur du kannst deine Unterhaltungen sehen.",
+  "conversation.lead": "Chats mit Strategy Dance. Mach dich bereit, herausgefordert zu werden.",
   "conversation.loadError": "Deine Unterhaltungen konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
   "conversation.messageLoading": "Nachricht wird geladen",
   "conversation.missingText": "Sie wurde gelöscht oder der Link ist veraltet.",

@@ -10,6 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from 'strategydance-design-system/components/ui/Table'
+import remarkCitationMarkers, {
+  CITATION_MARKER_ELEMENT,
+  type MarkdownCitationMarker,
+} from 'strategydance-design-system/lib/remarkCitationMarkers'
 import { RICH_TEXT_CLASSES } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -27,6 +31,10 @@ type Props = {
   size?: 'sm' | 'md'
   /** Draws a link to a knowledge document, `doc:<id>`. Without it, such a link is its words */
   renderLink?: (link: MarkdownLink) => ReactNode
+  /** Where a cited span ends in `value`, by its offset, and the key `renderCitation` draws it by */
+  citations?: MarkdownCitationMarker[]
+  /** Draws a citation's marker after its span, a small numbered link say. Without it, nothing is */
+  renderCitation?: (key: string) => ReactNode
   className?: string
 }
 
@@ -35,10 +43,19 @@ const sizeClassNames = {
   md: 'text-base/[1.6]',
 }
 
-// `~` alone is how an estimate is written, "~5 minutes", so only `~~` strikes
-const remarkPlugins = [[remarkGfm, { singleTilde: false }], remarkBreaks] satisfies ComponentProps<
-  typeof ReactMarkdown
->['remarkPlugins']
+type RemarkPlugins = NonNullable<ComponentProps<typeof ReactMarkdown>['remarkPlugins']>
+
+/*
+  `~` alone is how an estimate is written, "~5 minutes", so only `~~` strikes. The citations'
+  markers are placed first, on the tree as parsed, whose nodes still carry their offsets
+*/
+function buildRemarkPlugins(citations: MarkdownCitationMarker[]): RemarkPlugins {
+  return [
+    [remarkGfm, { singleTilde: false }],
+    ...(citations.length ? ([[remarkCitationMarkers, citations]] as RemarkPlugins) : []),
+    remarkBreaks,
+  ]
+}
 
 // What is drawn as itself, or through `components` below. Anything else gives way to what it holds
 const allowedElements = [
@@ -65,6 +82,7 @@ const allowedElements = [
   'h6',
   'pre',
   'img',
+  CITATION_MARKER_ELEMENT,
 ]
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'doc:'])
@@ -82,20 +100,26 @@ const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'doc:'])
   What falls outside the subset keeps its words: a heading is a bold paragraph, so a reply never
   enters the page's outline, a code block a paragraph that keeps its lines, and a quote or inline
   code their text. A single newline breaks the line, as it does where the agent's text is typed
-  and read elsewhere, rather than running two lines into one
+  and read elsewhere, rather than running two lines into one.
+
+  A citation's marker goes right after the span it cites, drawn by `renderCitation`, and outside a
+  link, which it would break
 */
-function Markdown({ value, size = 'md', renderLink, className }: Props) {
-  const components: Components = {
+function Markdown({ value, size = 'md', renderLink, citations = [], renderCitation, className }: Props) {
+  const components = {
     ...staticComponents,
     a: ({ href, children }) => renderAnchor(href, children, renderLink),
-  }
+    // Its own element, which `Components` types by the HTML elements alone
+    [CITATION_MARKER_ELEMENT]: ({ node }: ExtraProps) =>
+      renderCitation?.(String(node?.properties.dataCitation ?? '')) ?? null,
+  } as Components
 
   return (
     <div
       className={cn(sizeClassNames[size], 'wrap-anywhere text-pretty text-foreground [&>:last-child]:mb-0', className)}
     >
       <ReactMarkdown
-        remarkPlugins={remarkPlugins}
+        remarkPlugins={buildRemarkPlugins(citations)}
         allowedElements={allowedElements}
         unwrapDisallowed
         urlTransform={transformUrl}
@@ -203,4 +227,4 @@ const staticComponents: Components = {
 }
 
 export { Markdown }
-export type { MarkdownLink }
+export type { MarkdownCitationMarker, MarkdownLink }

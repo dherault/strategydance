@@ -129,4 +129,57 @@ describe('Markdown', () => {
       ),
     ).toStartWith('<div class="text-sm/[1.6] ')
   })
+
+  describe('citations', () => {
+    function renderCited(value: string, citations: { offset: number; key: string }[], withRenderer = true) {
+      return renderToStaticMarkup(
+        <Markdown
+          value={value}
+          citations={citations}
+          renderCitation={withRenderer ? key => <sup>[{key}]</sup> : undefined}
+        />,
+      ).replaceAll(/ class="[^"]*"/g, '')
+    }
+
+    it('draws a marker right after the span it cites, inside the text', () => {
+      expect(renderCited('Notion charges 10 per member, Coda 12.', [{ offset: 28, key: '1' }])).toBe(
+        '<div><p>Notion charges 10 per member<sup>[1]</sup>, Coda 12.</p></div>',
+      )
+    })
+
+    it('draws several markers each at its own offset', () => {
+      expect(
+        renderCited('Notion charges 10, Coda 12.', [
+          { offset: 17, key: '1' },
+          { offset: 26, key: '2' },
+        ]),
+      ).toBe('<div><p>Notion charges 10<sup>[1]</sup>, Coda 12<sup>[2]</sup>.</p></div>')
+    })
+
+    it('draws a marker in bold text, and after a link rather than inside it', () => {
+      expect(renderCited('**Notion** is cheaper', [{ offset: 8, key: '1' }])).toBe(
+        '<div><p><strong>Notion<sup>[1]</sup></strong> is cheaper</p></div>',
+      )
+      expect(renderCited('[Notion](https://notion.so) pricing', [{ offset: 5, key: '1' }])).toContain(
+        'Notion</a><sup>[1]</sup> pricing',
+      )
+    })
+
+    it('draws a marker between two blocks at the end of the first', () => {
+      expect(renderCited('First paragraph.\n\nSecond.', [{ offset: 17, key: '1' }])).toBe(
+        '<div><p>First paragraph.<sup>[1]</sup></p>\n<p>Second.</p></div>',
+      )
+    })
+
+    it('draws a marker after text whose source an escape changed, rather than at a shifted place', () => {
+      expect(renderCited('A \\*star\\* here', [{ offset: 5, key: '1' }])).toBe(
+        '<div><p>A *star* here<sup>[1]</sup></p></div>',
+      )
+    })
+
+    it('draws nothing without a renderer, and keeps a footnote unwrapped', () => {
+      expect(renderCited('Cited text.', [{ offset: 10, key: '1' }], false)).toBe('<div><p>Cited text.</p></div>')
+      expect(renderElements('Text[^1]\n\n[^1]: A note')).not.toContain('<sup')
+    })
+  })
 })

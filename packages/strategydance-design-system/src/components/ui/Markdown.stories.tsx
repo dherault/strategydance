@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { FileTextIcon } from 'lucide-react'
+import { CitationLink } from 'strategydance-design-system/components/ui/CitationLink'
 import { Markdown, type MarkdownLink } from 'strategydance-design-system/components/ui/Markdown'
 import {
   markdownSampleDocuments,
@@ -97,5 +98,46 @@ export const Untrusted: Story = {
       '> A quote keeps its words',
       'It takes ~5 to ~10 minutes, and ~~this~~ is struck.',
     ].join('\n\n'),
+  },
+}
+
+const citedReply = [
+  'Notion charges **10 per member** a month on its Plus plan, and Coda 12 on its Pro plan.',
+  '- Linear starts at 8, with [its own pricing page](https://linear.app/pricing) for teams.',
+  '- All three bill yearly by default.',
+].join('\n\n')
+
+const citedSources = [
+  { number: 1, href: 'https://www.notion.com/pricing', title: 'Notion pricing' },
+  { number: 2, href: 'https://coda.io/pricing', title: 'Coda pricing' },
+  { number: 3, href: 'https://linear.app/pricing', title: 'Linear pricing' },
+]
+
+/*
+  A reply web search cited, each marker right after the span it cites: in bold, in plain text,
+  after a link rather than inside it, and at a list item's end, two markers side by side
+*/
+export const Citations: Story = {
+  args: {
+    className: 'max-w-3xl',
+    value: citedReply,
+    citations: [
+      { offset: citedReply.indexOf(' a month'), key: '1' },
+      { offset: citedReply.indexOf(' on its Pro'), key: '2' },
+      { offset: citedReply.indexOf(' for teams'), key: '3' },
+      { offset: citedReply.indexOf('default.') + 'default.'.length, key: '1' },
+      { offset: citedReply.indexOf('default.') + 'default.'.length, key: '2' },
+    ],
+    renderCitation: key => {
+      const source = citedSources.find(({ number }) => String(number) === key)
+
+      return source ? (
+        <CitationLink
+          number={source.number}
+          href={source.href}
+          label={`Source ${source.number}: ${source.title}`}
+        />
+      ) : null
+    },
   },
 }

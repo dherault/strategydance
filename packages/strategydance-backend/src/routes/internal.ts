@@ -17,9 +17,11 @@ import runConversation from '~domain/conversations/runConversation'
   backend.
 
   No route here checks App Check or a token. The worker is private: Cloud Run's invoker check is on,
-  and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses any other
-  caller before this code runs. Cloud Tasks and Cloud Scheduler call it as that account, with an
-  OIDC token Cloud Run checks
+  and the `conversation-tasks` service account is the one account granted the invoker role on it.
+  Holders of Cloud Run's invoke permission across the project, its owners and `deployer`, can call
+  it too, as they can any service there, and Cloud Run refuses everybody else, a caller with no
+  token included, before this code runs. Cloud Tasks and Cloud Scheduler call it as
+  `conversation-tasks`, with an OIDC token Cloud Run checks
 */
 function createInternalRouter() {
   const router = Router()

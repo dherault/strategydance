@@ -1185,6 +1185,18 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "DrawConversationAgentTextPiece"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1411,6 +1423,24 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "InterruptConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StoreConversationTurnWithContext"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationAgentTextPiece"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationToolCall"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

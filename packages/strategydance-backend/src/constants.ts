@@ -51,7 +51,8 @@ export const WORKER_URL = `https://strategydance-worker-${GOOGLE_CLOUD_PROJECT_N
 */
 export const CONVERSATION_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/conversation-runs`
 
-// Who Cloud Tasks and Cloud Scheduler call the worker as, the only account that may invoke it
+// Who Cloud Tasks and Cloud Scheduler call the worker as, the one account granted the invoker role
+// on it. The project's owners and `deployer` can call it too, as they can any service there
 export const CONVERSATION_TASKS_SERVICE_ACCOUNT = 'conversation-tasks@strategydance.iam.gserviceaccount.com'
 
 /*
@@ -111,6 +112,13 @@ export const CONVERSATION_RUN_STEP_INTERVAL_MS = 1000
   left going, while a task's request stays open for the whole run
 */
 export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
+
+/*
+  Whether conversations are answered by the placeholder client rather than Claude: in development
+  only, when `CONVERSATION_AGENT=placeholder` spares a developer what every request to the real
+  model costs. Production always asks Claude
+*/
+export const IS_CONVERSATION_AGENT_PLACEHOLDER = !IS_PRODUCTION && process.env.CONVERSATION_AGENT === 'placeholder'
 
 // How long a task's delivery may take, the run it delivers going the whole time: as long as the
 // worker's own timeout, which `deploy:backend` sets

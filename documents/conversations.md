@@ -226,8 +226,11 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
   there would have to verify Cloud Tasks' and Cloud Scheduler's tokens itself, and a 15-minute run
   would share its instances and timeout with every interactive route. `strategydance-worker` is the same image started with `SERVICE=worker`, which mounts the
   internal routes and nothing else, while the backend mounts everything but them. Its invoker check
-  stays on, and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses
-  any other caller before the code runs and no token verification is written by hand. It has its own
+  stays on, and the `conversation-tasks` service account is the one account granted the invoker
+  role on it. Holders of Cloud Run's invoke permission across the project, its owners and
+  `deployer` through `roles/run.admin`, can call it too, as they can any service there, which M8's
+  check in production showed. Cloud Run refuses everybody else, a caller with no token included,
+  before the code runs, so no token verification is written by hand. It has its own
   15-minute timeout and a low concurrency (4), and scales to zero
   between runs. The backend keeps its defaults. Its address is Cloud Run's deterministic one,
   `https://strategydance-worker-995028545701.us-central1.run.app`, a constant in the backend
@@ -531,7 +534,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   (the last request's input plus what was appended); the write that stores its turn settles it with
   the real usage. A worker taking over after a crash charges an unsettled reservation at its
   estimate, with a conservative output allowance, marked as estimated: every request is billed, and
-  the credit system knows which figures are estimates.
+  the credit system knows which figures are estimates. A request whose stream fails after it started
+  is settled at the usage the stream last reported, its input as counted at the start, marked as
+  estimated since its output is counted only by the final delta; one the API refused before it
+  started is settled at nothing (M9).
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so every run
@@ -621,7 +627,7 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     run, and its result says so. A turn with `ask_user` runs its other tools, keeps their results in
     `pendingToolResults`, and ends the run `WAITING`.
   - `pause_turn` (web search's server-side loop paused): send the turn back as it is, up to five
-    times, keeping the pieces in memory.
+    times, keeping the parts in memory.
   - `max_tokens`: run nothing, fail with a note.
   - `refusal`: see The agent.
 - **Drawing a turn.** Thinking blocks are never drawn. Consecutive text blocks become one
@@ -633,7 +639,14 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   output lists the results' titles and addresses. `web_search_20260209` filters its results by
   running code around the search, so the turn also holds `server_tool_use` blocks named
   `code_execution` with their results, as M1 saw: the transcript keeps them, and the thread draws
-  nothing of them. Each `AGENT_TEXT` and `QUESTION` adds one to
+  nothing of them. A search that code calls is drawn like any other, but its results reach Claude
+  only through what the code prints, so the text after it cites nothing. In every run M9 sent the
+  real model on 2026-10-08, Opus 5.5 called each search from code, even for a one-line answer, and
+  its replies cited nothing, not even as the links the system prompt asks for. With
+  `allowed_callers: ["direct"]` on the tool, search stays out of code, the results reach Claude, and
+  its reply cited them, drawn with their numbers and sources. Whether to send that, giving up the
+  filtering for citations, is David's call, open when M9's pull request was opened. Each
+  `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
 - **A long reply is drawn in pieces.** Agent text keeps the bound every message keeps,
   `MAX_CONVERSATION_MESSAGE_LENGTH` (20000 characters), though one turn may write far more: a longer
@@ -641,16 +654,22 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   the model's text blocks first), at a line break only for a single block past the bound, and, for
   a single line past it, at the last space before the bound, else at the last grapheme boundary
   (`Intl.Segmenter`), so a piece never splits a character or a cluster and every piece fits. Each
-  citation stays with the piece its span starts in, its offsets rebased to that piece and its span
-  clipped at the piece's end. The thread draws consecutive pieces as one reply, and only the first
-  adds to `unreadCount`. The transcript keeps the model's blocks as they came, since pieces are only
-  a drawing, and each piece's id adds its index to the entry and block it derives from. The live
+  piece is drawn as Markdown of its own, so a cut inside a top-level fenced code block closes the
+  fence after the piece and opens it again before the next, and a cut inside a table repeats the
+  table's head before the next, each piece within the bound with what it gains (M9). Each
+  citation stays with the piece its span starts in, its offsets rebased to that piece as drawn and
+  its span clipped at the piece's end. The thread draws consecutive pieces as one reply, and only
+  the first adds to `unreadCount`. It numbers a reply's sources across the pieces it holds, so a
+  reply whose first pieces lie on an older page not read yet numbers the sources it shows, and
+  renumbers them once that page loads; each marker links to its own source either way (M9). The
+  transcript keeps the model's blocks as they came, since pieces are only a drawing, and each
+  piece's id adds its index to the entry and block it derives from. The live
   tail carries no text (see Who writes what), so a long reply costs the network once.
 - **Drawing survives a crash.** A turn is stored in the transcript first, then drawn block by block,
   so a crash can fall between the two. Each drawn message's id derives from its transcript entry and
   block index, so drawing it twice is a conflict rather than a duplicate, and the entry keeps a
-  cursor, `drawnBlocks` (with the piece, within a long text), advanced in the same mutation as each
-  message it draws. A worker that claims
+  cursor, `drawnBlocks`, with `drawnPieces` for the piece within a long text, advanced in the same
+  mutation as each message it draws. A worker that claims
   a run after a crash first draws the rest of the last entry, from its cursor. It then deals with the
   entry's tool calls: a call whose message exists but which never started is handled as Recovery and
   side effects says, and a call that had no message yet gets one and runs like any other.
@@ -692,8 +711,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   `SYSTEM` then `ASSISTANT` at consecutive positions, in one mutation. A turn that never lands (a stop
   mid-stream, a refusal, an API error, `max_tokens`) stores neither, so the transcript still ends on
   its `USER` entry.
-- **`pause_turn` pieces** stay in memory, and are stored as consecutive `ASSISTANT` entries once the
-  turn ends on another stop reason; a stop in between drops them.
+- **`pause_turn` parts**, each response of a paused turn (not a long reply's pieces, which are only
+  a drawing), stay in memory, and are stored as consecutive `ASSISTANT` entries once the turn ends on
+  another stop reason, one write each, the first with the context message; a stop in between drops
+  them. A crash between two of those writes leaves a part that paused stored last, which the run's
+  usage ledger says, by the `stopReason` it settled the part's request with: the next worker sends
+  that part's continuation rather than ending the run, and the stored parts count toward its five
+  pauses. The parts it had not stored are asked for, and paid for, again (M9).
 - **Send**: the new `USER` entry carries a result for every unanswered `tool_use` of the last turn
   first, each built from its question's stored state: a question already answered sends its answer,
   one still waiting sends "The member skipped this question." and is marked skipped; then the
@@ -855,7 +879,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   by the endpoint, and the check adds the current configuration's count less the starting
   request's. Mid-turn, after `pause_turn`,
   the worker starts from the paused request itself instead: its whole input and output are exactly
-  what the continuation resends, the pieces held in memory included, so nothing is left out or
+  what the continuation resends, the parts held in memory included, so nothing is left out or
   counted twice. A first
   message counts its context and text the same way. The worker's check before each request sums
   the same way: past 800000 input tokens it marks the conversation full, and the send route refuses
@@ -885,8 +909,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   saw a turn of web search's server tool calls ending on a client tool call bring one thinking block
   with no text, and a system prompt asking for a few words before each step got them as text blocks
   between the server tool calls instead, which the thread would draw as Strategy Dance's text around
-  the search's row. The system prompt asks for no such notes. M9 looks again across a run of
-  several client tool calls.
+  the search's row. The system prompt asks for no such notes. M9's real runs agreed: every thinking
+  block came back without text, with or without a search, so the indicator showed "Thinking"
+  throughout. The first milestone with client tools looks again across a run of several.
 - **Refusals** come back as `stop_reason: "refusal"`. The request asks for server-side fallbacks,
   `fallbacks: "default"`: on a refusal the API runs the same request again, within the same call, on
   the model Anthropic recommends for the refusal's category, among those Opus 5.5's model entry

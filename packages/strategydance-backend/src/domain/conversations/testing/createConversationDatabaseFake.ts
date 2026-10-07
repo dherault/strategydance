@@ -53,6 +53,13 @@ export const ConversationRunTrigger = {
   RETRY: 'RETRY',
 } as const
 
+export const ConversationToolStatus = {
+  RUNNING: 'RUNNING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+} as const
+
 export const ConversationTranscriptRole = {
   USER: 'USER',
   ASSISTANT: 'ASSISTANT',
@@ -75,6 +82,8 @@ export type FakeConversation = {
   deletedAt: string | null
   pruneClaimedAt: string | null
   updatedAt: string
+  // Which aspects of the company it is about, none unless a test says
+  aspects?: string[]
 }
 
 export type FakeRun = {
@@ -92,6 +101,9 @@ export type FakeRun = {
   createdAt: string
   startedAt: string | null
   endedAt: string | null
+  // Its context message as JSON text, once built, and its usage ledger
+  context?: string | null
+  usage?: unknown
 }
 
 export type FakeMessage = {
@@ -103,6 +115,11 @@ export type FakeMessage = {
   noteKind: string | null
   toolStatus: string | null
   position: number
+  citations?: unknown
+  toolUseId?: string | null
+  toolName?: string | null
+  toolInput?: string | null
+  toolOutput?: string | null
 }
 
 export type FakeEntry = {
@@ -113,6 +130,30 @@ export type FakeEntry = {
   role: string
   content: string
   drawnBlocks: number
+  // The cursor's piece within a text drawn in pieces
+  drawnPieces?: number
+  contextHash?: string | null
+}
+
+// What a member's account and membership tell the context message, which a test can change
+export type FakeUser = {
+  isAdministrator: boolean
+  displayName: string | null
+  timezone: string | null
+  locale: string
+  bio: string | null
+}
+
+export type FakeMembership = {
+  createdAt: string
+  role: string
+  jobTitle: string | null
+}
+
+export type FakeOrganization = {
+  name: string
+  brief: string | null
+  exploredAspects: string[]
 }
 
 type Variables = Record<string, unknown>
@@ -123,8 +164,9 @@ type AnyVariables = Record<string, any>
 const RUN_IN_FLIGHT = ['QUEUED', 'RUNNING']
 
 function createConversationDatabaseFake() {
-  const users = new Map<string, { isAdministrator: boolean }>()
-  const memberships = new Map<string, { createdAt: string }>()
+  const users = new Map<string, FakeUser>()
+  const memberships = new Map<string, FakeMembership>()
+  const organizations = new Map<string, FakeOrganization>()
   const conversations = new Map<string, FakeConversation>()
   const runs = new Map<string, FakeRun>()
   const messages = new Map<string, FakeMessage>()
@@ -136,6 +178,7 @@ function createConversationDatabaseFake() {
   const fake = {
     users,
     memberships,
+    organizations,
     conversations,
     runs,
     messages,
@@ -176,11 +219,17 @@ function createConversationDatabaseFake() {
   }
 
   function addMember(userId: string, organizationId: string, { isAdministrator = true } = {}) {
-    if (!users.has(userId)) users.set(userId, { isAdministrator })
+    if (!users.has(userId)) {
+      users.set(userId, { isAdministrator, displayName: null, timezone: null, locale: 'EN', bio: null })
+    }
+
+    if (!organizations.has(id(organizationId))) {
+      organizations.set(id(organizationId), { name: 'Checked organization', brief: null, exploredAspects: [] })
+    }
 
     const createdAt = stamp()
 
-    memberships.set(membershipKey(userId, organizationId), { createdAt })
+    memberships.set(membershipKey(userId, organizationId), { createdAt, role: 'MEMBER', jobTitle: null })
 
     return createdAt
   }
@@ -268,13 +317,38 @@ function createConversationDatabaseFake() {
     messages.set(message.id, message)
   }
 
-  function insertEntry(entry: FakeEntry) {
+  // Refuses an entry its table's keys would, without inserting it, so a mutation inserting two
+  // checks both before it changes anything
+  function checkEntry(entry: FakeEntry) {
     if (entries.has(entry.id)) refuse('violates SQL unique constraint: conversation_transcript_entry_pkey')
     if (conversationEntries(entry.conversationId).some(({ position }) => position === entry.position)) {
       refuse('violates SQL unique constraint: conversation_transcript_entry_conversation_id_position_uidx')
     }
+  }
 
-    entries.set(entry.id, entry)
+  function insertEntry(entry: FakeEntry) {
+    checkEntry(entry)
+
+    entries.set(entry.id, { drawnPieces: 0, contextHash: null, ...entry })
+  }
+
+  // The conversation a drawn message goes into, at the counter and not deleted
+  function requireDrawConversation(variables: AnyVariables) {
+    const conversation = conversations.get(id(variables.conversationId))
+
+    if (!conversation || conversation.deletedAt !== null || conversation.nextMessagePosition !== variables.position) {
+      refuse('The conversation could not take the message at that position')
+    }
+
+    return conversation
+  }
+
+  // Writes the optional variables an operation names into its row, leaving those omitted as they
+  // were, as Data Connect does
+  function assignGiven<Row extends object>(row: Row, values: Partial<Row>) {
+    for (const [key, value] of Object.entries(values)) {
+      if (value !== undefined) Object.assign(row, { [key]: value })
+    }
   }
 
   // The fence of every write of a worker, as `RenewConversationRunLease` holds it, and the claim's,
@@ -446,15 +520,80 @@ function createConversationDatabaseFake() {
       const lastEntry = conversationEntries(id(variables.conversationId))[0]
 
       return {
-        conversationRuns: isTheirs ? [{ ...run }] : [],
+        conversationRuns: isTheirs ? [{ context: null, usage: null, ...run }] : [],
         conversation: conversation ? { ...conversation } : null,
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
         user: users.get(variables.userId) ?? null,
-        conversationTranscriptEntries: lastEntry ? [{ ...lastEntry, run: { id: lastEntry.runId } }] : [],
+        conversationTranscriptEntries: lastEntry
+          ? [{ drawnPieces: 0, ...lastEntry, run: { id: lastEntry.runId } }]
+          : [],
+        runEntries: conversationEntries(id(variables.conversationId))
+          .filter(entry => entry.runId === id(variables.runId) && entry.role === 'ASSISTANT')
+          .sort((a, b) => a.position - b.position)
+          .slice(0, 10)
+          .map(({ id: entryId, position, content, drawnBlocks, drawnPieces }) => ({
+            id: entryId,
+            position,
+            content,
+            drawnBlocks,
+            drawnPieces: drawnPieces ?? 0,
+          })),
         conversationMessages: [...messages.values()]
           .filter(message => message.runId === id(variables.runId) && message.kind !== 'MEMBER_TEXT')
           .slice(0, 100)
-          .map(({ id: messageId, kind, noteKind }) => ({ id: messageId, kind, noteKind })),
+          .map(({ id: messageId, kind, noteKind, toolStatus }) => ({ id: messageId, kind, noteKind, toolStatus })),
+      }
+    },
+
+    GetConversationTranscript: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+
+      return {
+        conversationTranscriptEntries: isTheirs
+          ? conversationEntries(conversation.id)
+              .filter(entry => entry.position > variables.afterPosition)
+              .sort((a, b) => a.position - b.position)
+              .slice(0, 100)
+              .map(entry => ({
+                id: entry.id,
+                position: entry.position,
+                role: entry.role,
+                content: entry.content,
+                contextHash: entry.contextHash ?? null,
+                run: { id: entry.runId },
+              }))
+          : [],
+      }
+    },
+
+    GetConversationRequestContext: variables => {
+      const user = users.get(variables.userId)
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+      const organization = organizations.get(id(variables.organizationId))
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+
+      return {
+        user: user
+          ? { displayName: user.displayName, timezone: user.timezone, locale: user.locale, bio: user.bio }
+          : null,
+        userOrganization: membership ? { role: membership.role, jobTitle: membership.jobTitle } : null,
+        organization: organization ? { ...organization } : null,
+        conversations: isTheirs ? [{ aspects: conversation.aspects ?? [] }] : [],
+        conversationRuns: isTheirs
+          ? [...runs.values()]
+              .filter(run => run.conversationId === conversation.id)
+              .sort((a, b) => b.number - a.number)
+              .slice(0, 20)
+              .map(run => ({ id: run.id, usage: run.usage ?? null }))
+          : [],
       }
     },
 
@@ -688,8 +827,7 @@ function createConversationDatabaseFake() {
       if (!run) return { conversationRun_updateMany: 0 }
 
       run.leaseExpiresAt = inSeconds(60)
-
-      if (variables.step !== undefined) run.step = variables.step
+      assignGiven(run, { step: variables.step, context: variables.context, usage: variables.usage })
 
       return { conversationRun_updateMany: 1 }
     },
@@ -707,26 +845,66 @@ function createConversationDatabaseFake() {
         drawnBlocks: 0,
       })
       run.leaseExpiresAt = inSeconds(60)
+      assignGiven(run, { usage: variables.usage })
 
       return { conversationTranscriptEntry_insert: { id: id(variables.entryId) } }
     },
 
-    DrawConversationAgentText: variables => {
+    StoreConversationTurnWithContext: variables => {
       const run = requireFencedRun(variables)
 
-      if (!(variables.toBlock > variables.fromBlock) || variables.text.length > 20000) {
-        refuse('A message is drawn from one block or more, and holds at most 20000 characters')
+      if (variables.position !== variables.contextPosition + 1) refuse('The reply follows its context')
+
+      const system: FakeEntry = {
+        id: id(variables.contextEntryId),
+        conversationId: run.conversationId,
+        runId: run.id,
+        position: variables.contextPosition,
+        role: 'SYSTEM',
+        content: variables.contextContent,
+        contextHash: variables.contextHash,
+        drawnBlocks: 0,
+      }
+      const assistant: FakeEntry = {
+        id: id(variables.entryId),
+        conversationId: run.conversationId,
+        runId: run.id,
+        position: variables.position,
+        role: 'ASSISTANT',
+        content: variables.content,
+        drawnBlocks: 0,
       }
 
-      const conversation = conversations.get(id(variables.conversationId))
+      checkEntry(system)
+      checkEntry(assistant)
+      insertEntry(system)
+      insertEntry(assistant)
+      run.leaseExpiresAt = inSeconds(60)
+      assignGiven(run, { usage: variables.usage })
 
-      if (!conversation || conversation.deletedAt !== null || conversation.nextMessagePosition !== variables.position) {
-        refuse('The conversation could not take the message at that position')
+      return { system: { id: system.id }, assistant: { id: assistant.id } }
+    },
+
+    DrawConversationAgentText: variables => {
+      const run = requireFencedRun(variables)
+      const isFirstPiece = variables.toPiece === 1 && variables.toBlock >= variables.fromBlock
+      const isWhole = variables.toBlock > variables.fromBlock && (variables.toPiece ?? 0) === 0
+
+      if (variables.text.length > 20000 || (!isFirstPiece && !isWhole)) {
+        refuse(
+          'A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters',
+        )
       }
 
+      const conversation = requireDrawConversation(variables)
       const entry = entries.get(id(variables.entryId))
 
-      if (!entry || entry.runId !== run.id || entry.drawnBlocks !== variables.fromBlock) {
+      if (
+        !entry
+        || entry.runId !== run.id
+        || entry.drawnBlocks !== variables.fromBlock
+        || (entry.drawnPieces ?? 0) !== 0
+      ) {
         refuse('Those blocks were drawn already')
       }
 
@@ -739,6 +917,100 @@ function createConversationDatabaseFake() {
         noteKind: null,
         toolStatus: null,
         position: variables.position,
+        citations: variables.citations ?? null,
+      })
+      run.leaseExpiresAt = inSeconds(60)
+      entry.drawnBlocks = variables.toBlock
+      assignGiven(entry, { drawnPieces: variables.toPiece })
+      Object.assign(conversation, {
+        preview: variables.preview,
+        previewMessageId: id(variables.messageId),
+        nextMessagePosition: conversation.nextMessagePosition + 1,
+        messageCount: conversation.messageCount + 1,
+        unreadCount: conversation.unreadCount + 1,
+        updatedAt: now(),
+      })
+
+      return { conversationMessage_insert: { id: id(variables.messageId) } }
+    },
+
+    DrawConversationAgentTextPiece: variables => {
+      const run = requireFencedRun(variables)
+      const isNextPiece = variables.toBlock === variables.block && variables.toPiece === variables.fromPiece + 1
+      const isLastPiece = variables.toBlock > variables.block && variables.toPiece === 0
+
+      if (variables.text.length > 20000 || variables.fromPiece < 1 || (!isNextPiece && !isLastPiece)) {
+        refuse('A later piece moves the cursor to the next, or past its text, and holds at most 20000 characters')
+      }
+
+      const conversation = requireDrawConversation(variables)
+      const entry = entries.get(id(variables.entryId))
+
+      if (
+        !entry
+        || entry.runId !== run.id
+        || entry.drawnBlocks !== variables.block
+        || (entry.drawnPieces ?? 0) !== variables.fromPiece
+      ) {
+        refuse('That piece was drawn already')
+      }
+
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: conversation.id,
+        runId: run.id,
+        kind: 'AGENT_TEXT',
+        text: variables.text,
+        noteKind: null,
+        toolStatus: null,
+        position: variables.position,
+        citations: variables.citations ?? null,
+      })
+      run.leaseExpiresAt = inSeconds(60)
+      Object.assign(entry, { drawnBlocks: variables.toBlock, drawnPieces: variables.toPiece })
+      Object.assign(conversation, {
+        preview: variables.preview,
+        previewMessageId: id(variables.messageId),
+        nextMessagePosition: conversation.nextMessagePosition + 1,
+        messageCount: conversation.messageCount + 1,
+        updatedAt: now(),
+      })
+
+      return { conversationMessage_insert: { id: id(variables.messageId) } }
+    },
+
+    DrawConversationToolCall: variables => {
+      const run = requireFencedRun(variables)
+
+      if (!(variables.toBlock > variables.fromBlock) || !['SUCCEEDED', 'FAILED'].includes(variables.toolStatus)) {
+        refuse('A call is drawn from one block or more, finished')
+      }
+
+      const conversation = requireDrawConversation(variables)
+      const entry = entries.get(id(variables.entryId))
+
+      if (
+        !entry
+        || entry.runId !== run.id
+        || entry.drawnBlocks !== variables.fromBlock
+        || (entry.drawnPieces ?? 0) !== 0
+      ) {
+        refuse('Those blocks were drawn already')
+      }
+
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: conversation.id,
+        runId: run.id,
+        kind: 'TOOL_CALL',
+        text: null,
+        noteKind: null,
+        toolStatus: variables.toolStatus,
+        position: variables.position,
+        toolUseId: variables.toolUseId,
+        toolName: variables.toolName,
+        toolInput: variables.toolInput,
+        toolOutput: variables.toolOutput,
       })
       run.leaseExpiresAt = inSeconds(60)
       entry.drawnBlocks = variables.toBlock
@@ -747,7 +1019,6 @@ function createConversationDatabaseFake() {
         previewMessageId: id(variables.messageId),
         nextMessagePosition: conversation.nextMessagePosition + 1,
         messageCount: conversation.messageCount + 1,
-        unreadCount: conversation.unreadCount + 1,
         updatedAt: now(),
       })
 
@@ -762,6 +1033,7 @@ function createConversationDatabaseFake() {
       }
 
       end(run, variables.status)
+      assignGiven(run, { usage: variables.usage })
 
       const conversation = conversations.get(id(variables.conversationId))
 
@@ -782,7 +1054,9 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, variables.status)
+      assignGiven(run, { usage: variables.usage })
       writeNote(conversation, variables, variables.noteKind)
+      assignGiven(conversation, { isFull: variables.isFull })
 
       return { conversationRun_updateMany: 1 }
     },
@@ -855,6 +1129,7 @@ function createConversationDatabaseFake() {
     ConversationNoteKind,
     ConversationRunStatus,
     ConversationRunTrigger,
+    ConversationToolStatus,
     ConversationTranscriptRole,
   }
 

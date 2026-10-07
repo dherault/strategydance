@@ -6,7 +6,7 @@ import express from 'express'
 
 import type { ConversationRunReference } from '~types'
 
-import createPlaceholderAgent from '~domain/agent/createPlaceholderAgent'
+import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
@@ -17,8 +17,10 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 
 mock.module('strategydance-database/backend', () => fake.sdk)
 
-// The agent every run is answered by, without the pauses it makes for a person to watch
-mock.module('~domain/agent/conversationAgent', () => ({ default: createPlaceholderAgent({ stepDurationMs: 0 }) }))
+// The client every run asks, the placeholder without the pauses it makes for a person to watch
+mock.module('~domain/agent/conversationClaudeClient', () => ({
+  default: createPlaceholderClaudeClient({ stepDurationMs: 0 }),
+}))
 
 const { default: createInternalRouter } = await import('./internal')
 

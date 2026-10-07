@@ -1,3 +1,9 @@
+import type {
+  BetaMessage,
+  BetaMessageStreamParams,
+  MessageCountTokensParams,
+} from '@anthropic-ai/sdk/resources/beta/messages/messages'
+
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
 /* ---
@@ -53,20 +59,21 @@ export type ConversationRunFence = ConversationRunReference & {
   membershipCreatedAt: string
 }
 
-// What the agent answers a run's turn with: its content blocks, as the API answered them
-export type ConversationAgentTurn = {
-  content: ConversationContentBlock[]
-}
-
 /*
-  What answers a conversation: given the transcript's last entry, the member's message, it answers
-  a turn, reporting the progress lines it has along the way, and gives up when the signal aborts,
-  which a worker that lost its run does
+  What a run asks Claude through: a request streamed until its final message, the progress lines
+  its thinking gives along the way handed over as they land, and a request's input counted. The
+  real one calls Anthropic's API; a placeholder and the tests' scripted double stand in for it
 */
-export type ConversationAgent = {
-  respond(input: {
-    lastEntry: ConversationContentBlock[]
-    signal: AbortSignal
-    onStep: (step: string) => void
-  }): Promise<ConversationAgentTurn>
+export type ClaudeClient = {
+  stream(
+    body: BetaMessageStreamParams,
+    options: {
+      signal: AbortSignal
+      onProgress: (line: string) => void
+      // The message so far, each time the stream reports its usage, so a stream that fails partway
+      // is charged what it used
+      onUsage?: (message: BetaMessage) => void
+    },
+  ): Promise<BetaMessage>
+  countTokens(body: MessageCountTokensParams): Promise<number>
 }

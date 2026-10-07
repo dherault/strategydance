@@ -9,12 +9,17 @@ import {
   claimQueuedConversationRun,
   connectorConfig,
   deleteClaimedConversations,
+  ConversationToolStatus,
   drawConversationAgentText,
+  drawConversationAgentTextPiece,
+  drawConversationToolCall,
   expireQueuedConversationRunLease,
   finishConversationRun,
   finishConversationRunWithNote,
   getClaimedConversations,
+  getConversationRequestContext,
   getConversationRunContext,
+  getConversationTranscript,
   getConversationSendContext,
   interruptConversationRun,
   interruptDeadConversationRun,
@@ -24,6 +29,7 @@ import {
   sendConversationMessage,
   startConversation,
   storeConversationTurn,
+  storeConversationTurnWithContext,
 } from 'strategydance-database/backend'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
@@ -77,6 +83,7 @@ const userIds = {
   pruner: `check-conversation-runs-${checkId}-pruner`,
   queuer: `check-conversation-runs-${checkId}-queuer`,
   sweeper: `check-conversation-runs-${checkId}-sweeper`,
+  drawer: `check-conversation-runs-${checkId}-drawer`,
 }
 
 const failures: string[] = []
@@ -97,6 +104,23 @@ async function read<Data>(query: string, variables: Variables = {}) {
   const { data } = await dataConnect.executeGraphql<Data, Variables>(query, { variables })
 
   return data
+}
+
+// Whether two JSON values are the same whatever their keys' order, since an `Any` column is
+// Postgres `jsonb`, which gives its keys back in an order of its own
+function isSameJson(a: unknown, b: unknown) {
+  const sorted = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(sorted)
+      : value !== null && typeof value === 'object'
+        ? Object.fromEntries(
+            Object.entries(value)
+              .sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))
+              .map(([key, item]) => [key, sorted(item)]),
+          )
+        : value
+
+  return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b))
 }
 
 // The cause of a refusal, which the Admin SDK puts on the first line of its message, or null when
@@ -957,6 +981,297 @@ async function checkSweeping() {
   )
 }
 
+/*
+  What a run's request to Claude is built from and what its reply draws: the context stored with
+  the first part, the transcript read in order, a web search's call, a text drawn in pieces with
+  its citations, the usage the run's writes carry, and a conversation marked full
+*/
+async function checkReplies() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.drawer)
+  const started = await start(userIds.drawer, membershipCreatedAt)
+  const reference = {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    runId: started.runId,
+  }
+  const readRunLedger = async () => {
+    const data = await read<{ conversationRun: { context: string | null; usage: unknown } | null }>(
+      `query ReadRunLedger($id: UUID!) { conversationRun(id: $id) { context usage } }`,
+      { id: started.runId },
+    )
+
+    return data.conversationRun
+  }
+  const readEntries = async () => {
+    const data = await read<{
+      conversationTranscriptEntries: {
+        position: number
+        role: string
+        contextHash: string | null
+        drawnBlocks: number
+        drawnPieces: number
+      }[]
+    }>(
+      `query ReadEntries($id: UUID!) {
+        conversationTranscriptEntries(where: { conversationId: { eq: $id } }, orderBy: [{ position: ASC }]) { position role contextHash drawnBlocks drawnPieces }
+      }`,
+      { id: started.conversationId },
+    )
+
+    return data.conversationTranscriptEntries
+  }
+  const readDrawn = async (id: string) => {
+    const data = await read<{
+      conversationMessage: {
+        kind: string
+        text: string | null
+        citations: unknown
+        toolName: string | null
+        toolStatus: string | null
+        toolOutput: string | null
+      } | null
+    }>(
+      `query ReadDrawn($id: UUID!) { conversationMessage(id: $id) { kind text citations toolName toolStatus toolOutput } }`,
+      { id },
+    )
+
+    return data.conversationMessage
+  }
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+
+  const fenced = fence(started, 1)
+  const context = JSON.stringify({ hash: 'profile-hash', content: [{ type: 'text', text: 'Context' }] })
+  const reserved = { requests: [{ model: 'claude-opus-5-5', isSettled: false }] }
+
+  await renewConversationRunLease(dataConnect, { ...fenced, context, usage: reserved })
+  await renewConversationRunLease(dataConnect, fenced)
+
+  const ledger = await readRunLedger()
+
+  check(
+    'a renewal writes the run’s context and usage, and one without them keeps them',
+    ledger?.context === context && isSameJson(ledger.usage, reserved),
+  )
+
+  const entryId = createId()
+  const turn = JSON.stringify([
+    { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: 'pricing' } },
+    { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_1', content: [] },
+    { type: 'text', text: 'First' },
+    { type: 'text', text: 'Second', citations: null },
+  ])
+  const withContext = {
+    ...fenced,
+    contextEntryId: createId(),
+    contextPosition: 1,
+    contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+    contextHash: 'profile-hash',
+    entryId,
+    position: 2,
+    content: turn,
+  }
+
+  check(
+    'a reply is stored right after its context or not at all',
+    (await refusal(storeConversationTurnWithContext(dataConnect, { ...withContext, position: 3 }))) !== null
+      && (await readEntries()).length === 1,
+  )
+
+  const settled = { requests: [{ model: 'claude-opus-5-5', isSettled: true, outputTokens: 12 }] }
+
+  await storeConversationTurnWithContext(dataConnect, { ...withContext, usage: settled })
+
+  const stored = await readEntries()
+
+  check(
+    'the context is stored with its hash just before the run’s first part, which settles the usage',
+    stored.map(({ role }) => role).join() === 'USER,SYSTEM,ASSISTANT'
+      && stored[1]?.contextHash === 'profile-hash'
+      && isSameJson((await readRunLedger())?.usage, settled),
+  )
+
+  const conversationKey = { organizationId, userId: started.userId, conversationId: started.conversationId }
+  const { data: page } = await getConversationTranscript(dataConnect, { ...conversationKey, afterPosition: 0 })
+  const { data: strangers } = await getConversationTranscript(dataConnect, {
+    ...conversationKey,
+    userId: userIds.member,
+    afterPosition: -1,
+  })
+
+  check(
+    'the transcript is read after a position, in order, by its author alone',
+    page.conversationTranscriptEntries.map(({ position }) => position).join() === '1,2'
+      && page.conversationTranscriptEntries[0]?.contextHash === 'profile-hash'
+      && strangers.conversationTranscriptEntries.length === 0,
+  )
+
+  const { data: runContext } = await getConversationRunContext(dataConnect, reference)
+
+  check(
+    'a run’s context reads its replies with their cursors, its context and its usage',
+    runContext.runEntries.length === 1
+      && runContext.runEntries[0]?.drawnPieces === 0
+      && runContext.conversationRuns[0]?.context === context,
+  )
+
+  const callId = createId()
+  const call = {
+    ...fenced,
+    entryId,
+    fromBlock: 0,
+    toBlock: 2,
+    messageId: callId,
+    position: 1,
+    toolUseId: 'srvtoolu_1',
+    toolName: 'web_search',
+    toolStatus: ConversationToolStatus.SUCCEEDED,
+    toolInput: '{"query":"pricing"}',
+    toolOutput: '{"results":[]}',
+    preview: { kind: 'TOOL_CALL', toolName: 'web_search', toolStatus: 'SUCCEEDED' },
+  }
+
+  check(
+    'a server tool call is drawn finished or not at all',
+    (await refusal(drawConversationToolCall(dataConnect, { ...call, toolStatus: ConversationToolStatus.RUNNING })))
+      !== null,
+  )
+
+  await drawConversationToolCall(dataConnect, call)
+
+  const drawnCall = await readDrawn(callId)
+
+  check(
+    'a web search is drawn as a finished call past its blocks, unread left alone',
+    drawnCall?.kind === 'TOOL_CALL'
+      && drawnCall.toolStatus === 'SUCCEEDED'
+      && drawnCall.toolOutput === '{"results":[]}'
+      && (await readEntries())[2]?.drawnBlocks === 2
+      && (await readConversation(started.conversationId))?.unreadCount === 0,
+  )
+
+  const citations = [{ start: 0, end: 5, sources: [{ url: 'https://example.com', title: 'Example', citedText: 'x' }] }]
+  const first = {
+    ...fenced,
+    entryId,
+    fromBlock: 2,
+    toBlock: 2,
+    toPiece: 1,
+    messageId: createId(),
+    position: 2,
+    text: 'First',
+    citations,
+    preview: { kind: 'AGENT_TEXT', text: 'First' },
+  }
+
+  check(
+    'a first piece never moves the cursor back',
+    (await refusal(drawConversationAgentText(dataConnect, { ...first, toBlock: 1 }))) !== null,
+  )
+
+  await drawConversationAgentText(dataConnect, first)
+
+  check(
+    'a first piece moves the cursor to the next piece, keeps its citations and adds the unread',
+    (await readEntries())[2]?.drawnPieces === 1
+      && isSameJson((await readDrawn(first.messageId))?.citations, citations)
+      && (await readConversation(started.conversationId))?.unreadCount === 1,
+  )
+  check(
+    'a whole text is not drawn while a text is part drawn',
+    (await refusal(
+      drawConversationAgentText(dataConnect, { ...first, toPiece: undefined, toBlock: 4, messageId: createId() }),
+    )) !== null,
+  )
+
+  const piece = {
+    ...fenced,
+    entryId,
+    block: 2,
+    fromPiece: 1,
+    toBlock: 2,
+    toPiece: 2,
+    messageId: createId(),
+    position: 3,
+    text: 'Fir',
+    preview: { kind: 'AGENT_TEXT', text: 'Fir' },
+  }
+
+  await drawConversationAgentTextPiece(dataConnect, piece)
+
+  check(
+    'a later piece is drawn once, and adds no unread',
+    (await refusal(drawConversationAgentTextPiece(dataConnect, { ...piece, messageId: createId(), position: 4 })))
+      !== null && (await readConversation(started.conversationId))?.unreadCount === 1,
+  )
+
+  await drawConversationAgentTextPiece(dataConnect, {
+    ...piece,
+    fromPiece: 2,
+    toBlock: 4,
+    toPiece: 0,
+    messageId: createId(),
+    position: 4,
+    text: 'st',
+    preview: { kind: 'AGENT_TEXT', text: 'st' },
+  })
+
+  const drawnEntry = (await readEntries())[2]
+
+  check(
+    'the last piece moves the cursor past the text and back to piece 0',
+    drawnEntry?.drawnBlocks === 4 && drawnEntry.drawnPieces === 0,
+  )
+
+  const { data: requestContext } = await getConversationRequestContext(dataConnect, conversationKey)
+
+  check(
+    'a request’s context reads the member, the organization, the conversation and its runs’ usage',
+    requestContext.organization?.name === 'Checked organization'
+      && requestContext.userOrganization?.role !== undefined
+      && requestContext.conversations.length === 1
+      && requestContext.conversationRuns[0]?.id === started.runId,
+  )
+
+  await finishConversationRunWithNote(dataConnect, {
+    ...fenced,
+    status: ConversationRunStatus.FAILED,
+    noteKind: ConversationNoteKind.FULL,
+    noteId: createId(),
+    position: 5,
+    preview: { kind: 'NOTE', noteKind: 'FULL' },
+    isFull: true,
+    usage: settled,
+  })
+
+  check(
+    'a run ending full marks its conversation full',
+    (
+      await read<{ conversation: { isFull: boolean } | null }>(
+        `query ReadFull($id: UUID!) { conversation(id: $id) { isFull } }`,
+        { id: started.conversationId },
+      )
+    ).conversation?.isFull === true,
+  )
+
+  const finished = await start(userIds.drawer, membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(finished, 0))
+  await finishConversationRun(dataConnect, {
+    ...fence(finished, 1),
+    status: ConversationRunStatus.COMPLETED,
+    usage: settled,
+  })
+
+  const finishedLedger = await read<{ conversationRun: { usage: unknown } | null }>(
+    `query ReadFinished($id: UUID!) { conversationRun(id: $id) { usage } }`,
+    { id: finished.runId },
+  )
+
+  check('a run finishing settles its usage', isSameJson(finishedLedger.conversationRun?.usage, settled))
+}
+
 try {
   await setUp()
 
@@ -972,6 +1287,7 @@ try {
   await checkCaps()
   await checkPruning()
   await checkSweeping()
+  await checkReplies()
 } finally {
   await tearDown()
 }

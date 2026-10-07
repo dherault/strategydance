@@ -88,7 +88,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | --- | --- |
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
-| `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
+| `bun run dev:backend` | The backend on http://localhost:3003, against the emulators. It answers conversations with Claude, which costs money, unless started with `CONVERSATION_AGENT=placeholder`, which answers with a stand-in reply |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
@@ -429,6 +429,16 @@ A conversation is kept twice, once for Claude and once for the page, and
   the JSON text of exactly what was sent, never `Any`, so the transcript replays byte for byte.
   Data Connect stores `Any` as Postgres `jsonb`, which keeps one of two duplicate keys and refuses
   U+0000 in a string
+- A run's `usage` is a ledger (`conversationRunUsage`): each request is reserved at its measured
+  input before it is sent, in the fenced write that renews the lease, and settled from its answer
+  with the model, why it stopped and where its part was stored. A worker taking a run over charges
+  an unsettled request at its estimate. What a request came to, the turn to store or the run's
+  end, is kept until it is written, so a refused write is tried again and never paid for twice
+- A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
+  entries, one write each, the first with the run's context message. A crash between two leaves
+  the turn paused at its last stored part, which the ledger says, and the next worker sends its
+  continuation. A part is one response of a paused turn; a piece is one slice of a reply past 20000
+  characters, drawn as its own message, the entry's cursor keeping its piece (`drawnPieces`)
 - The thread, `ConversationMessage`, is a drawing of the transcript, and what the page reads. Its
   messages are ordered by `position`, never by time, since two mutations can share an instant: a
   mutation that inserts messages first claims their positions on the conversation's
@@ -581,14 +591,16 @@ in `utils/`, one concern per file.
   `strategydance-worker`, started with `SERVICE=worker` (`IS_WORKER`), mounts `routes/internal.ts`
   at `/internal` and nothing else, so neither answers the other's routes. A route Cloud Tasks or
   Cloud Scheduler calls goes in `routes/internal.ts`, never beside the backend's
-- The worker is private where the backend is public: its invoker check stays on, and only
+- The worker is private where the backend is public: its invoker check stays on, and
   `conversation-tasks@strategydance.iam.gserviceaccount.com`, the account Cloud Tasks and Cloud
-  Scheduler call it as with an OIDC token, holds `roles/run.invoker` on it, granted on the service
-  alone, never on the project. Cloud Run refuses any other caller before the code runs, so no
-  internal route verifies a token by hand. On the public backend it would have to, and a run of
-  up to fifteen minutes would share its instances and its timeout. The worker's timeout is fifteen
-  minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its address is Cloud
-  Run's deterministic one, `WORKER_URL`, which is also the token's audience
+  Scheduler call it as with an OIDC token, is the one account granted `roles/run.invoker` on it,
+  on the service alone, never on the project. Anybody holding Cloud Run's invoke permission across
+  the project can call it too, as they can any service there: its owners, and `deployer` through
+  `roles/run.admin`. Cloud Run refuses everybody else before the code runs, a caller with no token
+  included, so no internal route verifies a token by hand. On the public backend it would have to,
+  and a run of up to fifteen minutes would share its instances and its timeout. The worker's
+  timeout is fifteen minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its
+  address is Cloud Run's deterministic one, `WORKER_URL`, which is also the token's audience
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
   but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. For conversations'
@@ -650,6 +662,14 @@ in `utils/`, one concern per file.
   other, so they land in the order it made them and never beside a renewal of its own, and its
   steps are read afresh each time (`runConversation`), so taking over after a crash follows the
   same path as carrying on
+- What a run asks Claude lives in `domain/agent/`. Claude is reached through a `ClaudeClient`: the
+  real one on Anthropic's API, the placeholder `CONVERSATION_AGENT=placeholder` picks in
+  development, and the tests' scripted one, which records each request's bytes. Every request is
+  built by `buildConversationRequest`, in one key order, so the next request starts with the last
+  one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
+  hash, and the tools are frozen: a change to either costs every conversation its earlier
+  reasoning once, as `drop_block` lets a replay do, so it ships with a release that means to. Load
+  the `claude-api` skill before writing code that calls Claude
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
   conditions and refusals. `bun run check:conversation-runs`, in the backend's package, checks

@@ -643,9 +643,12 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   issued, and a code past its minute refused; a token for one module refused for another; a refresh
   rotating; the spent token presented again within 30 seconds issuing a new pair and stopping the
   one issued before it, presented a third time revoking the connection, and presented after 30
-  seconds revoking it too; consenting again replacing the earlier connection; approving refused for
-  an account that is not staff and for an organization it is not in; removing the member deleting
-  the connection with its tokens; a revoked token refused.
+  seconds revoking it too; consenting again replacing the earlier connection; Allow sent twice
+  making one connection and one code, an Allow racing a Deny deciding the request once, and a denied
+  request refused by a later Allow; a refresh honoured in its grace window stopping exactly the pair
+  its spent token issued, and leaving another connection's tokens, and the same connection's other
+  pair, alone; approving refused for an account that is not staff and for an organization it is not
+  in; removing the member deleting the connection with its tokens; a revoked token refused.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

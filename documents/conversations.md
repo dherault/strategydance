@@ -1204,13 +1204,16 @@ consent page from M17:
     read, or read and write when the client asked for both. Never the client's logo, which would
     load an address of its choosing. Allow and Deny call `POST /oauth/requests/:requestId/approve`
     and `…/deny`, with the member's ID token and App Check, as every route the app calls.
-  - Allow makes an `AgentConnection` and a code: valid for a minute, once, bound to the client, the
-    redirect address, the PKCE challenge, the resource and the scopes, and consumed under
-    `@check(this == 1)`; a code presented again revokes what was issued from it. The browser goes
-    back to the client's redirect address with `code`, `state` and `iss`, the exact issuer, since
-    RFC 9207 has every authorization response name it, a success as much as an error, and the
-    metadata says it does. Consenting again with the same client, organization and module replaces
-    the earlier connection.
+  - Allow and Deny each consume the request first, under `@check(this == 1)` on a request still
+    undecided and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the
+    loser is refused, and a denied request is never approved after. Allow then makes an
+    `AgentConnection` and a code: valid for a minute, once, bound to the client, the redirect
+    address, the PKCE challenge, the resource and the scopes, and consumed under `@check(this ==
+    1)`; a code presented again revokes what was issued from it. The browser goes back to the
+    client's redirect address with `code`, `state` and `iss`, the exact issuer, since RFC 9207 has
+    every authorization response name it, a success as much as an error, and the metadata says it
+    does. Consenting again with the same client, organization and module replaces the earlier
+    connection.
   - `POST /oauth/token` exchanges the code for an access token, valid for an hour, and a refresh
     token, for 30 days: 256 random bits each, opaque, stored only as a SHA-256 hash (`@unique`),
     with the resource they were issued for, which the verifier compares to the endpoint's, so a
@@ -1236,13 +1239,19 @@ consent page from M17:
     operations find a token by its hash before any `$userId` has been verified, an exception
     `CLAUDE.md` records beside the sign-in screen's public lookup.
 - **The data**: `OAuthClient` (a registered client's name and redirect addresses, `createdAt`,
-  `lastUsedAt`), `OAuthAuthorizationRequest`, `AgentConnection` (the membership, the client's id
-  and name, the module, the scopes, `createdAt`, `lastUsedAt`) and `AgentConnectionToken` (its
-  connection, its kind, its hash, its resource, `expiresAt`, `usedAt`). `AgentConnection`
-  references the member's `UserOrganization` row, unlike every other table, which references the
-  account and the organization apart: a connection belongs to the membership, so removing the member
-  or deleting the organization deletes it with its tokens, and a member invited back connects
-  again. The verifier still checks the membership and the staff gate on every request.
+  `lastUsedAt`), `OAuthAuthorizationRequest` (the client, its redirect address, the PKCE challenge,
+  the resource, the scopes asked for, `state` and `expiresAt`; once decided, `decidedAt`, and on
+  Allow its connection and its code's hash and expiry), `AgentConnection` (the membership, the
+  client's id and name, the module, the scopes granted, `createdAt`, `lastUsedAt`) and
+  `AgentConnectionToken` (its connection, its kind, its hash, its resource, `issuedFrom`,
+  `expiresAt`, `usedAt`). `issuedFrom` names what a token was issued from, the authorization request
+  whose code was exchanged or the refresh token rotated, so a code presented again revokes exactly
+  what it issued, and a spent refresh token honoured in its grace window stops exactly the pair
+  issued from it, however many exchanges run at once. `AgentConnection` references the member's
+  `UserOrganization` row, unlike every other table, which references the account and the
+  organization apart: a connection belongs to the membership, so removing the member or deleting the
+  organization deletes it with its tokens, and a member invited back connects again. The verifier
+  still checks the membership and the staff gate on every request.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
   by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
   `DeleteOrganization` for every reader, since it names only the administrator deleting and every

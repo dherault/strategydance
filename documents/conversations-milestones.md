@@ -627,16 +627,17 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   its `client_id` differs from its address, when its body was cut, or when it redirects; a
   registration with an `https` redirect refused, and a loopback and a `cursor://` one accepted; a
   loopback redirect matching on any port, and every other one exactly; an error before the client is
-  checked rendered and never redirected, and one after it redirected with `state` and `iss`;
-  `resource` missing, repeated or naming no module refused, and scopes past the module's; a token
-  request missing `resource`, or naming another than its code's or its refresh token's, refused; a
-  `plain` challenge and a wrong verifier refused; a code used twice refused, the second use revoking
-  what the first issued, and a code past its minute refused; a token for one module refused for
-  another; a refresh rotating; the spent token presented again within 30 seconds issuing a new pair
-  and stopping the one issued before it, presented a third time revoking the connection, and
-  presented after 30 seconds revoking it too; consenting again replacing the earlier connection;
-  approving refused for an account that is not staff and for an organization it is not in; removing
-  the member deleting the connection with its tokens; a revoked token refused.
+  checked rendered and never redirected, and one after it redirected with `state` and `iss`; a
+  success redirected with `code`, `state` and the exact `iss`; `resource` missing, repeated or
+  naming no module refused, scopes past the module's refused, and the write scope without the read
+  one refused; a token request missing `resource`, or naming another than its code's or its refresh
+  token's, refused; a `plain` challenge and a wrong verifier refused; a code used twice refused, the
+  second use revoking what the first issued, and a code past its minute refused; a token for one
+  module refused for another; a refresh rotating; the spent token presented again within 30 seconds
+  issuing a new pair and stopping the one issued before it, presented a third time revoking the
+  connection, and presented after 30 seconds revoking it too; consenting again replacing the earlier
+  connection; approving refused for an account that is not staff and for an organization it is not
+  in; removing the member deleting the connection with its tokens; a revoked token refused.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 

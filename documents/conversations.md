@@ -1177,7 +1177,9 @@ consent page from M17:
     unused a day later is pruned.
   - `GET /oauth/authorize` checks the client, its exact redirect address (a loopback one on any
     port, as RFC 8252 asks), PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's
-    address, the scopes a subset of that module's. Until the client and its redirect address are
+    address, and its scopes: the module's read scope, alone or with its write scope, since the
+    consent offers read, or read and write, and write never comes without read; a request naming no
+    scope asks for both, and the member chooses. Until the client and its redirect address are
     checked, an error is a page and never a redirect, so nobody can bounce a browser through it;
     after, an error redirects with `error`, `state` and `iss` (RFC 9207). A valid request is stored
     as an `OAuthAuthorizationRequest` for ten minutes, and the browser goes to the consent page,
@@ -1192,8 +1194,11 @@ consent page from M17:
     member's ID token and App Check, as every route the app calls.
   - Allow makes an `AgentConnection` and a code: valid for a minute, once, bound to the client, the
     redirect address, the PKCE challenge, the resource and the scopes, and consumed under
-    `@check(this == 1)`; a code presented again revokes what was issued from it. Consenting again
-    with the same client, organization and module replaces the earlier connection.
+    `@check(this == 1)`; a code presented again revokes what was issued from it. The browser goes
+    back to the client's redirect address with `code`, `state` and `iss`, the exact issuer, since
+    RFC 9207 has every authorization response name it, a success as much as an error, and the
+    metadata says it does. Consenting again with the same client, organization and module replaces
+    the earlier connection.
   - `POST /oauth/token` exchanges the code for an access token, valid for an hour, and a refresh
     token, for 30 days: 256 random bits each, opaque, stored only as a SHA-256 hash (`@unique`),
     with the resource they were issued for, which the verifier compares to the endpoint's, so a

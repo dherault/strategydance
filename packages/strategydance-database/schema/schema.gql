@@ -600,8 +600,10 @@ type ConversationRun @table @unique(fields: ["conversation", "number"]) @index(f
   # The transcript position of the `USER` entry it answers, where a retry goes back to. A resumed
   # run takes the anchor of the run it resumes
   anchorPosition: Int!
-  # Its context message, as JSON text, until it is stored in the transcript with the run's first
-  # reply. A `String` rather than `Any`, for the transcript's reason
+  # Its context message and the hash of its profile part, as JSON text: built once when the run
+  # starts, so a worker taking over sends the same bytes, and stored in the transcript with the
+  # run's first reply. It stays once stored. A `String` rather than `Any`, for the transcript's
+  # reason
   context: String
   # When the member asked it to stop, which its worker reads between steps
   stopRequestedAt: Timestamp
@@ -709,5 +711,8 @@ type ConversationTranscriptEntry @table @unique(fields: ["conversation", "positi
   # How many of its blocks the thread has drawn, advanced in the mutation that draws each, so a
   # worker taking over after a crash draws the rest and nothing twice
   drawnBlocks: Int! @default(value: 0)
+  # Within a text drawn in pieces, past 20000 characters, how many of its pieces are drawn: the
+  # cursor's piece, 0 between texts
+  drawnPieces: Int! @default(value: 0)
   createdAt: Timestamp! @default(expr: "request.time")
 }

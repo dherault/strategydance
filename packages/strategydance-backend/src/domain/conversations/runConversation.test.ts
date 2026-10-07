@@ -267,7 +267,9 @@ describe('runConversation', () => {
     const reference = await start()
     const agent = createAgent()
 
-    fake.users.set(AUTHOR, { isAdministrator: false })
+    const user = fake.users.get(AUTHOR)
+
+    if (user) user.isAdministrator = false
 
     expect(await runConversation(reference, { agent })).toBe('finished')
     expect(agent.respond).not.toHaveBeenCalled()

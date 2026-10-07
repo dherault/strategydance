@@ -152,6 +152,8 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
 #   worker taking over after a crash carries on
 # - the messages the run has drawn, which it may draw 100 of (`MAX_CONVERSATION_RUN_ENTRIES` in
 #   strategydance-core): the member's message that started it is not one
+# - the run's context, once built, and its usage, with each request it reserved and settled
+# - the run's replies in the transcript, which the thread draws one message at a time
 #
 # The reconcile route reads it too, with the caller the backend verified as `$userId`
 query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
@@ -173,6 +175,8 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     leaseExpiresAt
     stopRequestedAt
     anchorPosition
+    context
+    usage
   }
   conversation(id: $conversationId) {
     deletedAt
@@ -196,15 +200,30 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     role
     content
     drawnBlocks
+    drawnPieces
     run {
       id
     }
+  }
+  # The run's replies, its parts when `pause_turn` paused one, in order, each with its cursor:
+  # what the thread draws next is in the first not wholly drawn
+  runEntries: conversationTranscriptEntries(
+    where: { conversationId: { eq: $conversationId }, runId: { eq: $runId }, role: { eq: ASSISTANT } }
+    orderBy: [{ position: ASC }]
+    limit: 10
+  ) {
+    id
+    position
+    content
+    drawnBlocks
+    drawnPieces
   }
   # A note's kind is selected at the top level here, which has the generated SDK declare its enum
   conversationMessages(where: { runId: { eq: $runId }, kind: { ne: MEMBER_TEXT } }, limit: 100) {
     id
     kind
     noteKind
+    toolStatus
   }
 }
 
@@ -217,5 +236,77 @@ query GetClaimedConversations @auth(level: NO_ACCESS) {
     limit: 20
   ) {
     id
+  }
+}
+
+# A page of a conversation's transcript, after a position, in order, which the worker reads whole
+# before each request to Claude: each entry's content as the JSON text it was sent as, with its
+# role, its run and, on a context message, the hash of its profile part. A hundred at a time, since
+# a reply that searched the web carries its encrypted results. Only the caller's conversation in
+# that organization, whose author `$userId` is, as the backend verified it
+query GetConversationTranscript($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $afterPosition: Int!)
+@auth(level: NO_ACCESS) {
+  conversationTranscriptEntries(
+    where: {
+      conversationId: { eq: $conversationId }
+      position: { gt: $afterPosition }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: ASC }]
+    limit: 100
+  ) {
+    id
+    position
+    role
+    content
+    contextHash
+    run {
+      id
+    }
+  }
+}
+
+# What a run's request to Claude is built and measured from, besides the transcript:
+#
+# - the member, their membership and the organization, which the context message tells Claude of:
+#   the member's name, time zone, language, bio, role and job title, and the organization's name,
+#   brief and explored aspects
+# - the conversation's aspects
+# - its 20 latest runs' usage, whose latest request with its reply still in the transcript the
+#   measurement starts from, so a conversation about to pass Claude's context is marked full
+#
+# `$userId` is the uid the backend verified, never one a client sent
+query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  user(key: { id: $userId }) {
+    displayName
+    timezone
+    locale
+    bio
+  }
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    jobTitle
+  }
+  organization(id: $organizationId) {
+    name
+    brief
+    exploredAspects
+  }
+  conversations(
+    where: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    limit: 1
+  ) {
+    aspects
+  }
+  conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 20
+  ) {
+    id
+    usage
   }
 }

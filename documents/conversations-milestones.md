@@ -640,19 +640,21 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   an authorization request naming a client ID metadata document fetching nothing until the consent
   page reads it; the metadata exactly as Modules lists it, every field RFC 8414 requires included; a
   client ID metadata document fetched and kept, and refused when its `client_id` differs from its
-  address, when its body was cut, or when it redirects; a registration with an `https` redirect or a
-  private-use one such as `cursor://` refused, and a loopback one accepted; a loopback redirect
-  matching on any port, and every other one exactly; an error before the client is checked rendered
-  and never redirected, and one after it redirected with `state` and `iss`; a success redirected
-  with `code`, `state` and the exact `iss`; `resource` missing, repeated or naming no module
-  refused, scopes past the module's refused, and the write scope without the read one refused;
-  approving read and write for a client that asked for read refused, and a request for read and
-  write reduced to read, its token answer's `scope` saying read alone; a token request missing
-  `resource`, or naming another than its code's or its refresh token's, refused; an exchange missing
-  its `client_id` or its `redirect_uri`, or naming another client or address than its code's,
-  refused, and a refresh from another client than its token's refused; a `plain` challenge and a
-  wrong verifier refused; a code used twice refused, the second use revoking what the first issued,
-  and a code past its minute refused; a token for one module refused for another; a refresh
+  address, when its body was cut, when it redirects, when it is not valid JSON or lacks `client_id`,
+  `client_name` or `redirect_uris`, and when the client ID has no path; any parameter repeated in an
+  authorization or a token request refused, `state` and `code_verifier` among them; a registration
+  with an `https` redirect or a private-use one such as `cursor://` refused, and a loopback one
+  accepted; a loopback redirect matching on any port, and every other one exactly; an error before
+  the client is checked rendered and never redirected, and one after it redirected with `state` and
+  `iss`; a success redirected with `code`, `state` and the exact `iss`; `resource` missing, repeated
+  or naming no module refused, scopes past the module's refused, and the write scope without the
+  read one refused; approving read and write for a client that asked for read refused, and a request
+  for read and write reduced to read, its token answer's `scope` saying read alone; a token request
+  missing `resource`, or naming another than its code's or its refresh token's, refused; an exchange
+  missing its `client_id` or its `redirect_uri`, or naming another client or address than its
+  code's, refused, and a refresh from another client than its token's refused; a `plain` challenge
+  and a wrong verifier refused; a code used twice refused, the second use revoking what the first
+  issued, and a code past its minute refused; a token for one module refused for another; a refresh
   rotating; the spent token presented again within 30 seconds answered with the very pair its first
   use issued, however many times and in whichever order the answers return, and presented after 30
   seconds revoking the connection; the two successors of one spent token differing; a duplicate

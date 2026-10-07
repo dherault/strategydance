@@ -1194,18 +1194,22 @@ consent page from M17:
     and `authorization_response_iss_parameter_supported: true`. claude.ai and ChatGPT use a client
     ID metadata document when the metadata offers it; Cursor registers dynamically.
   - Every client is public: PKCE, S256 only, proves that whoever exchanges a code is whoever asked
-    for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address serving
-    the client's metadata, fetched through `fetchOutbound` with no redirect and at most 5 KB, a
-    truncated body refused, its `client_id` equal to its address, kept for an hour and a failure for
-    a minute. It is fetched only once a member has signed in, when the consent page reads the
-    request, as the specification's flow has it, so nobody who is not signed in can make the backend
-    fetch an address of their choosing. Dynamic client registration (`POST /oauth/register`, RFC
-    7591), which the specification deprecates and Cursor still needs, takes redirect addresses on
-    loopback only: the specification requires every redirect address to be `localhost` or `https`,
-    which rules out a private-use scheme such as `cursor://`, and an `https` one from a registration
-    would prove no domain, so a client redirecting to a website proves its domain through CIMD.
-    Registration is rate-limited per address and capped in all, and one unused a day later is
-    pruned.
+    for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address with a
+    path, serving the client's metadata, fetched through `fetchOutbound` with no redirect and at
+    most 5 KB, a truncated body refused, valid JSON holding at least `client_id`, `client_name` and
+    `redirect_uris`, its `client_id` equal to its address, kept for an hour and a failure for a
+    minute. It is fetched only once a member has signed in, when the consent page reads the request,
+    as the specification's flow has it, so nobody who is not signed in can make the backend fetch an
+    address of their choosing. Dynamic client registration (`POST /oauth/register`, RFC 7591), which
+    the specification deprecates and Cursor still needs, takes redirect addresses on loopback only:
+    the specification requires every redirect address to be `localhost` or `https`, which rules out
+    a private-use scheme such as `cursor://`, and an `https` one from a registration would prove no
+    domain, so a client redirecting to a website proves its domain through CIMD. Registration is
+    rate-limited per address and capped in all, and one unused a day later is pruned.
+    - Every parameter of an authorization or a token request may occur once: a request repeating any
+      of them, `client_id`, `redirect_uri`, `scope`, `state`, `code` or a PKCE field as much as
+      `response_type`, `resource` or `grant_type`, is refused, since parsers disagree on which copy
+      counts.
   - `GET /oauth/authorize` checks `response_type`, exactly one and `code`, the only flow it serves,
     the client, PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's address, and its
     scopes: the module's read scope, alone or with its write scope, since the consent offers read,

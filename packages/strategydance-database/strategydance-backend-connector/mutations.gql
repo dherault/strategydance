@@ -467,6 +467,52 @@ mutation InterruptDeadConversationRun(
   )
 }
 
+# Pushes a queued run's lease twenty minutes out again, once the backend has seen its task still in
+# Cloud Tasks' queue: a queued run's lease only says when to ask the queue whether the run is still
+# coming, and a backlog can outlast it. Only while the run is still queued, in the caller's
+# conversation. One conditional update and no transaction, and the backend reads whether it moved
+# the lease.
+#
+# `$conversationId` is the run's own, which its page's live run refreshes on, so the page waits for
+# the new lease before it asks again
+mutation RenewQueuedConversationRunLease(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+) @auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { minutes: 20 } } }
+  )
+}
+
+# Brings a queued run's lease in to now, when the backend could not queue its task, so its page asks
+# the backend to reconcile it at once rather than twenty minutes later: the reconcile queues the task
+# again while the run is young, and the member is not left waiting on a run nothing will deliver.
+# Only while the run is still queued, in the caller's conversation.
+#
+# `$conversationId` is the run's own, which its page's live run refreshes on
+mutation ExpireQueuedConversationRunLease(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+) @auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { leaseExpiresAt_expr: "request.time" }
+  )
+}
+
 # Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
 # attempt, which every later write of that worker matches, so a worker that lost the run writes
 # nothing more. `$attempts` is the count the worker read, so of two workers claiming at once only
@@ -866,6 +912,31 @@ mutation InterruptConversationRun(
       kind: NOTE
       noteKind: INTERRUPTED
       position: $position
+    }
+  )
+}
+
+# The daily sweep's first step: claims every conversation deleted over a day ago, past its Undo,
+# that no sweep has claimed yet, whoever's it is. `RestoreConversation` refuses a claimed one, and
+# both write the same row, so an Undo and a sweep never both win: whichever commits second finds
+# the row no longer matching. What is claimed is then deleted, by `DeleteClaimedConversations`
+mutation ClaimDeletedConversations @auth(level: NO_ACCESS) {
+  conversation_updateMany(
+    where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } }, pruneClaimedAt: { isNull: true } }
+    data: { pruneClaimedAt_expr: "request.time" }
+  )
+}
+
+# Deletes claimed conversations, with their messages, runs and transcript, which cascade. Only those
+# still deleted over a day ago, so a conversation is never deleted on its claim alone. The ids are
+# a batch `GetClaimedConversations` read, so each delete stays bounded. Deleting one twice deletes
+# nothing, so a sweep that failed after claiming is finished by the next
+mutation DeleteClaimedConversations($ids: [UUID!]!) @auth(level: NO_ACCESS) {
+  conversation_deleteMany(
+    where: {
+      id: { in: $ids }
+      pruneClaimedAt: { isNull: false }
+      deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
     }
   )
 }

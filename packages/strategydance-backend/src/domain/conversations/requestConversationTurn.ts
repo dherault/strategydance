@@ -36,6 +36,7 @@ import {
   settleFailedConversationRequest,
   settleInterruptedConversationRequest,
 } from '~domain/conversations/conversationRunUsage'
+import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
@@ -52,6 +53,17 @@ type RequestConversationTurnInput = {
   // run's parts paused, which count toward its five pauses
   pausedRequest: ConversationRequestUsage | null
   storedPauses: number
+  // When the run was first claimed, which its time limits count from
+  startedAt: string
+  limits: ConversationRunLimits
+}
+
+// How many requests a run sends at most, how long after it was first claimed it starts none, and
+// when the stream of the one going then is cut
+export type ConversationRunLimits = {
+  maxRequests: number
+  maxDurationMs: number
+  streamDeadlineMs: number
 }
 
 // A part of the turn, as Claude answered it, with its request in the ledger and the entry it is
@@ -97,6 +109,9 @@ export type ConversationTurnOutcome =
   - an error of Claude's API, after the SDK's own retries, `max_tokens`, a sixth pause and any other
     stop: the run fails with its note, the request sent once, and charged what the stream reported
     it used when it failed partway
+  - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
+    sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
+    one that failed partway. The run fails with its note
 
   Nothing of a turn that ends so is stored, the parts held in memory included, and every ending
   says why in the run's `failure`, for the logs
@@ -110,6 +125,8 @@ async function requestConversationTurn({
   usage: initialUsage,
   pausedRequest,
   storedPauses,
+  startedAt,
+  limits,
 }: RequestConversationTurnInput): Promise<ConversationTurnOutcome> {
   const reference = { organizationId: fence.organizationId, userId: fence.userId, conversationId: fence.conversationId }
   const [entries, { data: requestContext }] = await Promise.all([
@@ -141,6 +158,21 @@ async function requestConversationTurn({
   let pauses = storedPauses
 
   for (;;) {
+    // A run at a limit sends no further request, which drops the parts of a turn held in memory
+    if (usage.requests.length >= limits.maxRequests) {
+      return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage) }
+    }
+
+    if (Date.now() - Date.parse(startedAt) >= limits.maxDurationMs) {
+      return {
+        kind: 'ending',
+        ending: fail(
+          `The run passed ${Math.round(limits.maxDurationMs / 1000)} seconds since it was first claimed`,
+          usage,
+        ),
+      }
+    }
+
     const messages = buildConversationMessages({
       entries,
       context: context?.content ?? null,
@@ -203,28 +235,41 @@ async function requestConversationTurn({
     // The message so far, once the stream has reported its usage
     const streamed: { message: BetaMessage | null } = { message: null }
 
+    const request = createConversationRequestSignal({
+      signal,
+      deadline: Date.parse(startedAt) + limits.streamDeadlineMs,
+    })
+
     try {
       message = await client.stream(buildConversationRequest(messages), {
-        signal,
+        signal: request.signal,
         onProgress: line => lease.setStep(line),
         onUsage: snapshot => {
           streamed.message = snapshot
         },
       })
     } catch (error) {
+      // What the stream used is charged as an estimate, its output counted only by the final delta,
+      // or nothing when the API refused it before it started
+      const settled = streamed.message
+        ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
+        : settleFailedConversationRequest(usage, reserved.index)
+
+      if (request.readReason() === 'deadline') {
+        const failure = `The stream of request ${reserved.index} was cut ${Math.round(limits.streamDeadlineMs / 1000)} seconds after the run was first claimed`
+
+        logger.warn(`Conversation run ${fence.runId}: ${failure}`)
+
+        return { kind: 'ending', ending: fail(failure, settled) }
+      }
+
       if (signal.aborted || !(error instanceof Anthropic.APIError)) throw error
 
       logger.error(`Conversation run ${fence.runId}: Claude's API failed request ${reserved.index}`, error)
 
-      return {
-        kind: 'ending',
-        ending: fail(
-          describeApiError(error, Boolean(streamed.message)),
-          streamed.message
-            ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
-            : settleFailedConversationRequest(usage, reserved.index),
-        ),
-      }
+      return { kind: 'ending', ending: fail(describeApiError(error, Boolean(streamed.message)), settled) }
+    } finally {
+      request.dispose()
     }
 
     logRequest(fence.runId, reserved.index, message)

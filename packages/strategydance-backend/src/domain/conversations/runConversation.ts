@@ -17,6 +17,12 @@ import {
 
 import type { ClaudeClient, ConversationRunFence, ConversationRunReference } from '~types'
 
+import {
+  CONVERSATION_RUN_MAX_DURATION_MS,
+  CONVERSATION_RUN_MAX_REQUESTS,
+  CONVERSATION_RUN_STREAM_DEADLINE_MS,
+} from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
@@ -31,7 +37,10 @@ import createConversationRunLease, { type ConversationRunLease } from '~domain/c
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
 import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
-import requestConversationTurn, { type ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
+import requestConversationTurn, {
+  type ConversationRunLimits,
+  type ConversationTurnOutcome,
+} from '~domain/conversations/requestConversationTurn'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
 
 // How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
@@ -45,6 +54,14 @@ type Options = {
   client?: ClaudeClient
   // How long the worker waits after a failed step, times the failures in a row
   retryDelayMs?: number
+  // The run's limits, which a test can bring in
+  limits?: Partial<ConversationRunLimits>
+}
+
+const LIMITS: ConversationRunLimits = {
+  maxRequests: CONVERSATION_RUN_MAX_REQUESTS,
+  maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
+  streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -76,7 +93,7 @@ type ConversationRunContext = GetConversationRunContextData
 */
 async function runConversation(
   reference: ConversationRunReference,
-  { client = conversationClaudeClient, retryDelayMs = 500 }: Options = {},
+  { client = conversationClaudeClient, retryDelayMs = 500, limits }: Options = {},
 ): Promise<'finished' | 'held'> {
   const context = await readContext(reference)
   const [run] = context.conversationRuns
@@ -122,7 +139,14 @@ async function runConversation(
   const lease = createConversationRunLease({ fence, onLost: () => controller.abort() })
 
   try {
-    return await takeSteps({ fence, lease, signal: controller.signal, client, retryDelayMs })
+    return await takeSteps({
+      fence,
+      lease,
+      signal: controller.signal,
+      client,
+      retryDelayMs,
+      limits: { ...LIMITS, ...limits },
+    })
   } finally {
     await lease.stop()
   }
@@ -134,9 +158,10 @@ type StepsInput = {
   signal: AbortSignal
   client: ClaudeClient
   retryDelayMs: number
+  limits: ConversationRunLimits
 }
 
-async function takeSteps({ fence, lease, signal, client, retryDelayMs }: StepsInput) {
+async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits }: StepsInput) {
   const reference = toReference(fence)
   let failedSteps = 0
   // What a request came to and is not written yet
@@ -149,7 +174,7 @@ async function takeSteps({ fence, lease, signal, client, retryDelayMs }: StepsIn
     if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
 
     try {
-      const result = await takeStep({ context, fence, lease, signal, client, outcome })
+      const result = await takeStep({ context, fence, lease, signal, client, limits, outcome })
 
       outcome = result === 'ended' || result === 'next' ? null : result
       failedSteps = 0
@@ -192,6 +217,7 @@ async function takeStep({
   lease,
   signal,
   client,
+  limits,
   outcome,
 }: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
   const { conversation } = context
@@ -249,6 +275,8 @@ async function takeStep({
       usage,
       pausedRequest,
       storedPauses: countStoredPauses(context, usage),
+      startedAt: run?.startedAt ?? new Date().toISOString(),
+      limits,
     })
   }
 
@@ -281,6 +309,8 @@ async function takeStep({
     usage,
     pausedRequest: null,
     storedPauses: 0,
+    startedAt: run?.startedAt ?? new Date().toISOString(),
+    limits,
   })
 }
 

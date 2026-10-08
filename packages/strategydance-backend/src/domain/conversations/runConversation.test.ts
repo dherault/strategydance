@@ -43,6 +43,18 @@ function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// Waits until a request's signal is aborted, or a second has gone
+function waitForAbort(signal: AbortSignal) {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, 1000)
+
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer)
+      resolve(null)
+    })
+  })
+}
+
 // A message Claude answers with, a short reply unless a test says
 function answer(
   content: BetaContentBlock[] = [{ type: 'text', text: REPLY, citations: null }],
@@ -599,6 +611,57 @@ describe('runConversation', () => {
     expect(readThread(reference).slice(1)).toEqual([{ kind: 'NOTE', text: null, noteKind: 'REFUSED', position: 1 }])
     expect(readUsage(reference).requests.map(({ stopReason }) => stopReason)).toEqual(['pause_turn', 'refusal'])
     expect(readConversation(reference)?.activeRunId).toBeNull()
+  })
+
+  test('sends no request past its requests, dropping the parts of the turn it held, and fails with its note', async () => {
+    const reference = await start()
+    const paused = Array.from({ length: 3 }, () =>
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' }),
+    )
+    const scripted = createClient(paused)
+
+    expect(await runConversation(reference, { client: scripted.client, limits: { maxRequests: 2 } })).toBe('finished')
+    expect(scripted.requests).toHaveLength(2)
+    expect(readRun(reference)).toMatchObject({ status: 'FAILED', failure: 'The run sent its 2 requests' })
+    expect(readEntries(reference)).toHaveLength(1)
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
+  test('sends no request once its minutes since it was first claimed have gone, a worker taking it over included', async () => {
+    const reference = await start()
+
+    await claim(reference)
+
+    const run = readRun(reference)
+
+    if (run) run.startedAt = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+
+    expireLease(reference)
+
+    const scripted = createClient()
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(readRun(reference)).toMatchObject({
+      status: 'FAILED',
+      failure: 'The run passed 600 seconds since it was first claimed',
+    })
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
+  test('cuts a stream still going at the run’s deadline, charged as an estimate, and fails with its note', async () => {
+    const reference = await start()
+    const scripted = createClient([answer()], { meanwhile: waitForAbort })
+
+    expect(await runConversation(reference, { client: scripted.client, limits: { streamDeadlineMs: 50 } })).toBe(
+      'finished',
+    )
+    expect(readRun(reference)?.status).toBe('FAILED')
+    expect(readRun(reference)?.failure).toContain('The stream of request 0 was cut')
+    expect(readEntries(reference)).toHaveLength(1)
+    expect(readUsage(reference).requests).toMatchObject([
+      { isSettled: true, isEstimated: true, inputTokens: 1000, outputTokens: 50 },
+    ])
   })
 
   test('charges a stream that failed partway what it reported using, as an estimate, and one refused before it nothing', async () => {

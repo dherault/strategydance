@@ -171,6 +171,7 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     status
     attempts
     createdAt
+    startedAt
     membershipCreatedAt
     leaseExpiresAt
     stopRequestedAt

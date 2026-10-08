@@ -164,8 +164,10 @@ function createConversationsRouter() {
   const answersBodySchema = z.object({
     // The question answered, a message of the conversation
     messageId: z.string().regex(UUID_PATTERN),
-    // The options chosen, by their text, and the member's own words
-    selected: z.array(z.string().max(MAX_QUESTION_OPTION_LENGTH)).max(MAX_QUESTION_OPTIONS),
+    // The options chosen, by their text, and the member's own words, bounded here at two code units
+    // a character, since a character outside the Basic Multilingual Plane takes two: the answer's
+    // check against its question holds them to the question's options and to 500 characters
+    selected: z.array(z.string().max(MAX_QUESTION_OPTION_LENGTH * 2)).max(MAX_QUESTION_OPTIONS),
     other: z
       .string()
       .max(MAX_ANSWER_OTHER_LENGTH * 2)

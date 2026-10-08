@@ -1159,7 +1159,7 @@ function createConversationDatabaseFake() {
 
       if (
         variables.answerSelected.length > 6
-        || (other !== null && other.length > 500)
+        || (other !== null && [...other].length > 500)
         || (!variables.answerSelected.length && other === null)
       ) {
         refuse('An answer chooses at most 6 options, or says something in at most 500 characters')

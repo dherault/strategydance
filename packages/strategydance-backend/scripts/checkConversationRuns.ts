@@ -640,13 +640,19 @@ async function checkDeadRuns() {
   )
 
   await expireLease(started.runId)
-  await interruptDeadConversationRun(dataConnect, interrupt)
+  await interruptDeadConversationRun(dataConnect, { ...interrupt, failure: 'Its worker stopped renewing its lease' })
 
   check(
-    'a run past its lease is finalized as interrupted, with its note',
+    'a run past its lease is finalized as interrupted, with its note and why',
     (await readRun(started.runId))?.status === ConversationRunStatus.INTERRUPTED
       && (await readConversation(started.conversationId))?.activeRunId === null
-      && (await readMessageAt(started.conversationId, 1))?.noteKind === ConversationNoteKind.INTERRUPTED,
+      && (await readMessageAt(started.conversationId, 1))?.noteKind === ConversationNoteKind.INTERRUPTED
+      && (
+        await read<{ conversationRun: { failure: string | null } | null }>(
+          `query ReadDeadFailure($id: UUID!) { conversationRun(id: $id) { failure } }`,
+          { id: started.runId },
+        )
+      ).conversationRun?.failure === 'Its worker stopped renewing its lease',
   )
 }
 

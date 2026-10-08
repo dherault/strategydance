@@ -264,7 +264,12 @@ async function takeStep({
   }
 
   if (!isAuthorStill(context, fence.membershipCreatedAt)) {
-    return end({ kind: 'interrupted', reference: toReference(fence), attempts: fence.attempts })
+    return end({
+      kind: 'interrupted',
+      reference: toReference(fence),
+      attempts: fence.attempts,
+      failure: describeAuthorChange(context, fence.membershipCreatedAt),
+    })
   }
 
   if (!conversation || conversation.deletedAt) {
@@ -436,7 +441,12 @@ async function interruptBeforeClaiming(
   for (let failedTries = 1; ; failedTries++) {
     try {
       await endConversationRun({
-        ending: { kind: 'interrupted', reference, attempts },
+        ending: {
+          kind: 'interrupted',
+          reference,
+          attempts,
+          failure: describeAuthorChange(context, context.conversationRuns[0]?.membershipCreatedAt ?? ''),
+        },
         fence: null,
         lease: null,
         position: context.conversation?.nextMessagePosition ?? 0,
@@ -478,6 +488,15 @@ function isInFlight(status: ConversationRunStatus) {
 
 function isPast(time: string | null | undefined) {
   return Boolean(time) && Date.parse(time ?? '') < Date.now()
+}
+
+// Why a run's author no longer passes for it, for the logs
+function describeAuthorChange(context: ConversationRunContext, membershipCreatedAt: string) {
+  if (!context.userOrganization) return 'Its author left the organization'
+  if (context.userOrganization.createdAt !== membershipCreatedAt)
+    return 'Its author was invited back since it was queued'
+
+  return 'Its author is no longer staff'
 }
 
 // Whether the run's author is still the member it was queued under, and still staff while

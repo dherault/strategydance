@@ -914,6 +914,7 @@ describe('runConversation', () => {
     expect(readEntries(reference)).toHaveLength(1)
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'INTERRUPTED', position: 1 })
     expect(readConversation(reference)?.activeRunId).toBeNull()
+    expect(readRun(reference)?.failure).toBe('Its author left the organization')
   })
 
   test('never takes up the run of a member invited back before it was delivered', async () => {
@@ -953,7 +954,7 @@ describe('runConversation', () => {
 
     expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
     expect(scripted.requests).toHaveLength(0)
-    expect(readRun(reference)?.status).toBe('INTERRUPTED')
+    expect(readRun(reference)).toMatchObject({ status: 'INTERRUPTED', failure: 'Its author is no longer staff' })
   })
 
   test('sends no request from a run that has drawn its 100 entries, and fails it with a note', async () => {

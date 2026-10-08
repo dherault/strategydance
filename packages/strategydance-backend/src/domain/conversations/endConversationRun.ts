@@ -23,7 +23,7 @@ import deriveConversationMessageId from '~domain/conversations/deriveConversatio
     further request or after Claude's API failed it, full when its next request would not fit
     Claude's context, which marks its conversation so, stopped as its member asked, or refused
   - `interrupted`: its author is no longer the member it was queued under, fenced on the run alone,
-    at the attempt the worker read or claimed, with the note saying so
+    at the attempt the worker read or claimed, with the note saying so and why
 */
 export type ConversationRunEnding =
   | {
@@ -41,7 +41,7 @@ export type ConversationRunEnding =
       | { status: ConversationRunStatus.STOPPED; noteKind: ConversationNoteKind.STOPPED }
       | { status: ConversationRunStatus.REFUSED; noteKind: ConversationNoteKind.REFUSED }
     ))
-  | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number }
+  | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number; failure: string }
 
 type EndConversationRunInput = {
   ending: ConversationRunEnding
@@ -69,6 +69,7 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
         noteId: deriveConversationMessageId(ending.reference.runId, 'note'),
         position,
         preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
+        failure: ending.failure,
       }),
     )
 

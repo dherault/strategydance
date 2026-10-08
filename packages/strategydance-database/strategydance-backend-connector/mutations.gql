@@ -407,8 +407,8 @@ mutation SendConversationMessage(
 # Finalizes a run that died with its worker, which a route finds past its lease: queued and never
 # claimed in time, or claimed by a worker that stopped renewing. It ends `INTERRUPTED`, its calls
 # still running are cancelled, and the thread says so in a note, at a position claimed on the
-# conversation's counter. Only while the run is still dead, so a worker that renewed its lease in
-# the meantime keeps it.
+# conversation's counter, and `$failure` says why, for the logs. Only while the run is still dead,
+# so a worker that renewed its lease in the meantime keeps it.
 #
 # The conversation's row is written once: it takes the note and lets go of the run, which it names.
 # Or which it names no longer, which can only be a run something else let go of, and the note is
@@ -423,6 +423,7 @@ mutation InterruptDeadConversationRun(
   $noteId: UUID!
   $position: Int!
   $preview: Any!
+  $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -431,7 +432,7 @@ mutation InterruptDeadConversationRun(
       leaseExpiresAt: { lt_time: { now: true } }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
-    data: { status: INTERRUPTED, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is not dead")
   conversationMessage_updateMany(
     where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
@@ -1433,9 +1434,9 @@ mutation FinishConversationRunWithNote(
 }
 
 # Ends a run whose author is no longer the member it was queued under, removed, invited back since
-# or no longer staff, as `INTERRUPTED`, with its note, so nothing is left for a later delivery to
-# take up. Fenced on the run alone, at the attempt the worker read or claimed, since the membership
-# the other writes match is the one that is gone
+# or no longer staff, as `INTERRUPTED`, with its note and why, for the logs, so nothing is left for a
+# later delivery to take up. Fenced on the run alone, at the attempt the worker read or claimed,
+# since the membership the other writes match is the one that is gone
 mutation InterruptConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -1445,6 +1446,7 @@ mutation InterruptConversationRun(
   $noteId: UUID!
   $position: Int!
   $preview: Any!
+  $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -1453,7 +1455,7 @@ mutation InterruptConversationRun(
       attempts: { eq: $attempts }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
-    data: { status: INTERRUPTED, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is no longer this worker's")
   conversationMessage_updateMany(
     where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }

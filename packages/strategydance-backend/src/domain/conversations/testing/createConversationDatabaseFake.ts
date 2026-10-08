@@ -920,6 +920,7 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
       writeNote(noteConversation, variables, 'INTERRUPTED')
 
       return { conversationRun_updateMany: 1 }
@@ -1475,6 +1476,7 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
       writeNote(noteConversation, variables, 'INTERRUPTED')
 
       return { conversationRun_updateMany: 1 }

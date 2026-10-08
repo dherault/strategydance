@@ -93,7 +93,7 @@ describe('stopConversationRun', () => {
     expireLease(dead)
 
     expect(await stopConversationRun(dead)).toEqual({ outcome: 'stopped' })
-    expect(readRun(dead)?.status).toBe('INTERRUPTED')
+    expect(readRun(dead)).toMatchObject({ status: 'INTERRUPTED', failure: 'Its worker stopped renewing its lease' })
     expect(readThread(dead).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'INTERRUPTED' })
 
     expect(await stopConversationRun(dead)).toEqual({ outcome: 'stopped' })

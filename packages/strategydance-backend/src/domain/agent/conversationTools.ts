@@ -1,5 +1,8 @@
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
+// The tool the agent asks the member a question with, which the thread draws as a question
+export const ASK_USER_TOOL_NAME = 'ask_user'
+
 /*
   The tools every conversation's requests send, the same list in the same order for all of them,
   since a change to it, like one to the system prompt, makes existing conversations lose their

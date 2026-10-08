@@ -250,11 +250,11 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
 # What a retry reads of the runs on the anchor it goes back to, the member's entry the retried run
 # answers, besides the control context:
 #
-# - the runs on that anchor, the retried run and those it resumed, latest first, whose messages the
-#   retry deletes and the page drops. A hundred at most: an earlier retry deleted what older ones
-#   drew
-# - how many messages those runs drew, which the retry deletes; the member's message that started
-#   one names it too, and stays
+# - the runs on that anchor, the retried run and those it resumed, latest first, which a retry
+#   received again answers with, the messages they drew being gone already
+# - how many messages those runs drew, which the retry deletes, and the run of each, newest first,
+#   which the page drops: as many as a conversation can hold, past its 2000 by what the last runs
+#   drew. The member's message that started one names it too, and stays
 # - the newest message the retry keeps that is not an aspects note, which the preview then shows
 #
 # Only the caller's conversation in that organization
@@ -282,6 +282,19 @@ query GetConversationRetryContext(
     }
   ) {
     _count
+  }
+  drawnRuns: conversationMessages(
+    where: {
+      kind: { ne: MEMBER_TEXT }
+      run: { anchorPosition: { eq: $anchorPosition } }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 5000
+  ) {
+    run {
+      id
+    }
   }
   keptMessages: conversationMessages(
     # One `_and`, because a filter cannot put `_or` beside plain fields

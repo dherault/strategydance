@@ -202,6 +202,28 @@ describe('retryConversationRun', () => {
     expectTranscriptKept(reference)
   })
 
+  test('answers with the runs whose messages went, not every run on the anchor', async () => {
+    let reference = await start()
+
+    // Stopped and resumed three times, each resume taking the stopped note away
+    for (let times = 0; times < 3; times++) {
+      await stopConversationRun(reference)
+
+      const resumed = await resumeConversationRun(reference)
+
+      if (resumed.outcome !== 'resumed') throw new Error(`The resume answered ${resumed.outcome}`)
+
+      reference = { ...reference, runId: resumed.runId }
+    }
+
+    await fail(reference)
+
+    const anchored = [...fake.runs.values()].filter(({ conversationId }) => conversationId === reference.conversationId)
+
+    expect(anchored).toHaveLength(4)
+    expect((await retried(reference)).removedRunIds).toEqual([reference.runId])
+  })
+
   test('sets nothing unread, and a mark as read sent before it lands leaves the next reply unread', async () => {
     const reference = await start()
     const fence = await claim(reference)

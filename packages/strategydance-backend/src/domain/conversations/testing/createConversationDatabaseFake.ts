@@ -672,7 +672,7 @@ function createConversationDatabaseFake() {
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
       ) {
-        return { anchorRuns: [], drawnMessages: [{ _count: 0 }], keptMessages: [] }
+        return { anchorRuns: [], drawnMessages: [{ _count: 0 }], drawnRuns: [], keptMessages: [] }
       }
 
       const drawn = new Set(drawnOnAnchor(conversation.id, variables.anchorPosition))
@@ -689,6 +689,10 @@ function createConversationDatabaseFake() {
           .slice(0, 100)
           .map(run => ({ id: run.id })),
         drawnMessages: [{ _count: drawn.size }],
+        drawnRuns: [...drawn]
+          .sort((a, b) => b.position - a.position)
+          .slice(0, 5000)
+          .map(message => ({ run: message.runId ? { id: message.runId } : null })),
         keptMessages: kept.slice(0, 1).map(message => ({
           id: message.id,
           kind: message.kind,

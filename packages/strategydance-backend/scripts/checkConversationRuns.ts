@@ -21,6 +21,7 @@ import {
   getConversationRetryContext,
   getConversationRunContext,
   getConversationRunControlContext,
+  getConversationRunLedgers,
   getConversationRunStop,
   getConversationTranscript,
   getConversationSendContext,
@@ -919,11 +920,25 @@ async function checkRetrying() {
   const { data: context } = await getConversationRetryContext(dataConnect, { ...key, anchorPosition: 0 })
 
   check(
-    'a retry reads the runs on the anchor, what they drew, and the newest message it keeps',
+    'a retry reads the runs on the anchor, what they drew and by which run, and the newest message it keeps',
     context.anchorRuns.length === 1
       && context.anchorRuns[0]?.id === started.runId
       && context.drawnMessages[0]?._count === 2
+      && context.drawnRuns.length === 2
+      && context.drawnRuns.every(({ run }) => run?.id === started.runId)
       && context.keptMessages[0]?.id === started.messageId,
+  )
+
+  const { data: ledgers } = await getConversationRunLedgers(dataConnect, { ...key, runIds: [started.runId] })
+  const { data: unseenLedgers } = await getConversationRunLedgers(dataConnect, {
+    ...key,
+    userId: userIds.member,
+    runIds: [started.runId],
+  })
+
+  check(
+    'a run’s ledger is read by its id, and by nobody else',
+    ledgers.conversationRuns[0]?.id === started.runId && unseenLedgers.conversationRuns.length === 0,
   )
 
   const runId = createId()

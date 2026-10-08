@@ -155,7 +155,8 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
     return {
       outcome: 'retried',
       runId: retryingRunId,
-      removedRunIds: retryContext.anchorRuns.map(({ id }) => id),
+      // The runs whose messages went, however many runs share the anchor
+      removedRunIds: [...new Set(retryContext.drawnRuns.flatMap(({ run }) => (run ? [run.id] : [])))],
     }
   }
 }

@@ -15,7 +15,9 @@ newer web search came with it. Probed the same day with `bun run probe:claude`, 
 passing: what it found is written where it applies. Revised on 2026-10-07, before M10, as David
 chose: knowledge reaches the agent through the Knowledge module, an MCP server of Strategy Dance's
 own that external agents can add too (see Modules), which took M14 to M18 and moved the milestones
-after them by four. When a decision changes, change it here first.
+after them by four. Revised on 2026-10-08, in M10: client tool calls, and stopping, resuming and
+answering them, moved to M11, which builds the first client tool, as David chose. When a decision
+changes, change it here first.
 
 ## The design
 
@@ -620,7 +622,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     is answered as one the member stopped, as before.
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
-  with a note.
+  with a note. The 10 minutes count from the run's first claim, so a worker taking it over has what
+  is left: no request starts past them, and a stream still going 14 minutes after the claim is cut,
+  charged as one that failed partway, so the run ends with its note inside the task's delivery
+  (M10). Every run that ends with a note says why in its `failure`, for the logs.
 - **Size.** One cap on the conversation, beside the run's own limits, with nothing reserved ahead.
   Both are checked before each request to Claude, never after it, so no paid turn is thrown away:
   - A run sends no further request once it has drawn `MAX_CONVERSATION_RUN_ENTRIES` (100) entries,
@@ -790,12 +795,15 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   `ERROR_CODE_CONVERSATION_BUSY` and is retried by the browser, an answer's continuation does nothing,
   its answer already sent with the winner's results. A script under `scripts/` races an answer
   against a send in the emulators.
-- **Stop** (`POST …/stop`) sets `stopRequestedAt`. The worker aborts the stream (the turn being
-  written is dropped), or lets the calls already running finish and records them, so nothing is left
-  in doubt, and cancels the ones not started: they become `CANCELLED`, a `STOPPED` note is added, the
-  run ends `STOPPED`. A dead run is finalized by the route itself, and so is a run still `QUEUED`,
-  at once and conditionally on its still being queued, so the member can send again straight away;
-  its task, if it is delivered later, finds the run finished and does nothing.
+- **Stop** (`POST …/runs/:runId/stop`, as Resume and Retry name the run the page shows) sets
+  `stopRequestedAt`. The worker aborts the stream (the turn being written is dropped), or lets the
+  calls already running finish and records them, so nothing is left in doubt, and cancels the ones
+  not started: they become `CANCELLED`, a `STOPPED` note is added, the run ends `STOPPED`. A dead
+  run is finalized by the route itself, and so is a run still `QUEUED`, at once and conditionally on
+  its still being queued, so the member can send again straight away; its task, if it is delivered
+  later, finds the run finished and does nothing. The worker reads the flag before each request and
+  every two seconds while one streams; a turn already answered when the flag is read is stored and
+  drawn, since it was paid for (M10).
 - **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note: the
   note goes, lowering `messageCount` in the same mutation, and a run starts, which ends at once
   with the full note when the conversation is at its cap (see Size). When the transcript's last entry holds unanswered `tool_use` blocks, the
@@ -804,7 +812,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   meanwhile answers with its stored result rather than landing twice,
   answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the
-  stream was cut), it sends its context and the request straight away. Resume refuses once
+  stream was cut), it sends its context and the request straight away. When the run it resumes
+  stored a turn and died drawing it, or between two of a paused turn's parts, the resumed run draws
+  what is left under its own name and sends the paused part's continuation, with no context
+  message of its own, since that run's went before it: drawing finds an entry by its id and its
+  cursor, never by the run that stored it (M10). Resume refuses once
   anything follows the note, since the page relies on it: it deletes the thread's newest entry
   and moves no `historyRevision`, and the page's merge (`createConversationThread`, M5) finds
   such a deletion only because it is the newest.
@@ -968,7 +980,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   fallback. Before storing a turn that holds a
   `fallback` block, the worker drops the thinking, redacted thinking, `tool_use` and unpaired
   `server_tool_use` blocks before the boundary, and draws only what it stores. A refusal that survives
-  the fallback ends `REFUSED` with a note.
+  the fallback ends `REFUSED` with a note. The fallback model carries on the partial text the
+  declining model left, so the thread draws the text on both sides of a boundary as one reply, and
+  what a declined attempt used, which only `usage.iterations` reports, is kept in the ledger under
+  the model that declined (M10).
 - **The system prompt** (`domain/agent/systemPrompt.ts`, with a test pinning its bytes): who
   Strategy Dance is and that it challenges the team; that a conversation is private to one member;
   short, plain answers in the member's language, without em dashes, in the Markdown the thread draws;

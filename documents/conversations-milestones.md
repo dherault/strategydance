@@ -377,9 +377,46 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   `fallback` block is stored without the blocks before its boundary, and a conversation served by
   its fallback model afterwards stored and drawn as any other.
 - Verify: stop during a web search, resume, retry; kill the local backend mid-run and resume after.
+- Built with these settled, on 2026-10-08:
+  - **Client calls go to M11**, as David chose: no client tool existed yet, web search running on
+    Claude's side, so M10 stops, resumes and retries text and web search, and M11, which builds the
+    first client tool, takes the loop that runs one and every test of M10 above that needs one (see
+    M11). Retry for a files-only message goes to M23, and for an answer to M11.
+  - The routes name the run the page shows: `POST …/runs/:runId/stop`, `…/resume` and `…/retry`,
+    beside the reconcile route. A Resume or a Retry received again finds the run numbered right
+    after the one it names, and answers with it, queueing its task again while it waits.
+  - The worker reads the stop flag before each request and every two seconds while one streams. A
+    turn already answered when it reads the flag is stored and drawn, since it was paid for, and the
+    run ends as that turn does.
+  - A resumed run carries on the turn of the run it resumes: it draws what that run stored and left
+    undrawn under its own name, and sends a paused part's continuation with no context message of
+    its own. Drawing finds an entry by its id and cursor, no longer by the run that stored it.
+  - No request starts once 10 minutes have passed since the run's first claim, and a stream still
+    going at 14 minutes is cut, so the run ends inside the task's 15-minute delivery.
+  - The thread draws the text on both sides of a fallback's boundary as one reply, and the ledger
+    keeps what a declined attempt used, read from `usage.iterations`, under the model that declined.
+  - Every run that ends with a note says why in its `failure`, and `FinishConversationRunWithNote`
+    pairs each status with its own note.
+  - Verified in the browser at 1280 and 390 wide, with the placeholder: stop, resume and retry;
+    Retry alone under a failed note; the backend killed mid-run, the run interrupted a minute later,
+    and resumed. Not verified with the real model: the development credentials had lapsed, so the
+    stop during a web search waits for the next session that can reach Claude.
 
 ### M11: Questions
 
+- **The loop that runs client calls**, which M10 left to the first milestone with a client tool
+  (David's call on 2026-10-08), as A run § The loop and Recovery and side effects describe it: a
+  `tool_use` drawn as a `TOOL_CALL` `RUNNING` before it starts, its start and result written in
+  fenced writes, consecutive read-only calls four at a time and the others alone, 10 a turn and 50
+  a run, 60 seconds each, and one `USER` entry holding every result in order. Stop lets the calls
+  already running finish and cancels the rest; Resume runs those that never started and the
+  built-in ones without a result; a send after a stop answers the open calls before its text, as
+  The transcript describes. With M10's tests that need a client call: resume runs the unanswered
+  `tool_use` blocks; a turn of more tool calls than the tail holds drawn whole, and its run retried
+  from a thread whose tail no longer reaches its first entry; retry from a resumed run that crashed
+  before storing its results, back to the anchor it shares with the run it resumed, deleting what
+  both drew; sending after a stop answers the open blocks; retry for an answer goes back to the
+  run's anchor.
 - `ask_user`, its `QUESTION` messages, and `WAITING` runs with their `pendingToolResults`.
 - `POST …/answers` with `{ messageId, selected, other }`, serialized on the waiting run as The
   transcript describes, and skipping on send. The answer is checked against its stored question
@@ -860,7 +897,8 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   finishing its reservation; a retry refused once a prune has claimed its row, and a prune never
   deleting the object of a row that became `READY`; two sent at once with one id ending with one
   row; a file reference replayed byte for byte; a file the Files API holds that no row names deleted
-  by the sweeper, and one a row names kept; a conversation marked full.
+  by the sweeper, and one a row names kept; a conversation marked full; retry for a message of files
+  alone going back to its anchor, which M10 left here.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
 ### M24: Attachments in the composer and the thread

@@ -399,8 +399,10 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
     pairs each status with its own note.
   - Verified in the browser at 1280 and 390 wide, with the placeholder: stop, resume and retry;
     Retry alone under a failed note; the backend killed mid-run, the run interrupted a minute later,
-    and resumed. Not verified with the real model: the development credentials had lapsed, so the
-    stop during a web search waits for the next session that can reach Claude.
+    and resumed. With the real model: a question that searched the web, stopped six seconds in,
+    ended stopped, its request charged as an estimate, and resumed into a reply with two searches;
+    a follow-up stopped and retried read 41577 tokens from the cache, so the transcript the retry
+    cut replayed byte for byte, and `input_transformations` stayed empty.
 
 ### M11: Questions
 

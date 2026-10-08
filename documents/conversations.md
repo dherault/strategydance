@@ -1,8 +1,8 @@
 # Conversations
 
 How Strategy Dance's conversation agents get built: what the design asks for, the decisions taken,
-and the architecture. The twenty-four milestones that take the feature from nothing to launch, each one
-pull request into `dev` that a Claude Code session can implement, are in
+and the architecture. The twenty-eight milestones that take the feature from nothing to launch, each
+one pull request into `dev` that a Claude Code session can implement, are in
 [conversations-milestones.md](conversations-milestones.md), with the conventions every one of them
 follows.
 
@@ -12,7 +12,10 @@ the agent's knowledge writes, the rich text milestone, the worker and the messag
 Revised on 2026-10-04, in M1: the agent calls Claude through Anthropic's API rather than Vertex,
 which gave the project no Claude quota, and the Files API, server-side refusal fallbacks and the
 newer web search came with it. Probed the same day with `bun run probe:claude`, every check
-passing: what it found is written where it applies. When a decision changes, change it here first.
+passing: what it found is written where it applies. Revised on 2026-10-07, before M10, as David
+chose: knowledge reaches the agent through the Knowledge module, an MCP server of Strategy Dance's
+own that external agents can add too (see Modules), which took M14 to M18 and moved the milestones
+after them by four. When a decision changes, change it here first.
 
 ## The design
 
@@ -40,17 +43,18 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Model | Claude Opus 5.5, `claude-opus-5-5` |
 | Where it runs | Anthropic's Claude API, directly, through `@anthropic-ai/sdk`. Its key is the `anthropic-api-key` secret, read through `retrieveSecret`, and the workspace it belongs to has a spend limit. Vertex was the first choice, for credentials nothing stores and one bill, until Google gave the project no Claude quota and refused one. The API also has what Vertex lacks: server-side refusal fallbacks, the Files API and the newer web search |
 | How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on a private worker service, the backend's image deployed a second time, writing each step to Data Connect. Locally it runs in the backend's process |
-| What the agent reads | Knowledge, the organization's profile (name, brief), the whole team (names, job titles, roles, bios, top priorities) and the log, never a document the team keeps from AI (`isAiReadable` off), which search leaves out and reading refuses. Not tasks or the checklist, which are going away |
-| What the agent writes | Knowledge documents, through their shared Yjs text as an editor would, so its edits reach open editors live, never one the team keeps AI from changing (`isAiWritable` off) or from reading; and the member's own top priority. Not the log, the checklist or tasks |
+| What the agent reads | Knowledge, through the Knowledge module, the organization's profile (name, brief), the whole team (names, job titles, roles, bios, top priorities) and the log, never a document the team keeps from AI (`isAiReadable` off), which search leaves out and reading refuses. Not tasks or the checklist, which are going away |
+| What the agent writes | Knowledge documents, through the Knowledge module: creating them, editing their shared Yjs text as an editor would, so its edits reach open editors live, tagging their aspects, and deleting and restoring them, never one the team keeps AI from changing (`isAiWritable` off) or from reading; and the member's own top priority. Not the log, the checklist or tasks |
 | Web search | Claude's built-in web search, `web_search_20260209`, which filters what it finds before it reaches the context, from the first agent milestone |
 | Attachments | Images, PDFs and text files, read by Claude natively, through the Files API |
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
-| Integrations (MCP) | The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it |
+| Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Knowledge first, from M14; tasks, budget, software solutions, directories and marketing tactics later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
+| Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it |
 | Usage limits | None yet: a credit system comes later. Until then the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Agent-started conversations | Not in this plan. Orchestration comes later |
-| Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone |
+| Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone, modules' connections from external agents included |
 | Pull requests | Small, one concern each |
 
 ## What the design asks for
@@ -61,6 +65,10 @@ export, port the styles from `conversations.css` onto the design system's compon
   **Knowledge**, which moves out of "Aspects". Conversations carries a badge counting the
   conversations waiting for an answer.
 - "Company" gains **Integrations**, in the MCP milestones.
+- The account gains a **Connected agents** tab, beside Profile and Security, listing the external
+  agents the member connected to a module, with Disconnect, and the Knowledge page a **Use with
+  your agents** button, opening a dialog with the module's address and how to add it to each client
+  (M17, M18). Neither is in the design: both are built from the design system's components.
 - Conversations are private: only their author sees them, administrators included. Each
   organization has its own.
 
@@ -208,13 +216,23 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
                                                      ▼
                          Worker (Cloud Run, private) `/internal/conversation-runs`
                                     ├──▶ Claude Opus 5.5 on the Claude API (stream)
-                                    ├──▶ tools: knowledge, team, log, top priority, integrations
+                                    ├──▶ modules, in process over MCP: knowledge
+                                    ├──▶ tools: team, log, top priority, integrations
                                     └──▶ Data Connect (backend connector) ──refresh──▶ Browser
+
+External agent ──OAuth: /oauth/*, the member's consent in the browser──▶ Backend
+External agent ──MCP over Streamable HTTP, bearer token──▶ Backend `/mcp/knowledge`
+                                                             └──▶ the same module, as that member
 ```
 
 - **The browser never calls Claude.** It sends the member's actions to the backend and watches the
   conversation through Data Connect live queries. Every step the worker writes fires their refresh,
   so the thread fills in as the run goes, in every tab and window.
+- **Knowledge is a module.** The agent's knowledge tools are an MCP server's, the Knowledge
+  module's, which the worker builds for the run's member and talks to in its own process, and which
+  the public backend serves to external agents a member connected (see Modules). One server, so
+  what the agent can do with knowledge and what a member's own agent can do are the same tools
+  under the same rules.
 - **Why Cloud Tasks.** The service bills by request, so Cloud Run throttles the CPU once a response
   is sent: a loop left running after answering would stall. A task's request stays open for the
   whole run, so the CPU stays, and the run survives the member closing the tab. Tasks retry when a
@@ -305,7 +323,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
     result holding a NUL character could not be stored at all. So `content`, the run's `context`
     and `pendingToolResults` are `String` columns holding `JSON.stringify` of exactly what was
     sent, which escapes U+0000, and are parsed again only to be sent. A call's `toolInput` and
-    `toolOutput` are JSON text the same way, lossless, since an approval (M23) shows the member
+    `toolOutput` are JSON text the same way, lossless, since an approval (M27) shows the member
     the exact arguments that will run: the dialog draws them with control characters escaped, so
     `acct\u0000admin` reads as such rather than as `acctadmin`. A question's prompt and options and
     an answer's own words go back into the transcript from their columns, so they are refused at
@@ -315,7 +333,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
     does not count key order as an edit: a replay with a `tool_use` input's keys reordered as
     `jsonb` reorders them dropped no thinking block and read as much from the cache. JSON text
     stays for what `jsonb` would lose, a duplicate key and U+0000.
-- **`ConversationAttachment`**, added with the attachments in M19: `id` (made by the client, also
+- **`ConversationAttachment`**, added with the attachments in M23: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
   uploaded before the conversation exists), `message` (optional, set when sent), `status`
@@ -346,7 +364,7 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
 `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
-`CONVERSATION_SUGGESTION_IDS` (M17), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
+`CONVERSATION_SUGGESTION_IDS` (M21), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
 codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 
 ### Who writes what
@@ -432,15 +450,16 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 - **The backend** does everything else, through backend-connector operations that are `NO_ACCESS`
   and take the verified `$userId`: creating a conversation, every message and transcript entry,
   runs and their leases, uploads, and pruning (rows, the conversation's `ConversationAttachment` rows
-  by `conversationId`, which no reference cascades to, and its Storage folder), when it creates a
+  by `conversationId`, which no reference cascades to, its `ModuleCallResult` rows by their scope,
+  from M15, and its Storage folder), when it creates a
   conversation, the member's conversations deleted over a day ago, with their files. A prune first
   claims each conversation, setting `pruneClaimedAt` only where it is still deleted past the window
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
   win; files and rows go only after the claim, and every sweep also finishes the conversations
   claimed before and still present, its deletions idempotent, so a prune that failed after claiming
-  is completed by the next. Until conversations keep files (M19), `StartConversation` deletes the
+  is completed by the next. Until conversations keep files (M23), `StartConversation` deletes the
   member's conversations deleted over a day ago directly, under the membership lock
-  `RestoreConversation` also takes, so the two never both win without a claim; M19 moves the prune
+  `RestoreConversation` also takes, so the two never both win without a claim; M23 moves the prune
   out to claim, files, then rows. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
@@ -464,13 +483,14 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   corpus rather than everything the member has: the titles of all their conversations (at most
   1000), and the messages of their most recently active ones only, taken newest first by
   `messageCount` until they reach 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES`), so one search scans at
-  most 21000 rows, and the list says it searched recent conversations. Knowledge search does the
-  same on the titles of all the organization's documents AI may read and the `contentText` of the
-  100 most recently updated of them (`MAX_SUBSTRING_SEARCH_DOCUMENTS`), still at most 20
-  candidates. Tests run a search in both languages.
+  most 21000 rows, and the list says it searched recent conversations. The Knowledge module's
+  `search_documents` does the same on the titles of all the organization's documents AI may read
+  and the `contentText` of the 100 most recently updated of them
+  (`MAX_SUBSTRING_SEARCH_DOCUMENTS`), still at most 20 candidates. Tests run a search in both
+  languages.
 - **Every search is bounded at the door**: a query of at most 100 characters and 8 terms
   (`MAX_SEARCH_QUERY_LENGTH`, `MAX_SEARCH_TERMS`), refused with a 400 past either, which the field
-  enforces as the member types and `search_knowledge`'s schema enforces for the agent. The field
+  enforces as the member types and `search_documents`' schema enforces for every agent. The field
   waits 300 ms after the last keystroke and aborts the request it replaces. Since a caller can
   skip the field, the route is metered on the server in two layers, as invitations are:
   `conversationSearchRateLimitMiddleware` (120 searches per caller in ten minutes, keyed by the
@@ -482,12 +502,17 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   than ten minutes, a read of at most 120 under `@check`. The allowance is per organization, the
   scope the locked row has, so the lock serializes exactly what it counts: two instances at once
   cannot both see 119, and every instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
-  searching never reaches, and the daily sweeper deletes rows over a day old. The agent's searches
-  are bounded by its tool calls per run instead.
-- Every operation that changes what a live query shows is named in its `@refresh`. The agent's
-  knowledge writes are added to `GetOrganizationDocuments`' refreshes, and its folds to
-  `GetLiveDocument`'s, on the document's id, so an open editor sees the revision move; its top
-  priority writes go to `GetOrganizationTeam`'s.
+  searching never reaches, and the daily sweeper deletes rows over a day old. Strategy Dance's
+  agent's searches are bounded by its tool calls per run instead. An external agent has no run, so
+  each `search_documents` it makes draws on the same allowance, a `ConversationSearch` row under
+  the same lock, per member and organization, and is refused past it with a result saying so (see
+  Modules).
+- Every operation that changes what a live query shows is named in its `@refresh`. The Knowledge
+  module's writes are added to `GetOrganizationDocuments`' refreshes when they change what a card
+  shows (creating, renaming, tagging, deleting and restoring, and a fold only when it carries a
+  title; never a fold of the text alone, as no member's save is) and to `GetLiveDocument`'s, on the
+  document's id, so an open editor sees the revision move, whichever agent made the edit; the
+  agent's top priority writes go to `GetOrganizationTeam`'s.
 
 ### A run
 
@@ -507,7 +532,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   since a backlog can outlast any deadline: past it, a route looks the named task up and pushes the
   lease back while the task exists; once it is gone, or never existed, the run is dead. Send,
   answer, stop, resume and retry first finalize a dead active run as `INTERRUPTED` (running calls
-  `CANCELLED`, a note, `activeRunId` cleared). The page calls `POST …/runs/:runId/reconcile` once
+  `CANCELLED`, except a module write settled from its key, see Recovery and side effects, a note,
+  `activeRunId` cleared). The page calls `POST …/runs/:runId/reconcile` once
   its latest run's lease has passed, queued or claimed, and every two minutes after while the run
   stays as it is: a claimed run past its lease is finalized at once, and its interrupted note,
   with Resume and Retry, replaces the thinking indicator; a queued one is finalized once its task
@@ -569,14 +595,29 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   a connection lost. Anything else, `PERMISSION_DENIED` or a queue `NOT_FOUND` say, is definite.
   The client's own retries are off for these calls, since the backend's are the retries.
 - **Recovery and side effects.** A call's message is written `RUNNING`, with `toolStartedAt`, before
-  the call is made. A worker that claims a run after a crash finds calls that started and have no
-  result. Every built-in write (creating or editing knowledge, setting the top priority) stores its
-  effect and its call's result in one mutation, beside the fenced run write, so after a crash it
-  has either happened, and its message holds its result, or not happened at all: a call with no
-  result runs again, a read like any other, and nothing is applied twice, not even an `append`. An
-  integration call is the exception, since it happens on another server: one that started and has
-  no result is marked failed, and its result tells the model it was interrupted and may have run, so
-  the model checks or asks.
+  the call is made, in a fenced write, so a worker fenced out never starts a call. A worker that
+  claims a run after a crash finds calls that started and have no result, and each kind of call
+  recovers its own way:
+  - **A built-in write**, setting the top priority, stores its effect and its call's result in one
+    mutation, beside the fenced run write, so after a crash it has either happened, and its message
+    holds its result, or not happened at all: a call with no result runs again, a read like any
+    other.
+  - **A module's write**, creating, editing, tagging, deleting or restoring knowledge, happens
+    inside the module, which knows nothing of runs, so it cannot share the run's mutation. It is
+    idempotent instead (see Modules § Idempotent writes): the worker sends the call with its
+    `tool_use` id as its key and the conversation as the key's scope, and the module stores the
+    write and its result under that key in one mutation. A call with no result runs again with the
+    same key, which applies nothing twice, not even an `append`, and answers with what the first try
+    stored. A worker fenced out during a call can still land it, since the write is the module's,
+    and the key makes that harmless too. A module's reads run again like any other read.
+  - **An integration call** happens on another server: one that started and has no result is marked
+    failed, and its result tells the model it was interrupted and may have run, so the model checks
+    or asks.
+  - **What settles a call without running it again**, a run finalized as interrupted, or a send
+    answering its calls, reads a module write's key first: a stored result is the call's, and its
+    message turns `SUCCEEDED` with it; with none, the call is answered as an interrupted integration
+    call is, since a worker cut off during it may still land it. A cancelled call that never started
+    is answered as one the member stopped, as before.
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note.
@@ -619,9 +660,11 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   each progress line to `run.step` at most once a second and checking the stop flag every two
   seconds; store the finished assistant turn; draw it as messages; then by `stop_reason`:
   - `end_turn`: done, `COMPLETED`.
-  - `tool_use`: run the turn's tools in transcript order, consecutive read-only built-in calls
-    (`search_knowledge`, `read_knowledge`, `get_team`, `read_log`) four at a time, and each write and
-    integration call alone, so writes land in order; record each result on its message, store one
+  - `tool_use`: run the turn's tools in transcript order, consecutive read-only calls four at a
+    time, the built-in `get_team` and `read_log` and every module tool its module marks
+    `readOnlyHint` (`search_documents`, `list_documents`, `read_document`), a hint trusted here
+    since the module is Strategy Dance's own code, and each write and integration call alone, so
+    writes land in order; record each result on its message, store one
     user entry with every `tool_result` in order, and go round again. A turn runs at most ten calls
     and a run fifty (`MAX_TOOL_CALLS_PER_TURN`, `MAX_TOOL_CALLS_PER_RUN`); a call past either is not
     run, and its result says so. A turn with `ask_user` runs its other tools, keeps their results in
@@ -722,14 +765,15 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   first, each built from its question's stored state: a question already answered sends its answer,
   one still waiting sends "The member skipped this question." and is marked skipped; then the
   results in `pendingToolResults`, and "The member stopped the response before this ran." for a call
-  a stop cancelled; then the member's text and files.
+  a stop cancelled; a module write cancelled after it had started is answered from its key, as
+  Recovery and side effects says; then the member's text and files.
 - **Answer** (`POST …/answers`): records the answer on its question. Once every question of the
   waiting run has one, a `USER` entry with all the waiting turn's results (the answers as JSON, and
   `pendingToolResults`) is stored and a run starts. Answers are serialized on the conversation: each
   one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
-  mutation. An approval (M23) is answered the same way.
+  mutation. An approval (M27) is answered the same way.
 - **The continuation survives a crash between the two.** Starting it is idempotent (see Consuming a
   waiting turn) and reachable from three places: the answer route right after the answer, the same
   answer sent again (it finds the answer recorded, counts none left and starts it), and the reconcile
@@ -755,8 +799,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **Resume** (`POST …/resume`), offered when the last entry is a stopped or interrupted note: the
   note goes, lowering `messageCount` in the same mutation, and a run starts, which ends at once
   with the full note when the conversation is at its cap (see Size). When the transcript's last entry holds unanswered `tool_use` blocks, the
-  run executes the calls that never started and the built-in ones that have no result (their
-  messages go back to `RUNNING`),
+  run executes the calls that never started and the built-in and module ones that have no result
+  (their messages go back to `RUNNING`), a module write with its first key, so a write that landed
+  meanwhile answers with its stored result rather than landing twice,
   answers an integration call that had started as interrupted (see A run),
   stores the results, then sends its context and the request; when the last entry is `USER` (the
   stream was cut), it sends its context and the request straight away. Resume refuses once
@@ -928,7 +973,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   Strategy Dance is and that it challenges the team; that a conversation is private to one member;
   short, plain answers in the member's language, without em dashes, in the Markdown the thread draws;
   links to knowledge as `[title](doc:<id>)`; reading before relying, writing decisions into
-  knowledge when the member agrees and saying what changed, never touching a document the team
+  knowledge when the member agrees and saying what changed, flagging a document's aspects when they
+  are missing or wrong, deleting one only when the member asks, never touching a document the team
   keeps AI from changing, and saying it cannot read one the team keeps from AI when the member
   mentions it, rather than guessing at what it holds; asking with `ask_user` when the member has to
   choose; citing web results as links; setting the member's top priority only when they ask or
@@ -957,30 +1003,349 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | Tool | What it does | Milestone |
 | --- | --- | --- |
 | `web_search` | Claude's server tool, `web_search_20260209`, which filters what it fetches before it reaches the context, at most 5 searches a request | M9 |
-| `search_knowledge` | `{ query, aspects?, limit? }`: up to 10 documents AI may read (`isAiReadable` on), with id, title, aspects, `updatedAt`, `isAiWritable` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts | M14 |
-| `read_knowledge` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | M14 |
-| `create_knowledge` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, in the mutation that records the call's result. Its id derives from the `tool_use` id, so a run retried after a crash finds the one it made rather than making two | M14 |
-| `update_knowledge` | `{ id, version?, title?, aspects?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_knowledge` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | M14 |
-| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M16 |
-| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_knowledge`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M16 |
-| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M16 |
+| The Knowledge module's | `search_documents`, `list_documents`, `read_document`, `create_document`, `update_document`, `set_document_aspects`, `delete_document` and `restore_document`, an MCP server's tools the worker reaches in process (see Modules) | M15 |
+| `get_team` | `{ cursor? }`: the members, 25 at a time ordered by when they joined then id, each with id, name, job title, role, bio, top priority as text and when it was set, with `total` and a `cursor` while more remain. A member's fields are bounded (name 80, job title 60, bio 200, priority 500 characters of text), so a page stays under 40000 characters and a team of any size reaches the model whole, in pages; the description tells it to follow the cursor whenever it needs everyone | M20 |
+| `read_log` | `{ from, to, memberId?, cursor? }`, at most 31 days: entries as text, with author and date, newest first, up to 40000 characters, with a `cursor` when more remain. The backend reads 50 entries at a time, ordered by date then id, and stops reading once the budget is spent, so a busy month never loads in full. The cursor is an entry, and a block and an offset within it, as `read_document`'s is, since an entry can hold 50000 characters (`MAX_LOG_ENTRY_LENGTH`): a page ends between entries when it can, between blocks inside an entry past the budget, and inside a block only when one block alone passes it, and a page that continues an entry says so | M20 |
+| `set_top_priority` | `{ text }`: replaces the member's own top priority, Markdown stored as rich text, within the Today page's two limits: `MAX_TOP_PRIORITY_TEXT_LENGTH` (500) characters of text and `MAX_TOP_PRIORITY_LENGTH` serialized. Records the day's activity, as every change to Today data does | M20 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M11 |
-| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M23 |
-| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M23 |
-| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M23 |
+| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M27 |
+| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M27 |
+| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M27 |
 
 - Each tool's description says when to call it, which is what Opus reads to decide.
 - A result goes back as JSON, cut to 50000 characters with a note saying so. A failure goes back
   as `is_error: true` with a sentence the model can act on.
 - The thread labels each tool from the `conversation` catalogue, running and done: "Searching
-  knowledge" and "Searched knowledge", "Opening knowledge" and "Opened knowledge", "Creating
-  knowledge", "Updating knowledge", "Reading your team", "Reading the log", "Setting your top
-  priority" and "Searching the web".
+  knowledge" and "Searched knowledge", "Listing knowledge" and "Listed knowledge", "Opening
+  knowledge" and "Opened knowledge", "Creating knowledge", "Updating knowledge", "Tagging
+  knowledge", "Deleting knowledge", "Restoring knowledge", "Reading your team", "Reading the log",
+  "Setting your top priority" and "Searching the web". A module's tools are labelled by their name,
+  as the built-in ones are.
 - Integrations go through three fixed tools rather than one tool per server tool, so the tools list
   never changes with what an organization connects, which keeps the transcript valid and the cache
-  warm.
+  warm. A module's tools are the reverse: Strategy Dance's own, the same for every organization and
+  changed only by a release, so they join the list directly, after the built-in ones (see Modules).
 - Each milestone that adds tools changes the tools list for existing conversations: `drop_block`
   makes that a one-time loss of their earlier reasoning, nothing more.
+
+### Modules
+
+A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
+agent uses and which a member can add to an external agent of their own: claude.ai, ChatGPT, Claude
+Code, Cursor. Knowledge comes first, from M14; tasks, budget, software solutions, directories and
+marketing tactics are the ones David has in mind next. A module is the reverse of an integration
+(M25 to M27): an integration is another company's server, which the agent calls; a module is
+Strategy Dance's, which any agent a member connected may call as that member.
+
+- **The standard**, as it stood on 2026-10-07: the Model Context Protocol's 2026-07-28 revision,
+  which is stateless (no `initialize` handshake, no `Mcp-Session-Id`), and the official TypeScript
+  SDK's second major version, `@modelcontextprotocol/server`, `@modelcontextprotocol/client` and
+  `@modelcontextprotocol/express`, on zod 4 as the backend already is, which runs under Bun. The
+  SDK's helpers for an authorization server are frozen in its legacy package, so Strategy Dance
+  writes that part on the specification itself (see External agents). Mind the install cooldown: a
+  release from the last week cannot be installed yet.
+- **The frame.** `MODULES` in strategydance-core lists each module's name (`knowledge`), path
+  (`/mcp/knowledge`), title and scopes (`knowledge:read`, `knowledge:write`), which the consent page
+  reads too. The title is the server's own, in English, for what MCP clients show; the app words a
+  module and its access from the `module` catalogue by the module's name, as every string it shows
+  is worded. The backend's `src/modules/` maps each name to `createServer(caller)`, which builds an
+  `McpServer` with the module's tools, and wraps it in the SDK's `createMcpHandler`, which builds a
+  fresh server for each request from the caller its `authInfo` carries: the public endpoint and
+  Strategy Dance's agent both go through that one handler. What a tool does lives in `domain/`,
+  `domain/knowledge/` for this one, and a tool's file only validates, calls and shapes the result.
+- **The caller**, `{ kind, userId, organizationId, membershipCreatedAt, scopes, idempotencyScope }`,
+  is verified before the server is built: from the run for Strategy Dance's agent (`kind: 'agent'`),
+  from the token for an external one (`kind: 'external'`). It reaches the server inside the SDK's
+  `AuthInfo`, which requires a `token`, a `clientId` and `scopes` and keeps whatever else in
+  `extra`: a small wrapper, `toModuleAuthInfo`, puts the caller in `extra` and fills the required
+  fields: for an external agent from the verified access token's row, its `expiresAt` and its
+  `resource` included, since `requireBearerAuth` refuses a token whose `AuthInfo` has no expiry and
+  `expectedResource` compares the resource; for Strategy Dance's agent with fixed values naming the
+  worker, and the factory reads the caller back out of `extra`, refusing a request that carries
+  none. Nothing in it comes from a tool's arguments, as the backend's rule for `$userId` asks. Every
+  operation a tool runs matches the membership on `membershipCreatedAt`, as a run's writes do, so
+  removing a member stops every agent acting as them at its next call.
+- **One server per module**, at its own address, `https://api.strategydance.com/mcp/knowledge` for
+  this one. Each is its own OAuth resource, so a member connects modules one by one, and a module
+  that touches money later asks for its own consent.
+- **Tool names** are snake_case, letters, digits and underscores, which Claude's tool names allow
+  (`^[a-zA-Z0-9_-]{1,128}$`: no dot, though MCP allows one), and unique across modules and the
+  agent's built-in tools (`web_search`, `ask_user`, `get_team` and the rest), since Strategy Dance's
+  agent puts them all in one list: a test over `MODULES` fails on a clash between modules, and one
+  over the list the agent sends on any clash at all.
+- **Each tool** has a description saying when to call it, an input schema in zod, an
+  `outputSchema` with its result as `structuredContent` and the same JSON as text, as the
+  specification asks for clients that read only text, and annotations: `readOnlyHint` on reads,
+  `destructiveHint` on delete, `idempotentHint` where it holds, `openWorldHint: false` on all. A
+  failure is a result with `isError: true` and a sentence the model can act on, never a protocol
+  error, so the model can correct itself.
+- **The server's instructions** tell an external agent what Strategy Dance is, what the aspects
+  are, which Markdown documents are written in, and that the team shares each document, which
+  members may be editing while the agent does.
+
+**The Knowledge module's tools**, built in M14, reaching Strategy Dance's agent in M15 and external
+agents in M18:
+
+| Tool | What it does | Scope |
+| --- | --- | --- |
+| `search_documents` | `{ query, aspects?, limit? }`: up to 10 documents AI may read (`isAiReadable` on), with id, title, aspects, `updatedAt`, `isAiWritable` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts. An external agent's search draws on the member's search allowance (see Who writes what) | read |
+| `list_documents` | `{ aspects?, cursor? }`: the documents AI may read, 50 at a time, latest updated first and then by id, since two can share an instant, with id, title, aspects, `updatedAt` and `isAiWritable`, and a `cursor`, holding the last one's `updatedAt` and id, while more remain, for an agent that would rather look round than search | read |
+| `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
+| `create_document` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, under the knowledge cap, as `CreateDocument` holds it. It starts with `isAiReadable` and `isAiWritable` on, as a document made on the page does, so the agent that made it can read and edit it, and the team can turn either off | write |
+| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | write |
+| `set_document_aspects` | `{ id, aspects }`: flags the document with its aspects, replacing them all, each at most once, as the aspects dialog does. Refused as `update_document` is | write |
+| `delete_document` | `{ id }`: deletes the document as its page's Delete does, setting `deletedAt`, so it can be restored for a day, which the result says. Refused unless AI may both read and change it | write |
+| `restore_document` | `{ id }`: restores a document deleted less than a day ago, under the knowledge cap, as `RestoreDocument` does. Refused unless AI may both read and change it | write |
+
+- **Every agent is AI.** `isAiReadable` and `isAiWritable` hold for every caller of the module: a
+  document the team keeps from AI is neither found, listed nor read by any agent, and one the team
+  keeps from AI's changes is changed by none. A member who connects an external agent lets what AI
+  may read reach that agent's provider. Members decide which agents they connect, as David chose on
+  2026-10-07, and no organization setting governs it; the legal review before M28 names it.
+- **Addresses.** An external agent's results carry each document's web address,
+  `https://strategydance.com/<organization>/knowledge/<id>`, where `<organization>` is the segment
+  the app's paths lead with: the organization's slug, or its id while it has none, as
+  `toOrganizationPathSegment` writes it. Strategy Dance's agent's carry none, since it links with
+  `doc:` (see The agent).
+- **A day means a day.** Today `DeleteDocument` prunes the organization's documents deleted over a
+  day ago only when somebody deletes another, so a deleted document could linger and be restored
+  long after. From M14 the daily sweeper prunes them too, and `restore_document` refuses one deleted
+  over a day ago, so the result's promise, Undo and the agent's restore all mean one day.
+- **Writes go through the same operations' rules as the page's**: backend-connector operations named
+  `…ForAgent`, as `SetTopPriorityForAgent` is, each checking the membership, `deletedAt` and the AI
+  permissions, the creates and restores holding the knowledge cap under the organization's lock, and
+  each named in `GetLiveDocument`'s refreshes, and in `GetOrganizationDocuments`' only when it
+  changes what a card shows, as the list asks of every mutation: a create, a rename, aspects, a
+  delete or a restore, and a fold only when it carries a title, a condition on its `title` variable,
+  so an agent's writing pushes the whole list to nobody (see Who writes what).
+
+**Idempotent writes.** MCP has no idempotency key (the specification's issue #3394 asks for one),
+so a write retried by a client that lost its answer would land twice. Every write tool takes one in
+the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
+
+- **`ModuleCallResult`** is keyed on `idempotencyScope` and `idempotencyKey`, and holds the user,
+  the organization, the tool, `argumentsHash` (SHA-256 of the arguments as canonical JSON, keys
+  sorted, since a client may serialize them again), `result` (the small JSON text the tool
+  answered), `expiresAt` and `createdAt`. The scope is the caller's, never the client's:
+  `conversation:<id>` for Strategy Dance's agent, `connection:<id>` for an external one, so two
+  clients of one member choosing the same key never meet.
+- **Each write's mutation** is an `@transaction` that inserts that row first, right after the
+  membership check, then writes. A second call with the same key, at once or later, finds the key
+  taken and fails before writing anything, and the module reads the row back: the same tool with the
+  same arguments gets the stored result, and anything else a refusal, another tool included, since
+  `delete_document` and `restore_document` both take `{ id }`. A fold retried on a moved revision
+  (see Rich text and Markdown) checks the key again before it reapplies. A call without a key writes
+  no row.
+- **Strategy Dance's agent** keys each call with its `tool_use` id, so recovery runs it again under
+  the same key (see A run § Recovery and side effects). Its rows never expire: they go when the
+  conversation is pruned, found by their scope, so a Resume however late still finds them. The
+  module never learns what a scope means. Retry's new turn has new ids, so its calls write anew,
+  and what the cut part wrote stays written, as for every tool.
+- **An external agent's** rows expire after a day, and the daily sweeper deletes them. Few clients
+  send a key yet, and a write sent without one is not safe to retry: MCP promises nothing about a
+  call whose answer was lost, so a client that sends it again can apply it twice, `append` above
+  all. The server instructions say so, and ask clients to send a key.
+
+**Strategy Dance's agent** reaches the module from M15:
+
+- **In process, through the module's own handler.** The worker builds the Knowledge module's
+  handler, the one the public endpoint mounts, and connects the SDK's `Client` to it through a
+  `StreamableHTTPClientTransport` whose `fetch` hands each request to the handler's own, `(url,
+  init) => handler.fetch(new Request(url, init), { authInfo })`, since the transport calls its
+  `fetch` with an address and options rather than a `Request`, the run's member as the caller, with
+  every scope. The client pins the protocol revision, `versionNegotiation: { mode: { pin:
+  '2026-07-28' } }`, since both ends are Strategy Dance's: without it the SDK's `Client` performs
+  the 2025 `initialize` handshake, and with `auto` an SDK release that speaks a newer revision would
+  change what runs unannounced. The transport never dials its address, so there is no network, no
+  socket and no token, and the server, tools and checks are the ones an external agent gets. That is
+  what the SDK recommends for a client and a server in one process in production: its in-memory
+  transport is meant for tests, and speaks only the 2025 revisions. Development uses it against the
+  emulators like the rest. Not the Claude API's MCP connector, which would have Anthropic's servers
+  call the module: the module would have to be reachable from the internet for every run,
+  development could not use it, and its calls would leave the worker, beyond its fencing, its
+  recovery and its thread.
+- **The tools list** is `tools/list`, converted into Claude tools in `MODULES`' order after the
+  built-in ones: name, description, `input_schema`, `strict: true` and `eager_input_streaming:
+  true`, as the agent's own tools are (see The agent). Strict tools refuse `minLength`, `maxLength`,
+  `minimum` and `maximum`, so the conversion drops them; the module's zod still holds a call to
+  them, and a call past one gets a result the model can act on. A test pins the converted list's
+  bytes, as the system prompt's are pinned, so an SDK or zod release that writes a schema
+  differently is caught before it costs every conversation its earlier reasoning.
+- **A call** is `callTool` with the `tool_use`'s input, and its id as the key for a write. The
+  `structuredContent` goes back as the `tool_result`, once, as JSON text cut to 50000 characters as
+  every result is, and `isError` as `is_error: true`.
+- **The thread** draws a module call as it draws a built-in one, the wrench and the "Tool" badge,
+  labelled from the `conversation` catalogue (see Tools). A `delete_document` row offers Restore
+  while the document can still be restored, so a member who sees a document go they wanted kept
+  needs no second request.
+
+**External agents** reach the module from M18, through an authorization server from M16 and a
+consent page from M17:
+
+- **The endpoint** is `POST https://api.strategydance.com/mcp/knowledge`, on the public backend
+  rather than the worker, since an MCP call is short and the worker is private. The module's
+  handler, mounted with `toNodeHandler`, builds a server per request from the verified caller,
+  answering JSON (`responseMode: 'json'`), stateless as the 2026-07-28 revision is, and serving the
+  2025 revisions' clients, which still open sessions, statelessly too (`legacy: 'stateless'`).
+  Around it:
+  - `requireBearerAuth`, with Strategy Dance's verifier and the endpoint's address as
+    `expectedResource`: a request without a valid token answers 401, its `WWW-Authenticate` naming
+    the Protected Resource Metadata, `/.well-known/oauth-protected-resource/mcp/knowledge` (RFC
+    9728), which names the authorization server.
+  - A request whose `Origin` is present and is not the app's own answers 403, as the specification
+    asks against DNS rebinding. No client running in a browser is served yet.
+  - The route parses its own body, at most 1 MiB, and hands it to the handler, `(request, response)
+    => nodeHandler(request, response, request.body)`, since the parser has consumed the stream the
+    adapter would otherwise read again; an in-memory rate limit per connection stands in front of
+    it, as the backend's other limits do; GET and DELETE answer 405.
+  - No App Check, which an external agent cannot carry: the token is the guard. The answers are
+    MCP's JSON-RPC, not `ApiResponse`.
+  - A connection granted read only still lists every tool: every write tool registers the SDK's
+    `scopeChallenge` for `knowledge:write`, which keeps a challenged tool visible, so the model
+    knows the writes exist, and a call to one answers 403 with `WWW-Authenticate:
+    Bearer error="insufficient_scope"`, the scope and the resource metadata, as the specification's
+    step-up asks. The client can then ask again for read and write, and the member's new consent
+    replaces the connection. The tool checks the scope itself too, a second guard that refuses
+    before anything is read or written.
+  - The connection's `lastUsedAt` is written at most once a minute, and no refresh names that
+    write.
+- **The authorization server** is the public backend too, issuer `https://api.strategydance.com`:
+  - Its metadata, at `/.well-known/oauth-authorization-server` (RFC 8414), names the `issuer`,
+    `authorization_endpoint`, `token_endpoint`, `registration_endpoint`, which is how a client finds
+    dynamic registration at all, `revocation_endpoint`, `scopes_supported`,
+    `response_types_supported: ["code"]`, `grant_types_supported: ["authorization_code",
+    "refresh_token"]`, `code_challenge_methods_supported: ["S256"]`,
+    `token_endpoint_auth_methods_supported: ["none"]`, `client_id_metadata_document_supported: true`
+    and `authorization_response_iss_parameter_supported: true`. claude.ai and ChatGPT use a client
+    ID metadata document when the metadata offers it; Cursor registers dynamically.
+  - Every client is public: PKCE, S256 only, proves that whoever exchanges a code is whoever asked
+    for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address with a
+    path, serving the client's metadata, fetched through `fetchOutbound` with no redirect and at
+    most 5 KB, a truncated body refused, valid JSON holding at least `client_id`, `client_name` and
+    `redirect_uris`, and `token_endpoint_auth_method: "none"`, the one method the server takes: a
+    document that omits it means `client_secret_basic`, and one may declare `private_key_jwt`, and
+    serving either as public would drop what it declared. Its `client_id` equals its address, kept
+    for an hour and a failure for a minute. It is fetched only once a member has signed in, when the
+    consent page reads the request, as the specification's flow has it, so nobody who is not signed
+    in can make the backend fetch an address of their choosing. Dynamic client registration (`POST
+    /oauth/register`, RFC 7591), which the specification deprecates and Cursor still needs, takes
+    redirect addresses on loopback only: the specification requires every redirect address to be
+    `localhost` or `https`, which rules out a private-use scheme such as `cursor://`, and an `https`
+    one from a registration would prove no domain, so a client redirecting to a website proves its
+    domain through CIMD. Registration is rate-limited per address and capped in all, and one unused
+    a day later is pruned.
+  - Every parameter of an authorization or a token request may occur once: a request repeating any
+    of them, `client_id`, `redirect_uri`, `scope`, `state`, `code` or a PKCE field as much as
+    `response_type`, `resource` or `grant_type`, is refused, since parsers disagree on which copy
+    counts.
+  - `GET /oauth/authorize` checks `response_type`, exactly one and `code`, the only flow it serves,
+    the client, PKCE, and `resource` (RFC 8707): exactly one, canonical, a module's address, and its
+    scopes: the module's read scope, alone or with its write scope, since the consent offers read,
+    or read and write, and write never comes without read; a request naming no scope asks for both.
+    The consent never grants more than was asked: a request for read offers read alone, and one for
+    read and write lets the member reduce it to read. A registered client's exact redirect address
+    (a loopback one on any port, as RFC 8252 asks) is checked there, against its registration; a
+    client ID metadata document's, against the document, once the signed-in member's consent page
+    reads the request, which is when the document is fetched. Until the client and its redirect
+    address are checked, an error is a page and never a redirect, so nobody can bounce a browser
+    through it; after, an error redirects with `error`, `state` and `iss` (RFC 9207). A valid
+    request is stored as an `OAuthAuthorizationRequest` for ten minutes, and the browser goes to the
+    consent page, `https://strategydance.com/oauth/consent?request=<id>`. It is rate-limited per
+    address.
+  - **The consent page**, signed in as any page of the app is, full screen, outside the app's frame,
+    and framed by nothing (`frame-ancestors 'none'`, from `firebase.json`), names the client, its
+    name stripped of control and direction characters and cut to 80 characters, marked unverified
+    for a registered client and with its metadata document's domain otherwise, and the host it will
+    send the member back to, with a warning when that is only a loopback address, which any program
+    on the member's computer could be listening on, as the specification asks; the module; the
+    organization, chosen among the member's; and the access, read, or read and write when the client
+    asked for both. Never the client's logo, which would load an address of its choosing. Allow and
+    Deny call `POST /oauth/requests/:requestId/approve` and `…/deny`, with the member's ID token and
+    App Check, as every route the app calls.
+  - Allow and Deny each consume the request first, under `@check(this == 1)` on a request still
+    undecided and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the
+    loser is refused, and a denied request is never approved after. Allow then makes an
+    `AgentConnection` and a code: valid for a minute, once, bound to the client, the redirect
+    address, the PKCE challenge, the resource and the scopes, and consumed under `@check(this ==
+    1)`; a code presented again revokes the whole connection with every token it holds, since the
+    tokens the code issued may have rotated already, as RFC 6749 asks of a reused code. The browser
+    goes back to the client's redirect address with `code`, `state` and `iss`, the exact issuer,
+    since RFC 9207 has every authorization response name it, a success as much as an error, and the
+    metadata says it does. Consenting again with the same client, organization and module replaces
+    the earlier connection, atomically: `AgentConnection` is unique on its membership, its client
+    and its module, and Allow locks the member's membership row, deletes the earlier connection with
+    its tokens and inserts the new one in one mutation, so two consents at once leave one connection
+    and one family of tokens.
+  - `POST /oauth/token` takes exactly one `grant_type`, `authorization_code` or `refresh_token`,
+    reads that grant's parameters and no other's, and refuses anything else. It exchanges the code
+    for an access token, valid for an hour, and a refresh token, for 30 days: 256 random bits each,
+    opaque, stored only as a SHA-256 hash (`@unique`), with the resource they were issued for, which
+    the verifier compares to the endpoint's, so a token for one module never opens another. Every
+    token request names its `resource` too, as the specification asks of clients, and is refused
+    unless it is exactly the canonical resource the code or the refresh token is bound to. Every
+    client being public, the request also names its `client_id`, and an exchange the exact
+    `redirect_uri` its authorization carried: a code is refused unless both are the ones it was
+    issued for, and a refresh unless the token was issued to that client. Every answer names the
+    scopes granted, `scope`, which RFC 6749 asks for when they differ from those asked for, as a
+    member's reduced consent makes them, so a client never assumes a write it cannot make. Every
+    answer carries `Cache-Control: no-store` and `Pragma: no-cache`, as RFC 6749 asks, so no browser
+    or proxy keeps a token. A token works only as what it is: the verifier takes an unexpired access
+    token alone, so a refresh token is never a bearer token, and the refresh grant a refresh token
+    alone.
+  - A refresh rotates: the spent token is kept with `usedAt`, and its successors are derived from it
+    under a server secret, `oauth-token-secret`: the access token an HMAC of `access:` and the spent
+    token, the refresh token an HMAC of `refresh:` and it, so the two always differ. The spent
+    token's row records the secret's version it used, `successorKeyVersion`, and a duplicate derives
+    again with that very version, read from Secret Manager by its number and kept per version, so
+    instances a rotation left on different versions still answer one pair. Presented again within 30
+    seconds of its rotation, as by a client whose answer was lost or by two refreshes at once, it is
+    answered with the very same pair, recomputed, so whichever answer arrives last, the client holds
+    tokens that work, and nothing but hashes is ever stored. Presented after that, it revokes the
+    connection, in a second mutation since a failed check rolls back the first: whoever holds it is
+    replaying a token somebody else already used. `POST /oauth/revoke` follows RFC 7009: the request
+    names its `client_id`, every client being public, and a token issued to another client is
+    refused rather than revoked, so no client can end somebody else's connection.
+  - The protocol's own endpoints, the metadata, registration, authorization, token and revocation,
+    answer any origin, without credentials, since no cookie is involved, and in OAuth's own JSON
+    (RFC 6749) rather than `ApiResponse`, with no App Check, which no client can carry. The consent
+    page's routes are the app's like any other, behind the member's ID token and App Check. Their
+    operations find a token by its hash before any `$userId` has been verified, an exception
+    `CLAUDE.md` records beside the sign-in screen's public lookup.
+- **The data**: `OAuthClient` (a registered client's name and redirect addresses, `createdAt`,
+  `lastUsedAt`), `OAuthAuthorizationRequest` (the client, its redirect address, the PKCE challenge,
+  the resource, the scopes asked for, `state` and `expiresAt`; once decided, `decidedAt`, and on
+  Allow its connection and its code's hash and expiry), `AgentConnection` (the membership, the
+  client's id and name, the module, the scopes granted, `createdAt`, `lastUsedAt`) and
+  `AgentConnectionToken` (its connection, its kind, its hash, its resource, `issuedFrom`,
+  `expiresAt`, `usedAt`, `successorKeyVersion`). `issuedFrom` names what a token was issued from,
+  the authorization request whose code was exchanged or the refresh token rotated, so a replayed
+  refresh token is traced to its connection, as a reused code is to the request it was issued for.
+  `AgentConnection` references the member's `UserOrganization` row, unlike every other table, which
+  references the account and the organization apart: a connection belongs to the membership, so
+  removing the member or deleting the organization deletes it with its tokens, and a member invited
+  back connects again. The verifier still checks the membership and the staff gate on every request.
+- **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
+  by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
+  `DeleteOrganization` for every reader, since it names only the administrator deleting and every
+  member's connections go with it; never by `lastUsedAt`: each with its client, organization, module
+  and access, when it connected and when it was last used, and Disconnect, which deletes it with its
+  tokens.
+- **Use with your agents**, a button on the Knowledge page, opens a dialog with the module's
+  address, a copy button, and how to add it to claude.ai (Settings, Connectors, Add custom
+  connector), ChatGPT, Claude Code (`claude mcp add --transport http strategydance-knowledge
+  https://api.strategydance.com/mcp/knowledge`) and Cursor.
+- **Development.** From M14, `bun run mcp:knowledge <email> [--organization <id or slug>]` serves
+  the module over stdio as that account against the emulators, refusing anywhere else, so Claude
+  Code reaches it locally before the authorization server exists. From M18 the local backend serves
+  `http://localhost:3003/mcp/knowledge` as its own issuer, with the consent page on the local web
+  app, and `bun run check:oauth` runs the whole flow against it, refresh, reuse and revocation
+  included.
+
+**Later modules** each add a folder under `src/modules/`, an entry in `MODULES`, their address,
+scopes and labels, and their tools to the agent's list, which `drop_block` makes a one-time loss of
+earlier reasoning, as any tool is. Past a dozen tools, Claude's tool search (`defer_loading`) keeps
+the definitions out of the context without touching the cached prefix. Listing the modules in the
+MCP Registry, under the `com.strategydance` name a DNS record proves, is David's call at M28.
 
 ### Rich text and Markdown
 
@@ -1000,15 +1365,15 @@ paragraphs. Markdown has no underline, so the pair writes and reads it as `<u>�
 HTML, and the system prompt says underline belongs in documents, never in replies. A document then
 keeps all four styles through an agent's edit. The document blocks map onto Markdown too: code to a
 fenced block with its language, a table to a GFM table with its header row, and a picture, a video
-and a link preview to a link, read with its caption or title. The agent writes none of the last
+and a link preview to a link, read with its caption or title. No agent writes any of the last
 three but the link preview's link and words: `updateRichTextYDoc` drops pictures, videos and a
 card's picture from every block it writes (`normalizeRichText`'s `media: false`), since a model a
 page told to add a picture could make every reader's browser send the document to an address of
 the page's choosing. A `replaceBlocks` over a range holding one of them has to keep it, by leaving
 it out of the range.
 
-**A document's text is shared**, so the agent reads and writes it as an editor does (see
-`CLAUDE.md` § The database):
+**A document's text is shared**, so the Knowledge module reads and writes it as an editor does,
+for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The database):
 
 - **Reading** merges the snapshot, `state`, with the pending `DocumentUpdate` rows into a Yjs
   document and reads its blocks with BlockNote's `yDocToBlocks`, ids and all, then each through
@@ -1041,14 +1406,16 @@ it out of the range.
   or builds nodes the schema's check refuses.
 - **Storing** is a fold, as a tab's compaction is: one backend mutation writes the new `state`,
   `content` and `contentText` under the `revision` it read, deletes the updates it merged, and
-  records the call's result (see Recovery and side effects). A push that lands meanwhile is not
+  records the call's result under its key, when it has one (see Modules § Idempotent writes). A
+  push that lands meanwhile is not
   among them and stays pending, and merges with the edit as two members' edits merge. A pushed
   update moves no revision, so for a whole-document `content` replacement, whose `version` says the
   model saw the text it replaces, the fold also checks, after it has locked the row, that no
   update is pending beyond those it merged, and reads again when one is. A push committing inside
   the fold's own transaction still merges rather than refuses, as concurrent edits do, which the
   version check never meant to prevent; a fold somebody else made meanwhile moves the revision, and the
-  backend reads again and reapplies, three times at most. Every tab with the document open sees the
+  backend reads again and reapplies, three times at most, checking the call's key again before
+  each try. Every tab with the document open sees the
   revision move and reads the snapshot again, as after any fold, so the agent's edit appears in
   open editors without a reload. A fold has no 50000-character bound, as a pushed update has, so a
   large edit goes through whole; it has the bounds `CompactDocument` holds the result to instead,
@@ -1068,7 +1435,7 @@ instruction wrote into it, out from the reader's browser.
 
 ### Release gate
 
-Until M24, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M28, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -1081,14 +1448,21 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M21 and M22, the OAuth initiation included: an authorization's state only exists once a staff
+  M25 and M26, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M24.
+  caller being staff until M28.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M24 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M28 removes.
   Locally, `bun run grant:administrator <email>` makes an account staff.
+- Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, also removed in M28, since an
+  external agent reaches them without any conversation: the consent page's Allow refuses anybody
+  else, the token verifier checks the role on every call, so a connection outlives no lost role,
+  and the Connected agents tab and the Use with your agents button show for staff only. The
+  authorization endpoints before consent cannot know who is asking, and need no gate: nothing they
+  hand out opens anything until a staff member allows it. Strategy Dance's agent reaches a module
+  behind conversations' own gate.
 
 ### Setup
 
@@ -1101,8 +1475,8 @@ account, and until both exist every send in production answers 503.
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
-   file or a chat). The workspace's default inference region is the legal review's call before M24.
-   Check the organization's rate limit tier before staff use, and raise it before M24.
+   file or a chat). The workspace's default inference region is the legal review's call before M28.
+   Check the organization's rate limit tier before staff use, and raise it before M28.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -1140,14 +1514,20 @@ account, and until both exist every send in production answers 503.
      --oidc-token-audience https://strategydance-worker-995028545701.us-central1.run.app \
      --attempt-deadline 15m
    ```
-7. For M19: the bucket's lifecycle rule deleting objects under `pending/` older than two days
+7. For M23: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
    development run cost money from the first request: the workspace's spend limit (step 1), and a
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting
    at 50%, 90% and 100% (done on 2026-10-04).
-9. For M21 to M23: a Cloud KMS key for integration secrets, with
+9. For M25 to M27: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
+10. For M16: the secret refresh tokens' successors are derived under, 32 random bytes typed into
+    Secret Manager as `oauth-token-secret` (`openssl rand -base64 32 | gcloud secrets create
+    oauth-token-secret --data-file=- --project strategydance`), with Secret Manager's accessor role
+    on it for the runtime service account. Development uses a fixed local value. Rotating it adds a
+    version: keep the previous one enabled for a day at least, since a duplicate refresh derives
+    with the version its first use recorded.
 
 ### Cost
 
@@ -1155,7 +1535,7 @@ At first-party list prices ($4 per million input tokens, $20 per million output,
 cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M24
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M28
 adds a section on it to `operations-costs.md`.
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
@@ -1171,7 +1551,7 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Spend**: nothing caps usage until credits exist; the budget alert is the guard.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
-  checked before staff use and raised before M24.
+  checked before staff use and raised before M28.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
@@ -1188,7 +1568,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   against it. BlockNote already ships a binding for y-prosemirror's second major version, which has
   no `updateYFragment`, so moving to it means writing the function again.
 - **Processing location**: the API runs inference in the workspace's default region unless a
-  request names one (`inference_geo`). The legal review before M24 picks it, and names Anthropic as
+  request names one (`inference_geo`). The legal review before M28 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
   they are deleted.
 - **Prompt injection**: knowledge, the log, the web, files and integrations carry text others wrote,
@@ -1196,11 +1576,28 @@ the lifetime is chosen from what members' pauses turn out to be.
   member's approval, except auto-approved tools, which anything the agent reads can get called at
   once (allowing one is an administrator's acceptance of that), and every integration request
   passes the outbound guard.
-- **Built-in writes run without approval, by David's decision**, as the design shows, so injected
-  text could get the agent to change a document the team lets AI change, or the member's priority.
-  The AI permissions, the tool call row each write leaves in the thread, and the version check
-  limit it; if that proves too loose, M23's approval entry can gate built-in writes too. The text of
-  a document the team keeps from AI never reaches the model, so nothing injected can get it read
-  out.
+- **Built-in and module writes run without approval, by David's decision**, as the design shows,
+  so injected text could get the agent to change, tag or delete a document the team lets AI change,
+  or the member's priority. The AI permissions, the tool call row each write leaves in the thread,
+  the version check, and a delete that stays restorable for a day, with Restore on its row, limit
+  it; if that proves too loose, M27's approval entry can gate those writes too. The text of a
+  document the team keeps from AI never reaches the model, so nothing injected can get it read out.
+- **External agents act as the member.** One a member connected reads and, with read and write
+  access, changes whatever AI may in that organization, on that member's word alone: no setting
+  lets an organization refuse external agents, and no administrator sees the connections, by
+  David's decision on 2026-10-07. What AI may read then reaches the agent's provider, OpenAI or
+  Cursor say, which the legal review before M28 names; injected text reaching that agent can do
+  what its access allows. The AI permissions bound it, a connection can be read only, and the
+  member disconnects it from Connected agents. If teams ask for more, an organization switch and an
+  administrators' view of connections fit the data as it is.
+- **The authorization server is code that guards everything.** It is written by hand, since the
+  SDK's helpers for one are frozen, and a mistake in it opens the organization's knowledge to
+  whoever finds it. M16 follows the MCP specification's authorization pages and OAuth's current
+  security advice (RFC 9700) point by point, tests each refusal, and goes through
+  `/security-review` before it merges.
+- **MCP moves fast.** Within a year its specification dropped sessions and deprecated dynamic
+  client registration, and its SDK changed major version. The handler serves the 2025 revisions'
+  clients statelessly, dynamic registration stays while Cursor needs it, the SDK is pinned, and the
+  converted tools list's byte test catches a release that would change what conversations replay.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.

@@ -163,7 +163,7 @@ async function requestConversationTurn({
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))
   const parts: Omit<ConversationTurnPart, 'entryId'>[] = []
-  const durationFailure = `The run passed ${Math.round(limits.maxDurationMs / 1000)} seconds since it was first claimed`
+  const durationFailure = `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed`
   const isPastDuration = () => Date.now() - Date.parse(startedAt) >= limits.maxDurationMs
   let usage = initialUsage
   let paused = pausedRequest
@@ -285,7 +285,7 @@ async function requestConversationTurn({
       }
 
       if (request.readReason() === 'deadline') {
-        const failure = `The stream of request ${reserved.index} was cut ${Math.round(limits.streamDeadlineMs / 1000)} seconds after the run was first claimed`
+        const failure = `The stream of request ${reserved.index} was cut ${limits.streamDeadlineMs / 1000} seconds after the run was first claimed`
 
         logger.warn(`Conversation run ${fence.runId}: ${failure}`)
 

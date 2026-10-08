@@ -663,7 +663,7 @@ describe('runConversation', () => {
       'finished',
     )
     expect(scripted.requests).toHaveLength(0)
-    expect(readRun(reference)?.failure).toContain('seconds since it was first claimed')
+    expect(readRun(reference)?.failure).toBe('The run passed 0.05 seconds since it was first claimed')
     expect(readUsage(reference).requests).toHaveLength(0)
   })
 
@@ -675,7 +675,9 @@ describe('runConversation', () => {
       'finished',
     )
     expect(readRun(reference)?.status).toBe('FAILED')
-    expect(readRun(reference)?.failure).toContain('The stream of request 0 was cut')
+    expect(readRun(reference)?.failure).toBe(
+      'The stream of request 0 was cut 0.05 seconds after the run was first claimed',
+    )
     expect(readEntries(reference)).toHaveLength(1)
     expect(readUsage(reference).requests).toMatchObject([
       { isSettled: true, isEstimated: true, inputTokens: 1000, outputTokens: 50 },

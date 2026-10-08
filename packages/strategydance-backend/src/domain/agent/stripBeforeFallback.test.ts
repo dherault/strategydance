@@ -22,17 +22,17 @@ const fallback = (from: string, to: string) =>
 
 describe('stripBeforeFallback', () => {
   test('keeps a turn no model declined as it is', () => {
-    const content = [thinking, search('srvtoolu_1'), searchResult('srvtoolu_1'), text('Flat 19')]
+    const parts = [[thinking, search('srvtoolu_1'), searchResult('srvtoolu_1'), text('Flat 19')]]
 
-    expect(stripBeforeFallback(content)).toBe(content)
+    expect(stripBeforeFallback(parts)).toBe(parts)
   })
 
   test('drops thinking, redacted thinking and client calls before the boundary, and keeps text', () => {
     const switched = fallback('claude-opus-5-5', 'claude-opus-4-8')
 
     expect(
-      stripBeforeFallback([thinking, text('Looking'), redacted, call, switched, thinking, text('Flat 19')]),
-    ).toEqual([text('Looking'), switched, thinking, text('Flat 19')])
+      stripBeforeFallback([[thinking, text('Looking'), redacted, call, switched, thinking, text('Flat 19')]]),
+    ).toEqual([[text('Looking'), switched, thinking, text('Flat 19')]])
   })
 
   test('keeps a server call with its result, and drops one left without it', () => {
@@ -40,31 +40,53 @@ describe('stripBeforeFallback', () => {
 
     expect(
       stripBeforeFallback([
-        search('srvtoolu_1'),
-        searchResult('srvtoolu_1'),
-        search('srvtoolu_2'),
-        switched,
-        text('Flat 19'),
+        [search('srvtoolu_1'), searchResult('srvtoolu_1'), search('srvtoolu_2'), switched, text('Flat 19')],
       ]),
-    ).toEqual([search('srvtoolu_1'), searchResult('srvtoolu_1'), switched, text('Flat 19')])
+    ).toEqual([[search('srvtoolu_1'), searchResult('srvtoolu_1'), switched, text('Flat 19')]])
   })
 
   test('drops a result whose call is not in the turn, and any other block the declining model wrote', () => {
     const switched = fallback('claude-opus-5-5', 'claude-opus-4-8')
     const compaction = { type: 'compaction', content: 'Summary' } as BetaContentBlock
 
-    expect(stripBeforeFallback([searchResult('srvtoolu_9'), compaction, switched, text('Flat 19')])).toEqual([
-      switched,
-      text('Flat 19'),
+    expect(stripBeforeFallback([[searchResult('srvtoolu_9'), compaction, switched, text('Flat 19')]])).toEqual([
+      [switched, text('Flat 19')],
     ])
+  })
+
+  test('strips the parts of a paused turn before a boundary in a later part, keeping a call with its result', () => {
+    const switched = fallback('claude-opus-5-5', 'claude-opus-4-8')
+
+    expect(
+      stripBeforeFallback([
+        [thinking, text('Looking'), search('srvtoolu_1')],
+        [searchResult('srvtoolu_1'), thinking, call],
+        [redacted, switched, thinking, text('Flat 19')],
+      ]),
+    ).toEqual([
+      [text('Looking'), search('srvtoolu_1')],
+      [searchResult('srvtoolu_1')],
+      [switched, thinking, text('Flat 19')],
+    ])
+  })
+
+  test('leaves bare a part whose server call never had its result', () => {
+    const switched = fallback('claude-opus-5-5', 'claude-opus-4-8')
+
+    expect(
+      stripBeforeFallback([
+        [thinking, search('srvtoolu_1')],
+        [switched, text('Flat 19')],
+      ]),
+    ).toEqual([[], [switched, text('Flat 19')]])
   })
 
   test('strips up to the last boundary when two models declined in turn', () => {
     const first = fallback('claude-opus-5-5', 'claude-opus-5')
     const second = fallback('claude-opus-5', 'claude-opus-4-8')
 
-    expect(stripBeforeFallback([thinking, first, thinking, text('Partly'), second, thinking, text('Flat 19')])).toEqual(
-      [first, text('Partly'), second, thinking, text('Flat 19')],
-    )
+    expect(
+      stripBeforeFallback([[thinking, first, thinking, text('Partly'), second, thinking, text('Flat 19')]]),
+    ).toEqual([[first, text('Partly'), second, thinking, text('Flat 19')]])
   })
 })

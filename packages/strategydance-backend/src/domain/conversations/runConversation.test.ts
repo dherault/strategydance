@@ -544,6 +544,62 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('COMPLETED')
   })
 
+  test('strips a paused turn whose boundary came in a later part as one, keeping a search split across its parts', async () => {
+    const reference = await start()
+    const fallback = {
+      type: 'fallback',
+      from: { model: 'claude-opus-5-5' },
+      to: { model: 'claude-opus-4-8' },
+      trigger: { type: 'refusal', category: 'cyber' },
+    } as BetaContentBlock
+    const scripted = createClient([
+      answer(
+        [
+          { type: 'thinking', thinking: '', signature: 'declined' },
+          { type: 'text', text: 'Looking it up.', citations: null },
+          SEARCH[0] as BetaContentBlock,
+        ],
+        { stopReason: 'pause_turn' },
+      ),
+      answer(
+        [
+          { type: 'redacted_thinking', data: 'opaque' },
+          { type: 'server_tool_use', id: 'srvtoolu_9', name: 'web_search', input: { query: 'never answered' } },
+        ],
+        { stopReason: 'pause_turn' },
+      ),
+      createClaudeMessage({
+        model: 'claude-opus-4-8',
+        content: [SEARCH[1] as BetaContentBlock, fallback, { type: 'text', text: REPLY, citations: null }],
+      }),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+
+    // The second part, a declined model's alone, is left bare, so it is neither sent again nor stored
+    expect(scripted.readRequests()[2]?.messages.map(({ role }) => role)).toEqual([
+      'user',
+      'system',
+      'assistant',
+      'assistant',
+    ])
+
+    const stored = readEntries(reference)
+      .slice(2)
+      .map(({ content }) => (JSON.parse(content) as BetaContentBlock[]).map(({ type }) => type))
+
+    expect(stored).toEqual([
+      ['text', 'server_tool_use'],
+      ['web_search_tool_result', 'fallback', 'text'],
+    ])
+    expect(
+      readThread(reference)
+        .slice(1)
+        .map(({ kind }) => kind),
+    ).toEqual(['AGENT_TEXT', 'TOOL_CALL', 'AGENT_TEXT'])
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+  })
+
   test('stores and draws a reply the fallback model served on its own as any other, counted under that model', async () => {
     const reference = await start()
     const scripted = createClient([

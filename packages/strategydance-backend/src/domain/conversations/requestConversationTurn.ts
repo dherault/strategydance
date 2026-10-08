@@ -165,6 +165,10 @@ async function requestConversationTurn({
   const parts: Omit<ConversationTurnPart, 'entryId'>[] = []
   const durationFailure = `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed`
   const isPastDuration = () => Date.now() - Date.parse(startedAt) >= limits.maxDurationMs
+  // Whether a fallback's boundary came in the turn, which strips its parts
+  let isStripped = false
+  // The parts of the turn, but those its stripping left bare, which are no part of it
+  const keptParts = () => (isStripped ? parts.filter(({ content }) => content.length) : parts)
   let usage = initialUsage
   let paused = pausedRequest
   let pauses = storedPauses
@@ -180,7 +184,7 @@ async function requestConversationTurn({
     const messages = buildConversationMessages({
       entries,
       context: context?.content ?? null,
-      parts: parts.map(({ content }) => content),
+      parts: keptParts().map(({ content }) => content),
     })
 
     checkTranscript(messages, { isRequest: true })
@@ -305,8 +309,16 @@ async function requestConversationTurn({
 
     usage = settleConversationRequest(usage, reserved.index, message, { turnPosition: null })
 
-    // What a model that declined partway wrote before its fallback took over is never kept
-    const content = stripBeforeFallback(message.content)
+    // What a model that declined partway wrote before its fallback took over is never kept, in this
+    // part or in the parts of the turn before it
+    const unstripped = [...parts.map(({ content }) => content), message.content]
+    const turn = stripBeforeFallback(unstripped)
+
+    if (turn !== unstripped) isStripped = true
+
+    for (const [index, part] of parts.entries()) part.content = turn[index] ?? part.content
+
+    const content = turn.at(-1) ?? message.content
 
     if (message.stop_reason === 'pause_turn' && pauses < MAX_CONVERSATION_PAUSES) {
       pauses++
@@ -349,7 +361,7 @@ async function requestConversationTurn({
 
     return {
       kind: 'turn',
-      parts: parts.map(part => ({ ...part, entryId: createId() })),
+      parts: keptParts().map(part => ({ ...part, entryId: createId() })),
       context,
       contextEntryId: createId(),
       firstPosition: last.position + 1,

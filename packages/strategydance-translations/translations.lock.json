@@ -1309,6 +1309,14 @@
         "hash": "6374f3f4c149ceb4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.stop": {
+        "hash": "cc0b3e7dd58499c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.stopError": {
+        "hash": "e9e329025eb2b432",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.composer.unavailable": {
         "hash": "bfe13c28829ece15",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1405,6 +1413,10 @@
         "hash": "9384b8170befd995",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.note.actionError": {
+        "hash": "ba772e441dfd6621",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.note.failed": {
         "hash": "450490e158ec8bb6",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1419,6 +1431,14 @@
       },
       "conversation.note.refused": {
         "hash": "47f40f9d527bcc56",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.resume": {
+        "hash": "49100bd0587dbf1b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.retry": {
+        "hash": "f3613e40b400b719",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.note.stopped": {
@@ -1515,6 +1535,10 @@
       },
       "conversation.sources": {
         "hash": "0a3ba6016aa74bb6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.stopping": {
+        "hash": "d1718c83e5d1df00",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.thinking": {

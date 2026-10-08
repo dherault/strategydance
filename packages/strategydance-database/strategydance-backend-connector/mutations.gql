@@ -513,6 +513,85 @@ mutation ExpireQueuedConversationRunLease(
   )
 }
 
+# Asks a claimed run to stop, as its member did: its worker reads `stopRequestedAt` before each
+# request and every two seconds while one streams, then ends the run `STOPPED` with its note. Only
+# while the run is running and not asked already, in the caller's conversation. One conditional
+# update and no transaction, and the backend reads whether it asked.
+#
+# `$conversationId` is the run's own, which its page's live run refreshes on, so every tab shows it
+# stopping
+mutation RequestConversationRunStop($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      stopRequestedAt: { isNull: true }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Stops a run still waiting in the queue, as its member asked, at once rather than when a worker
+# claims it, so they can send again straight away: it ends `STOPPED` with its note, at a position
+# claimed on the conversation's counter, and a task delivered later finds it ended and does
+# nothing. Only while the run is still queued, so one a worker claimed meanwhile is asked to stop
+# instead.
+#
+# The conversation's row is written once, as `InterruptDeadConversationRun` writes it
+mutation StopQueuedConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: {
+      status: STOPPED
+      failure: "Its member stopped it while it was queued"
+      endedAt_expr: "request.time"
+      leaseExpiresAt: null
+    }
+  ) @check(expr: "this == 1", message: "The run is no longer queued")
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: STOPPED
+      position: $position
+    }
+  )
+}
+
 # Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
 # attempt, which every later write of that worker matches, so a worker that lost the run writes
 # nothing more. `$attempts` is the count the worker read, so of two workers claiming at once only

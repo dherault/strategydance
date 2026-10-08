@@ -9,6 +9,7 @@ import {
   ConversationTranscriptRole,
   type GetConversationRequestContextData,
   getConversationRequestContext,
+  getConversationRunStop,
   renewConversationRunLease,
 } from 'strategydance-database/backend'
 
@@ -56,6 +57,8 @@ type RequestConversationTurnInput = {
   // When the run was first claimed, which its time limits count from
   startedAt: string
   limits: ConversationRunLimits
+  // How often a streaming request reads whether the run's member asked to stop it
+  stopCheckIntervalMs: number
 }
 
 // How many requests a run sends at most, how long after it was first claimed it starts none, and
@@ -112,6 +115,8 @@ export type ConversationTurnOutcome =
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
     one that failed partway. The run fails with its note
+  - a stream its member asked to stop, which the worker reads every two seconds: cut, charged as
+    one that failed partway, and the run ends stopped, with its note
 
   Nothing of a turn that ends so is stored, the parts held in memory included, and every ending
   says why in the run's `failure`, for the logs
@@ -127,6 +132,7 @@ async function requestConversationTurn({
   storedPauses,
   startedAt,
   limits,
+  stopCheckIntervalMs,
 }: RequestConversationTurnInput): Promise<ConversationTurnOutcome> {
   const reference = { organizationId: fence.organizationId, userId: fence.userId, conversationId: fence.conversationId }
   const [entries, { data: requestContext }] = await Promise.all([
@@ -238,6 +244,12 @@ async function requestConversationTurn({
     const request = createConversationRequestSignal({
       signal,
       deadline: Date.parse(startedAt) + limits.streamDeadlineMs,
+      isStopRequested: async () => {
+        const { data } = await getConversationRunStop(dataConnect, toReference(fence))
+
+        return Boolean(data.conversationRuns[0]?.stopRequestedAt)
+      },
+      stopCheckIntervalMs,
     })
 
     try {
@@ -254,6 +266,22 @@ async function requestConversationTurn({
       const settled = streamed.message
         ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
         : settleFailedConversationRequest(usage, reserved.index)
+
+      // Its member asked to stop it: the turn being written is dropped, the parts held with it
+      if (request.readReason() === 'stopped') {
+        logger.info(`Conversation run ${fence.runId}: stopped during request ${reserved.index}, as its member asked`)
+
+        return {
+          kind: 'ending',
+          ending: {
+            kind: 'noted',
+            status: ConversationRunStatus.STOPPED,
+            noteKind: ConversationNoteKind.STOPPED,
+            failure: `Its member stopped it while request ${reserved.index} streamed`,
+            usage: settled,
+          },
+        }
+      }
 
       if (request.readReason() === 'deadline') {
         const failure = `The stream of request ${reserved.index} was cut ${Math.round(limits.streamDeadlineMs / 1000)} seconds after the run was first claimed`
@@ -384,6 +412,11 @@ function logRequest(runId: string, index: number, message: BetaMessage) {
 
 function createId() {
   return randomUUID().replaceAll('-', '')
+}
+
+// The run's keys alone, which a read takes
+function toReference({ organizationId, userId, conversationId, runId }: ConversationRunFence) {
+  return { organizationId, userId, conversationId, runId }
 }
 
 export default requestConversationTurn

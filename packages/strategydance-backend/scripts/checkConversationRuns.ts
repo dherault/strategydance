@@ -19,6 +19,7 @@ import {
   getClaimedConversations,
   getConversationRequestContext,
   getConversationRunContext,
+  getConversationRunStop,
   getConversationTranscript,
   getConversationSendContext,
   interruptConversationRun,
@@ -26,8 +27,10 @@ import {
   reclaimConversationRun,
   renewConversationRunLease,
   renewQueuedConversationRunLease,
+  requestConversationRunStop,
   sendConversationMessage,
   startConversation,
+  stopQueuedConversationRun,
   storeConversationTurn,
   storeConversationTurnWithContext,
 } from 'strategydance-database/backend'
@@ -84,6 +87,7 @@ const userIds = {
   queuer: `check-conversation-runs-${checkId}-queuer`,
   sweeper: `check-conversation-runs-${checkId}-sweeper`,
   drawer: `check-conversation-runs-${checkId}-drawer`,
+  stopper: `check-conversation-runs-${checkId}-stopper`,
 }
 
 const failures: string[] = []
@@ -637,6 +641,90 @@ async function checkDeadRuns() {
     (await readRun(started.runId))?.status === ConversationRunStatus.INTERRUPTED
       && (await readConversation(started.conversationId))?.activeRunId === null
       && (await readMessageAt(started.conversationId, 1))?.noteKind === ConversationNoteKind.INTERRUPTED,
+  )
+}
+
+/*
+  Stopping a run as its member asks: a queued one at once, with its note, and a claimed one asked to
+  stop, which its worker reads and ends
+*/
+async function checkStopping() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.stopper)
+  const queued = await start(userIds.stopper, membershipCreatedAt)
+  const queuedReference = {
+    organizationId,
+    userId: queued.userId,
+    conversationId: queued.conversationId,
+    runId: queued.runId,
+  }
+  const stopQueued = (reference: typeof queuedReference) =>
+    stopQueuedConversationRun(dataConnect, {
+      ...reference,
+      noteId: createId(),
+      position: 1,
+      preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+    })
+
+  check(
+    'a queued run is not asked to stop, only a claimed one',
+    (await requestConversationRunStop(dataConnect, queuedReference)).data.conversationRun_updateMany === 0,
+  )
+
+  await stopQueued(queuedReference)
+
+  check(
+    'a queued run stops at once, with its note and why, and lets its conversation go',
+    (await readRun(queued.runId))?.status === ConversationRunStatus.STOPPED
+      && (await readConversation(queued.conversationId))?.activeRunId === null
+      && (await readMessageAt(queued.conversationId, 1))?.noteKind === ConversationNoteKind.STOPPED
+      && (
+        await read<{ conversationRun: { failure: string | null } | null }>(
+          `query ReadFailure($id: UUID!) { conversationRun(id: $id) { failure } }`,
+          { id: queued.runId },
+        )
+      ).conversationRun?.failure === 'Its member stopped it while it was queued',
+  )
+  check('a stopped run is not stopped again', (await refusal(stopQueued(queuedReference))) !== null)
+
+  const claimed = await start(userIds.stopper, membershipCreatedAt)
+  const claimedReference = {
+    organizationId,
+    userId: claimed.userId,
+    conversationId: claimed.conversationId,
+    runId: claimed.runId,
+  }
+
+  await claimQueuedConversationRun(dataConnect, fence(claimed, 0))
+
+  check('a claimed run is not stopped as a queued one', (await refusal(stopQueued(claimedReference))) !== null)
+  check(
+    'a claimed run is asked to stop once',
+    (await requestConversationRunStop(dataConnect, claimedReference)).data.conversationRun_updateMany === 1
+      && (await requestConversationRunStop(dataConnect, claimedReference)).data.conversationRun_updateMany === 0,
+  )
+
+  const { data: asked } = await getConversationRunStop(dataConnect, claimedReference)
+  const { data: unseen } = await getConversationRunStop(dataConnect, { ...claimedReference, userId: userIds.member })
+
+  check(
+    'its worker reads that it was asked, and nobody else reads its run',
+    Boolean(asked.conversationRuns[0]?.stopRequestedAt) && unseen.conversationRuns.length === 0,
+  )
+
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(claimed, 1),
+    status: ConversationRunStatus.STOPPED,
+    noteKind: ConversationNoteKind.STOPPED,
+    noteId: createId(),
+    position: 1,
+    preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+    failure: 'Its member stopped it before its next request',
+  })
+
+  check(
+    'a run its worker stops ends stopped, with its note',
+    (await readRun(claimed.runId))?.status === ConversationRunStatus.STOPPED
+      && (await readMessageAt(claimed.conversationId, 1))?.noteKind === ConversationNoteKind.STOPPED,
   )
 }
 
@@ -1301,6 +1389,7 @@ try {
   await checkFinishing()
   await checkMembership()
   await checkDeadRuns()
+  await checkStopping()
   await checkQueuedLeases()
   // The claiming checks leave the sender's conversation idle, its next position 2 and its next run 1
   await checkSending(started)

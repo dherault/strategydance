@@ -228,6 +228,22 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
   }
 }
 
+# Whether a run's member asked it to stop, which its worker reads every two seconds while a request
+# streams, in the caller's conversation
+query GetConversationRunStop($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationRuns(
+    where: {
+      id: { eq: $runId }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    status
+    stopRequestedAt
+  }
+}
+
 # A batch of the conversations the daily sweep has claimed and not deleted yet, whoever's they are,
 # which it deletes next. Only those still deleted over a day ago, as the delete takes them. Twenty
 # at a time, since each holds up to 2000 messages, which go with it

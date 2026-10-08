@@ -29,6 +29,7 @@ import validateMiddleware from '~middleware/validate'
 import parseConversationMessageText from '~domain/conversations/parseConversationMessageText'
 import reconcileConversationRun from '~domain/conversations/reconcileConversationRun'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
+import stopConversationRun from '~domain/conversations/stopConversationRun'
 
 /*
   A member's conversations in an organization, mounted at
@@ -175,6 +176,37 @@ function createConversationsRouter() {
     staffOnlyMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {
       const result = await reconcileConversationRun({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        runId: toCanonicalUuid(request.params.runId),
+      })
+
+      if (result.outcome === 'missing') {
+        respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This run is not in one of your conversations')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Stops a run, as its member asked from its page: a queued run ends stopped at once, with its
+    note, a run a worker holds is asked to stop, which its worker does within two seconds, and a run
+    that died with its worker ends interrupted. A run that has ended is left as it is, so a stop sent
+    twice answers the same. Takes no body
+  */
+  router.post(
+    '/:conversationId/runs/:runId/stop',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: runParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: RunRequest, response: Response<ApiResponse>) => {
+      const result = await stopConversationRun({
         organizationId: toCanonicalUuid(request.params.organizationId),
         userId: readViewer(request).id,
         conversationId: toCanonicalUuid(request.params.conversationId),

@@ -378,13 +378,18 @@ function createConversationDatabaseFake() {
 
   // A run still queued in the caller's conversation, as the queued run's lease mutations match it
   function findQueuedRun(variables: AnyVariables) {
+    return findOwnedRun(variables, 'QUEUED')
+  }
+
+  // A run of the caller's conversation in that status, as the queued-run operations find theirs
+  function findOwnedRun(variables: AnyVariables, status?: string) {
     const run = runs.get(id(variables.runId))
     const conversation = run && conversations.get(run.conversationId)
 
     if (
       !run
       || !conversation
-      || run.status !== 'QUEUED'
+      || (status !== undefined && run.status !== status)
       || conversation.id !== id(variables.conversationId)
       || conversation.userId !== variables.userId
       || conversation.organizationId !== id(variables.organizationId)
@@ -543,6 +548,14 @@ function createConversationDatabaseFake() {
           .filter(message => message.runId === id(variables.runId) && message.kind !== 'MEMBER_TEXT')
           .slice(0, 100)
           .map(({ id: messageId, kind, noteKind, toolStatus }) => ({ id: messageId, kind, noteKind, toolStatus })),
+      }
+    },
+
+    GetConversationRunStop: variables => {
+      const run = findOwnedRun(variables)
+
+      return {
+        conversationRuns: run ? [{ status: run.status, stopRequestedAt: run.stopRequestedAt }] : [],
       }
     },
 
@@ -793,6 +806,32 @@ function createConversationDatabaseFake() {
       if (!run) return { conversationRun_updateMany: 0 }
 
       run.leaseExpiresAt = now()
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    RequestConversationRunStop: variables => {
+      const run = findOwnedRun(variables, 'RUNNING')
+
+      if (!run || run.stopRequestedAt) return { conversationRun_updateMany: 0 }
+
+      run.stopRequestedAt = now()
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    StopQueuedConversationRun: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run) refuse('The run is no longer queued')
+
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'STOPPED')
+      run.failure = 'Its member stopped it while it was queued'
+      writeNote(conversation, variables, 'STOPPED')
 
       return { conversationRun_updateMany: 1 }
     },

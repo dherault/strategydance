@@ -134,6 +134,10 @@ export const CONVERSATION_RUN_MAX_REQUESTS = 25
 export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
 export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
 
+// How often a worker reads whether its run's member asked to stop it while a request streams. It
+// reads it before each request too
+export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
+
 /*
   How long after a run was queued a route that finds its task gone queues it again, rather than
   finalizing the run as interrupted: as long as a queued run's first lease. A task that could not be

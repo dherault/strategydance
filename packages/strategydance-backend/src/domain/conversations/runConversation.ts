@@ -20,6 +20,7 @@ import type { ClaudeClient, ConversationRunFence, ConversationRunReference } fro
 import {
   CONVERSATION_RUN_MAX_DURATION_MS,
   CONVERSATION_RUN_MAX_REQUESTS,
+  CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
 } from '~constants'
 
@@ -56,6 +57,8 @@ type Options = {
   retryDelayMs?: number
   // The run's limits, which a test can bring in
   limits?: Partial<ConversationRunLimits>
+  // How often a streaming request reads whether the run's member asked to stop it
+  stopCheckIntervalMs?: number
 }
 
 const LIMITS: ConversationRunLimits = {
@@ -84,6 +87,9 @@ type ConversationRunContext = GetConversationRunContextData
     drawn its 100 entries, or the conversation holds its 2000, when the run fails with a note
     instead and costs nothing
 
+  A run whose member asked it to stop sends no further request: it ends stopped, with its note, once
+  what was paid for is written and drawn. One whose conversation was deleted stops without a note.
+
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
   write refused once is tried again, never paid for again. Every write is fenced on the run's
   attempt and its author's membership, and the step after a refused one reads which it was: a run
@@ -93,7 +99,12 @@ type ConversationRunContext = GetConversationRunContextData
 */
 async function runConversation(
   reference: ConversationRunReference,
-  { client = conversationClaudeClient, retryDelayMs = 500, limits }: Options = {},
+  {
+    client = conversationClaudeClient,
+    retryDelayMs = 500,
+    limits,
+    stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
+  }: Options = {},
 ): Promise<'finished' | 'held'> {
   const context = await readContext(reference)
   const [run] = context.conversationRuns
@@ -146,6 +157,7 @@ async function runConversation(
       client,
       retryDelayMs,
       limits: { ...LIMITS, ...limits },
+      stopCheckIntervalMs,
     })
   } finally {
     await lease.stop()
@@ -159,9 +171,10 @@ type StepsInput = {
   client: ClaudeClient
   retryDelayMs: number
   limits: ConversationRunLimits
+  stopCheckIntervalMs: number
 }
 
-async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits }: StepsInput) {
+async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits, stopCheckIntervalMs }: StepsInput) {
   const reference = toReference(fence)
   let failedSteps = 0
   // What a request came to and is not written yet
@@ -174,7 +187,7 @@ async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits }:
     if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
 
     try {
-      const result = await takeStep({ context, fence, lease, signal, client, limits, outcome })
+      const result = await takeStep({ context, fence, lease, signal, client, limits, stopCheckIntervalMs, outcome })
 
       outcome = result === 'ended' || result === 'next' ? null : result
       failedSteps = 0
@@ -218,6 +231,7 @@ async function takeStep({
   signal,
   client,
   limits,
+  stopCheckIntervalMs,
   outcome,
 }: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
   const { conversation } = context
@@ -232,6 +246,18 @@ async function takeStep({
     await endConversationRun({ ending, fence, lease, position })
 
     return 'ended' as const
+  }
+
+  // Its member asked it to stop, which a run reads before each request: what was paid for is
+  // written and drawn first, and nothing more is asked
+  function stop() {
+    return end({
+      kind: 'noted',
+      status: ConversationRunStatus.STOPPED,
+      noteKind: ConversationNoteKind.STOPPED,
+      failure: 'Its member stopped it before its next request',
+      usage,
+    })
   }
 
   if (!isAuthorStill(context, fence.membershipCreatedAt)) {
@@ -265,6 +291,7 @@ async function takeStep({
     const pausedRequest = findPausedRequest(context, usage)
 
     if (!pausedRequest) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
+    if (run?.stopRequestedAt) return stop()
 
     return requestConversationTurn({
       fence,
@@ -277,8 +304,11 @@ async function takeStep({
       storedPauses: countStoredPauses(context, usage),
       startedAt: run?.startedAt ?? new Date().toISOString(),
       limits,
+      stopCheckIntervalMs,
     })
   }
+
+  if (run?.stopRequestedAt) return stop()
 
   if (context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
     return end({
@@ -311,6 +341,7 @@ async function takeStep({
     storedPauses: 0,
     startedAt: run?.startedAt ?? new Date().toISOString(),
     limits,
+    stopCheckIntervalMs,
   })
 }
 

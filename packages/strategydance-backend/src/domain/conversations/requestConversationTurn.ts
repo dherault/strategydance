@@ -26,6 +26,7 @@ import buildConversationRequest, { buildConversationMessages } from '~domain/age
 import checkTranscript from '~domain/agent/checkTranscript'
 import { MAX_CONVERSATION_PAUSES } from '~domain/agent/conversationRequestSettings'
 import measureConversationRequest from '~domain/agent/measureConversationRequest'
+import stripBeforeFallback from '~domain/agent/stripBeforeFallback'
 import {
   type ConversationRequestUsage,
   type ConversationRunUsage,
@@ -85,7 +86,8 @@ export type ConversationTurnOutcome =
   when it has none, checks the request, measures it, reserves it in the ledger in the write that
   renews the lease, then streams it, the progress lines its thinking gives going to the run's step.
   A turn `pause_turn` paused is sent back as it is, its parts held in memory, up to five pauses in
-  the run, then answered as one outcome:
+  the run, then answered as one outcome. A part a fallback model finished is kept as its boundary
+  leaves it (`stripBeforeFallback`):
 
   - `end_turn`: the turn, to store
   - a request whose input would pass 800000 tokens: never sent, and the run ends full, its
@@ -214,9 +216,12 @@ async function requestConversationTurn({
 
     usage = settleConversationRequest(usage, reserved.index, message, { turnPosition: null })
 
+    // What a model that declined partway wrote before its fallback took over is never kept
+    const content = stripBeforeFallback(message.content)
+
     if (message.stop_reason === 'pause_turn' && pauses < MAX_CONVERSATION_PAUSES) {
       pauses++
-      parts.push({ content: message.content, requestIndex: reserved.index })
+      parts.push({ content, requestIndex: reserved.index })
       paused = usage.requests[reserved.index] ?? null
 
       continue
@@ -228,7 +233,7 @@ async function requestConversationTurn({
       return { kind: 'ending', ending: fail(ConversationNoteKind.FAILED, usage) }
     }
 
-    parts.push({ content: message.content, requestIndex: reserved.index })
+    parts.push({ content, requestIndex: reserved.index })
 
     return {
       kind: 'turn',

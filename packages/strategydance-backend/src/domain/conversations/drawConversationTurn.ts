@@ -79,8 +79,9 @@ type Drawing =
 
   From a part's cursor on, what it draws next is:
 
-  - its consecutive text blocks as one reply, with the spans web search cited, the blocks before
-    them that draw nothing passed over in the same move. A text past 20000 characters is drawn in
+  - its consecutive text blocks as one reply, a fallback's boundary between two of them included,
+    with the spans web search cited, the blocks before them that draw nothing passed over in the
+    same move. A text past 20000 characters is drawn in
     pieces, one at a time, the cursor's piece saying which comes next
   - a web search, as a finished call whose output lists the results' titles and addresses. Its
     result comes in the same part, or opens the next when `pause_turn` paused the turn between
@@ -168,14 +169,19 @@ function findNextDrawing(entry: ConversationDrawEntry, laterEntries: Conversatio
   return { kind: 'none' }
 }
 
-// The text run starting at `fromBlock`, merged, with its pieces and its citations
+/*
+  The text run starting at `fromBlock`, merged, with its pieces and its citations. A fallback model
+  carries on the text a declining model left, so the run goes on across a `fallback` block between
+  two texts, as one reply
+*/
 function readText(blocks: ConversationContentBlock[], fromBlock: number) {
   let toBlock = fromBlock
 
-  while (isTextBlock(blocks[toBlock])) toBlock++
+  while (isTextBlock(blocks[toBlock]) || blocks[toBlock]?.type === 'fallback') toBlock++
+  while (toBlock > fromBlock && !isTextBlock(blocks[toBlock - 1])) toBlock--
 
   const { text, blockEnds, citations } = mergeConversationText(
-    blocks.slice(fromBlock, toBlock) as ConversationTextBlockWithCitations[],
+    blocks.slice(fromBlock, toBlock).filter(isTextBlock) as ConversationTextBlockWithCitations[],
   )
 
   return { text, pieces: splitConversationText(text, blockEnds), citations, toBlock }

@@ -499,6 +499,55 @@ describe('runConversation', () => {
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
   })
 
+  test('stores a turn a fallback model finished without what the declining model wrote before the boundary', async () => {
+    const reference = await start()
+    const fallback = {
+      type: 'fallback',
+      from: { model: 'claude-opus-5-5' },
+      to: { model: 'claude-opus-4-8' },
+      trigger: { type: 'refusal', category: 'cyber' },
+    } as BetaContentBlock
+    const scripted = createClient([
+      createClaudeMessage({
+        model: 'claude-opus-4-8',
+        content: [
+          { type: 'thinking', thinking: '', signature: 'declined' },
+          { type: 'text', text: 'Looking at ', citations: null },
+          { type: 'server_tool_use', id: 'srvtoolu_9', name: 'web_search', input: { query: 'pricing' } },
+          fallback,
+          { type: 'text', text: REPLY, citations: null },
+        ],
+      }),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+
+    const stored = JSON.parse(readEntries(reference).at(-1)?.content ?? '[]') as BetaContentBlock[]
+
+    expect(stored.map(({ type }) => type)).toEqual(['text', 'fallback', 'text'])
+    expect(readThread(reference).slice(1)).toEqual([
+      { kind: 'AGENT_TEXT', text: `Looking at ${REPLY}`, noteKind: null, position: 1 },
+    ])
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+  })
+
+  test('stores and draws a reply the fallback model served on its own as any other, counted under that model', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      createClaudeMessage({
+        model: 'claude-opus-4-8',
+        content: [{ type: 'text', text: REPLY, citations: null }],
+        usage: { inputTokens: 1000, outputTokens: 50 },
+      }),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'AGENT_TEXT', text: REPLY })
+    expect(readEntries(reference).map(({ role }) => role)).toEqual(['USER', 'SYSTEM', 'ASSISTANT'])
+    expect(Object.keys(readUsage(reference).byModel)).toEqual(['claude-opus-4-8'])
+  })
+
   test('fails a run, with its note and after one request, when Claude’s API fails or stops it otherwise', async () => {
     for (const failure of [
       new Anthropic.InternalServerError(529, { type: 'error' }, 'Overloaded', new Headers()),

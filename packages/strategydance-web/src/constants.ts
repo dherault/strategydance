@@ -129,6 +129,13 @@ export const CONVERSATION_BODIES_LENGTH = 50
 export const CONVERSATION_RUN_RECONCILE_MARGIN_MS = 2000
 export const CONVERSATION_RUN_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
 
+/*
+  How long a page waits before it asks the backend to carry on a run waiting on questions all
+  answered, which the last answer carries on itself unless its backend stopped first or the reader
+  had runs going elsewhere, so it rarely has to
+*/
+export const CONVERSATION_ANSWER_RECONCILE_DELAY_MS = 5000
+
 /* ---
   BUILD IN PUBLIC
 --- */

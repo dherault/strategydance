@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { ConversationMessageKind, ConversationNoteKind, ConversationToolStatus } from 'strategydance-database/web'
+import {
+  ConversationMessageKind,
+  ConversationNoteKind,
+  ConversationRunStatus,
+  ConversationToolStatus,
+} from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -47,7 +52,9 @@ type Props = {
 /*
   A conversation's thread: each entry as the design draws its kind, oldest first, and the thinking
   indicator after them while a run goes, until its lease passes, when the backend is asked to
-  reconcile it. The note that ends the latest response, when it is the last entry and nothing goes,
+  reconcile it. The questions of the turn the conversation waits on are answered in place, and a
+  run waiting on questions all answered is reconciled too, in case its last answer could not carry
+  it on. The note that ends the latest response, when it is the last entry and nothing goes,
   offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
   The replies it shows are marked read once the latest is drawn whole.
@@ -66,10 +73,16 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
+  const waitingQuestions = entries.filter(
+    ({ kind, answeredAt, isAnswerSkipped }) =>
+      kind === ConversationMessageKind.QUESTION && !answeredAt && !isAnswerSkipped,
+  )
+  // The run the conversation waits on for the answers to its questions, while it does
+  const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
 
   useConversationThreadScroll(listRef)
   useMarkConversationRead(conversation, isLatestShown)
-  useReconcileConversationRun(conversation.id, run)
+  useReconcileConversationRun(conversation.id, run, !waitingQuestions.length)
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -171,8 +184,12 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
       case ConversationMessageKind.QUESTION:
         return body ? (
           <ConversationQuestion
+            conversationId={conversation.id}
             entry={entry}
             body={body}
+            waitingRunId={waitingRunId}
+            hasOtherWaiting={waitingQuestions.some(({ id }) => id !== entry.id)}
+            onRunStart={onRunStart}
           />
         ) : (
           <ConversationMessagePlaceholder />

@@ -545,6 +545,35 @@ const conversationMessages = defineMessages({
     description:
       'Small heading over a question the AI asked, which the reader did not answer and wrote something else instead.',
   },
+  questionUnanswered: {
+    id: 'conversation.question.unanswered',
+    defaultMessage: 'Not answered',
+    description:
+      'Small heading over a question the AI asked that the reader cannot answer for now, because the response it belongs to was stopped or cut off. Resuming the response makes it answerable again.',
+  },
+  questionError: {
+    id: 'conversation.question.error',
+    defaultMessage: 'Your answer could not be sent. Check your connection and try again.',
+    description: "Shown under a question when sending the reader's answer failed. Their choices stay as they were.",
+  },
+  questionConflict: {
+    id: 'conversation.question.conflict',
+    defaultMessage: 'This question was answered or skipped elsewhere.',
+    description:
+      "Shown under a question when the reader's answer was refused because the question was answered in another tab, or skipped by a message sent meanwhile.",
+  },
+  questionUnavailable: {
+    id: 'conversation.question.unavailable',
+    defaultMessage: 'Your answer is kept. Strategy Dance will go on in a moment.',
+    description:
+      "Shown under a question when the reader's answer was saved but the AI could not start on it right away. It starts by itself shortly.",
+  },
+  questionQueued: {
+    id: 'conversation.question.queued',
+    defaultMessage: 'Your answer is kept. Strategy Dance will go on once one of your other conversations is done.',
+    description:
+      "Shown under a question when the reader's answer was saved, but the AI is already answering in as many of the reader's other conversations as it can at once, so it starts on this one later, by itself.",
+  },
   aspectsTagged: {
     id: 'conversation.aspectsNote.tagged',
     defaultMessage: 'Strategy Dance tagged this conversation',

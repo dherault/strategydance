@@ -497,6 +497,7 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readEntries(reference)).toHaveLength(1)
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+    expect(readRun(reference)?.failure).toContain('past the 5 pauses')
   })
 
   test('stores a turn a fallback model finished without what the declining model wrote before the boundary', async () => {
@@ -548,21 +549,56 @@ describe('runConversation', () => {
     expect(Object.keys(readUsage(reference).byModel)).toEqual(['claude-opus-4-8'])
   })
 
-  test('fails a run, with its note and after one request, when Claude’s API fails or stops it otherwise', async () => {
-    for (const failure of [
-      new Anthropic.InternalServerError(529, { type: 'error' }, 'Overloaded', new Headers()),
-      answer([{ type: 'text', text: 'Cut', citations: null }], { stopReason: 'max_tokens' }),
-    ]) {
+  test('fails a run, with its note, why, and after one request, when Claude’s API fails or stops it otherwise', async () => {
+    for (const [failure, why] of [
+      [
+        new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+        'Claude’s API answered 529',
+      ],
+      [answer([{ type: 'text', text: 'Cut', citations: null }], { stopReason: 'max_tokens' }), 'on max_tokens'],
+      [
+        answer([{ type: 'text', text: 'Too long', citations: null }], { stopReason: 'model_context_window_exceeded' }),
+        'on model_context_window_exceeded',
+      ],
+    ] as const) {
       const reference = await start()
       const scripted = createClient([failure])
 
       expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
       expect(scripted.requests).toHaveLength(1)
       expect(readRun(reference)?.status).toBe('FAILED')
+      expect(readRun(reference)?.failure?.replace("'", '’')).toContain(why)
       expect(readEntries(reference)).toHaveLength(1)
       expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
       expect(readUsage(reference).requests).toHaveLength(1)
     }
+  })
+
+  test('ends a run Claude refused, and so did its fallback, refused with its note, storing nothing of it', async () => {
+    const reference = await start()
+    const refused = answer([{ type: 'text', text: 'I can’t', citations: null }], { stopReason: 'refusal' })
+
+    refused.stop_details = {
+      type: 'refusal',
+      category: 'cyber',
+      explanation: null,
+      fallback_credit_token: null,
+      fallback_has_prefill_claim: null,
+      recommended_model: null,
+    }
+
+    const scripted = createClient([
+      answer([{ type: 'text', text: 'Searching', citations: null }], { stopReason: 'pause_turn' }),
+      refused,
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(readRun(reference)?.status).toBe('REFUSED')
+    expect(readRun(reference)?.failure).toContain('cyber')
+    expect(readEntries(reference).map(({ role }) => role)).toEqual(['USER'])
+    expect(readThread(reference).slice(1)).toEqual([{ kind: 'NOTE', text: null, noteKind: 'REFUSED', position: 1 }])
+    expect(readUsage(reference).requests.map(({ stopReason }) => stopReason)).toEqual(['pause_turn', 'refusal'])
+    expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
   test('charges a stream that failed partway what it reported using, as an estimate, and one refused before it nothing', async () => {
@@ -885,6 +921,7 @@ describe('runConversation', () => {
     expect(scripted.requests).toHaveLength(0)
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED', position: 101 })
+    expect(readRun(reference)?.failure).toBe('The run drew its 100 entries')
     expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
@@ -900,6 +937,7 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FULL' })
     expect(readConversation(reference)).toMatchObject({ activeRunId: null, messageCount: 2001 })
+    expect(readRun(reference)?.failure).toBe('The conversation holds its 2000 messages')
   })
 
   test('draws the rest of a stored turn once after a crash, and sends no request again', async () => {

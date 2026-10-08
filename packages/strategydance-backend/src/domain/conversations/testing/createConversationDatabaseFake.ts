@@ -101,9 +101,10 @@ export type FakeRun = {
   createdAt: string
   startedAt: string | null
   endedAt: string | null
-  // Its context message as JSON text, once built, and its usage ledger
+  // Its context message as JSON text, once built, its usage ledger, and why it ended, for the logs
   context?: string | null
   usage?: unknown
+  failure?: string | null
 }
 
 export type FakeMessage = {
@@ -1045,8 +1046,10 @@ function createConversationDatabaseFake() {
     FinishConversationRunWithNote: variables => {
       const run = requireFencedRun(variables)
 
-      if (!['FAILED', 'STOPPED', 'REFUSED'].includes(variables.status)) {
-        refuse('A run ends with a note failed, stopped or refused')
+      const notes: Record<string, string[]> = { FAILED: ['FAILED', 'FULL'], STOPPED: ['STOPPED'], REFUSED: ['REFUSED'] }
+
+      if (!notes[variables.status]?.includes(variables.noteKind)) {
+        refuse('A run ends with its own note: failed or full, stopped, or refused')
       }
 
       const conversation = requireNoteConversation(variables)
@@ -1054,7 +1057,7 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, variables.status)
-      assignGiven(run, { usage: variables.usage })
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
       writeNote(conversation, variables, variables.noteKind)
       assignGiven(conversation, { isFull: variables.isFull })
 

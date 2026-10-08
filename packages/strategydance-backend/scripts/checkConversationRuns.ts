@@ -1234,6 +1234,21 @@ async function checkReplies() {
       && requestContext.conversationRuns[0]?.id === started.runId,
   )
 
+  check(
+    'a run cannot end with another status’s note',
+    (await refusal(
+      finishConversationRunWithNote(dataConnect, {
+        ...fenced,
+        status: ConversationRunStatus.STOPPED,
+        noteKind: ConversationNoteKind.FULL,
+        noteId: createId(),
+        position: 5,
+        preview: { kind: 'NOTE', noteKind: 'FULL' },
+        failure: 'Mismatched',
+      }),
+    )) !== null,
+  )
+
   await finishConversationRunWithNote(dataConnect, {
     ...fenced,
     status: ConversationRunStatus.FAILED,
@@ -1243,16 +1258,21 @@ async function checkReplies() {
     preview: { kind: 'NOTE', noteKind: 'FULL' },
     isFull: true,
     usage: settled,
+    failure: 'Its next request would take 900000 input tokens',
   })
 
+  const ended = await read<{
+    conversation: { isFull: boolean } | null
+    conversationRun: { failure: string | null } | null
+  }>(
+    `query ReadFull($id: UUID!, $runId: UUID!) { conversation(id: $id) { isFull } conversationRun(id: $runId) { failure } }`,
+    { id: started.conversationId, runId: started.runId },
+  )
+
+  check('a run ending full marks its conversation full', ended.conversation?.isFull === true)
   check(
-    'a run ending full marks its conversation full',
-    (
-      await read<{ conversation: { isFull: boolean } | null }>(
-        `query ReadFull($id: UUID!) { conversation(id: $id) { isFull } }`,
-        { id: started.conversationId },
-      )
-    ).conversation?.isFull === true,
+    'a run ending with a note says why',
+    ended.conversationRun?.failure === 'Its next request would take 900000 input tokens',
   )
 
   const finished = await start(userIds.drawer, membershipCreatedAt)

@@ -92,9 +92,14 @@ export type ConversationTurnOutcome =
   - `end_turn`: the turn, to store
   - a request whose input would pass 800000 tokens: never sent, and the run ends full, its
     conversation marked so
-  - an error of Claude's API, after the SDK's own retries, and any other stop: the run fails with a
-    note, the request sent once, and charged what the stream reported it used when it failed
-    partway. M10 tells these apart
+  - `refusal`, which the API returns once the model it fell back to refused too: the run ends
+    refused, with its note
+  - an error of Claude's API, after the SDK's own retries, `max_tokens`, a sixth pause and any other
+    stop: the run fails with its note, the request sent once, and charged what the stream reported
+    it used when it failed partway
+
+  Nothing of a turn that ends so is stored, the parts held in memory included, and every ending
+  says why in the run's `failure`, for the logs
 */
 async function requestConversationTurn({
   fence,
@@ -157,7 +162,17 @@ async function requestConversationTurn({
         `Conversation run ${fence.runId}: ${measured.inputTokens} input tokens, past the limit, the conversation is full`,
       )
 
-      return { kind: 'ending', ending: fail(ConversationNoteKind.FULL, usage, true) }
+      return {
+        kind: 'ending',
+        ending: {
+          kind: 'noted',
+          status: ConversationRunStatus.FAILED,
+          noteKind: ConversationNoteKind.FULL,
+          failure: `Its next request would take ${measured.inputTokens} input tokens, past ${MAX_CONVERSATION_INPUT_TOKENS}`,
+          usage,
+          isFull: true,
+        },
+      }
     }
 
     const reserved = reserveConversationRequest(usage, {
@@ -204,7 +219,7 @@ async function requestConversationTurn({
       return {
         kind: 'ending',
         ending: fail(
-          ConversationNoteKind.FAILED,
+          describeApiError(error, Boolean(streamed.message)),
           streamed.message
             ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
             : settleFailedConversationRequest(usage, reserved.index),
@@ -227,10 +242,33 @@ async function requestConversationTurn({
       continue
     }
 
-    if (message.stop_reason !== 'end_turn') {
-      logger.warn(`Conversation run ${fence.runId}: request ${reserved.index} stopped on ${message.stop_reason}`)
+    // Claude refused, and so did the model the API fell back to
+    if (message.stop_reason === 'refusal') {
+      const failure = `Claude refused request ${reserved.index}, ${message.stop_details?.category ?? 'no category'}, and so did its fallback`
 
-      return { kind: 'ending', ending: fail(ConversationNoteKind.FAILED, usage) }
+      logger.warn(`Conversation run ${fence.runId}: ${failure}`)
+
+      return {
+        kind: 'ending',
+        ending: {
+          kind: 'noted',
+          status: ConversationRunStatus.REFUSED,
+          noteKind: ConversationNoteKind.REFUSED,
+          failure,
+          usage,
+        },
+      }
+    }
+
+    if (message.stop_reason !== 'end_turn') {
+      const failure =
+        message.stop_reason === 'pause_turn'
+          ? `Claude paused request ${reserved.index}, past the ${MAX_CONVERSATION_PAUSES} pauses a run takes`
+          : `Claude stopped request ${reserved.index} on ${message.stop_reason}`
+
+      logger.warn(`Conversation run ${fence.runId}: ${failure}`)
+
+      return { kind: 'ending', ending: fail(failure, usage) }
     }
 
     parts.push({ content, requestIndex: reserved.index })
@@ -246,12 +284,16 @@ async function requestConversationTurn({
   }
 }
 
-function fail(
-  noteKind: ConversationNoteKind.FAILED | ConversationNoteKind.FULL,
-  usage: ConversationRunUsage,
-  isFull = false,
-): ConversationRunEnding {
-  return { kind: 'noted', status: ConversationRunStatus.FAILED, noteKind, usage, ...(isFull ? { isFull } : {}) }
+function fail(failure: string, usage: ConversationRunUsage): ConversationRunEnding {
+  return { kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FAILED, failure, usage }
+}
+
+// Why Claude's API failed a request, once the SDK's own retries were spent on what failed before
+// its stream started
+function describeApiError(error: InstanceType<typeof Anthropic.APIError>, hasStarted: boolean) {
+  const answer = error.status ? `answered ${error.status}${error.type ? ` ${error.type}` : ''}` : error.name
+
+  return hasStarted ? `Claude's API failed the stream partway: ${answer}` : `Claude's API ${answer} after its retries`
 }
 
 // The context the run kept, built by a worker before a crash, so it is sent as the same bytes

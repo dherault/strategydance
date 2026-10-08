@@ -253,11 +253,23 @@ async function takeStep({
   }
 
   if (context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
-    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FAILED, usage })
+    return end({
+      kind: 'noted',
+      status: ConversationRunStatus.FAILED,
+      noteKind: ConversationNoteKind.FAILED,
+      failure: `The run drew its ${MAX_CONVERSATION_RUN_ENTRIES} entries`,
+      usage,
+    })
   }
 
   if (conversation.messageCount >= MAX_CONVERSATION_MESSAGES) {
-    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FULL, usage })
+    return end({
+      kind: 'noted',
+      status: ConversationRunStatus.FAILED,
+      noteKind: ConversationNoteKind.FULL,
+      failure: `The conversation holds its ${MAX_CONVERSATION_MESSAGES} messages`,
+      usage,
+    })
   }
 
   return requestConversationTurn({

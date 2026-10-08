@@ -1020,9 +1020,11 @@ mutation FinishConversationRun(
 # Ends a run its worker brought to an end with a note the thread draws, such as a run at a limit
 # that sends no further request: the conversation takes the note at a position claimed on its
 # counter and lets go of the run in the same write. A note can take a conversation past its 2000
-# messages, as the turn before it can. `$isFull` marks the conversation full when its next request
-# would not fit Claude's context, which the send route then refuses, and `$usage` settles what the
-# run's requests used; each is left as it was when omitted. Fenced as `RenewConversationRunLease` is
+# messages, as the turn before it can. Each status takes its own note: a failed run says it failed
+# or is full, a stopped one that it stopped, a refused one that Claude refused. `$isFull` marks the
+# conversation full when its next request would not fit Claude's context, which the send route then
+# refuses, `$usage` settles what the run's requests used, and `$failure` says why it ended, for the
+# logs; each is left as it was when omitted. Fenced as `RenewConversationRunLease` is
 mutation FinishConversationRunWithNote(
   $organizationId: UUID!
   $userId: String!
@@ -1037,6 +1039,7 @@ mutation FinishConversationRunWithNote(
   $preview: Any!
   $usage: Any
   $isFull: Boolean
+  $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -1055,12 +1058,12 @@ mutation FinishConversationRunWithNote(
         }
       }
     }
-    data: { status: $status, usage: $usage, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: $status, usage: $usage, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   )
     @check(expr: "this == 1", message: "The run is no longer this worker's")
     @check(
-      expr: "vars.status == 'FAILED' || vars.status == 'STOPPED' || vars.status == 'REFUSED'"
-      message: "A run ends with a note failed, stopped or refused"
+      expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
+      message: "A run ends with its own note: failed or full, stopped, or refused"
     )
   conversationMessage_updateMany(
     where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }

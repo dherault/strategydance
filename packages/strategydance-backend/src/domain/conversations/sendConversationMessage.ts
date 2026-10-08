@@ -19,6 +19,8 @@ import { dataConnect } from '~firebase'
 
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
+import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
+import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 
 // How many times a send reads where the conversation stands and tries, before it gives up
@@ -103,7 +105,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
       // A run past its lease that is still coming, its task found or queued again, is alive too, and
       // is queued again like any other still waiting, which answers whether it is
-      const state = isDead(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
+      const state = isDeadConversationRun(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
 
       if (state === 'alive' && sent.run.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
         return { outcome: 'unavailable' }
@@ -112,22 +114,8 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       return { outcome: 'sent', runId: sent.run.id }
     }
 
-    // Read again once one has ended, which freed its conversation and the caller's allowance. One
-    // still coming counts as in flight, as it was read, and asking the queue again changes nothing
-    let hasEnded = false
-
-    for (const run of data.conversationRuns.filter(isDead)) {
-      const state = await finalizeDeadConversationRun({
-        organizationId,
-        userId,
-        conversationId: run.conversation.id,
-        runId: run.id,
-      })
-
-      if (state === 'ended') hasEnded = true
-    }
-
-    if (hasEnded && round < MAX_ROUNDS) continue
+    // Read again once one has ended, which freed its conversation and the caller's allowance
+    if ((await finalizeDeadConversationRuns(input, data.conversationRuns)) && round < MAX_ROUNDS) continue
 
     if (conversation && (conversation.userId !== userId || conversation.organizationId !== organizationId)) {
       return { outcome: 'missing' }
@@ -186,15 +174,6 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
     return { outcome: 'sent', runId }
   }
-}
-
-// Whether a run is in flight past its lease, which says its worker died with it
-function isDead(run: { status: ConversationRunStatus; leaseExpiresAt?: string | null }) {
-  return (
-    (run.status === ConversationRunStatus.QUEUED || run.status === ConversationRunStatus.RUNNING)
-    && Boolean(run.leaseExpiresAt)
-    && Date.parse(run.leaseExpiresAt ?? '') < Date.now()
-  )
 }
 
 export default sendConversationMessage

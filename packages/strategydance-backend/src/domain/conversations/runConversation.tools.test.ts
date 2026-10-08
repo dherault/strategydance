@@ -333,6 +333,27 @@ describe('runConversation stopped or cut short among its calls', () => {
     expect(readConversation(reference)?.isAwaitingAnswer).toBe(true)
   })
 
+  test('says in the preview that a call drawn after the question was cancelled by the stop', async () => {
+    const reference = await start()
+    const { runner } = createRunner('set_top_priority', { isReadOnly: false })
+    const client = createClient([calling(toolUse('toolu_q', 'ask_user', QUESTION), toolUse('w1', 'set_top_priority'))])
+
+    fake.beforeOperation = async name => {
+      const run = fake.runs.get(reference.runId)
+
+      if (name === 'DrawConversationClientToolCall' && run) run.stopRequestedAt = new Date().toISOString()
+    }
+
+    await run(reference, client, [runner])
+
+    expect(readRun(reference)?.status).toBe('WAITING')
+    expect(readConversation(reference)?.preview).toEqual({
+      kind: 'TOOL_CALL',
+      toolName: 'set_top_priority',
+      toolStatus: 'CANCELLED',
+    })
+  })
+
   test('starts no call once its minutes are gone: fails with its note, or waits on a question it drew', async () => {
     for (const hasQuestion of [false, true]) {
       const reference = await start()

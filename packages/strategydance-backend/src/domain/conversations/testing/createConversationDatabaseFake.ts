@@ -1911,6 +1911,7 @@ function createConversationDatabaseFake() {
 
       if (conversation?.activeRunId === run.id) {
         Object.assign(conversation, { activeRunId: null, isAwaitingAnswer: true, updatedAt: now() })
+        assignGiven(conversation, { preview: variables.preview })
       }
 
       return { conversationRun_updateMany: 1 }

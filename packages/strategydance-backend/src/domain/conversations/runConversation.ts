@@ -5,10 +5,13 @@ import {
   ARE_CONVERSATIONS_STAFF_ONLY,
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_RUN_ENTRIES,
+  buildConversationPreview,
 } from 'strategydance-core'
 import {
+  ConversationMessageKind,
   ConversationNoteKind,
   ConversationRunStatus,
+  ConversationToolStatus,
   ConversationTranscriptRole,
   type GetConversationRunContextData,
   claimQueuedConversationRun,
@@ -370,8 +373,30 @@ async function takeStep({
       })
 
       // A question is on the member's screen already, so the run waits for its answer whatever
-      // else happened: a call a stop or the run's time kept from running is answered as stopped
-      if (turnPlans.some(({ kind }) => kind === 'question')) return end({ kind: 'waiting', usage })
+      // else happened: a call a stop or the run's time kept from running is answered as stopped,
+      // and cancelled, which the preview says when it shows that call
+      if (turnPlans.some(({ kind }) => kind === 'question')) {
+        const shown = ran.messages.find(({ id }) => id === conversation.previewMessageId)
+        const isShownCancelled =
+          shown?.kind === ConversationMessageKind.TOOL_CALL
+          && !ran.pending.has(shown.toolUseId ?? '')
+          && (shown.toolStatus === ConversationToolStatus.RUNNING
+            || shown.toolStatus === ConversationToolStatus.CANCELLED)
+
+        return end({
+          kind: 'waiting',
+          usage,
+          ...(isShownCancelled
+            ? {
+                preview: buildConversationPreview({
+                  kind: 'TOOL_CALL',
+                  toolName: shown.toolName,
+                  toolStatus: ConversationToolStatus.CANCELLED,
+                }),
+              }
+            : {}),
+        })
+      }
       if (ran.outcome === 'stopped') return stop('Its member stopped it before its next call')
       if (ran.outcome === 'expired') {
         return end({

@@ -57,7 +57,7 @@ before their neighbours.
 | M7 | The composer and drafts | web | M6 | #111 |
 | M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | #113 |
 | M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | #120 |
-| M10 | Stop, resume, retry, failures and refusals | backend, database, web | M7, M9 | |
+| M10 | Stop, resume, retry, failures and refusals | backend, database, web | M7, M9 | #121 |
 | M11 | Questions | backend, database, web | M10 | |
 | M12 | Searching conversations | backend, database, web | M8, M9 | |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |

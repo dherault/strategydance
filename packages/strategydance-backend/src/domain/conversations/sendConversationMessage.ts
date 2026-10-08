@@ -11,6 +11,7 @@ import {
   ConversationMessageKind,
   ConversationRunStatus,
   getConversationSendContext,
+  sendConversationMessageAnsweringCalls,
   sendConversationMessage as sendConversationMessageMutation,
   startConversation,
 } from 'strategydance-database/backend'
@@ -21,6 +22,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 
 // How many times a send reads where the conversation stands and tries, before it gives up
@@ -69,6 +71,11 @@ type SendConversationMessageResult =
     does not exist yet, the caller to keep fewer than 1000, and the caller to have fewer than 3 runs
     in flight. A conversation whose run still waits in the queue has that run queued again before
     the send is answered busy, so a run whose task was lost does not keep it busy
+
+  When the conversation's last turn left calls open, a question waiting, or calls a stop or a crash
+  kept from running, the message's entry answers them first, as The transcript says: a question by
+  its answer, or skipped, and a call by its result, or as stopped or interrupted. A run waiting on
+  its questions is consumed, so an answer's continuation and the send never both carry it on.
 
   A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
@@ -154,13 +161,32 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     try {
       if (conversation) {
         const [lastEntry] = data.conversationTranscriptEntries
-
-        await sendConversationMessageMutation(dataConnect, {
+        const answering = await readConversationOpenCalls(input, lastEntry, {
+          skipsQuestions: true,
+          follows: [{ type: 'text', text: input.text }],
+        })
+        const sent = {
           ...message,
           position: conversation.nextMessagePosition,
           runNumber: conversation.nextRunNumber,
           transcriptPosition: lastEntry ? lastEntry.position + 1 : 0,
-        })
+        }
+
+        if (answering) {
+          const lastRun = answering.latestRun
+
+          if (!lastRun) throw new Error(`Conversation ${conversationId} has calls open and no run`)
+
+          await sendConversationMessageAnsweringCalls(dataConnect, {
+            ...sent,
+            content: answering.content,
+            lastRunId: lastRun.id,
+            isLastRunWaiting: lastRun.status === ConversationRunStatus.WAITING,
+            skippedQuestionIds: answering.waitingQuestionIds,
+          })
+        } else {
+          await sendConversationMessageMutation(dataConnect, sent)
+        }
       } else {
         await startConversation(dataConnect, { ...message, title: buildConversationTitle(input.drawnText) })
       }

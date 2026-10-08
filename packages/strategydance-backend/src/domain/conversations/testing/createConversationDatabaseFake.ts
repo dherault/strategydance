@@ -1061,6 +1061,7 @@ function createConversationDatabaseFake() {
         nextMessagePosition: 1,
         messageCount: 1,
         isFull: false,
+        isAwaitingAnswer: false,
         deletedAt: null,
         pruneClaimedAt: null,
         updatedAt: now(),

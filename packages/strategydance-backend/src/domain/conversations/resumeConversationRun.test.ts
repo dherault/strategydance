@@ -201,6 +201,58 @@ describe('resumeConversationRun', () => {
     expect(readRun(resuming)?.status).toBe('COMPLETED')
   })
 
+  test('counts the pauses of a turn three runs stored, each crashed on a part, toward its five', async () => {
+    const reference = await start()
+    let run = reference
+    let position = 1
+
+    // Each run stores paused parts of the turn, its ledger saying so, then dies with its worker
+    for (const pauses of [2, 3]) {
+      const fence = await claim(run)
+      const requests = []
+
+      for (let index = 0; index < pauses; index++) {
+        requests.push({
+          model: 'claude-opus-5-5',
+          stopReason: 'pause_turn',
+          inputTokens: 1000,
+          cacheReadInputTokens: 0,
+          cacheCreationInputTokens: 0,
+          outputTokens: 40,
+          webSearchRequests: 0,
+          configTokens: 1000,
+          inputEndPosition: 0,
+          turnPosition: position + index,
+          estimatedInputTokens: 1000,
+          isEstimated: false,
+          isSettled: true,
+        })
+      }
+
+      for (let index = 0; index < pauses; index++) {
+        await call('storeConversationTurn', {
+          ...fence,
+          entryId: createId(),
+          position: position + index,
+          content: serializeTranscriptContent([{ type: 'thinking', thinking: '', signature: 'signed' }]),
+          usage: { requests, byModel: {} },
+        })
+      }
+
+      position += pauses
+      await interrupt(run)
+      run = await resumed(run)
+    }
+
+    const scripted = createClient([
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' }),
+    ])
+
+    expect(await runConversation(run, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(1)
+    expect(readRun(run)?.failure).toContain('past the 5 pauses')
+  })
+
   test('refuses once anything follows the note, a run that did not stop, and one that is not the latest', async () => {
     const stopped = await startStopped()
     const conversation = readConversation(stopped)

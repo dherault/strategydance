@@ -140,6 +140,23 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
   }
 }
 
+# The usage ledgers of some runs of the caller's conversation, which say how each part they stored
+# of a turn ended: the runs a resumed run carries the turn of, after crashes that each left a part
+# paused
+query GetConversationRunLedgers($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runIds: [UUID!]!)
+@auth(level: NO_ACCESS) {
+  conversationRuns(
+    where: {
+      id: { in: $runIds }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 100
+  ) {
+    id
+    usage
+  }
+}
+
 # What a resume or a retry reads of a conversation before it starts a run on a run that ended:
 #
 # - the caller's membership, whose `createdAt` the run records
@@ -354,8 +371,6 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
   user(key: { id: $userId }) {
     isAdministrator
   }
-  # The last entry, with the ledger of the run that stored it, which says whether its part paused,
-  # whichever run that is
   conversationTranscriptEntries(
     where: { conversationId: { eq: $conversationId } }
     orderBy: [{ position: DESC }]
@@ -369,7 +384,6 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     drawnPieces
     run {
       id
-      usage
     }
   }
   # The run's replies, its parts when `pause_turn` paused one, in order, each with its cursor:

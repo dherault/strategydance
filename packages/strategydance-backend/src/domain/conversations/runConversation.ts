@@ -12,6 +12,7 @@ import {
   type GetConversationRunContextData,
   claimQueuedConversationRun,
   getConversationRunContext,
+  getConversationRunLedgers,
   reclaimConversationRun,
 } from 'strategydance-database/backend'
 
@@ -301,12 +302,7 @@ async function takeStep({
 
     if (drawn === 'drawn') return 'next'
 
-    // The ledgers that say how each of the turn's parts ended: this run's, and that of the run
-    // that stored the last part when another did
-    const ledgers = new Map([[fence.runId, usage]])
-
-    if (entry.run.id !== fence.runId) ledgers.set(entry.run.id, parseConversationRunUsage(entry.run.usage))
-
+    const ledgers = await readTurnLedgers(fence, turn, usage)
     const pausedRequest = findPausedRequest(entry, ledgers)
 
     if (!pausedRequest) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
@@ -399,6 +395,25 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   if (outcome.kind === 'turn') return outcome.usage
 
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
+}
+
+/*
+  The ledgers that say how each of the turn's parts ended: this run's as the worker holds it, and
+  those of the runs it carries the turn of, which crashes may have left several of, each with a
+  part paused
+*/
+async function readTurnLedgers(fence: ConversationRunFence, turn: { runId: string }[], usage: ConversationRunUsage) {
+  const ledgers = new Map([[fence.runId, usage]])
+  const runIds = [...new Set(turn.map(({ runId }) => runId))].filter(runId => runId !== fence.runId)
+
+  if (!runIds.length) return ledgers
+
+  const { organizationId, userId, conversationId } = fence
+  const { data } = await getConversationRunLedgers(dataConnect, { organizationId, userId, conversationId, runIds })
+
+  for (const run of data.conversationRuns) ledgers.set(run.id, parseConversationRunUsage(run.usage))
+
+  return ledgers
 }
 
 // The request whose part the transcript ends on, as the ledger of the run that stored it says,

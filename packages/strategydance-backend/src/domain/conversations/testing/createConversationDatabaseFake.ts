@@ -560,13 +560,7 @@ function createConversationDatabaseFake() {
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
         user: users.get(variables.userId) ?? null,
         conversationTranscriptEntries: lastEntry
-          ? [
-              {
-                drawnPieces: 0,
-                ...lastEntry,
-                run: { id: lastEntry.runId, usage: runs.get(lastEntry.runId)?.usage ?? null },
-              },
-            ]
+          ? [{ drawnPieces: 0, ...lastEntry, run: { id: lastEntry.runId } }]
           : [],
         runEntries: conversationEntries(id(variables.conversationId))
           .filter(entry => entry.runId === id(variables.runId) && entry.role === 'ASSISTANT')
@@ -591,6 +585,24 @@ function createConversationDatabaseFake() {
 
       return {
         conversationRuns: run ? [{ status: run.status, stopRequestedAt: run.stopRequestedAt }] : [],
+      }
+    },
+
+    GetConversationRunLedgers: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const runIds = new Set((variables.runIds as string[]).map(id))
+
+      return {
+        conversationRuns: isTheirs
+          ? [...runs.values()]
+              .filter(run => runIds.has(run.id) && run.conversationId === conversation.id)
+              .slice(0, 100)
+              .map(run => ({ id: run.id, usage: run.usage ?? null }))
+          : [],
       }
     },
 

@@ -39,12 +39,14 @@ describe('checkConversationQuestion', () => {
     }
   })
 
-  test('refuses a prompt or an option holding a control character, U+0000 included', () => {
+  test('refuses a prompt or an option holding a control character, U+0000 included, or a line separator', () => {
     for (const overrides of [
       { prompt: `Which${NUL} price?` },
       { prompt: 'Which\nprice?' },
       { options: [`€19${NUL}`, '€29'] },
       { options: ['€19', '€\t29'] },
+      { prompt: `Which${String.fromCharCode(0x2028)}price?` },
+      { options: [`€19${String.fromCharCode(0x2029)}`, '€29'] },
     ]) {
       expect(checkConversationQuestion(question(overrides)).outcome).toBe('invalid')
     }

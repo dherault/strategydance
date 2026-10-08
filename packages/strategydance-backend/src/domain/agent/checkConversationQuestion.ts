@@ -22,7 +22,8 @@ export type ConversationQuestion = {
 /*
   Checks an `ask_user` call's input before anything of it is drawn, since its prompt and options go
   back into what Claude is sent exactly as they were written: a prompt of 1 to 1000 characters, 2 to
-  6 distinct options of 1 to 200, none holding a control character, U+0000 included. Lengths are
+  6 distinct options of 1 to 200, each on one line, none holding a control character, U+0000
+  included, or a line or paragraph separator. Lengths are
   counted in characters, as the database's check counts them. A call that fails is never asked:
   its result says why, from its input alone, so whoever answers the turn says the same
 */
@@ -51,7 +52,7 @@ function checkConversationQuestion(
 
   if (new Set(options).size !== options.length) return invalid('its options are distinct')
 
-  if ([prompt, ...options].some(hasControlCharacter)) {
+  if ([prompt, ...options].some(text => hasControlCharacter(text) || /[\u2028\u2029]/.test(text))) {
     return invalid('its prompt and options hold no control characters, line breaks included')
   }
 

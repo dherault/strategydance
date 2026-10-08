@@ -708,6 +708,126 @@ mutation ResumeConversationRun(
   )
 }
 
+# Retries a run that stopped, failed, was refused or died with its worker: the transcript is cut
+# back to the run's anchor, the member's entry it answers, its context message included, and every
+# message the runs on that anchor drew is deleted, the run retried and those it resumed, never the
+# member's message that started one, which names the run too. A run starts on that anchor, with a
+# context message of its own. In one mutation:
+#
+# - the caller's membership row is locked, as a send locks it, and they hold fewer than 3 runs in
+#   flight in the organization
+# - the retried run is the conversation's latest, numbered right before the new one, and ended
+#   with a note
+# - the conversation is idle, not deleted, its history where the retry read it, and it takes the new
+#   run, with as many messages fewer as are deleted, its history moved on so every page reads it
+#   again, nothing unread, no longer full, and the preview of the newest message kept
+# - the messages are deleted, exactly as many as the retry counted
+# - the transcript after the anchor is deleted
+# - the run is inserted, queued with a twenty minutes' lease, as a send queues one
+#
+# A retry sent again after its first try went through finds the conversation taken, and the backend
+# answers with the run it started
+mutation RetryConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $retriedRunId: UUID!
+  $retriedRunNumber: Int!
+  $anchorPosition: Int!
+  $historyRevision: Int!
+  $deletedCount: Int!
+  $preview: Any
+  $previewMessageId: UUID
+  $runId: UUID!
+  $runNumber: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(expr: "vars.runNumber == vars.retriedRunNumber + 1", message: "A run retries the run right before it")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the retry read it") {
+      userId
+    }
+    retried: conversationRuns(
+      where: {
+        id: { eq: $retriedRunId }
+        number: { eq: $retriedRunNumber }
+        anchorPosition: { eq: $anchorPosition }
+        status: { in: [STOPPED, FAILED, REFUSED, INTERRUPTED] }
+        conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "Only a run that ended with a note is retried") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      nextRunNumber: { eq: $runNumber }
+      historyRevision: { eq: $historyRevision }
+    }
+    data: {
+      activeRunId: $runId
+      preview: $preview
+      previewMessageId: $previewMessageId
+      unreadCount: 0
+      isFull: false
+      nextRunNumber_update: { inc: 1 }
+      historyRevision_update: { inc: 1 }
+      messageCount_update: { dec: $deletedCount }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not retry that run")
+  conversationMessage_deleteMany(
+    where: {
+      conversationId: { eq: $conversationId }
+      kind: { ne: MEMBER_TEXT }
+      run: { anchorPosition: { eq: $anchorPosition } }
+    }
+  ) @check(expr: "this == vars.deletedCount", message: "The runs' messages changed since the retry read them")
+  conversationTranscriptEntry_deleteMany(
+    where: { conversationId: { eq: $conversationId }, position: { gt: $anchorPosition } }
+  )
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: RETRY
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+}
+
 # Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
 # attempt, which every later write of that worker matches, so a worker that lost the run writes
 # nothing more. `$attempts` is the count the worker read, so of two workers claiming at once only

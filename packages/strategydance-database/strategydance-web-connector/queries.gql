@@ -1036,6 +1036,12 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1216,6 +1222,12 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1495,6 +1507,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

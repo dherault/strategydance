@@ -18,6 +18,7 @@ import {
   finishConversationRunWithNote,
   getClaimedConversations,
   getConversationRequestContext,
+  getConversationRetryContext,
   getConversationRunContext,
   getConversationRunControlContext,
   getConversationRunStop,
@@ -30,6 +31,7 @@ import {
   renewQueuedConversationRunLease,
   requestConversationRunStop,
   resumeConversationRun,
+  retryConversationRun,
   sendConversationMessage,
   startConversation,
   stopQueuedConversationRun,
@@ -91,6 +93,7 @@ const userIds = {
   drawer: `check-conversation-runs-${checkId}-drawer`,
   stopper: `check-conversation-runs-${checkId}-stopper`,
   resumer: `check-conversation-runs-${checkId}-resumer`,
+  retrier: `check-conversation-runs-${checkId}-retrier`,
 }
 
 const failures: string[] = []
@@ -860,6 +863,135 @@ async function checkResuming() {
 }
 
 /*
+  Retrying a run that ended with a note: back to its anchor, the messages its runs drew deleted but
+  the member's and an aspects note, the transcript cut, the history moved on, and a run on the anchor
+*/
+async function checkRetrying() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.retrier)
+  const started = await start(userIds.retrier, membershipCreatedAt)
+  const entryId = createId()
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+  await storeConversationTurnWithContext(dataConnect, {
+    ...fence(started, 1),
+    contextEntryId: createId(),
+    contextPosition: 1,
+    contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+    contextHash: 'hash',
+    entryId,
+    position: 2,
+    content: JSON.stringify([{ type: 'text', text: 'Half a reply' }]),
+  })
+  await drawConversationAgentText(dataConnect, {
+    ...fence(started, 1),
+    entryId,
+    fromBlock: 0,
+    toBlock: 1,
+    messageId: createId(),
+    position: 1,
+    text: 'Half a reply',
+    preview: { kind: 'AGENT_TEXT', text: 'Half a reply' },
+  })
+  await write(
+    `mutation AddAspects($conversationId: UUID!) {
+      conversationMessage_insert(data: { conversationId: $conversationId, kind: ASPECTS, position: 2, aspects: [STRATEGY] })
+      conversation_update(id: $conversationId, data: { nextMessagePosition_update: { inc: 1 }, messageCount_update: { inc: 1 }, isFull: true })
+    }`,
+    { conversationId: started.conversationId },
+  )
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(started, 1),
+    status: ConversationRunStatus.FAILED,
+    noteKind: ConversationNoteKind.FAILED,
+    noteId: createId(),
+    position: 3,
+    preview: { kind: 'NOTE', noteKind: 'FAILED' },
+    failure: 'Checked',
+  })
+
+  const key = { organizationId, userId: started.userId, conversationId: started.conversationId }
+  const { data: context } = await getConversationRetryContext(dataConnect, { ...key, anchorPosition: 0 })
+
+  check(
+    'a retry reads the runs on the anchor, what they drew, and the newest message it keeps',
+    context.anchorRuns.length === 1
+      && context.anchorRuns[0]?.id === started.runId
+      && context.drawnMessages[0]?._count === 2
+      && context.keptMessages[0]?.id === started.messageId,
+  )
+
+  const runId = createId()
+  const retry = (overrides: Variables = {}) =>
+    retryConversationRun(dataConnect, {
+      ...key,
+      membershipCreatedAt,
+      retriedRunId: started.runId,
+      retriedRunNumber: 0,
+      anchorPosition: 0,
+      historyRevision: 0,
+      deletedCount: 2,
+      preview: { kind: 'MEMBER_TEXT', text: 'Checked message' },
+      previewMessageId: started.messageId,
+      runId,
+      runNumber: 1,
+      ...overrides,
+    })
+
+  check(
+    'a retry that counted other messages, or read another history, deletes nothing',
+    (await refusal(retry({ deletedCount: 1 }))) !== null
+      && (await refusal(retry({ historyRevision: 1 }))) !== null
+      && (await readMessageAt(started.conversationId, 1))?.kind === 'AGENT_TEXT',
+  )
+
+  await retry()
+
+  const conversation = await read<{
+    conversation: {
+      activeRunId: string | null
+      messageCount: number
+      historyRevision: number
+      unreadCount: number
+      isFull: boolean
+      previewMessageId: string | null
+    } | null
+  }>(
+    `query ReadRetried($id: UUID!) {
+      conversation(id: $id) { activeRunId messageCount historyRevision unreadCount isFull previewMessageId }
+    }`,
+    { id: started.conversationId },
+  )
+  const { data: transcript } = await getConversationTranscript(dataConnect, { ...key, afterPosition: -1 })
+
+  check(
+    'a retry deletes what the runs drew, but the member’s message and an aspects note',
+    (await readMessageAt(started.conversationId, 0))?.kind === 'MEMBER_TEXT'
+      && (await readMessageAt(started.conversationId, 1)) === null
+      && (await readMessageAt(started.conversationId, 2))?.kind === 'ASPECTS'
+      && (await readMessageAt(started.conversationId, 3)) === null,
+  )
+  check(
+    'a retry cuts the transcript back to the anchor',
+    transcript.conversationTranscriptEntries.map(({ position }) => position).join() === '0',
+  )
+  check(
+    'a retry moves the history on, reads nothing unread, frees a full conversation and takes the new run',
+    conversation.conversation?.activeRunId === runId
+      && conversation.conversation.messageCount === 2
+      && conversation.conversation.historyRevision === 1
+      && conversation.conversation.unreadCount === 0
+      && conversation.conversation.isFull === false
+      && conversation.conversation.previewMessageId === started.messageId,
+  )
+  check('a run is retried once', (await refusal(retry({ runId: createId(), runNumber: 2, deletedCount: 0 }))) !== null)
+
+  const retried = { ...started, runId }
+
+  await claimQueuedConversationRun(dataConnect, fence(retried, 0))
+  await finishConversationRun(dataConnect, { ...fence(retried, 1), status: ConversationRunStatus.COMPLETED })
+}
+
+/*
   A queued run's lease, which the backend pushes back once it has seen the run's task still in the
   queue, and brings in to now when the task could not be queued, so the page reconciles it at once
 */
@@ -1522,6 +1654,7 @@ try {
   await checkDeadRuns()
   await checkStopping()
   await checkResuming()
+  await checkRetrying()
   await checkQueuedLeases()
   // The claiming checks leave the sender's conversation idle, its next position 2 and its next run 1
   await checkSending(started)

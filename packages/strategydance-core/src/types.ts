@@ -140,3 +140,11 @@ export type SendConversationMessageData = {
 export type ResumeConversationRunData = {
   runId: string
 }
+
+// What retrying a run that ended with a note answers with: the run that answers its member's entry
+// again, or the one a retry sent again started the first time, and the runs whose messages went,
+// which the page drops from every page of the thread it holds
+export type RetryConversationRunData = {
+  runId: string
+  removedRunIds: string[]
+}

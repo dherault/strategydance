@@ -230,6 +230,79 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
   }
 }
 
+# What a retry reads of the runs on the anchor it goes back to, the member's entry the retried run
+# answers, besides the control context:
+#
+# - the runs on that anchor, the retried run and those it resumed, latest first, whose messages the
+#   retry deletes and the page drops. A hundred at most: an earlier retry deleted what older ones
+#   drew
+# - how many messages those runs drew, which the retry deletes; the member's message that started
+#   one names it too, and stays
+# - the newest message the retry keeps that is not an aspects note, which the preview then shows
+#
+# Only the caller's conversation in that organization
+query GetConversationRetryContext(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $anchorPosition: Int!
+) @auth(level: NO_ACCESS) {
+  anchorRuns: conversationRuns(
+    where: {
+      anchorPosition: { eq: $anchorPosition }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 100
+  ) {
+    id
+  }
+  drawnMessages: conversationMessages(
+    where: {
+      kind: { ne: MEMBER_TEXT }
+      run: { anchorPosition: { eq: $anchorPosition } }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+  ) {
+    _count
+  }
+  keptMessages: conversationMessages(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        {
+          conversation: {
+            id: { eq: $conversationId }
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+          }
+        }
+        { kind: { ne: ASPECTS } }
+        {
+          _or: [
+            { runId: { isNull: true } }
+            { kind: { eq: MEMBER_TEXT } }
+            { run: { anchorPosition: { ne: $anchorPosition } } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    id
+    kind
+    text
+    noteKind
+    toolName
+    toolStatus
+    questionPrompt
+    answerSelected
+    answerOther
+    isAnswerSkipped
+  }
+}
+
 # What a worker reads of a run before each step it takes, in one read:
 #
 # - the run, matched with the conversation, its author and its organization it was queued for, so a

@@ -1,3 +1,5 @@
+import { ConversationMessageKind } from 'strategydance-database/web'
+
 import type {
   ConversationMessageBody,
   ConversationPage,
@@ -94,6 +96,10 @@ function createConversationThread({
   let awaitedRevision = -Infinity
   let bodiesRetryDelayMs = bodiesRetryDelay
   let bodiesRetryTimeout: ReturnType<typeof setTimeout> | undefined
+  // The runs this page's Retry deleted the messages of, and the history it deleted them from, whose
+  // tails may still carry them until one from the next history comes
+  let droppedRuns = new Set<string>()
+  let droppedRevision = -Infinity
   let snapshot = createSnapshot()
 
   function createSnapshot(): ConversationThreadSnapshot {
@@ -145,6 +151,12 @@ function createConversationThread({
     for (const body of kept) next.set(body.id, body)
 
     bodies = next
+  }
+
+  // Whether an entry is one a run this page's Retry deleted drew: every one but the member's message
+  // that started the run, which names it too and stays
+  function isDropped({ kind, run }: ConversationThreadEntry) {
+    return kind !== ConversationMessageKind.MEMBER_TEXT && run !== undefined && droppedRuns.has(run.id)
   }
 
   function schedule() {
@@ -255,7 +267,14 @@ function createConversationThread({
     receive: (next: ConversationTail) => {
       const previous = state
 
+      if (next.historyRevision > droppedRevision) droppedRuns = new Set()
+
       state = mergeConversationTail(state, next, tailLength)
+
+      if (droppedRuns.size && state.entries.some(isDropped)) {
+        state = { ...state, entries: state.entries.filter(entry => !isDropped(entry)) }
+      }
+
       isGone = false
 
       if (state !== previous) {
@@ -264,6 +283,24 @@ function createConversationThread({
       }
 
       schedule()
+    },
+    /*
+      Drops the messages some runs drew, but the member's message that started one, from the tail
+      and every page the thread holds, as soon as this page's Retry has deleted them, rather than
+      once the tail of the next history has come and the pages are read again. A tail of the history
+      they were deleted from, pushed before the Retry landed, brings none of them back
+    */
+    dropRuns: (runIds: string[]) => {
+      droppedRuns = new Set([...droppedRuns, ...runIds])
+      droppedRevision = Math.max(droppedRevision, state.revision)
+
+      const entries = state.entries.filter(entry => !isDropped(entry))
+
+      if (entries.length === state.entries.length) return
+
+      state = { ...state, entries }
+      keepBodies()
+      emit()
     },
     // Reads the messages before the oldest held, when there are any, as the reader scrolls up to
     // them, or again after a read failed

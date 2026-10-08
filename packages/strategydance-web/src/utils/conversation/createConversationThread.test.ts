@@ -58,7 +58,7 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
     },
     // As Retry does: every message the run drew goes, and the history moves on
     deleteRun(runId: string) {
-      rows = rows.filter(row => row.run?.id !== runId)
+      rows = rows.filter(row => row.run?.id !== runId || row.kind === ConversationMessageKind.MEMBER_TEXT)
       revision++
     },
     // As Resume does with the note it takes away
@@ -248,6 +248,46 @@ describe('createConversationThread', () => {
         .map(position => `message-${position}`)
         .sort(),
     )
+  })
+
+  it("drops the runs this page's Retry deleted at once, from the tail and the pages, the member's message kept", async () => {
+    const server = createConversationTestServer({ pageLength: PAGE_LENGTH })
+
+    server.insert(1, { runId: 'retried', kind: ConversationMessageKind.MEMBER_TEXT })
+    server.insert(3, { runId: 'resumed' })
+    server.insert(5, { runId: 'retried' })
+
+    const { thread, push, positions, readAll } = open(server)
+
+    await readAll()
+
+    // A tail from before the Retry landed, pushed after the page dropped its runs, brings none back
+    const staleTail = server.tail(TAIL_LENGTH)
+
+    thread.dropRuns(['retried', 'resumed'])
+
+    expect(positions()).toEqual([0])
+    expect([...thread.getSnapshot().bodies.keys()]).toEqual(['message-0'])
+
+    thread.receive(staleTail)
+
+    expect(positions()).toEqual([0])
+
+    server.deleteRun('retried')
+    server.deleteRun('resumed')
+    server.insert(2, { runId: 'again' })
+    push()
+    await settle()
+
+    expect(positions()).toEqual(server.positions())
+    expect(thread.getSnapshot().isFilling).toBe(false)
+
+    // Dropping them again, as a Retry answered twice would, changes nothing
+    const { entries } = thread.getSnapshot()
+
+    thread.dropRuns(['retried', 'resumed'])
+
+    expect(thread.getSnapshot().entries).toBe(entries)
   })
 
   it('drops a run deleted wholly below the tail', async () => {

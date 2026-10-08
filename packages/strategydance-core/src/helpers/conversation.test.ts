@@ -362,6 +362,12 @@ describe('checkConversationAnswer', () => {
     expect(checkConversationAnswer(single, { selected: [], other: `${atBound}a` }).outcome).toBe('invalid')
   })
 
+  it('counts own words in characters, an emoji as one, as the database does', () => {
+    expect(checkConversationAnswer(single, { selected: [], other: '🎉'.repeat(MAX_ANSWER_OTHER_LENGTH) }).outcome).toBe(
+      'valid',
+    )
+  })
+
   it('refuses own words holding a control character, U+0000 included, or a line break', () => {
     for (const other of [
       `acct${String.fromCharCode(0)}admin`,

@@ -129,7 +129,7 @@ export function hasControlCharacter(text: string) {
   most when a single one applies, the own words one line of at most `MAX_ANSWER_OTHER_LENGTH`
   characters once trimmed, without a control character, and the answer chooses something or says
   something. A single-choice answer is exactly one of the two, an option or its own words, as the
-  radios draw it.
+  radios draw it. Lengths are counted in code points, as the database counts them.
 
   A valid answer comes back with its options in the question's order and its own words trimmed, or
   null when there are none, so the same answer sent twice reads the same
@@ -149,7 +149,8 @@ export function checkConversationAnswer(
   }
 
   if (other !== null) {
-    if (other.length > MAX_ANSWER_OTHER_LENGTH) {
+    // In code points, as the database counts a text, so an emoji is one
+    if ([...other].length > MAX_ANSWER_OTHER_LENGTH) {
       return { outcome: 'invalid', reason: `An answer’s own words hold at most ${MAX_ANSWER_OTHER_LENGTH} characters` }
     }
 

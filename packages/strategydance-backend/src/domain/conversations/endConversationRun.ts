@@ -19,10 +19,11 @@ import deriveConversationMessageId from '~domain/conversations/deriveConversatio
   How a worker ends its run:
 
   - `finished`: completed, or stopped in a conversation deleted meanwhile, without a note
-  - `noted`: with a note the thread draws, such as a run at a limit that sends no further request,
-    or one whose next request would not fit Claude's context, which marks its conversation full
+  - `noted`: with a note the thread draws, and why, for the logs: failed, at a limit that sends no
+    further request or after Claude's API failed it, full when its next request would not fit
+    Claude's context, which marks its conversation so, stopped as its member asked, or refused
   - `interrupted`: its author is no longer the member it was queued under, fenced on the run alone,
-    at the attempt the worker read or claimed, with the note saying so
+    at the attempt the worker read or claimed, with the note saying so and why
 */
 export type ConversationRunEnding =
   | {
@@ -30,14 +31,17 @@ export type ConversationRunEnding =
       status: ConversationRunStatus.COMPLETED | ConversationRunStatus.STOPPED
       usage?: ConversationRunUsage
     }
-  | {
+  | ({
       kind: 'noted'
-      status: ConversationRunStatus.FAILED
-      noteKind: ConversationNoteKind.FAILED | ConversationNoteKind.FULL
+      failure: string
       usage?: ConversationRunUsage
       isFull?: boolean
-    }
-  | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number }
+    } & (
+      | { status: ConversationRunStatus.FAILED; noteKind: ConversationNoteKind.FAILED | ConversationNoteKind.FULL }
+      | { status: ConversationRunStatus.STOPPED; noteKind: ConversationNoteKind.STOPPED }
+      | { status: ConversationRunStatus.REFUSED; noteKind: ConversationNoteKind.REFUSED }
+    ))
+  | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number; failure: string }
 
 type EndConversationRunInput = {
   ending: ConversationRunEnding
@@ -65,6 +69,7 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
         noteId: deriveConversationMessageId(ending.reference.runId, 'note'),
         position,
         preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
+        failure: ending.failure,
       }),
     )
 
@@ -93,6 +98,7 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
       noteId: deriveConversationMessageId(fence.runId, 'note'),
       position,
       preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
+      failure: ending.failure,
       ...(ending.usage ? { usage: ending.usage } : {}),
       ...(ending.isFull ? { isFull: true } : {}),
     }),

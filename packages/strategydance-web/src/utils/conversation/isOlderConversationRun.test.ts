@@ -6,8 +6,8 @@ import type { ConversationRun } from '~types'
 
 import isOlderConversationRun from '~utils/conversation/isOlderConversationRun'
 
-function run(number: number, status: ConversationRunStatus) {
-  return { id: `run-${number}`, number, status } as ConversationRun
+function run(number: number, status: ConversationRunStatus, stopRequestedAt: string | null = null) {
+  return { id: `run-${number}`, number, status, stopRequestedAt } as ConversationRun
 }
 
 describe('isOlderConversationRun', () => {
@@ -41,5 +41,13 @@ describe('isOlderConversationRun', () => {
   it('never takes a run gone as older, nor one coming back', () => {
     expect(isOlderConversationRun(run(1, ConversationRunStatus.RUNNING), undefined)).toBe(false)
     expect(isOlderConversationRun(undefined, run(1, ConversationRunStatus.RUNNING))).toBe(false)
+  })
+
+  it('takes the same run, at the same status, read before its member asked it to stop as older', () => {
+    const asked = run(1, ConversationRunStatus.RUNNING, '2026-10-08T12:00:00Z')
+
+    expect(isOlderConversationRun(asked, run(1, ConversationRunStatus.RUNNING))).toBe(true)
+    expect(isOlderConversationRun(run(1, ConversationRunStatus.RUNNING), asked)).toBe(false)
+    expect(isOlderConversationRun(asked, run(1, ConversationRunStatus.STOPPED))).toBe(false)
   })
 })

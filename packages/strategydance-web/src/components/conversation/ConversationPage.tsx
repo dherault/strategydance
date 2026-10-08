@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { useIntl } from 'react-intl'
 
 import useConversation from '~hooks/conversation/useConversation'
 import useConversationRun from '~hooks/conversation/useConversationRun'
+
+import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 
 import ConversationBar from '~components/conversation/ConversationBar'
 import ConversationComposer from '~components/conversation/ConversationComposer'
@@ -21,12 +24,16 @@ type Props = {
   stored yet, whose thread is empty and says what to ask.
 
   The composer stays where it is whichever the page draws, so a draft's first message, which
-  stores the conversation, leaves it mounted with whatever is written in it
+  stores the conversation, leaves it mounted with whatever is written in it.
+
+  The run the reader last started, by a send, a resume or a retry, is the page's, so the composer
+  and the thread both count it as going before the live read of the latest run shows it
 */
 function ConversationPage({ conversationId }: Props) {
   const { formatMessage } = useIntl()
   const { data: conversation } = useConversation(conversationId)
   const { data: run } = useConversationRun(conversationId)
+  const [startedRun, setStartedRun] = useState<StartedConversationRun | null>(null)
 
   return (
     // The column fills the screen, as the design has it, so the composer sits at its foot however
@@ -39,6 +46,8 @@ function ConversationPage({ conversationId }: Props) {
         <ConversationThread
           conversation={conversation}
           run={run}
+          startedRun={startedRun}
+          onRunStart={setStartedRun}
         />
       ) : (
         <p className="my-auto px-2 py-6 text-center text-sm text-balance text-muted-foreground">
@@ -49,6 +58,8 @@ function ConversationPage({ conversationId }: Props) {
         conversationId={conversationId}
         conversation={conversation}
         run={run}
+        startedRun={startedRun}
+        onRunStart={setStartedRun}
       />
     </ConversationLayout>
   )

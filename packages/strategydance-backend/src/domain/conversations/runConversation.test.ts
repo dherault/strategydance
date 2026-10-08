@@ -43,6 +43,18 @@ function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// Waits until a request's signal is aborted, or a second has gone
+function waitForAbort(signal: AbortSignal) {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, 1000)
+
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer)
+      resolve(null)
+    })
+  })
+}
+
 // A message Claude answers with, a short reply unless a test says
 function answer(
   content: BetaContentBlock[] = [{ type: 'text', text: REPLY, citations: null }],
@@ -497,23 +509,235 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readEntries(reference)).toHaveLength(1)
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+    expect(readRun(reference)?.failure).toContain('past the 5 pauses')
   })
 
-  test('fails a run, with its note and after one request, when Claude’s API fails or stops it otherwise', async () => {
-    for (const failure of [
-      new Anthropic.InternalServerError(529, { type: 'error' }, 'Overloaded', new Headers()),
-      answer([{ type: 'text', text: 'Cut', citations: null }], { stopReason: 'max_tokens' }),
-    ]) {
+  test('stores a turn a fallback model finished without what the declining model wrote before the boundary', async () => {
+    const reference = await start()
+    const fallback = {
+      type: 'fallback',
+      from: { model: 'claude-opus-5-5' },
+      to: { model: 'claude-opus-4-8' },
+      trigger: { type: 'refusal', category: 'cyber' },
+    } as BetaContentBlock
+    const scripted = createClient([
+      createClaudeMessage({
+        model: 'claude-opus-4-8',
+        content: [
+          { type: 'thinking', thinking: '', signature: 'declined' },
+          { type: 'text', text: 'Looking at ', citations: null },
+          { type: 'server_tool_use', id: 'srvtoolu_9', name: 'web_search', input: { query: 'pricing' } },
+          fallback,
+          { type: 'text', text: REPLY, citations: null },
+        ],
+      }),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+
+    const stored = JSON.parse(readEntries(reference).at(-1)?.content ?? '[]') as BetaContentBlock[]
+
+    expect(stored.map(({ type }) => type)).toEqual(['text', 'fallback', 'text'])
+    expect(readThread(reference).slice(1)).toEqual([
+      { kind: 'AGENT_TEXT', text: `Looking at ${REPLY}`, noteKind: null, position: 1 },
+    ])
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+  })
+
+  test('strips a paused turn whose boundary came in a later part as one, keeping a search split across its parts', async () => {
+    const reference = await start()
+    const fallback = {
+      type: 'fallback',
+      from: { model: 'claude-opus-5-5' },
+      to: { model: 'claude-opus-4-8' },
+      trigger: { type: 'refusal', category: 'cyber' },
+    } as BetaContentBlock
+    const scripted = createClient([
+      answer(
+        [
+          { type: 'thinking', thinking: '', signature: 'declined' },
+          { type: 'text', text: 'Looking it up.', citations: null },
+          SEARCH[0] as BetaContentBlock,
+        ],
+        { stopReason: 'pause_turn' },
+      ),
+      answer(
+        [
+          { type: 'redacted_thinking', data: 'opaque' },
+          { type: 'server_tool_use', id: 'srvtoolu_9', name: 'web_search', input: { query: 'never answered' } },
+        ],
+        { stopReason: 'pause_turn' },
+      ),
+      createClaudeMessage({
+        model: 'claude-opus-4-8',
+        content: [SEARCH[1] as BetaContentBlock, fallback, { type: 'text', text: REPLY, citations: null }],
+      }),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+
+    // The second part, a declined model's alone, is left bare, so it is neither sent again nor stored
+    expect(scripted.readRequests()[2]?.messages.map(({ role }) => role)).toEqual([
+      'user',
+      'system',
+      'assistant',
+      'assistant',
+    ])
+
+    const stored = readEntries(reference)
+      .slice(2)
+      .map(({ content }) => (JSON.parse(content) as BetaContentBlock[]).map(({ type }) => type))
+
+    expect(stored).toEqual([
+      ['text', 'server_tool_use'],
+      ['web_search_tool_result', 'fallback', 'text'],
+    ])
+    expect(
+      readThread(reference)
+        .slice(1)
+        .map(({ kind }) => kind),
+    ).toEqual(['AGENT_TEXT', 'TOOL_CALL', 'AGENT_TEXT'])
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+  })
+
+  test('stores and draws a reply the fallback model served on its own as any other, counted under that model', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      createClaudeMessage({
+        model: 'claude-opus-4-8',
+        content: [{ type: 'text', text: REPLY, citations: null }],
+        usage: { inputTokens: 1000, outputTokens: 50 },
+      }),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'AGENT_TEXT', text: REPLY })
+    expect(readEntries(reference).map(({ role }) => role)).toEqual(['USER', 'SYSTEM', 'ASSISTANT'])
+    expect(Object.keys(readUsage(reference).byModel)).toEqual(['claude-opus-4-8'])
+  })
+
+  test('fails a run, with its note, why, and after one request, when Claude’s API fails or stops it otherwise', async () => {
+    for (const [failure, why] of [
+      [
+        new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+        'Claude’s API answered 529',
+      ],
+      [answer([{ type: 'text', text: 'Cut', citations: null }], { stopReason: 'max_tokens' }), 'on max_tokens'],
+      [
+        answer([{ type: 'text', text: 'Too long', citations: null }], { stopReason: 'model_context_window_exceeded' }),
+        'on model_context_window_exceeded',
+      ],
+    ] as const) {
       const reference = await start()
       const scripted = createClient([failure])
 
       expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
       expect(scripted.requests).toHaveLength(1)
       expect(readRun(reference)?.status).toBe('FAILED')
+      expect(readRun(reference)?.failure?.replace("'", '’')).toContain(why)
       expect(readEntries(reference)).toHaveLength(1)
       expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
       expect(readUsage(reference).requests).toHaveLength(1)
     }
+  })
+
+  test('ends a run Claude refused, and so did its fallback, refused with its note, storing nothing of it', async () => {
+    const reference = await start()
+    const refused = answer([{ type: 'text', text: 'I can’t', citations: null }], { stopReason: 'refusal' })
+
+    refused.stop_details = {
+      type: 'refusal',
+      category: 'cyber',
+      explanation: null,
+      fallback_credit_token: null,
+      fallback_has_prefill_claim: null,
+      recommended_model: null,
+    }
+
+    const scripted = createClient([
+      answer([{ type: 'text', text: 'Searching', citations: null }], { stopReason: 'pause_turn' }),
+      refused,
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(readRun(reference)?.status).toBe('REFUSED')
+    expect(readRun(reference)?.failure).toContain('cyber')
+    expect(readEntries(reference).map(({ role }) => role)).toEqual(['USER'])
+    expect(readThread(reference).slice(1)).toEqual([{ kind: 'NOTE', text: null, noteKind: 'REFUSED', position: 1 }])
+    expect(readUsage(reference).requests.map(({ stopReason }) => stopReason)).toEqual(['pause_turn', 'refusal'])
+    expect(readConversation(reference)?.activeRunId).toBeNull()
+  })
+
+  test('sends no request past its requests, dropping the parts of the turn it held, and fails with its note', async () => {
+    const reference = await start()
+    const paused = Array.from({ length: 3 }, () =>
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' }),
+    )
+    const scripted = createClient(paused)
+
+    expect(await runConversation(reference, { client: scripted.client, limits: { maxRequests: 2 } })).toBe('finished')
+    expect(scripted.requests).toHaveLength(2)
+    expect(readRun(reference)).toMatchObject({ status: 'FAILED', failure: 'The run sent its 2 requests' })
+    expect(readEntries(reference)).toHaveLength(1)
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
+  test('sends no request once its minutes since it was first claimed have gone, a worker taking it over included', async () => {
+    const reference = await start()
+
+    await claim(reference)
+
+    const run = readRun(reference)
+
+    if (run) run.startedAt = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+
+    expireLease(reference)
+
+    const scripted = createClient()
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(readRun(reference)).toMatchObject({
+      status: 'FAILED',
+      failure: 'The run passed 600 seconds since it was first claimed',
+    })
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
+  test('sends no request whose measuring took the run past its minutes', async () => {
+    const reference = await start()
+    const scripted = createClient([answer()], {
+      count: body => {
+        Bun.sleepSync(80)
+
+        return (body.system ? 1000 : 0) + body.messages.length * 100
+      },
+    })
+
+    expect(await runConversation(reference, { client: scripted.client, limits: { maxDurationMs: 50 } })).toBe(
+      'finished',
+    )
+    expect(scripted.requests).toHaveLength(0)
+    expect(readRun(reference)?.failure).toBe('The run passed 0.05 seconds since it was first claimed')
+    expect(readUsage(reference).requests).toHaveLength(0)
+  })
+
+  test('cuts a stream still going at the run’s deadline, charged as an estimate, and fails with its note', async () => {
+    const reference = await start()
+    const scripted = createClient([answer()], { meanwhile: waitForAbort })
+
+    expect(await runConversation(reference, { client: scripted.client, limits: { streamDeadlineMs: 50 } })).toBe(
+      'finished',
+    )
+    expect(readRun(reference)?.status).toBe('FAILED')
+    expect(readRun(reference)?.failure).toBe(
+      'The stream of request 0 was cut 0.05 seconds after the run was first claimed',
+    )
+    expect(readEntries(reference)).toHaveLength(1)
+    expect(readUsage(reference).requests).toMatchObject([
+      { isSettled: true, isEstimated: true, inputTokens: 1000, outputTokens: 50 },
+    ])
   })
 
   test('charges a stream that failed partway what it reported using, as an estimate, and one refused before it nothing', async () => {
@@ -766,6 +990,7 @@ describe('runConversation', () => {
     expect(readEntries(reference)).toHaveLength(1)
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'INTERRUPTED', position: 1 })
     expect(readConversation(reference)?.activeRunId).toBeNull()
+    expect(readRun(reference)?.failure).toBe('Its author left the organization')
   })
 
   test('never takes up the run of a member invited back before it was delivered', async () => {
@@ -805,7 +1030,7 @@ describe('runConversation', () => {
 
     expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
     expect(scripted.requests).toHaveLength(0)
-    expect(readRun(reference)?.status).toBe('INTERRUPTED')
+    expect(readRun(reference)).toMatchObject({ status: 'INTERRUPTED', failure: 'Its author is no longer staff' })
   })
 
   test('sends no request from a run that has drawn its 100 entries, and fails it with a note', async () => {
@@ -836,6 +1061,7 @@ describe('runConversation', () => {
     expect(scripted.requests).toHaveLength(0)
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED', position: 101 })
+    expect(readRun(reference)?.failure).toBe('The run drew its 100 entries')
     expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
@@ -851,6 +1077,7 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FULL' })
     expect(readConversation(reference)).toMatchObject({ activeRunId: null, messageCount: 2001 })
+    expect(readRun(reference)?.failure).toBe('The conversation holds its 2000 messages')
   })
 
   test('draws the rest of a stored turn once after a crash, and sends no request again', async () => {

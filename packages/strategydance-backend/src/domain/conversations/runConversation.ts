@@ -12,10 +12,18 @@ import {
   type GetConversationRunContextData,
   claimQueuedConversationRun,
   getConversationRunContext,
+  getConversationRunLedgers,
   reclaimConversationRun,
 } from 'strategydance-database/backend'
 
 import type { ClaudeClient, ConversationRunFence, ConversationRunReference } from '~types'
+
+import {
+  CONVERSATION_RUN_MAX_DURATION_MS,
+  CONVERSATION_RUN_MAX_REQUESTS,
+  CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
+  CONVERSATION_RUN_STREAM_DEADLINE_MS,
+} from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -31,7 +39,11 @@ import createConversationRunLease, { type ConversationRunLease } from '~domain/c
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
 import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
-import requestConversationTurn, { type ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
+import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import requestConversationTurn, {
+  type ConversationRunLimits,
+  type ConversationTurnOutcome,
+} from '~domain/conversations/requestConversationTurn'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
 
 // How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
@@ -45,6 +57,16 @@ type Options = {
   client?: ClaudeClient
   // How long the worker waits after a failed step, times the failures in a row
   retryDelayMs?: number
+  // The run's limits, which a test can bring in
+  limits?: Partial<ConversationRunLimits>
+  // How often a streaming request reads whether the run's member asked to stop it
+  stopCheckIntervalMs?: number
+}
+
+const LIMITS: ConversationRunLimits = {
+  maxRequests: CONVERSATION_RUN_MAX_REQUESTS,
+  maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
+  streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -60,12 +82,17 @@ type ConversationRunContext = GetConversationRunContextData
   one step at a time, each read afresh, so a worker taking over after a crash carries on where the
   last one stopped:
 
-  - the run's reply not wholly drawn yet: the next message of it
+  - the run's reply not wholly drawn yet: the next message of it. The reply is the turn after the
+    member's entry the run answers, its anchor, which a resumed run shares with the run it resumes,
+    so it draws and carries on what that run left
   - a reply `pause_turn` paused, which a crash left stored part by part: its continuation
   - a reply wholly drawn: the run is complete, since no tool of the member's runs yet
   - the member's message: Claude's turn, stored part by part as it answered, unless the run has
     drawn its 100 entries, or the conversation holds its 2000, when the run fails with a note
     instead and costs nothing
+
+  A run whose member asked it to stop sends no further request: it ends stopped, with its note, once
+  what was paid for is written and drawn. One whose conversation was deleted stops without a note.
 
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
   write refused once is tried again, never paid for again. Every write is fenced on the run's
@@ -76,7 +103,12 @@ type ConversationRunContext = GetConversationRunContextData
 */
 async function runConversation(
   reference: ConversationRunReference,
-  { client = conversationClaudeClient, retryDelayMs = 500 }: Options = {},
+  {
+    client = conversationClaudeClient,
+    retryDelayMs = 500,
+    limits,
+    stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
+  }: Options = {},
 ): Promise<'finished' | 'held'> {
   const context = await readContext(reference)
   const [run] = context.conversationRuns
@@ -122,7 +154,15 @@ async function runConversation(
   const lease = createConversationRunLease({ fence, onLost: () => controller.abort() })
 
   try {
-    return await takeSteps({ fence, lease, signal: controller.signal, client, retryDelayMs })
+    return await takeSteps({
+      fence,
+      lease,
+      signal: controller.signal,
+      client,
+      retryDelayMs,
+      limits: { ...LIMITS, ...limits },
+      stopCheckIntervalMs,
+    })
   } finally {
     await lease.stop()
   }
@@ -134,9 +174,11 @@ type StepsInput = {
   signal: AbortSignal
   client: ClaudeClient
   retryDelayMs: number
+  limits: ConversationRunLimits
+  stopCheckIntervalMs: number
 }
 
-async function takeSteps({ fence, lease, signal, client, retryDelayMs }: StepsInput) {
+async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits, stopCheckIntervalMs }: StepsInput) {
   const reference = toReference(fence)
   let failedSteps = 0
   // What a request came to and is not written yet
@@ -149,7 +191,7 @@ async function takeSteps({ fence, lease, signal, client, retryDelayMs }: StepsIn
     if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
 
     try {
-      const result = await takeStep({ context, fence, lease, signal, client, outcome })
+      const result = await takeStep({ context, fence, lease, signal, client, limits, stopCheckIntervalMs, outcome })
 
       outcome = result === 'ended' || result === 'next' ? null : result
       failedSteps = 0
@@ -192,6 +234,8 @@ async function takeStep({
   lease,
   signal,
   client,
+  limits,
+  stopCheckIntervalMs,
   outcome,
 }: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
   const { conversation } = context
@@ -208,8 +252,25 @@ async function takeStep({
     return 'ended' as const
   }
 
+  // Its member asked it to stop, which a run reads before each request: what was paid for is
+  // written and drawn first, and nothing more is asked
+  function stop() {
+    return end({
+      kind: 'noted',
+      status: ConversationRunStatus.STOPPED,
+      noteKind: ConversationNoteKind.STOPPED,
+      failure: 'Its member stopped it before its next request',
+      usage,
+    })
+  }
+
   if (!isAuthorStill(context, fence.membershipCreatedAt)) {
-    return end({ kind: 'interrupted', reference: toReference(fence), attempts: fence.attempts })
+    return end({
+      kind: 'interrupted',
+      reference: toReference(fence),
+      attempts: fence.attempts,
+      failure: describeAuthorChange(context, fence.membershipCreatedAt),
+    })
   }
 
   if (!conversation || conversation.deletedAt) {
@@ -222,10 +283,15 @@ async function takeStep({
   if (entry.role === ConversationTranscriptRole.SYSTEM) throw new Error('A transcript never ends on a context message')
 
   if (entry.role === ConversationTranscriptRole.ASSISTANT) {
+    // The turn answering the run's anchor: its own parts, and those of the run it resumed, which it
+    // carries on
+    const turn = (
+      await readConversationTranscript(toReference(fence), { afterPosition: run?.anchorPosition ?? -1 })
+    ).filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
     const drawn = await drawConversationTurn({
       fence,
       lease,
-      entries: context.runEntries.map(part => ({
+      entries: turn.map(part => ({
         id: part.id,
         blocks: parseTranscriptContent(part.content),
         drawnBlocks: part.drawnBlocks,
@@ -236,9 +302,11 @@ async function takeStep({
 
     if (drawn === 'drawn') return 'next'
 
-    const pausedRequest = findPausedRequest(context, usage)
+    const ledgers = await readTurnLedgers(fence, turn, usage)
+    const pausedRequest = findPausedRequest(entry, ledgers)
 
     if (!pausedRequest) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
+    if (run?.stopRequestedAt) return stop()
 
     return requestConversationTurn({
       fence,
@@ -248,16 +316,33 @@ async function takeStep({
       runContext: run?.context ?? null,
       usage,
       pausedRequest,
-      storedPauses: countStoredPauses(context, usage),
+      storedPauses: countStoredPauses(turn, ledgers),
+      startedAt: run?.startedAt ?? new Date().toISOString(),
+      limits,
+      stopCheckIntervalMs,
     })
   }
 
+  if (run?.stopRequestedAt) return stop()
+
   if (context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
-    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FAILED, usage })
+    return end({
+      kind: 'noted',
+      status: ConversationRunStatus.FAILED,
+      noteKind: ConversationNoteKind.FAILED,
+      failure: `The run drew its ${MAX_CONVERSATION_RUN_ENTRIES} entries`,
+      usage,
+    })
   }
 
   if (conversation.messageCount >= MAX_CONVERSATION_MESSAGES) {
-    return end({ kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FULL, usage })
+    return end({
+      kind: 'noted',
+      status: ConversationRunStatus.FAILED,
+      noteKind: ConversationNoteKind.FULL,
+      failure: `The conversation holds its ${MAX_CONVERSATION_MESSAGES} messages`,
+      usage,
+    })
   }
 
   return requestConversationTurn({
@@ -269,6 +354,9 @@ async function takeStep({
     usage,
     pausedRequest: null,
     storedPauses: 0,
+    startedAt: run?.startedAt ?? new Date().toISOString(),
+    limits,
+    stopCheckIntervalMs,
   })
 }
 
@@ -309,28 +397,46 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
 }
 
-// The request whose part the transcript ends on, when `pause_turn` paused it: a crash came between
-// storing it and the turn's next part
-function findPausedRequest(context: ConversationRunContext, usage: ConversationRunUsage) {
-  const [entry] = context.conversationTranscriptEntries
-  const lastPart = context.runEntries.at(-1)
+/*
+  The ledgers that say how each of the turn's parts ended: this run's as the worker holds it, and
+  those of the runs it carries the turn of, which crashes may have left several of, each with a
+  part paused
+*/
+async function readTurnLedgers(fence: ConversationRunFence, turn: { runId: string }[], usage: ConversationRunUsage) {
+  const ledgers = new Map([[fence.runId, usage]])
+  const runIds = [...new Set(turn.map(({ runId }) => runId))].filter(runId => runId !== fence.runId)
 
-  if (!entry || lastPart?.id !== entry.id) return null
+  if (!runIds.length) return ledgers
 
+  const { organizationId, userId, conversationId } = fence
+  const { data } = await getConversationRunLedgers(dataConnect, { organizationId, userId, conversationId, runIds })
+
+  for (const run of data.conversationRuns) ledgers.set(run.id, parseConversationRunUsage(run.usage))
+
+  return ledgers
+}
+
+// The request whose part the transcript ends on, as the ledger of the run that stored it says,
+// when `pause_turn` paused it: a crash came between storing it and the turn's next part
+function findPausedRequest(
+  entry: { position: number; run: { id: string } },
+  ledgers: Map<string, ConversationRunUsage>,
+) {
   return (
-    usage.requests.find(
-      ({ turnPosition, stopReason }) => turnPosition === lastPart.position && stopReason === 'pause_turn',
-    ) ?? null
+    ledgers
+      .get(entry.run.id)
+      ?.requests.find(({ turnPosition, stopReason }) => turnPosition === entry.position && stopReason === 'pause_turn')
+    ?? null
   )
 }
 
-// How many of the run's stored parts paused, which count toward its five pauses
-function countStoredPauses(context: ConversationRunContext, usage: ConversationRunUsage) {
-  const positions = new Set(context.runEntries.map(({ position }) => position))
-
-  return usage.requests.filter(
-    ({ turnPosition, stopReason }) =>
-      turnPosition !== null && positions.has(turnPosition) && stopReason === 'pause_turn',
+// How many of the turn's stored parts paused, each as its own run's ledger says, which count toward
+// its five pauses
+function countStoredPauses(turn: { position: number; runId: string }[], ledgers: Map<string, ConversationRunUsage>) {
+  return turn.filter(({ position, runId }) =>
+    ledgers
+      .get(runId)
+      ?.requests.some(({ turnPosition, stopReason }) => turnPosition === position && stopReason === 'pause_turn'),
   ).length
 }
 
@@ -350,7 +456,12 @@ async function interruptBeforeClaiming(
   for (let failedTries = 1; ; failedTries++) {
     try {
       await endConversationRun({
-        ending: { kind: 'interrupted', reference, attempts },
+        ending: {
+          kind: 'interrupted',
+          reference,
+          attempts,
+          failure: describeAuthorChange(context, context.conversationRuns[0]?.membershipCreatedAt ?? ''),
+        },
         fence: null,
         lease: null,
         position: context.conversation?.nextMessagePosition ?? 0,
@@ -392,6 +503,15 @@ function isInFlight(status: ConversationRunStatus) {
 
 function isPast(time: string | null | undefined) {
   return Boolean(time) && Date.parse(time ?? '') < Date.now()
+}
+
+// Why a run's author no longer passes for it, for the logs
+function describeAuthorChange(context: ConversationRunContext, membershipCreatedAt: string) {
+  if (!context.userOrganization) return 'Its author left the organization'
+  if (context.userOrganization.createdAt !== membershipCreatedAt)
+    return 'Its author was invited back since it was queued'
+
+  return 'Its author is no longer staff'
 }
 
 // Whether the run's author is still the member it was queued under, and still staff while

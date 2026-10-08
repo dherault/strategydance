@@ -21,8 +21,9 @@ type Options = {
   answers?: ScriptedAnswer[]
   // What a count answers, from the request counted
   count?: (body: MessageCountTokensParams) => number
-  // What happens before each answer, a member removed say
-  meanwhile?: () => unknown
+  // What happens before each answer, a member removed say, given the request's signal, which a test
+  // can wait on to see the request cut
+  meanwhile?: (signal: AbortSignal) => unknown
 }
 
 /*
@@ -57,7 +58,7 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
         onUsage?.(answer)
       }
 
-      await meanwhile()
+      await meanwhile(signal)
 
       signal.throwIfAborted()
 

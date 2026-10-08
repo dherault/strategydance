@@ -84,6 +84,8 @@ export type FakeConversation = {
   updatedAt: string
   // Which aspects of the company it is about, none unless a test says
   aspects?: string[]
+  // How many times a retry cut its history, 0 until one does
+  historyRevision?: number
 }
 
 export type FakeRun = {
@@ -101,9 +103,10 @@ export type FakeRun = {
   createdAt: string
   startedAt: string | null
   endedAt: string | null
-  // Its context message as JSON text, once built, and its usage ledger
+  // Its context message as JSON text, once built, its usage ledger, and why it ended, for the logs
   context?: string | null
   usage?: unknown
+  failure?: string | null
 }
 
 export type FakeMessage = {
@@ -275,6 +278,33 @@ function createConversationDatabaseFake() {
     conversation.deletedAt = null
   }
 
+  // The web's `MarkConversationRead`: nothing unread, only while the preview the page rendered is
+  // still the conversation's, so a reply that landed meanwhile stays unread
+  function markRead(conversationId: string, previewMessageId: string) {
+    const conversation = conversations.get(id(conversationId))
+
+    if (
+      conversation
+      && conversation.deletedAt === null
+      && conversation.previewMessageId === id(previewMessageId)
+      && conversation.unreadCount > 0
+    ) {
+      conversation.unreadCount = 0
+    }
+  }
+
+  // The messages the runs on an anchor drew, the member's that started one aside, as a retry
+  // deletes them
+  function drawnOnAnchor(conversationId: string, anchorPosition: unknown) {
+    return [...messages.values()].filter(
+      message =>
+        message.conversationId === conversationId
+        && message.kind !== 'MEMBER_TEXT'
+        && message.runId !== null
+        && runs.get(message.runId)?.anchorPosition === anchorPosition,
+    )
+  }
+
   function runsInFlight(userId: unknown, organizationId: unknown) {
     return [...runs.values()].filter(run => {
       const conversation = conversations.get(run.conversationId)
@@ -377,13 +407,18 @@ function createConversationDatabaseFake() {
 
   // A run still queued in the caller's conversation, as the queued run's lease mutations match it
   function findQueuedRun(variables: AnyVariables) {
+    return findOwnedRun(variables, 'QUEUED')
+  }
+
+  // A run of the caller's conversation in that status, as the queued-run operations find theirs
+  function findOwnedRun(variables: AnyVariables, status?: string) {
     const run = runs.get(id(variables.runId))
     const conversation = run && conversations.get(run.conversationId)
 
     if (
       !run
       || !conversation
-      || run.status !== 'QUEUED'
+      || (status !== undefined && run.status !== status)
       || conversation.id !== id(variables.conversationId)
       || conversation.userId !== variables.userId
       || conversation.organizationId !== id(variables.organizationId)
@@ -545,6 +580,134 @@ function createConversationDatabaseFake() {
       }
     },
 
+    GetConversationRunStop: variables => {
+      const run = findOwnedRun(variables)
+
+      return {
+        conversationRuns: run ? [{ status: run.status, stopRequestedAt: run.stopRequestedAt }] : [],
+      }
+    },
+
+    GetConversationRunLedgers: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const runIds = new Set((variables.runIds as string[]).map(id))
+
+      return {
+        conversationRuns: isTheirs
+          ? [...runs.values()]
+              .filter(run => runIds.has(run.id) && run.conversationId === conversation.id)
+              .slice(0, 100)
+              .map(run => ({ id: run.id, usage: run.usage ?? null }))
+          : [],
+      }
+    },
+
+    GetConversationRunControlContext: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const conversationRuns = isTheirs
+        ? [...runs.values()].filter(run => run.conversationId === conversation.id).sort((a, b) => b.number - a.number)
+        : []
+      const conversationMessages = isTheirs
+        ? [...messages.values()]
+            .filter(message => message.conversationId === conversation.id)
+            .sort((a, b) => b.position - a.position)
+        : []
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        conversation: conversation ? { historyRevision: 0, ...conversation } : null,
+        latestRuns: conversationRuns
+          .slice(0, 2)
+          .map(({ id: runId, number, trigger, status, anchorPosition, leaseExpiresAt }) => ({
+            id: runId,
+            number,
+            trigger,
+            status,
+            anchorPosition,
+            leaseExpiresAt,
+          })),
+        conversationRuns: runsInFlight(variables.userId, variables.organizationId)
+          .slice(0, 3)
+          .map(run => ({
+            id: run.id,
+            status: run.status,
+            leaseExpiresAt: run.leaseExpiresAt,
+            conversation: { id: run.conversationId },
+          })),
+        latestMessages: conversationMessages
+          .filter(message => message.kind !== 'ASPECTS')
+          .slice(0, 2)
+          .map(message => ({
+            id: message.id,
+            kind: message.kind,
+            position: message.position,
+            text: message.text,
+            noteKind: message.noteKind,
+            toolName: message.toolName ?? null,
+            toolStatus: message.toolStatus,
+            questionPrompt: null,
+            answerSelected: null,
+            answerOther: null,
+            isAnswerSkipped: false,
+            run: message.runId ? { id: message.runId } : null,
+          })),
+        newestMessages: conversationMessages.slice(0, 1).map(message => ({ id: message.id })),
+      }
+    },
+
+    GetConversationRetryContext: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (
+        !conversation
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+      ) {
+        return { anchorRuns: [], drawnMessages: [{ _count: 0 }], drawnRuns: [], keptMessages: [] }
+      }
+
+      const drawn = new Set(drawnOnAnchor(conversation.id, variables.anchorPosition))
+      const kept = [...messages.values()]
+        .filter(
+          message => message.conversationId === conversation.id && message.kind !== 'ASPECTS' && !drawn.has(message),
+        )
+        .sort((a, b) => b.position - a.position)
+
+      return {
+        anchorRuns: [...runs.values()]
+          .filter(run => run.conversationId === conversation.id && run.anchorPosition === variables.anchorPosition)
+          .sort((a, b) => b.number - a.number)
+          .slice(0, 100)
+          .map(run => ({ id: run.id })),
+        drawnMessages: [{ _count: drawn.size }],
+        drawnRuns: [...drawn]
+          .sort((a, b) => b.position - a.position)
+          .slice(0, 5000)
+          .map(message => ({ run: message.runId ? { id: message.runId } : null })),
+        keptMessages: kept.slice(0, 1).map(message => ({
+          id: message.id,
+          kind: message.kind,
+          text: message.text,
+          noteKind: message.noteKind,
+          toolName: message.toolName ?? null,
+          toolStatus: message.toolStatus,
+          questionPrompt: null,
+          answerSelected: null,
+          answerOther: null,
+          isAnswerSkipped: false,
+        })),
+      }
+    },
+
     GetConversationTranscript: variables => {
       const conversation = conversations.get(id(variables.conversationId))
       const isTheirs =
@@ -564,6 +727,8 @@ function createConversationDatabaseFake() {
                 role: entry.role,
                 content: entry.content,
                 contextHash: entry.contextHash ?? null,
+                drawnBlocks: entry.drawnBlocks,
+                drawnPieces: entry.drawnPieces ?? 0,
                 run: { id: entry.runId },
               }))
           : [],
@@ -771,6 +936,7 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
       writeNote(noteConversation, variables, 'INTERRUPTED')
 
       return { conversationRun_updateMany: 1 }
@@ -794,6 +960,213 @@ function createConversationDatabaseFake() {
       run.leaseExpiresAt = now()
 
       return { conversationRun_updateMany: 1 }
+    },
+
+    RequestConversationRunStop: variables => {
+      const run = findOwnedRun(variables, 'RUNNING')
+
+      if (!run || run.stopRequestedAt) return { conversationRun_updateMany: 0 }
+
+      run.stopRequestedAt = now()
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    StopQueuedConversationRun: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run) refuse('The run is no longer queued')
+
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'STOPPED')
+      run.failure = 'Its member stopped it while it was queued'
+      writeNote(conversation, variables, 'STOPPED')
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    ResumeConversationRun: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can keep conversations in it')
+      }
+
+      if (
+        variables.runNumber !== variables.resumedRunNumber + 1
+        || variables.nextMessagePosition !== variables.notePosition + 1
+      ) {
+        refuse('A run resumes the run right before it, from the newest message')
+      }
+
+      if (
+        memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+        !== variables.membershipCreatedAt
+      ) {
+        refuse('The membership changed since the resume read it')
+      }
+
+      const conversation = conversations.get(id(variables.conversationId))
+      const resumed = runs.get(id(variables.resumedRunId))
+
+      if (
+        !resumed
+        || !conversation
+        || resumed.conversationId !== conversation.id
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || resumed.number !== variables.resumedRunNumber
+        || resumed.anchorPosition !== variables.anchorPosition
+        || !['STOPPED', 'INTERRUPTED'].includes(resumed.status)
+      ) {
+        refuse('Only a stopped or interrupted run resumes')
+      }
+
+      if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
+        refuse('Somebody has at most 3 runs in flight in an organization')
+      }
+
+      if (
+        conversation.deletedAt !== null
+        || conversation.activeRunId !== null
+        || conversation.nextRunNumber !== variables.runNumber
+        || conversation.nextMessagePosition !== variables.nextMessagePosition
+      ) {
+        refuse('The conversation could not resume that run')
+      }
+
+      const note = messages.get(id(variables.noteId))
+
+      if (
+        !note
+        || note.conversationId !== conversation.id
+        || note.runId !== resumed.id
+        || note.kind !== 'NOTE'
+        || note.position !== variables.notePosition
+      ) {
+        refuse("The run's note is not the newest message")
+      }
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      messages.delete(note.id)
+      Object.assign(conversation, {
+        activeRunId: runId,
+        preview: variables.preview ?? null,
+        previewMessageId: variables.previewMessageId ? id(variables.previewMessageId) : null,
+        nextRunNumber: conversation.nextRunNumber + 1,
+        messageCount: conversation.messageCount - 1,
+        updatedAt: now(),
+      })
+      runs.set(runId, {
+        id: runId,
+        conversationId: conversation.id,
+        number: variables.runNumber,
+        trigger: 'RESUME',
+        status: 'QUEUED',
+        membershipCreatedAt: variables.membershipCreatedAt,
+        step: null,
+        anchorPosition: variables.anchorPosition,
+        stopRequestedAt: null,
+        leaseExpiresAt: inSeconds(20 * 60),
+        attempts: 0,
+        createdAt: now(),
+        startedAt: null,
+        endedAt: null,
+      })
+
+      return { conversation_updateMany: 1, conversationMessage_deleteMany: 1 }
+    },
+
+    RetryConversationRun: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can keep conversations in it')
+      }
+
+      if (variables.runNumber !== variables.retriedRunNumber + 1) refuse('A run retries the run right before it')
+
+      if (
+        memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+        !== variables.membershipCreatedAt
+      ) {
+        refuse('The membership changed since the retry read it')
+      }
+
+      const conversation = conversations.get(id(variables.conversationId))
+      const retried = runs.get(id(variables.retriedRunId))
+
+      if (
+        !retried
+        || !conversation
+        || retried.conversationId !== conversation.id
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || retried.number !== variables.retriedRunNumber
+        || retried.anchorPosition !== variables.anchorPosition
+        || !['STOPPED', 'FAILED', 'REFUSED', 'INTERRUPTED'].includes(retried.status)
+      ) {
+        refuse('Only a run that ended with a note is retried')
+      }
+
+      if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
+        refuse('Somebody has at most 3 runs in flight in an organization')
+      }
+
+      if (
+        conversation.deletedAt !== null
+        || conversation.activeRunId !== null
+        || conversation.nextRunNumber !== variables.runNumber
+        || (conversation.historyRevision ?? 0) !== variables.historyRevision
+      ) {
+        refuse('The conversation could not retry that run')
+      }
+
+      const drawn = drawnOnAnchor(conversation.id, variables.anchorPosition)
+
+      if (drawn.length !== variables.deletedCount) refuse("The runs' messages changed since the retry read them")
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      for (const message of drawn) messages.delete(message.id)
+
+      for (const entry of conversationEntries(conversation.id)) {
+        if (entry.position > variables.anchorPosition) entries.delete(entry.id)
+      }
+
+      Object.assign(conversation, {
+        activeRunId: runId,
+        preview: variables.preview ?? null,
+        previewMessageId: variables.previewMessageId ? id(variables.previewMessageId) : null,
+        unreadCount: 0,
+        isFull: false,
+        nextRunNumber: conversation.nextRunNumber + 1,
+        historyRevision: (conversation.historyRevision ?? 0) + 1,
+        messageCount: conversation.messageCount - variables.deletedCount,
+        updatedAt: now(),
+      })
+      runs.set(runId, {
+        id: runId,
+        conversationId: conversation.id,
+        number: variables.runNumber,
+        trigger: 'RETRY',
+        status: 'QUEUED',
+        membershipCreatedAt: variables.membershipCreatedAt,
+        step: null,
+        anchorPosition: variables.anchorPosition,
+        stopRequestedAt: null,
+        leaseExpiresAt: inSeconds(20 * 60),
+        attempts: 0,
+        createdAt: now(),
+        startedAt: null,
+        endedAt: null,
+      })
+
+      return { conversation_updateMany: 1 }
     },
 
     ClaimQueuedConversationRun: variables => {
@@ -901,7 +1274,7 @@ function createConversationDatabaseFake() {
 
       if (
         !entry
-        || entry.runId !== run.id
+        || entry.conversationId !== run.conversationId
         || entry.drawnBlocks !== variables.fromBlock
         || (entry.drawnPieces ?? 0) !== 0
       ) {
@@ -948,7 +1321,7 @@ function createConversationDatabaseFake() {
 
       if (
         !entry
-        || entry.runId !== run.id
+        || entry.conversationId !== run.conversationId
         || entry.drawnBlocks !== variables.block
         || (entry.drawnPieces ?? 0) !== variables.fromPiece
       ) {
@@ -991,7 +1364,7 @@ function createConversationDatabaseFake() {
 
       if (
         !entry
-        || entry.runId !== run.id
+        || entry.conversationId !== run.conversationId
         || entry.drawnBlocks !== variables.fromBlock
         || (entry.drawnPieces ?? 0) !== 0
       ) {
@@ -1045,8 +1418,10 @@ function createConversationDatabaseFake() {
     FinishConversationRunWithNote: variables => {
       const run = requireFencedRun(variables)
 
-      if (!['FAILED', 'STOPPED', 'REFUSED'].includes(variables.status)) {
-        refuse('A run ends with a note failed, stopped or refused')
+      const notes: Record<string, string[]> = { FAILED: ['FAILED', 'FULL'], STOPPED: ['STOPPED'], REFUSED: ['REFUSED'] }
+
+      if (!notes[variables.status]?.includes(variables.noteKind)) {
+        refuse('A run ends with its own note: failed or full, stopped, or refused')
       }
 
       const conversation = requireNoteConversation(variables)
@@ -1054,7 +1429,7 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, variables.status)
-      assignGiven(run, { usage: variables.usage })
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
       writeNote(conversation, variables, variables.noteKind)
       assignGiven(conversation, { isFull: variables.isFull })
 
@@ -1117,6 +1492,7 @@ function createConversationDatabaseFake() {
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
       end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
       writeNote(noteConversation, variables, 'INTERRUPTED')
 
       return { conversationRun_updateMany: 1 }
@@ -1151,7 +1527,7 @@ function createConversationDatabaseFake() {
     fake.beforeOperation = async () => {}
   }
 
-  return Object.assign(fake, { sdk, addMember, removeMember, restore, reset })
+  return Object.assign(fake, { sdk, addMember, removeMember, restore, markRead, reset })
 }
 
 export type ConversationDatabaseFake = ReturnType<typeof createConversationDatabaseFake>

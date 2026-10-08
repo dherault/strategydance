@@ -125,6 +125,20 @@ export const IS_CONVERSATION_AGENT_PLACEHOLDER = !IS_PRODUCTION && process.env.C
 export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60
 
 /*
+  A run's own limits, beside the entries it draws: at most 25 requests to Claude, and none started
+  once 10 minutes have passed since it was first claimed. A request already streaming then has until
+  14 minutes, when its stream is cut, so the run ends with its note within the task's 15-minute
+  delivery
+*/
+export const CONVERSATION_RUN_MAX_REQUESTS = 25
+export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
+export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
+
+// How often a worker reads whether its run's member asked to stop it while a request streams. It
+// reads it before each request too
+export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
+
+/*
   How long after a run was queued a route that finds its task gone queues it again, rather than
   finalizing the run as interrupted: as long as a queued run's first lease. A task that could not be
   queued, or was lost, is queued again while the member still waits on its page, which asks every

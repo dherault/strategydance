@@ -194,6 +194,23 @@ const conversationMessages = defineMessages({
     defaultMessage: 'This conversation is full. Start a new one to go on.',
     description: 'Note in a conversation that holds as much as it can, so it takes no more messages.',
   },
+  noteResume: {
+    id: 'conversation.note.resume',
+    defaultMessage: 'Resume',
+    description:
+      'Button under the note that ends a conversation when the reader stopped the AI or its answer was interrupted. It lets the AI carry the same answer on.',
+  },
+  noteRetry: {
+    id: 'conversation.note.retry',
+    defaultMessage: 'Retry',
+    description:
+      "Button under the note that ends a conversation when the AI's answer stopped, failed or was refused. It removes that answer and has the AI answer the reader's last message again.",
+  },
+  noteActionError: {
+    id: 'conversation.note.actionError',
+    defaultMessage: 'That did not go through. Check your connection and try again.',
+    description: "Shown under the Resume and Retry buttons when the server did not take the reader's click.",
+  },
 
   /* ---
     TOOLS: what the AI is doing, then what it did, for each thing it can use
@@ -555,6 +572,11 @@ const conversationMessages = defineMessages({
     description:
       'Accessible name and tooltip of the small number after a sentence of a reply that cites a web page. {number} is the source in the list under the reply, {title} the page.',
   },
+  stopping: {
+    id: 'conversation.stopping',
+    defaultMessage: 'Stopping',
+    description: 'What the AI is shown doing once the reader asked it to stop answering, until it has.',
+  },
   thinking: {
     id: 'conversation.thinking',
     defaultMessage: 'Thinking',
@@ -597,6 +619,18 @@ const conversationMessages = defineMessages({
     id: 'conversation.composer.send',
     defaultMessage: 'Send',
     description: 'Accessible name of the button, an arrow, that sends what the reader wrote to the AI.',
+  },
+  composerStop: {
+    id: 'conversation.composer.stop',
+    defaultMessage: 'Stop response',
+    description:
+      'Accessible name of the button, a square, that takes the place of Send while the AI answers, and stops the answer.',
+  },
+  composerStopError: {
+    id: 'conversation.composer.stopError',
+    defaultMessage: 'The response could not be stopped. Check your connection and try again.',
+    description:
+      'Shown above the message field when the reader asked the AI to stop answering and the server did not get it.',
   },
   composerError: {
     id: 'conversation.composer.error',

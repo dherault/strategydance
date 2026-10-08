@@ -16,17 +16,24 @@ export type ConversationTranscriptRecord = {
   content: string
   contextHash: string | null
   runId: string
+  // How many of its blocks the thread has drawn, and the piece within the next
+  drawnBlocks: number
+  drawnPieces: number
 }
 
 /*
-  A conversation's whole transcript, in order, read a page at a time, which a worker reads before
-  each request to Claude, since a request carries all of it
+  A conversation's transcript, in order, read a page at a time: whole, as a worker reads it before
+  each request to Claude, since a request carries all of it, or after a position, as it reads the
+  turn it draws from its run's anchor
 */
-async function readConversationTranscript({
-  organizationId,
-  userId,
-  conversationId,
-}: Pick<ConversationRunReference, 'organizationId' | 'userId' | 'conversationId'>) {
+async function readConversationTranscript(
+  {
+    organizationId,
+    userId,
+    conversationId,
+  }: Pick<ConversationRunReference, 'organizationId' | 'userId' | 'conversationId'>,
+  { afterPosition = -1 }: { afterPosition?: number } = {},
+) {
   const entries: ConversationTranscriptRecord[] = []
 
   for (;;) {
@@ -34,7 +41,7 @@ async function readConversationTranscript({
       organizationId,
       userId,
       conversationId,
-      afterPosition: entries.at(-1)?.position ?? -1,
+      afterPosition: entries.at(-1)?.position ?? afterPosition,
     })
 
     for (const entry of data.conversationTranscriptEntries) {
@@ -45,6 +52,8 @@ async function readConversationTranscript({
         content: entry.content,
         contextHash: entry.contextHash ?? null,
         runId: entry.run.id,
+        drawnBlocks: entry.drawnBlocks,
+        drawnPieces: entry.drawnPieces,
       })
     }
 

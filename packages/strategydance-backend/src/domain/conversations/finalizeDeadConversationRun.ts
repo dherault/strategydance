@@ -73,6 +73,7 @@ async function finalizeDeadConversationRun(
         noteId: deriveConversationMessageId(reference.runId, 'note'),
         position: data.conversation?.nextMessagePosition ?? 0,
         preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
+        failure: describeDeath(run.status),
       })
 
       return 'ended'
@@ -82,6 +83,15 @@ async function finalizeDeadConversationRun(
       await wait(tries * retryDelayMs)
     }
   }
+}
+
+// Why a run past its lease died, for the logs
+function describeDeath(status: ConversationRunStatus) {
+  if (status === ConversationRunStatus.RUNNING) return 'Its worker stopped renewing its lease'
+
+  return ARE_CONVERSATION_RUNS_IN_PROCESS
+    ? 'No worker claimed it before its lease passed'
+    : 'Its task was gone from the queue, and the run too old to queue again'
 }
 
 /*

@@ -134,3 +134,17 @@ export type ConversationCitation = {
 export type SendConversationMessageData = {
   runId: string
 }
+
+// What resuming a stopped or interrupted run answers with: the run that carries it on, or the one a
+// resume sent again started the first time
+export type ResumeConversationRunData = {
+  runId: string
+}
+
+// What retrying a run that ended with a note answers with: the run that answers its member's entry
+// again, or the one a retry sent again started the first time, and the runs whose messages went,
+// which the page drops from every page of the thread it holds
+export type RetryConversationRunData = {
+  runId: string
+  removedRunIds: string[]
+}

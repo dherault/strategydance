@@ -481,7 +481,20 @@ A conversation is kept twice, once for Claude and once for the page, and
   with its note. A worker taking over after a crash draws from the entry's cursor, `drawnBlocks`,
   and derives the same ids, so drawing a message twice is a conflict rather than a copy. The
   member's message keeps the browser's id, which makes a retried send store it once, and names the
-  run it started, so a Retry deletes a run's messages but that one
+  run it started, so a Retry deletes a run's messages but that one. Drawing finds an entry by its
+  id and cursor, never by the run that stored it, so a resumed run draws what the run it carries on
+  left undrawn, under its own name
+- A member stops a run through its `stopRequestedAt`, which its worker reads before each request and
+  every two seconds while one streams (`createConversationRequestSignal`); a turn already answered
+  is still stored and drawn, since it was paid for. A queued run is stopped by the route at once.
+  Resume deletes the stopped or interrupted note, the thread's newest message, and moves no
+  `historyRevision`, so it refuses once anything follows the note; Retry cuts the transcript after
+  the run's anchor and deletes the messages of every run on that anchor, so it moves
+  `historyRevision`, and every tab reads its pages again. Both start a run on the same anchor, and a
+  route that receives either again answers with the run numbered right after the one it names
+- Every run that ends with a note says why in its `failure`, for the logs, and
+  `FinishConversationRunWithNote` pairs each status with its own note: failed with failed or full,
+  stopped with stopped, refused with refused
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route

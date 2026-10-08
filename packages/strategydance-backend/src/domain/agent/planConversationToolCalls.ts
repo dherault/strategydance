@@ -27,15 +27,20 @@ type Options = {
 
 /*
   What becomes of each of a turn's calls, from the transcript alone, so a worker taking over after a
-  crash plans the same. A turn runs at most 10 calls, and the turns answering one member's entry
-  50, questions included: a call past either is drawn as failed and answered as not run. A question
-  past its bounds is never drawn, and a call to a tool nobody runs is drawn as failed
+  crash plans the same. A question past its bounds is never drawn, whatever else holds. A turn runs
+  at most 10 calls, and the turns answering one member's entry 50, questions included: a call past
+  either is drawn as failed and answered as not run. A call to a tool nobody runs is drawn as failed
 */
 function planConversationToolCalls(
   calls: ConversationToolCall[],
   { callsBefore, runnerNames }: Options,
 ): ConversationToolCallPlan[] {
   return calls.map((call, index) => {
+    // Checked before the limits, so a question past its bounds never reaches the thread
+    const checked = call.name === ASK_USER_TOOL_NAME ? checkConversationQuestion(call.input) : null
+
+    if (checked?.outcome === 'invalid') return { kind: 'refused', call, reason: checked.reason, isDrawn: false }
+
     if (index >= MAX_TOOL_CALLS_PER_TURN) {
       return refuse(
         call,
@@ -50,13 +55,7 @@ function planConversationToolCalls(
       )
     }
 
-    if (call.name === ASK_USER_TOOL_NAME) {
-      const checked = checkConversationQuestion(call.input)
-
-      return checked.outcome === 'valid'
-        ? { kind: 'question', call, question: checked.question }
-        : { kind: 'refused', call, reason: checked.reason, isDrawn: false }
-    }
+    if (checked?.outcome === 'valid') return { kind: 'question', call, question: checked.question }
 
     if (!runnerNames.includes(call.name)) return refuse(call, `Not run: there is no tool called ${call.name}.`)
 

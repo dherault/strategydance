@@ -32,6 +32,15 @@ describe('planConversationToolCalls', () => {
     expect(plan).toMatchObject({ kind: 'refused', isDrawn: false })
   })
 
+  test('draws nothing of a question past its bounds even past a limit, answering why it was not asked', () => {
+    const [plan] = planConversationToolCalls([call('ask_user', 0, { ...QUESTION, prompt: 'Which\nchannel?' })], {
+      callsBefore: MAX_TOOL_CALLS_PER_RUN,
+      runnerNames: [],
+    })
+
+    expect(plan).toMatchObject({ kind: 'refused', isDrawn: false, reason: expect.stringContaining('not asked') })
+  })
+
   test(`runs ${MAX_TOOL_CALLS_PER_TURN} calls a turn, and answers the rest as not run`, () => {
     const calls = Array.from({ length: MAX_TOOL_CALLS_PER_TURN + 2 }, (_, index) => call('read_log', index))
     const plans = planConversationToolCalls(calls, { callsBefore: 0, runnerNames: ['read_log'] })

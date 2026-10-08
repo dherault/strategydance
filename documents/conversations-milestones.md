@@ -447,6 +447,37 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   with three runs in flight answering, the continuation starting once one ends.
 - Verify: ask the agent to help choose a price, answer with an option and your own words, then skip
   one by typing.
+- Built with these settled, on 2026-10-08:
+  - **A stop among a turn's calls leaves a question waiting**, as David chose: the calls running
+    finish, the rest never start, and a run whose turn drew a question ends `WAITING` rather than
+    `STOPPED`, since the question is on the member's screen and the turn was paid for; the calls it
+    kept from running are answered as stopped. The run's ten minutes do the same.
+  - **What becomes of each call is planned from the transcript alone** (`planConversationToolCalls`):
+    a question past its bounds draws nothing and is answered with why, and a call past the ten or
+    the fifty, or to a tool nobody runs, is drawn as failed with the sentence it is answered with.
+    The fifty count since the run's anchor, so a resumed run shares its budget.
+  - **One builder answers a turn's calls** for the worker, a continuation and a send
+    (`buildConversationToolResults`), in the turn's order, which corrects The transcript's Send.
+  - **Results are kept on the run** in `pendingToolResults`, written with each call's result and
+    copied onto a resumed run, and the finalizers cancel running calls conversation-wide.
+  - **"Waiting" is the conversation's**: the answer's lock matches `isAwaitingAnswer`, and the page
+    answers a question while the conversation waits, so a question drawn by a run that died is
+    answered once its resume waits. The answer is counted against the other questions still
+    waiting, since a mutation's read does not see its own write.
+  - **The answer route** answers 202 with the continuation's run, or with none while another
+    question waits or the member has three runs going, when the page reconciles a run waiting on
+    questions all answered five seconds in and every two minutes after.
+  - **Found with the real model**: the count endpoint refuses a tool result without its call, so
+    every request after a tool turn failed its measurement; such a request is counted whole now, and
+    the tests' scripted client refuses such a count as the API does.
+  - Verified in the browser at 1280 and 390 wide, with the real model: a request for help with a
+    price brought a single-choice question, answered in own words, the sidebar badge, the list's
+    "Needs your answer" and its "Question: …" preview showing while it waited; a several-choice
+    question answered with an option and own words; one skipped by typing, drawn as skipped, and the
+    badge cleared. The continuation that first died on the count was resumed into searches and a
+    reply. `bun run check:conversation-runs` passes against the emulators, the two races included.
+    Not seen with the real model: a stop among calls, since `ask_user` is the only client tool yet,
+    which the scripted tests cover.
 
 ### M12: Searching conversations
 

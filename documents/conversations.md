@@ -16,8 +16,9 @@ passing: what it found is written where it applies. Revised on 2026-10-07, befor
 chose: knowledge reaches the agent through the Knowledge module, an MCP server of Strategy Dance's
 own that external agents can add too (see Modules), which took M14 to M18 and moved the milestones
 after them by four. Revised on 2026-10-08, in M10: client tool calls, and stopping, resuming and
-answering them, moved to M11, which builds the first client tool, as David chose. When a decision
-changes, change it here first.
+answering them, moved to M11, which builds the first client tool, as David chose. Revised on
+2026-10-08, in M11, with what building the loop and questions settled, each where it applies. When a
+decision changes, change it here first.
 
 ## The design
 
@@ -620,6 +621,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     message turns `SUCCEEDED` with it; with none, the call is answered as an interrupted integration
     call is, since a worker cut off during it may still land it. A cancelled call that never started
     is answered as one the member stopped, as before.
+  - **Until M15 and M20 give the worker tools of its own**, every call that runs is treated as a read:
+    one that started and has no result runs again. Every write that ends a run cancels the calls
+    still `RUNNING` in its conversation, not only those its run drew, since only the run in flight
+    has any and a resumed run runs calls the run it carries on drew (M11).
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note. The 10 minutes count from the run's first claim, so a worker taking it over has what
@@ -649,7 +654,9 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   - The cap bounds storage and the history a reader pages through. What fills a conversation in
     practice is its context, which the worker measures before each request, from M9: a request past
     the limits Attachments gives is not sent, the conversation is marked `isFull`, and the run ends
-    with the same `FULL` note.
+    with the same `FULL` note. A request after a turn that called tools is counted whole, since what
+    follows the turn opens with the calls' results, which the count endpoint refuses without the
+    calls they answer (M11, found with the real model).
 - **Concurrency**, bounded rather than metered: at most three runs in flight per member in each
   organization (`MAX_ACTIVE_RUNS_PER_MEMBER`, refused with `ERROR_CODE_CONVERSATION_BUSY`), and the
   queue dispatches at most 50 tasks at once. A run-start mutation locks the member's membership row
@@ -673,7 +680,25 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     user entry with every `tool_result` in order, and go round again. A turn runs at most ten calls
     and a run fifty (`MAX_TOOL_CALLS_PER_TURN`, `MAX_TOOL_CALLS_PER_RUN`); a call past either is not
     run, and its result says so. A turn with `ask_user` runs its other tools, keeps their results in
-    `pendingToolResults`, and ends the run `WAITING`.
+    `pendingToolResults`, and ends the run `WAITING`. As M11 built it:
+    - What becomes of each call is planned from the transcript alone, so a worker taking over plans
+      the same (`planConversationToolCalls`): an `ask_user` within its bounds is drawn as a question,
+      and one past them is drawn as nothing; a call to a tool the worker runs is drawn `RUNNING`; a
+      call past the ten or the fifty, or to a tool nobody runs, is drawn as a finished `FAILED` call
+      whose output is the sentence its result sends. The fifty count every call since the run's
+      anchor, questions included, so a resumed run shares the budget of the run it carries on.
+    - Each call that runs starts and finishes in fenced writes, and the finishing one keeps its
+      result in the run's `pendingToolResults`, beside the results finished before it, built inside
+      the lease's write so four reads finishing together lose none. A worker taking over runs again
+      only what has no result there; the write that stores the results entry clears it, and Resume
+      copies it onto the run that carries the turn on. A call has 60 seconds, and whatever it answers
+      later changes nothing.
+    - A stop, read before each group of calls, lets the calls running finish and starts no other.
+      Without a question the run then ends `STOPPED` with its note; with one, which is on the
+      member's screen already, it ends `WAITING`, the calls it kept from running answered as stopped
+      once the turn is consumed (David, 2026-10-08, over Stop's `STOPPED`, since the turn was paid
+      for and ends as it does). The run's ten minutes stop the calls the same way, failing a run
+      without a question and leaving one with a question waiting, which sends nothing.
   - `pause_turn` (web search's server-side loop paused): send the turn back as it is, up to five
     times, keeping the parts in memory.
   - `max_tokens`: run nothing, fail with a note.
@@ -767,18 +792,39 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   that part's continuation rather than ending the run, and the stored parts count toward its five
   pauses. The parts it had not stored are asked for, and paid for, again (M9).
 - **Send**: the new `USER` entry carries a result for every unanswered `tool_use` of the last turn
-  first, each built from its question's stored state: a question already answered sends its answer,
-  one still waiting sends "The member skipped this question." and is marked skipped; then the
-  results in `pendingToolResults`, and "The member stopped the response before this ran." for a call
-  a stop cancelled; a module write cancelled after it had started is answered from its key, as
-  Recovery and side effects says; then the member's text and files.
+  first, in the turn's order, as rule 3 asks, each by what it came to: a result the run kept in
+  `pendingToolResults`; a question already answered by its answer, and one still waiting by "The
+  member skipped this question.", which marks it skipped; a call refused when it was drawn by the
+  sentence its output shows; "The member stopped the response before this ran." for a call a stop
+  kept from starting, and "This call was interrupted and may have run." for one that started and
+  has no result; a module write cancelled after it had started is answered from its key, as
+  Recovery and side effects says; then the member's text and files. One builder makes this entry
+  for the worker, a continuation and a send alike (`buildConversationToolResults`, M11), and the
+  send skips the questions it read as waiting by their ids, so an answer recorded meanwhile refuses
+  it and it reads again.
 - **Answer** (`POST …/answers`): records the answer on its question. Once every question of the
   waiting run has one, a `USER` entry with all the waiting turn's results (the answers as JSON, and
   `pendingToolResults`) is stored and a run starts. Answers are serialized on the conversation: each
   one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
-  mutation. An approval (M27) is answered the same way.
+  mutation. An approval (M27) is answered the same way. As M11 built it:
+  - The answer is checked against its question before anything is recorded, by strategydance-core's
+    `checkConversationAnswer`, which the page uses too: options of that question, each once, one at
+    most for a single choice, own words on one line of at most 500 characters without a control
+    character, something chosen or written, and for a single choice exactly one of the two.
+  - What is left is counted as the other questions still waiting, read after the lock, the one
+    answered left out by its id: a step of a Data Connect mutation does not see what the same
+    mutation wrote, so it would still read as waiting. An answer another request recorded first is
+    seen, which the emulator check of two last answers at once confirms.
+  - "Waiting" is the conversation's, never the question's run's: the lock matches
+    `isAwaitingAnswer`, and only the turn the transcript ends on holds questions without an answer,
+    so a question drawn by a run that died is answered once the resume that carries it on waits.
+  - The route answers 202 with the run that carries the conversation on, or with none while another
+    question waits or the member has three runs going, when the page's reconcile starts it later;
+    409 for a question skipped or answered otherwise, the same answer sent again answering the same.
+    The continuation is never refused for a full conversation: its run ends at once with the full
+    note.
 - **The continuation survives a crash between the two.** Starting it is idempotent (see Consuming a
   waiting turn) and reachable from three places: the answer route right after the answer, the same
   answer sent again (it finds the answer recorded, counts none left and starts it), and the reconcile

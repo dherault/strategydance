@@ -159,6 +159,14 @@ function createConversationThread({
     return kind !== ConversationMessageKind.MEMBER_TEXT && run !== undefined && droppedRuns.has(run.id)
   }
 
+  // The thread without what this page's Retry deleted, which a tail or a page read before it landed
+  // still carries
+  function withoutDropped(next: ConversationThreadState) {
+    if (!droppedRuns.size || !next.entries.some(isDropped)) return next
+
+    return { ...next, entries: next.entries.filter(entry => !isDropped(entry)) }
+  }
+
   function schedule() {
     if (!listeners.size) return
 
@@ -195,7 +203,7 @@ function createConversationThread({
 
       const previous = state
 
-      state = mergeConversationPage(state, { before, ...page }, pageLength)
+      state = withoutDropped(mergeConversationPage(state, { before, ...page }, pageLength))
       keepBodies(page.messages.map(toBody))
 
       if (state !== previous && isForReader) isOlderWanted = false
@@ -269,11 +277,7 @@ function createConversationThread({
 
       if (next.historyRevision > droppedRevision) droppedRuns = new Set()
 
-      state = mergeConversationTail(state, next, tailLength)
-
-      if (droppedRuns.size && state.entries.some(isDropped)) {
-        state = { ...state, entries: state.entries.filter(entry => !isDropped(entry)) }
-      }
+      state = withoutDropped(mergeConversationTail(state, next, tailLength))
 
       isGone = false
 
@@ -287,18 +291,19 @@ function createConversationThread({
     /*
       Drops the messages some runs drew, but the member's message that started one, from the tail
       and every page the thread holds, as soon as this page's Retry has deleted them, rather than
-      once the tail of the next history has come and the pages are read again. A tail of the history
-      they were deleted from, pushed before the Retry landed, brings none of them back
+      once the tail of the next history has come and the pages are read again. A tail or a page of
+      the history they were deleted from, read before the Retry landed, brings none of them back
     */
     dropRuns: (runIds: string[]) => {
       droppedRuns = new Set([...droppedRuns, ...runIds])
       droppedRevision = Math.max(droppedRevision, state.revision)
 
-      const entries = state.entries.filter(entry => !isDropped(entry))
+      const previous = state
 
-      if (entries.length === state.entries.length) return
+      state = withoutDropped(state)
 
-      state = { ...state, entries }
+      if (state === previous) return
+
       keepBodies()
       emit()
     },

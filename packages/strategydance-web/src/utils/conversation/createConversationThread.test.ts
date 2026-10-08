@@ -290,6 +290,44 @@ describe('createConversationThread', () => {
     expect(thread.getSnapshot().entries).toBe(entries)
   })
 
+  it("keeps the runs this page's Retry dropped out of a page read before the Retry landed", async () => {
+    const server = createConversationTestServer({ pageLength: PAGE_LENGTH })
+
+    server.insert(4, { runId: 'first' })
+    server.insert(6, { runId: 'retried' })
+
+    let releasePage = () => {}
+    const thread = createConversationThread({
+      tail: server.tail(TAIL_LENGTH),
+      // The page is read now, and answers once released, from the history it was read in
+      readPage: async before => {
+        const page = await server.readPage(before)
+
+        await new Promise<void>(resolve => {
+          releasePage = resolve
+        })
+
+        return page
+      },
+      readBodies: ids => server.readBodies(ids),
+      tailLength: TAIL_LENGTH,
+      pageLength: PAGE_LENGTH,
+      bodiesLength: BODIES_LENGTH,
+    })
+
+    thread.subscribe(() => {})
+    thread.loadOlder()
+    await settle()
+
+    thread.dropRuns(['retried'])
+    releasePage()
+    await settle()
+
+    // The page below the tail held 2 to 4, the last the retried run's
+    expect(thread.getSnapshot().entries.some(({ run }) => run?.id === 'retried')).toBe(false)
+    expect(thread.getSnapshot().entries.map(({ position }) => position)).toEqual([2, 3])
+  })
+
   it('drops a run deleted wholly below the tail', async () => {
     const server = createConversationTestServer({ pageLength: PAGE_LENGTH })
 

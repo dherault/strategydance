@@ -46,6 +46,15 @@ function settledUsage(turnPosition: number, configTokens = 1000) {
   )
 }
 
+const call: BetaMessageParam = {
+  role: 'assistant',
+  content: [{ type: 'tool_use', id: 'toolu_1', name: 'read_log', input: {} }],
+}
+const results: BetaMessageParam = {
+  role: 'user',
+  content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: '[]' }],
+}
+
 describe('measureConversationRequest', () => {
   test('counts a conversation’s first request whole, and the system prompt’s and tools’ share once', async () => {
     const scripted = createScriptedClaudeClient({ count: createCounter() })
@@ -59,6 +68,24 @@ describe('measureConversationRequest', () => {
 
     expect(measured).toEqual({ inputTokens: 1200, configTokens: 1000 })
     expect(scripted.counts).toHaveLength(3)
+  })
+
+  test('counts whole a request after a turn that called tools, whose results the count refuses alone', async () => {
+    const scripted = createScriptedClaudeClient({ count: createCounter() })
+    const measured = await measureConversationRequest({
+      client: scripted.client,
+      messages: [member, context, call, results],
+      entries: [
+        { position: 0, runId: RUN_ID },
+        { position: 1, runId: RUN_ID },
+        { position: 2, runId: RUN_ID },
+        { position: 3, runId: RUN_ID },
+      ],
+      runs: [{ id: RUN_ID, usage: settledUsage(2) }],
+      pausedRequest: null,
+    })
+
+    expect(measured).toEqual({ inputTokens: 1400, configTokens: 1000 })
   })
 
   test('starts from the latest stored reply’s request, and counts only what follows it', async () => {

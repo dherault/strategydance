@@ -54,7 +54,9 @@ async function measureConversationRequest({
   const start = findStartingRequest(entries, runs)
   const following = start ? messages.slice(start.index + 1) : []
 
-  if (!start || following[0]?.role !== 'user') {
+  // What follows a turn that called tools opens with their results, which the count endpoint
+  // refuses without the calls they answer, so such a request is counted whole
+  if (!start || following[0]?.role !== 'user' || opensWithResults(following[0])) {
     const inputTokens = await client.countTokens({
       model: CONVERSATION_MODEL,
       system: CONVERSATION_SYSTEM_PROMPT,
@@ -89,6 +91,10 @@ function findStartingRequest(
   }
 
   return null
+}
+
+function opensWithResults(message: BetaMessageParam) {
+  return Array.isArray(message.content) && message.content.some(block => block.type === 'tool_result')
 }
 
 function sumRequest(request: ConversationRequestUsage) {

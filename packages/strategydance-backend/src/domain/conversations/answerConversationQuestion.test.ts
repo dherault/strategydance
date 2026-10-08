@@ -115,6 +115,27 @@ describe('answerConversationQuestion', () => {
     expect(enqueueRun).toHaveBeenCalledTimes(1)
   })
 
+  test('carries the conversation on into Claude’s reply to the answers', async () => {
+    const reference = await startWaiting(toolUse('toolu_q', 'ask_user', PRICE))
+    const result = await answerQuestion(reference, 'toolu_q', ['€29'])
+
+    if (result.outcome !== 'answered' || !result.runId) throw new Error('Nothing carried on')
+
+    const client = createClient()
+
+    await runConversation({ ...reference, runId: result.runId }, { client: client.client, retryDelayMs: 1 })
+
+    expect(readRun({ ...reference, runId: result.runId })?.status).toBe('COMPLETED')
+    expect(readEntries(reference).map(({ role }) => role)).toEqual([
+      'USER',
+      'SYSTEM',
+      'ASSISTANT',
+      'USER',
+      'SYSTEM',
+      'ASSISTANT',
+    ])
+  })
+
   test('refuses an answer its question does not take before anything is recorded', async () => {
     const reference = await startWaiting(toolUse('toolu_q', 'ask_user', PRICE))
 

@@ -71,6 +71,23 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
     async countTokens(body) {
       counts.push(body)
 
+      // As the count endpoint does, a result is refused without the call it answers
+      for (const [index, message] of body.messages.entries()) {
+        const previous = body.messages[index - 1]
+        const calls = new Set(
+          previous?.role === 'assistant' && Array.isArray(previous.content)
+            ? previous.content.flatMap(block => (block.type === 'tool_use' ? [block.id] : []))
+            : [],
+        )
+
+        if (
+          Array.isArray(message.content)
+          && message.content.some(block => block.type === 'tool_result' && !calls.has(block.tool_use_id))
+        ) {
+          throw new Error(`messages.${index}: a tool_result has no corresponding tool_use in the previous message`)
+        }
+      }
+
       return count(body)
     },
   }

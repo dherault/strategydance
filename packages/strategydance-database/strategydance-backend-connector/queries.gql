@@ -395,6 +395,7 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     activeRunId
     nextMessagePosition
     messageCount
+    previewMessageId
   }
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt

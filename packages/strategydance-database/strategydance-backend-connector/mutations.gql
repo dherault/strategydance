@@ -1940,9 +1940,10 @@ mutation StoreConversationToolResults(
 }
 
 # Ends a run on the questions its turn asked: `WAITING`, with `$usage` settling what its requests
-# used, until an answer or a send consumes its turn. A call a stop kept from starting is cancelled.
-# The conversation lets go of the run where it still names it, and waits for the member's answer,
-# which the sidebar's badge and the list read. Fenced as `RenewConversationRunLease` is
+# used, until an answer or a send consumes its turn. A call a stop kept from starting is cancelled,
+# and `$preview`, given when the preview shows that call, says so. The conversation lets go of the
+# run where it still names it, and waits for the member's answer, which the sidebar's badge and the
+# list read. Fenced as `RenewConversationRunLease` is
 mutation FinishConversationRunWaiting(
   $organizationId: UUID!
   $userId: String!
@@ -1951,6 +1952,7 @@ mutation FinishConversationRunWaiting(
   $attempts: Int!
   $membershipCreatedAt: Timestamp!
   $usage: Any
+  $preview: Any
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -1977,7 +1979,7 @@ mutation FinishConversationRunWaiting(
   )
   conversation_updateMany(
     where: { id: { eq: $conversationId }, activeRunId: { eq: $runId } }
-    data: { activeRunId: null, isAwaitingAnswer: true, updatedAt_expr: "request.time" }
+    data: { activeRunId: null, isAwaitingAnswer: true, preview: $preview, updatedAt_expr: "request.time" }
   )
 }
 

@@ -15,11 +15,21 @@ describe('toToolOutput', () => {
     expect(toToolOutput({ members: [{ name: 'Ada' }] })).toBe('{"members":[{"name":"Ada"}]}')
   })
 
-  test('cuts a longer one, with a note, never inside a character', () => {
-    const output = toToolOutput(`${'a'.repeat(MAX_TOOL_RESULT_LENGTH - 2)}🎉🎉`)
+  test('cuts a longer one into JSON still, within the bound, with a note, never inside a character', () => {
+    const output = toToolOutput(`${'a'.repeat(MAX_TOOL_RESULT_LENGTH)}🎉🎉`)
+    const parsed = JSON.parse(output) as { note: string; text: string }
 
-    expect(output.startsWith(`"${'a'.repeat(MAX_TOOL_RESULT_LENGTH - 2)}\n[Cut at`)).toBe(true)
-    expect(output).toContain(`[Cut at ${MAX_TOOL_RESULT_LENGTH} characters of`)
+    expect(output.length).toBeLessThanOrEqual(MAX_TOOL_RESULT_LENGTH)
+    expect(parsed.note).toContain('cut')
+    expect(parsed.text.startsWith('"aaa')).toBe(true)
+    expect(parsed.text).not.toMatch(/[\uD800-\uDBFF]$/)
+  })
+
+  test('keeps a cut within the bound when escaping its text makes it longer', () => {
+    const output = toToolOutput({ quotes: '"'.repeat(MAX_TOOL_RESULT_LENGTH) })
+
+    expect(output.length).toBeLessThanOrEqual(MAX_TOOL_RESULT_LENGTH)
+    expect(() => JSON.parse(output)).not.toThrow()
   })
 })
 

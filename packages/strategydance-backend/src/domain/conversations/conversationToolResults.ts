@@ -36,19 +36,27 @@ export function toAnswerResult(toolUseId: string, answer: ConversationAnswer) {
 }
 
 /*
-  A call's output as JSON text, cut to `MAX_TOOL_RESULT_LENGTH` characters with a note saying so,
-  between two code points, so a cut never leaves half a character
+  A call's output as JSON text, within `MAX_TOOL_RESULT_LENGTH` characters. A longer one is cut,
+  and still JSON: the start of its text, cut between two code points so no character is split, with
+  a note saying so, as much of it as fits once escaped
 */
 export function toToolOutput(output: unknown) {
   const text = JSON.stringify(output ?? null)
 
   if (text.length <= MAX_TOOL_RESULT_LENGTH) return text
 
+  const note = `The output was cut to fit ${MAX_TOOL_RESULT_LENGTH} characters, of its ${text.length}`
   let end = MAX_TOOL_RESULT_LENGTH
 
-  if (/[\uD800-\uDBFF]/.test(text.charAt(end - 1))) end--
+  // Each character left out takes one at least from what escaping it adds, so this ends
+  for (;;) {
+    const kept = /[\uD800-\uDBFF]/.test(text.charAt(end - 1)) ? end - 1 : end
+    const cut = JSON.stringify({ note, text: text.slice(0, kept) })
 
-  return `${text.slice(0, end)}\n[Cut at ${MAX_TOOL_RESULT_LENGTH} characters of ${text.length}]`
+    if (cut.length <= MAX_TOOL_RESULT_LENGTH) return cut
+
+    end = Math.max(0, kept - (cut.length - MAX_TOOL_RESULT_LENGTH))
+  }
 }
 
 // What the thread shows of a call that failed, its output: the sentence Claude was sent, as JSON

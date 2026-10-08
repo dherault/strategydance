@@ -38,6 +38,7 @@ import createConversationRunLease, { type ConversationRunLease } from '~domain/c
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
 import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
+import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import requestConversationTurn, {
   type ConversationRunLimits,
   type ConversationTurnOutcome,
@@ -80,7 +81,9 @@ type ConversationRunContext = GetConversationRunContextData
   one step at a time, each read afresh, so a worker taking over after a crash carries on where the
   last one stopped:
 
-  - the run's reply not wholly drawn yet: the next message of it
+  - the run's reply not wholly drawn yet: the next message of it. The reply is the turn after the
+    member's entry the run answers, its anchor, which a resumed run shares with the run it resumes,
+    so it draws and carries on what that run left
   - a reply `pause_turn` paused, which a crash left stored part by part: its continuation
   - a reply wholly drawn: the run is complete, since no tool of the member's runs yet
   - the member's message: Claude's turn, stored part by part as it answered, unless the run has
@@ -274,10 +277,15 @@ async function takeStep({
   if (entry.role === ConversationTranscriptRole.SYSTEM) throw new Error('A transcript never ends on a context message')
 
   if (entry.role === ConversationTranscriptRole.ASSISTANT) {
+    // The turn answering the run's anchor: its own parts, and those of the run it resumed, which it
+    // carries on
+    const turn = (
+      await readConversationTranscript(toReference(fence), { afterPosition: run?.anchorPosition ?? -1 })
+    ).filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
     const drawn = await drawConversationTurn({
       fence,
       lease,
-      entries: context.runEntries.map(part => ({
+      entries: turn.map(part => ({
         id: part.id,
         blocks: parseTranscriptContent(part.content),
         drawnBlocks: part.drawnBlocks,
@@ -288,7 +296,13 @@ async function takeStep({
 
     if (drawn === 'drawn') return 'next'
 
-    const pausedRequest = findPausedRequest(context, usage)
+    // The ledgers that say how each of the turn's parts ended: this run's, and that of the run
+    // that stored the last part when another did
+    const ledgers = new Map([[fence.runId, usage]])
+
+    if (entry.run.id !== fence.runId) ledgers.set(entry.run.id, parseConversationRunUsage(entry.run.usage))
+
+    const pausedRequest = findPausedRequest(entry, ledgers)
 
     if (!pausedRequest) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
     if (run?.stopRequestedAt) return stop()
@@ -301,7 +315,7 @@ async function takeStep({
       runContext: run?.context ?? null,
       usage,
       pausedRequest,
-      storedPauses: countStoredPauses(context, usage),
+      storedPauses: countStoredPauses(turn, ledgers),
       startedAt: run?.startedAt ?? new Date().toISOString(),
       limits,
       stopCheckIntervalMs,
@@ -382,28 +396,27 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
 }
 
-// The request whose part the transcript ends on, when `pause_turn` paused it: a crash came between
-// storing it and the turn's next part
-function findPausedRequest(context: ConversationRunContext, usage: ConversationRunUsage) {
-  const [entry] = context.conversationTranscriptEntries
-  const lastPart = context.runEntries.at(-1)
-
-  if (!entry || lastPart?.id !== entry.id) return null
-
+// The request whose part the transcript ends on, as the ledger of the run that stored it says,
+// when `pause_turn` paused it: a crash came between storing it and the turn's next part
+function findPausedRequest(
+  entry: { position: number; run: { id: string } },
+  ledgers: Map<string, ConversationRunUsage>,
+) {
   return (
-    usage.requests.find(
-      ({ turnPosition, stopReason }) => turnPosition === lastPart.position && stopReason === 'pause_turn',
-    ) ?? null
+    ledgers
+      .get(entry.run.id)
+      ?.requests.find(({ turnPosition, stopReason }) => turnPosition === entry.position && stopReason === 'pause_turn')
+    ?? null
   )
 }
 
-// How many of the run's stored parts paused, which count toward its five pauses
-function countStoredPauses(context: ConversationRunContext, usage: ConversationRunUsage) {
-  const positions = new Set(context.runEntries.map(({ position }) => position))
-
-  return usage.requests.filter(
-    ({ turnPosition, stopReason }) =>
-      turnPosition !== null && positions.has(turnPosition) && stopReason === 'pause_turn',
+// How many of the turn's stored parts paused, each as its own run's ledger says, which count toward
+// its five pauses
+function countStoredPauses(turn: { position: number; runId: string }[], ledgers: Map<string, ConversationRunUsage>) {
+  return turn.filter(({ position, runId }) =>
+    ledgers
+      .get(runId)
+      ?.requests.some(({ turnPosition, stopReason }) => turnPosition === position && stopReason === 'pause_turn'),
   ).length
 }
 

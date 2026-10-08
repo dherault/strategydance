@@ -10,6 +10,7 @@ import {
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
   MAX_CONVERSATIONS,
+  type ResumeConversationRunData,
   type SendConversationMessageData,
 } from 'strategydance-core'
 import { z } from 'zod'
@@ -28,6 +29,7 @@ import validateMiddleware from '~middleware/validate'
 
 import parseConversationMessageText from '~domain/conversations/parseConversationMessageText'
 import reconcileConversationRun from '~domain/conversations/reconcileConversationRun'
+import resumeConversationRun from '~domain/conversations/resumeConversationRun'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 
@@ -220,6 +222,60 @@ function createConversationsRouter() {
       }
 
       response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Resumes a run its member stopped, or that died with its worker, from its note, while the note is
+    the conversation's newest message: the note goes, and a run carries the response on, 202 with
+    its id. A resume sent again after its first try went through is answered with the run it
+    started. Refused with a 409 when the run is not the latest, did not stop or die, or something
+    follows its note, and when a run goes or the caller has 3 in flight. Answered with a 503 when the
+    run is started but could not be queued, which the same resume sent again queues again. Takes no
+    body
+  */
+  router.post(
+    '/:conversationId/runs/:runId/resume',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: runParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: Request<z.infer<typeof runParamsSchema>, ApiResponse<ResumeConversationRunData>, unknown>,
+      response: Response<ApiResponse<ResumeConversationRunData>>,
+    ) => {
+      const result = await resumeConversationRun({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        runId: toCanonicalUuid(request.params.runId),
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation no longer exists')
+
+          return
+        case 'busy':
+          respondError(response, 409, ERROR_CODE_CONVERSATION_BUSY, 'A response is still going, try again later')
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be resumed')
+
+          return
+        case 'unavailable':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The response could not be resumed now')
+
+          return
+        case 'resumed':
+          response.status(202).json({ status: 'success', data: { runId: result.runId } })
+      }
     },
   )
 

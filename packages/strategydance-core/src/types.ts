@@ -134,3 +134,9 @@ export type ConversationCitation = {
 export type SendConversationMessageData = {
   runId: string
 }
+
+// What resuming a stopped or interrupted run answers with: the run that carries it on, or the one a
+// resume sent again started the first time
+export type ResumeConversationRunData = {
+  runId: string
+}

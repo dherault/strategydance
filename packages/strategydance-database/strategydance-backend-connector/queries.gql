@@ -140,6 +140,96 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
   }
 }
 
+# What a resume or a retry reads of a conversation before it starts a run on a run that ended:
+#
+# - the caller's membership, whose `createdAt` the run records
+# - the conversation's counters, and which run it has in flight
+# - its two latest runs: the one a resume or a retry acts on, and the one it started already when
+#   it is sent again after its first try went through
+# - the caller's runs in flight in the organization, which a dead one among is finalized before
+#   they are counted
+# - its two newest messages that are not aspects notes: a stopped note to resume, and what the
+#   preview shows once it goes, with what the preview is built from
+#
+# Only the caller's conversation in that organization
+query GetConversationRunControlContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+    activeRunId
+    nextRunNumber
+    nextMessagePosition
+    messageCount
+    historyRevision
+  }
+  latestRuns: conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 2
+  ) {
+    id
+    number
+    trigger
+    status
+    anchorPosition
+    leaseExpiresAt
+  }
+  conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 3
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+  latestMessages: conversationMessages(
+    where: {
+      kind: { ne: ASPECTS }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 2
+  ) {
+    id
+    kind
+    position
+    text
+    noteKind
+    toolName
+    toolStatus
+    questionPrompt
+    answerSelected
+    answerOther
+    isAnswerSkipped
+    run {
+      id
+    }
+  }
+  # Whether a message follows the newest that is not an aspects note, which a resume refuses
+  newestMessages: conversationMessages(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    id
+  }
+}
+
 # What a worker reads of a run before each step it takes, in one read:
 #
 # - the run, matched with the conversation, its author and its organization it was queued for, so a
@@ -191,6 +281,8 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
   user(key: { id: $userId }) {
     isAdministrator
   }
+  # The last entry, with the ledger of the run that stored it, which says whether its part paused,
+  # whichever run that is
   conversationTranscriptEntries(
     where: { conversationId: { eq: $conversationId } }
     orderBy: [{ position: DESC }]
@@ -204,6 +296,7 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     drawnPieces
     run {
       id
+      usage
     }
   }
   # The run's replies, its parts when `pause_turn` paused one, in order, each with its cursor:
@@ -257,8 +350,9 @@ query GetClaimedConversations @auth(level: NO_ACCESS) {
 }
 
 # A page of a conversation's transcript, after a position, in order, which the worker reads whole
-# before each request to Claude: each entry's content as the JSON text it was sent as, with its
-# role, its run and, on a context message, the hash of its profile part. A hundred at a time, since
+# before each request to Claude, and from a run's anchor for the turn it draws: each entry's
+# content as the JSON text it was sent as, with its role, its run, how much of it the thread has
+# drawn and, on a context message, the hash of its profile part. A hundred at a time, since
 # a reply that searched the web carries its encrypted results. Only the caller's conversation in
 # that organization, whose author `$userId` is, as the backend verified it
 query GetConversationTranscript($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $afterPosition: Int!)
@@ -277,6 +371,8 @@ query GetConversationTranscript($organizationId: UUID!, $userId: String!, $conve
     role
     content
     contextHash
+    drawnBlocks
+    drawnPieces
     run {
       id
     }

@@ -592,6 +592,122 @@ mutation StopQueuedConversationRun(
   )
 }
 
+# Resumes a run its member stopped, or that died with its worker, from its note: the note goes,
+# which is the thread's newest message, and a run starts on the anchor of the run it resumes, which
+# carries that run's response on. In one mutation:
+#
+# - the caller's membership row is locked, as a send locks it, and they hold fewer than 3 runs in
+#   flight in the organization
+# - the resumed run is the conversation's latest, numbered right before the new one, and stopped or
+#   interrupted
+# - the conversation is idle, not deleted, its counter right after the note, and it takes the new
+#   run, with one message fewer and the preview of the message before the note
+# - the note is deleted
+# - the run is inserted, queued with a twenty minutes' lease, as a send queues one
+#
+# A resume sent again after its first try went through finds the conversation taken, and the
+# backend answers with the run it started
+mutation ResumeConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $resumedRunId: UUID!
+  $resumedRunNumber: Int!
+  $anchorPosition: Int!
+  $noteId: UUID!
+  $notePosition: Int!
+  $nextMessagePosition: Int!
+  $preview: Any
+  $previewMessageId: UUID
+  $runId: UUID!
+  $runNumber: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(
+      expr: "vars.runNumber == vars.resumedRunNumber + 1 && vars.nextMessagePosition == vars.notePosition + 1"
+      message: "A run resumes the run right before it, from the newest message"
+    )
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the resume read it") {
+      userId
+    }
+    resumed: conversationRuns(
+      where: {
+        id: { eq: $resumedRunId }
+        number: { eq: $resumedRunNumber }
+        anchorPosition: { eq: $anchorPosition }
+        status: { in: [STOPPED, INTERRUPTED] }
+        conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "Only a stopped or interrupted run resumes") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      nextRunNumber: { eq: $runNumber }
+      nextMessagePosition: { eq: $nextMessagePosition }
+    }
+    data: {
+      activeRunId: $runId
+      preview: $preview
+      previewMessageId: $previewMessageId
+      nextRunNumber_update: { inc: 1 }
+      messageCount_update: { dec: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not resume that run")
+  conversationMessage_deleteMany(
+    where: {
+      id: { eq: $noteId }
+      conversationId: { eq: $conversationId }
+      runId: { eq: $resumedRunId }
+      kind: { eq: NOTE }
+      position: { eq: $notePosition }
+    }
+  ) @check(expr: "this == 1", message: "The run's note is not the newest message")
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: RESUME
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+}
+
 # Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
 # attempt, which every later write of that worker matches, so a worker that lost the run writes
 # nothing more. `$attempts` is the count the worker read, so of two workers claiming at once only
@@ -823,7 +939,9 @@ mutation StoreConversationTurnWithContext(
 # conversation's counter, and moves its transcript entry's cursor past the blocks it was drawn
 # from, in one mutation, so a worker taking over after a crash draws the rest and nothing twice.
 # The message's id derives from the entry and the blocks, so drawing it twice is a conflict anyway.
-# Its citations, the spans web search sources, go with it.
+# Its citations, the spans web search sources, go with it. The entry is found by its id and cursor,
+# whichever run stored it, so a resumed run draws what the run it carries on left undrawn, under
+# its own name.
 #
 # A text past 20000 characters is drawn in pieces: this draws the first, with `$toPiece` 1 and the
 # cursor moved to the text's first block, past the blocks before it that draw nothing, and
@@ -885,7 +1003,12 @@ mutation DrawConversationAgentText(
     }
   ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
   conversationTranscriptEntry_updateMany(
-    where: { id: { eq: $entryId }, runId: { eq: $runId }, drawnBlocks: { eq: $fromBlock }, drawnPieces: { eq: 0 } }
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
     data: { drawnBlocks: $toBlock, drawnPieces: $toPiece }
   ) @check(expr: "this == 1", message: "Those blocks were drawn already")
   conversationMessage_insert(
@@ -959,7 +1082,12 @@ mutation DrawConversationAgentTextPiece(
     }
   ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
   conversationTranscriptEntry_updateMany(
-    where: { id: { eq: $entryId }, runId: { eq: $runId }, drawnBlocks: { eq: $block }, drawnPieces: { eq: $fromPiece } }
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $block }
+      drawnPieces: { eq: $fromPiece }
+    }
     data: { drawnBlocks: $toBlock, drawnPieces: $toPiece }
   ) @check(expr: "this == 1", message: "That piece was drawn already")
   conversationMessage_insert(
@@ -1033,7 +1161,12 @@ mutation DrawConversationToolCall(
     }
   ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
   conversationTranscriptEntry_updateMany(
-    where: { id: { eq: $entryId }, runId: { eq: $runId }, drawnBlocks: { eq: $fromBlock }, drawnPieces: { eq: 0 } }
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
     data: { drawnBlocks: $toBlock }
   ) @check(expr: "this == 1", message: "Those blocks were drawn already")
   conversationMessage_insert(

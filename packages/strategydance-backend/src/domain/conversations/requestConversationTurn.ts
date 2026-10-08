@@ -143,18 +143,22 @@ async function requestConversationTurn({
 
   if (!last) throw new Error('A run answers a transcript, and its conversation has none')
 
+  // The run's context message goes right after the member's entry it answers, until it is stored with
+  // the run's first part. A run carrying on a part another run stored, as a resumed run carries on
+  // a paused one, sends none: that run's went before it
   const isContextStored = entries.some(
     ({ role, runId }) => role === ConversationTranscriptRole.SYSTEM && runId === fence.runId,
   )
-  const context = isContextStored
-    ? null
-    : (parseRunContext(runContext)
-      ?? buildConversationContext({
-        profile: toProfile(requestContext),
-        now: new Date(),
-        lastContextHash:
-          entries.findLast(({ role }) => role === ConversationTranscriptRole.SYSTEM)?.contextHash ?? null,
-      }))
+  const context =
+    isContextStored || last.role !== ConversationTranscriptRole.USER
+      ? null
+      : (parseRunContext(runContext)
+        ?? buildConversationContext({
+          profile: toProfile(requestContext),
+          now: new Date(),
+          lastContextHash:
+            entries.findLast(({ role }) => role === ConversationTranscriptRole.SYSTEM)?.contextHash ?? null,
+        }))
   const otherRuns = requestContext.conversationRuns
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))

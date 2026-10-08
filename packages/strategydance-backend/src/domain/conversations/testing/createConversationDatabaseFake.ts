@@ -84,6 +84,8 @@ export type FakeConversation = {
   updatedAt: string
   // Which aspects of the company it is about, none unless a test says
   aspects?: string[]
+  // How many times a retry cut its history, 0 until one does
+  historyRevision?: number
 }
 
 export type FakeRun = {
@@ -531,7 +533,13 @@ function createConversationDatabaseFake() {
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
         user: users.get(variables.userId) ?? null,
         conversationTranscriptEntries: lastEntry
-          ? [{ drawnPieces: 0, ...lastEntry, run: { id: lastEntry.runId } }]
+          ? [
+              {
+                drawnPieces: 0,
+                ...lastEntry,
+                run: { id: lastEntry.runId, usage: runs.get(lastEntry.runId)?.usage ?? null },
+              },
+            ]
           : [],
         runEntries: conversationEntries(id(variables.conversationId))
           .filter(entry => entry.runId === id(variables.runId) && entry.role === 'ASSISTANT')
@@ -559,6 +567,64 @@ function createConversationDatabaseFake() {
       }
     },
 
+    GetConversationRunControlContext: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const conversationRuns = isTheirs
+        ? [...runs.values()].filter(run => run.conversationId === conversation.id).sort((a, b) => b.number - a.number)
+        : []
+      const conversationMessages = isTheirs
+        ? [...messages.values()]
+            .filter(message => message.conversationId === conversation.id)
+            .sort((a, b) => b.position - a.position)
+        : []
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        conversation: conversation ? { historyRevision: 0, ...conversation } : null,
+        latestRuns: conversationRuns
+          .slice(0, 2)
+          .map(({ id: runId, number, trigger, status, anchorPosition, leaseExpiresAt }) => ({
+            id: runId,
+            number,
+            trigger,
+            status,
+            anchorPosition,
+            leaseExpiresAt,
+          })),
+        conversationRuns: runsInFlight(variables.userId, variables.organizationId)
+          .slice(0, 3)
+          .map(run => ({
+            id: run.id,
+            status: run.status,
+            leaseExpiresAt: run.leaseExpiresAt,
+            conversation: { id: run.conversationId },
+          })),
+        latestMessages: conversationMessages
+          .filter(message => message.kind !== 'ASPECTS')
+          .slice(0, 2)
+          .map(message => ({
+            id: message.id,
+            kind: message.kind,
+            position: message.position,
+            text: message.text,
+            noteKind: message.noteKind,
+            toolName: message.toolName ?? null,
+            toolStatus: message.toolStatus,
+            questionPrompt: null,
+            answerSelected: null,
+            answerOther: null,
+            isAnswerSkipped: false,
+            run: message.runId ? { id: message.runId } : null,
+          })),
+        newestMessages: conversationMessages.slice(0, 1).map(message => ({ id: message.id })),
+      }
+    },
+
     GetConversationTranscript: variables => {
       const conversation = conversations.get(id(variables.conversationId))
       const isTheirs =
@@ -578,6 +644,8 @@ function createConversationDatabaseFake() {
                 role: entry.role,
                 content: entry.content,
                 contextHash: entry.contextHash ?? null,
+                drawnBlocks: entry.drawnBlocks,
+                drawnPieces: entry.drawnPieces ?? 0,
                 run: { id: entry.runId },
               }))
           : [],
@@ -836,6 +904,99 @@ function createConversationDatabaseFake() {
       return { conversationRun_updateMany: 1 }
     },
 
+    ResumeConversationRun: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can keep conversations in it')
+      }
+
+      if (
+        variables.runNumber !== variables.resumedRunNumber + 1
+        || variables.nextMessagePosition !== variables.notePosition + 1
+      ) {
+        refuse('A run resumes the run right before it, from the newest message')
+      }
+
+      if (
+        memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+        !== variables.membershipCreatedAt
+      ) {
+        refuse('The membership changed since the resume read it')
+      }
+
+      const conversation = conversations.get(id(variables.conversationId))
+      const resumed = runs.get(id(variables.resumedRunId))
+
+      if (
+        !resumed
+        || !conversation
+        || resumed.conversationId !== conversation.id
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || resumed.number !== variables.resumedRunNumber
+        || resumed.anchorPosition !== variables.anchorPosition
+        || !['STOPPED', 'INTERRUPTED'].includes(resumed.status)
+      ) {
+        refuse('Only a stopped or interrupted run resumes')
+      }
+
+      if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
+        refuse('Somebody has at most 3 runs in flight in an organization')
+      }
+
+      if (
+        conversation.deletedAt !== null
+        || conversation.activeRunId !== null
+        || conversation.nextRunNumber !== variables.runNumber
+        || conversation.nextMessagePosition !== variables.nextMessagePosition
+      ) {
+        refuse('The conversation could not resume that run')
+      }
+
+      const note = messages.get(id(variables.noteId))
+
+      if (
+        !note
+        || note.conversationId !== conversation.id
+        || note.runId !== resumed.id
+        || note.kind !== 'NOTE'
+        || note.position !== variables.notePosition
+      ) {
+        refuse("The run's note is not the newest message")
+      }
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      messages.delete(note.id)
+      Object.assign(conversation, {
+        activeRunId: runId,
+        preview: variables.preview ?? null,
+        previewMessageId: variables.previewMessageId ? id(variables.previewMessageId) : null,
+        nextRunNumber: conversation.nextRunNumber + 1,
+        messageCount: conversation.messageCount - 1,
+        updatedAt: now(),
+      })
+      runs.set(runId, {
+        id: runId,
+        conversationId: conversation.id,
+        number: variables.runNumber,
+        trigger: 'RESUME',
+        status: 'QUEUED',
+        membershipCreatedAt: variables.membershipCreatedAt,
+        step: null,
+        anchorPosition: variables.anchorPosition,
+        stopRequestedAt: null,
+        leaseExpiresAt: inSeconds(20 * 60),
+        attempts: 0,
+        createdAt: now(),
+        startedAt: null,
+        endedAt: null,
+      })
+
+      return { conversation_updateMany: 1, conversationMessage_deleteMany: 1 }
+    },
+
     ClaimQueuedConversationRun: variables => {
       const run = findFencedRun(variables, 'QUEUED')
 
@@ -941,7 +1102,7 @@ function createConversationDatabaseFake() {
 
       if (
         !entry
-        || entry.runId !== run.id
+        || entry.conversationId !== run.conversationId
         || entry.drawnBlocks !== variables.fromBlock
         || (entry.drawnPieces ?? 0) !== 0
       ) {
@@ -988,7 +1149,7 @@ function createConversationDatabaseFake() {
 
       if (
         !entry
-        || entry.runId !== run.id
+        || entry.conversationId !== run.conversationId
         || entry.drawnBlocks !== variables.block
         || (entry.drawnPieces ?? 0) !== variables.fromPiece
       ) {
@@ -1031,7 +1192,7 @@ function createConversationDatabaseFake() {
 
       if (
         !entry
-        || entry.runId !== run.id
+        || entry.conversationId !== run.conversationId
         || entry.drawnBlocks !== variables.fromBlock
         || (entry.drawnPieces ?? 0) !== 0
       ) {

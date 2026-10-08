@@ -85,6 +85,85 @@ describe('the run’s usage ledger', () => {
     })
   })
 
+  test('counts what a model that declined a request used under that model, and nothing more of the request', () => {
+    const { usage, index } = reserveConversationRequest(parseConversationRunUsage(null), RESERVATION)
+    const served = answer('claude-opus-4-8', { inputTokens: 40, outputTokens: 30 })
+
+    served.usage.iterations = [
+      {
+        type: 'message',
+        model: 'claude-opus-5-5',
+        input_tokens: 40,
+        cache_read_input_tokens: 900,
+        cache_creation_input_tokens: 0,
+        output_tokens: 12,
+        cache_creation: null,
+      },
+      {
+        type: 'fallback_message',
+        model: 'claude-opus-4-8',
+        input_tokens: 40,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        output_tokens: 30,
+        cache_creation: null,
+      },
+    ]
+
+    const settled = settleConversationRequest(usage, index, served, { turnPosition: null })
+
+    expect(settled.requests[index]).toMatchObject({ model: 'claude-opus-4-8', inputTokens: 40, outputTokens: 30 })
+    expect(settled.byModel).toEqual({
+      'claude-opus-4-8': {
+        requests: 1,
+        inputTokens: 40,
+        cacheReadInputTokens: 0,
+        cacheCreationInputTokens: 0,
+        outputTokens: 30,
+        webSearchRequests: 0,
+      },
+      'claude-opus-5-5': {
+        requests: 0,
+        inputTokens: 40,
+        cacheReadInputTokens: 900,
+        cacheCreationInputTokens: 0,
+        outputTokens: 12,
+        webSearchRequests: 0,
+      },
+    })
+  })
+
+  test('counts no declined attempt for a request no model declined, its iterations a search’s loop', () => {
+    const { usage, index } = reserveConversationRequest(parseConversationRunUsage(null), RESERVATION)
+    const searched = answer('claude-opus-5-5', { inputTokens: 80, outputTokens: 20 })
+
+    searched.usage.iterations = [
+      {
+        type: 'message',
+        model: 'claude-opus-5-5',
+        input_tokens: 30,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        output_tokens: 5,
+        cache_creation: null,
+      },
+      {
+        type: 'message',
+        model: null,
+        input_tokens: 50,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        output_tokens: 15,
+        cache_creation: null,
+      },
+    ]
+
+    const settled = settleConversationRequest(usage, index, searched, { turnPosition: null })
+
+    expect(settled.requests[index]?.declined).toEqual([])
+    expect(Object.keys(settled.byModel)).toEqual(['claude-opus-5-5'])
+  })
+
   test('charges a request a worker reserved and never settled at its estimate and the whole output allowed', () => {
     const { usage } = reserveConversationRequest(parseConversationRunUsage(null), RESERVATION)
     const charged = chargeUnsettledRequests(usage)

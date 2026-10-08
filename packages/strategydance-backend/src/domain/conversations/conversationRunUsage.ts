@@ -25,6 +25,18 @@ export type ConversationRequestUsage = {
   // failed partway, before its output was counted
   isEstimated: boolean
   isSettled: boolean
+  // What the models that declined it used before the API fell back, which its own figures leave
+  // out; absent from a ledger written before M10
+  declined?: ConversationDeclinedAttempt[]
+}
+
+// One attempt at a request a model declined partway, before the API fell back to another
+export type ConversationDeclinedAttempt = {
+  model: string
+  inputTokens: number
+  cacheReadInputTokens: number
+  cacheCreationInputTokens: number
+  outputTokens: number
 }
 
 export type ConversationModelUsage = {
@@ -39,7 +51,7 @@ export type ConversationModelUsage = {
 /*
   What `ConversationRun.usage` holds, the ledger credits will be counted from: each request the run
   sent, reserved before it is sent and settled once it is answered, and the settled ones added up
-  per model
+  per model, an attempt a model declined under that model
 */
 export type ConversationRunUsage = {
   requests: ConversationRequestUsage[]
@@ -103,6 +115,7 @@ export function settleConversationRequest(
             webSearchRequests: message.usage.server_tool_use?.web_search_requests ?? 0,
             turnPosition,
             isSettled: true,
+            declined: readDeclinedAttempts(message),
           }
         : request,
     ),
@@ -186,9 +199,47 @@ function withTotals(requests: ConversationRequestUsage[]): ConversationRunUsage 
     totals.cacheCreationInputTokens += request.cacheCreationInputTokens
     totals.outputTokens += request.outputTokens
     totals.webSearchRequests += request.webSearchRequests
+
+    for (const attempt of request.declined ?? []) {
+      const declinedTotals = (byModel[attempt.model] ??= {
+        requests: 0,
+        inputTokens: 0,
+        cacheReadInputTokens: 0,
+        cacheCreationInputTokens: 0,
+        outputTokens: 0,
+        webSearchRequests: 0,
+      })
+
+      declinedTotals.inputTokens += attempt.inputTokens
+      declinedTotals.cacheReadInputTokens += attempt.cacheReadInputTokens
+      declinedTotals.cacheCreationInputTokens += attempt.cacheCreationInputTokens
+      declinedTotals.outputTokens += attempt.outputTokens
+    }
   }
 
   return { requests, byModel }
+}
+
+/*
+  The attempts at a request that a model declined before the API fell back to another, as the
+  message's iterations report them: the top-level usage counts the attempt that answered alone, and
+  every iteration of a model other than the one that answered is one that declined. A request no
+  model declined has none
+*/
+function readDeclinedAttempts(message: BetaMessage): ConversationDeclinedAttempt[] {
+  return (message.usage.iterations ?? []).flatMap(iteration =>
+    iteration.type === 'message' && iteration.model && iteration.model !== message.model
+      ? [
+          {
+            model: iteration.model,
+            inputTokens: iteration.input_tokens,
+            cacheReadInputTokens: iteration.cache_read_input_tokens,
+            cacheCreationInputTokens: iteration.cache_creation_input_tokens,
+            outputTokens: iteration.output_tokens,
+          },
+        ]
+      : [],
+  )
 }
 
 function isRequestUsage(value: unknown): value is ConversationRequestUsage {

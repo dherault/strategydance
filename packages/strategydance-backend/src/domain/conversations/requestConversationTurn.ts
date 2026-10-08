@@ -104,7 +104,7 @@ export type ConversationTurnOutcome =
   the run, then answered as one outcome. A part a fallback model finished is kept as its boundary
   leaves it (`stripBeforeFallback`):
 
-  - `end_turn`: the turn, to store
+  - `end_turn`, or `tool_use` for a turn that calls Strategy Dance's own tools: the turn, to store
   - a request whose input would pass 800000 tokens: never sent, and the run ends full, its
     conversation marked so
   - `refusal`, which the API returns once the model it fell back to refused too: the run ends
@@ -346,7 +346,7 @@ async function requestConversationTurn({
       }
     }
 
-    if (message.stop_reason !== 'end_turn') {
+    if (message.stop_reason !== 'end_turn' && message.stop_reason !== 'tool_use') {
       const failure =
         message.stop_reason === 'pause_turn'
           ? `Claude paused request ${reserved.index}, past the ${MAX_CONVERSATION_PAUSES} pauses a run takes`

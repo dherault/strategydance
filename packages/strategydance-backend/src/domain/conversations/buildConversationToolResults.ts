@@ -17,14 +17,14 @@ import {
 // A call of the turn as the thread drew it, a question or a call to a tool, by the id Claude gave it
 export type ConversationCallMessage = {
   kind: ConversationMessageKind
-  toolUseId: string | null
-  toolStatus: ConversationToolStatus | null
-  toolOutput: string | null
-  toolStartedAt: string | null
-  answerSelected: string[] | null
-  answerOther: string | null
-  isAnswerSkipped: boolean
-  answeredAt: string | null
+  toolUseId?: string | null
+  toolStatus?: ConversationToolStatus | null
+  toolOutput?: string | null
+  toolStartedAt?: string | null
+  answerSelected?: string[] | null
+  answerOther?: string | null
+  isAnswerSkipped?: boolean | null
+  answeredAt?: string | null
 }
 
 type BuildConversationToolResultsInput = {
@@ -77,7 +77,7 @@ function buildConversationToolResults({
     if (message.kind === ConversationMessageKind.QUESTION) {
       if (message.isAnswerSkipped) return toSucceededResult(call.id, SKIPPED_QUESTION_RESULT)
       if (message.answeredAt) {
-        return toAnswerResult(call.id, { selected: message.answerSelected ?? [], other: message.answerOther })
+        return toAnswerResult(call.id, { selected: message.answerSelected ?? [], other: message.answerOther ?? null })
       }
       if (!skipsQuestions) throw new Error(`Question ${call.id} waits for the member’s answer`)
 
@@ -89,7 +89,7 @@ function buildConversationToolResults({
     }
 
     if (message.toolStatus === ConversationToolStatus.FAILED) {
-      return toFailedResult(call.id, readFailedOutput(message.toolOutput) ?? 'The call failed.')
+      return toFailedResult(call.id, readFailedOutput(message.toolOutput ?? null) ?? 'The call failed.')
     }
 
     return toFailedResult(call.id, message.toolStartedAt ? INTERRUPTED_CALL_RESULT : STOPPED_CALL_RESULT)

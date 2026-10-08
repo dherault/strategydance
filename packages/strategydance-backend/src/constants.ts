@@ -139,6 +139,14 @@ export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
 export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
 
 /*
+  How long one of Strategy Dance's own tools may take on a call, and how many calls that only read
+  run at once, side by side: a call past its time fails, and whatever it answers later is dropped.
+  A call that writes runs alone, so writes land in the order Claude made them
+*/
+export const CONVERSATION_TOOL_CALL_TIMEOUT_MS = 60 * 1000
+export const CONVERSATION_READ_CALLS_AT_ONCE = 4
+
+/*
   How long after a run was queued a route that finds its task gone queues it again, rather than
   finalizing the run as interrupted: as long as a queued run's first lease. A task that could not be
   queued, or was lost, is queued again while the member still waits on its page, which asks every

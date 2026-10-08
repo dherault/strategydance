@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
 import {
@@ -14,15 +15,23 @@ import {
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
+  storeConversationToolResults,
 } from 'strategydance-database/backend'
 
-import type { ClaudeClient, ConversationRunFence, ConversationRunReference } from '~types'
+import type {
+  ClaudeClient,
+  ConversationContentBlock,
+  ConversationRunFence,
+  ConversationRunReference,
+  ConversationToolRunner,
+} from '~types'
 
 import {
   CONVERSATION_RUN_MAX_DURATION_MS,
   CONVERSATION_RUN_MAX_REQUESTS,
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
+  CONVERSATION_TOOL_CALL_TIMEOUT_MS,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -30,6 +39,10 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
+import CONVERSATION_TOOL_RUNNERS from '~domain/agent/conversationToolRunners'
+import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
+import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
+import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
 import {
   type ConversationRunUsage,
   chargeUnsettledRequests,
@@ -44,6 +57,8 @@ import requestConversationTurn, {
   type ConversationRunLimits,
   type ConversationTurnOutcome,
 } from '~domain/conversations/requestConversationTurn'
+import runConversationToolCalls from '~domain/conversations/runConversationToolCalls'
+import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
 
 // How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
@@ -61,6 +76,9 @@ type Options = {
   limits?: Partial<ConversationRunLimits>
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs?: number
+  // The tools the worker runs, which a test can bring in, and how long a call may take
+  tools?: ConversationToolRunner[]
+  toolTimeoutMs?: number
 }
 
 const LIMITS: ConversationRunLimits = {
@@ -86,10 +104,13 @@ type ConversationRunContext = GetConversationRunContextData
     member's entry the run answers, its anchor, which a resumed run shares with the run it resumes,
     so it draws and carries on what that run left
   - a reply `pause_turn` paused, which a crash left stored part by part: its continuation
-  - a reply wholly drawn: the run is complete, since no tool of the member's runs yet
-  - the member's message: Claude's turn, stored part by part as it answered, unless the run has
-    drawn its 100 entries, or the conversation holds its 2000, when the run fails with a note
-    instead and costs nothing
+  - a reply wholly drawn that called Strategy Dance's own tools: the calls that have no result run,
+    then the entry answering them all is stored and the run goes round to Claude. A reply that asked
+    the member a question ends the run waiting for the answer instead
+  - a reply wholly drawn that called nothing: the run is complete
+  - the member's message, or the results of the reply's calls: Claude's turn, stored part by part as
+    it answered, unless the run has drawn its 100 entries, or the conversation holds its 2000, when
+    the run fails with a note instead and costs nothing
 
   A run whose member asked it to stop sends no further request: it ends stopped, with its note, once
   what was paid for is written and drawn. One whose conversation was deleted stops without a note.
@@ -108,6 +129,8 @@ async function runConversation(
     retryDelayMs = 500,
     limits,
     stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
+    tools = CONVERSATION_TOOL_RUNNERS,
+    toolTimeoutMs = CONVERSATION_TOOL_CALL_TIMEOUT_MS,
   }: Options = {},
 ): Promise<'finished' | 'held'> {
   const context = await readContext(reference)
@@ -162,6 +185,8 @@ async function runConversation(
       retryDelayMs,
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
+      tools,
+      toolTimeoutMs,
     })
   } finally {
     await lease.stop()
@@ -176,9 +201,21 @@ type StepsInput = {
   retryDelayMs: number
   limits: ConversationRunLimits
   stopCheckIntervalMs: number
+  tools: ConversationToolRunner[]
+  toolTimeoutMs: number
 }
 
-async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits, stopCheckIntervalMs }: StepsInput) {
+async function takeSteps({
+  fence,
+  lease,
+  signal,
+  client,
+  retryDelayMs,
+  limits,
+  stopCheckIntervalMs,
+  tools,
+  toolTimeoutMs,
+}: StepsInput) {
   const reference = toReference(fence)
   let failedSteps = 0
   // What a request came to and is not written yet
@@ -191,7 +228,18 @@ async function takeSteps({ fence, lease, signal, client, retryDelayMs, limits, s
     if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
 
     try {
-      const result = await takeStep({ context, fence, lease, signal, client, limits, stopCheckIntervalMs, outcome })
+      const result = await takeStep({
+        context,
+        fence,
+        lease,
+        signal,
+        client,
+        limits,
+        stopCheckIntervalMs,
+        tools,
+        toolTimeoutMs,
+        outcome,
+      })
 
       outcome = result === 'ended' || result === 'next' ? null : result
       failedSteps = 0
@@ -236,6 +284,8 @@ async function takeStep({
   client,
   limits,
   stopCheckIntervalMs,
+  tools,
+  toolTimeoutMs,
   outcome,
 }: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
   const { conversation } = context
@@ -252,14 +302,14 @@ async function takeStep({
     return 'ended' as const
   }
 
-  // Its member asked it to stop, which a run reads before each request: what was paid for is
-  // written and drawn first, and nothing more is asked
-  function stop() {
+  // Its member asked it to stop, which a run reads before each request and each call: what was
+  // paid for is written and drawn first, and nothing more is asked or run
+  function stop(failure = 'Its member stopped it before its next request') {
     return end({
       kind: 'noted',
       status: ConversationRunStatus.STOPPED,
       noteKind: ConversationNoteKind.STOPPED,
-      failure: 'Its member stopped it before its next request',
+      failure,
       usage,
     })
   }
@@ -283,29 +333,75 @@ async function takeStep({
   if (entry.role === ConversationTranscriptRole.SYSTEM) throw new Error('A transcript never ends on a context message')
 
   if (entry.role === ConversationTranscriptRole.ASSISTANT) {
-    // The turn answering the run's anchor: its own parts, and those of the run it resumed, which it
-    // carries on
-    const turn = (
-      await readConversationTranscript(toReference(fence), { afterPosition: run?.anchorPosition ?? -1 })
-    ).filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
-    const drawn = await drawConversationTurn({
-      fence,
-      lease,
-      entries: turn.map(part => ({
-        id: part.id,
-        blocks: parseTranscriptContent(part.content),
-        drawnBlocks: part.drawnBlocks,
-        drawnPieces: part.drawnPieces,
-      })),
-      position,
+    // What followed the run's anchor, which a resumed run shares with the run it carries on: its
+    // replies, each that called tools followed by the results that answer them
+    const sinceAnchor = await readConversationTranscript(toReference(fence), {
+      afterPosition: run?.anchorPosition ?? -1,
     })
+    const parts = sinceAnchor
+      .filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
+      .map(part => ({ ...part, blocks: parseTranscriptContent(part.content) }))
+    const plans = planCalls(parts, tools)
+    const drawn = await drawConversationTurn({ fence, lease, entries: parts, plans, position })
 
     if (drawn === 'drawn') return 'next'
 
+    // The reply the transcript ends on, its parts after the last results, or after the anchor
+    const lastResultsPosition = sinceAnchor.findLast(({ role }) => role === ConversationTranscriptRole.USER)?.position
+    const turn = parts.filter(({ position: partPosition }) => partPosition > (lastResultsPosition ?? -1))
     const ledgers = await readTurnLedgers(fence, turn, usage)
     const pausedRequest = findPausedRequest(entry, ledgers)
+    const startedAt = run?.startedAt ?? new Date().toISOString()
 
-    if (!pausedRequest) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
+    if (!pausedRequest) {
+      const calls = readConversationToolCalls(parts.at(-1)?.blocks ?? [])
+
+      if (!calls.length) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
+
+      const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
+      const ran = await runConversationToolCalls({
+        fence,
+        lease,
+        signal,
+        plans: turnPlans,
+        runners: tools,
+        deadline: Date.parse(startedAt) + limits.maxDurationMs,
+        timeoutMs: toolTimeoutMs,
+      })
+
+      // A question is on the member's screen already, so the run waits for its answer whatever
+      // else happened: a call a stop or the run's time kept from running is answered as stopped
+      if (turnPlans.some(({ kind }) => kind === 'question')) return end({ kind: 'waiting', usage })
+      if (ran.outcome === 'stopped') return stop('Its member stopped it before its next call')
+      if (ran.outcome === 'expired') {
+        return end({
+          kind: 'noted',
+          status: ConversationRunStatus.FAILED,
+          noteKind: ConversationNoteKind.FAILED,
+          failure: `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed, before its next call`,
+          usage,
+        })
+      }
+
+      const results = buildConversationToolResults({
+        calls,
+        messages: ran.messages,
+        pending: ran.pending,
+        skipsQuestions: false,
+      })
+
+      await lease.write(() =>
+        storeConversationToolResults(dataConnect, {
+          ...fence,
+          entryId: randomUUID().replaceAll('-', ''),
+          position: entry.position + 1,
+          content: serializeTranscriptContent(results),
+        }),
+      )
+
+      return 'next'
+    }
+
     if (run?.stopRequestedAt) return stop()
 
     return requestConversationTurn({
@@ -317,7 +413,7 @@ async function takeStep({
       usage,
       pausedRequest,
       storedPauses: countStoredPauses(turn, ledgers),
-      startedAt: run?.startedAt ?? new Date().toISOString(),
+      startedAt,
       limits,
       stopCheckIntervalMs,
     })
@@ -395,6 +491,27 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   if (outcome.kind === 'turn') return outcome.usage
 
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
+}
+
+/*
+  What becomes of each call the run's replies made to Strategy Dance's own tools, by its id, as
+  `planConversationToolCalls` plans it, counting each reply's calls after those of the replies
+  before it
+*/
+function planCalls(parts: { blocks: ConversationContentBlock[] }[], tools: ConversationToolRunner[]) {
+  const plans = new Map<string, ConversationToolCallPlan>()
+  const runnerNames = tools.map(({ name }) => name)
+  let callsBefore = 0
+
+  for (const { blocks } of parts) {
+    const calls = readConversationToolCalls(blocks)
+
+    for (const plan of planConversationToolCalls(calls, { callsBefore, runnerNames })) plans.set(plan.call.id, plan)
+
+    callsBefore += calls.length
+  }
+
+  return plans
 }
 
 /*

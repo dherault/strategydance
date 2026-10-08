@@ -32,10 +32,11 @@ type Props = {
   onRunStart: (startedRun: StartedConversationRun) => void
 }
 
-const FAILURE_MESSAGES = {
+const NOTICE_MESSAGES = {
   conflict: conversationMessages.questionConflict,
   unavailable: conversationMessages.questionUnavailable,
   error: conversationMessages.questionError,
+  queued: conversationMessages.questionQueued,
 } as const
 
 /*
@@ -58,10 +59,15 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
   const [isOtherChosen, setIsOtherChosen] = useState(false)
   const [other, setOther] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [failure, setFailure] = useState<ConversationAnswerFailure | null>(null)
-  // Whether the answer is kept, and the conversation carried on later, the reader having runs going
-  // elsewhere, which the notice says while the conversation still waits
-  const [isQueued, setIsQueued] = useState(false)
+  /*
+    What sending the answer came to when it did not start a run: a failure, or an answer kept that
+    the conversation goes on from later, the reader having runs going elsewhere. Each is said while
+    the conversation still waits on the run it was sent to, and goes once the live data moves on
+  */
+  const [notice, setNotice] = useState<{
+    kind: ConversationAnswerFailure | 'queued'
+    waitingRunId: string
+  } | null>(null)
   const options = body.questionOptions ?? []
   const isMultipleChoice = body.isMultipleChoice ?? false
   const Control = isMultipleChoice ? Checkbox : Radio
@@ -107,17 +113,17 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
     if (!canSend || !waitingRunId) return
 
     setIsSending(true)
-    setFailure(null)
+    setNotice(null)
 
     try {
       const { runId } = await answerConversationQuestion({ conversationId, messageId: entry.id, answer })
 
       if (runId) onRunStart({ runId, previousRunId: waitingRunId })
-      else if (!hasOtherWaiting) setIsQueued(true)
+      else if (!hasOtherWaiting) setNotice({ kind: 'queued', waitingRunId })
     } catch (error) {
       console.error('The answer could not be sent', error)
 
-      setFailure(getConversationAnswerFailure(error))
+      setNotice({ kind: getConversationAnswerFailure(error), waitingRunId })
     } finally {
       setIsSending(false)
     }
@@ -206,20 +212,16 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
   }
 
   function renderNotice() {
-    const notice = failure
-      ? FAILURE_MESSAGES[failure]
-      : isQueued && waitingRunId
-        ? conversationMessages.questionQueued
-        : null
+    if (!notice || notice.waitingRunId !== waitingRunId) return null
 
-    if (!notice) return null
+    const isFailure = notice.kind !== 'queued'
 
     return (
       <p
-        role={failure ? 'alert' : 'status'}
-        className={cn('m-0 text-xs', failure ? 'text-danger' : 'text-muted-foreground')}
+        role={isFailure ? 'alert' : 'status'}
+        className={cn('m-0 text-xs', isFailure ? 'text-danger' : 'text-muted-foreground')}
       >
-        {formatMessage(notice)}
+        {formatMessage(NOTICE_MESSAGES[notice.kind])}
       </p>
     )
   }

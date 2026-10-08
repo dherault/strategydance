@@ -60,7 +60,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
   const [isSending, setIsSending] = useState(false)
   const [failure, setFailure] = useState<ConversationAnswerFailure | null>(null)
   // Whether the answer is kept, and the conversation carried on later, the reader having runs going
-  // elsewhere
+  // elsewhere, which the notice says while the conversation still waits
   const [isQueued, setIsQueued] = useState(false)
   const options = body.questionOptions ?? []
   const isMultipleChoice = body.isMultipleChoice ?? false
@@ -193,7 +193,9 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
             placeholder={formatMessage(conversationMessages.questionWriteOwn)}
             aria-label={formatMessage(conversationMessages.questionOwnAnswer)}
             value={other}
-            maxLength={MAX_ANSWER_OTHER_LENGTH}
+            // Two code units a character at most, as `maxLength` counts them: the answer's check
+            // holds the words to their 500 characters
+            maxLength={MAX_ANSWER_OTHER_LENGTH * 2}
             disabled={isOff}
             onChange={event => write(event.target.value)}
             className="h-8 min-w-0 flex-1 text-sm"
@@ -204,7 +206,11 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
   }
 
   function renderNotice() {
-    const notice = failure ? FAILURE_MESSAGES[failure] : isQueued ? conversationMessages.questionQueued : null
+    const notice = failure
+      ? FAILURE_MESSAGES[failure]
+      : isQueued && waitingRunId
+        ? conversationMessages.questionQueued
+        : null
 
     if (!notice) return null
 

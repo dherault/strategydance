@@ -649,6 +649,24 @@ describe('runConversation', () => {
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
   })
 
+  test('sends no request whose measuring took the run past its minutes', async () => {
+    const reference = await start()
+    const scripted = createClient([answer()], {
+      count: body => {
+        Bun.sleepSync(80)
+
+        return (body.system ? 1000 : 0) + body.messages.length * 100
+      },
+    })
+
+    expect(await runConversation(reference, { client: scripted.client, limits: { maxDurationMs: 50 } })).toBe(
+      'finished',
+    )
+    expect(scripted.requests).toHaveLength(0)
+    expect(readRun(reference)?.failure).toContain('seconds since it was first claimed')
+    expect(readUsage(reference).requests).toHaveLength(0)
+  })
+
   test('cuts a stream still going at the run’s deadline, charged as an estimate, and fails with its note', async () => {
     const reference = await start()
     const scripted = createClient([answer()], { meanwhile: waitForAbort })

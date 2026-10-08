@@ -6,6 +6,10 @@ import { SECRET_ANTHROPIC_API_KEY } from '~constants'
 
 import retrieveSecret from '~utils/retrieveSecret'
 
+// How long a count may take before it fails, and the step that asked for it is tried again: a run
+// measures its requests against its own deadline, which a count that hung would carry it past
+const COUNT_TIMEOUT_MS = 30 * 1000
+
 /*
   The client that calls Claude through Anthropic's API. Its key is `ANTHROPIC_API_KEY` when set, as
   on a machine whose credentials cannot read the secret, and the `anthropic-api-key` secret
@@ -48,7 +52,11 @@ function createAnthropicClaudeClient(): ClaudeClient {
     },
 
     async countTokens(body) {
-      const { input_tokens } = await (await getClient()).beta.messages.countTokens(body)
+      const { input_tokens } = await (
+        await getClient()
+      ).beta.messages.countTokens(body, {
+        timeout: COUNT_TIMEOUT_MS,
+      })
 
       return input_tokens
     },

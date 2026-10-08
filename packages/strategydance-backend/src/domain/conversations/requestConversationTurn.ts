@@ -163,6 +163,8 @@ async function requestConversationTurn({
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))
   const parts: Omit<ConversationTurnPart, 'entryId'>[] = []
+  const durationFailure = `The run passed ${Math.round(limits.maxDurationMs / 1000)} seconds since it was first claimed`
+  const isPastDuration = () => Date.now() - Date.parse(startedAt) >= limits.maxDurationMs
   let usage = initialUsage
   let paused = pausedRequest
   let pauses = storedPauses
@@ -173,15 +175,7 @@ async function requestConversationTurn({
       return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage) }
     }
 
-    if (Date.now() - Date.parse(startedAt) >= limits.maxDurationMs) {
-      return {
-        kind: 'ending',
-        ending: fail(
-          `The run passed ${Math.round(limits.maxDurationMs / 1000)} seconds since it was first claimed`,
-          usage,
-        ),
-      }
-    }
+    if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage) }
 
     const messages = buildConversationMessages({
       entries,
@@ -216,6 +210,9 @@ async function requestConversationTurn({
         },
       }
     }
+
+    // Again once measured, since counting takes time of its own
+    if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage) }
 
     const reserved = reserveConversationRequest(usage, {
       estimatedInputTokens: measured.inputTokens,

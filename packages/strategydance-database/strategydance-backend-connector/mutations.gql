@@ -551,6 +551,9 @@ mutation SendConversationMessageAnsweringCalls(
 # - the run the backend read waits still
 # - the question is answered, only while it waits, its options by their text and its own words on
 #   one line, as the backend checked them against it
+# - the other questions of the turn still waiting are read, after the lock, so an answer another
+#   request recorded first is seen. A step reading what its own mutation wrote does not see it, so
+#   the question answered is left out by its id rather than by its answer
 #
 # The answer goes into the transcript as it is recorded, so it is bounded here too
 mutation AnswerConversationQuestion(
@@ -603,7 +606,12 @@ mutation AnswerConversationQuestion(
   ) @check(expr: "this == 1", message: "The question waits no more")
   left: query {
     conversationMessages(
-      where: { conversationId: { eq: $conversationId }, kind: { eq: QUESTION }, answeredAt: { isNull: true } }
+      where: {
+        id: { ne: $messageId }
+        conversationId: { eq: $conversationId }
+        kind: { eq: QUESTION }
+        answeredAt: { isNull: true }
+      }
       limit: 1000
     ) {
       id

@@ -28,6 +28,7 @@ import writeOptimistically from '~utils/common/writeOptimistically'
 import compareTasks from '~utils/task/compareTasks'
 import getTaskDependents from '~utils/task/getTaskDependents'
 import getTaskMovePosition from '~utils/task/getTaskMovePosition'
+import getTaskRestoreLoops from '~utils/task/getTaskRestoreLoops'
 
 import { dataConnect } from '~data/firebase'
 
@@ -320,26 +321,36 @@ function useTaskChanges() {
     })
   }
 
-  // Puts a deleted task back where it was, with the links that the server kept for it
-  function restoreTask({ task, description, dependentIds }: TaskSnapshot) {
-    return change({
-      rowKey: `task:${task.id}`,
-      queryKeys: [tasksKey, descriptionsKey],
-      apply: () => {
-        setTasks(tasks => [
-          ...tasks
-            .filter(({ id }) => id !== task.id)
-            .map(other =>
-              dependentIds.includes(other.id) && !other.dependencies.some(link => link.dependencyId === task.id)
-                ? { ...other, dependencies: [...other.dependencies, { dependencyId: task.id }] }
-                : other,
-            ),
-          task,
-        ])
-        setDescription(task.id, description)
-      },
-      write: () => restoreTaskMutation(dataConnect, { organizationId: organizationId!, id: task.id }),
-    })
+  /*
+    Puts a deleted task back where it was, with the links that the server kept for it, but for any
+    that would close a loop with a link made while it was gone: those are taken off once it is back
+  */
+  async function restoreTask(snapshot: TaskSnapshot) {
+    const { task, description, dependentIds } = snapshot
+    const loopingIds = getTaskRestoreLoops(snapshot, readTasks())
+    const relinkedIds = dependentIds.filter(id => !loopingIds.includes(id))
+
+    await Promise.all([
+      change({
+        rowKey: `task:${task.id}`,
+        queryKeys: [tasksKey, descriptionsKey],
+        apply: () => {
+          setTasks(tasks => [
+            ...tasks
+              .filter(({ id }) => id !== task.id)
+              .map(other =>
+                relinkedIds.includes(other.id) && !other.dependencies.some(link => link.dependencyId === task.id)
+                  ? { ...other, dependencies: [...other.dependencies, { dependencyId: task.id }] }
+                  : other,
+              ),
+            task,
+          ])
+          setDescription(task.id, description)
+        },
+        write: () => restoreTaskMutation(dataConnect, { organizationId: organizationId!, id: task.id }),
+      }),
+      ...loopingIds.map(dependentId => unlinkTasks(dependentId, task.id)),
+    ])
   }
 
   // Makes a task wait on exactly these tasks, adding and removing one link at a time

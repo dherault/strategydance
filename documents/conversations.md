@@ -1281,8 +1281,12 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   offers no pick that would close a longer loop. An agent has no picker, so the module reads the
   board's links and refuses any loop before it writes, naming its first 20 tasks and its length, so
   a refusal stays a sentence however long the loop. Two writers closing a longer loop at the same
-  instant, which the page's own check leaves open, still can, and only leave its tasks blocked until
-  somebody removes a link.
+  instant, which the page's own check leaves open, still can, a link added while `restore_task`
+  checks the links it brings back included, since the check reads the board before the mutation
+  takes the organization's lock, and only leave its tasks blocked until somebody removes a link.
+  Closing it would take a revision of the board's links, moved by every link write, the page's
+  included, and checked under the lock; the plan does without it, since such a loop costs no more
+  than a link removed, the race the page already leaves open.
 - **Assignment.** A task is a member's, Strategy Dance's, or nobody's, never two at once, named
   `"member:<id>"`, `"agent"` or `"unassigned"`, as the board's assignment select names them, with
   `"me"` for the caller, the module's own, since a bare id could be one of those words, and a member

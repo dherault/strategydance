@@ -202,8 +202,9 @@ const taskMessages = defineMessages({
   },
   memberYou: {
     id: 'task.memberYou',
-    defaultMessage: '{name} (you)',
-    description: 'The reader, among the members of the assignee select. {name} is their name.',
+    defaultMessage: '{name} - me',
+    description:
+      'The reader, among the members of the assignee select: their name, a plain hyphen and the word "me". {name} is their name.',
   },
   aspects: {
     id: 'task.aspects',

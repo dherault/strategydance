@@ -48,7 +48,7 @@
   "task.lead": "チームとStrategy Danceが取り組む作業。",
   "task.loadError": "タスクを読み込めませんでした。",
   "task.loadingEditor": "エディターを読み込み中…",
-  "task.memberYou": "{name}（あなた）",
+  "task.memberYou": "{name} - 自分",
   "task.moreAspects": "+{count}",
   "task.moreChips": "他+{count}件",
   "task.namePlaceholder": "タスク名",

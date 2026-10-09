@@ -48,7 +48,7 @@
   "task.lead": "Anstehende Aufgaben für Ihr Team und Strategy Dance.",
   "task.loadError": "Die Aufgaben konnten nicht geladen werden.",
   "task.loadingEditor": "Editor wird geladen…",
-  "task.memberYou": "{name} (Sie)",
+  "task.memberYou": "{name} - ich",
   "task.moreAspects": "+{count}",
   "task.moreChips": "+{count} weitere",
   "task.namePlaceholder": "Name der Aufgabe",

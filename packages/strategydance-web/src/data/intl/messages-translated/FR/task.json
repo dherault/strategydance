@@ -48,7 +48,7 @@
   "task.lead": "Travail à accomplir par votre équipe et Strategy Dance.",
   "task.loadError": "Impossible de charger les tâches.",
   "task.loadingEditor": "Chargement de l'éditeur…",
-  "task.memberYou": "{name} (vous)",
+  "task.memberYou": "{name} - moi",
   "task.moreAspects": "+{count}",
   "task.moreChips": "+{count} autres",
   "task.namePlaceholder": "Nom de la tâche",

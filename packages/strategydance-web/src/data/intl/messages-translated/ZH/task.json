@@ -48,7 +48,7 @@
   "task.lead": "由您的团队和 Strategy Dance 共同完成的工作。",
   "task.loadError": "无法加载任务。",
   "task.loadingEditor": "正在加载编辑器…",
-  "task.memberYou": "{name}（您）",
+  "task.memberYou": "{name} - 我",
   "task.moreAspects": "+{count}",
   "task.moreChips": "+{count} 项",
   "task.namePlaceholder": "任务名称",

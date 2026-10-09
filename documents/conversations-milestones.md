@@ -707,14 +707,19 @@ it yet, and Claude Code reaches it locally over stdio.
     snapshot unchanged; a title beside a text edit rides in the fold's one write of the row. An
     omitted `$title` leaves the column alone, and a null one would write null into it, so the
     backend leaves it out.
-  - **`version` is the version a reading started from**, a hash of every block's id and Markdown:
-    the cursor carries the first page's, and a later page answers it only while the text is still
-    that version, and none once somebody changed it, so pages read across an edit never add up to a
-    version the agent did not see whole. `content` without a version is refused before anything is
-    read.
+  - **`version` comes on the last page of a reading alone**, a hash of every block's id and
+    Markdown: the cursor carries the first page's, and the last page answers it only while the text
+    is still that version, so an agent never holds a version of text it did not read whole, neither
+    from a first page nor from pages read across an edit. `content` without a version is refused
+    before anything is read.
   - **A document keeps a title or some text.** An update that would leave it with neither, a blank
     title on a textless document or an edit emptying an untitled one, is refused, as creating one
-    with neither is, since the page deletes a document somebody empties rather than keep it.
+    with neither is, since the page deletes a document somebody empties rather than keep it. The
+    rename and the fold check it in their query step, after the write that locks the row, so two
+    such calls at once cannot pass it together.
+  - **A stored result answers only the member who made it**: the key's lookup reads the membership
+    the module read, so a member removed, or removed and invited back, is refused as the write would
+    refuse them.
   - **The substring search takes each word from the title or the text**, as the full-text search
     does, each pattern in the title or in the text of a recent document.
   - **Search answers at most 10 of its at most 20 candidates**, with `hasMore` when more matched and

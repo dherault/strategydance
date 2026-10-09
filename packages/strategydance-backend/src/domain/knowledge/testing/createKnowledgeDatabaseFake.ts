@@ -540,6 +540,11 @@ function createKnowledgeDatabaseFake() {
 
       if (variables.state.length > 2000000) refuse("A document's state is at most 2000000 characters")
 
+      // The title as committed, unless the fold writes one
+      const title = typeof variables.title === 'string' ? variables.title : document.title
+
+      if (variables.content === '' && !/\S/.test(title)) refuse('A document keeps a title or some text')
+
       const merged = new Set((variables.updateIds as string[]).map(id))
 
       if (variables.isWholeReplacement && pendingUpdates(document.id).some(update => !merged.has(update.id))) {
@@ -565,15 +570,19 @@ function createKnowledgeDatabaseFake() {
     },
 
     RenameDocumentForAgent: variables => {
-      if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
-
-      checkKey(variables)
-      checkTitle(variables.title)
       insertResult(variables)
 
       const document = writableDocument(variables)
 
       if (!document) refuse('The document was deleted or closed to agents since it was read')
+      if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+      checkKey(variables)
+      checkTitle(variables.title)
+
+      if (!/\S/.test(variables.title) && document.content === '' && pendingUpdates(document.id).length === 0) {
+        refuse('A document keeps a title or some text')
+      }
 
       storeResult(variables)
       Object.assign(document, { title: String(variables.title), updatedAt: stamp() })

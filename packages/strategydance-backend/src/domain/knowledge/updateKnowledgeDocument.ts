@@ -10,7 +10,12 @@ import explainKnowledgeDocumentRefusal from '~domain/knowledge/explainKnowledgeD
 import foldKnowledgeDocumentEdit from '~domain/knowledge/foldKnowledgeDocumentEdit'
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
 import isKnowledgeRefusal from '~domain/knowledge/isKnowledgeRefusal'
-import { EDITED_REFUSAL, FOLDED_REFUSAL, NOT_MEMBER_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
+import {
+  EDITED_REFUSAL,
+  EMPTY_REFUSAL,
+  FOLDED_REFUSAL,
+  NOT_MEMBER_REFUSAL,
+} from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 import toKnowledgeFoldRefusal from '~domain/knowledge/toKnowledgeFoldRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
@@ -47,7 +52,8 @@ export type UpdatedKnowledgeDocument = {
   goes through while somebody types elsewhere in the document.
 
   A document keeps a title or some text, as it starts with one: a change that would leave it with
-  neither is refused, as the page deletes one somebody empties rather than keep it
+  neither is refused, as the page deletes one somebody empties rather than keep it. The operations
+  check it once they hold the row, so a rename and an edit at the same moment cannot pass it together
 */
 async function updateKnowledgeDocument(
   caller: ModuleCaller,
@@ -68,16 +74,6 @@ async function updateKnowledgeDocument(
   }
 
   if (!edit) {
-    // A document keeps a title or some text, as one starts with: a blank title is refused on one
-    // whose text is empty, nothing pending that could fill it
-    if (title !== undefined && !/\S/.test(title)) {
-      const { data } = await getDocumentForAgent(dataConnect, reference)
-      const [row] = data.documents
-
-      if (!row) return (await explainKnowledgeDocumentRefusal(caller, id, { isWrite: true })) ?? { outcome: 'notFound' }
-      if (row.content === '' && row.documentUpdates_on_document.length === 0) return { outcome: 'empty' }
-    }
-
     const result = { id, title }
 
     try {
@@ -93,6 +89,8 @@ async function updateKnowledgeDocument(
 
       if (answeredMeanwhile) return answeredMeanwhile
       if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+      // A blank title on a document whose text is empty, as the rename finds it once it holds the row
+      if (isKnowledgeRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
 
       const refusal = await explainKnowledgeDocumentRefusal(caller, id, { isWrite: true })
 
@@ -159,6 +157,8 @@ async function updateKnowledgeDocument(
 
       if (answeredMeanwhile) return answeredMeanwhile
       if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+      // The title went blank meanwhile, which the text this edit empties would leave alone
+      if (isKnowledgeRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
       // A push landed under a whole text replaced: the next read finds the text moved on
       if (isKnowledgeRefusal(error, EDITED_REFUSAL)) continue
       if (!isKnowledgeRefusal(error, FOLDED_REFUSAL)) throw error

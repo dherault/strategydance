@@ -349,6 +349,48 @@ async function checkFolds() {
   )
 }
 
+async function checkEmptiness() {
+  const textless = await insertDocument({ title: 'Only a title', content: '', state: 'AAA=', revision: 0 })
+  const rename = (id: string, title: string) =>
+    renameDocumentForAgent(dataConnect, { ...caller(), id, title, ...UNKEYED })
+
+  check(
+    'a blank title on a document whose text is empty is refused',
+    (await refusal(rename(textless, '  ')))?.includes('A document keeps a title or some text') ?? false,
+  )
+
+  await write(
+    `mutation Push($documentId: UUID!, $id: UUID!) { documentUpdate_insert(data: { documentId: $documentId, id: $id, payload: "AAA=" }) }`,
+    { documentId: textless, id: createId() },
+  )
+
+  check('a blank title goes through while an update is pending', (await refusal(rename(textless, ''))) === null)
+
+  const untitled = await insertDocument({ title: '', content: '[]', state: 'AAA=', revision: 0 })
+  const empty = (fields: Variables) =>
+    foldDocumentForAgent(dataConnect, {
+      ...caller(),
+      id: untitled,
+      revision: 0,
+      state: 'BBB=',
+      content: '',
+      contentText: '',
+      updateIds: [],
+      isWholeReplacement: false,
+      ...UNKEYED,
+      ...fields,
+    })
+
+  check(
+    'a fold emptying the text of an untitled document is refused, on the title as committed',
+    (await refusal(empty({})))?.includes('A document keeps a title or some text') ?? false,
+  )
+  check(
+    'a fold emptying the text goes through when it writes a title',
+    (await refusal(empty({ title: 'Named' }))) === null,
+  )
+}
+
 async function checkSeeding() {
   const id = await insertDocument({ title: 'Unshared', state: null, content: '[]', revision: 0 })
   const seed = () => seedDocumentStateForAgent(dataConnect, { ...caller(), id, state: 'AAA=', revision: 0 })
@@ -561,6 +603,7 @@ try {
   await setUp()
   await checkIdempotency()
   await checkFolds()
+  await checkEmptiness()
   await checkSeeding()
   await checkSearch()
   await checkIndexing()

@@ -268,6 +268,31 @@ describe('update_document', () => {
     expect(fake.documents.get(textless.id)!.content).toBe('')
   })
 
+  it('refuses a blank title and an emptying edit made at the same moment, whichever lands second', async () => {
+    const kit = await connect()
+    const empty = 'A document keeps a title or some text: give it one.'
+    const renamed = documents.store('Some text', { title: 'Plan' })
+
+    // An edit emptying the text lands just before the rename takes the row
+    fake.beforeOperation = async name => {
+      if (name === 'RenameDocumentForAgent') Object.assign(fake.documents.get(renamed.id)!, { content: '' })
+    }
+
+    expect(await kit.refusal('update_document', { id: renamed.id, title: '' })).toBe(empty)
+    expect(fake.documents.get(renamed.id)!.title).toBe('Plan')
+
+    const emptied = documents.store('Some text', { title: 'Plan' })
+    const { version } = await kit.answer<Reading>('read_document', { id: emptied.id })
+
+    // A rename blanking the title lands just before the edit emptying the text takes the row
+    beforeFirstFold(() => {
+      fake.documents.get(emptied.id)!.title = ''
+    })
+
+    expect(await kit.refusal('update_document', { id: emptied.id, version, content: '' })).toBe(empty)
+    expect(markdownOf(emptied.id)).toEqual(['Some text'])
+  })
+
   it('refuses a document the team keeps AI from changing, or from reading', async () => {
     const kit = await connect()
     const closed = documents.store('Plan', { isAiWritable: false })

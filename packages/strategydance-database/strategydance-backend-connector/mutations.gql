@@ -2484,6 +2484,16 @@ mutation FoldDocumentForAgent(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
     }
+    # The title as committed, which a title this fold writes replaces: a document keeps a title or
+    # some text, so an edit emptying the text of an untitled one is refused, a rename blanking the
+    # title at the same moment included
+    document(id: $id) {
+      title
+        @check(
+          expr: "vars.content != '' || ((has(vars.title) && vars.title != null) ? vars.title.matches('[[:^space:]]') : this.matches('[[:^space:]]'))"
+          message: "A document keeps a title or some text"
+        )
+    }
     pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
       @check(
         expr: "!vars.isWholeReplacement || size(this) == 0"
@@ -2496,7 +2506,10 @@ mutation FoldDocumentForAgent(
 }
 
 # Retitles a document for an agent, held to what `RenameDocument` holds a title to, when the call
-# changes its title alone
+# changes its title alone. A document keeps a title or some text, so a blank title is refused on one
+# whose text is empty, nothing pending: checked once the row is locked, so a fold emptying the text
+# at the same moment cannot pass it together with this. A mutation takes one query step, so the
+# membership's and the variables' checks follow the writes too, which a refusal rolls back
 mutation RenameDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -2511,26 +2524,6 @@ mutation RenameDocumentForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact {
-    membership: userOrganizations(
-      where: {
-        userId: { eq: $userId }
-        organizationId: { eq: $organizationId }
-        createdAt: { eq: $membershipCreatedAt }
-      }
-      limit: 1
-    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
-      userId
-        @check(
-          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
-          message: "An idempotency key is 1 to 200 characters"
-        )
-        @check(
-          expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
-          message: "A document's title is at most 200 characters on one line"
-        )
-    }
-  }
   moduleCallResult_insert(
     data: {
       idempotencyScope: $idempotencyScope
@@ -2553,6 +2546,37 @@ mutation RenameDocumentForAgent(
     }
     data: { title: $title, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+        )
+        @check(
+          expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
+          message: "A document's title is at most 200 characters on one line"
+        )
+    }
+    # The text as committed, which this mutation does not write
+    document(id: $id)
+      @check(
+        expr: "vars.title.matches('[[:^space:]]') || this.content != '' || size(this.documentUpdates_on_document) > 0"
+        message: "A document keeps a title or some text"
+      ) {
+      content
+      documentUpdates_on_document(limit: 1) {
+        id
+      }
+    }
+  }
 }
 
 # Tags a document with its aspects for an agent, the list written whole, each aspect once, as the

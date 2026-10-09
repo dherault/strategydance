@@ -60,6 +60,22 @@ export type ConversationRunFence = ConversationRunReference & {
 }
 
 /*
+  One of Strategy Dance's own tools, as a run's worker runs it: the name Claude calls it by, whether
+  it only reads, which lets it run beside the reads next to it, and what it does with a call's
+  input, as the run's member. It answers what goes back to Claude, as JSON, or throws an error whose
+  message is a sentence Claude can act on. It checks its input itself, since Claude's input streams
+  in unchecked
+*/
+export type ConversationToolRunner = {
+  name: string
+  isReadOnly: boolean
+  run(
+    input: unknown,
+    context: { signal: AbortSignal; reference: ConversationRunReference; toolUseId: string },
+  ): Promise<unknown>
+}
+
+/*
   What a run asks Claude through: a request streamed until its final message, the progress lines
   its thinking gives along the way handed over as they land, and a request's input counted. The
   real one calls Anthropic's API; a placeholder and the tests' scripted double stand in for it

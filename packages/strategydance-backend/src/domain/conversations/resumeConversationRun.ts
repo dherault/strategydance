@@ -41,7 +41,8 @@ export type ResumeConversationRunResult =
   offers while the note is the thread's newest message: the note goes, and a run starts on the
   anchor of the run it resumes, carrying its response on. It sends its context and the request
   straight away when the response was cut before it was stored, and draws and continues what was
-  stored otherwise. Each round reads where things stand first:
+  stored otherwise: a turn whose calls the stop or the crash left open has those with no result run,
+  the results the run it resumes kept carried over to it. Each round reads where things stand first:
 
   - a resume sent again after its first try went through finds the run it started right after the
     one it resumes, and is answered with it, queued again while it waits
@@ -128,6 +129,8 @@ async function resumeConversationRun(reference: ConversationRunReference): Promi
         ...buildKeptConversationPreview(beforeNote),
         runId: resumingRunId,
         runNumber: conversation.nextRunNumber,
+        // The results of the calls its turn finished, which the resuming run sends with the others
+        ...(latest.pendingToolResults ? { pendingToolResults: latest.pendingToolResults } : {}),
       })
     } catch (error) {
       if (round === MAX_ROUNDS) throw error

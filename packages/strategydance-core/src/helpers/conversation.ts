@@ -1,5 +1,10 @@
-import { MAX_CONVERSATION_PREVIEW_LENGTH } from '../constants'
-import type { ConversationPreview, ConversationPreviewSource } from '../types'
+import { MAX_ANSWER_OTHER_LENGTH, MAX_CONVERSATION_PREVIEW_LENGTH } from '../constants'
+import type {
+  ConversationAnswer,
+  ConversationAnswerCheck,
+  ConversationPreview,
+  ConversationPreviewSource,
+} from '../types'
 
 /*
   What the conversations list and the aspect page's cards show of a conversation: its last entry,
@@ -103,6 +108,69 @@ function buildQuestionPreview(source: ConversationPreviewSource): ConversationPr
   if (!answers.length) return { kind: 'QUESTION', questionState: 'WAITING', text: prompt }
 
   return { kind: 'QUESTION', questionState: 'ANSWERED', text: getPlainPreviewText(answers.join(', ')) }
+}
+
+/* ---
+  ANSWERS
+--- */
+
+/*
+  Whether a text holds a control character, U+0000 among them. A question's prompt and options and
+  an answer's own words go back into what Claude is sent exactly as they were written, so one that
+  holds any is refused rather than cleaned
+*/
+export function hasControlCharacter(text: string) {
+  return /\p{Cc}/u.test(text)
+}
+
+/*
+  Checks a member's answer against the question it answers, before anything is recorded, since it
+  goes into what Claude is sent: the options chosen are distinct options of that question, one at
+  most when a single one applies, the own words one line of at most `MAX_ANSWER_OTHER_LENGTH`
+  characters once trimmed, without a control character, and the answer chooses something or says
+  something. A single-choice answer is exactly one of the two, an option or its own words, as the
+  radios draw it. Lengths are counted in code points, as the database counts them.
+
+  A valid answer comes back with its options in the question's order and its own words trimmed, or
+  null when there are none, so the same answer sent twice reads the same
+*/
+export function checkConversationAnswer(
+  question: { options: string[]; isMultipleChoice: boolean },
+  answer: ConversationAnswer,
+): ConversationAnswerCheck {
+  const other = answer.other?.trim() || null
+
+  if (new Set(answer.selected).size !== answer.selected.length) {
+    return { outcome: 'invalid', reason: 'An answer chooses each option once' }
+  }
+
+  if (answer.selected.some(option => !question.options.includes(option))) {
+    return { outcome: 'invalid', reason: 'An answer chooses among the question’s options' }
+  }
+
+  if (other !== null) {
+    // In code points, as the database counts a text, so an emoji is one
+    if ([...other].length > MAX_ANSWER_OTHER_LENGTH) {
+      return { outcome: 'invalid', reason: `An answer’s own words hold at most ${MAX_ANSWER_OTHER_LENGTH} characters` }
+    }
+
+    if (hasControlCharacter(other) || /[\u2028\u2029]/.test(other)) {
+      return { outcome: 'invalid', reason: 'An answer’s own words are one line, without control characters' }
+    }
+  }
+
+  const count = answer.selected.length + (other === null ? 0 : 1)
+
+  if (!count) return { outcome: 'invalid', reason: 'An answer chooses an option or says something' }
+
+  if (!question.isMultipleChoice && count > 1) {
+    return { outcome: 'invalid', reason: 'A question with one answer takes one option or own words' }
+  }
+
+  return {
+    outcome: 'valid',
+    answer: { selected: question.options.filter(option => answer.selected.includes(option)), other },
+  }
 }
 
 /* ---

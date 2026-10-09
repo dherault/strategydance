@@ -1,8 +1,9 @@
-import { buildConversationPreview } from 'strategydance-core'
+import { type ConversationPreview, buildConversationPreview } from 'strategydance-core'
 import {
   ConversationNoteKind,
   type ConversationRunStatus,
   finishConversationRun,
+  finishConversationRunWaiting,
   finishConversationRunWithNote,
   interruptConversationRun,
 } from 'strategydance-database/backend'
@@ -19,6 +20,7 @@ import deriveConversationMessageId from '~domain/conversations/deriveConversatio
   How a worker ends its run:
 
   - `finished`: completed, or stopped in a conversation deleted meanwhile, without a note
+  - `waiting`: on the questions its turn asked, until an answer or a send consumes the turn
   - `noted`: with a note the thread draws, and why, for the logs: failed, at a limit that sends no
     further request or after Claude's API failed it, full when its next request would not fit
     Claude's context, which marks its conversation so, stopped as its member asked, or refused
@@ -41,6 +43,8 @@ export type ConversationRunEnding =
       | { status: ConversationRunStatus.STOPPED; noteKind: ConversationNoteKind.STOPPED }
       | { status: ConversationRunStatus.REFUSED; noteKind: ConversationNoteKind.REFUSED }
     ))
+  // With the preview of a call it cancels, when the preview shows it
+  | { kind: 'waiting'; usage?: ConversationRunUsage; preview?: ConversationPreview | null }
   | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number; failure: string }
 
 type EndConversationRunInput = {
@@ -77,6 +81,18 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
   }
 
   if (!fence) throw new Error('A run ends as its worker decides only once it is claimed')
+
+  if (ending.kind === 'waiting') {
+    await write(() =>
+      finishConversationRunWaiting(dataConnect, {
+        ...fence,
+        ...(ending.usage ? { usage: ending.usage } : {}),
+        ...(ending.preview ? { preview: ending.preview } : {}),
+      }),
+    )
+
+    return
+  }
 
   if (ending.kind === 'finished') {
     await write(() =>

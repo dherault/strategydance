@@ -1042,6 +1042,30 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "AnswerConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1091,6 +1115,24 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
@@ -1228,6 +1270,54 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationClientToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AnswerConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1513,6 +1603,54 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationClientToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StoreConversationToolResults"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

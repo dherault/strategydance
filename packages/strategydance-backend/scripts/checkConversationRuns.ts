@@ -5,18 +5,25 @@ import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   ConversationNoteKind,
   ConversationRunStatus,
+  answerConversationQuestion,
   claimDeletedConversations,
   claimQueuedConversationRun,
   connectorConfig,
+  continueConversationRun,
   deleteClaimedConversations,
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
+  drawConversationClientToolCall,
+  drawConversationQuestion,
   drawConversationToolCall,
   expireQueuedConversationRunLease,
   finishConversationRun,
+  finishConversationRunWaiting,
   finishConversationRunWithNote,
+  finishConversationToolCall,
   getClaimedConversations,
+  getConversationCalls,
   getConversationRequestContext,
   getConversationRetryContext,
   getConversationRunContext,
@@ -25,6 +32,7 @@ import {
   getConversationRunStop,
   getConversationTranscript,
   getConversationSendContext,
+  getConversationTurnContext,
   interruptConversationRun,
   interruptDeadConversationRun,
   reclaimConversationRun,
@@ -34,7 +42,9 @@ import {
   resumeConversationRun,
   retryConversationRun,
   sendConversationMessage,
+  sendConversationMessageAnsweringCalls,
   startConversation,
+  startConversationToolCall,
   stopQueuedConversationRun,
   storeConversationTurn,
   storeConversationTurnWithContext,
@@ -95,6 +105,7 @@ const userIds = {
   stopper: `check-conversation-runs-${checkId}-stopper`,
   resumer: `check-conversation-runs-${checkId}-resumer`,
   retrier: `check-conversation-runs-${checkId}-retrier`,
+  asker: `check-conversation-runs-${checkId}-asker`,
 }
 
 const failures: string[] = []
@@ -1664,6 +1675,292 @@ async function checkReplies() {
   check('a run finishing settles its usage', isSameJson(finishedLedger.conversationRun?.usage, settled))
 }
 
+/*
+  Questions and the calls of a turn: drawing a question within its bounds and a call to run,
+  starting and finishing a call with the results the run keeps, ending a run waiting on its
+  questions, answers counted under the conversation's lock, so two last answers at once never both
+  see the other waiting, and an answer's continuation raced against a send, exactly one consuming
+  the waiting turn
+*/
+async function checkQuestions() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.asker)
+
+  // A run that asked two questions and called a tool beside them, all drawn, its call run, waiting
+  async function startWaiting() {
+    const started = await start(userIds.asker, membershipCreatedAt)
+    const entryId = createId()
+    const questions = [createId(), createId()]
+    const callId = createId()
+
+    await claimQueuedConversationRun(dataConnect, fence(started, 0))
+    await storeConversationTurnWithContext(dataConnect, {
+      ...fence(started, 1),
+      contextEntryId: createId(),
+      contextPosition: 1,
+      contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+      contextHash: 'hash',
+      entryId,
+      position: 2,
+      content: JSON.stringify([
+        { type: 'tool_use', id: `toolu_${questions[0]}`, name: 'ask_user', input: {} },
+        { type: 'tool_use', id: `toolu_${questions[1]}`, name: 'ask_user', input: {} },
+        { type: 'tool_use', id: `toolu_${callId}`, name: 'read_log', input: {} },
+      ]),
+    })
+
+    const question = (index: number, overrides: Variables = {}) =>
+      drawConversationQuestion(dataConnect, {
+        ...fence(started, 1),
+        entryId,
+        fromBlock: index,
+        toBlock: index + 1,
+        messageId: questions[index] ?? '',
+        position: index + 1,
+        toolUseId: `toolu_${questions[index]}`,
+        questionPrompt: `Question ${index}`,
+        questionOptions: ['A', 'B'],
+        isMultipleChoice: true,
+        preview: { kind: 'QUESTION', questionState: 'WAITING', text: `Question ${index}` },
+        ...overrides,
+      })
+
+    return { started, entryId, questions, callId, question }
+  }
+
+  const waiting = await startWaiting()
+  const { started, entryId, questions, callId, question } = waiting
+
+  check(
+    'a question past its bounds is never drawn',
+    (await refusal(question(0, { questionPrompt: 'a'.repeat(1001) }))) !== null
+      && (await refusal(question(0, { questionOptions: ['A'] }))) !== null
+      && (await refusal(question(0, { questionOptions: ['A', 'b'.repeat(201)] }))) !== null,
+  )
+  check(
+    'a question at its bounds is drawn, unread',
+    (await refusal(question(0, { questionPrompt: 'a'.repeat(1000), questionOptions: ['A', 'b'.repeat(200)] }))) === null
+      && (await readConversation(started.conversationId))?.unreadCount === 1,
+  )
+  check('a question is drawn once', (await refusal(question(0))) !== null)
+
+  await question(1)
+
+  const call = (overrides: Variables = {}) =>
+    drawConversationClientToolCall(dataConnect, {
+      ...fence(started, 1),
+      entryId,
+      fromBlock: 2,
+      toBlock: 3,
+      messageId: callId,
+      position: 3,
+      toolUseId: `toolu_${callId}`,
+      toolName: 'read_log',
+      toolInput: '{}',
+      preview: { kind: 'TOOL_CALL', toolName: 'read_log', toolStatus: 'RUNNING' },
+      ...overrides,
+    })
+
+  check('a call to run is drawn running', (await refusal(call())) === null)
+
+  const startCall = () => startConversationToolCall(dataConnect, { ...fence(started, 1), messageId: callId })
+  const finishCall = (overrides: Variables = {}) =>
+    finishConversationToolCall(dataConnect, {
+      ...fence(started, 1),
+      messageId: callId,
+      toolStatus: ConversationToolStatus.SUCCEEDED,
+      toolOutput: '{"entries":[]}',
+      toolDurationMs: 12,
+      pendingToolResults: JSON.stringify([{ type: 'tool_result', tool_use_id: `toolu_${callId}`, content: '[]' }]),
+      preview: { kind: 'TOOL_CALL', toolName: 'read_log', toolStatus: 'SUCCEEDED' },
+      ...overrides,
+    })
+
+  check(
+    'a call starts, and starts again after a crash',
+    (await refusal(startCall())) === null && (await refusal(startCall())) === null,
+  )
+  check('a call finishes only succeeded or failed', (await refusal(finishCall({ toolStatus: 'CANCELLED' }))) !== null)
+  check('a call finishes, its result kept on the run', (await refusal(finishCall())) === null)
+  check(
+    'a call finishes once, and never starts again once it has',
+    (await refusal(finishCall())) !== null && (await refusal(startCall())) !== null,
+  )
+
+  const { data: calls } = await getConversationCalls(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    toolUseIds: [`toolu_${callId}`],
+  })
+
+  check(
+    'the run keeps the results of its turn’s calls',
+    calls.latestRuns[0]?.pendingToolResults?.includes(`toolu_${callId}`) === true
+      && calls.conversationMessages[0]?.toolStatus === ConversationToolStatus.SUCCEEDED,
+  )
+
+  await finishConversationRunWaiting(dataConnect, { ...fence(started, 1) })
+
+  const waitingConversation = await read<{
+    conversation: { isAwaitingAnswer: boolean; activeRunId: string | null } | null
+  }>(`query ReadWaiting($id: UUID!) { conversation(id: $id) { isAwaitingAnswer activeRunId } }`, {
+    id: started.conversationId,
+  })
+
+  check(
+    'a run ending on questions waits, and its conversation waits for the answers',
+    (await readRun(started.runId))?.status === ConversationRunStatus.WAITING
+      && waitingConversation.conversation?.isAwaitingAnswer === true
+      && waitingConversation.conversation.activeRunId === null,
+  )
+
+  const answer = (index: number, overrides: Variables = {}) =>
+    answerConversationQuestion(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      runId: started.runId,
+      messageId: questions[index] ?? '',
+      previewMessageId: callId,
+      answerSelected: ['A'],
+      ...overrides,
+    })
+
+  check(
+    'an answer is refused once the preview moved, or past its bounds',
+    (await refusal(answer(0, { previewMessageId: createId() }))) !== null
+      && (await refusal(answer(0, { answerSelected: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] }))) !== null
+      && (await refusal(answer(0, { answerSelected: [], answerOther: 'a'.repeat(501) }))) !== null
+      && (await refusal(answer(0, { answerSelected: [] }))) !== null,
+  )
+
+  const continueRun = (runId: string) =>
+    continueConversationRun(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      membershipCreatedAt,
+      waitingRunId: started.runId,
+      runId,
+      runNumber: 1,
+      content: JSON.stringify([{ type: 'tool_result', tool_use_id: 'x', content: '' }]),
+      transcriptPosition: 3,
+    })
+
+  const { data: firstAnswer } = await answer(0)
+
+  check('an answer counts the questions still waiting', firstAnswer.left?.conversationMessages.length === 1)
+  check('a question is answered once', (await refusal(answer(0))) !== null)
+  check('nothing carries on while a question waits', (await refusal(continueRun(createId()))) !== null)
+
+  const { data: lastAnswer } = await answer(1, { answerSelected: [], answerOther: 'Own words' })
+
+  check('the last answer finds none waiting', lastAnswer.left?.conversationMessages.length === 0)
+
+  const send = (overrides: Variables = {}) =>
+    sendConversationMessageAnsweringCalls(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      membershipCreatedAt,
+      messageId: createId(),
+      text: 'Instead',
+      preview: { kind: 'MEMBER_TEXT', text: 'Instead' },
+      position: 4,
+      runId: createId(),
+      runNumber: 1,
+      content: JSON.stringify([{ type: 'text', text: 'Instead' }]),
+      transcriptPosition: 3,
+      lastRunId: started.runId,
+      isLastRunWaiting: true,
+      skippedQuestionIds: [],
+      ...overrides,
+    })
+
+  check(
+    'a send that reads the waiting run wrong, or skips a question answered, is refused',
+    (await refusal(send({ isLastRunWaiting: false }))) !== null
+      && (await refusal(send({ skippedQuestionIds: [questions[0]] }))) !== null,
+  )
+
+  const races = await Promise.all([refusal(continueRun(createId())), refusal(send())])
+
+  check(
+    'an answer’s continuation and a send at once consume the waiting turn once',
+    races.filter(raced => raced === null).length === 1
+      && (await readRun(started.runId))?.status === ConversationRunStatus.CONTINUED,
+  )
+  check('a consumed turn is consumed by nothing else', (await refusal(continueRun(createId()))) !== null)
+
+  // Two last answers at once, each to its own question: the lock has the second see the first
+  const second = await startWaiting()
+
+  await second.question(0)
+  await second.question(1)
+  await finishConversationRunWaiting(dataConnect, { ...fence(second.started, 1) })
+
+  const answerSecond = (index: number) =>
+    answerConversationQuestion(dataConnect, {
+      organizationId,
+      userId: second.started.userId,
+      conversationId: second.started.conversationId,
+      runId: second.started.runId,
+      messageId: second.questions[index] ?? '',
+      previewMessageId: second.questions[1] ?? '',
+      answerSelected: ['B'],
+    })
+  const lefts = await Promise.all([answerSecond(0), answerSecond(1)])
+
+  check(
+    'two last answers at once never both see the other waiting',
+    lefts
+      .map(({ data }) => data.left?.conversationMessages.length ?? -1)
+      .sort()
+      .join() === '0,1',
+  )
+
+  // A call drawn by one run is cancelled by the next run's end, which runs it after a resume
+  await write(
+    `mutation AddRunningCall($conversationId: UUID!, $runId: UUID!) {
+      conversationMessage_insert(data: { conversationId: $conversationId, runId: $runId, kind: TOOL_CALL, toolName: "read_log", toolStatus: RUNNING, position: 999 })
+    }`,
+    { conversationId: started.conversationId, runId: started.runId },
+  )
+
+  const { data: turn } = await getConversationTurnContext(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+  })
+  const [continuing] = turn.latestRuns
+
+  if (!continuing) throw new Error('No run carries the conversation on')
+
+  const continued = { ...started, runId: continuing.id }
+
+  await claimQueuedConversationRun(dataConnect, fence(continued, 0))
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(continued, 1),
+    status: ConversationRunStatus.STOPPED,
+    noteKind: ConversationNoteKind.STOPPED,
+    noteId: createId(),
+    position: (await readConversation(started.conversationId))?.nextMessagePosition ?? 0,
+    preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+  })
+
+  const toolStatus = await read<{ conversationMessages: { toolStatus: string | null }[] }>(
+    `query ReadCall($conversationId: UUID!) {
+      conversationMessages(where: { conversationId: { eq: $conversationId }, position: { eq: 999 } }) { toolStatus }
+    }`,
+    { conversationId: started.conversationId },
+  )
+
+  check(
+    'a run’s end cancels the calls running in its conversation, whichever run drew them',
+    toolStatus.conversationMessages[0]?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+}
+
 try {
   await setUp()
 
@@ -1683,6 +1980,7 @@ try {
   await checkPruning()
   await checkSweeping()
   await checkReplies()
+  await checkQuestions()
 } finally {
   await tearDown()
 }

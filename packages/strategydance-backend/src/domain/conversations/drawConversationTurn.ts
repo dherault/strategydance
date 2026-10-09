@@ -3,6 +3,8 @@ import {
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
+  drawConversationClientToolCall,
+  drawConversationQuestion,
   drawConversationToolCall,
 } from 'strategydance-database/backend'
 
@@ -10,6 +12,9 @@ import type { ConversationContentBlock, ConversationRunFence } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import type { ConversationQuestion } from '~domain/agent/checkConversationQuestion'
+import type { ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
+import { toFailedOutput } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import mergeConversationText, {
@@ -32,6 +37,8 @@ type DrawConversationTurnInput = {
   lease: ConversationRunLease
   // The run's parts, in order
   entries: ConversationDrawEntry[]
+  // What becomes of each call to Strategy Dance's own tools in them, by its id
+  plans: Map<string, ConversationToolCallPlan>
   // The conversation's counter, where the message goes
   position: number
 }
@@ -67,9 +74,28 @@ type Drawing =
       toBlock: number
       messageId: string
       toolUseId: string
+      toolName: string
       toolStatus: ConversationToolStatus
       toolInput: string
       toolOutput: string
+    }
+  // A call to one of Strategy Dance's own tools, to run
+  | {
+      kind: 'clientCall'
+      fromBlock: number
+      toBlock: number
+      messageId: string
+      toolUseId: string
+      toolName: string
+      toolInput: string
+    }
+  | {
+      kind: 'question'
+      fromBlock: number
+      toBlock: number
+      messageId: string
+      toolUseId: string
+      question: ConversationQuestion
     }
 
 /*
@@ -85,15 +111,17 @@ type Drawing =
     pieces, one at a time, the cursor's piece saying which comes next
   - a web search, as a finished call whose output lists the results' titles and addresses. Its
     result comes in the same part, or opens the next when `pause_turn` paused the turn between
+  - a call to one of Strategy Dance's own tools as its plan says: a question the member answers, a
+    call that runs, or a call refused, failed with why. A question past its bounds draws nothing
   - nothing for thinking, Claude's own code execution and its results, and whatever else is not
     text or a web search, so a part ending on those is wholly drawn once its last text is
 
   Each message's id derives from its part, its first block and its piece, so a worker taking over
   after a crash, which draws from the same cursor, derives the same one
 */
-async function drawConversationTurn({ fence, lease, entries, position }: DrawConversationTurnInput) {
+async function drawConversationTurn({ fence, lease, entries, plans, position }: DrawConversationTurnInput) {
   for (const [index, entry] of entries.entries()) {
-    const drawing = findNextDrawing(entry, entries.slice(index + 1))
+    const drawing = findNextDrawing(entry, entries.slice(index + 1), plans)
 
     if (drawing.kind === 'none') continue
     if (drawing.kind === 'waiting') return 'waiting'
@@ -106,7 +134,11 @@ async function drawConversationTurn({ fence, lease, entries, position }: DrawCon
   return 'done'
 }
 
-function findNextDrawing(entry: ConversationDrawEntry, laterEntries: ConversationDrawEntry[]): Drawing {
+function findNextDrawing(
+  entry: ConversationDrawEntry,
+  laterEntries: ConversationDrawEntry[],
+  plans: Map<string, ConversationToolCallPlan>,
+): Drawing {
   const { blocks, drawnBlocks: cursor, drawnPieces } = entry
 
   if (drawnPieces > 0) {
@@ -160,13 +192,48 @@ function findNextDrawing(entry: ConversationDrawEntry, laterEntries: Conversatio
         toBlock: index + 1,
         messageId: deriveConversationMessageId(entry.id, index, 0),
         toolUseId: block.id,
+        toolName: 'web_search',
         ...describeResult(result),
         toolInput: JSON.stringify(block.input ?? {}),
       }
     }
+
+    const plan = isToolCall(block) ? plans.get(block.id) : undefined
+
+    if (plan && (plan.kind !== 'refused' || plan.isDrawn)) {
+      return drawCall(plan, {
+        fromBlock: cursor,
+        toBlock: index + 1,
+        messageId: deriveConversationMessageId(entry.id, index, 0),
+      })
+    }
   }
 
   return { kind: 'none' }
+}
+
+// A call to one of Strategy Dance's own tools, as its plan draws it
+function drawCall(
+  plan: ConversationToolCallPlan,
+  move: { fromBlock: number; toBlock: number; messageId: string },
+): Drawing {
+  const { call } = plan
+
+  if (plan.kind === 'question') return { kind: 'question', ...move, toolUseId: call.id, question: plan.question }
+
+  const toolInput = JSON.stringify(call.input ?? {})
+
+  if (plan.kind === 'run') return { kind: 'clientCall', ...move, toolUseId: call.id, toolName: call.name, toolInput }
+
+  return {
+    kind: 'call',
+    ...move,
+    toolUseId: call.id,
+    toolName: call.name,
+    toolStatus: ConversationToolStatus.FAILED,
+    toolInput,
+    toolOutput: toFailedOutput(plan.reason),
+  }
 }
 
 /*
@@ -260,11 +327,50 @@ async function write(fence: ConversationRunFence, entryId: string, position: num
       messageId: drawing.messageId,
       position,
       toolUseId: drawing.toolUseId,
-      toolName: 'web_search',
+      toolName: drawing.toolName,
       toolStatus: drawing.toolStatus,
       toolInput: drawing.toolInput,
       toolOutput: drawing.toolOutput,
-      preview: buildConversationPreview({ kind: 'TOOL_CALL', toolName: 'web_search', toolStatus: drawing.toolStatus }),
+      preview: buildConversationPreview({
+        kind: 'TOOL_CALL',
+        toolName: drawing.toolName,
+        toolStatus: drawing.toolStatus,
+      }),
+    })
+  }
+
+  if (drawing.kind === 'clientCall') {
+    await drawConversationClientToolCall(dataConnect, {
+      ...fence,
+      entryId,
+      fromBlock: drawing.fromBlock,
+      toBlock: drawing.toBlock,
+      messageId: drawing.messageId,
+      position,
+      toolUseId: drawing.toolUseId,
+      toolName: drawing.toolName,
+      toolInput: drawing.toolInput,
+      preview: buildConversationPreview({
+        kind: 'TOOL_CALL',
+        toolName: drawing.toolName,
+        toolStatus: ConversationToolStatus.RUNNING,
+      }),
+    })
+  }
+
+  if (drawing.kind === 'question') {
+    await drawConversationQuestion(dataConnect, {
+      ...fence,
+      entryId,
+      fromBlock: drawing.fromBlock,
+      toBlock: drawing.toBlock,
+      messageId: drawing.messageId,
+      position,
+      toolUseId: drawing.toolUseId,
+      questionPrompt: drawing.question.prompt,
+      questionOptions: drawing.question.options,
+      isMultipleChoice: drawing.question.isMultipleChoice,
+      preview: buildConversationPreview({ kind: 'QUESTION', questionPrompt: drawing.question.prompt }),
     })
   }
 }
@@ -275,6 +381,10 @@ function isTextBlock(block: ConversationContentBlock | undefined) {
 
 function isWebSearch(block: ConversationContentBlock | undefined): block is ConversationContentBlock & { id: string } {
   return block?.type === 'server_tool_use' && block.name === 'web_search' && typeof block.id === 'string'
+}
+
+function isToolCall(block: ConversationContentBlock | undefined): block is ConversationContentBlock & { id: string } {
+  return block?.type === 'tool_use' && typeof block.id === 'string'
 }
 
 export default drawConversationTurn

@@ -327,6 +327,9 @@ only way the app talks to them.
   the backend calls a single-row mutation once per row instead
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
+- A `query` step of a mutation does not see what the same mutation wrote, though it sees what
+  another transaction committed before it once a lock is taken. Count around the rows the mutation
+  writes, by their ids, as `AnswerConversationQuestion` leaves out the question it answers
 - A mutation writes each row once. Data Connect runs the first write to a row and silently skips
   any later one in the same mutation, aliased or not: an `organization_update` row lock followed
   by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
@@ -683,6 +686,17 @@ in `utils/`, one concern per file.
   hash, and the tools are frozen: a change to either costs every conversation its earlier
   reasoning once, as `drop_block` lets a replay do, so it ships with a release that means to. Load
   the `claude-api` skill before writing code that calls Claude
+- A tool the agent calls, beside Claude's own web search, is declared in `CONVERSATION_TOOLS` and run
+  by a `ConversationToolRunner` in `CONVERSATION_TOOL_RUNNERS`: its name, whether it only reads,
+  which lets it run four at a time beside the reads next to it, and a `run` that checks its own
+  input, since Claude's streams in unchecked, and answers JSON or throws a sentence Claude can act
+  on. What becomes of each call is planned from the transcript alone (`planConversationToolCalls`),
+  so a worker taking over plans the same; each call starts and finishes in fenced writes, its result
+  kept on the run in `pendingToolResults` until the entry answering the turn is stored; and that
+  entry, for the worker, an answer's continuation and a send alike, comes from
+  `buildConversationToolResults`, one result per call in the turn's order. `ask_user` is answered by
+  the member instead: only the turn the transcript ends on holds questions without an answer, so
+  what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
   conditions and refusals. `bun run check:conversation-runs`, in the backend's package, checks

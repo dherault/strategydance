@@ -1,5 +1,6 @@
 import express, { type Request, type Response, Router } from 'express'
 import {
+  type AnswerConversationQuestionData,
   type ApiResponse,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
@@ -9,7 +10,10 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
+  MAX_ANSWER_OTHER_LENGTH,
   MAX_CONVERSATIONS,
+  MAX_QUESTION_OPTIONS,
+  MAX_QUESTION_OPTION_LENGTH,
   type ResumeConversationRunData,
   type RetryConversationRunData,
   type SendConversationMessageData,
@@ -28,6 +32,7 @@ import organizationMemberMiddleware from '~middleware/organizationMember'
 import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 
+import answerConversationQuestion from '~domain/conversations/answerConversationQuestion'
 import parseConversationMessageText from '~domain/conversations/parseConversationMessageText'
 import reconcileConversationRun from '~domain/conversations/reconcileConversationRun'
 import resumeConversationRun from '~domain/conversations/resumeConversationRun'
@@ -148,6 +153,83 @@ function createConversationsRouter() {
               runId: result.runId,
             },
           })
+      }
+    },
+  )
+
+  /* ---
+    ANSWERS
+  --- */
+
+  const answersBodySchema = z.object({
+    // The question answered, a message of the conversation
+    messageId: z.string().regex(UUID_PATTERN),
+    // The options chosen, by their text, and the member's own words, bounded here at two code units
+    // a character, since a character outside the Basic Multilingual Plane takes two: the answer's
+    // check against its question holds them to the question's options and to 500 characters
+    selected: z.array(z.string().max(MAX_QUESTION_OPTION_LENGTH * 2)).max(MAX_QUESTION_OPTIONS),
+    other: z
+      .string()
+      .max(MAX_ANSWER_OTHER_LENGTH * 2)
+      .nullable(),
+  })
+
+  type AnswersRequest = Request<
+    z.infer<typeof messagesParamsSchema>,
+    ApiResponse<AnswerConversationQuestionData>,
+    z.infer<typeof answersBodySchema>
+  >
+
+  /*
+    Answers a question of the turn one of the caller's conversations waits on: 202 with the run that
+    carries the conversation on once no question of the turn waits, or null while another does, or
+    while the caller has as many runs going as they may, when the page's reconcile starts it later.
+    The same answer sent again is answered the same, and carries the conversation on when its first
+    try could not. Refused with a 400 when the answer does not fit its question, as
+    `checkConversationAnswer` reads it, and with a 409 when the question was skipped, answered
+    otherwise, or waits for nothing any more. Answered with a 503 when the run is started but could
+    not be queued, which the same answer sent again queues again
+  */
+  router.post(
+    '/:conversationId/answers',
+    express.json({ limit: '32kb' }),
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: messagesParamsSchema, body: answersBodySchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: AnswersRequest, response: Response<ApiResponse<AnswerConversationQuestionData>>) => {
+      const result = await answerConversationQuestion({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        messageId: toCanonicalUuid(request.body.messageId),
+        answer: { selected: request.body.selected, other: request.body.other },
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This question is not in one of your conversations')
+
+          return
+        case 'invalid':
+          respondError(response, 400, ERROR_CODE_BAD_REQUEST, result.reason)
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This question waits for no answer')
+
+          return
+        case 'unavailable':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The answer is kept, but cannot be followed now')
+
+          return
+        case 'answered':
+          response.status(202).json({ status: 'success', data: { runId: result.runId } })
       }
     },
   )

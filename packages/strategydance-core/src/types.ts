@@ -129,6 +129,25 @@ export type ConversationCitation = {
   }[]
 }
 
+// A member's answer to a question: the options they chose, by their text, and their own words
+export type ConversationAnswer = {
+  selected: string[]
+  other: string | null
+}
+
+// Whether an answer fits its question, as `checkConversationAnswer` reads it: the answer as it is
+// recorded, its options in the question's order and its own words trimmed, or why it does not
+export type ConversationAnswerCheck =
+  | { outcome: 'valid'; answer: ConversationAnswer }
+  | { outcome: 'invalid'; reason: string }
+
+// What answering a question answers with: the run that carries the conversation on once every
+// question of its turn is answered, or null while another still waits, or while the member has as
+// many runs going as they may, when the page's reconcile starts it later
+export type AnswerConversationQuestionData = {
+  runId: string | null
+}
+
 // What sending a message answers with: the run it started, or the one a send retried with the same
 // message's id started the first time
 export type SendConversationMessageData = {

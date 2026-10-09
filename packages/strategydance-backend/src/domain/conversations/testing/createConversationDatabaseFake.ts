@@ -86,6 +86,8 @@ export type FakeConversation = {
   aspects?: string[]
   // How many times a retry cut its history, 0 until one does
   historyRevision?: number
+  // Whether a question waits for the member, false until a run ends on one
+  isAwaitingAnswer?: boolean
 }
 
 export type FakeRun = {
@@ -107,6 +109,8 @@ export type FakeRun = {
   context?: string | null
   usage?: unknown
   failure?: string | null
+  // The results of its turn's calls that finished, as JSON text, until the entry that sends them
+  pendingToolResults?: string | null
 }
 
 export type FakeMessage = {
@@ -123,6 +127,15 @@ export type FakeMessage = {
   toolName?: string | null
   toolInput?: string | null
   toolOutput?: string | null
+  toolStartedAt?: string | null
+  toolDurationMs?: number | null
+  questionPrompt?: string | null
+  questionOptions?: string[] | null
+  isMultipleChoice?: boolean | null
+  answerSelected?: string[] | null
+  answerOther?: string | null
+  isAnswerSkipped?: boolean
+  answeredAt?: string | null
 }
 
 export type FakeEntry = {
@@ -332,6 +345,53 @@ function createConversationDatabaseFake() {
     return [...messages.values()].filter(message => message.conversationId === conversationId)
   }
 
+  // The questions of a conversation still waiting for an answer, which only the turn its transcript
+  // ends on can hold
+  function waitingQuestions(conversationId: string) {
+    return conversationMessages(conversationId).filter(
+      message => message.kind === 'QUESTION' && (message.answeredAt ?? null) === null,
+    )
+  }
+
+  // A conversation's runs, latest first
+  function latestRuns(conversationId: string) {
+    return [...runs.values()].filter(run => run.conversationId === conversationId).sort((a, b) => b.number - a.number)
+  }
+
+  // Cancels the calls still running in a conversation, which only its run in flight can have
+  function cancelRunningCalls(conversationId: string) {
+    for (const message of conversationMessages(conversationId)) {
+      if (message.kind === 'TOOL_CALL' && message.toolStatus === 'RUNNING') message.toolStatus = 'CANCELLED'
+    }
+  }
+
+  // A run queued as a member's action queues one, anchored on the transcript entry it answers
+  function queuedRun(
+    runId: string,
+    conversationId: string,
+    variables: AnyVariables,
+    trigger: string,
+    anchorPosition: number,
+  ): FakeRun {
+    return {
+      id: runId,
+      conversationId,
+      number: variables.runNumber,
+      trigger,
+      status: 'QUEUED',
+      membershipCreatedAt: variables.membershipCreatedAt,
+      step: null,
+      anchorPosition,
+      stopRequestedAt: null,
+      leaseExpiresAt: inSeconds(20 * 60),
+      attempts: 0,
+      createdAt: now(),
+      startedAt: null,
+      endedAt: null,
+      pendingToolResults: null,
+    }
+  }
+
   function conversationEntries(conversationId: string) {
     return [...entries.values()]
       .filter(entry => entry.conversationId === conversationId)
@@ -371,6 +431,22 @@ function createConversationDatabaseFake() {
     }
 
     return conversation
+  }
+
+  // The transcript entry a drawn message moves the cursor of, at the cursor the worker read
+  function requireDrawEntry(run: FakeRun, variables: AnyVariables) {
+    const entry = entries.get(id(variables.entryId))
+
+    if (
+      !entry
+      || entry.conversationId !== run.conversationId
+      || entry.drawnBlocks !== variables.fromBlock
+      || (entry.drawnPieces ?? 0) !== 0
+    ) {
+      refuse('Those blocks were drawn already')
+    }
+
+    return entry
   }
 
   // Writes the optional variables an operation names into its row, leaving those omitted as they
@@ -463,11 +539,7 @@ function createConversationDatabaseFake() {
       position: variables.position,
     })
 
-    for (const message of messages.values()) {
-      if (message.runId === runId && message.kind === 'TOOL_CALL' && message.toolStatus === 'RUNNING') {
-        message.toolStatus = 'CANCELLED'
-      }
-    }
+    cancelRunningCalls(conversation.id)
 
     Object.assign(conversation, {
       activeRunId: null,
@@ -503,6 +575,74 @@ function createConversationDatabaseFake() {
     }
   }
 
+  // The conversation a send goes into, after the membership's lock and counts: the caller's, not
+  // deleted, idle, not full, at the counters the send read
+  function requireSendConversation(variables: AnyVariables) {
+    const conversation = conversations.get(id(variables.conversationId))
+
+    checkStart(variables)
+
+    if (
+      !conversation
+      || conversation.userId !== variables.userId
+      || conversation.organizationId !== id(variables.organizationId)
+      || conversation.deletedAt !== null
+      || conversation.activeRunId !== null
+      || conversation.isFull
+      || conversation.messageCount >= MAX_CONVERSATION_MESSAGES
+      || conversation.nextMessagePosition !== variables.position
+      || conversation.nextRunNumber !== variables.runNumber
+    ) {
+      refuse('The conversation could not take the message')
+    }
+
+    return conversation
+  }
+
+  // The keys a send's run and entry take, checked before anything is written
+  function checkSend(conversation: FakeConversation, variables: AnyVariables) {
+    if (runs.has(id(variables.runId))) refuse('violates SQL unique constraint: conversation_run_pkey')
+    if (conversationEntries(conversation.id).some(({ position }) => position === variables.transcriptPosition)) {
+      refuse('violates SQL unique constraint: conversation_transcript_entry_conversation_id_position_uidx')
+    }
+  }
+
+  // A send's writes: the conversation takes the message and its run, then the run, the message
+  // and its entry
+  function writeSend(conversation: FakeConversation, variables: AnyVariables) {
+    const runId = id(variables.runId)
+
+    Object.assign(conversation, {
+      activeRunId: runId,
+      preview: variables.preview,
+      previewMessageId: id(variables.messageId),
+      nextMessagePosition: conversation.nextMessagePosition + 1,
+      nextRunNumber: conversation.nextRunNumber + 1,
+      messageCount: conversation.messageCount + 1,
+      updatedAt: now(),
+    })
+    runs.set(runId, queuedRun(runId, conversation.id, variables, 'MESSAGE', variables.transcriptPosition))
+    insertMessage({
+      id: id(variables.messageId),
+      conversationId: conversation.id,
+      runId,
+      kind: 'MEMBER_TEXT',
+      text: variables.text,
+      noteKind: null,
+      toolStatus: null,
+      position: variables.position,
+    })
+    insertEntry({
+      id: crypto.randomUUID().replaceAll('-', ''),
+      conversationId: conversation.id,
+      runId,
+      position: variables.transcriptPosition,
+      role: 'USER',
+      content: variables.content,
+      drawnBlocks: 0,
+    })
+  }
+
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
     GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
 
@@ -516,7 +656,17 @@ function createConversationDatabaseFake() {
       return {
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
         conversation: conversation ? { ...conversation } : null,
-        conversationTranscriptEntries: lastEntry ? [{ position: lastEntry.position, role: lastEntry.role }] : [],
+        conversationTranscriptEntries: lastEntry
+          ? [{ id: lastEntry.id, position: lastEntry.position, role: lastEntry.role, content: lastEntry.content }]
+          : [],
+        latestRuns:
+          conversation
+          && conversation.userId === variables.userId
+          && conversation.organizationId === id(variables.organizationId)
+            ? latestRuns(conversation.id)
+                .slice(0, 1)
+                .map(run => ({ id: run.id, status: run.status }))
+            : [],
         conversationMessages:
           message && messageConversation
             ? [
@@ -564,7 +714,7 @@ function createConversationDatabaseFake() {
           : [],
         runEntries: conversationEntries(id(variables.conversationId))
           .filter(entry => entry.runId === id(variables.runId) && entry.role === 'ASSISTANT')
-          .sort((a, b) => a.position - b.position)
+          .sort((a, b) => b.position - a.position)
           .slice(0, 10)
           .map(({ id: entryId, position, content, drawnBlocks, drawnPieces }) => ({
             id: entryId,
@@ -627,13 +777,14 @@ function createConversationDatabaseFake() {
         conversation: conversation ? { historyRevision: 0, ...conversation } : null,
         latestRuns: conversationRuns
           .slice(0, 2)
-          .map(({ id: runId, number, trigger, status, anchorPosition, leaseExpiresAt }) => ({
+          .map(({ id: runId, number, trigger, status, anchorPosition, leaseExpiresAt, pendingToolResults }) => ({
             id: runId,
             number,
             trigger,
             status,
             anchorPosition,
             leaseExpiresAt,
+            pendingToolResults: pendingToolResults ?? null,
           })),
         conversationRuns: runsInFlight(variables.userId, variables.organizationId)
           .slice(0, 3)
@@ -654,13 +805,125 @@ function createConversationDatabaseFake() {
             noteKind: message.noteKind,
             toolName: message.toolName ?? null,
             toolStatus: message.toolStatus,
-            questionPrompt: null,
-            answerSelected: null,
-            answerOther: null,
-            isAnswerSkipped: false,
+            questionPrompt: message.questionPrompt ?? null,
+            answerSelected: message.answerSelected ?? null,
+            answerOther: message.answerOther ?? null,
+            isAnswerSkipped: message.isAnswerSkipped ?? false,
             run: message.runId ? { id: message.runId } : null,
           })),
         newestMessages: conversationMessages.slice(0, 1).map(message => ({ id: message.id })),
+      }
+    },
+
+    GetConversationCalls: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const toolUseIds = new Set(variables.toolUseIds as string[])
+
+      return {
+        conversationMessages: isTheirs
+          ? conversationMessages(conversation.id)
+              .filter(
+                message => ['TOOL_CALL', 'QUESTION'].includes(message.kind) && toolUseIds.has(message.toolUseId ?? ''),
+              )
+              .sort((a, b) => a.position - b.position)
+              .slice(0, 1000)
+              .map(message => ({
+                id: message.id,
+                kind: message.kind,
+                toolUseId: message.toolUseId ?? null,
+                toolName: message.toolName ?? null,
+                toolStatus: message.toolStatus,
+                toolOutput: message.toolOutput ?? null,
+                toolStartedAt: message.toolStartedAt ?? null,
+                questionOptions: message.questionOptions ?? null,
+                isMultipleChoice: message.isMultipleChoice ?? null,
+                answerSelected: message.answerSelected ?? null,
+                answerOther: message.answerOther ?? null,
+                isAnswerSkipped: message.isAnswerSkipped ?? false,
+                answeredAt: message.answeredAt ?? null,
+              }))
+          : [],
+        latestRuns: isTheirs
+          ? latestRuns(conversation.id)
+              .slice(0, 1)
+              .map(run => ({ id: run.id, status: run.status, pendingToolResults: run.pendingToolResults ?? null }))
+          : [],
+      }
+    },
+
+    GetConversationTurnContext: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+      const lastEntry = isTheirs ? conversationEntries(conversation.id)[0] : undefined
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        conversation: conversation ? { isAwaitingAnswer: false, ...conversation } : null,
+        latestRuns: isTheirs
+          ? latestRuns(conversation.id)
+              .slice(0, 2)
+              .map(({ id: runId, number, trigger, status, leaseExpiresAt }) => ({
+                id: runId,
+                number,
+                trigger,
+                status,
+                leaseExpiresAt,
+              }))
+          : [],
+        conversationRuns: runsInFlight(variables.userId, variables.organizationId)
+          .slice(0, 3)
+          .map(run => ({
+            id: run.id,
+            status: run.status,
+            leaseExpiresAt: run.leaseExpiresAt,
+            conversation: { id: run.conversationId },
+          })),
+        conversationTranscriptEntries: lastEntry
+          ? [{ id: lastEntry.id, position: lastEntry.position, role: lastEntry.role, content: lastEntry.content }]
+          : [],
+        waitingQuestions: isTheirs
+          ? waitingQuestions(conversation.id)
+              .slice(0, 1000)
+              .map(message => ({ id: message.id }))
+          : [],
+      }
+    },
+
+    GetConversationQuestion: variables => {
+      const message = messages.get(id(variables.messageId))
+      const conversation = message && conversations.get(message.conversationId)
+      const isTheirs =
+        conversation !== undefined
+        && conversation.id === id(variables.conversationId)
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+
+      return {
+        conversationMessages:
+          message && isTheirs
+            ? [
+                {
+                  id: message.id,
+                  kind: message.kind,
+                  toolUseId: message.toolUseId ?? null,
+                  questionPrompt: message.questionPrompt ?? null,
+                  questionOptions: message.questionOptions ?? null,
+                  isMultipleChoice: message.isMultipleChoice ?? null,
+                  answerSelected: message.answerSelected ?? null,
+                  answerOther: message.answerOther ?? null,
+                  isAnswerSkipped: message.isAnswerSkipped ?? false,
+                  answeredAt: message.answeredAt ?? null,
+                },
+              ]
+            : [],
       }
     },
 
@@ -700,10 +963,10 @@ function createConversationDatabaseFake() {
           noteKind: message.noteKind,
           toolName: message.toolName ?? null,
           toolStatus: message.toolStatus,
-          questionPrompt: null,
-          answerSelected: null,
-          answerOther: null,
-          isAnswerSkipped: false,
+          questionPrompt: message.questionPrompt ?? null,
+          answerSelected: message.answerSelected ?? null,
+          answerOther: message.answerOther ?? null,
+          isAnswerSkipped: message.isAnswerSkipped ?? false,
         })),
       }
     },
@@ -798,6 +1061,7 @@ function createConversationDatabaseFake() {
         nextMessagePosition: 1,
         messageCount: 1,
         isFull: false,
+        isAwaitingAnswer: false,
         deletedAt: null,
         pruneClaimedAt: null,
         updatedAt: now(),
@@ -842,67 +1106,141 @@ function createConversationDatabaseFake() {
     },
 
     SendConversationMessage: variables => {
-      const conversationId = id(variables.conversationId)
-      const runId = id(variables.runId)
-      const conversation = conversations.get(conversationId)
+      const conversation = requireSendConversation(variables)
 
-      checkStart(variables)
+      checkSend(conversation, variables)
+      writeSend(conversation, variables)
+
+      return { conversation_updateMany: 1 }
+    },
+
+    SendConversationMessageAnsweringCalls: variables => {
+      const conversation = requireSendConversation(variables)
+      const lastRun = runs.get(id(variables.lastRunId))
+      const isLastRunWaiting =
+        lastRun !== undefined && lastRun.status === 'WAITING' && lastRun.conversationId === conversation.id
+
+      if (Number(isLastRunWaiting) !== (variables.isLastRunWaiting ? 1 : 0)) {
+        refuse('The last run no longer waits as the send read it')
+      }
+
+      const skippedIds = new Set((variables.skippedQuestionIds as string[]).map(id))
+      const skipped = waitingQuestions(conversation.id).filter(message => skippedIds.has(message.id))
+
+      if (skipped.length !== skippedIds.size) refuse('The questions changed since the send read them')
+
+      checkSend(conversation, variables)
+
+      if (lastRun && isLastRunWaiting) lastRun.status = 'CONTINUED'
+
+      for (const message of skipped) Object.assign(message, { isAnswerSkipped: true, answeredAt: now() })
+
+      conversation.isAwaitingAnswer = false
+      writeSend(conversation, variables)
+
+      return { conversation_updateMany: 1 }
+    },
+
+    AnswerConversationQuestion: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
 
       if (
         !conversation
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
         || conversation.deletedAt !== null
+        || !conversation.isAwaitingAnswer
+        || conversation.previewMessageId !== id(variables.previewMessageId)
+      ) {
+        refuse('The conversation waits for no answer, or its preview moved')
+      }
+
+      const other = variables.answerOther ?? null
+
+      if (
+        variables.answerSelected.length > 6
+        || (other !== null && [...other].length > 500)
+        || (!variables.answerSelected.length && other === null)
+      ) {
+        refuse('An answer chooses at most 6 options, or says something in at most 500 characters')
+      }
+
+      const waiting = runs.get(id(variables.runId))
+
+      if (!waiting || waiting.status !== 'WAITING' || waiting.conversationId !== conversation.id) {
+        refuse('The run no longer waits for an answer')
+      }
+
+      const question = messages.get(id(variables.messageId))
+
+      if (
+        !question
+        || question.conversationId !== conversation.id
+        || question.kind !== 'QUESTION'
+        || (question.answeredAt ?? null) !== null
+      ) {
+        refuse('The question waits no more')
+      }
+
+      assignGiven(conversation, { preview: variables.preview })
+      conversation.updatedAt = now()
+      Object.assign(question, { answerSelected: variables.answerSelected, answeredAt: now() })
+      assignGiven(question, { answerOther: variables.answerOther })
+
+      return {
+        conversation_updateMany: 1,
+        conversationMessage_updateMany: 1,
+        left: {
+          conversationMessages: waitingQuestions(conversation.id)
+            .slice(0, 1000)
+            .map(message => ({ id: message.id })),
+        },
+      }
+    },
+
+    ContinueConversationRun: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      if (!membership) refuse('Only a member of an organization can keep conversations in it')
+      if (membership.createdAt !== variables.membershipCreatedAt) {
+        refuse('The membership changed since the continuation read it')
+      }
+
+      if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
+        refuse('Somebody has at most 3 runs in flight in an organization')
+      }
+
+      const conversationId = id(variables.conversationId)
+
+      if (waitingQuestions(conversationId).length) refuse('A question of the turn still waits')
+
+      const conversation = conversations.get(conversationId)
+      const waiting = runs.get(id(variables.waitingRunId))
+
+      if (
+        !waiting
+        || !conversation
+        || waiting.status !== 'WAITING'
+        || waiting.conversationId !== conversation.id
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+      ) {
+        refuse("The run's turn was consumed already")
+      }
+
+      if (
+        conversation.deletedAt !== null
         || conversation.activeRunId !== null
-        || conversation.isFull
-        || conversation.messageCount >= MAX_CONVERSATION_MESSAGES
-        || conversation.nextMessagePosition !== variables.position
         || conversation.nextRunNumber !== variables.runNumber
       ) {
-        refuse('The conversation could not take the message')
+        refuse('The conversation could not take the run')
       }
+
+      const runId = id(variables.runId)
 
       if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
-      if (conversationEntries(conversationId).some(({ position }) => position === variables.transcriptPosition)) {
-        refuse('violates SQL unique constraint: conversation_transcript_entry_conversation_id_position_uidx')
-      }
 
-      Object.assign(conversation, {
-        activeRunId: runId,
-        preview: variables.preview,
-        previewMessageId: id(variables.messageId),
-        nextMessagePosition: conversation.nextMessagePosition + 1,
-        nextRunNumber: conversation.nextRunNumber + 1,
-        messageCount: conversation.messageCount + 1,
-        updatedAt: now(),
-      })
-      runs.set(runId, {
-        id: runId,
-        conversationId,
-        number: variables.runNumber,
-        trigger: 'MESSAGE',
-        status: 'QUEUED',
-        membershipCreatedAt: variables.membershipCreatedAt,
-        step: null,
-        anchorPosition: variables.transcriptPosition,
-        stopRequestedAt: null,
-        leaseExpiresAt: inSeconds(20 * 60),
-        attempts: 0,
-        createdAt: now(),
-        startedAt: null,
-        endedAt: null,
-      })
-      insertMessage({
-        id: id(variables.messageId),
-        conversationId,
-        runId,
-        kind: 'MEMBER_TEXT',
-        text: variables.text,
-        noteKind: null,
-        toolStatus: null,
-        position: variables.position,
-      })
-      insertEntry({
+      const entry: FakeEntry = {
         id: crypto.randomUUID().replaceAll('-', ''),
         conversationId,
         runId,
@@ -910,7 +1248,19 @@ function createConversationDatabaseFake() {
         role: 'USER',
         content: variables.content,
         drawnBlocks: 0,
+      }
+
+      checkEntry(entry)
+
+      waiting.status = 'CONTINUED'
+      Object.assign(conversation, {
+        activeRunId: runId,
+        isAwaitingAnswer: false,
+        nextRunNumber: conversation.nextRunNumber + 1,
+        updatedAt: now(),
       })
+      runs.set(runId, queuedRun(runId, conversationId, variables, 'ANSWER', variables.transcriptPosition))
+      insertEntry(entry)
 
       return { conversation_updateMany: 1 }
     },
@@ -1076,6 +1426,7 @@ function createConversationDatabaseFake() {
         createdAt: now(),
         startedAt: null,
         endedAt: null,
+        pendingToolResults: variables.pendingToolResults ?? null,
       })
 
       return { conversation_updateMany: 1, conversationMessage_deleteMany: 1 }
@@ -1398,6 +1749,174 @@ function createConversationDatabaseFake() {
       return { conversationMessage_insert: { id: id(variables.messageId) } }
     },
 
+    DrawConversationQuestion: variables => {
+      const run = requireFencedRun(variables)
+      const options = variables.questionOptions as string[]
+
+      if (
+        !(variables.toBlock > variables.fromBlock)
+        || [...variables.questionPrompt].length > 1000
+        || options.length < 2
+        || options.length > 6
+        || options.some(option => [...option].length > 200)
+      ) {
+        refuse(
+          'A question is drawn from its call, with a prompt of at most 1000 characters and 2 to 6 options of at most 200',
+        )
+      }
+
+      const conversation = requireDrawConversation(variables)
+      const entry = requireDrawEntry(run, variables)
+
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: conversation.id,
+        runId: run.id,
+        kind: 'QUESTION',
+        text: null,
+        noteKind: null,
+        toolStatus: null,
+        position: variables.position,
+        toolUseId: variables.toolUseId,
+        questionPrompt: variables.questionPrompt,
+        questionOptions: options,
+        isMultipleChoice: variables.isMultipleChoice,
+        isAnswerSkipped: false,
+        answeredAt: null,
+      })
+      run.leaseExpiresAt = inSeconds(60)
+      entry.drawnBlocks = variables.toBlock
+      Object.assign(conversation, {
+        preview: variables.preview,
+        previewMessageId: id(variables.messageId),
+        nextMessagePosition: conversation.nextMessagePosition + 1,
+        messageCount: conversation.messageCount + 1,
+        unreadCount: conversation.unreadCount + 1,
+        updatedAt: now(),
+      })
+
+      return { conversationMessage_insert: { id: id(variables.messageId) } }
+    },
+
+    DrawConversationClientToolCall: variables => {
+      const run = requireFencedRun(variables)
+
+      if (!(variables.toBlock > variables.fromBlock)) refuse('A call is drawn from one block or more')
+
+      const conversation = requireDrawConversation(variables)
+      const entry = requireDrawEntry(run, variables)
+
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: conversation.id,
+        runId: run.id,
+        kind: 'TOOL_CALL',
+        text: null,
+        noteKind: null,
+        toolStatus: 'RUNNING',
+        position: variables.position,
+        toolUseId: variables.toolUseId,
+        toolName: variables.toolName,
+        toolInput: variables.toolInput,
+        toolOutput: null,
+        toolStartedAt: null,
+      })
+      run.leaseExpiresAt = inSeconds(60)
+      entry.drawnBlocks = variables.toBlock
+      Object.assign(conversation, {
+        preview: variables.preview,
+        previewMessageId: id(variables.messageId),
+        nextMessagePosition: conversation.nextMessagePosition + 1,
+        messageCount: conversation.messageCount + 1,
+        updatedAt: now(),
+      })
+
+      return { conversationMessage_insert: { id: id(variables.messageId) } }
+    },
+
+    StartConversationToolCall: variables => {
+      const run = requireFencedRun(variables)
+      const message = messages.get(id(variables.messageId))
+
+      if (
+        !message
+        || message.conversationId !== run.conversationId
+        || message.kind !== 'TOOL_CALL'
+        || !['RUNNING', 'CANCELLED'].includes(message.toolStatus ?? '')
+      ) {
+        refuse('The call has finished already')
+      }
+
+      run.leaseExpiresAt = inSeconds(60)
+      Object.assign(message, { toolStatus: 'RUNNING', toolStartedAt: now() })
+
+      return { conversationMessage_updateMany: 1 }
+    },
+
+    FinishConversationToolCall: variables => {
+      const run = requireFencedRun(variables)
+
+      if (!['SUCCEEDED', 'FAILED'].includes(variables.toolStatus)) refuse('A call finishes succeeded or failed')
+
+      const message = messages.get(id(variables.messageId))
+
+      if (
+        !message
+        || message.conversationId !== run.conversationId
+        || message.kind !== 'TOOL_CALL'
+        || message.toolStatus !== 'RUNNING'
+      ) {
+        refuse('The call is no longer running')
+      }
+
+      Object.assign(run, { pendingToolResults: variables.pendingToolResults, leaseExpiresAt: inSeconds(60) })
+      Object.assign(message, {
+        toolStatus: variables.toolStatus,
+        toolOutput: variables.toolOutput,
+        toolDurationMs: variables.toolDurationMs,
+      })
+
+      const conversation = conversations.get(run.conversationId)
+
+      if (conversation?.previewMessageId === message.id) conversation.preview = variables.preview
+
+      return { conversationMessage_updateMany: 1 }
+    },
+
+    StoreConversationToolResults: variables => {
+      const run = requireFencedRun(variables)
+
+      insertEntry({
+        id: id(variables.entryId),
+        conversationId: run.conversationId,
+        runId: run.id,
+        position: variables.position,
+        role: 'USER',
+        content: variables.content,
+        drawnBlocks: 0,
+      })
+      Object.assign(run, { pendingToolResults: null, leaseExpiresAt: inSeconds(60) })
+
+      return { conversationTranscriptEntry_insert: { id: id(variables.entryId) } }
+    },
+
+    FinishConversationRunWaiting: variables => {
+      const run = requireFencedRun(variables)
+
+      end(run, 'WAITING')
+      assignGiven(run, { usage: variables.usage })
+      cancelRunningCalls(run.conversationId)
+
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (conversation?.activeRunId === run.id) {
+        Object.assign(conversation, { activeRunId: null, isAwaitingAnswer: true, updatedAt: now() })
+        assignGiven(conversation, { preview: variables.preview })
+      }
+
+      return { conversationRun_updateMany: 1 }
+    },
+
     FinishConversationRun: variables => {
       const run = requireFencedRun(variables)
 
@@ -1407,6 +1926,7 @@ function createConversationDatabaseFake() {
 
       end(run, variables.status)
       assignGiven(run, { usage: variables.usage })
+      cancelRunningCalls(run.conversationId)
 
       const conversation = conversations.get(id(variables.conversationId))
 

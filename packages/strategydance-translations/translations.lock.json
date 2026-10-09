@@ -1493,8 +1493,20 @@
         "hash": "d6cb1f0d62147910",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.question.conflict": {
+        "hash": "2c63dba690a060c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.error": {
+        "hash": "0e2cc0649a929a83",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.question.ownAnswer": {
         "hash": "fb71814d8d016158",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.queued": {
+        "hash": "cc924c7eaea54375",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.question.selectAll": {
@@ -1511,6 +1523,14 @@
       },
       "conversation.question.skipped": {
         "hash": "16be7a9c987ade4a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.unanswered": {
+        "hash": "b0c62802ca585fbf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.question.unavailable": {
+        "hash": "06bc15e0f0520ebb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.question.waiting": {

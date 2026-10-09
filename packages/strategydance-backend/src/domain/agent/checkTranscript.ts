@@ -4,6 +4,9 @@ type Options = {
   // A request may end with the run's context message, before it is stored with the run's first
   // part; a stored transcript never ends on one
   isRequest: boolean
+  // Only the transcript's last entries, as a route checks the entry it adds after the turn it
+  // answers, which need not open with the member's entry
+  isTail?: boolean
 }
 
 /*
@@ -21,8 +24,10 @@ type Options = {
   Calls Claude made on its own side, `server_tool_use`, carry their results within the turn and are
   none of these rules' business
 */
-function checkTranscript(messages: BetaMessageParam[], { isRequest }: Options) {
-  if (messages[0] && messages[0].role !== 'user') refuse(0, 'The transcript opens with the member’s entry')
+function checkTranscript(messages: BetaMessageParam[], { isRequest, isTail = false }: Options) {
+  if (!isTail && messages[0] && messages[0].role !== 'user') {
+    refuse(0, 'The transcript opens with the member’s entry')
+  }
 
   messages.forEach((message, index) => {
     const previous = messages[index - 1]

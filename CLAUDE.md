@@ -43,7 +43,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them, storing the pictures of documents' text, reading what a
-  web page says of itself for a link preview, and sending conversations' messages. Its image runs
+  web page says of itself for a link preview, and sending and searching conversations. Its image runs
   a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
   and sweeps what was deleted once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
@@ -325,6 +325,9 @@ only way the app talks to them.
   still checks that uid against the rows it touches
 - The generated SDKs cannot pass a `_Data` list variable, so no connector can batch insert:
   the backend calls a single-row mutation once per row instead
+- A level of a `where` holds plain fields or `_and`, `_or` and `_not`, never both: Data Connect
+  refuses the mix, so the plain fields go in an `_and` entry of their own, as
+  `SearchConversationsBySubstring` puts them
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
 - A `query` step of a mutation does not see what the same mutation wrote, though it sees what
@@ -498,6 +501,15 @@ A conversation is kept twice, once for Claude and once for the page, and
 - Every run that ends with a note says why in its `failure`, for the logs, and
   `FinishConversationRunWithNote` pairs each status with its own note: failed with failed or full,
   stopped with stopped, refused with refused
+- Conversations are searched by the backend alone, `POST …/conversations/search`, since what a
+  search finds is messages, which no web query could group by conversation. `Conversation.title`
+  and `ConversationMessage.text` are `@searchable(language: "simple")`, which splits words and
+  lowercases them in every language the app speaks and stems nothing, read with
+  `queryFormat: PLAIN`, which needs every word. A `_search` is ordered by its relevance alone:
+  its `orderBy` cannot name it. A query holding Chinese or Japanese, which put no space between
+  words, matches by substring instead (`isSubstringSearchQuery`), over every title and the
+  messages of the most recently active conversations to 20000. Only member and agent messages
+  are searched, never a question, a tool call or a note
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
@@ -675,9 +687,15 @@ in `utils/`, one concern per file.
   and a run that could not be queued stays queued while the send answers 503
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
-  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches. A
-  milestone that keeps something deleted for a while adds its prune there, idempotent like the
-  rest, so a sweep that failed is finished by the next
+  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, and
+  the conversation searches over a day old, which no count reads any more. A milestone that keeps
+  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
+  sweep that failed is finished by the next
+- A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
+  `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
+  limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across
+  instances, per member and organization, under a lock on the membership, in `ConversationSearch`
+  rows. The query travels in the body, never the address, and is never logged
 - A worker's writes go through its run's lease (`createConversationRunLease`), one after the
   other, so they land in the order it made them and never beside a renewal of its own, and its
   steps are read afresh each time (`runConversation`), so taking over after a crash follows the
@@ -703,8 +721,9 @@ in `utils/`, one concern per file.
   what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. `bun run check:conversation-runs`, in the backend's package, checks
-  those conditions against the emulators. An operation changed is changed in both
+  conditions and refusals. `bun run check:conversation-runs` and `bun run check:conversation-search`,
+  in the backend's package, check those conditions against the emulators, the second also what
+  Postgres' full-text search and LIKE match. An operation changed is changed in both
 
 ## Email conventions
 

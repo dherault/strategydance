@@ -142,8 +142,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 }
 
 # Deletes an organization, for one of its administrators. Its memberships and pending invitations
-# go with it, and so does everything its members keep in it on their Today pages, task lists,
-# checklists and log entries, and its knowledge: all of them reference it as required, which Data
+# go with it, and so does everything its members keep in it on their Today pages, checklists and
+# log entries, the tasks on its board, and its knowledge: all of them reference it as required, which Data
 # Connect cascades. Its files are the
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).
@@ -2176,6 +2176,16 @@ mutation InterruptConversationRun(
       position: $position
     }
   )
+}
+
+# The daily sweep's for the board: deletes every task deleted over a day ago, past its Undo, in
+# every organization, its links cascading with it. `DeleteTask` prunes its organization's on the way
+# through, which stays as the fast path, but leaves the last one deleted in a quiet organization,
+# and a deleted task's links count against the cap of the tasks they join until it goes. An Undo is
+# a few seconds long, so nothing restores one this old. Deleting what is gone already deletes
+# nothing, so a sweep that failed is finished by the next
+mutation PruneDeletedTasks @auth(level: NO_ACCESS) {
+  task_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }
 
 # The daily sweep's first step: claims every conversation deleted over a day ago, past its Undo,

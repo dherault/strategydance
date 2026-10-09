@@ -52,8 +52,11 @@ async function readImageUpload({ body, contentType, maxSize }: ReadImageUploadIn
     return image ? { outcome: 'read', image, thumbnail: null } : { outcome: 'unsupported' }
   }
 
-  // Null for a form that does not parse, as one missing its boundary or its end
-  const form = await new Response(body, { headers: { 'Content-Type': contentType } }).formData().catch(() => null)
+  // Null for a form that does not parse, as one missing its boundary or its end. A copy of the
+  // bytes, since the DOM's `BodyInit` takes a view on an `ArrayBuffer`, which a `Buffer` may not be
+  const form = await new Response(new Uint8Array(body), { headers: { 'Content-Type': contentType } })
+    .formData()
+    .catch(() => null)
 
   if (!form) return { outcome: 'unsupported' }
 

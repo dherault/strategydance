@@ -336,8 +336,9 @@ mutation UpdateTodayPreferences($organizationId: UUID!, $priorityOrder: [String!
 # Takes somebody out of an organization: the page calls it banning. Only an administrator may,
 # and never on themselves, which is also what keeps this from removing the last administrator.
 #
-# It deletes the membership and nothing else, so they can be invited again later, as the page
-# promises. It takes the organization's row lock first, as `UpdateOrganizationMemberRole` does,
+# It deletes the membership and takes them off the tasks they were doing on the organization's
+# board, which go back to nobody. Nothing else changes, so they can be invited again later, as the
+# page promises. It takes the organization's row lock first, as `UpdateOrganizationMemberRole` does,
 # so two administrators removing each other at once cannot both succeed and leave none
 mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @auth(level: USER) @transaction {
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
@@ -351,6 +352,10 @@ mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @aut
   }
   userOrganization_delete(key: { userId: $userId, organizationId: $organizationId })
     @check(expr: "this != null", message: "Nobody by that id belongs to the organization")
+  task_updateMany(
+    where: { organizationId: { eq: $organizationId }, assigneeId: { eq: $userId } }
+    data: { assigneeId: null }
+  )
 }
 
 # Cancels a pending invitation. Only an administrator may.
@@ -405,226 +410,6 @@ mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth
   )
 }
 
-# Adds a task list for the caller in an organization. The id is the page's, which writes the list
-# into its cache before the server answers, and so is the position, one past the last list's.
-# `$position` is optional only because the page deployed before lists could move sends none, and
-# its list then takes the column's 0, as the lists made before then did.
-#
-# At most 100 lists a person in an organization (`MAX_TASK_LISTS` in strategydance-core), counted
-# under a lock: the first step writes the caller's own membership, which also refuses anybody
-# outside the organization, so two tabs adding at once count one after the other. A name is one
-# line of at most 120 characters (`MAX_TASK_LIST_NAME_LENGTH`)
-mutation CreateTaskList($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float)
-@auth(level: USER)
-@transaction {
-  userOrganization_update(
-    key: { userId_expr: "auth.uid", organizationId: $organizationId }
-    data: { updatedAt_expr: "request.time" }
-  )
-    @redact
-    @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
-    @check(
-      expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
-      message: "A task list's name is 1 to 120 characters on one line, with no space at either end"
-    )
-  query @redact {
-    taskLists(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
-      limit: 100
-    ) @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
-      id
-    }
-  }
-  taskList_insert(
-    data: { id: $id, userId_expr: "auth.uid", organizationId: $organizationId, name: $name, position: $position }
-  )
-}
-
-# Renames one of the caller's task lists, held to what `CreateTaskList` holds a name to
-mutation RenameTaskList($organizationId: UUID!, $id: UUID!, $name: String!) @auth(level: USER) @transaction {
-  query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
-      role
-        @check(
-          expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
-          message: "A task list's name is 1 to 120 characters on one line, with no space at either end"
-        )
-    }
-  }
-  taskList_updateMany(
-    where: {
-      id: { eq: $id }
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-    }
-    data: { name: $name, updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "No task list of yours by that id")
-}
-
-# Moves one of the caller's task lists in their rail. The page sends the position halfway between
-# its new neighbours', and renumbers the rail one list at a time when they are too close for that
-mutation MoveTaskList($organizationId: UUID!, $id: UUID!, $position: Float!) @auth(level: USER) @transaction {
-  query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
-      role
-    }
-  }
-  taskList_updateMany(
-    where: {
-      id: { eq: $id }
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-    }
-    data: { position: $position, updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "No task list of yours by that id")
-}
-
-# Deletes one of the caller's task lists by setting `deletedAt`, so `RestoreTaskList` can take it
-# back with its tasks. Deleting one that is gone already changes nothing and succeeds, since the
-# outcome is the one asked for.
-#
-# It also prunes the caller's lists deleted more than a day ago, in every organization, their tasks
-# cascading with them, since nothing undoes a delete that old. Pruning here is lazy: the lists
-# deleted in the day before the caller's latest delete stay until their next one, unread by
-# anything but `RestoreTaskList`, which bounds them by what one person deletes in a day. A
-# guaranteed expiry would take a scheduled job
-mutation DeleteTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
-      role
-    }
-  }
-  taskList_updateMany(
-    where: {
-      id: { eq: $id }
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-    }
-    data: { deletedAt_expr: "request.time", updatedAt_expr: "request.time" }
-  )
-  taskList_deleteMany(
-    where: { userId: { eq_expr: "auth.uid" }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
-  ) @redact
-}
-
-# Takes back a delete, which the page offers for a few seconds after one. Fails once the list was
-# pruned, a day after it was deleted.
-#
-# A list brought back counts against the 100 as a new one does, under the same lock on the caller's
-# membership: without it, deleting a list at the cap, adding another and taking the delete back
-# would keep 101
-mutation RestoreTaskList($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  userOrganization_update(
-    key: { userId_expr: "auth.uid", organizationId: $organizationId }
-    data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it")
-  query @redact {
-    taskLists(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
-      limit: 100
-    ) @check(expr: "size(this) < 100", message: "Somebody keeps at most 100 task lists in an organization") {
-      id
-    }
-  }
-  taskList_updateMany(
-    where: {
-      id: { eq: $id }
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: false }
-    }
-    data: { deletedAt: null, updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "The task list is gone for good")
-}
-
-# Adds a task to one of the caller's task lists, or puts back one just deleted, which is why it
-# takes whether it is done. The id is the page's, as with a list.
-#
-# The first step writes the list, which is the lock the count below is taken under, and finds
-# nothing unless the list is the caller's, alive, and in an organization they belong to. At most
-# 1000 tasks a list (`MAX_TASKS_PER_LIST` in strategydance-core), each one line of at most 120
-# characters (`MAX_TASK_LENGTH`)
-mutation CreateTask(
-  $organizationId: UUID!
-  $id: UUID!
-  $taskListId: UUID!
-  $text: String!
-  $position: Float!
-  $isDone: Boolean!
-) @auth(level: USER) @transaction {
-  taskList_updateMany(
-    where: {
-      id: { eq: $taskListId }
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
-    @redact
-    @check(expr: "this == 1", message: "A task goes on a task list of yours, in an organization you belong to")
-    @check(
-      expr: "size(vars.text) <= 120 && vars.text.matches('^[[:^space:]](.*[[:^space:]])?$')"
-      message: "A task is 1 to 120 characters on one line, with no space at either end"
-    )
-  query @redact {
-    tasks(where: { taskListId: { eq: $taskListId } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "A task list holds at most 1000 tasks") {
-      id
-    }
-  }
-  task_insert(data: { id: $id, taskListId: $taskListId, text: $text, position: $position, isDone: $isDone })
-}
-
-# Writes one of the caller's tasks whole: its text, whether it is done, and where it sits. The page
-# sends all three from what it shows, whichever changed, and queues its writes to one task so they
-# land in order
-mutation UpdateTask($organizationId: UUID!, $id: UUID!, $text: String!, $isDone: Boolean!, $position: Float!)
-@auth(level: USER)
-@transaction {
-  query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
-      role
-        @check(
-          expr: "size(vars.text) <= 120 && vars.text.matches('^[[:^space:]](.*[[:^space:]])?$')"
-          message: "A task is 1 to 120 characters on one line, with no space at either end"
-        )
-    }
-  }
-  task_updateMany(
-    where: {
-      id: { eq: $id }
-      taskList: {
-        userId: { eq_expr: "auth.uid" }
-        organizationId: { eq: $organizationId }
-        deletedAt: { isNull: true }
-      }
-    }
-    data: { text: $text, isDone: $isDone, position: $position, updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "No task of yours by that id")
-}
-
-# Deletes one of the caller's tasks. One that is gone already changes nothing and succeeds
-mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can keep task lists in it") {
-      role
-    }
-  }
-  task_deleteMany(
-    where: { id: { eq: $id }, taskList: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } } }
-  )
-}
-
 # Starts the caller's checklist in an organization with the four default habits, named by the page
 # in the caller's language, the first time they open it there.
 #
@@ -673,9 +458,10 @@ mutation CreateDefaultChecklistItems(
 # Adds a column to the caller's checklist in an organization. The id is the page's, which shows the
 # column before the server answers.
 #
-# At most 100 live columns (`MAX_CHECKLIST_ITEMS` in strategydance-core), counted under a lock on
-# the caller's own membership, as `CreateTaskList` counts lists. A name is one line of at most 40
-# characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
+# At most 100 live columns (`MAX_CHECKLIST_ITEMS` in strategydance-core), counted under a lock: the
+# first step writes the caller's own membership, which also refuses anybody outside the
+# organization, so two tabs adding at once count one after the other. A name is one line of at most
+# 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
 mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!)
 @auth(level: USER)
 @transaction {
@@ -730,9 +516,8 @@ mutation UpdateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!,
 
 # Removes one of the caller's checklist columns by setting `deletedAt`, so `RestoreChecklistItem`
 # can take it back with its history, and prunes the caller's columns removed over a day ago, in
-# every organization, their ticks cascading with them. The pruning is as lazy as
-# `DeleteTaskList`'s: the columns removed in the day before the caller's latest removal stay until
-# their next one. Removing one that is gone already succeeds
+# every organization, their ticks cascading with them. The pruning is lazy: the columns removed in
+# the day before the caller's latest removal stay until their next one. Removing one that is gone already succeeds
 mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -758,7 +543,7 @@ mutation DeleteChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: US
 # pruned, a day after it was removed.
 #
 # A column brought back counts against the 100 as a new one does, under the same lock on the
-# caller's membership, as `RestoreTaskList` counts lists
+# caller's membership, as `CreateChecklistItem` counts columns
 mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   userOrganization_update(
     key: { userId_expr: "auth.uid", organizationId: $organizationId }
@@ -908,7 +693,7 @@ mutation UpdateLogEntry($organizationId: UUID!, $id: UUID!, $content: String!) @
 
 # Marks today as a day the caller changed something of their own on their Today page in an
 # organization, for the streak the build in public page counts. The app sends it once a change to
-# their top priority, a task list or a task, their checklist or their log has gone through. An
+# their top priority, their checklist or their log has gone through. An
 # upsert, so every change after the first that day writes nothing new.
 #
 # It is its own operation rather than a step in each of those, which would take a `$date` they do
@@ -930,6 +715,327 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
     }
   }
   activityDay_upsert(data: { userId_expr: "auth.uid", organizationId: $organizationId, date: $date })
+}
+
+# Adds a task to an organization's board, which any of its members may do. The id is the page's,
+# which shows the task in its column before the server answers, and so is the position, past the
+# column's last task or before its first.
+#
+# At most 1000 live tasks an organization (`MAX_TASKS` in strategydance-core), counted under a lock:
+# the first step writes the organization's row, and finds nothing unless the caller belongs to it,
+# so two members adding at once count one after the other. A name is one line of at most 120
+# characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
+# characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
+# assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
+# and blocks are linked once it is stored, by `AddTaskDependency`
+mutation CreateTask(
+  $organizationId: UUID!
+  $id: UUID!
+  $name: String!
+  $description: String!
+  $status: TaskStatus!
+  $position: Float!
+  $assigneeId: String
+  $isAssignedToAgent: Boolean!
+  $dueDate: Date
+  $aspects: [CompanyAspect!]!
+) @auth(level: USER) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "Only a member of an organization can add to its tasks")
+    @check(
+      expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A task's name is 1 to 120 characters on one line, with no space at either end"
+    )
+    @check(expr: "size(vars.description) <= 20000", message: "A task's description is at most 20000 characters")
+    @check(
+      expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "A task is tagged with each aspect at most once"
+    )
+    @check(
+      expr: "!vars.isAssignedToAgent || !has(vars.assigneeId) || vars.assigneeId == null"
+      message: "A task is assigned to a member or to Strategy Dance, not both"
+    )
+  query @redact {
+    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+      id
+    }
+    # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
+    assignees: userOrganizations(
+      where: { organizationId: { eq: $organizationId }, userId: { eq: $assigneeId } }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.assigneeId) || vars.assigneeId == null || size(this) == 1"
+        message: "A task is assigned to a member of its organization"
+      ) {
+      role
+    }
+  }
+  task_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      createdById_expr: "auth.uid"
+      name: $name
+      description: $description
+      status: $status
+      position: $position
+      assigneeId: $assigneeId
+      isAssignedToAgent: $isAssignedToAgent
+      dueDate: $dueDate
+      aspects: $aspects
+    }
+  )
+}
+
+# Renames a task, held to what `CreateTask` holds a name to.
+#
+# Each of a task's fields is written by an operation of its own, so two members changing two of them
+# at once never write back each other's old value
+mutation RenameTask($organizationId: UUID!, $id: UUID!, $name: String!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+        @check(
+          expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+          message: "A task's name is 1 to 120 characters on one line, with no space at either end"
+        )
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { name: $name, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Saves a task's description, held to what `CreateTask` holds it to, and an empty string when it has
+# no text
+mutation UpdateTaskDescription($organizationId: UUID!, $id: UUID!, $description: String!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role @check(expr: "size(vars.description) <= 20000", message: "A task's description is at most 20000 characters")
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { description: $description, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Moves a task on the board, to another column or another place in its own, its status and its
+# position written together. The page sends the position halfway between its new neighbours, and
+# renumbers the column one task at a time when they are too close for that
+mutation MoveTask($organizationId: UUID!, $id: UUID!, $status: TaskStatus!, $position: Float!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { status: $status, position: $position, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Says who is doing a task: a member of the organization, Strategy Dance, or nobody, both written
+# whole. The page always sends `$assigneeId`, null to clear it
+mutation AssignTask($organizationId: UUID!, $id: UUID!, $assigneeId: String, $isAssignedToAgent: Boolean!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+        @check(
+          expr: "!vars.isAssignedToAgent || !has(vars.assigneeId) || vars.assigneeId == null"
+          message: "A task is assigned to a member or to Strategy Dance, not both"
+        )
+    }
+    # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
+    assignees: userOrganizations(
+      where: { organizationId: { eq: $organizationId }, userId: { eq: $assigneeId } }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.assigneeId) || vars.assigneeId == null || size(this) == 1"
+        message: "A task is assigned to a member of its organization"
+      ) {
+      role
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { assigneeId: $assigneeId, isAssignedToAgent: $isAssignedToAgent, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Sets the day a task should be done by, or clears it with null
+mutation UpdateTaskDueDate($organizationId: UUID!, $id: UUID!, $dueDate: Date) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { dueDate: $dueDate, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Sets which aspects a task is tagged with, the list written whole, each aspect once. A list of enums
+# has no `add` or `remove` in Data Connect, so two members retagging at once keep whichever list was
+# saved last
+mutation UpdateTaskAspects($organizationId: UUID!, $id: UUID!, $aspects: [CompanyAspect!]!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+        @check(
+          expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+          message: "A task is tagged with each aspect at most once"
+        )
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { aspects: $aspects, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Deletes a task by setting `deletedAt`, so `RestoreTask` can take it back, its links to other
+# tasks with it: they stay, and the board reads past them meanwhile. Deleting one that is gone
+# already changes nothing and succeeds, since the outcome is the one asked for.
+#
+# It also prunes the organization's tasks deleted more than a day ago, since nothing undoes a delete
+# that old, their links cascading with them, as lazily as `DeleteDocument` prunes documents
+mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time" }
+  )
+  task_deleteMany(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
+}
+
+# Takes back a delete, which the page offers for a few seconds after one, with the links other tasks
+# had to it. Fails once the task was pruned, a day after it was deleted.
+#
+# A task brought back counts against the 1000 as a new one does, under the same lock on the
+# organization's row: without it, deleting a task at the cap, adding another and taking the delete
+# back would keep 1001
+mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+  query @redact {
+    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+      id
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The task is gone for good")
+}
+
+# Makes a task wait on another of the same board. Adding a link that exists already changes nothing
+# and succeeds.
+#
+# Both tasks are live and the organization's. A task holds at most 50 links (`MAX_TASK_DEPENDENCIES`
+# in strategydance-core), and never waits on itself or on a task that waits on it. Its links to
+# deleted tasks count, since bringing those back brings the links back with them, which would
+# otherwise take it past 50: the board reads each task's count of every link, so its pickers offer
+# no more than this takes.
+# Counted and checked under a lock: the first step writes the organization's row, and finds nothing
+# unless the caller belongs to it, so links added at once, as a pick of several tasks sends them,
+# count one after the other, and two members linking two tasks both ways cannot both succeed. A
+# longer loop is left out by the page, which offers no task that would close one; two members
+# closing one at once only leave its tasks blocked, which either of them can undo
+mutation AddTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependencyId: UUID!)
+@auth(level: USER)
+@transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+    @check(expr: "vars.taskId != vars.dependencyId", message: "A task cannot wait on itself")
+  query @redact {
+    waiting: tasks(
+      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
+      id
+    }
+    awaited: tasks(
+      where: { id: { eq: $dependencyId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
+      id
+    }
+    reverse: taskDependencies(where: { taskId: { eq: $dependencyId }, dependencyId: { eq: $taskId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "A task cannot wait on a task that waits on it") {
+      taskId
+    }
+    others: taskDependencies(where: { taskId: { eq: $taskId }, dependencyId: { ne: $dependencyId } }, limit: 50)
+      @check(expr: "size(this) < 50", message: "A task waits on at most 50 others") {
+      dependencyId
+    }
+  }
+  taskDependency_upsert(data: { taskId: $taskId, dependencyId: $dependencyId })
+}
+
+# Stops a task waiting on another. Removing a link that is gone already changes nothing and succeeds
+mutation RemoveTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependencyId: UUID!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+  }
+  taskDependency_deleteMany(
+    where: {
+      taskId: { eq: $taskId }
+      dependencyId: { eq: $dependencyId }
+      task: { organizationId: { eq: $organizationId } }
+    }
+  )
 }
 
 # Adds a document to an organization's knowledge, which any of its members may do. The id is the
@@ -1117,7 +1223,7 @@ mutation SetDocumentAiWritable($organizationId: UUID!, $id: UUID!, $isAiWritable
 # is left alone, so a document brought back takes its place in the list again rather than the top.
 #
 # It also prunes the organization's documents deleted more than a day ago, since nothing undoes a
-# delete that old, as lazily as `DeleteTaskList` prunes lists: the ones deleted in the day before
+# delete that old, as lazily as `DeleteChecklistItem` prunes columns: the ones deleted in the day before
 # the latest delete stay, unread by anything but `RestoreDocument`, until the next one
 mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {

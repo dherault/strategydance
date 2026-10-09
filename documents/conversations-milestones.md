@@ -59,8 +59,8 @@ before their neighbours.
 | M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | #120 |
 | M10 | Stop, resume, retry, failures and refusals | backend, database, web | M7, M9 | #121 |
 | M11 | Questions | backend, database, web | M10 | #122 |
-| M12 | Searching conversations | backend, database, web | M8, M9 | |
-| M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |
+| M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
+| M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
 | M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
 | M16 | The authorization server | backend, database, core, root | M14, setup 10 | |
@@ -553,9 +553,10 @@ calls them, in M14.
   agree, as `CLAUDE.md` asks of the emails package's. strategydance-core stays without
   dependencies.
 - `richTextToMarkdown(blocks)` and `markdownToRichText(markdown)` in the design system's `lib/`, for
-  the subset, with tests: round trips of all four styles, underline through `<u>…</u>` included,
-  alone and nested in the others; another tag kept as literal text; nesting, check items, links,
-  what degrades to paragraphs, lengths against `MAX_DOCUMENT_CONTENT_LENGTH`.
+  the subset, the second on markdown-it (see Rich text and Markdown), with tests: round trips of all
+  four styles, underline through `<u>…</u>` included, alone and nested in the others; another tag
+  kept as literal text; nesting, check items, links, what degrades to paragraphs, lengths against
+  `MAX_DOCUMENT_CONTENT_LENGTH`.
 - `domain/knowledge/` in the backend, on M1's `updateRichTextYDoc`, working on rows rather than
   calling the database: reading a document's shared text from its snapshot and pending updates
   through `yDocToBlocks`, once a read tried on a copy has left it unchanged, as

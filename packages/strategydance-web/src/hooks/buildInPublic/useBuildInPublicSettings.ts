@@ -74,10 +74,10 @@ function parseSettings(value: unknown): BuildInPublicSettings {
 /*
   What the reader chose on the build in public page, kept in their browser per organization: the
   look every card shares, and each card's settings. Nothing here is anybody else's business, so it
-  stays out of the database, as the task list the Today page last opened does.
+  stays out of the database.
 
   A card reads its settings over its defaults, and a stored value that is not of its default's kind
-  is ignored. Whether a stored option still exists, a list since deleted or a teammate since gone,
+  is ignored. Whether a stored option still exists, a habit since deleted or a teammate since gone,
   is for the card to say, since only it knows its options
 */
 function useBuildInPublicSettings() {

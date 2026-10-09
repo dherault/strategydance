@@ -233,17 +233,6 @@ export const MAX_TOP_PRIORITY_LENGTH = 100000
 export const MAX_TOP_PRIORITY_TEXT_LENGTH = 500
 
 /*
-  How many task lists one person keeps in an organization, how many tasks a list holds, and how
-  long a list's name and a task may be. Written out again in `CreateTaskList`'s, `RenameTaskList`'s,
-  `CreateTask`'s and `UpdateTask`'s checks and in `GetTaskLists`' and `GetTasks`' limits, which
-  cannot import them: change them together
-*/
-export const MAX_TASK_LISTS = 100
-export const MAX_TASKS_PER_LIST = 1000
-export const MAX_TASK_LIST_NAME_LENGTH = 120
-export const MAX_TASK_LENGTH = 120
-
-/*
   How many live columns one person's checklist holds in an organization, and how long a column's
   name may be, short enough to read slanted above it. Written out again in the checklist
   mutations' checks and in `GetChecklist`'s limit, which cannot import them: change them together
@@ -265,6 +254,22 @@ export const MAX_CHECKLIST_HISTORY_DAYS = 3660
   change the three together
 */
 export const MAX_LOG_ENTRY_LENGTH = 50000
+
+/* ---
+  TASKS
+--- */
+
+/*
+  How many live tasks an organization keeps on its board, how long a task's name may be, on one
+  line, how long its description's serialized blocks may run, and how many tasks one may wait on.
+  The board reads every description at once, for its search, so they are held to a short brief
+  rather than a document. Written out again in the task mutations' checks and in `GetTasks`' and
+  `GetTaskDescriptions`' limits, which cannot import them: change them together
+*/
+export const MAX_TASKS = 1000
+export const MAX_TASK_NAME_LENGTH = 120
+export const MAX_TASK_DESCRIPTION_LENGTH = 20000
+export const MAX_TASK_DEPENDENCIES = 50
 
 /* ---
   KNOWLEDGE

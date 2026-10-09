@@ -8,14 +8,13 @@ import Checklist from '~components/checklist/Checklist'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
 import Log from '~components/log/Log'
-import Tasks from '~components/task/Tasks'
 import TodayPriorities from '~components/today/TodayPriorities'
 
 import navigationMessages from '~data/intl/messages/navigation'
 
 /*
-  The page a member opens their day on, under the date: the team's top priorities, their own
-  tasks, the checklist they keep every day, and the log the team writes
+  The page a member opens their day on, under the date: the team's top priorities, the checklist
+  they keep every day, and the log the team writes
 */
 function Today() {
   const { formatMessage, formatDate } = useIntl()
@@ -29,7 +28,6 @@ function Today() {
       />
       <div className="flex flex-col gap-14">
         <TodayPriorities />
-        <Tasks />
         <Checklist />
         <Log />
       </div>

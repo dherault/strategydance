@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
@@ -25,6 +25,10 @@
 
     /* `tsc` follows the import into strategydance-emails' templates, which are `.tsx` */
     "jsx": "react-jsx",
+
+    /* `lib` takes DOM because `tsc` follows the design system's rich text helpers into the editor's
+       block specs, which build their elements with `document` in functions only an editor on a page
+       calls. strategydance-emails' says the same, so the two agree */
 
     /* Path aliases, resolved relative to this file. Bun reads them at runtime as well */
     "paths": {

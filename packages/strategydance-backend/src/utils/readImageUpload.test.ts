@@ -19,7 +19,7 @@ async function encodeForm(parts: Record<string, Buffer | string>) {
 
   Object.entries(parts).forEach(([name, value]) => {
     if (typeof value === 'string') form.append(name, value)
-    else form.append(name, new Blob([value]), name)
+    else form.append(name, new Blob([new Uint8Array(value)]), name)
   })
 
   const request = new Request('http://localhost', { method: 'PUT', body: form })

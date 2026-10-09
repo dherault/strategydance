@@ -189,6 +189,33 @@ describe('read_document', () => {
     expect(third.blocks.map(block => block.markdown)).toEqual(['Intro', 'Short now'])
   })
 
+  it('answers no version on a later page once the text changed since the first, so pages never add up to one', async () => {
+    const kit = await connect()
+    const markdown = Array.from({ length: 1000 }, (_, index) => `Paragraph ${index} ${'w'.repeat(80)}`).join('\n\n')
+    const document = documents.store(markdown)
+    const first = await kit.answer<Reading>('read_document', { id: document.id })
+    const unchanged = await kit.answer<Reading>('read_document', { id: document.id, from: first.next })
+
+    expect(unchanged.version).toBe(first.version)
+
+    // A member edits a block the first page already gave
+    documents.type(document.id, 0, 0, 'Edited ')
+
+    const second = await kit.answer<Reading>('read_document', { id: document.id, from: first.next })
+    const later = await kit.answer<Reading>('read_document', { id: document.id, from: second.next })
+
+    expect(second.version).toBeUndefined()
+    expect(later.version).toBeUndefined()
+    expect(
+      await kit.refusal('update_document', { id: document.id, version: first.version, content: 'Rewritten' }),
+    ).toBe('The document changed since you read it. Read it again first.')
+
+    const again = await kit.answer<Reading>('read_document', { id: document.id })
+
+    expect(again.version).toBeString()
+    expect(again.version).not.toBe(first.version)
+  })
+
   it('refuses a document the team keeps from AI, before anything of it is loaded, whoever mentions it', async () => {
     const kit = await connect()
     const document = documents.storeUnshared('Secret', { isAiReadable: false })

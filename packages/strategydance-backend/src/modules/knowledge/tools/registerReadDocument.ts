@@ -20,7 +20,7 @@ const outputSchema = z.object({
   aspects: z.array(aspectSchema),
   isAiWritable: z.boolean(),
   updatedAt: z.string(),
-  version: z.string(),
+  version: z.string().optional(),
   blocks: z.array(
     z.object({
       id: z.string(),
@@ -41,7 +41,7 @@ function registerReadDocument(server: McpServer, { caller, toAddress }: Knowledg
     {
       title: 'Read knowledge',
       description:
-        "Reads a document of the organization's knowledge as it stands now, with what members are typing merged in: its title, aspects, version, whether you may change it, and its text as a list of top-level blocks, each with its id and its Markdown, up to 40000 characters at a time. Call it before relying on a document or changing it. While more remains it answers `next`: send it back as `from` to read on. A block too long for one page comes in parts, `offset` saying where a part starts and `isCut` that it stops inside the block. `restart` says the page started over, at the block it stopped in when that block was edited, or at the document's start when the block is gone. Edit blocks by their ids with update_document, and send `version` with a whole content replaced.",
+        "Reads a document of the organization's knowledge as it stands now, with what members are typing merged in: its title, aspects, version, whether you may change it, and its text as a list of top-level blocks, each with its id and its Markdown, up to 40000 characters at a time. Call it before relying on a document or changing it. While more remains it answers `next`: send it back as `from` to read on. A block too long for one page comes in parts, `offset` saying where a part starts and `isCut` that it stops inside the block. `restart` says the page started over, at the block it stopped in when that block was edited, or at the document's start when the block is gone. Edit blocks by their ids with update_document. `version` names the whole text, which replacing all of the content takes: a later page answers it only while the text is still the one the first page read, and none once somebody changed it, so then read from the start again before replacing the content.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

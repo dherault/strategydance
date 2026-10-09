@@ -733,6 +733,12 @@ query GetOrganizationDocuments($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "CreateDocumentWithText"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenameDocument"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -846,10 +852,22 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
   onMutationExecuted: { operation: "CompactDocument", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
+  onMutationExecuted: {
+    operation: "CompactDocumentWithText"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
   onMutationExecuted: { operation: "SeedDocumentState", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
   onMutationExecuted: { operation: "CreateDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentWithText"
+    condition: "mutation.variables.id == request.variables.id"
+  }
 )
 @refresh(
   onMutationExecuted: { operation: "RenameDocument", condition: "mutation.variables.id == request.variables.id" }

@@ -945,7 +945,74 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
 #
 # `$state` is the draft's text as a Yjs document, the same text as `$content`, so the document is
 # shared from its first save and nobody seeds a second copy of it. Optional, since a page from
-# before the editor was shared sends none, and its document is seeded once somebody opens it
+# before the editor was shared sends none, and its document is seeded once somebody opens it.
+#
+# `$contentText` is the plain text of `$content`, which the Knowledge module's search reads, at
+# most as long. The refusals' messages are `CreateDocument`'s, which the page matches on: change
+# them together
+mutation CreateDocumentWithText(
+  $organizationId: UUID!
+  $id: UUID!
+  $title: String!
+  $content: String!
+  $contentText: String!
+  $aspects: [CompanyAspect!]!
+  $isAiReadable: Boolean!
+  $isAiWritable: Boolean!
+  $state: String
+) @auth(level: USER) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "Only a member of an organization can add to its knowledge")
+    @check(
+      expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
+      message: "A document's title is at most 200 characters on one line"
+    )
+    @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
+    @check(expr: "size(vars.contentText) <= 200000", message: "A document's text is at most 200000 characters")
+    @check(
+      expr: "!has(vars.state) || vars.state == null || size(vars.state) <= 2000000"
+      message: "A document's state is at most 2000000 characters"
+    )
+    @check(
+      expr: "vars.title.matches('[[:^space:]]') || vars.content != ''"
+      message: "A document starts with a title or some text"
+    )
+    @check(
+      expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "A document is tagged with each aspect at most once"
+    )
+  query @redact {
+    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+      id
+    }
+  }
+  document_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      createdById_expr: "auth.uid"
+      title: $title
+      content: $content
+      contentText: $contentText
+      aspects: $aspects
+      isAiReadable: $isAiReadable
+      isAiWritable: $isAiWritable
+      state: $state
+    }
+  )
+}
+
+# `CreateDocumentWithText` as a page from before it sends it, without the plain text, which it
+# leaves null for the backend to fill from `content` before its next search. Kept for those pages,
+# with the same variables, so a release takes nothing from them
 mutation CreateDocument(
   $organizationId: UUID!
   $id: UUID!
@@ -995,6 +1062,7 @@ mutation CreateDocument(
       createdById_expr: "auth.uid"
       title: $title
       content: $content
+      contentText: null
       aspects: $aspects
       isAiReadable: $isAiReadable
       isAiWritable: $isAiWritable
@@ -1035,7 +1103,9 @@ mutation RenameDocument($organizationId: UUID!, $id: UUID!, $title: String!) @au
 #
 # Only a page from before the editor was shared calls it. A document with a `state` is edited
 # through its Yjs updates, and `content` is a copy the next compaction writes over, so a save here
-# is refused like one made over another revision, and that page reloads into the shared editor
+# is refused like one made over another revision, and that page reloads into the shared editor.
+#
+# It leaves `contentText` null, for the backend to fill from `content` before its next search
 mutation UpdateDocumentContent($organizationId: UUID!, $id: UUID!, $content: String!, $revision: Int!)
 @auth(level: USER)
 @transaction {
@@ -1053,7 +1123,7 @@ mutation UpdateDocumentContent($organizationId: UUID!, $id: UUID!, $content: Str
       revision: { eq: $revision }
       state: { isNull: true }
     }
-    data: { content: $content, revision_update: { inc: 1 }, updatedAt_expr: "request.time" }
+    data: { content: $content, contentText: null, revision_update: { inc: 1 }, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The document was deleted or changed elsewhere since it was read")
 }
 
@@ -1117,8 +1187,7 @@ mutation SetDocumentAiWritable($organizationId: UUID!, $id: UUID!, $isAiWritable
 # is left alone, so a document brought back takes its place in the list again rather than the top.
 #
 # It also prunes the organization's documents deleted more than a day ago, since nothing undoes a
-# delete that old, as lazily as `DeleteTaskList` prunes lists: the ones deleted in the day before
-# the latest delete stay, unread by anything but `RestoreDocument`, until the next one
+# delete that old, as the daily sweep prunes every organization's
 mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -1135,8 +1204,9 @@ mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @
   ) @redact
 }
 
-# Takes back a delete, which the page offers for a few seconds after one. Fails once the document
-# was pruned, a day after it was deleted.
+# Takes back a delete, which the page offers for a few seconds after one. Fails a day after the
+# document was deleted, whether or not it was pruned yet, so a day means a day wherever a restore
+# starts.
 #
 # A document brought back counts against the 1000 as a new one does, under the same lock on the
 # organization's row: without it, deleting a document at the cap, adding another and taking the
@@ -1156,7 +1226,11 @@ mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
     }
   }
   document_updateMany(
-    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+    }
     data: { deletedAt: null }
   ) @check(expr: "this == 1", message: "The document is gone for good")
 }
@@ -1294,7 +1368,49 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
 # still the stored one, so it never writes over a snapshot somebody folded more into. A push that
 # lands while it is out is not among the ids and stays pending. Every tab reads the snapshot again
 # when the revision moves, which brings back an update deleted before it reached them. A fold may
-# name none, to store an edit of the tab's own too long to push as an update, and then deletes none
+# name none, to store an edit of the tab's own too long to push as an update, and then deletes none.
+#
+# `$contentText` is the plain text of `$content`, which the Knowledge module's search reads. The
+# refusals' messages are `CompactDocument`'s, which the page matches on: change them together
+mutation CompactDocumentWithText(
+  $organizationId: UUID!
+  $id: UUID!
+  $state: String!
+  $content: String!
+  $contentText: String!
+  $revision: Int!
+  $updateIds: [UUID!]!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      role
+        @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+        @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
+        @check(expr: "size(vars.contentText) <= 200000", message: "A document's text is at most 200000 characters")
+    }
+  }
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      revision: { eq: $revision }
+    }
+    data: {
+      state: $state
+      content: $content
+      contentText: $contentText
+      revision_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The document was compacted or deleted elsewhere since it was read")
+  documentUpdate_deleteMany(where: { documentId: { eq: $id }, id: { in: $updateIds } })
+}
+
+# `CompactDocumentWithText` as a page from before it sends it, without the plain text: it leaves
+# `contentText` null, never stale, for the backend to fill from `content` before its next search.
+# Kept for those pages, with the same variables, so a release takes nothing from them
 mutation CompactDocument(
   $organizationId: UUID!
   $id: UUID!
@@ -1318,7 +1434,13 @@ mutation CompactDocument(
       deletedAt: { isNull: true }
       revision: { eq: $revision }
     }
-    data: { state: $state, content: $content, revision_update: { inc: 1 }, updatedAt_expr: "request.time" }
+    data: {
+      state: $state
+      content: $content
+      contentText: null
+      revision_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
   ) @check(expr: "this == 1", message: "The document was compacted or deleted elsewhere since it was read")
   documentUpdate_deleteMany(where: { documentId: { eq: $id }, id: { in: $updateIds } })
 }

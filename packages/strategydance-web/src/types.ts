@@ -18,7 +18,9 @@ import type {
   GetOrganizationInvitationData,
   GetOrganizationLogData,
   GetOrganizationTeamData,
+  GetTasksData,
   GetTodayPreferencesData,
+  TaskStatus,
 } from 'strategydance-database/web'
 
 import type { CARD_ACCENT_COLORS, MESSAGE_TYPES } from '~constants'
@@ -111,6 +113,35 @@ export type StagedImage =
 // How the reader's own Today page lists the team's priorities: the order they chose, and whom they
 // hid, both as user ids
 export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
+
+// One task on its organization's board: where it sits, who is doing it, when it is due, what it is
+// about and which tasks it waits on. Its description is read apart, by `useTaskDescriptions`
+export type Task = GetTasksData['tasks'][number]
+
+// What a task is made of before it is stored, as the new task's dialog collects it, with the tasks
+// it will wait on and those that will wait on it
+export type TaskDraft = {
+  name: string
+  description: string
+  status: TaskStatus
+  assigneeId: string | null
+  isAssignedToAgent: boolean
+  dueDate: string | null
+  aspects: CompanyAspect[]
+  dependencyIds: string[]
+  blockedIds: string[]
+}
+
+// A task as it was when it was deleted, with what an Undo puts back around it: its description, and
+// the tasks that waited on it
+export type TaskSnapshot = {
+  task: Task
+  description: string
+  dependentIds: string[]
+}
+
+// Whose tasks the board shows: everybody's, the reader's, Strategy Dance's, or a member's by uid
+export type TaskAssigneeFilter = 'all' | 'me' | 'agent' | (string & {})
 
 // Somebody's checklist as the Today page opens it: who they are, their columns with the last week
 // of ticks, and how far back their ticks go

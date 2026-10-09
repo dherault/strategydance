@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_TASK_DEPENDENCIES, MAX_TASK_NAME_LENGTH } from 'strategydance-core'
+import { MAX_TASK_DEPENDENCIES, MAX_TASK_DESCRIPTION_LENGTH, MAX_TASK_NAME_LENGTH } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { DialogDescription, DialogTitle } from 'strategydance-design-system/components/ui/Dialog'
@@ -43,7 +43,9 @@ type Props = {
 /*
   A task being drafted, in the frame it will open in once it exists, assigned to the reader to begin
   with. Nothing is stored until Create task, which wants a name: without one, the name says so and
-  takes the focus. A description being written when it is created comes with it, saved or not.
+  takes the focus. A description being written when it is created comes with it, saved or not, and
+  one too long to store keeps the dialog open, its editor saying why, rather than lose the draft to
+  the server's refusal once it has closed.
 
   The links it is given are picked among the board's tasks, as an existing task's are, and stored
   once the task is
@@ -89,6 +91,9 @@ function NewTaskDialog({ status, onClose }: Props) {
 
   function create() {
     const name = draft.name.trim()
+    const description = pendingDescriptionRef.current ?? draft.description
+
+    if (description.length > MAX_TASK_DESCRIPTION_LENGTH) return
 
     if (!name) {
       setIsNameMissing(true)
@@ -100,7 +105,7 @@ function NewTaskDialog({ status, onClose }: Props) {
     const { id, written } = createTask({
       ...draft,
       name,
-      description: pendingDescriptionRef.current ?? draft.description,
+      description,
       // A task deleted while the draft was open is linked to nothing
       dependencyIds: draft.dependencyIds.filter(taskId => tasksById.has(taskId)),
       blockedIds: draft.blockedIds.filter(taskId => tasksById.has(taskId)),

@@ -21,6 +21,8 @@
     "@anthropic-ai/sdk": "^0.128.0",
     "@google-cloud/secret-manager": "^7.1.0",
     "@google-cloud/tasks": "^7.2.1",
+    "@modelcontextprotocol/client": "^2.2.0",
+    "@modelcontextprotocol/server": "^2.2.0",
     "cors": "^2.8.6",
     "entities": "^4.5.0",
     "express": "^5.2.1",

@@ -821,27 +821,28 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   text without a `version` and each list cut at 20 with its count, and a description that fits read
   whole with its `version`; the agent's move and a member's rename landing at once both kept, the
   update reading again and reapplying; a move between two tasks placed halfway, one into a gap too
-  narrow refused with nothing written, a `beforeId` naming the task itself leaving it where it is,
-  and a move to Done answering the tasks it frees, and on a board of 1000 tasks waiting on one, the
-  first 50 and a count of 999, within a result's 50000 characters; a `beforeId` in another column
-  refused; an assignee who is not a member refused, a member named `member:<id>` assigned, a bare id
-  refused, and a member whose id is `agent` assigned as a member, and `"agent"` taking the task off
-  the member; a task waiting on itself refused, and loops of two and of three tasks refused with
-  their tasks named, and one through all 1000 tasks refused naming the first 20 and its length; a
-  51st link refused; removing a link that does not exist refused; a delete keeping the links, a
-  restore bringing them back, a restore past a day refused, the page's too, and one whose links
-  would close a loop with a link made while it was deleted refused; the list paged in hundreds, two
-  tasks at one position on either side of a page's end neither skipped nor repeated, `total` right,
-  and the members on the first page alone; a query found in a name and in a description whatever its
-  case, one half in bold found, a query of `type` or `text` matching no task whose name and plain
-  text lack it, null rows indexed before a query, 20 at most, with `isIndexComplete` false while
-  more remain, and a description saved between the index's read and its write left null, and one
-  past 100 characters refused; a name, a description and a query holding U+0000 refused before any
-  operation runs, and a query of `%`, `_` and `\` matching only the tasks that hold them as written;
-  a done task waiting on an unfinished one never blocked, in `list_tasks`, in `read_task` and in
-  what `remove_task_dependency` answers; `assignee: "unassigned"` and `"agent"` filtered, and
-  aspects matched on any; an external caller's results carrying addresses, by its id for an
-  organization without a slug, and the agent's none; no write recording an `ActivityDay`.
+  narrow refused with nothing written, a `beforeId` naming the task itself leaving it where it is in
+  its own column, and refused with another `status`, and a move to Done answering the tasks it
+  frees, and on a board of 1000 tasks waiting on one, the first 50 and a count of 999, within a
+  result's 50000 characters; a `beforeId` in another column refused; an assignee who is not a member
+  refused, a member named `member:<id>` assigned, a bare id refused, and a member whose id is
+  `agent` assigned as a member, and `"agent"` taking the task off the member; a task waiting on
+  itself refused, and loops of two and of three tasks refused with their tasks named, and one
+  through all 1000 tasks refused naming the first 20 and its length; a 51st link refused; removing a
+  link that does not exist refused; a delete keeping the links, a restore bringing them back, a
+  restore past a day refused, the page's too, and one whose links would close a loop with a link
+  made while it was deleted refused; the list paged in hundreds, two tasks at one position on either
+  side of a page's end neither skipped nor repeated, `total` right, and the members on the first
+  page alone; a query found in a name and in a description whatever its case, one half in bold
+  found, a query of `type` or `text` matching no task whose name and plain text lack it, null rows
+  indexed before a query, 20 at most, with `isIndexComplete` false while more remain, and a
+  description saved between the index's read and its write left null, and one past 100 characters
+  refused; a name, a description and a query holding U+0000 refused before any operation runs, and a
+  query of `%`, `_` and `\` matching only the tasks that hold them as written; a done task waiting
+  on an unfinished one never blocked, in `list_tasks`, in `read_task` and in what
+  `remove_task_dependency` answers; `assignee: "unassigned"` and `"agent"` filtered, and aspects
+  matched on any; an external caller's results carrying addresses, by its id for an organization
+  without a slug, and the agent's none; no write recording an `ActivityDay`.
 - Verify: with `bun run mcp:tasks` added to Claude Code locally and the board open in a tab, have
   it read the board, create three tasks for a plan, link them in order, assign one to a teammate and
   one to Strategy Dance, and move one to Done, the cards arriving without a reload; save a

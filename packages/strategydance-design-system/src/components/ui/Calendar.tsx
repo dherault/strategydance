@@ -22,14 +22,18 @@ type Props = DayPickerProps & {
   greyed, today in the primary color and bold, and the day picked filled with it. It brings no
   padding or border of its own, so it sits in a popover's.
 
+  Every month takes six weeks, as the design's 42 days do, so the calendar keeps its height from one
+  month to the next and a popover around it never jumps to the other side of its field
+
   The arrow keys move between days, as DayPicker's grid does, and the focus follows them
 */
-function Calendar({ className, classNames, showOutsideDays = true, locale, ...props }: Props) {
+function Calendar({ className, classNames, showOutsideDays = true, fixedWeeks = true, locale, ...props }: Props) {
   const defaultClassNames = getDefaultClassNames()
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      fixedWeeks={fixedWeeks}
       locale={getCalendarLocale(locale)}
       className={cn('w-60 font-sans', className)}
       classNames={{

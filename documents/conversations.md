@@ -46,8 +46,8 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Model | Claude Opus 5.5, `claude-opus-5-5` |
 | Where it runs | Anthropic's Claude API, directly, through `@anthropic-ai/sdk`. Its key is the `anthropic-api-key` secret, read through `retrieveSecret`, and the workspace it belongs to has a spend limit. Vertex was the first choice, for credentials nothing stores and one bill, until Google gave the project no Claude quota and refused one. The API also has what Vertex lacks: server-side refusal fallbacks, the Files API and the newer web search |
 | How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on a private worker service, the backend's image deployed a second time, writing each step to Data Connect. Locally it runs in the backend's process |
-| What the agent reads | Knowledge, through the Knowledge module, the organization's profile (name, brief), the whole team (names, job titles, roles, bios, top priorities) and the log, never a document the team keeps from AI (`isAiReadable` off), which search leaves out and reading refuses. Not tasks or the checklist, which are going away |
-| What the agent writes | Knowledge documents, through the Knowledge module: creating them, editing their shared Yjs text as an editor would, so its edits reach open editors live, tagging their aspects, and deleting and restoring them, never one the team keeps AI from changing (`isAiWritable` off) or from reading; and the member's own top priority. Not the log, the checklist or tasks |
+| What the agent reads | Knowledge, through the Knowledge module, the organization's profile (name, brief), the whole team (names, job titles, roles, bios, top priorities) and the log, never a document the team keeps from AI (`isAiReadable` off), which search leaves out and reading refuses. Not the team's tasks, nor the checklist, which is going away |
+| What the agent writes | Knowledge documents, through the Knowledge module: creating them, editing their shared Yjs text as an editor would, so its edits reach open editors live, tagging their aspects, and deleting and restoring them, never one the team keeps AI from changing (`isAiWritable` off) or from reading; and the member's own top priority. Not the log, the checklist or the team's tasks |
 | Web search | Claude's built-in web search, `web_search_20260209`, which filters what it finds before it reaches the context, from the first agent milestone |
 | Attachments | Images, PDFs and text files, read by Claude natively, through the Files API |
 | Questions | Multiple-choice questions through a tool, as designed |
@@ -264,7 +264,7 @@ External agent ──MCP over Streamable HTTP, bearer token──▶ Backend `/m
 New tables in `schema.gql`, each commented as the existing ones are:
 
 - **`Conversation`**: `id` (made by the client, as a document's is, so a draft has its id before it
-  is stored), `user`, `organization` (both references, as `TaskList` has them, so a member removed
+  is stored), `user`, `organization` (both references, as `ChecklistItem` has them, so a member removed
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
   (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
   started from), `activeRunId`, `isAwaitingAnswer` (set by the write that ends a run `WAITING`,
@@ -373,9 +373,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 ### Who writes what
 
 - **The web connector** (`USER`, every operation keyed by `auth.uid` and by the caller's current
-  membership, with the predicate `GetTaskLists` uses, and every mutation checking that membership in
-  its transaction: conversations outlive a member's removal, so ownership alone would leave a former
-  member reading them. Every read also filters the conversation on `deletedAt: { isNull: true }`, as
+  membership, with the predicate `GetOrganizationDocuments` uses, and every mutation checking that
+  membership in its transaction: conversations outlive a member's removal, so ownership alone would
+  leave a former member reading them. Every read also filters the conversation on
+  `deletedAt: { isNull: true }`, as
   `GetOrganizationDocuments` does, the list, the conversation, its history, its run, a tool call and
   both searches alike; only `RestoreConversation` reaches a deleted one. The backend's routes refuse a
   deleted conversation too, and its worker stops at its next write once the conversation is deleted):

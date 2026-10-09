@@ -7,7 +7,6 @@ import useChecklist from '~hooks/checklist/useChecklist'
 import useRecentChecklistTicks from '~hooks/checklist/useRecentChecklistTicks'
 import useLogAuthors from '~hooks/log/useLogAuthors'
 import useMemberLatestLogEntries from '~hooks/log/useMemberLatestLogEntries'
-import useTaskListSummaries from '~hooks/task/useTaskListSummaries'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import pickLogAuthor from '~utils/buildInPublic/pickLogAuthor'
@@ -28,7 +27,6 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
   const { user: pickedId } = readCard('log-entry', { user: viewerId ?? '' })
   const { initialLoading: areActivityDaysLoading } = useActivityDays()
   const { initialLoading: isTeamLoading } = useOrganizationTeam()
-  const { initialLoading: areTaskListsLoading } = useTaskListSummaries()
   const { initialLoading: isChecklistLoading } = useChecklist(viewerId)
   const { initialLoading: areTicksLoading } = useRecentChecklistTicks()
   const { data: authorIds, initialLoading: areAuthorsLoading } = useLogAuthors()
@@ -38,7 +36,6 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
   if (
     areActivityDaysLoading
     || isTeamLoading
-    || areTaskListsLoading
     || isChecklistLoading
     || areTicksLoading
     || areAuthorsLoading

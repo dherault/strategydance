@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { PencilIcon } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -148,4 +150,51 @@ export const InDialog: Story = {
       </DialogContent>
     </Dialog>
   ),
+}
+
+// A field shown only while editing, as a task's links are: the pencil opens the list over what is
+// picked, and closing it goes back to reading
+function EditedOnDemand() {
+  const [picked, setPicked] = useState(['Newsletter', 'LinkedIn'])
+  const [isEditing, setIsEditing] = useState(false)
+
+  return (
+    <div className="flex max-w-xs flex-col gap-2 font-sans text-sm">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Channels</span>
+        <Button
+          variant="transparent"
+          size="sm"
+          icon={<PencilIcon />}
+          aria-label="Edit channels"
+          onClick={() => setIsEditing(true)}
+        />
+      </div>
+      {isEditing ? (
+        <MultiSelect
+          options={channels}
+          value={picked}
+          defaultOpen
+          aria-label="Channels"
+          onValueChange={setPicked}
+          onOpenChange={isOpen => {
+            if (!isOpen) setIsEditing(false)
+          }}
+        />
+      ) : (
+        <p className="m-0 text-foreground">{picked.join(', ') || 'None'}</p>
+      )}
+    </div>
+  )
+}
+
+export const OpenedOnDemand: Story = {
+  parameters: {
+    docs: {
+      story: {
+        height: '420px',
+      },
+    },
+  },
+  render: () => <EditedOnDemand />,
 }

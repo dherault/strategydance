@@ -22,6 +22,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Today',
     description: 'Sidebar link to the page about what to do today.',
   },
+  tasks: {
+    id: 'navigation.tasks',
+    defaultMessage: 'Tasks',
+    description: "Sidebar link to the board of tasks the team and Strategy Dance work on, and that page's title.",
+  },
   buildInPublic: {
     id: 'navigation.buildInPublic',
     defaultMessage: 'Build in public',

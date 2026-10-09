@@ -179,6 +179,7 @@ query GetOrganizationTeam($organizationId: UUID!)
       email
       displayName
       imageUrl
+      imageThumbnailUrl
     }
   }
   organizationInvitations(
@@ -294,158 +295,6 @@ query GetAdministrationOrganizations @auth(level: USER) {
     members: userOrganizations_on_organization {
       _count
     }
-  }
-}
-
-# The caller's task lists in an organization, in the order they put them in, each with how many of
-# its tasks are still open, for the pill beside its name. Keyed by the uid off the token, and read
-# only while they belong to the organization. A deleted list is left out. A teammate's are
-# `GetMemberTaskLists`.
-#
-# Read up to 100, `MAX_TASK_LISTS` in strategydance-core, which `CreateTaskList` holds them to. The
-# tasks themselves are read one list at a time, by `GetTasks`, since a list holds up to 1000
-query GetTaskLists($organizationId: UUID!) @auth(level: USER) {
-  taskLists(
-    where: {
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-    }
-    # Lists that share a position, as the ones made before lists could move do, keep the order they
-    # were made in, and `id` breaks the tie between two made in the same instant
-    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-    limit: 100
-  ) {
-    id
-    name
-    position
-    openTasks: tasks_on_taskList(where: { isDone: { eq: false } }) {
-      _count
-    }
-  }
-}
-
-# One of the caller's task lists, its tasks in their order. Scoped as `GetTaskLists` is, through
-# the list, so an id that is somebody else's reads nothing. Up to 1000, `MAX_TASKS_PER_LIST` in
-# strategydance-core, which `CreateTask` holds a list to
-query GetTasks($organizationId: UUID!, $taskListId: UUID!) @auth(level: USER) {
-  tasks(
-    where: {
-      taskListId: { eq: $taskListId }
-      taskList: {
-        userId: { eq_expr: "auth.uid" }
-        organizationId: { eq: $organizationId }
-        deletedAt: { isNull: true }
-        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-      }
-    }
-    # Two tasks added at once can share a position, and then keep the order they were added in
-    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-    limit: 1000
-  ) {
-    id
-    text
-    isDone
-    position
-  }
-}
-
-# The caller's task lists in an organization as the build in public page draws them: each with how
-# many tasks it holds and how many are done, and the few tasks a card lists, the first ones, the
-# first done and the first still open, in their order. Counts rather than every task, so the page
-# reads at most 13 tasks a list whatever a list holds. Scoped as `GetTaskLists` is, and in its order
-query GetTaskListSummaries($organizationId: UUID!) @auth(level: USER) {
-  taskLists(
-    where: {
-      userId: { eq_expr: "auth.uid" }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-    }
-    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-    limit: 100
-  ) {
-    id
-    name
-    allTasks: tasks_on_taskList {
-      _count
-    }
-    doneTasks: tasks_on_taskList(where: { isDone: { eq: true } }) {
-      _count
-    }
-    firstTasks: tasks_on_taskList(orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }], limit: 6) {
-      id
-      text
-      isDone
-    }
-    firstDoneTasks: tasks_on_taskList(
-      where: { isDone: { eq: true } }
-      orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-      limit: 3
-    ) {
-      id
-      text
-    }
-    firstOpenTasks: tasks_on_taskList(
-      where: { isDone: { eq: false } }
-      orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-      limit: 4
-    ) {
-      id
-      text
-    }
-  }
-}
-
-# Somebody's task lists in an organization, read only, for the Today page's picker: any member may
-# read any member's, and an outsider, or a member reading somebody who left, reads nothing. The
-# same lists `GetTaskLists` reads for their owner, in the same order and as many.
-#
-# The owner's own page keeps `GetTaskLists`, keyed by the token, rather than calling this with their
-# own uid: the deployed page calls it, and taking the owner as a variable would break it
-query GetMemberTaskLists($organizationId: UUID!, $userId: String!) @auth(level: USER) {
-  taskLists(
-    where: {
-      userId: { eq: $userId }
-      organizationId: { eq: $organizationId }
-      deletedAt: { isNull: true }
-      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-      user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
-    }
-    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-    limit: 100
-  ) {
-    id
-    name
-    position
-    openTasks: tasks_on_taskList(where: { isDone: { eq: false } }) {
-      _count
-    }
-  }
-}
-
-# One of somebody's task lists, its tasks in their order, read only. Scoped as `GetMemberTaskLists`
-# is, through the list, so an id that is not that member's reads nothing
-query GetMemberTasks($organizationId: UUID!, $userId: String!, $taskListId: UUID!) @auth(level: USER) {
-  tasks(
-    where: {
-      taskListId: { eq: $taskListId }
-      taskList: {
-        userId: { eq: $userId }
-        organizationId: { eq: $organizationId }
-        deletedAt: { isNull: true }
-        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-        user: { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
-      }
-    }
-    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
-    limit: 1000
-  ) {
-    id
-    text
-    isDone
-    position
   }
 }
 
@@ -708,6 +557,192 @@ query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(
     user {
       id
     }
+  }
+}
+
+# An organization's board, as the Tasks page lays it out: every task not deleted, in its column's
+# order, with the tasks it waits on, leaving out any deleted since. Without the descriptions, which
+# `GetTaskDescriptions` reads. Outsiders read nothing. Names and pictures are the team's, which the
+# page reads already, so a task carries only its people's ids.
+#
+# Read up to 1000 tasks, as many as an organization keeps (`MAX_TASKS` in strategydance-core), so
+# the board is never cut short, and up to 50 links a task, as many as a task holds
+# (`MAX_TASK_DEPENDENCIES`). `linkCount` counts every one, those to deleted tasks the board reads
+# past included, which `AddTaskDependency` counts against the cap too.
+#
+# A live query: each `@refresh` names a mutation that changes what a card shows or where it sits.
+# Saving a description is not among them, so a description pushes only itself. Removing a member
+# empties theirs, and deleting the organization empties everybody's. The daily sweep's
+# `PruneDeletedTasks` takes away the links of tasks long deleted, which frees room under the cap,
+# and names no organization, so every open board reads again, once a day
+query GetTasks($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MoveTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AssignTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskDueDate"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskAspects"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AddTaskDependency"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveTaskDependency"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(onMutationExecuted: { operation: "PruneDeletedTasks" }) {
+  tasks(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # Ties, as two members adding at once can make, keep the order the tasks were added in
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    name
+    status
+    position
+    assigneeId
+    isAssignedToAgent
+    dueDate
+    aspects
+    createdById
+    createdAt
+    dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
+      dependencyId
+    }
+    linkCount: taskDependencies_on_task {
+      _count
+    }
+  }
+}
+
+# The descriptions of an organization's tasks, for the board's search. Not a live query: a save would
+# push every description to every member with the board open, so a task's dialog keeps its own live
+# through `GetTaskDescription`, and the board reads these again as its page opens or comes back
+# into focus
+query GetTaskDescriptions($organizationId: UUID!) @auth(level: USER) {
+  tasks(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1000
+  ) {
+    id
+    description
+  }
+}
+
+# One task's description, for its dialog, kept live: a teammate's save shows to whoever has the task
+# open, and pushes this one description rather than the board's every one. Outsiders, and a task
+# deleted or of another organization, read nothing
+query GetTaskDescription($organizationId: UUID!, $id: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskDescription"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  tasks(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+    description
   }
 }
 

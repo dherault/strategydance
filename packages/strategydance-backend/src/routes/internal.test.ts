@@ -21,6 +21,11 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 
 mock.module('strategydance-database/backend', () => ({ ...knowledge.sdk, ...fake.sdk }))
 
+// The board's prune, which the conversations' fake does not hold: its own test covers it
+const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
+
+mock.module('~domain/tasks/pruneDeletedTasks', () => ({ default: pruneDeletedTasks }))
+
 // The client every run asks, the placeholder without the pauses it makes for a person to watch
 mock.module('~domain/agent/conversationClaudeClient', () => ({
   default: createPlaceholderClaudeClient({ stepDurationMs: 0 }),
@@ -176,6 +181,15 @@ describe('POST /internal/sweep', () => {
 
     expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
     expect([...fake.searches.keys()]).toEqual([kept.id])
+  })
+
+  test("prunes the board's deleted tasks too", async () => {
+    pruneDeletedTasks.mockClear()
+
+    const response = await fetch(`${origin}/internal/sweep`, { method: 'POST' })
+
+    expect(response.status).toBe(200)
+    expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
   })
 
   test('removes the documents deleted over a day ago in every organization, and keeps the rest', async () => {

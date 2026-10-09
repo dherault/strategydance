@@ -14,6 +14,7 @@ import pruneDeletedConversations from '~domain/conversations/pruneDeletedConvers
 import runConversation from '~domain/conversations/runConversation'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
+import pruneDeletedTasks from '~domain/tasks/pruneDeletedTasks'
 
 /*
   What Google Cloud calls on the worker, mounted at `/internal` by the worker alone, never by the
@@ -78,15 +79,16 @@ function createInternalRouter() {
 
   /*
     Removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
-    Scheduler asks once a day: the conversations and the documents deleted over a day ago. A
-    milestone that keeps something else deleted for a while adds its prune here. So does one that
-    keeps a count or a record for a while, as the conversation searches over a day old go, and the
-    module call results past their expiry. Every step is idempotent, so a sweep that failed is
-    finished by the next. Takes no body
+    Scheduler asks once a day: the conversations, the board's tasks and the documents deleted over a
+    day ago. A milestone that keeps something else deleted for a while adds its prune here. So does
+    one that keeps a count or a record for a while, as the conversation searches over a day old go,
+    and the module call results past their expiry. Every step is idempotent, so a sweep that failed
+    is finished by the next. Takes no body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     await pruneDeletedConversations()
     await pruneConversationSearches()
+    await pruneDeletedTasks()
     await pruneDeletedDocuments()
     await pruneModuleCallResults()
 

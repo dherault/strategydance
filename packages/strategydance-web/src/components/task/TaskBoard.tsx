@@ -1,157 +1,196 @@
-import { PlusIcon } from 'lucide-react'
+import { PlusIcon, SquareKanbanIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
+import { type CompanyAspect, TaskStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
-import { toast } from 'strategydance-design-system/components/ui/Toaster'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from 'strategydance-design-system/components/ui/Empty'
 
-import type { TaskList } from '~types'
+import type { TaskAssigneeFilter } from '~types'
 
-import useActiveTaskListId from '~hooks/task/useActiveTaskListId'
-import useTaskLists from '~hooks/task/useTaskLists'
+import { TASK_STATUSES } from '~constants'
 
-import createId from '~utils/common/createId'
+import useAuthentication from '~hooks/authentication/useAuthentication'
+import useLocalDate from '~hooks/common/useLocalDate'
+import useMoveTask from '~hooks/task/useMoveTask'
+import useTaskBoardDrag from '~hooks/task/useTaskBoardDrag'
+import useTaskBoardKeyboard from '~hooks/task/useTaskBoardKeyboard'
+import useTaskBoardReads from '~hooks/task/useTaskBoardReads'
+import useTaskDescriptions from '~hooks/task/useTaskDescriptions'
+import useTasks from '~hooks/task/useTasks'
+import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
-import Spinner from '~components/common/Spinner'
-import TaskListNavigation from '~components/task/TaskListNavigation'
-import TaskListPanel from '~components/task/TaskListPanel'
-import TodaySectionLoadFailed from '~components/today/TodaySectionLoadFailed'
+import filterTasks from '~utils/task/filterTasks'
+import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
 
+import PageHeader from '~components/layout/PageHeader'
+import NewTaskDialog from '~components/task/NewTaskDialog'
+import TaskBoardColumn from '~components/task/TaskBoardColumn'
+import TaskBoardFilters from '~components/task/TaskBoardFilters'
+import TaskLoadFailed from '~components/task/TaskLoadFailed'
+
+import navigationMessages from '~data/intl/messages/navigation'
 import taskMessages from '~data/intl/messages/task'
 
-type Props = {
-  userId: string
-  // The reader's own lists, which they add to and change. Anybody else's are read only
-  isOwn: boolean
-}
-
 /*
-  A member's task lists: a rail of lists beside the open one. Under 600px the rail stacks above it.
+  The organization's board: every task in a column per status, which any member adds to, opens,
+  and drags within a column and across them. The filters narrow what the columns show without
+  moving anything, and a card dropped among filtered ones lands before the one it is dropped on.
 
-  On the reader's own, the list last opened stays open from one visit to the next, and the lists
-  move in the rail as tasks do in a list. A new list opens last, with its name selected, to be named
-  straight away. Deleting a list asks twice, then offers to take it back, tasks and all. A
-  teammate's opens on their first list, and changes nothing
+  A new task is a draft in a dialog of this page until it is created. A task opened is an address of
+  its own, under this one, so the board stays as it was behind its dialog.
+
+  Four columns want the width the page column keeps clear on its right, to center other pages, so
+  the board takes the page's whole width up to 1600px, with the page column's gutters: its left edge
+  stays where every page's is until the screen is wide enough to center it
 */
-function TaskBoard({ userId, isOwn }: Props) {
+function TaskBoard() {
   const { formatMessage } = useIntl()
-  const {
-    data: taskLists,
-    initialLoading,
-    hasFailed,
-    loading,
-    refetch,
-    createTaskList,
-    renameTaskList,
-    deleteTaskList,
-    restoreTaskList,
-    moveTaskList,
-  } = useTaskLists(userId)
-  const [rememberedTaskListId, setRememberedTaskListId] = useActiveTaskListId()
-  const [browsedTaskListId, setBrowsedTaskListId] = useState<string | null>(null)
+  const { data: viewer } = useAuthentication()
+  const { data: tasks } = useTasks()
+  const { hasFailed, isRetrying, retry } = useTaskBoardReads()
+  const { data: descriptions } = useTaskDescriptions()
+  const { data: team } = useOrganizationTeam()
+  const today = useLocalDate()
+  const move = useMoveTask()
+  const { draggedId, overStatus, getCardProps, getColumnProps, getDropMarker } = useTaskBoardDrag({ onMove: move })
 
-  const [renamingTaskListId, setRenamingTaskListId] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [assignee, setAssignee] = useState<TaskAssigneeFilter>('all')
+  const [aspects, setAspects] = useState<CompanyAspect[]>([])
+  // The column a new task's dialog adds it to, while it is open
+  const [draftStatus, setDraftStatus] = useState<TaskStatus | null>(null)
 
-  const activeTaskListId = isOwn ? rememberedTaskListId : browsedTaskListId
-  const setActiveTaskListId = isOwn ? setRememberedTaskListId : setBrowsedTaskListId
-  const activeTaskList = taskLists.find(({ id }) => id === activeTaskListId) ?? taskLists[0] ?? null
+  const viewerId = viewer?.uid ?? null
+  const members = team.userOrganizations
+  const isFiltering = query.trim() !== '' || assignee !== 'all' || aspects.length > 0
+  // Kept by the compiled render until the descriptions move, so a keystroke parses none of them
+  const descriptionTexts = getTaskDescriptionTexts(descriptions)
+  const visibleTasks = filterTasks(tasks, { query, assignee, aspects }, { viewerId, descriptionTexts })
+  const columns = new Map(TASK_STATUSES.map(status => [status, visibleTasks.filter(task => task.status === status)]))
+  const { announcement, getCardKeyDown } = useTaskBoardKeyboard({ columns, onMove: move })
+  const tasksById = new Map(tasks.map(task => [task.id, task]))
+  const membersById = new Map(members.map(member => [member.user.id, member]))
 
-  async function report(write: Promise<void>) {
-    try {
-      await write
-    } catch (error) {
-      console.error('Failed to save a change to the task lists', error)
+  function clearFilters() {
+    setQuery('')
+    setAssignee('all')
+    setAspects([])
+  }
 
-      toast.error(formatMessage(taskMessages.saveError))
+  function renderBody() {
+    if (hasFailed) {
+      return (
+        <TaskLoadFailed
+          message={formatMessage(taskMessages.loadError)}
+          isRetrying={isRetrying}
+          onRetry={retry}
+        />
+      )
     }
-  }
 
-  function select(taskListId: string) {
-    setActiveTaskListId(taskListId)
-    setRenamingTaskListId(null)
-  }
+    if (!tasks.length) {
+      return (
+        <Empty className="border border-dashed border-border">
+          <EmptyHeader>
+            <EmptyMedia>
+              <SquareKanbanIcon />
+            </EmptyMedia>
+            <EmptyTitle>{formatMessage(taskMessages.emptyTitle)}</EmptyTitle>
+            <EmptyDescription>{formatMessage(taskMessages.emptyText)}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<PlusIcon />}
+              onClick={() => setDraftStatus(TaskStatus.TODO)}
+            >
+              {formatMessage(taskMessages.newTask)}
+            </Button>
+          </EmptyContent>
+        </Empty>
+      )
+    }
 
-  function add() {
-    const id = createId()
-
-    report(createTaskList(id, formatMessage(taskMessages.defaultListName)))
-    setActiveTaskListId(id)
-    setRenamingTaskListId(id)
-  }
-
-  function remove(taskList: TaskList) {
-    const index = taskLists.findIndex(({ id }) => id === taskList.id)
-    const remaining = taskLists.filter(({ id }) => id !== taskList.id)
-
-    setActiveTaskListId(remaining[Math.max(0, index - 1)]?.id ?? null)
-    report(deleteTaskList(taskList.id))
-    toast(formatMessage(taskMessages.listDeleted, { name: taskList.name }), {
-      action: {
-        label: formatMessage(taskMessages.undo),
-        onClick: () => {
-          report(restoreTaskList(taskList, index))
-          setActiveTaskListId(taskList.id)
-        },
-      },
-    })
-  }
-
-  // Only a teammate's can still be loading here: `TodayWait` holds the page for the reader's own
-  if (initialLoading) {
     return (
-      <div className="flex min-h-80 items-center justify-center rounded-xs border border-neutral-200 bg-white">
-        <Spinner />
+      <div className="flex flex-col gap-4">
+        <TaskBoardFilters
+          query={query}
+          assignee={assignee}
+          aspects={aspects}
+          members={members}
+          viewerId={viewerId}
+          isFiltering={isFiltering}
+          onQueryChange={setQuery}
+          onAssigneeChange={setAssignee}
+          onAspectsChange={setAspects}
+          onClear={clearFilters}
+        />
+        <div className="grid grid-cols-[repeat(4,minmax(216px,1fr))] items-stretch gap-3 overflow-x-auto pb-1">
+          {TASK_STATUSES.map(status => {
+            const column = columns.get(status) ?? []
+
+            return (
+              <TaskBoardColumn
+                key={status}
+                status={status}
+                tasks={column}
+                tasksById={tasksById}
+                membersById={membersById}
+                today={today}
+                isFiltering={isFiltering}
+                dropMarker={getDropMarker(status, column)}
+                isDraggedOver={overStatus === status}
+                draggedId={draggedId}
+                columnProps={getColumnProps(status)}
+                getCardProps={getCardProps}
+                getCardKeyDown={getCardKeyDown}
+                onAdd={() => setDraftStatus(status)}
+              />
+            )
+          })}
+        </div>
+        <p
+          aria-live="polite"
+          className="sr-only"
+        >
+          {announcement}
+        </p>
       </div>
-    )
-  }
-
-  if (hasFailed) {
-    return (
-      <TodaySectionLoadFailed
-        message={formatMessage(taskMessages.loadError)}
-        isRetrying={loading}
-        onRetry={refetch}
-      />
     )
   }
 
   return (
-    <div className="@container overflow-hidden rounded-xs border border-neutral-200 bg-white">
-      <div className="grid min-h-80 grid-cols-1 @min-[601px]:grid-cols-[240px_minmax(0,1fr)]">
-        <TaskListNavigation
-          taskLists={taskLists}
-          activeTaskListId={activeTaskList?.id ?? null}
-          isOwn={isOwn}
-          onSelect={select}
-          onAdd={add}
-          onMove={(from, to) => report(moveTaskList(from, to))}
+    <div className="mx-auto box-border flex w-full max-w-[calc(1600px+4rem)] flex-col gap-8 px-2 pt-6 pb-12 md:px-8">
+      <PageHeader
+        eyebrow={formatMessage(taskMessages.eyebrow)}
+        title={formatMessage(navigationMessages.tasks)}
+        lead={formatMessage(taskMessages.lead)}
+        actions={
+          hasFailed ? undefined : (
+            <Button
+              icon={<PlusIcon />}
+              onClick={() => setDraftStatus(TaskStatus.TODO)}
+            >
+              {formatMessage(taskMessages.newTask)}
+            </Button>
+          )
+        }
+      />
+      {renderBody()}
+      {draftStatus ? (
+        <NewTaskDialog
+          status={draftStatus}
+          onClose={() => setDraftStatus(null)}
         />
-        {activeTaskList ? (
-          <TaskListPanel
-            key={activeTaskList.id}
-            userId={userId}
-            taskList={activeTaskList}
-            isOwn={isOwn}
-            isRenaming={renamingTaskListId === activeTaskList.id}
-            onRenamingChange={isRenaming => setRenamingTaskListId(isRenaming ? activeTaskList.id : null)}
-            onRename={name => report(renameTaskList(activeTaskList.id, name))}
-            onDelete={() => remove(activeTaskList)}
-          />
-        ) : (
-          <div className="flex flex-col items-start gap-3 px-4 py-6 text-sm text-muted-foreground">
-            {formatMessage(isOwn ? taskMessages.noLists : taskMessages.noMemberLists)}
-            {isOwn ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<PlusIcon />}
-                onClick={add}
-              >
-                {formatMessage(taskMessages.newList)}
-              </Button>
-            ) : null}
-          </div>
-        )}
-      </div>
+      ) : null}
     </div>
   )
 }

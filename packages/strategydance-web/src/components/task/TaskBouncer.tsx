@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { type PropsWithChildren, useEffect } from 'react'
 
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+import useTaskBoardReads from '~hooks/task/useTaskBoardReads'
 import useTasks from '~hooks/task/useTasks'
 
 type Props = PropsWithChildren<{
@@ -11,12 +12,14 @@ type Props = PropsWithChildren<{
 /*
   Sits under `TaskBoardWait`, so the board has landed: an address naming a task the board does not
   hold, never there or deleted since, by the reader or a teammate, goes back to the board in its
-  place rather than to a not found page. A board that failed to load says so itself, under it
+  place rather than to a not found page. A board any of whose reads failed says so itself, under it,
+  and opens no task over that, whose description or people would read as nothing
 */
 function TaskBouncer({ taskId, children }: Props) {
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
-  const { data: tasks, hasFailed } = useTasks()
+  const { data: tasks } = useTasks()
+  const { hasFailed } = useTaskBoardReads()
 
   const isGone = !hasFailed && !tasks.some(({ id }) => id === taskId)
 

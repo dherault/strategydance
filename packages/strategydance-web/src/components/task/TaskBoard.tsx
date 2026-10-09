@@ -20,6 +20,7 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLocalDate from '~hooks/common/useLocalDate'
 import useMoveTask from '~hooks/task/useMoveTask'
 import useTaskBoardDrag from '~hooks/task/useTaskBoardDrag'
+import useTaskBoardReads from '~hooks/task/useTaskBoardReads'
 import useTaskDescriptions from '~hooks/task/useTaskDescriptions'
 import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
@@ -51,7 +52,8 @@ import taskMessages from '~data/intl/messages/task'
 function TaskBoard() {
   const { formatMessage } = useIntl()
   const { data: viewer } = useAuthentication()
-  const { data: tasks, loading, refetch, hasFailed } = useTasks()
+  const { data: tasks } = useTasks()
+  const { hasFailed, isRetrying, retry } = useTaskBoardReads()
   const { data: descriptions } = useTaskDescriptions()
   const { data: team } = useOrganizationTeam()
   const today = useLocalDate()
@@ -84,8 +86,8 @@ function TaskBoard() {
       return (
         <TaskLoadFailed
           message={formatMessage(taskMessages.loadError)}
-          isRetrying={loading}
-          onRetry={refetch}
+          isRetrying={isRetrying}
+          onRetry={retry}
         />
       )
     }

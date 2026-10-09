@@ -764,24 +764,33 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   shapes (an id, whether it is done, the ids it waits on), so they import no database type, as M14
   moved `toOrganizationPathSegment`. The web imports them from there, their tests moving with them,
   and nothing visible changes.
+- **A searchable plain text for descriptions.** `Task` gains `descriptionText`, the plain text of
+  its description, null meaning not indexed yet, as Modules § The Tasks module's tools describes it.
+  The board writes it through new operations, `CreateTaskWithText` and
+  `UpdateTaskDescriptionWithText`, with `getRichTextText(parseRichText(description))`, and the old
+  `CreateTask` and `UpdateTaskDescription` now write null beside the description, their data block
+  being the server's. `bun run backfill:task-text --production`, under the backend's `scripts/`,
+  fills existing tasks once the release has deployed, paging through null rows, and can stop and
+  resume at any point, as M14's `backfill:document-text` does.
 - **The page's `RestoreTask` refuses a task deleted over a day ago**, a condition in its `where`
   rather than a variable, so no connector change breaks and a day means a day wherever a restore
   starts.
 - Backend-connector operations, named `…ForAgent`, each matching the membership on
   `membershipCreatedAt` and answering it beside what it reads, so a removed member is refused rather
   than shown an empty board:
-  - reads: the board, without descriptions, with each task's links, `createdBy` and `updatedAt`,
-    and the members' ids and names; a query's candidates, the ids and descriptions of the tasks
-    whose name or stored description matches its pattern; one task, with its description and its
-    links both ways;
-  - writes, each an `@transaction` inserting its `ModuleCallResult` first under
-    `@include(if: $isKeyed)`: create, under the organization's lock and `MAX_TASKS`, with
-    `CreateTask`'s checks on the name, the description's length, the aspects and the assignee;
-    update, writing the fields it is given, on a condition on the `updatedAt` it read, with the
-    same checks on what it writes; add a link, under the organization's lock with
-    `AddTaskDependency`'s checks; remove one, refused when there is none; delete, refused for a task
-    already gone and pruning the organization's tasks deleted over a day ago as `DeleteTask` does;
-    and restore, under the lock and `MAX_TASKS`, within a day.
+  - reads: the board, without descriptions, with each task's links, `createdBy` and `updatedAt`, and
+    the members' ids and names; a query's matches, the ids of the tasks whose name or
+    `descriptionText` matches its pattern, and up to 20 tasks not indexed yet, with their
+    descriptions; one task, with its description and its links both ways;
+  - writes, each an `@transaction` inserting its `ModuleCallResult` first under `@include(if:
+    $isKeyed)`: create, under the organization's lock and `MAX_TASKS`, with `CreateTask`'s checks on
+    the name, the description's length, the aspects and the assignee; update, writing the fields it
+    is given, on a condition on the `updatedAt` it read, with the same checks on what it writes; add
+    a link, under the organization's lock with `AddTaskDependency`'s checks; remove one, refused
+    when there is none; delete, refused for a task already gone and pruning the organization's tasks
+    deleted over a day ago as `DeleteTask` does; and restore, under the lock and `MAX_TASKS`, within
+    a day; and the index, writing a task's `descriptionText` only while its `updatedAt` is the one
+    read, and moving no `updatedAt` itself, since the task did not change.
 
   Each write is named in `GetTasks`' refreshes, the update on a condition that it carries a field a
   card shows, and the update carrying a description, the delete and the restore in
@@ -795,7 +804,9 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   either.
 - `CLAUDE.md`: Module conventions say that tasks carry no AI permission, every agent changing any
   task as any member can; § The database's rule on `ActivityDay` says that an agent's change never
-  counts; Commands gain `mcp:tasks` and `check:tasks-module`.
+  counts; § The database says that every write of a task's description writes `descriptionText`
+  beside it, or nulls it; Commands gain `mcp:tasks` and `check:tasks-module`, and Module conventions
+  `backfill:task-text`.
 - Tests (database mocked, through an SDK `Client` on the module's handler): a removed member's call
   refused, and one carrying the `membershipCreatedAt` of a membership since ended; a caller without
   the write scope refused by every write tool, nothing written; a write called twice with one key
@@ -822,8 +833,10 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   would close a loop with a link made while it was deleted refused; the list paged in hundreds, two
   tasks at one position on either side of a page's end neither skipped nor repeated, `total` right,
   and the members on the first page alone; a query found in a name and in a description whatever its
-  case, one holding a quote or a backslash, which the stored JSON escapes, found too, and one past
-  100 characters refused; a name, a description and a query holding U+0000 refused before any
+  case, one half in bold found, a query of `type` or `text` matching no task whose name and plain
+  text lack it, null rows indexed before a query, 20 at most, with `isIndexComplete` false while
+  more remain, and a description saved between the index's read and its write left null, and one
+  past 100 characters refused; a name, a description and a query holding U+0000 refused before any
   operation runs, and a query of `%`, `_` and `\` matching only the tasks that hold them as written;
   a done task waiting on an unfinished one never blocked, in `list_tasks`, in `read_task` and in
   what `remove_task_dependency` answers; `assignee: "nobody"` and `"agent"` filtered, and aspects

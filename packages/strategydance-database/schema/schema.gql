@@ -337,9 +337,10 @@ type ActivityDay @table(key: ["user", "organization", "date"]) {
 # reads, writes, tags, deletes and sets what agents may do with any of its organization's
 # documents: it is the team's, not its author's.
 #
-# Deleted by setting `deletedAt`, so an Undo is one update. `DeleteDocument` prunes the
-# organization's documents deleted over a day ago, as lazily as `DeleteTaskList` prunes lists. One
-# emptied of its title and its text is deleted outright by `DiscardDocument` instead, since there is
+# Deleted by setting `deletedAt`, so an Undo is one update, and restored only within a day. A
+# delete prunes the organization's documents deleted over a day ago, and the daily sweep prunes
+# every organization's, so a day means a day whether or not anybody deletes another. One emptied
+# of its title and its text is deleted outright by `DiscardDocument` instead, since there is
 # nothing to undo
 type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   id: UUID! @default(expr: "uuidV4()")
@@ -349,14 +350,24 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   # account goes, so deleting an account keeps its team's documents. Nothing reads it yet
   createdBy: User
   # One line of at most 200 characters (`MAX_DOCUMENT_TITLE_LENGTH` in strategydance-core), and
-  # empty until somebody writes one, which the pages read as "Untitled"
-  title: String! @default(value: "")
+  # empty until somebody writes one, which the pages read as "Untitled". Searchable, with
+  # `contentText`, for the Knowledge module's `search_documents`, with the `simple` configuration,
+  # as `ConversationMessage.text` is: see there
+  title: String! @default(value: "") @searchable(language: "simple")
   # BlockNote's blocks, serialized, at most 200000 characters (`MAX_DOCUMENT_CONTENT_LENGTH` in
   # strategydance-core), and an empty string when there is no text, never an empty document.
   # Once `state` is set it is a copy of it, written with each compaction, for what reads the text
   # without an editor: anything drawing it draws it through the design system's `RichText`, and
   # `DiscardDocument` reads it for emptiness. The editor reads `state` instead
   content: String! @default(value: "")
+  # The plain text of `content`, as the design system's `getRichTextText` reads it, so an agent's
+  # search reads an index rather than serialized blocks. As fresh as `content`, which is enough to
+  # find a document by; reading one reads `state`. Null means not indexed yet, and nothing may
+  # leave it stale: every write of `content` writes it, the `…WithText` operations and the
+  # backend's, while the operations a page from before it sends write null beside their content.
+  # The backend fills a null one from `content` before a search, and a script fills those a
+  # release left
+  contentText: String @searchable(language: "simple")
   # The text as a Yjs document, every edit folded in, in base64 and at most 2000000 characters
   # (`MAX_DOCUMENT_STATE_LENGTH`). It is what the editor opens on, merged with the `DocumentUpdate`
   # rows pending since, and what a compaction rewrites with them folded in. Null for a document
@@ -369,8 +380,8 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   # Which aspects of the company it is about, each once, in no particular order. The pages show
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")
-  # Whether the team lets agents read it. Nothing reads it yet: it keeps their choice for the agents
-  # to come
+  # Whether the team lets agents read it. Every agent is held to it, Strategy Dance's and a member's
+  # own alike, through the Knowledge module: one kept from them is neither found, listed nor read
   isAiReadable: Boolean! @default(value: true)
   # Whether the team lets agents change it, which they may only while they may read it too. One they
   # may not read keeps this as it was, for when they may again
@@ -744,5 +755,42 @@ type ConversationSearch @table @index(fields: ["userId", "organizationId", "crea
   user: User!
   # Implies an `organizationId: UUID!` column, cascade deleting
   organization: Organization!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What one write of a module answered, kept under the idempotency key its caller sent, so a write
+# sent again, by a client that lost the answer or a worker taking a run over after a crash, is
+# applied once and answered as the first time. MCP has no key of its own, so a module's write
+# tools take one in the call's `_meta`, `com.strategydance/idempotencyKey`. A call without one
+# keeps nothing here.
+#
+# Each write's mutation inserts its row first, right after checking the membership, and then
+# writes, in one transaction, so a second call under the same key at once or later finds the key
+# taken and writes nothing, and the backend reads the row back: the same tool with the same
+# arguments gets the stored result, anything else a refusal.
+#
+# Keyed on the caller's scope and the key, the scope leading, so a scope's rows are found by the
+# key's own index. The scope is the caller's, never the client's: `conversation:<id>` for Strategy
+# Dance's agent, whose rows go when the conversation is pruned, and `connection:<id>` for an
+# external agent, whose rows expire after a day and which the daily sweep deletes, which the index
+# on `expiresAt` serves
+type ModuleCallResult @table(key: ["idempotencyScope", "idempotencyKey"]) @index(fields: ["expiresAt"]) {
+  idempotencyScope: String!
+  # At most 200 characters, as the caller sent it
+  idempotencyKey: String!
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The tool called, as `delete_document` and `restore_document` both take `{ id }`, and a key
+  # sent to one then to the other is refused rather than answered with the other's result
+  tool: String!
+  # SHA-256, in hex, of the call's arguments as canonical JSON, its keys sorted, since a client may
+  # serialize them again when it sends the call again
+  argumentsHash: String!
+  # The JSON text of what the tool answered, which is small: never a document's text
+  result: String!
+  # Null for a row that lives as long as its scope does
+  expiresAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
 }

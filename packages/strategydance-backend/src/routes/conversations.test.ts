@@ -130,6 +130,7 @@ describe('POST /search', () => {
       '   ',
       'a'.repeat(MAX_SEARCH_QUERY_LENGTH + 1),
       Array.from({ length: MAX_SEARCH_TERMS + 1 }, (_, index) => `w${index}`).join(' '),
+      'pricing\u0000',
       42,
     ]) {
       const response = await search(origin, query)

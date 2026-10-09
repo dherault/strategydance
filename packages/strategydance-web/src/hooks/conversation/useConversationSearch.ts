@@ -38,8 +38,9 @@ const EMPTY_STATE: SearchState = { key: '', result: null, failure: null }
   backend would refuse it.
 
   The last answer stays while the next loads, so the list does not flash empty between keystrokes,
-  and `isSearching` says one is on its way, which a query past the bounds never is. A failure
-  stands until the query changes or `retry` asks again
+  and `isSearching` says one is on its way. A query past the bounds is never searched, so it shows
+  no answer, rather than an older query's under its error. A failure stands until the query changes
+  or `retry` asks again
 */
 function useConversationSearch(query: string) {
   const { organization } = useCurrentOrganization()
@@ -86,7 +87,7 @@ function useConversationSearch(query: string) {
   const isAnswered = state.key === key
 
   return {
-    result: state.result,
+    result: isSearchable ? state.result : null,
     isSearching: isSearchable && !isAnswered,
     failure: isAnswered ? state.failure : null,
     retry: () => setAttempt(attempt + 1),

@@ -127,6 +127,30 @@ describe('paginateKnowledgeDocumentBlocks', () => {
     expect(second.blocks[0]!.id).toBe('block-0')
   })
 
+  it('counts a page as its JSON writes it, so quotes, backslashes and line breaks keep it under a result', () => {
+    const escaped = ['"quoted"', 'back\\slash', 'line\nbreak', 'tab\there', 'bell\u0007']
+    const document = Array.from({ length: 3000 }, (_, index) => ({
+      id: `block-${index}`,
+      markdown: escaped[index % escaped.length]!.repeat(8),
+    }))
+    const pages = readAll(document)
+
+    for (const page of pages) expect(JSON.stringify(page.blocks).length).toBeLessThan(50000)
+
+    expect(join(pages)).toEqual(document)
+  })
+
+  it('cuts a block of quotes alone in parts whose JSON fits a page, and joins them back whole', () => {
+    const document = [{ id: 'quotes', markdown: '"'.repeat(60000) }]
+    const pages = readAll(document)
+
+    expect(pages.length).toBeGreaterThan(2)
+
+    for (const page of pages) expect(JSON.stringify(page.blocks).length).toBeLessThan(KNOWLEDGE_READ_PAGE_LENGTH + 100)
+
+    expect(join(pages)).toEqual(document)
+  })
+
   it('reads an empty document as no blocks', () => {
     expect(paginateKnowledgeDocumentBlocks([], null)).toEqual({ blocks: [], next: null })
   })

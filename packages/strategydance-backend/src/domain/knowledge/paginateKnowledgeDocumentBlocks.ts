@@ -35,10 +35,12 @@ type KnowledgeDocumentPage = {
 }
 
 /*
-  One page of a document's top-level blocks, from a cursor, at most `budget` characters, each block
-  counted with its id and the JSON around it. A page ends at a block's end when it can, and inside a
-  block only when that block alone passes the budget, as a single 200000-character paragraph would,
-  never inside a character a surrogate pair writes.
+  One page of a document's top-level blocks, from a cursor, at most `budget` characters as the
+  result's JSON writes them, each block's Markdown escaped and counted with its id and the JSON
+  around it, so a page of quotes, backslashes or line breaks fits as surely as one of words. A page
+  ends at a block's end when it can, and inside a block only when that block alone passes the
+  budget, as a single 200000-character paragraph would, never inside a character a surrogate pair
+  writes.
 
   The next page carries on from the block its cursor names however the text around it changed. One
   that stopped inside a block starts that block again once the block was edited, rather than repeat
@@ -57,7 +59,7 @@ function paginateKnowledgeDocumentBlocks(
     const block = blocks[index]!
     const offset = index === start ? startOffset : 0
     const markdown = block.markdown.slice(offset)
-    const cost = markdown.length + block.id.length + BLOCK_OVERHEAD
+    const cost = jsonLength(markdown) + jsonLength(block.id) + BLOCK_OVERHEAD
 
     if (cost <= remaining) {
       page.push(offset > 0 ? { id: block.id, markdown, offset } : { id: block.id, markdown })
@@ -69,7 +71,7 @@ function paginateKnowledgeDocumentBlocks(
     // A block that passes what is left starts the next page, unless it alone passes a whole page
     if (page.length > 0) return { blocks: page, next: { id: block.id, offset: 0 }, ...(restart && { restart }) }
 
-    const length = cutLength(markdown, Math.max(1, remaining - block.id.length - BLOCK_OVERHEAD))
+    const length = cutLength(markdown, remaining - jsonLength(block.id) - BLOCK_OVERHEAD)
     const end = offset + length
 
     page.push({ id: block.id, markdown: markdown.slice(0, length), ...(offset > 0 && { offset }), isCut: true })
@@ -103,13 +105,42 @@ function locate(blocks: readonly KnowledgeDocumentBlock[], cursor: KnowledgeDocu
   return { index, offset: cursor.offset }
 }
 
-// A length to cut text at, at most `length`, short of a character a surrogate pair writes
-function cutLength(text: string, length: number) {
-  if (length >= text.length) return text.length
+// How long a text is once written as a JSON string, without its quotes
+function jsonLength(text: string) {
+  return JSON.stringify(text).length - 2
+}
 
-  const code = text.charCodeAt(length - 1)
+// How long one character, by its code, is in a JSON string: a quote or a backslash is escaped, a
+// control character written as an escape or its code, and a lone surrogate as its code
+function jsonCharacterLength(code: number) {
+  if (code === 0x22 || code === 0x5c) return 2
+  if (code < 0x20) return jsonLength(String.fromCharCode(code))
+  if (code >= 0xd800 && code <= 0xdfff) return 6
 
-  return code >= 0xd800 && code <= 0xdbff && length > 1 ? length - 1 : length
+  return 1
+}
+
+/*
+  How much of a text fits in a JSON budget, in its own characters, never inside a character a
+  surrogate pair writes, and at least one character, so a page always moves on
+*/
+function cutLength(text: string, budget: number) {
+  let cost = 0
+  let length = 0
+
+  while (length < text.length) {
+    const code = text.charCodeAt(length)
+    const next = text.charCodeAt(length + 1)
+    const width = code >= 0xd800 && code <= 0xdbff && next >= 0xdc00 && next <= 0xdfff ? 2 : 1
+    const characterCost = width === 2 ? 2 : jsonCharacterLength(code)
+
+    if (cost + characterCost > budget && length > 0) break
+
+    cost += characterCost
+    length += width
+  }
+
+  return length
 }
 
 function hashBlock(block: KnowledgeDocumentBlock) {

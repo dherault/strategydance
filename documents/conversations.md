@@ -1280,6 +1280,12 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   write records an `ActivityDay`, for Strategy Dance's agent or an external one, as David chose on
   2026-10-09, so a streak counts what members do themselves. `CLAUDE.md`'s rule that every new way
   to change the board records activity says so from M15.
+- **Text is checked before the database sees it**, as the Knowledge module's schemas check theirs:
+  a name, a description, a query or an id holding U+0000, which Postgres refuses in any text, is
+  refused with a result the model can act on, and every bound is the schema's, so a call past one
+  is answered as an `isError` result rather than a failed operation. A query's pattern escapes
+  `%`, `_` and `\` before it is wrapped in `%…%`, so the model's text matches as written and never
+  widens what the candidates read.
 - **Writes go through the same rules as the page's**: backend-connector operations named
   `…ForAgent`, each matching the membership on `membershipCreatedAt`, inserting its
   `ModuleCallResult` first when it carries a key, the create and the restore holding `MAX_TASKS`

@@ -156,4 +156,21 @@ describe('POST /internal/sweep', () => {
     expect(fake.conversations.has(old.conversationId)).toBe(false)
     expect(fake.conversations.has(kept.conversationId)).toBe(true)
   })
+
+  test('removes the conversation searches made over a day ago, and keeps the rest', async () => {
+    const search = (hoursAgo: number) => ({
+      id: createId(),
+      userId: AUTHOR,
+      organizationId: ORGANIZATION_ID,
+      createdAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+    })
+    const old = search(25)
+    const kept = search(1)
+
+    fake.searches.set(old.id, old)
+    fake.searches.set(kept.id, kept)
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect([...fake.searches.keys()]).toEqual([kept.id])
+  })
 })

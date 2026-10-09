@@ -973,16 +973,25 @@ mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tra
 #
 # Both tasks are live and the organization's. A task waits on at most 50 others
 # (`MAX_TASK_DEPENDENCIES` in strategydance-core), and never on itself or on a task that waits on it.
-# A longer loop is left out by the page, which offers no task that would close one; two members
+# Counted and checked under a lock: the first step writes the organization's row, and finds nothing
+# unless the caller belongs to it, so links added at once, as a pick of several tasks sends them,
+# count one after the other, and two members linking two tasks both ways cannot both succeed. A
+# longer loop is left out by the page, which offers no task that would close one; two members
 # closing one at once only leave its tasks blocked, which either of them can undo
 mutation AddTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependencyId: UUID!)
 @auth(level: USER)
 @transaction {
-  query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
-      role @check(expr: "vars.taskId != vars.dependencyId", message: "A task cannot wait on itself")
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
     }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+    @check(expr: "vars.taskId != vars.dependencyId", message: "A task cannot wait on itself")
+  query @redact {
     waiting: tasks(
       where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
       limit: 1

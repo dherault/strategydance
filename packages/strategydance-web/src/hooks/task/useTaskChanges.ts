@@ -111,11 +111,11 @@ function useTaskChanges() {
     return change({ rowKey: `task:${taskId}`, apply: () => updateTask(taskId, update), write })
   }
 
-  // Makes `taskId` wait on `dependencyId`
-  function linkTasks(taskId: string, dependencyId: string) {
+  // Makes `taskId` wait on `dependencyId`, once whatever `waitFor` names has reached the server
+  function linkTasks(taskId: string, dependencyId: string, waitFor: string[] = []) {
     return change({
       rowKey: `taskDependency:${taskId}:${dependencyId}`,
-      after: [`task:${taskId}`, `task:${dependencyId}`],
+      after: [`task:${taskId}`, `task:${dependencyId}`, ...waitFor],
       apply: () =>
         updateTask(taskId, task =>
           task.dependencies.some(link => link.dependencyId === dependencyId)
@@ -353,26 +353,35 @@ function useTaskChanges() {
     ])
   }
 
-  // Makes a task wait on exactly these tasks, adding and removing one link at a time
+  /*
+    Makes a task wait on exactly these tasks, removing and adding one link at a time. Every change
+    shows at once, but the additions reach the server once the removals have, so swapping a link on
+    a task that waits on as many as it may is never refused for counting the one going away
+  */
   async function setTaskDependencies(taskId: string, dependencyIds: string[]) {
     const current =
       readTasks()
         .find(({ id }) => id === taskId)
         ?.dependencies.map(link => link.dependencyId) ?? []
+    const removedIds = current.filter(id => !dependencyIds.includes(id))
+    const removedKeys = removedIds.map(id => `taskDependency:${taskId}:${id}`)
 
     await Promise.all([
-      ...dependencyIds.filter(id => !current.includes(id)).map(id => linkTasks(taskId, id)),
-      ...current.filter(id => !dependencyIds.includes(id)).map(id => unlinkTasks(taskId, id)),
+      ...removedIds.map(id => unlinkTasks(taskId, id)),
+      ...dependencyIds.filter(id => !current.includes(id)).map(id => linkTasks(taskId, id, removedKeys)),
     ])
   }
 
-  // Makes exactly these tasks wait on a task
+  // Makes exactly these tasks wait on a task, its removals reaching the server before its additions
+  // as `setTaskDependencies`' do
   async function setTaskBlocks(taskId: string, blockedIds: string[]) {
     const current = getTaskDependents(taskId, readTasks()).map(({ id }) => id)
+    const removedIds = current.filter(id => !blockedIds.includes(id))
+    const removedKeys = removedIds.map(id => `taskDependency:${id}:${taskId}`)
 
     await Promise.all([
-      ...blockedIds.filter(id => !current.includes(id)).map(id => linkTasks(id, taskId)),
-      ...current.filter(id => !blockedIds.includes(id)).map(id => unlinkTasks(id, taskId)),
+      ...removedIds.map(id => unlinkTasks(id, taskId)),
+      ...blockedIds.filter(id => !current.includes(id)).map(id => linkTasks(id, taskId, removedKeys)),
     ])
   }
 

@@ -859,3 +859,366 @@ query SearchConversationsBySubstring(
     id
   }
 }
+
+# The Knowledge module's operations follow, named `…ForAgent`: what an agent reads and writes of an
+# organization's documents through it, Strategy Dance's own and a member's alike. Each takes the
+# member the backend verified, `$userId`, and the `createdAt` of the membership it read,
+# `$membershipCreatedAt`, so a member removed, or removed and invited back, stops every agent acting
+# as them at its next call. Each holds to what the team lets agents do: a document whose
+# `isAiReadable` is off is never loaded, whatever the call, and one whose `isAiWritable` is off is
+# never changed.
+
+# Whether the caller is still the member the module read, and what the team lets agents do with a
+# document, read only to word a refusal once a read or a write that filters on them found nothing.
+# Never anything of the document's text
+query GetDocumentAccessForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  documents(where: { id: { eq: $id }, organizationId: { eq: $organizationId } }, limit: 1) {
+    isAiReadable
+    isAiWritable
+    deletedAt
+  }
+}
+
+# The organization's slug, which leads the web addresses an external agent's results carry, or its
+# id while it has none
+query GetOrganizationForAgent($organizationId: UUID!) @auth(level: NO_ACCESS) {
+  organization(key: { id: $organizationId }) {
+    id
+    slug
+  }
+}
+
+# Up to 20 documents agents may read whose title and plain text together hold every word of the
+# query, by Data Connect's full-text search: one `tsvector` over both columns, with the `simple`
+# configuration, read through its index. Tagged with every aspect named, `[]` naming none: a null
+# list would match nothing. Only the plain text is loaded, to cut the excerpts, never `content` or
+# `state`
+query SearchDocumentsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $query: String!
+  $aspects: [CompanyAspect!]!
+) @auth(level: NO_ACCESS) {
+  documents_search(
+    query: $query
+    queryFormat: PLAIN
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      aspects: { includesAll: $aspects }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 20
+  ) {
+    id
+    title
+    aspects
+    updatedAt
+    isAiWritable
+    contentText
+  }
+}
+
+# The 100 documents agents may read that changed last (`MAX_SUBSTRING_SEARCH_DOCUMENTS` in
+# strategydance-core), whose text a search in Chinese or Japanese reads, since no index serves a
+# match inside a sentence
+query GetDocumentSearchCorpusForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $aspects: [CompanyAspect!]!
+) @auth(level: NO_ACCESS) {
+  documents(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      aspects: { includesAll: $aspects }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    # `id` breaks the tie between two documents changed in the same instant
+    orderBy: [{ updatedAt: DESC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+  }
+}
+
+# A search in Chinese or Japanese, by substring: every pattern in the title of any document agents
+# may read, or in the plain text of one of the recent ones, each pattern in either, as the full-text
+# search takes each word from the title or the text, up to 20. Always eight patterns, those a query
+# leaves over `%`
+query SearchDocumentsBySubstringForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $aspects: [CompanyAspect!]!
+  $recentIds: [UUID!]!
+  $pattern0: String!
+  $pattern1: String!
+  $pattern2: String!
+  $pattern3: String!
+  $pattern4: String!
+  $pattern5: String!
+  $pattern6: String!
+  $pattern7: String!
+) @auth(level: NO_ACCESS) {
+  documents(
+    # Data Connect refuses `_and` or `_or` beside plain fields, so each level is one or the other
+    where: {
+      _and: [
+        {
+          organizationId: { eq: $organizationId }
+          deletedAt: { isNull: true }
+          isAiReadable: { eq: true }
+          aspects: { includesAll: $aspects }
+          organization: {
+            userOrganizations_on_organization: {
+              exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+            }
+          }
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern0, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern0, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern1, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern1, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern2, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern2, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern3, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern3, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern4, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern4, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern5, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern5, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern6, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern6, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern7, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern7, ignoreCase: true } } }] }
+          ]
+        }
+      ]
+    }
+    limit: 20
+  ) {
+    id
+    title
+    aspects
+    updatedAt
+    isAiWritable
+    contentText
+  }
+}
+
+# Documents agents may read that are not indexed yet, read before a search to index them from their
+# `content`: up to 21, so the backend indexes 20 and knows whether more remain. Only a page from
+# before `contentText` leaves one so once the release has run its backfill. With the membership, so
+# a search refuses a caller who is no longer the member it read rather than find nothing
+query GetUnindexedDocumentsForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  documents(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      contentText: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 21
+  ) {
+    id
+    content
+    revision
+  }
+}
+
+# A page of the documents agents may read, latest changed first and then by id, since two can share
+# an instant. A filter on a UUID takes no `gt`, so the page is read in two parts around the cursor's
+# instant: the documents changed at it, all of them, by id, which the backend keeps past the
+# cursor's id, and up to 51 changed before it, which say whether more remain. The first page names
+# an instant past every document, so it reads the second part alone. With the membership, so a
+# caller who is no longer the member the module read is refused rather than shown nothing
+query ListDocumentsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $aspects: [CompanyAspect!]!
+  $before: Timestamp!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  atCursor: documents(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      aspects: { includesAll: $aspects }
+      updatedAt: { eq: $before }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ id: ASC }]
+    limit: 1000
+  ) {
+    id
+    title
+    aspects
+    updatedAt
+    isAiWritable
+  }
+  beforeCursor: documents(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      aspects: { includesAll: $aspects }
+      updatedAt: { lt: $before }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ updatedAt: DESC }, { id: ASC }]
+    limit: 51
+  ) {
+    id
+    title
+    aspects
+    updatedAt
+    isAiWritable
+  }
+}
+
+# One document agents may read, with everything its text is read from: the snapshot, the updates
+# pending since, as `GetDocument` reads them, and `content`, which seeds a document that has no
+# snapshot yet. Nothing when the team keeps it from agents, which `GetDocumentAccessForAgent` then
+# tells apart from a document that is not there
+query GetDocumentForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
+@auth(level: NO_ACCESS) {
+  documents(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    title
+    aspects
+    isAiWritable
+    revision
+    state
+    content
+    updatedAt
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
+      id
+      payload
+    }
+  }
+}
+
+# What a module's write answered under an idempotency key, read before the write runs, and again
+# when the write finds its key taken, with the membership the module read: a stored result answers
+# only a caller who is still that member, as the write itself would refuse anybody else
+query GetModuleCallResult(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  moduleCallResult(key: { idempotencyScope: $idempotencyScope, idempotencyKey: $idempotencyKey }) {
+    userId
+    organizationId
+    tool
+    argumentsHash
+    result
+  }
+}
+
+# The backfill's, run by hand after a release: up to 100 documents of any organization not indexed
+# yet, deleted ones included, leaving out those it could not index, so it pages through them and can
+# stop and start again at any point
+query GetUnindexedDocuments($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
+  documents(where: { contentText: { isNull: true }, id: { nin: $skippedIds } }, limit: 100) {
+    id
+    content
+    revision
+  }
+}

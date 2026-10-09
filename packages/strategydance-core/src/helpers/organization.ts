@@ -87,3 +87,13 @@ const ORGANIZATION_SLUG_INDEX = 'organization_slug_uidx'
 export function isOrganizationSlugTakenError(error: unknown) {
   return error instanceof Error && error.message.includes(ORGANIZATION_SLUG_INDEX)
 }
+
+/*
+  What an organization's paths lead with in the app: its slug, or its id when it has none, as one a
+  page from before slugs created has not. The app builds its paths from this and reads them back in
+  `_CurrentOrganizationProvider`, which matches either, and the backend builds the web addresses it
+  hands out the same way
+*/
+export function toOrganizationPathSegment(organization: { id: string; slug?: string | null }) {
+  return organization.slug ?? organization.id
+}

@@ -1,9 +1,9 @@
 import { useNavigate, useRouter } from '@tanstack/react-router'
+import { toOrganizationPathSegment } from 'strategydance-core'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import buildOrganizationSwitchPath from '~utils/organization/buildOrganizationSwitchPath'
-import toOrganizationPathSegment from '~utils/organization/toOrganizationPathSegment'
 
 // The route every organization's page sits under
 const ORGANIZATION_ROUTE_ID = '/_authenticated/_app/$organizationSlug'

@@ -61,7 +61,7 @@ before their neighbours.
 | M11 | Questions | backend, database, web | M10 | #122 |
 | M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
-| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
+| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
 | M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
 | M16 | The authorization server | backend, database, core, root | M14, setup 10 | |
 | M17 | The consent page and Connected agents | web, backend, database, root | M16 | |
@@ -677,6 +677,75 @@ it yet, and Claude Code reaches it locally over stdio.
   document open in a tab, have Claude Code write into it and watch the edit arrive while you type
   elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write
   off on one and ask again; turn Read off on it and ask about it.
+- Built with these settled, on 2026-10-09:
+  - **The SDK is 2.2.0**, the latest release past the cooldown that day (2.3.0 passed it hours
+    later). `createMcpHandler` adds the 2026-07-28 revision to each server it builds, so a plain
+    `McpServer` serves both eras; a tool reads the call's `_meta` at `ctx.mcpReq._meta`; an input
+    that fails its schema comes back as an `isError` result naming the field; stdio is
+    `serveStdio(factory)`, which serves a 2025 client, as Claude Code is by default, and a 2026 one.
+  - **`@include(if: $isKeyed)` skips a mutation's step**, inside its transaction, so a write without
+    a key inserts no `ModuleCallResult` without a second operation. A key taken answers `violates SQL
+    unique constraint: module_call_result_pkey (aborted)` and writes nothing, and three writes at once
+    under one key land once.
+  - **A mutation takes one `query` step.** `FoldDocumentForAgent` reads the pending updates once its
+    row is locked, so the membership's and the variables' checks join that step, after the writes,
+    which a refusal there rolls back all the same. `CLAUDE.md` records both.
+  - **Data Connect builds one `tsvector` over `title` and `contentText`**, so `PLAIN` needs every
+    word in the two together, not in either alone: "marketing partnerships" finds a document titled
+    "Marketing plan" whose text holds "partnerships".
+  - **`aspects: { includesAll: [] }` matches every document, and `null` matches none**, so the
+    aspects filter is always a list. Search and list take the documents tagged with every aspect
+    named, as search takes every word: Data Connect has no "any of".
+  - **A filter on a UUID takes no `gt`**, so the list cannot read past a cursor's id. It reads the
+    documents changed at the cursor's instant apart, all of them by id, keeps those past the
+    cursor's id, then those changed before it. An instant read back matches itself to the
+    microsecond.
+  - **`has(mutation.variables.title)` gates the list's refresh on a fold**, checked with live
+    subscriptions: a fold of the text alone pushes the open document and not the list, one with a
+    title both. The backend's dashless ids match the browser's in a refresh condition.
+  - **A title alone is a rename**, `RenameDocumentForAgent`, rather than a fold that rewrites a
+    snapshot unchanged; a title beside a text edit rides in the fold's one write of the row. An
+    omitted `$title` leaves the column alone, and a null one would write null into it, so the
+    backend leaves it out.
+  - **`version` comes only with a page that holds the whole document**, a hash of every block's id
+    and Markdown, since `content` replaces a document small enough to read whole: a longer one is
+    edited by its blocks. Whatever a cursor says, a page that holds everything was read whole, so
+    the cursor needs no signature to keep an agent from a version of text it did not see. An update
+    answers a version only once it replaced the whole text, which the agent then wrote whole.
+    `content` without a version is refused before anything is read.
+  - **A page's budget counts its JSON**, each block's Markdown as escaped, so a page of quotes,
+    backslashes or line breaks stays as far short of a result's 50000 characters as one of words.
+  - **A document keeps a title or some text.** An update that would leave it with neither, a blank
+    title on a textless document or an edit emptying an untitled one, is refused, as creating one
+    with neither is, since the page deletes a document somebody empties rather than keep it. The
+    rename and the fold check it in their query step, after the write that locks the row, so two
+    such calls at once cannot pass it together.
+  - **A stored result answers only the member who made it**: the key's lookup reads the membership
+    the module read, so a member removed, or removed and invited back, is refused as the write would
+    refuse them.
+  - **The substring search takes each word from the title or the text**, as the full-text search
+    does, each pattern in the title or in the text of a recent document.
+  - **Search answers at most 10 of its at most 20 candidates**, with `hasMore` when more matched and
+    `isIndexComplete` false while documents an old page left unindexed remain.
+  - **The page's `RestoreDocument` refuses past a day too**, not only the agent's restore, so a day
+    means a day wherever a restore starts, which M15's Restore in the thread relies on.
+  - **A search and a list refuse a removed member** rather than find nothing: the reads they start
+    with return the membership beside the documents.
+  - **An answer from a key carries the address again**: the result kept under a key is the domain's,
+    small, and the tool adds an external caller's addresses to it each time it answers.
+  - **The stdio script points `console.log` at stderr**, since the backend's logger writes its info
+    lines to stdout, the protocol's channel there, and the root script runs it with
+    `bun run --silent`.
+  - Verified with `bun run check:knowledge-module` against an emulator of the branch's schema, every
+    check passing; with the SDK's stdio client driving `bun run mcp:knowledge` as Claude Code would,
+    every tool; in the browser at 1280 and 390 wide, a document the module created open in a tab
+    while the member typed at the end of its first paragraph and the module appended a block and
+    replaced text in its third, both arriving without a reload and the caret staying put, a retry
+    under its key changing nothing, Write then Read turned off and refused, delete and restore; a
+    document made on the page stored with its plain text, and a paste too long to push compacted
+    with its; and the backfill over 270 unindexed documents, run again with nothing left. Not seen
+    from Claude Code itself, which `claude mcp add strategydance-knowledge-local -- bun run
+    mcp:knowledge <email>` connects.
 
 ### M15: Knowledge in conversations
 

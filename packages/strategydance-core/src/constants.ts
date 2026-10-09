@@ -1,5 +1,5 @@
 import { Locale } from './enums'
-import type { OrganizationImageKind } from './types'
+import type { ModuleDefinition, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -437,3 +437,26 @@ export const CONVERSATION_SEARCH_WINDOW_MINUTES = 10
 */
 export const MAX_SUBSTRING_SEARCH_MESSAGES = 20000
 export const MAX_SUBSTRING_SEARCH_DOCUMENTS = 100
+
+/* ---
+  MODULES
+--- */
+
+/*
+  Strategy Dance's capabilities served as MCP servers, one per module, which its own agent uses and
+  which a member can add to an agent of their own. Each is a server of its own at its own address
+  on the backend, and an OAuth resource of its own, so a member connects modules one by one.
+
+  A module's name is what the backend's `src/modules/` and the app's `module` catalogue key on. Its
+  title is the server's own, in English, for what MCP clients show; the app words a module from the
+  catalogue instead. Its scopes are what a consent grants, read alone or read and write, never
+  write without read
+*/
+export const MODULES = [
+  {
+    name: 'knowledge',
+    path: '/mcp/knowledge',
+    title: 'Strategy Dance Knowledge',
+    scopes: { read: 'knowledge:read', write: 'knowledge:write' },
+  },
+] as const satisfies readonly ModuleDefinition[]

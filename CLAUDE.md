@@ -99,6 +99,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -340,6 +341,13 @@ only way the app talks to them.
 - A `query` step of a mutation does not see what the same mutation wrote, though it sees what
   another transaction committed before it once a lock is taken. Count around the rows the mutation
   writes, by their ids, as `AnswerConversationQuestion` leaves out the question it answers
+- A mutation takes one `query` step: a second is refused ("selecting `query` again is not yet
+  supported"). A check that has to follow a write, once its row is locked, goes in that one step,
+  after the write, with the membership's and the variables' checks beside it, as
+  `FoldDocumentForAgent` does: a refusal there rolls back the writes before it all the same
+- A step runs or not on a variable through `@include(if: $flag)`, as a module's write inserts its
+  `ModuleCallResult` only when its call carries a key. The step's variables are still required,
+  so a call that skips it sends them empty
 - A mutation writes each row once. Data Connect runs the first write to a row and silently skips
   any later one in the same mutation, aliased or not: an `organization_update` row lock followed
   by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
@@ -405,12 +413,20 @@ write it at once and their edits merge as they type. `Document.state` holds it a
 base64, the source of truth for the text, and each `DocumentUpdate` row an edit pushed since;
 `content` is a copy of the text each compaction writes, for what reads it without an editor. The
 page's sync, `createKnowledgeDocumentSync`, pushes the reader's edits as updates, merges those
-`GetLiveDocument` pushes, and folds the pending ones into the snapshot through `CompactDocument`,
-guarded by `revision`, and a tab that sees `revision` move reads the snapshot again through
-`GetDocument`. `GetLiveDocument` leaves the snapshot out, so a keystroke pushes a few small rows
-rather than the whole text to every tab. `DocumentPresence` rows, one per open tab, say where each
-caret is, and `GetDocumentPresences` keeps them live for the carets and the faces.
+`GetLiveDocument` pushes, and folds the pending ones into the snapshot through
+`CompactDocumentWithText`, guarded by `revision`, and a tab that sees `revision` move reads the
+snapshot again through `GetDocument`. `GetLiveDocument` leaves the snapshot out, so a keystroke
+pushes a few small rows rather than the whole text to every tab. `DocumentPresence` rows, one per
+open tab, say where each caret is, and `GetDocumentPresences` keeps them live for the carets and the
+faces.
 
+- Every write of `content` writes its plain text beside it, `contentText`, which the Knowledge
+  module's search reads through the full-text index on it and `title`: the page through
+  `CreateDocumentWithText` and `CompactDocumentWithText`, which take it as required, and the
+  backend's folds and creates. `CreateDocument`, `CompactDocument` and `UpdateDocumentContent`
+  stay for pages from before, and write null instead, which means not indexed yet, never stale: the
+  search indexes such a document from its `content` before it reads the index, under the revision
+  it read. A new way to write `content` writes `contentText` too, or nulls it
 - Anything that writes a document's text, an agent included, writes it through Yjs. Once a
   document has a snapshot, a write to `content` alone is refused, and the next compaction would
   write over it anyway. The backend reads and writes it through `domain/knowledge/` alone, on the
@@ -722,11 +738,12 @@ in `utils/`, one concern per file.
   and a run that could not be queued stays queued while the send answers 503
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
-  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, and
-  the conversation searches over a day old, which no count reads any more, and the board's tasks
-  deleted over a day ago, with their links (`PruneDeletedTasks`). A milestone that keeps something
-  deleted, or counted, for a while adds its prune there, idempotent like the rest, so a sweep that
-  failed is finished by the next
+  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, the
+  board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
+  organization's documents deleted over a day ago, the conversation searches over a day old, which
+  no count reads any more, and the module call results past their expiry. A milestone that keeps
+  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
+  sweep that failed is finished by the next
 - A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
   `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
   limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across
@@ -760,6 +777,58 @@ in `utils/`, one concern per file.
   conditions and refusals. `bun run check:conversation-runs` and `bun run check:conversation-search`,
   in the backend's package, check those conditions against the emulators, the second also what
   Postgres' full-text search and LIKE match. An operation changed is changed in both
+
+## Module conventions
+
+A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
+agent uses in its own process and which a member can add to an agent of their own: Knowledge first,
+the rest later. `MODULES` in strategydance-core lists each one's name, path, title and scopes, and
+[conversations.md](documents/conversations.md) § Modules says what each does and why.
+
+- A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)` for one
+  caller, one file per tool registering it, which only validates, calls `domain/<name>/` and shapes
+  the result. `src/modules/` holds the frame: `MODULE_SERVERS`, by the module's name, and
+  `createModuleHandler`, the SDK's `createMcpHandler` around it, which builds a fresh server for
+  each request, answering JSON, statelessly. Strategy Dance's agent and the public endpoint both go
+  through that one handler, so they get the same tools and checks
+- The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
+  the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
+  request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
+  matches the membership on the `membershipCreatedAt` the caller carries, so a member removed, or
+  removed and invited back, stops every agent acting as them at its next call
+- A tool's name is snake_case, as Claude takes a tool name (`^[a-zA-Z0-9_-]{1,128}$`, no dot,
+  though MCP allows one), and unique across the modules and the agent's own tools, since the agent
+  puts them all in one list: `moduleServers.test.ts` fails on a clash between modules. The order a
+  module registers its tools in is the order the agent lists them in, frozen as the agent's tools are
+- A tool takes a zod input schema and an `outputSchema`, answers `structuredContent` with the same
+  JSON as text (`toToolResult`), carries annotations, `readOnlyHint` on reads, `destructiveHint` on a
+  delete, `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
+  model can act on (`toToolRefusal`), never a protocol error. The SDK answers an input that fails its
+  schema the same way
+- Every write takes an idempotency key in the call's `_meta`, under
+  `com.strategydance/idempotencyKey`, and its mutation inserts its `ModuleCallResult` first, under
+  `@include(if: $isKeyed)`, in the transaction that writes: a key taken refuses the write, and the
+  module reads the row back, the same tool with the same arguments, hashed as canonical JSON,
+  answered with the stored result and anything else refused. The scope is the caller's,
+  `conversation:<id>` or `connection:<id>`, never the client's. A write also checks the caller's
+  write scope before anything is read
+- What a module reads and writes goes through backend-connector operations named `…ForAgent`, which
+  take `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller, Strategy
+  Dance's agent and a member's own alike: a document whose `isAiReadable` is off is never loaded,
+  whatever the call, and one whose `isAiWritable` is off is never changed. Each write is named in
+  the refreshes of the live queries whose rows it changes, in a web query too, since a mutation the
+  backend runs fires them
+- The tests drive a module through the SDK's `Client`, pinned to the 2026-07-28 revision, on a
+  transport whose `fetch` hands each request to the module's handler with the caller as `authInfo`
+  (`createKnowledgeModuleTestKit`), never the SDK's in-memory transport, which speaks only the 2025
+  revisions. They run against `createKnowledgeDatabaseFake`, the operations over tables in memory,
+  and `bun run check:knowledge-module`, in the backend's package, checks those conditions against
+  the emulators: an operation changed is changed in both
+- `bun run mcp:knowledge <email>` serves the Knowledge module over stdio for a client on this
+  machine, against the emulators only. stdout is the protocol's there, so the script points the
+  logger's info lines at stderr
+- `bun run backfill:document-text --production`, in the backend's package, fills the plain text of
+  documents stored before `contentText` existed, run by hand once, after the release that added it
 
 ## Email conventions
 

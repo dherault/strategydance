@@ -768,6 +768,12 @@ query GetOrganizationDocuments($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "CreateDocumentWithText"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenameDocument"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -794,6 +800,44 @@ query GetOrganizationDocuments($organizationId: UUID!)
   onMutationExecuted: {
     operation: "DiscardDocument"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDocumentAspectsForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+# An agent's fold pushes the list only when it changes a title: its text alone changes no card, and
+# an agent writing a long document would otherwise push the whole list to every reader at each edit
+@refresh(
+  onMutationExecuted: {
+    operation: "FoldDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && has(mutation.variables.title)"
   }
 )
 @refresh(
@@ -881,10 +925,22 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
   onMutationExecuted: { operation: "CompactDocument", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
+  onMutationExecuted: {
+    operation: "CompactDocumentWithText"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
   onMutationExecuted: { operation: "SeedDocumentState", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
   onMutationExecuted: { operation: "CreateDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentWithText"
+    condition: "mutation.variables.id == request.variables.id"
+  }
 )
 @refresh(
   onMutationExecuted: { operation: "RenameDocument", condition: "mutation.variables.id == request.variables.id" }
@@ -906,6 +962,45 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: { operation: "DiscardDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SeedDocumentStateForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: { operation: "FoldDocumentForAgent", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDocumentAspectsForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
 )
 @refresh(
   onMutationExecuted: {

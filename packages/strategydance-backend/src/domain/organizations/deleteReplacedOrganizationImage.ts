@@ -9,7 +9,8 @@ import parseStorageObjectName from '~utils/parseStorageObjectName'
 type DeleteReplacedOrganizationImageInput = {
   organizationId: string
   kind: OrganizationImageKind
-  // What the row pointed at before, as its mutation answered. Null when there was nothing
+  // What the row pointed at before, the picture or the logo's thumbnail, as its mutation answered.
+  // Null when there was nothing
   url: string | null
 }
 

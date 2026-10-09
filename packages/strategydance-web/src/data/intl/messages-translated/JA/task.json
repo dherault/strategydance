@@ -45,6 +45,7 @@
   "task.emptyText": "取り組むべき作業を追加しましょう。チームメンバーに割り当てることも、対応可能なタスクをStrategy Danceに任せることもできます。",
   "task.emptyTitle": "タスクはまだありません",
   "task.everyone": "全員",
+  "task.eyebrow": "さあ、取りかかろう",
   "task.lead": "チームとStrategy Danceが取り組む作業。",
   "task.loadError": "タスクを読み込めませんでした。",
   "task.loadingEditor": "エディターを読み込み中…",

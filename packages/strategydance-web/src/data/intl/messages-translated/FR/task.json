@@ -45,6 +45,7 @@
   "task.emptyText": "Ajoutez le travail à accomplir. Attribuez-le à un membre de l'équipe, ou à Strategy Dance lorsqu'elle peut le faire pour vous.",
   "task.emptyTitle": "Aucune tâche pour le moment",
   "task.everyone": "Tout le monde",
+  "task.eyebrow": "Au boulot",
   "task.lead": "Travail à accomplir par votre équipe et Strategy Dance.",
   "task.loadError": "Impossible de charger les tâches.",
   "task.loadingEditor": "Chargement de l'éditeur…",

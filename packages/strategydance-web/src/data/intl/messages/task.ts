@@ -5,6 +5,11 @@ import { defineMessages } from 'react-intl'
   task opens in, where it is written, assigned, dated, tagged and linked to the tasks it waits on
 */
 const taskMessages = defineMessages({
+  eyebrow: {
+    id: 'task.eyebrow',
+    defaultMessage: 'Get to work',
+    description: 'Small uppercase line above the title of the Tasks page, a blunt, cheeky nudge to start on the tasks.',
+  },
   lead: {
     id: 'task.lead',
     defaultMessage: 'Work to be done by your team and Strategy Dance.',

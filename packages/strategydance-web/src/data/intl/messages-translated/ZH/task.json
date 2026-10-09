@@ -45,6 +45,7 @@
   "task.emptyText": "添加您眼前的工作。将其分配给团队成员，或在 Strategy Dance 可以代劳时分配给它。",
   "task.emptyTitle": "暂无任务",
   "task.everyone": "所有人",
+  "task.eyebrow": "干活了",
   "task.lead": "由您的团队和 Strategy Dance 共同完成的工作。",
   "task.loadError": "无法加载任务。",
   "task.loadingEditor": "正在加载编辑器…",

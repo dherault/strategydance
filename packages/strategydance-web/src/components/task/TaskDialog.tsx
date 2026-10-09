@@ -99,7 +99,7 @@ function TaskDialog({ taskId }: Props) {
       onClose={close}
       header={
         <>
-          <DialogTitle>
+          <DialogTitle className="text-2xl/[1.15]">
             <TaskNameField
               value={task.name}
               onSave={name => report(changes.renameTask(taskId, name))}

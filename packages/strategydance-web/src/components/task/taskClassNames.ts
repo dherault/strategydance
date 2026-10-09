@@ -7,4 +7,4 @@ export const TASK_EDITABLE_CLASS_NAME =
 // it replaces. In the display face itself rather than inheriting it, so the room its descenders
 // need below a field that clips them comes with it, and over 16px, so iOS does not zoom into it
 export const TASK_NAME_INPUT_CLASS_NAME =
-  '-mx-2 box-border block w-[calc(100%+1rem)] rounded-xs border-0 bg-white px-2 py-1 font-heading text-xl leading-tight font-normal text-secondary shadow-[inset_0_0_0_1px_var(--color-secondary)] outline-none placeholder:text-neutral-400 aria-invalid:shadow-[inset_0_0_0_1px_var(--color-danger)]'
+  '-mx-2 box-border block w-[calc(100%+1rem)] rounded-xs border-0 bg-white px-2 py-1 font-heading text-2xl/[1.15] font-normal text-secondary shadow-[inset_0_0_0_1px_var(--color-secondary)] outline-none placeholder:text-neutral-400 aria-invalid:shadow-[inset_0_0_0_1px_var(--color-danger)]'

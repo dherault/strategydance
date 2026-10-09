@@ -43,7 +43,7 @@ function TaskDialogLayout({ header, main, side, footer, isContentFocusedOnOpen =
         ref={contentRef}
         onOpenAutoFocus={isContentFocusedOnOpen ? focusContent : undefined}
       >
-        <DialogHeader className="px-6 pt-6 pr-14">{header}</DialogHeader>
+        <DialogHeader className="gap-1 px-6 pt-6 pr-14">{header}</DialogHeader>
         <div className="grid min-h-0 gap-6 overflow-y-auto px-6 pt-5 pb-6 md:grid-cols-[minmax(0,1fr)_224px]">
           <div className="flex min-w-0 flex-col gap-5">{main}</div>
           <div className="flex min-w-0 flex-col gap-4">{side}</div>

@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { MAX_TASK_NAME_LENGTH } from 'strategydance-core'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import useClaimEscape from '~hooks/common/useClaimEscape'
 
@@ -16,7 +17,11 @@ type Props = {
 /*
   A task's name at the top of its dialog, which a click turns into a field. Enter or leaving it
   saves a name that changed, without the spaces at its ends; Escape, or an emptied field, keeps the
-  one it had. Escape is the field's while it is open, so it never closes the dialog with it
+  one it had. Escape is the field's while it is open, so it never closes the dialog with it.
+
+  The field is in the display face, so it takes the room its descenders need below it, as padding
+  taken back by a margin. The name shown takes the same `descender-room`, though it clips nothing,
+  so the two boxes match and nothing under the title moves when one turns into the other
 */
 function TaskNameField({ value, onSave }: Props) {
   const { formatMessage } = useIntl()
@@ -51,7 +56,7 @@ function TaskNameField({ value, onSave }: Props) {
       <button
         type="button"
         title={formatMessage(taskMessages.editName)}
-        className={TASK_EDITABLE_CLASS_NAME}
+        className={cn(TASK_EDITABLE_CLASS_NAME, 'descender-room')}
         onClick={() => setDraft(value)}
       >
         {value}

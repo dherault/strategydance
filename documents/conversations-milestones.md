@@ -43,7 +43,7 @@ merges, write its pull request number in the table below.
 ## Milestones
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
-M3 from the start, M13 as soon as M1 has merged, M16 as soon as M14 has, and M12, M22 and M25 well
+M3 from the start, M13 as soon as M1 has merged, M18 as soon as M14 has, and M12, M25 and M28 well
 before their neighbours.
 
 | # | Milestone | Packages | Depends on | PR |
@@ -62,20 +62,20 @@ before their neighbours.
 | M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
-| M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
-| M16 | The authorization server | backend, database, core, root | M14, setup 10 | |
-| M17 | The consent page and Connected agents | web, backend, database, root | M16 | |
-| M18 | The Knowledge module for external agents | backend, web, root | M17 | |
-| M19 | Mentioning knowledge in the composer | web | M7, M15 | |
-| M20 | Team, log and top priority tools | backend, database, web | M9, M13 | |
-| M21 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
-| M22 | The dock | web | M7 | |
-| M23 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
-| M24 | Attachments in the composer and the thread | web | M19, M23 | |
-| M25 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
-| M26 | Integrations: members connect their accounts | database, backend, web | M25 | |
-| M27 | Integrations in conversations | database, backend, web | M11, M26 | |
-| M28 | Launch | all | all | |
+| M16 | Knowledge in conversations | backend, database, web | M10, M14 | |
+| M18 | The authorization server | backend, database, core, root | M14, setup 10 | |
+| M19 | The consent page and Connected agents | web, backend, database, root | M18 | |
+| M20 | The Knowledge module for external agents | backend, web, root | M19 | |
+| M22 | Mentioning knowledge in the composer | web | M7, M16 | |
+| M23 | Team, log and top priority tools | backend, database, web | M9, M13 | |
+| M24 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
+| M25 | The dock | web | M7 | |
+| M26 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
+| M27 | Attachments in the composer and the thread | web | M22, M26 | |
+| M28 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
+| M29 | Integrations: members connect their accounts | database, backend, web | M28 | |
+| M30 | Integrations in conversations | database, backend, web | M11, M29 | |
+| M31 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -127,7 +127,7 @@ The data model, with nothing yet using it.
   `ConversationTranscriptEntry`, and their enums, as The data describes, commented in
   `schema.gql`'s style: the transcript's `content`, the run's `context` and `pendingToolResults`
   as `String` columns of JSON text, never `Any` (see The data). `ConversationAttachment` waits for
-  M23, the approval fields for M27, and `@searchable` for M12: each is additive, so each release
+  M26, the approval fields for M30, and `@searchable` for M12: each is additive, so each release
   migrates by itself.
 - No operation yet: the web's arrive with the pages that read them, from M4, and the backend's with
   the routes that call them, from M6. Selections, refreshes and optional variables grow without
@@ -186,13 +186,13 @@ The data model, with nothing yet using it.
 ### M5: The conversation page and its thread, read-only
 
 - `_app/conversations.$conversationId.tsx`, under M4's layout route and so behind its release
-  bouncer: search param `isNew` validated (`aspect` in M21), and
+  bouncer: search param `isNew` validated (`aspect` in M24), and
   `beforeLoad` refusing an id that is not one, as `knowledge.$documentId.tsx` does; a
   `ConversationOrganizationBouncer` copied from `KnowledgeOrganizationBouncer`, back to the list when
   the organization changes; waiters keyed on the organization's id; `useConversation` and
   `useConversationRun`.
 - The page: the bar, the title, the aspects button (on saved conversations: a draft's aspects arrive
-  in M21, sent with its first message); `KnowledgeDocumentAspectsDialog` generalized into an
+  in M24, sent with its first message); `KnowledgeDocumentAspectsDialog` generalized into an
   `AspectsDialog` taking its labels as props; `UpdateConversationAspects`.
 - The thread drawing every kind of entry, read-only: text through `Markdown`, tool calls and their
   output dialog (`GetConversationToolCall`), questions in their answered and skipped states (waiting
@@ -220,7 +220,7 @@ process. No queue and no composer yet: a script sends, and the page from M5 show
 
 - The conversations router, with its member and staff middleware.
 - `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
-  suggestion and attachments), validated on the server: `text` trimmed, not empty (M23 allows that
+  suggestion and attachments), validated on the server: `text` trimmed, not empty (M26 allows that
   with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the
   conversation (title rule, `MAX_CONVERSATIONS` under the membership lock, pruning what the member
   deleted over a day ago) with its message, queued run and first transcript entry, in one mutation;
@@ -291,7 +291,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   removes what is still deleted past its Undo window whether or not anybody comes back:
   conversations deleted over a day ago, with their transcript, runs and messages; later milestones
   add `ConversationSearch` rows (M12), stale upload reservations, unsent files and sent ones'
-  folders (M23), and deleted integrations with their credentials (M25). The prunes done on the way
+  folders (M26), and deleted integrations with their credentials (M28). The prunes done on the way
   through stay as a fast path; every step is idempotent.
 - Tests (database mocked): an unclear and a definite queueing failure, both leaving the run queued
   for the retry to enqueue; the worker's 200 once its run is finished and 503 while another holds
@@ -320,7 +320,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   before a request whose input would pass 800000 tokens, counted as Attachments says, from the
   latest request whose input and turn the transcript still holds, its whole input, cached
   included, and its output, plus what the transcript holds after it, so a long
-  conversation shows full rather than failing every request (M23 adds the files' stored counts).
+  conversation shows full rather than failing every request (M26 adds the files' stored counts).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
   listing the results); citations drawn as numbered links after their spans, with the sources under
   the message.
@@ -381,7 +381,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   - **Client calls go to M11**, as David chose: no client tool existed yet, web search running on
     Claude's side, so M10 stops, resumes and retries text and web search, and M11, which builds the
     first client tool, takes the loop that runs one and every test of M10 above that needs one (see
-    M11). Retry for a files-only message goes to M23, and for an answer to M11.
+    M11). Retry for a files-only message goes to M26, and for an answer to M11.
   - The routes name the run the page shows: `POST …/runs/:runId/stop`, `…/resume` and `…/retry`,
     beside the reconcile route. A Resume or a Retry received again finds the run numbered right
     after the one it names, and answers with it, queueing its task again while it waits.
@@ -728,7 +728,7 @@ it yet, and Claude Code reaches it locally over stdio.
   - **Search answers at most 10 of its at most 20 candidates**, with `hasMore` when more matched and
     `isIndexComplete` false while documents an old page left unindexed remain.
   - **The page's `RestoreDocument` refuses past a day too**, not only the agent's restore, so a day
-    means a day wherever a restore starts, which M15's Restore in the thread relies on.
+    means a day wherever a restore starts, which M16's Restore in the thread relies on.
   - **A search and a list refuse a removed member** rather than find nothing: the reads they start
     with return the membership beside the documents.
   - **An answer from a key carries the address again**: the result kept under a key is the domain's,
@@ -747,7 +747,7 @@ it yet, and Claude Code reaches it locally over stdio.
     from Claude Code itself, which `claude mcp add strategydance-knowledge-local -- bun run
     mcp:knowledge <email>` connects.
 
-### M15: Knowledge in conversations
+### M16: Knowledge in conversations
 
 The agent's knowledge, through the module, in process (see Modules § Strategy Dance's agent).
 
@@ -784,10 +784,10 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
   thread's row; turn Write off on one and ask again; turn Read off on it and ask about it; kill the
   local backend during a write and resume.
 
-### M16: The authorization server
+### M18: The authorization server
 
 Strategy Dance's OAuth server on the public backend, as Modules § External agents describes it,
-with nothing to authorize yet but a script: the consent page comes in M17 and the endpoint in M18.
+with nothing to authorize yet but a script: the consent page comes in M19 and the endpoint in M20.
 
 - The tables, as Modules § The data lists them: `OAuthClient`, `OAuthAuthorizationRequest`,
   `AgentConnection` and `AgentConnectionToken`, its hashes `@unique`. `AgentConnection`'s
@@ -806,7 +806,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   fetched through `fetchOutbound`, and only when a signed-in member's consent page reads the
   request, which is also when such a client's redirect address is checked. Registering and
   authorizing are rate-limited per address, and registrations capped in all.
-- The token verifier M18 mounts: one read by the token's hash, of an unexpired access token alone,
+- The token verifier M20 mounts: one read by the token's hash, of an unexpired access token alone,
   with its connection, its membership and the account's staff role, compared with the endpoint's
   resource. The refresh grant likewise takes a refresh token alone, and derives its successors under
   `oauth-token-secret` (setup step 10), read by version: `retrieveSecret` gains a version argument,
@@ -861,9 +861,9 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
 
-### M17: The consent page and Connected agents
+### M19: The consent page and Connected agents
 
-- The `module` message type, for the consent page, Connected agents and M18's dialog, its module
+- The `module` message type, for the consent page, Connected agents and M20's dialog, its module
   and its `MESSAGE_TYPES` entry, registered on the consent page's route and in `_app.tsx`'s
   `APP_MESSAGE_TYPES`, and `bun run translate`.
 - `/oauth/consent`, as Modules describes it: under `_authenticated` and outside `_app`'s frame, so a
@@ -884,14 +884,14 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   desktop and phone widths; signed out first, the page coming back after signing in; Deny; an
   expired request; a connection disconnected from the tab, and the script's next refresh refused.
 
-### M18: The Knowledge module for external agents
+### M20: The Knowledge module for external agents
 
 - Dependencies: `@modelcontextprotocol/node`, for `toNodeHandler`, and
   `@modelcontextprotocol/express`, for `requireBearerAuth` and `mcpAuthMetadataRouter`.
 - `routes/modules.ts`, mounted at `/mcp` on the public backend only: `POST /mcp/knowledge` through
   the module's handler from M14, mounted with `toNodeHandler` and handed the parsed body as its
   third argument, `(request, response) => nodeHandler(request, response, request.body)`, behind
-  `requireBearerAuth` with M16's verifier and the endpoint's address as `expectedResource`; the
+  `requireBearerAuth` with M18's verifier and the endpoint's address as `expectedResource`; the
   `Origin` check; a 1 MiB body; `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE.
   `/.well-known/oauth-protected-resource/mcp/knowledge` is served through `mcpAuthMetadataRouter`
   mounted at the app's root, beside the authorization server's metadata, never under `/mcp`, where
@@ -921,14 +921,14 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   deviation PKCE mitigates, is David's call), use it from each, and disconnect one from Connected
   agents and see its next call refused.
 
-### M19: Mentioning knowledge in the composer
+### M22: Mentioning knowledge in the composer
 
-- The "+" menu (with "Mention knowledge" only until M24), the `@` list and its keyboard handling,
+- The "+" menu (with "Mention knowledge" only until M27), the `@` list and its keyboard handling,
   mentions sent as `[Title](doc:<id>)`, all as The composer describes.
 - Verify: mention two documents, send, see the links in the bubble and the agent read them; mention
   one with Read off and see the agent say it cannot read it.
 
-### M20: Team, log and top priority tools
+### M23: Team, log and top priority tools
 
 - Backend-connector operations reading the team (as `GetOrganizationTeam` does, without emails) and
   the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
@@ -950,7 +950,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   pricing page my priority": the Today page updates without a reload, and the build in public streak
   counts the day once the page is reloaded (`GetActivityDays` is not live).
 
-### M21: Aspect tagging, suggestions and the aspect page section
+### M24: Aspect tagging, suggestions and the aspect page section
 
 - The tagging side request and its note, as The agent describes.
 - The suggestion catalogue: `CONVERSATION_SUGGESTION_IDS` in core (keys like
@@ -967,7 +967,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not;
   start a suggestion and see it leave the cards.
 
-### M22: The dock
+### M25: The dock
 
 - `_ConversationDockProvider` in `router.tsx`'s `Wrap` after `CurrentOrganizationProvider`, with its
   context and `useConversationDock`. Windows are persisted with `usePersistedState` under one literal
@@ -983,7 +983,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: open four conversations at several widths; minimize, close, full page; replies arriving in
   minimized windows count up; a phone width has no dock.
 
-### M23: Attachments: storing them and sending them to Claude
+### M26: Attachments: storing them and sending them to Claude
 
 - The `ConversationAttachment` table, as The data describes it, additive.
 - In strategydance-core, `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the types the upload's sniffing
@@ -1038,7 +1038,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   alone going back to its anchor, which M10 left here.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
-### M24: Attachments in the composer and the thread
+### M27: Attachments in the composer and the thread
 
 - The "+" menu's "Files and images", paste, the tray with upload progress and a remove button
   calling `DELETE …/attachments/:attachmentId`, image shrinking, the budget's message; the thread's thumbnails fetched from `GET …/attachments/:attachmentId` with the
@@ -1046,7 +1046,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: attach each type from the composer and ask about it; add and remove thirty files and
   attach again; reach the conversation's budget.
 
-### M25: Integrations: the organization's servers
+### M28: Integrations: the organization's servers
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, `configRevision` (see below), the key encrypted with Cloud KMS and its
@@ -1067,7 +1067,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   ones (the key, the registered client, members' connections, pending authorizations, and every
   auto-approval, since a different server could advertise identical definitions), and members
   reconnect, so no credential or approval reaches a server it was not given for. The same mutation
-  bumps the integration's `configRevision`, a counter M27's pending approvals are bound to.
+  bumps the integration's `configRevision`, a counter M30's pending approvals are bound to.
 - The server dialog lists its tools with a switch each for running without approval. A tool's
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.
@@ -1075,7 +1075,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   M14 installed, over Streamable HTTP and lists the tools), edit, delete, turn on and off, retry.
   An OAuth server answers 401 before any member has connected, so adding one runs only its
   discovery here, the protected resource metadata and the issuer it names, and its tools wait for
-  the first connection in M26: until then the dialog says to connect an account to list them, and
+  the first connection in M29: until then the dialog says to connect an account to list them, and
   its auto-approval switches wait with them. Deleting sets `deletedAt`, keeping
   the secrets for Undo; the daily sweeper (M8) removes it a day later, with its connections, pending
   authorizations and encrypted credentials, if it is still deleted.
@@ -1088,7 +1088,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   connection goes to the address checked, and the check repeats on every redirect; timeouts and a
   response size cap. A request carrying a credential (an API key, a token, a client secret) never
   follows a cross-origin redirect; only unauthenticated discovery follows redirects, each hop
-  guarded. OAuth discovery and token requests (M26) use the same guard.
+  guarded. OAuth discovery and token requests (M29) use the same guard.
 - The guard ships with deterministic tests, a fake resolver and transport standing in for the
   network: representative IPv4 and IPv6 addresses of each special-use range (private, loopback,
   link-local, unique local, carrier-grade NAT, multicast, documentation, `0.0.0.0` and `::`),
@@ -1101,7 +1101,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: add a key-based server and see its tools; add an OAuth one and see its discovery pass and
   its tools wait for a connection; turn one off, delete and undo.
 
-### M26: Integrations: members connect their accounts
+### M29: Integrations: members connect their accounts
 
 - `IntegrationConnection`, one per member and server: the account's label, tokens encrypted, expiry,
   status, and `generation`, bumped on every connect and kept by a refresh. Pending authorizations: references to the initiating member and integration (all the
@@ -1132,7 +1132,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   first's tokens; a lapsed refresh lease taken over; the first connection listing the tools.
 - Verify: connect two members to the same server as different accounts; disconnect one.
 
-### M27: Integrations in conversations
+### M30: Integrations in conversations
 
 - The three integration tools; calls with the member's own connection or the organization's key,
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
@@ -1184,7 +1184,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: ask something that needs a connected server, then allow the call and deny another; let an
   administrator allow one tool and see it run straight away; turn the server off and ask again.
 
-### M28: Launch
+### M31: Launch
 
 - Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`, the backend's
   `IS_CONVERSATIONS_RELEASE_GATED` and `ARE_MODULES_STAFF_ONLY`.

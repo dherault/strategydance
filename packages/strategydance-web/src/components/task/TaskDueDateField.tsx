@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Calendar } from 'strategydance-design-system/components/ui/Calendar'
-import { Popover, PopoverContent, PopoverTrigger } from 'strategydance-design-system/components/ui/Popover'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from 'strategydance-design-system/components/ui/Popover'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import useFormatTaskDueDate from '~hooks/task/useFormatTaskDueDate'
@@ -24,7 +29,10 @@ type Props = {
 /*
   The day a task should be done by, in full, red and saying so once it is overdue, which opens a
   calendar to pick another, with today and no date a click away. The calendar focuses the day
-  picked, or today, so the arrow keys move from there
+  picked, or today, so the arrow keys move from there.
+
+  The calendar opens over the field, from its top edge, rather than under it, which leaves it the
+  most room below: it stays on that side however its months run
 */
 function TaskDueDateField({ value, isLate, today, onChange }: Props) {
   const { formatMessage, locale } = useIntl()
@@ -46,22 +54,36 @@ function TaskDueDateField({ value, isLate, today, onChange }: Props) {
         open={isOpen}
         onOpenChange={setIsOpen}
       >
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            title={formatMessage(taskMessages.changeDate)}
-            className={cn(
-              TASK_EDITABLE_CLASS_NAME,
-              'text-sm',
-              !value && 'text-muted-foreground',
-              isLate && 'font-medium text-red-600',
-            )}
-          >
-            {isLate ? formatMessage(taskMessages.overdue, { date: label }) : label}
-          </button>
-        </PopoverTrigger>
+        <div className="relative">
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title={formatMessage(taskMessages.changeDate)}
+              className={cn(
+                TASK_EDITABLE_CLASS_NAME,
+                'text-sm',
+                !value && 'text-muted-foreground',
+                isLate && 'font-medium text-red-600',
+              )}
+            >
+              {isLate ? formatMessage(taskMessages.overdue, { date: label }) : label}
+            </button>
+          </PopoverTrigger>
+          {/*
+            The field's top edge, as wide as its box, for the calendar to open from. After the
+            trigger: Radix anchors to whichever registers last, and the trigger registers itself
+            until an anchor of its own appears, which leaves one mounted before it measuring nothing
+          */}
+          <PopoverAnchor asChild>
+            <span
+              aria-hidden="true"
+              className="absolute -inset-x-2 top-0"
+            />
+          </PopoverAnchor>
+        </div>
         <PopoverContent
           align="end"
+          sideOffset={0}
           className="w-auto p-3"
           onOpenAutoFocus={event => event.preventDefault()}
         >

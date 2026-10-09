@@ -906,8 +906,10 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
   board does not hold, since `GetTasks` leaves deleted tasks out, the name the agent wrote, struck
   through, whether the task was deleted, pruned or never there. No query is added. `CLAUDE.md`'s
   line on `Markdown` says so.
-- A `delete_task` row offers Restore, through `RestoreTask`, while the board does not hold the task
-  and a day has not passed since the call.
+- A `delete_task` row offers Restore while the board does not hold the task and a day has not
+  passed since the call, through the board's own restore rather than `RestoreTask` alone: the
+  task restored, the board read again and each link closing a loop removed, as the page's Undo
+  does, and the day recorded through `recordActivity`, as every member's change to the board is.
 - The tools list then holds sixteen module tools: the pull request records what the converted list
   costs a cached request, so whether Claude's tool search (`defer_loading`) should keep some of
   them out is decided on that figure, which is David's call.
@@ -919,7 +921,8 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
   and an unknown one alike, drawn struck through with the name the agent wrote, and drawn again with
   the task's current name once it is restored; a `delete_task` row in a reply that links no task
   reading the board itself, offering Restore while the task is off it and hiding it once the task is
-  back.
+  back; a Restore from a row whose task's kept links, with one made while it was deleted, close a
+  loop, leaving no loop on the board, and recording the day.
 - Verify: with the board open in another tab, talk a launch through and ask the agent to turn the
   plan into tasks, linked in order and assigned, and watch the cards arrive without a reload; ask it
   to mark one done and hear which can start; open a task from a link in its reply; ask it to delete

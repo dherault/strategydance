@@ -1388,10 +1388,13 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   for `doc:` links, so a link whose id the board does not hold, a task deleted, pruned or never
   there alike, draws the name the agent wrote, struck through and muted: all a reader needs is that
   the task is gone. A `delete_task` row knows its task the same way, and offers Restore while the
-  board does not hold it and a day has not passed since the call; `RestoreTask` refuses anything
-  else. The tools list then holds sixteen module tools, and M17 records what it costs a cached
-  request, so whether Claude's tool search keeps some of them out (see Later modules) is decided on
-  that figure.
+  board does not hold it and a day has not passed since the call. Its Restore is the page's own, not
+  `RestoreTask` alone, which only clears `deletedAt`: like the board's Undo, it restores the task,
+  reads the board again and removes each link of a task waiting on it that would now close a loop
+  (`getTaskLoopingDependents`), and, being a member's change to the board, records the day
+  (`recordActivity`). `RestoreTask` refuses anything past the day. The tools list then holds sixteen
+  module tools, and M17 records what it costs a cached request, so whether Claude's tool search
+  keeps some of them out (see Later modules) is decided on that figure.
 
 **External agents** reach the Knowledge module from M20 and the Tasks module from M21, through an
 authorization server from M18 and a consent page from M19:

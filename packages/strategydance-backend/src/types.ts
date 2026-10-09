@@ -125,3 +125,14 @@ export type KnowledgeDocumentBlock = {
   id: string
   markdown: string
 }
+
+// An edit an agent makes to a document's shared text, the blocks it writes in Markdown
+export type KnowledgeDocumentEdit =
+  /** The whole text replaced */
+  | { type: 'content'; markdown: string }
+  /** Blocks added after the last one */
+  | { type: 'append'; markdown: string }
+  /** The top-level blocks from one id to another, both included, replaced */
+  | { type: 'replaceBlocks'; fromId: string; toId: string; markdown: string }
+  /** A piece of text that occurs exactly once, replaced */
+  | { type: 'replaceText'; find: string; replace: string }

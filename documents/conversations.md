@@ -475,7 +475,11 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   read. Both filter on the caller, their membership and `deletedAt`. Results are the best matches,
   not a guaranteed full set: a few conversations with thousands of matching messages can use up the
   pages, so when the pages run out the list says it shows the best matches and invites a narrower
-  search.
+  search. The route answers the conversations' ids and how far it looked (`coverage`: `ALL`,
+  `BEST_MATCHES` or `RECENT`), and the page picks them out of the live list it already holds, so
+  the results keep its order and stay live. A `_search` is ordered by relevance alone, since its
+  `orderBy` cannot name it, so a tie across two pages can repeat or skip a message, which
+  collecting distinct conversations absorbs.
 - **Chinese and Japanese need another path.** The `simple` configuration splits words on spaces and
   punctuation, which Chinese and Japanese text does not use, so it cannot find a word inside a
   sentence. A query holding CJK characters runs as substring matches instead: split on spaces as any
@@ -486,7 +490,10 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   corpus rather than everything the member has: the titles of all their conversations (at most
   1000), and the messages of their most recently active ones only, taken newest first by
   `messageCount` until they reach 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES`), so one search scans at
-  most 21000 rows, and the list says it searched recent conversations. The Knowledge module's
+  most 21000 rows, and the list says it searched recent conversations whenever that left one's
+  messages unread. It is one query over the conversations, a title or, among the recent ones, a
+  message (`exist`) matching every pattern, which always takes eight, those a query leaves over
+  filled with `%`. The Knowledge module's
   `search_documents` does the same on the titles of all the organization's documents AI may read
   and the `contentText` of the 100 most recently updated of them
   (`MAX_SUBSTRING_SEARCH_DOCUMENTS`), still at most 20 candidates. Tests run a search in both
@@ -497,7 +504,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   waits 300 ms after the last keystroke and aborts the request it replaces. Since a caller can
   skip the field, the route is metered on the server in two layers, as invitations are:
   `conversationSearchRateLimitMiddleware` (120 searches per caller in ten minutes, keyed by the
-  verified caller, the address only if there is none, counted in the instance's memory) turns a
+  verified caller, the address only if there is none, counted in the instance's memory, one
+  limiter a router, which `createConversationSearchRateLimitMiddleware` makes) turns a
   script away cheaply, and the database holds the bound across instances, which autoscaling would
   otherwise multiply: the route's first mutation locks the caller's membership row, as a run start
   does, then inserts a `ConversationSearch` row (the caller, the organization, `createdAt`, indexed
@@ -505,7 +513,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   than ten minutes, a read of at most 120 under `@check`. The allowance is per organization, the
   scope the locked row has, so the lock serializes exactly what it counts: two instances at once
   cannot both see 119, and every instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
-  searching never reaches, and the daily sweeper deletes rows over a day old. Strategy Dance's
+  searching never reaches, the database's with a `Retry-After` its refusal reads again, and the
+  daily sweeper deletes rows over a day old. Past eight words the field says so and sends nothing. Strategy Dance's
   agent's searches are bounded by its tool calls per run instead. An external agent has no run, so
   each `search_documents` it makes draws on the same allowance, a `ConversationSearch` row under
   the same lock, per member and organization, and is refused past it with a result saying so (see

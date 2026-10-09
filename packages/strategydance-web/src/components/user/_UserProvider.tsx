@@ -142,6 +142,8 @@ function UserProvider({ children }: PropsWithChildren) {
     The account has one picture object, which `storage.rules` explains, so nothing can bring back
     the bytes a new picture replaced: a failure after the upload leaves the account pointing at
     that object, and trying again, or the mirror on the next read, settles it on the new picture.
+    Its thumbnail, which the user menu draws, goes up beside it and is the row's alone, since
+    Firebase has nowhere to keep it.
 
     A removed picture is deleted first, so it stops being served whatever fails after. The account
     then points at a picture that is gone, which shows as its initials, until removing it again,
@@ -153,7 +155,9 @@ function UserProvider({ children }: PropsWithChildren) {
 
     if (!image) await deleteProfilePicture(viewer.uid)
 
-    const imageUrl = image ? await uploadProfilePicture(viewer.uid, image) : null
+    const { imageUrl, imageThumbnailUrl } = image
+      ? await uploadProfilePicture(viewer.uid, image)
+      : { imageUrl: null, imageThumbnailUrl: null }
 
     // An empty string rather than null takes the picture off the account, since the Auth emulator
     // refuses a null. Firebase reads either back as null
@@ -161,6 +165,7 @@ function UserProvider({ children }: PropsWithChildren) {
     await updateCurrentUser({
       displayName: viewer.displayName,
       imageUrl,
+      imageThumbnailUrl,
       timezone: timezone ?? user.timezone,
       authenticationProviders: getAuthenticationProviders(viewer),
     })
@@ -240,6 +245,12 @@ function UserProvider({ children }: PropsWithChildren) {
     updateCurrentUser({
       displayName: viewer.displayName,
       imageUrl: viewer.photoURL,
+      /*
+        The thumbnail is of the picture the row had. A picture that drifted, as one changed where
+        this page did not see it, is not the one it was drawn from, so it is cleared and the
+        picture is drawn instead. Left out otherwise, which leaves it alone
+      */
+      imageThumbnailUrl: user.imageUrl === viewer.photoURL ? undefined : null,
       timezone: timezone ?? user.timezone,
       authenticationProviders,
     })

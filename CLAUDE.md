@@ -659,6 +659,13 @@ in `utils/`, one concern per file.
   and a Storage rule cannot read who administers what. It stores each under a fresh name with
   its own download token, writes that URL to the row, and deletes the file the row pointed at
   before. `storage.rules` grants clients nothing under `organizations/`
+- A logo arrives as a form, with the thumbnail the page drew of it (`createImageThumbnail`, fitted
+  inside `THUMBNAIL_SIZE`), and is stored beside it as `logoThumbnailUrl`. A profile picture's
+  thumbnail is the page's to write, beside the picture in Storage, as `imageThumbnailUrl`. The
+  organization switcher and the user menu draw the thumbnail and fall back to the picture, which is
+  all a picture from before thumbnails, or from Google, has. The other small faces, a team member's,
+  a Today identity's and a document's presences, still draw the picture, until their queries select
+  the thumbnail
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back

@@ -27,10 +27,14 @@ mutation CreateCurrentUser(
 }
 
 # The fields that mirror the Firebase profile, plus the observed time zone. The caller sends
-# this only when one of them has actually drifted, so `updatedAt` keeps meaning something
+# this only when one of them has actually drifted, so `updatedAt` keeps meaning something.
+#
+# The picture's thumbnail rides along, since it changes with the picture, and is left alone when
+# left out, as a page from before thumbnails leaves it
 mutation UpdateCurrentUser(
   $displayName: String
   $imageUrl: String
+  $imageThumbnailUrl: String
   $timezone: String
   $authenticationProviders: [AuthenticationProvider!]!
 ) @auth(level: USER) {
@@ -40,6 +44,7 @@ mutation UpdateCurrentUser(
       email_expr: "auth.token.email"
       displayName: $displayName
       imageUrl: $imageUrl
+      imageThumbnailUrl: $imageThumbnailUrl
       timezone: $timezone
       authenticationProviders: $authenticationProviders
       updatedAt_expr: "request.time"

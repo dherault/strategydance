@@ -34,7 +34,8 @@ export class ApiError extends Error {
 type RequestApiOptions = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   path: string
-  // Sent as JSON, except a `Blob`, like a `File`, which is sent as its own bytes and type
+  // Sent as JSON, except a `Blob`, like a `File`, which is sent as its own bytes and type, and a
+  // `FormData`, which is sent as a multipart form
   body?: unknown
   // Aborts the request, and the read of its answer, as a newer one replaces it
   signal?: AbortSignal
@@ -45,6 +46,9 @@ function encodeBody(body: unknown) {
   if (body === undefined) return { requestBody: undefined, contentType: null }
 
   if (body instanceof Blob) return { requestBody: body, contentType: body.type || 'application/octet-stream' }
+
+  // No type of its own: the browser writes one, naming the boundary between the form's parts
+  if (body instanceof FormData) return { requestBody: body, contentType: null }
 
   return { requestBody: JSON.stringify(body), contentType: 'application/json' }
 }

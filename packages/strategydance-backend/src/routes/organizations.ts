@@ -2,6 +2,7 @@ import express, { type Request, type Response, Router } from 'express'
 import {
   type ApiResponse,
   type ChangeOrganizationImageData,
+  ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_FORBIDDEN,
   ERROR_CODE_TEAM_FULL,
@@ -11,6 +12,7 @@ import {
   MAX_INVITATIONS_PER_REQUEST,
   MAX_ORGANIZATION_IMAGE_SIZES,
   MAX_RICH_TEXT_IMAGE_SIZE,
+  MAX_THUMBNAIL_SIZE,
   ORGANIZATION_IMAGE_CONTENT_TYPES,
   ORGANIZATION_IMAGE_KINDS,
   RICH_TEXT_IMAGE_CONTENT_TYPES,
@@ -22,6 +24,7 @@ import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
+import readImageUpload from '~utils/readImageUpload'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import sniffImageContentType from '~utils/sniffImageContentType'
@@ -40,6 +43,10 @@ import deleteOrganization from '~domain/organizations/deleteOrganization'
 import removeOrganizationImage from '~domain/organizations/removeOrganizationImage'
 import replaceOrganizationImage from '~domain/organizations/replaceOrganizationImage'
 import storeRichTextImage from '~domain/richText/storeRichTextImage'
+
+// What a form carrying a logo and its thumbnail holds beyond their bytes: its boundaries and each
+// part's headers, a few hundred bytes, with room to spare
+const IMAGE_FORM_OVERHEAD = 16 * 1024
 
 function createOrganizationsRouter() {
   const router = Router()
@@ -190,9 +197,15 @@ function createOrganizationsRouter() {
     The body is parsed last, after the administrator check, rather than first as elsewhere: a
     picture is megabytes, and nobody who may not change it should get it buffered. The parser
     takes only the declared picture types, leaving the body unread otherwise, and refuses anything
-    over the limit with a 413 before reading it
+    over the limit with a 413 before reading it.
+
+    The logo also comes as a form, with the thumbnail the page drew of it beside it, which is what
+    the organization switcher draws. The parser's limit then counts both and the form around them,
+    and `readImageUpload` holds each to its own
   */
   ORGANIZATION_IMAGE_KINDS.forEach(kind => {
+    const takesThumbnail = kind === 'logo'
+
     // Makes the body the organization's logo or banner, answering with its URL
     router.put(
       `/:organizationId/${kind}`,
@@ -201,17 +214,40 @@ function createOrganizationsRouter() {
       organizationImageRateLimitMiddleware,
       validateMiddleware({ params: organizationParamsSchema }),
       organizationAdministratorMiddleware,
-      express.raw({ type: ORGANIZATION_IMAGE_CONTENT_TYPES, limit: MAX_ORGANIZATION_IMAGE_SIZES[kind] }),
+      express.raw(
+        takesThumbnail
+          ? {
+              type: [...ORGANIZATION_IMAGE_CONTENT_TYPES, 'multipart/form-data'],
+              limit: MAX_ORGANIZATION_IMAGE_SIZES[kind] + MAX_THUMBNAIL_SIZE + IMAGE_FORM_OVERHEAD,
+            }
+          : { type: ORGANIZATION_IMAGE_CONTENT_TYPES, limit: MAX_ORGANIZATION_IMAGE_SIZES[kind] },
+      ),
       async (request: ImageRequest, response: Response<ApiResponse<ChangeOrganizationImageData>>) => {
-        const bytes = Buffer.isBuffer(request.body) ? request.body : null
-        const contentType = bytes ? sniffImageContentType(bytes) : null
+        const upload = await readImageUpload({
+          body: request.body,
+          contentType: request.headers['content-type'],
+          maxSize: MAX_ORGANIZATION_IMAGE_SIZES[kind],
+        })
 
-        if (!bytes || !contentType) {
+        if (upload.outcome === 'too-large') {
+          respondError(
+            response,
+            413,
+            ERROR_CODE_BAD_REQUEST,
+            takesThumbnail ? `The ${kind} or its thumbnail is too large` : `The ${kind} is too large`,
+          )
+
+          return
+        }
+
+        if (upload.outcome === 'unsupported') {
           respondError(
             response,
             415,
             ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
-            `An organization's ${kind} is a PNG, JPEG, GIF or WebP picture`,
+            takesThumbnail
+              ? `An organization's ${kind} is a PNG, JPEG, GIF or WebP picture, sent alone or as a form with its thumbnail`
+              : `An organization's ${kind} is a PNG, JPEG, GIF or WebP picture`,
           )
 
           return
@@ -221,8 +257,8 @@ function createOrganizationsRouter() {
           organizationId: request.params.organizationId,
           userId: readViewer(request).id,
           kind,
-          bytes,
-          contentType,
+          image: upload.image,
+          thumbnail: upload.thumbnail,
         })
 
         if (result.outcome === 'forbidden') {

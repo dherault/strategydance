@@ -22,6 +22,8 @@ import UserOrganizationsContext from '~contexts/UserOrganizationsContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 
+import createImageThumbnail from '~utils/common/createImageThumbnail'
+
 import { requestApi } from '~data/api'
 import { dataConnect } from '~data/firebase'
 
@@ -208,13 +210,27 @@ function UserOrganizationsProvider({ children }: PropsWithChildren) {
   /*
     Makes a picture an organization's logo or banner, or removes it, through the backend: only an
     administrator may, which a Storage rule cannot check. Resolves once the list shows the new URL,
-    so the profile page's dialog closes onto the new picture rather than the old one
+    so the profile page's dialog closes onto the new picture rather than the old one.
+
+    A logo goes up as a form, with the thumbnail drawn of it here, which the organization switcher
+    draws. One the browser could not draw is left out, and the switcher draws the logo instead
   */
   async function changeOrganizationImage(organizationId: string, kind: OrganizationImageKind, image: Blob | null) {
+    let body: Blob | FormData | undefined = image ?? undefined
+
+    if (image && kind === 'logo') {
+      const thumbnail = await createImageThumbnail(image)
+
+      body = new FormData()
+      body.append('image', image)
+
+      if (thumbnail) body.append('thumbnail', thumbnail)
+    }
+
     await requestApi<ChangeOrganizationImageData>({
       method: image ? 'PUT' : 'DELETE',
       path: `/organizations/${organizationId}/${kind}`,
-      body: image ?? undefined,
+      body,
     })
     await refetchUserOrganizations({ throwOnError: true })
   }

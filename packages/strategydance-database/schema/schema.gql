@@ -33,6 +33,10 @@ type User @table {
   email: String! @unique
   displayName: String
   imageUrl: String
+  # The picture fitted inside 256 pixels, which the page makes as it uploads one, for where it is
+  # drawn small. Not a copy of anything Firebase holds: null for a picture from before, or from
+  # Google, and for one whose thumbnail could not be made, where the picture itself is drawn
+  imageThumbnailUrl: String
   # The reader's language, as a hint for anything sent to them rather than rendered for them.
   # Written at creation in the language the account was created in, then by the account page
   # whenever it saves. The interface language is a preference the browser holds, which that page
@@ -107,6 +111,9 @@ type Organization @table {
   # file in Storage on an administrator's word is something a Storage rule cannot check, since it
   # cannot read who administers what. Null until somebody uploads one
   logoUrl: String
+  # The logo fitted inside 256 pixels, which the page makes and the backend stores beside it, for
+  # where it is drawn small. Null for a logo from before, where the logo itself is drawn
+  logoThumbnailUrl: String
   bannerUrl: String
   # Six uppercase hex digits behind a `#`, filling the mark where there is no logo. Null until an
   # administrator picks one, which means strategydance-core's `DEFAULT_ORGANIZATION_COLOR`

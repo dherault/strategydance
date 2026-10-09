@@ -670,47 +670,11 @@ query GetTasks($organizationId: UUID!)
   }
 }
 
-# The descriptions of an organization's tasks, for the board's search and the task's dialog. Apart
-# from `GetTasks`, so a drag on the board does not push every description to every member with the
-# page open: this one moves only when a description does, or a task comes or goes
-query GetTaskDescriptions($organizationId: UUID!)
-@auth(level: USER)
-@refresh(
-  onMutationExecuted: {
-    operation: "CreateTask"
-    condition: "mutation.variables.organizationId == request.variables.organizationId"
-  }
-)
-@refresh(
-  onMutationExecuted: {
-    operation: "UpdateTaskDescription"
-    condition: "mutation.variables.organizationId == request.variables.organizationId"
-  }
-)
-@refresh(
-  onMutationExecuted: {
-    operation: "DeleteTask"
-    condition: "mutation.variables.organizationId == request.variables.organizationId"
-  }
-)
-@refresh(
-  onMutationExecuted: {
-    operation: "RestoreTask"
-    condition: "mutation.variables.organizationId == request.variables.organizationId"
-  }
-)
-@refresh(
-  onMutationExecuted: {
-    operation: "RemoveOrganizationMember"
-    condition: "mutation.variables.organizationId == request.variables.organizationId"
-  }
-)
-@refresh(
-  onMutationExecuted: {
-    operation: "DeleteOrganization"
-    condition: "mutation.variables.organizationId == request.variables.organizationId"
-  }
-) {
+# The descriptions of an organization's tasks, for the board's search. Not a live query: a save would
+# push every description to every member with the board open, so a task's dialog keeps its own live
+# through `GetTaskDescription`, and the board reads these again as its page opens or comes back
+# into focus
+query GetTaskDescriptions($organizationId: UUID!) @auth(level: USER) {
   tasks(
     where: {
       organizationId: { eq: $organizationId }

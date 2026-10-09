@@ -322,11 +322,20 @@ function useTaskChanges() {
     }
   }
 
-  // Takes a task off the board, and off the links of the tasks that waited on it, as the board
-  // reads a deleted task's links once the server has it
+  /*
+    Takes a task off the board, and off the links of the tasks that waited on it, as the board reads
+    a deleted task's links once the server has it.
+
+    It reaches the server once the links to it still on their way have, both ways: the server
+    refuses a link to a task already deleted, and an Undo could not bring back one never stored
+  */
   function deleteTask({ task, dependentIds }: TaskSnapshot) {
     return change({
       rowKey: `task:${task.id}`,
+      after: [
+        ...task.dependencies.map(({ dependencyId }) => `taskDependency:${task.id}:${dependencyId}`),
+        ...dependentIds.map(dependentId => `taskDependency:${dependentId}:${task.id}`),
+      ],
       queryKeys: [tasksKey, descriptionsKey],
       apply: () => {
         setTasks(tasks =>

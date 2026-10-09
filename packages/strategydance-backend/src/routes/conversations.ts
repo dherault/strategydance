@@ -10,13 +10,18 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
+  ERROR_CODE_TOO_MANY_REQUESTS,
   MAX_ANSWER_OTHER_LENGTH,
   MAX_CONVERSATIONS,
   MAX_QUESTION_OPTIONS,
   MAX_QUESTION_OPTION_LENGTH,
+  MAX_SEARCH_QUERY_LENGTH,
+  MAX_SEARCH_TERMS,
   type ResumeConversationRunData,
   type RetryConversationRunData,
+  type SearchConversationsData,
   type SendConversationMessageData,
+  splitSearchTerms,
 } from 'strategydance-core'
 import { z } from 'zod'
 
@@ -28,6 +33,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
+import createConversationSearchRateLimitMiddleware from '~middleware/conversationSearchRateLimit'
 import organizationMemberMiddleware from '~middleware/organizationMember'
 import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
@@ -37,6 +43,7 @@ import parseConversationMessageText from '~domain/conversations/parseConversatio
 import reconcileConversationRun from '~domain/conversations/reconcileConversationRun'
 import resumeConversationRun from '~domain/conversations/resumeConversationRun'
 import retryConversationRun from '~domain/conversations/retryConversationRun'
+import searchConversations from '~domain/conversations/searchConversations'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 
@@ -48,7 +55,8 @@ import stopConversationRun from '~domain/conversations/stopConversationRun'
 
   Each route runs its middleware in one order: the body parsed, App Check, the caller's token, the
   parameters and the body checked, then the caller's membership and whether they are staff, which
-  read and write nothing before them
+  read and write nothing before them. The search is metered between the token and the checks, as
+  the routes other routers meter are
 */
 function createConversationsRouter() {
   const router = Router({ mergeParams: true })
@@ -416,6 +424,84 @@ function createConversationsRouter() {
           response
             .status(202)
             .json({ status: 'success', data: { runId: result.runId, removedRunIds: result.removedRunIds } })
+      }
+    },
+  )
+
+  /* ---
+    SEARCH
+  --- */
+
+  const searchParamsSchema = z.object({
+    organizationId: z.string().regex(UUID_PATTERN),
+  })
+
+  // Bounded in UTF-16 code units, as the search field's `maxLength` counts them
+  const searchBodySchema = z.object({
+    query: z
+      .string()
+      .trim()
+      .min(1, 'A search holds at least one word')
+      .max(MAX_SEARCH_QUERY_LENGTH, `A search holds at most ${MAX_SEARCH_QUERY_LENGTH} characters`)
+      .refine(
+        query => splitSearchTerms(query).length <= MAX_SEARCH_TERMS,
+        `A search holds at most ${MAX_SEARCH_TERMS} words`,
+      ),
+  })
+
+  type SearchRequest = Request<
+    z.infer<typeof searchParamsSchema>,
+    ApiResponse<SearchConversationsData>,
+    z.infer<typeof searchBodySchema>
+  >
+
+  // This router's count, one instance's, made once, as `createConversationSearchRateLimitMiddleware`
+  // explains
+  const searchRateLimitMiddleware = createConversationSearchRateLimitMiddleware()
+
+  /*
+    Searches the caller's conversations in the organization for every word of a query, in a title or
+    in one of the member's or the agent's messages, and answers the ids of those it found with how
+    far it looked. The query travels in the body rather than the address, so what somebody looks for
+    in their own conversations never sits in a logged URL. It is trimmed, and refused with a 400
+    when it holds nothing, more than 100 characters or more than 8 words.
+
+    Metered twice, both refusing with a 429: the instance's count turns a script away before
+    anything reads the database, and the database's, which every instance shares, says in
+    `Retry-After` when the next search fits
+  */
+  router.post(
+    '/search',
+    express.json({ limit: '4kb' }),
+    appCheckMiddleware,
+    authenticationMiddleware,
+    searchRateLimitMiddleware,
+    validateMiddleware({ params: searchParamsSchema, body: searchBodySchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: SearchRequest, response: Response<ApiResponse<SearchConversationsData>>) => {
+      const result = await searchConversations({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        query: request.body.query,
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'tooMany':
+          // At least a second: the oldest search may have aged out between the read and now
+          response.setHeader('Retry-After', Math.max(1, Math.ceil(result.retryAfterMs / 1000)))
+          respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many searches, try again in a few minutes')
+
+          return
+        case 'found':
+          response.json({
+            status: 'success',
+            data: { conversationIds: result.conversationIds, coverage: result.coverage },
+          })
       }
     },
   )

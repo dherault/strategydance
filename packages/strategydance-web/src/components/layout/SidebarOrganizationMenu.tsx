@@ -21,7 +21,8 @@ import OrganizationMark from '~components/organization/OrganizationMark'
 
 import navigationMessages from '~data/intl/messages/navigation'
 
-// The current organization, and the menu that switches it or adds another
+// The current organization, and the menu that switches it or adds another. Each logo is drawn from
+// its thumbnail, a logo from before thumbnails from itself
 function SidebarOrganizationMenu() {
   const { formatMessage } = useIntl()
   const { data: userOrganizations } = useUserOrganizations()
@@ -41,7 +42,7 @@ function SidebarOrganizationMenu() {
               <SidebarMenuButton size="lg">
                 <OrganizationMark
                   name={organization?.name}
-                  logoUrl={organization?.logoUrl}
+                  logoUrl={organization?.logoThumbnailUrl ?? organization?.logoUrl}
                   color={organization?.color}
                 />
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-secondary">
@@ -60,14 +61,14 @@ function SidebarOrganizationMenu() {
               {userOrganizations.length ? (
                 <>
                   <DropdownMenuLabel>{formatMessage(navigationMessages.organizations)}</DropdownMenuLabel>
-                  {userOrganizations.map(({ organization: { id, slug, name, logoUrl, color } }) => (
+                  {userOrganizations.map(({ organization: { id, slug, name, logoUrl, logoThumbnailUrl, color } }) => (
                     <DropdownMenuItem
                       key={id}
                       onSelect={() => switchOrganization({ id, slug })}
                     >
                       <OrganizationMark
                         name={name}
-                        logoUrl={logoUrl}
+                        logoUrl={logoThumbnailUrl ?? logoUrl}
                         color={color}
                         size="sm"
                       />

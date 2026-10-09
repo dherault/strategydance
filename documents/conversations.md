@@ -1355,15 +1355,16 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   who sees a document or a task go they wanted kept needs no second request.
 - **Links to tasks.** The agent links a task as `[name](task:<id>)`, as it links a document with
   `doc:`. From M17 the design system's `Markdown` lets `task:` through beside `doc:`, and the thread
-  draws such a link from the organization's live board, `GetTasks`, read once a reply holds one: the
-  task's current name, opening it in its dialog over the board. `GetTasks` leaves deleted tasks out,
-  as `GetOrganizationDocuments` leaves deleted documents out for `doc:` links, so a link whose id
-  the board does not hold, a task deleted, pruned or never there alike, draws the name the agent
-  wrote, struck through and muted: all a reader needs is that the task is gone. A `delete_task` row
-  knows its task the same way, and offers Restore while the board does not hold it and a day has not
-  passed since the call; `RestoreTask` refuses anything else. The tools list then holds sixteen
-  module tools, and M17 records what it costs a cached request, so whether Claude's tool search
-  keeps some of them out (see Later modules) is decided on that figure.
+  draws such a link from the organization's live board, `GetTasks`, read once a reply holds one or a
+  `delete_task` row is drawn: the task's current name, opening it in its dialog over the board.
+  `GetTasks` leaves deleted tasks out, as `GetOrganizationDocuments` leaves deleted documents out
+  for `doc:` links, so a link whose id the board does not hold, a task deleted, pruned or never
+  there alike, draws the name the agent wrote, struck through and muted: all a reader needs is that
+  the task is gone. A `delete_task` row knows its task the same way, and offers Restore while the
+  board does not hold it and a day has not passed since the call; `RestoreTask` refuses anything
+  else. The tools list then holds sixteen module tools, and M17 records what it costs a cached
+  request, so whether Claude's tool search keeps some of them out (see Later modules) is decided on
+  that figure.
 
 **External agents** reach the Knowledge module from M20 and the Tasks module from M21, through an
 authorization server from M18 and a consent page from M19:

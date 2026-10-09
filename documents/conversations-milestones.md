@@ -882,10 +882,11 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
   system prompt's tasks paragraph, with "cannot change tasks" gone from it (see The agent).
 - `task:` links: the design system's `Markdown` lets `task:` through beside `doc:`, for `renderLink`
   to draw, and the thread resolves them against the organization's live board, `GetTasks`, read only
-  once a reply holds one: the task's current name with a task icon, opening the task in its dialog
-  over the board, or, for an id the board does not hold, since `GetTasks` leaves deleted tasks out,
-  the name the agent wrote, struck through, whether the task was deleted, pruned or never there. No
-  query is added. `CLAUDE.md`'s line on `Markdown` says so.
+  once a reply holds one or the thread draws a `delete_task` row, which reads it too: the task's
+  current name with a task icon, opening the task in its dialog over the board, or, for an id the
+  board does not hold, since `GetTasks` leaves deleted tasks out, the name the agent wrote, struck
+  through, whether the task was deleted, pruned or never there. No query is added. `CLAUDE.md`'s
+  line on `Markdown` says so.
 - A `delete_task` row offers Restore, through `RestoreTask`, while the board does not hold the task
   and a day has not passed since the call.
 - The tools list then holds sixteen module tools: the pull request records what the converted list
@@ -896,8 +897,10 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
   again and one task made; consecutive `list_tasks`, `read_task` and `search_documents` calls
   running four at a time, and writes alone, in order; `Markdown` keeping a `task:` link and still
   dropping a `javascript:` one; a `task:` link whose id the board does not hold, a deleted task's
-  and an unknown one alike, drawn struck through with the name the agent wrote, and drawn again
-  with the task's current name once it is restored.
+  and an unknown one alike, drawn struck through with the name the agent wrote, and drawn again with
+  the task's current name once it is restored; a `delete_task` row in a reply that links no task
+  reading the board itself, offering Restore while the task is off it and hiding it once the task is
+  back.
 - Verify: with the board open in another tab, talk a launch through and ask the agent to turn the
   plan into tasks, linked in order and assigned, and watch the cards arrive without a reload; ask it
   to mark one done and hear which can start; open a task from a link in its reply; ask it to delete

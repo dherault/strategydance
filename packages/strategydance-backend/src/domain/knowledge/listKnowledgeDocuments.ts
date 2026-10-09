@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import type { KnowledgeRefusal, ModuleCaller } from '~types'
 
-import { KNOWLEDGE_LIST_PAGE_SIZE } from '~constants'
+import { KNOWLEDGE_LIST_PAGE_SIZE, UUID_PATTERN } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -14,9 +14,10 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 // An instant past every document, which the first page reads before
 const END_OF_TIME = '9999-12-31T23:59:59.999999Z'
 
+// What a cursor holds, checked as Data Connect takes it: an instant, and a document's id
 const cursorSchema = z.object({
-  updatedAt: z.string().min(1),
-  id: z.string().min(1),
+  updatedAt: z.iso.datetime({ offset: true }),
+  id: z.string().regex(UUID_PATTERN),
 })
 
 export type KnowledgeListedDocument = {

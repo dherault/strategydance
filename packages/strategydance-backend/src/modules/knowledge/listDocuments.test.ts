@@ -97,11 +97,19 @@ describe('list_documents', () => {
     expect(listed.documents.map(document => document.id)).toEqual([legal.id])
   })
 
-  it('refuses a cursor it never gave', async () => {
+  it('refuses a cursor it never gave, a forged one included, before anything is read', async () => {
     const kit = await connect()
 
-    expect(await kit.refusal('list_documents', { cursor: 'made-up' })).toBe(
-      'That cursor is not one this tool gave. Start again without it.',
-    )
+    const invalid = 'That cursor is not one this tool gave. Start again without it.'
+    const forged = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url')
+
+    expect(await kit.refusal('list_documents', { cursor: 'made-up' })).toBe(invalid)
+    expect(await kit.refusal('list_documents', { cursor: forged({ updatedAt: 'x', id: 'y' }) })).toBe(invalid)
+    expect(
+      await kit.refusal('list_documents', {
+        cursor: forged({ updatedAt: '2026-10-01T12:00:00.123456Z', id: 'not-an-id' }),
+      }),
+    ).toBe(invalid)
+    expect(fake.calls).not.toContain('ListDocumentsForAgent')
   })
 })

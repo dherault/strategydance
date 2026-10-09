@@ -167,3 +167,21 @@ export type RetryConversationRunData = {
   runId: string
   removedRunIds: string[]
 }
+
+/*
+  How much of the member's conversations a search covered:
+
+  - `ALL`: every conversation whose title or one message holds every word
+  - `BEST_MATCHES`: the most relevant matches, once the messages read ran out before the
+    conversations did, when a narrower search finds the rest
+  - `RECENT`: a search by substring, for Chinese or Japanese, which reads every title but only the
+    messages of the most recently active conversations
+*/
+export type ConversationSearchCoverage = 'ALL' | 'BEST_MATCHES' | 'RECENT'
+
+// What searching conversations answers with: the matching conversations' ids, in no particular
+// order, since the page already holds the conversations and keeps its own, and how far it looked
+export type SearchConversationsData = {
+  conversationIds: string[]
+  coverage: ConversationSearchCoverage
+}

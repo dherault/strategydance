@@ -157,6 +157,9 @@ describe('idempotency keys', () => {
     expect(await kit.refusal('update_document', { id: document.id, append: 'x' }, '')).toContain(
       'is a string of 1 to 200 characters',
     )
+    expect(await kit.refusal('update_document', { id: document.id, append: 'x' }, 'nul\u0000')).toContain(
+      'without U+0000',
+    )
     expect(fake.calls).toEqual([])
   })
 })

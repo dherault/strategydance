@@ -34,7 +34,7 @@ function readKnowledgeWriteCall(
     return {
       outcome: 'refused',
       result: toToolRefusal(
-        `The idempotency key in _meta["${MODULE_IDEMPOTENCY_KEY_META}"] is a string of 1 to ${MAX_MODULE_IDEMPOTENCY_KEY_LENGTH} characters.`,
+        `The idempotency key in _meta["${MODULE_IDEMPOTENCY_KEY_META}"] is a string of 1 to ${MAX_MODULE_IDEMPOTENCY_KEY_LENGTH} characters, without U+0000.`,
       ),
     }
   }

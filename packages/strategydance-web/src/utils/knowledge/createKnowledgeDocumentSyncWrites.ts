@@ -1,5 +1,7 @@
 import { QueryFetchPolicy } from 'firebase/data-connect'
-import { compactDocument, getDocument, pushDocumentUpdate, seedDocumentState } from 'strategydance-database/web'
+import { compactDocumentWithText, getDocument, pushDocumentUpdate, seedDocumentState } from 'strategydance-database/web'
+import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
+import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 
 import type { KnowledgeDocumentSyncWrites } from '~utils/knowledge/createKnowledgeDocumentSync'
 
@@ -16,8 +18,8 @@ const GONE_REFUSAL = 'No document by that id in the organization'
 // when it is sent again after its answer was lost
 const DUPLICATE_REFUSAL = 'violates SQL unique constraint: document_update_pkey'
 
-// Part of the message `CompactDocument`'s check gives when the snapshot is at another revision, or
-// the document is gone
+// Part of the message `CompactDocumentWithText`'s check gives when the snapshot is at another
+// revision, or the document is gone
 const COMPACTION_REFUSAL = 'compacted or deleted elsewhere since it was read'
 
 function isRefusal(error: unknown, message: string) {
@@ -68,9 +70,12 @@ function createKnowledgeDocumentSyncWrites(organizationId: string, documentId: s
         throw error
       }
     },
+    // With the plain text of the content, which agents search
     compact: async (state, content, revision, updateIds) => {
       try {
-        await compactDocument(dataConnect, { ...key, state, content, revision, updateIds })
+        const contentText = getRichTextText(parseRichText(content))
+
+        await compactDocumentWithText(dataConnect, { ...key, state, content, contentText, revision, updateIds })
 
         return true
       } catch (error) {

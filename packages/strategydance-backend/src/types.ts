@@ -93,3 +93,35 @@ export type ClaudeClient = {
   ): Promise<BetaMessage>
   countTokens(body: MessageCountTokensParams): Promise<number>
 }
+
+/* ---
+  KNOWLEDGE
+--- */
+
+// An edit pushed to a document's text since its snapshot, as its `DocumentUpdate` row holds it: a Yjs update in base64
+export type KnowledgeDocumentUpdate = {
+  id: string
+  payload: string
+}
+
+// A document's shared text once it is seeded: its snapshot, in base64, and the updates pushed since
+export type SeededKnowledgeDocumentText = {
+  state: string
+  updates: KnowledgeDocumentUpdate[]
+}
+
+/*
+  A document's shared text as its row holds it: the snapshot, null until somebody seeds it, the
+  updates pushed since, and the copy of the text the last compaction wrote, which a document with
+  no snapshot is seeded from
+*/
+export type StoredKnowledgeDocumentText = Omit<SeededKnowledgeDocumentText, 'state'> & {
+  state: string | null
+  content: string
+}
+
+// A top-level block of a document's shared text, as an agent reads it: the id an edit names it by, and its Markdown
+export type KnowledgeDocumentBlock = {
+  id: string
+  markdown: string
+}

@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_TASK_NAME_LENGTH } from 'strategydance-core'
+import { MAX_TASK_DEPENDENCIES, MAX_TASK_NAME_LENGTH } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { DialogDescription, DialogTitle } from 'strategydance-design-system/components/ui/Dialog'
@@ -167,6 +167,7 @@ function NewTaskDialog({ status, onClose }: Props) {
             linkedTasks={draft.dependencyIds.flatMap(taskId => tasksById.get(taskId) ?? [])}
             options={dependencyOptions}
             membersById={membersById}
+            isOptionDisabled={() => draft.dependencyIds.length >= MAX_TASK_DEPENDENCIES}
             onChange={dependencyIds => update({ dependencyIds })}
           />
           <TaskDependencyField
@@ -175,6 +176,7 @@ function NewTaskDialog({ status, onClose }: Props) {
             linkedTasks={draft.blockedIds.flatMap(taskId => tasksById.get(taskId) ?? [])}
             options={blockedOptions}
             membersById={membersById}
+            isOptionDisabled={other => other.dependencies.length >= MAX_TASK_DEPENDENCIES}
             onChange={blockedIds => update({ blockedIds })}
           />
         </>

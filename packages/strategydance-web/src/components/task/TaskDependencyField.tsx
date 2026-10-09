@@ -19,6 +19,8 @@ type Props = {
   // The tasks that may be linked without closing a loop, the linked ones among them
   options: readonly Task[]
   membersById: ReadonlyMap<string, OrganizationMember>
+  // Whether a task not linked yet is out of reach, as once a task waits on as many as it may
+  isOptionDisabled?: (task: Task) => boolean
   onChange: (taskIds: string[]) => void
   onOpen?: (taskId: string) => void
 }
@@ -29,7 +31,16 @@ type Props = {
   linked when it opened first, and keeps them there while the reader picks, so the rows do not jump
   under the pointer. Closing it goes back to the list of links
 */
-function TaskDependencyField({ title, editLabel, linkedTasks, options, membersById, onChange, onOpen }: Props) {
+function TaskDependencyField({
+  title,
+  editLabel,
+  linkedTasks,
+  options,
+  membersById,
+  isOptionDisabled,
+  onChange,
+  onOpen,
+}: Props) {
   const { formatMessage } = useIntl()
   // The links as the list opened on, or null while it is closed
   const [pinnedIds, setPinnedIds] = useState<string[] | null>(null)
@@ -67,6 +78,7 @@ function TaskDependencyField({ title, editLabel, linkedTasks, options, membersBy
           options={sortedOptions.map(task => ({
             value: task.id,
             keywords: [task.name],
+            disabled: !linkedIds.includes(task.id) && (isOptionDisabled?.(task) ?? false),
             label: (
               <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                 <span className="truncate">{task.name}</span>

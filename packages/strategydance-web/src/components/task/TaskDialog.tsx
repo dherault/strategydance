@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Trash2Icon } from 'lucide-react'
 import { useIntl } from 'react-intl'
+import { MAX_TASK_DEPENDENCIES } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { DialogDescription, DialogTitle } from 'strategydance-design-system/components/ui/Dialog'
 import { Select } from 'strategydance-design-system/components/ui/Select'
@@ -42,6 +43,9 @@ type Props = {
   A task opened from the board, at an address of its own: everything about it, each field saved on
   its own as it changes, as any member of its organization may. A teammate's change shows here as
   it lands. A linked task opens in its place, and closing goes back to the board.
+
+  A task waits on at most 50 others, so its pickers offer no more once it does, nor a task to block
+  that waits on as many already.
 
   Deleting goes back to the board first, then offers to take the task back, links and all
 */
@@ -124,6 +128,7 @@ function TaskDialog({ taskId }: Props) {
             linkedTasks={dependencies}
             options={dependencyOptions}
             membersById={membersById}
+            isOptionDisabled={() => dependencies.length >= MAX_TASK_DEPENDENCIES}
             onChange={ids => report(changes.setTaskDependencies(taskId, ids))}
             onOpen={open}
           />
@@ -133,6 +138,7 @@ function TaskDialog({ taskId }: Props) {
             linkedTasks={dependents}
             options={blockedOptions}
             membersById={membersById}
+            isOptionDisabled={other => other.dependencies.length >= MAX_TASK_DEPENDENCIES}
             onChange={ids => report(changes.setTaskBlocks(taskId, ids))}
             onOpen={open}
           />

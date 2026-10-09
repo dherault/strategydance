@@ -1425,39 +1425,51 @@ Documents, top priorities and log entries are stored as BlockNote blocks (paragr
 3, quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and
 mail links), and documents also as code, tables, pictures, YouTube, Vimeo and Loom videos and link
 preview cards; the agent reads and writes Markdown. The stored model lives in the design system's
-`lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`), beside
-the conversions between blocks and a document's shared text (`createRichTextYUpdate`,
-`readRichTextYDoc`), which go through a headless BlockNote editor and so need `@blocknote/core`
-and `yjs`. strategydance-core has no runtime dependency and keeps none, so the model does not move
-there: the backend imports those `lib/` modules from the design system instead, which import
-neither React nor the DOM, and whose tests already run them under Bun. M13 adds a pure
-`richTextToMarkdown` and `markdownToRichText` there for exactly that subset: anything else becomes
-paragraphs. Markdown has no underline, so the pair writes and reads it as `<u>…</u>`, the one tag
-`markdownToRichText` understands; any other tag stays literal text, nothing is ever rendered as
-HTML, and the system prompt says underline belongs in documents, never in replies. A document then
-keeps all four styles through an agent's edit. The document blocks map onto Markdown too: code to a
-fenced block with its language, a table to a GFM table with its header row, and a picture, a video
-and a link preview to a link, read with its caption or title. No agent writes any of the last
-three but the link preview's link and words: `updateRichTextYDoc` drops pictures, videos and a
-card's picture from every block it writes (`normalizeRichText`'s `media: false`), since a model a
-page told to add a picture could make every reader's browser send the document to an address of
-the page's choosing. A `replaceBlocks` over a range holding one of them has to keep it, by leaving
-it out of the range.
+`lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`), beside the
+conversions between blocks and a document's shared text (`createRichTextYUpdate`,
+`readRichTextYDoc`), which go through a headless BlockNote editor and so need `@blocknote/core` and
+`yjs`. strategydance-core has no runtime dependency and keeps none, so the model does not move
+there: the backend imports those `lib/` modules from the design system instead, which import neither
+React nor the DOM, and whose tests already run them under Bun. M13 adds a pure `richTextToMarkdown`
+and `markdownToRichText` there for exactly that subset: anything else becomes paragraphs, a heading
+past the third level reads as the third, and a rule is nothing. Markdown has no underline, so the
+pair writes and reads it as `<u>…</u>`, the one tag `markdownToRichText` understands; any other tag
+stays literal text, nothing is ever rendered as HTML, and the system prompt says underline belongs
+in documents, never in replies. A single newline breaks the line, as the thread's `Markdown` draws a
+reply, by David's choice on 2026-10-09, so an agent writes a document as it writes a reply.
+`markdownToRichText` parses with markdown-it, never micromark, which `react-markdown` runs on: M13
+found micromark taking time growing with the square of its input or worse on shapes an agent could
+be told to write, 251 seconds for 200000 characters of closing brackets and 33 for list markers on
+every line, where markdown-it reads every such shape at that length in well under a second, as its
+tests hold it to. `richTextToMarkdown` writes through `mdast-util-to-markdown`, which escapes text
+that would read as Markdown, and puts an empty comment, `<!---->`, between two styles whose
+asterisks would touch, as bold then italic inside a word, which CommonMark would read as neither;
+`markdownToRichText` reads that comment as nothing. A document then keeps all four styles through an
+agent's edit. The document blocks map onto Markdown too: code to a fenced block with its language, a
+table to a GFM table with its header row, written under an empty header row when it has none, which
+reads back as none, by David's choice on 2026-10-09, and a picture, a video and a link preview to a
+link, read with its caption or title. A picture written in Markdown reads as a link to it, so
+nothing an agent writes loads from anywhere. No agent writes any of the last three but the link
+preview's link and words: `updateRichTextYDoc` drops pictures, videos and a card's picture from
+every block it writes (`normalizeRichText`'s `media: false`), since a model a page told to add a
+picture could make every reader's browser send the document to an address of the page's choosing. A
+`replaceBlocks` over a range holding one of them has to keep it, by leaving it out of the range.
 
 **A document's text is shared**, so the Knowledge module reads and writes it as an editor does,
 for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The database):
 
 - **Reading** merges the snapshot, `state`, with the pending `DocumentUpdate` rows into a Yjs
   document and reads its blocks with BlockNote's `yDocToBlocks`, ids and all, then each through
-  `normalizeRichText` for its Markdown. Not through `readRichTextYDoc`, which normalizes the whole
-  document and drops the ids that the tools' cursors and ranges name. `content` is only the last
-  compaction's copy, and lags whenever somebody typed since. A document stored before the editor
-  was shared has no `state` and so no ids: the first read seeds it, storing its snapshot under
-  `SeedDocumentState`'s condition before it answers, and reads the snapshot that won when a tab
-  seeded it first, so the ids it hands out are the ones every later read sees. The read is first
-  tried on a copy, as `updateRichTextYDoc` does: y-prosemirror, which `yDocToBlocks` reads
-  through, deletes what it cannot build as it reads, a node or a style the schema lacks say, and a
-  fold would store the loss.
+  `normalizeRichText` for its Markdown, through the design system's `readRichTextYDocBlocks`, which
+  M13 added beside `updateRichTextYDoc` and which shares its check on a copy. Not through
+  `readRichTextYDoc`, which normalizes the whole document and drops the ids that the tools' cursors
+  and ranges name. `content` is only the last compaction's copy, and lags whenever somebody typed
+  since. A document stored before the editor was shared has no `state` and so no ids: the first read
+  seeds it, storing its snapshot under `SeedDocumentState`'s condition before it answers, and reads
+  the snapshot that won when a tab seeded it first, so the ids it hands out are the ones every later
+  read sees. The read is first tried on a copy, as `updateRichTextYDoc` does: y-prosemirror, which
+  `yDocToBlocks` reads through, deletes what it cannot build as it reads, a node or a style the
+  schema lacks say, and a fold would store the loss.
 - **Writing** applies the edit to that Yjs document as a difference, never by building a new one:
   a document built from the edited blocks shares no history with the stored one, so merging it
   would add the text a second time. M1 built it as `updateRichTextYDoc`, in the design system's
@@ -1642,6 +1654,13 @@ the lifetime is chosen from what members' pauses turn out to be.
   y-prosemirror, which is pinned at 1.3.7 for it: a newer version comes in with those tests run
   against it. BlockNote already ships a binding for y-prosemirror's second major version, which has
   no `updateYFragment`, so moving to it means writing the function again.
+- **micromark on untrusted Markdown.** micromark, under `react-markdown`, takes minutes on some
+  shapes of a long text, closing brackets or list markers by the thousand. The Knowledge module
+  reads Markdown with markdown-it instead (see Rich text and Markdown), but the thread's `Markdown`
+  draws every reply with micromark in the reader's browser, and the backend's
+  `splitConversationText` parses a reply past 20000 characters with it on the worker. A reply is
+  Claude's, bounded by its output, so neither is reachable without injected text making the model
+  write such a shape; moving both to markdown-it, or bounding what they parse, closes it.
 - **Processing location**: the API runs inference in the workspace's default region unless a
   request names one (`inference_geo`). The legal review before M28 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until

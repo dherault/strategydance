@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
@@ -23,7 +23,8 @@
     "esModuleInterop": true,
     "types": ["bun"],
 
-    /* The backend's tsconfig says the same, since its `tsc` follows the import into these files */
+    /* The backend's tsconfig says the same, since its `tsc` follows the import into these files,
+       DOM in `lib` included */
     "jsx": "react-jsx"
   },
   "include": ["src"]

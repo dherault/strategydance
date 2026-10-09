@@ -2,6 +2,7 @@ import type { PartialBlock } from '@blocknote/core'
 import { _blocksToProsemirrorNode } from '@blocknote/core/yjs'
 import { getHeadlessRichTextEditor } from 'strategydance-design-system/lib/getHeadlessRichTextEditor'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
+import { readRichTextYDocCopy } from 'strategydance-design-system/lib/readRichTextYDocCopy'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_YJS_FRAGMENT,
@@ -10,11 +11,9 @@ import {
   getRichTextBlockTypes,
 } from 'strategydance-design-system/lib/richText'
 import { initProseMirrorDoc, updateYFragment } from 'y-prosemirror'
-import * as Y from 'yjs'
+import type * as Y from 'yjs'
 
 type ProseMirrorNode = ReturnType<typeof initProseMirrorDoc>['doc']
-
-type ProseMirrorSchema = ProseMirrorNode['type']['schema']
 
 type HeadlessRichTextEditor = ReturnType<typeof getHeadlessRichTextEditor>
 
@@ -53,9 +52,6 @@ type Options = {
   origin?: unknown
 }
 
-// How y-prosemirror names the attribute of a mark that may overlap itself, with a hash after it
-const HASHED_MARK_NAME = /(.*)(--[a-zA-Z0-9+/=]{8})$/
-
 // The next document, and the top-level blocks to delete from the shared text before writing it
 type Plan = { next: ProseMirrorNode; removed?: { index: number; length: number } }
 
@@ -91,11 +87,11 @@ function updateRichTextYDoc(
   if (!fragment.length) return { outcome: 'notSeeded' }
 
   const editor = getHeadlessRichTextEditor(blocks)
-  const copy = readCopy(doc, editor.pmSchema)
+  const copy = readRichTextYDocCopy(doc, editor.pmSchema)
 
   if (!copy) return { outcome: 'unknownContent' }
 
-  const verdict = planChecked(copy, edit, editor, blocks)
+  const verdict = planChecked(copy.root, edit, editor, blocks)
 
   if ('outcome' in verdict) return verdict
 
@@ -304,63 +300,6 @@ function readChildren(node: Pick<ProseMirrorNode, 'forEach'>) {
   node.forEach(child => children.push(child))
 
   return children
-}
-
-/*
-  The shared text as y-prosemirror reads it, read from a copy, or null when that read changed the
-  copy, built what the schema refuses, or left out what the schema does not declare. Its read
-  deletes an element or a text it cannot build, such as a node or a style the schema lacks, a
-  newer editor's say, builds nodes without checking how they are arranged, and drops an attribute
-  of a node or a style that the schema does not declare, which `updateYFragment` would then remove
-  from whatever it writes. The one other change a read makes, joining a text into the one before
-  it when the reading document wrote both, cannot happen on a copy, whose client is new
-*/
-function readCopy(doc: Y.Doc, schema: ProseMirrorSchema) {
-  const copy = new Y.Doc()
-  let isChanged = false
-
-  Y.applyUpdate(copy, Y.encodeStateAsUpdate(doc))
-  copy.on('update', () => {
-    isChanged = true
-  })
-
-  // A type y-prosemirror does not expect, such as a hook, throws rather than being deleted
-  let root: ProseMirrorNode
-
-  try {
-    root = initProseMirrorDoc(copy.getXmlFragment(RICH_TEXT_YJS_FRAGMENT), schema).doc
-    root.check()
-  } catch {
-    return null
-  }
-
-  if (isChanged || hasUndeclaredAttributes(copy.getXmlFragment(RICH_TEXT_YJS_FRAGMENT), schema)) return null
-
-  return root
-}
-
-// Whether an element or a style of a text read without error carries an attribute its schema does not declare
-function hasUndeclaredAttributes(type: Y.XmlFragment | Y.XmlElement, schema: ProseMirrorSchema): boolean {
-  return type.toArray().some(child => {
-    if (child instanceof Y.XmlElement) {
-      const declared = schema.nodes[child.nodeName].spec.attrs ?? {}
-
-      return (
-        Object.keys(child.getAttributes()).some(name => !Object.hasOwn(declared, name))
-        || hasUndeclaredAttributes(child, schema)
-      )
-    }
-
-    if (!(child instanceof Y.XmlText)) return true
-
-    return child.toDelta().some((delta: { attributes?: Record<string, unknown> }) =>
-      Object.entries(delta.attributes ?? {}).some(([name, value]) => {
-        const declared = schema.marks[HASHED_MARK_NAME.exec(name)?.[1] ?? name].spec.attrs ?? {}
-
-        return !!value && typeof value === 'object' && Object.keys(value).some(key => !Object.hasOwn(declared, key))
-      }),
-    )
-  })
 }
 
 export { updateRichTextYDoc }

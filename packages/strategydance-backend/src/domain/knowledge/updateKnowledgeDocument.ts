@@ -44,7 +44,10 @@ export type UpdatedKnowledgeDocument = {
   A whole text replaced rewrites everything the agent read, so it has to name the version its read
   gave, and is refused, before anything is written, when the text is no longer that version, a push
   landing between the read and the fold included. Every other edit finds its place afresh, so it
-  goes through while somebody types elsewhere in the document
+  goes through while somebody types elsewhere in the document.
+
+  A document keeps a title or some text, as it starts with one: a change that would leave it with
+  neither is refused, as the page deletes one somebody empties rather than keep it
 */
 async function updateKnowledgeDocument(
   caller: ModuleCaller,
@@ -65,6 +68,16 @@ async function updateKnowledgeDocument(
   }
 
   if (!edit) {
+    // A document keeps a title or some text, as one starts with: a blank title is refused on one
+    // whose text is empty, nothing pending that could fill it
+    if (title !== undefined && !/\S/.test(title)) {
+      const { data } = await getDocumentForAgent(dataConnect, reference)
+      const [row] = data.documents
+
+      if (!row) return (await explainKnowledgeDocumentRefusal(caller, id, { isWrite: true })) ?? { outcome: 'notFound' }
+      if (row.content === '' && row.documentUpdates_on_document.length === 0) return { outcome: 'empty' }
+    }
+
     const result = { id, title }
 
     try {
@@ -116,6 +129,9 @@ async function updateKnowledgeDocument(
     const folded = foldKnowledgeDocumentEdit({ state: row.state ?? null, updates, content: row.content }, edit)
 
     if (folded.outcome !== 'folded') return toKnowledgeFoldRefusal(folded)
+
+    // An edit that empties the text of a document without a title would leave nothing in it
+    if (folded.content === '' && !/\S/.test(title ?? row.title)) return { outcome: 'empty' }
 
     const read = readKnowledgeDocumentText({ state: folded.state, updates: [] })
 

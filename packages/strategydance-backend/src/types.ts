@@ -192,7 +192,7 @@ export type KnowledgeRefusal =
   | { outcome: 'versionRequired' }
   /** The organization keeps as many documents as it may */
   | { outcome: 'full' }
-  /** A document starts with a title or some text */
+  /** A document keeps a title or some text, from its start */
   | { outcome: 'empty' }
   /** The edit would take the document past what it may hold */
   | { outcome: 'contentTooLong' }

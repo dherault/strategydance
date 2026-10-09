@@ -31,7 +31,7 @@ function toSentence(refusal: KnowledgeRefusal) {
     case 'full':
       return `The organization's knowledge holds ${MAX_DOCUMENTS} documents, the most it keeps. Tell the member, who can delete one first.`
     case 'empty':
-      return 'A document starts with a title or some text.'
+      return 'A document keeps a title or some text: give it one.'
     case 'contentTooLong':
       return `That would take the document past ${MAX_DOCUMENT_CONTENT_LENGTH} characters, the most it holds. Shorten it, or put the rest in another document.`
     case 'stateTooLong':

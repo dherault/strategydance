@@ -85,7 +85,7 @@ describe('create_document', () => {
     const kit = await connect()
 
     expect(await kit.refusal('create_document', { title: '  ', aspects: [], content: '' })).toBe(
-      'A document starts with a title or some text.',
+      'A document keeps a title or some text: give it one.',
     )
     expect(await kit.refusal('create_document', { title: 'Long', aspects: [], content: 'x'.repeat(200000) })).toContain(
       'past 200000 characters',

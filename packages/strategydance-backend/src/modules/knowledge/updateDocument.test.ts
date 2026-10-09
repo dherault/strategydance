@@ -243,6 +243,31 @@ describe('update_document', () => {
     expect(fake.calls.filter(name => name === 'FoldDocumentForAgent')).toHaveLength(1)
   })
 
+  it('refuses a change that would leave a document with neither a title nor any text', async () => {
+    const kit = await connect()
+    const textless = documents.store('', { title: 'Only a title' })
+    const titled = documents.store('Some text', { title: 'Plan' })
+    const empty = 'A document keeps a title or some text: give it one.'
+
+    expect(await kit.refusal('update_document', { id: textless.id, title: '  ' })).toBe(empty)
+    expect(fake.documents.get(textless.id)!.title).toBe('Only a title')
+
+    const { version } = await kit.answer<Reading>('read_document', { id: titled.id })
+
+    expect(await kit.refusal('update_document', { id: titled.id, title: '', version, content: '' })).toBe(empty)
+
+    // Either alone leaves the other
+    await kit.answer('update_document', { id: titled.id, title: '' })
+    await kit.answer('update_document', {
+      id: textless.id,
+      version: (await kit.answer<Reading>('read_document', { id: textless.id })).version,
+      content: '',
+    })
+
+    expect(fake.documents.get(titled.id)!.title).toBe('')
+    expect(fake.documents.get(textless.id)!.content).toBe('')
+  })
+
   it('refuses a document the team keeps AI from changing, or from reading', async () => {
     const kit = await connect()
     const closed = documents.store('Plan', { isAiWritable: false })

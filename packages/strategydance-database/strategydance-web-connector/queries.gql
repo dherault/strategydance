@@ -559,6 +559,171 @@ query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(
   }
 }
 
+# An organization's board, as the Tasks page lays it out: every task not deleted, in its column's
+# order, with the tasks it waits on, leaving out any deleted since. Without the descriptions, which
+# `GetTaskDescriptions` reads. Outsiders read nothing. Names and pictures are the team's, which the
+# page reads already, so a task carries only its people's ids.
+#
+# Read up to 1000 tasks, as many as an organization keeps (`MAX_TASKS` in strategydance-core), so
+# the board is never cut short, and up to 50 links a task (`MAX_TASK_DEPENDENCIES`).
+#
+# A live query: each `@refresh` names a mutation that changes what a card shows or where it sits.
+# Saving a description is not among them, so a description pushes only itself. Removing a member
+# empties theirs, and deleting the organization empties everybody's
+query GetTasks($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MoveTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AssignTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskDueDate"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskAspects"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AddTaskDependency"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveTaskDependency"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  tasks(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # Ties, as two members adding at once can make, keep the order the tasks were added in
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    name
+    status
+    position
+    assigneeId
+    isAssignedToAgent
+    dueDate
+    aspects
+    createdById
+    createdAt
+    dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
+      dependencyId
+    }
+  }
+}
+
+# The descriptions of an organization's tasks, for the board's search and the task's dialog. Apart
+# from `GetTasks`, so a drag on the board does not push every description to every member with the
+# page open: this one moves only when a description does, or a task comes or goes
+query GetTaskDescriptions($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskDescription"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  tasks(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1000
+  ) {
+    id
+    description
+  }
+}
+
 # An organization's knowledge, the latest changed first, as the Knowledge page and each aspect's
 # page list it: every document not deleted, without its content, which only the document's own page
 # reads. Outsiders read nothing.

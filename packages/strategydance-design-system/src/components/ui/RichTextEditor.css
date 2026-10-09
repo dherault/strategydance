@@ -49,6 +49,14 @@
 }
 
 /*
+  A nested block is set in by its indent alone, as `RichText` draws it. BlockNote also draws a line
+  down its left, the `::before` of each block in a nested group, which is left out
+*/
+.rich-text-editor.bn-root .bn-editor .bn-block-group .bn-block-group > .bn-block-outer::before {
+  content: none;
+}
+
+/*
   A document's body, under its page's title: its text starts where the title's does, and the side
   menu hangs in the page's margin to its left, as it does in a notebook. A size up from a post's,
   since a page of it is read at length

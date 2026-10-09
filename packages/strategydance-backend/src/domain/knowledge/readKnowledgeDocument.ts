@@ -28,8 +28,8 @@ export type KnowledgeDocumentReading = {
   aspects: CompanyAspect[]
   isAiWritable: boolean
   updatedAt: string
-  // The version of the whole text, on a first page, and on a later one while the text is still the
-  // one the first page read
+  // The version of the whole text, on the last page of a reading whose text did not change since
+  // its first page
   version?: string
   blocks: KnowledgeDocumentPageBlock[]
   // Where the next page starts, while more remains
@@ -46,10 +46,10 @@ type ReadKnowledgeDocumentResult = { outcome: 'read'; reading: KnowledgeDocument
   before anything of the document is loaded, when the team keeps it from agents.
 
   Its version is a hash of the whole text, which a whole text replaced has to name, so it says the
-  agent saw all of that text. A reading in pages starts from one version: a later page answers it
-  only while the text is still that version, and none once somebody changed it, so pages read across
-  an edit never add up to a version the agent did not see. A reading started again from the start
-  takes the version then
+  agent saw all of that text. A reading starts from one version, which its cursor carries, and only
+  its last page answers it, and only while the text is still that version: no page before the end,
+  and none once somebody changed the text, so an agent never holds a version of text it did not
+  read whole. A reading started again from the start takes the version then
 */
 async function readKnowledgeDocument(
   caller: ModuleCaller,
@@ -81,7 +81,7 @@ async function readKnowledgeDocument(
       aspects,
       isAiWritable,
       updatedAt,
-      ...(readingVersion === version && { version }),
+      ...(!page.next && readingVersion === version && { version }),
       blocks: page.blocks,
       ...(page.next && { next: encodeCursor({ ...page.next, version: readingVersion }) }),
       ...(page.restart && { restart: page.restart }),

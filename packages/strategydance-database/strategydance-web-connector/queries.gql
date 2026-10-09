@@ -724,6 +724,55 @@ query GetTaskDescriptions($organizationId: UUID!)
   }
 }
 
+# One task's description, for its dialog, kept live: a teammate's save shows to whoever has the task
+# open, and pushes this one description rather than the board's every one. Outsiders, and a task
+# deleted or of another organization, read nothing
+query GetTaskDescription($organizationId: UUID!, $id: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskDescription"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  tasks(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+    description
+  }
+}
+
 # An organization's knowledge, the latest changed first, as the Knowledge page and each aspect's
 # page list it: every document not deleted, without its content, which only the document's own page
 # reads. Outsiders read nothing.

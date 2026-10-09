@@ -30,6 +30,7 @@
   "task.deleted": "Se eliminó {name}",
   "task.dependsOn": "Depende de",
   "task.description": "Descripción",
+  "task.descriptionLoadError": "No se pudo cargar la descripción más reciente, por lo que aún no se puede editar.",
   "task.descriptionPlaceholder": "Qué debe hacerse y cuál es el resultado esperado.",
   "task.descriptionTooLong": "Esta descripción es demasiado larga para guardarse.",
   "task.dueToday": "Hoy",

@@ -30,6 +30,7 @@
   "task.deleted": "已删除 {name}",
   "task.dependsOn": "依赖于",
   "task.description": "描述",
+  "task.descriptionLoadError": "无法加载最新描述，因此暂时无法编辑。",
   "task.descriptionPlaceholder": "需要完成什么，以及完成的标准。",
   "task.descriptionTooLong": "描述过长，无法保存。",
   "task.dueToday": "今天",

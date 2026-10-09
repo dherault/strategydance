@@ -30,6 +30,7 @@
   "task.deleted": "{name}を削除しました",
   "task.dependsOn": "依存先",
   "task.description": "説明",
+  "task.descriptionLoadError": "最新の説明を読み込めなかったため、まだ編集できません。",
   "task.descriptionPlaceholder": "行うべき作業と、完了の基準。",
   "task.descriptionTooLong": "説明が長すぎるため保存できません。",
   "task.dueToday": "今日",

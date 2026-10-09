@@ -7,6 +7,7 @@ import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import type { RichTextEditorChange } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 import { RICH_TEXT_POST_BLOCKS } from 'strategydance-design-system/lib/richText'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import useClaimEscape from '~hooks/common/useClaimEscape'
 import useRichTextEditor from '~hooks/common/useRichTextEditor'
@@ -23,6 +24,12 @@ type Props = {
   // What is written and not saved yet, or null while nothing is being written, so a new task
   // created with its editor open keeps the text
   onDraftChange?: (value: string | null) => void
+  // False while `value` may be older than what is stored, which then only shows: an edit begun from
+  // it would write over a teammate's save. True unless told otherwise
+  isLatest?: boolean
+  // Offered while the latest could not be read, to read it again
+  onRetry?: () => void
+  isRetrying?: boolean
 }
 
 /*
@@ -34,9 +41,12 @@ type Props = {
 
   Save, or ⌘Enter, keeps what was written, and an emptied editor clears the description; Cancel
   leaves it as it was. Escape is the editor's while it is open, so it never closes the dialog and
-  what was written with it
+  what was written with it.
+
+  Until its latest value is read, the text shows and nothing opens the editor, and a read that
+  failed says so, with a way to try again
 */
-function TaskDescriptionField({ value, onSave, onDraftChange }: Props) {
+function TaskDescriptionField({ value, onSave, onDraftChange, isLatest = true, onRetry, isRetrying = false }: Props) {
   const { formatMessage, locale } = useIntl()
   const { RichTextEditor, hasFailed } = useRichTextEditor()
   // What the editor holds, or null while the description is only shown
@@ -49,6 +59,8 @@ function TaskDescriptionField({ value, onSave, onDraftChange }: Props) {
   const isApple = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
   function start() {
+    if (!isLatest) return
+
     setChange({ value, isEmpty: !hasRichText(value), textLength: 0 })
     onDraftChange?.(value)
   }
@@ -90,26 +102,43 @@ function TaskDescriptionField({ value, onSave, onDraftChange }: Props) {
             icon={<PencilIcon />}
             aria-label={formatMessage(taskMessages.editDescription)}
             title={formatMessage(taskMessages.editDescription)}
+            disabled={!isLatest}
             className="-my-1.5 text-neutral-500 not-disabled:hover:text-secondary"
             onClick={start}
           />
         ) : null}
       </div>
       {change === null ? (
-        <div
-          title={formatMessage(taskMessages.editDescription)}
-          className={TASK_EDITABLE_CLASS_NAME}
-          onClick={handleClick}
-        >
-          {hasRichText(value) ? (
-            <RichText
-              value={value}
-              className="text-sm"
-            />
-          ) : (
-            <p className="m-0 text-sm text-muted-foreground">{formatMessage(taskMessages.addDescription)}</p>
-          )}
-        </div>
+        <>
+          <div
+            title={isLatest ? formatMessage(taskMessages.editDescription) : undefined}
+            className={cn(TASK_EDITABLE_CLASS_NAME, !isLatest && 'cursor-default hover:bg-transparent')}
+            onClick={handleClick}
+          >
+            {hasRichText(value) ? (
+              <RichText
+                value={value}
+                className="text-sm"
+              />
+            ) : (
+              <p className="m-0 text-sm text-muted-foreground">{formatMessage(taskMessages.addDescription)}</p>
+            )}
+          </div>
+          {onRetry ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-danger">
+              {formatMessage(taskMessages.descriptionLoadError)}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isRetrying}
+                icon={isRetrying ? <Spinner tone="current" /> : undefined}
+                onClick={onRetry}
+              >
+                {formatMessage(taskMessages.retry)}
+              </Button>
+            </div>
+          ) : null}
+        </>
       ) : (
         <div className="flex flex-col gap-2">
           {RichTextEditor ? (

@@ -2991,6 +2991,10 @@
         "hash": "33996229b0667623",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "task.descriptionLoadError": {
+        "hash": "13b4cb81f1ffe552",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "task.descriptionPlaceholder": {
         "hash": "a66eae954d5a1551",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3132,7 +3136,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.retry": {
-        "hash": "44e0cee8623012bf",
+        "hash": "b1398b7cd92fd8d4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.save": {

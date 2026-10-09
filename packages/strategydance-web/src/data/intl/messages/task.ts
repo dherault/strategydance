@@ -35,7 +35,7 @@ const taskMessages = defineMessages({
   retry: {
     id: 'task.retry',
     defaultMessage: 'Try again',
-    description: 'Button that reads the board again after it failed to load.',
+    description: "Button that reads the board, or a task's description, again after it failed to load.",
   },
   emptyTitle: {
     id: 'task.emptyTitle',
@@ -333,6 +333,12 @@ const taskMessages = defineMessages({
     id: 'task.editorError',
     defaultMessage: 'The editor could not load. Reload the page to try again.',
     description: 'Shown in place of the description editor when its code failed to load.',
+  },
+  descriptionLoadError: {
+    id: 'task.descriptionLoadError',
+    defaultMessage: 'The latest description could not be loaded, so it cannot be edited yet.',
+    description:
+      "Shown under a task's description when its latest version failed to load. The text above may be out of date, and it cannot be edited until it loads.",
   },
   cancel: {
     id: 'task.cancel',

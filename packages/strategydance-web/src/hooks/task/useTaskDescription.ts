@@ -10,7 +10,9 @@ import { dataConnect } from '~data/firebase'
 /*
   One task's description, for its dialog, kept live: a teammate's save shows here as it lands, and
   pushes this description alone. Undefined until the first read lands, or when it failed, where
-  the dialog shows what the board read; an empty string for a task with no description, or gone
+  the dialog shows what the board read without letting it be edited; an empty string for a task
+  with no description, or gone. A first read that fails says so through `hasFailed`, and `refetch`
+  tries it again
 */
 function useTaskDescription(taskId: string) {
   const { organization } = useCurrentOrganization()
@@ -18,7 +20,7 @@ function useTaskDescription(taskId: string) {
   const organizationId = organization?.id ?? null
   const queryKey = ['GetTaskDescription', organizationId, taskId]
 
-  const { data } = useQuery({
+  const { data, isError, isFetching, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
       const { data: result } = await executeQuery(
@@ -37,7 +39,14 @@ function useTaskDescription(taskId: string) {
     createQueryRef: () => getTaskDescriptionRef(dataConnect, { organizationId: organizationId!, id: taskId }),
   })
 
-  return { data: data && (data.tasks[0]?.description ?? '') }
+  return {
+    data: data && (data.tasks[0]?.description ?? ''),
+    hasFailed: Boolean(organizationId) && isError && data === undefined,
+    isFetching,
+    refetch: async () => {
+      await refetch()
+    },
+  }
 }
 
 export default useTaskDescription

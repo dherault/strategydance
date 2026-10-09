@@ -546,9 +546,10 @@ halfway between its new neighbours. `TaskDependency` links a task to those it wa
 refuses a task waiting on itself or on one waiting on it, and the page offers no pick that would
 close a longer loop, nor an Undo that would bring one back. The board keeps `GetTasks` live,
 without the descriptions, and reads them once for its search through `GetTaskDescriptions`, again
-on focus; a task's dialog keeps its own live through `GetTaskDescription`. A query that held every
-description live would push them all to every open board at each save, and a drag would too.
-Removing a member takes them off the tasks they were doing.
+on focus; a task's dialog keeps its own live through `GetTaskDescription`, and opens it for
+writing only once that read lands, since the search's copy can be older than a teammate's save. A
+query that held every description live would push them all to every open board at each save, and a
+drag would too. Removing a member takes them off the tasks they were doing.
 
 ### Routing
 

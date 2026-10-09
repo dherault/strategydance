@@ -49,6 +49,10 @@ type Props = {
   history as it was before, or the board in its place when the address was reached any other way,
   so a page visited before it is never where closing lands.
 
+  Its description shows what the board read until its own live read lands, and only then opens
+  for writing: the board reads the descriptions once, so its copy can be older than a teammate's
+  save.
+
   A task holds at most 50 links, its links to deleted tasks counted, so its pickers offer no more
   once it does, nor a task to block that holds as many already.
 
@@ -64,7 +68,12 @@ function TaskDialog({ taskId }: Props) {
   const { data: viewer } = useAuthentication()
   const { data: tasks } = useTasks()
   const { data: descriptions } = useTaskDescriptions()
-  const { data: description } = useTaskDescription(taskId)
+  const {
+    data: description,
+    hasFailed: hasDescriptionFailed,
+    isFetching: isFetchingDescription,
+    refetch: refetchDescription,
+  } = useTaskDescription(taskId)
   const { data: team } = useOrganizationTeam()
   const today = useLocalDate()
   const changes = useTaskChanges()
@@ -132,6 +141,9 @@ function TaskDialog({ taskId }: Props) {
         <>
           <TaskDescriptionField
             value={description ?? descriptions.get(taskId) ?? ''}
+            isLatest={description !== undefined}
+            onRetry={hasDescriptionFailed ? refetchDescription : undefined}
+            isRetrying={isFetchingDescription}
             onSave={description => report(changes.updateTaskDescription(taskId, description))}
           />
           <TaskDependencyField

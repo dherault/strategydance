@@ -30,6 +30,7 @@
   "task.deleted": "{name} gelöscht",
   "task.dependsOn": "Abhängig von",
   "task.description": "Beschreibung",
+  "task.descriptionLoadError": "Die neueste Beschreibung konnte nicht geladen werden, daher kann sie noch nicht bearbeitet werden.",
   "task.descriptionPlaceholder": "Was getan werden muss und wie das Ergebnis aussehen soll.",
   "task.descriptionTooLong": "Diese Beschreibung ist zu lang zum Speichern.",
   "task.dueToday": "Heute",

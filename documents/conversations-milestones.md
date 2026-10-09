@@ -519,9 +519,9 @@ plan's one open question about Data Connect.
     matching every pattern, or, among the recent ones, a member or agent message that does
     (`exist`). It always takes eight patterns, the backend filling those a query leaves over with
     `%`, so none is optional.
-  - **The route answers ids and a `coverage`**: `ALL`, `BEST_MATCHES` once the read came back
-    with 5000 messages short of every conversation, or `RECENT` once the substring path left some conversations' messages
-    unread. The page filters its live list by the ids, so the results keep the list's order and
+  - **The route answers ids and a `coverage`**: `ALL`, `BEST_MATCHES` once a 5001st message,
+    read as a sentinel, says the 5000 left some out short of every conversation, or `RECENT` once
+    the substring path left some conversations' messages unread. The page filters its live list by the ids, so the results keep the list's order and
     stay live. The recent note shows only when a conversation was actually left out.
   - **A refused record is read again** (`GetConversationSearchQuota`), to tell the allowance used
     up, with `Retry-After` from the 120th newest search, from a membership gone.

@@ -473,8 +473,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   every word: titles in one query (`limit: 1000`), and the 5000 most relevant member and agent
   messages in another, whose distinct conversations join the titles'. Both filter on the caller,
   their membership and `deletedAt`. Results are the best matches, not a guaranteed full set: a few
-  conversations with thousands of matching messages can use up the 5000, so when they do the list
-  says it shows the best matches and invites a narrower search. The messages are read once rather
+  conversations with thousands of matching messages can use up the 5000, which one more message
+  read past them reveals, and only then does the list say it shows the best matches and invite a
+  narrower search. The messages are read once rather
   than in pages: a `_search` is ordered by relevance alone, since its `orderBy` cannot name it, so
   pages read by offset could skip a message at a tie across their boundary, and each would rank
   every match again anyway. The route answers the conversations' ids and how far it looked

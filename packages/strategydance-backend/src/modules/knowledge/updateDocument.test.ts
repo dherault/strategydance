@@ -227,6 +227,20 @@ describe('update_document', () => {
     expect(fake.calls).toEqual([])
   })
 
+  it('answers the title an edit alone leaves out, so a rename meanwhile is never answered stale', async () => {
+    const kit = await connect()
+    const document = documents.store('Plan', { title: 'Before' })
+
+    beforeFirstFold(() => {
+      fake.documents.get(document.id)!.title = 'Renamed meanwhile'
+    })
+
+    const updated = await kit.answer('update_document', { id: document.id, append: 'More' })
+
+    expect(updated).not.toHaveProperty('title')
+    expect(fake.documents.get(document.id)!.title).toBe('Renamed meanwhile')
+  })
+
   it('retitles alone, as a rename, and with an edit, in the fold that stores the edit', async () => {
     const kit = await connect()
     const document = documents.store('Plan', { title: 'Old' })

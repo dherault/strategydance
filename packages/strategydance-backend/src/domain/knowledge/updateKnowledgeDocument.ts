@@ -30,8 +30,8 @@ type UpdateKnowledgeDocumentInput = {
   edit?: KnowledgeDocumentEdit
 }
 
-// What an update answers: the document's title now, and the version of its text once a text edit
-// is stored, which a whole text replaced next can name
+// What an update answers: the title it set, and the version of its text once a text edit is stored,
+// which a whole text replaced next can name
 export type UpdatedKnowledgeDocument = {
   id: string
   title?: string
@@ -135,7 +135,9 @@ async function updateKnowledgeDocument(
 
     if (read.outcome !== 'read') return { outcome: 'invalidEdit' }
 
-    const result = { id, title: title ?? row.title, version: hashKnowledgeDocumentText(read.blocks) }
+    // The title only when the call set it: the one read could be renamed meanwhile without moving the
+    // revision, and the fold, which leaves it alone, would answer it stale
+    const result = { id, ...(title !== undefined && { title }), version: hashKnowledgeDocumentText(read.blocks) }
 
     try {
       await foldDocumentForAgent(dataConnect, {

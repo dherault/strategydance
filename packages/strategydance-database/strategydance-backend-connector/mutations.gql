@@ -142,8 +142,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 }
 
 # Deletes an organization, for one of its administrators. Its memberships and pending invitations
-# go with it, and so does everything its members keep in it on their Today pages, task lists,
-# checklists and log entries, and its knowledge: all of them reference it as required, which Data
+# go with it, and so does everything its members keep in it on their Today pages, checklists and
+# log entries, and its knowledge: all of them reference it as required, which Data
 # Connect cascades. Its files are the
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).

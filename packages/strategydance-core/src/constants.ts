@@ -233,17 +233,6 @@ export const MAX_TOP_PRIORITY_LENGTH = 100000
 export const MAX_TOP_PRIORITY_TEXT_LENGTH = 500
 
 /*
-  How many task lists one person keeps in an organization, how many tasks a list holds, and how
-  long a list's name and a task may be. Written out again in `CreateTaskList`'s, `RenameTaskList`'s,
-  `CreateTask`'s and `UpdateTask`'s checks and in `GetTaskLists`' and `GetTasks`' limits, which
-  cannot import them: change them together
-*/
-export const MAX_TASK_LISTS = 100
-export const MAX_TASKS_PER_LIST = 1000
-export const MAX_TASK_LIST_NAME_LENGTH = 120
-export const MAX_TASK_LENGTH = 120
-
-/*
   How many live columns one person's checklist holds in an organization, and how long a column's
   name may be, short enough to read slanted above it. Written out again in the checklist
   mutations' checks and in `GetChecklist`'s limit, which cannot import them: change them together

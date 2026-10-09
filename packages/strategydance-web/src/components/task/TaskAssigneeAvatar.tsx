@@ -16,8 +16,9 @@ type Props = {
   size?: 'sm' | 'md'
 }
 
-// Who is doing a task, as a face: a member's picture or initials, or the Strategy Dance mark on its
-// primary circle. Nothing for a task nobody is doing
+// Who is doing a task, as a face: a member's picture, drawn from its thumbnail when it has one, or
+// their initials, or the Strategy Dance mark on its primary circle. Nothing for a task nobody is
+// doing
 function TaskAssigneeAvatar({ member, isAgent, size = 'sm' }: Props) {
   const { formatMessage } = useIntl()
 
@@ -43,7 +44,7 @@ function TaskAssigneeAvatar({ member, isAgent, size = 'sm' }: Props) {
 
   return (
     <Avatar
-      src={member.user.imageUrl ?? undefined}
+      src={member.user.imageThumbnailUrl ?? member.user.imageUrl ?? undefined}
       name={name}
       size={size}
     />

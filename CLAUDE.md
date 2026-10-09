@@ -689,10 +689,10 @@ in `utils/`, one concern per file.
 - A logo arrives as a form, with the thumbnail the page drew of it (`createImageThumbnail`, fitted
   inside `THUMBNAIL_SIZE`), and is stored beside it as `logoThumbnailUrl`. A profile picture's
   thumbnail is the page's to write, beside the picture in Storage, as `imageThumbnailUrl`. The
-  organization switcher and the user menu draw the thumbnail and fall back to the picture, which is
-  all a picture from before thumbnails, or from Google, has. The other small faces, a team member's,
-  a Today identity's and a document's presences, still draw the picture, until their queries select
-  the thumbnail
+  organization switcher, the user menu and the task board's faces draw the thumbnail and fall back to
+  the picture, which is all a picture from before thumbnails, or from Google, has. The team's query
+  selects it for the board; the other small faces, a team member's on the team page, a Today
+  identity's and a document's presences, still draw the picture, until they draw it too
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back

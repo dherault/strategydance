@@ -256,6 +256,22 @@ export const MAX_CHECKLIST_HISTORY_DAYS = 3660
 export const MAX_LOG_ENTRY_LENGTH = 50000
 
 /* ---
+  TASKS
+--- */
+
+/*
+  How many live tasks an organization keeps on its board, how long a task's name may be, on one
+  line, how long its description's serialized blocks may run, and how many tasks one may wait on.
+  The board reads every description at once, for its search, so they are held to a short brief
+  rather than a document. Written out again in the task mutations' checks and in `GetTasks`' and
+  `GetTaskDescriptions`' limits, which cannot import them: change them together
+*/
+export const MAX_TASKS = 1000
+export const MAX_TASK_NAME_LENGTH = 120
+export const MAX_TASK_DESCRIPTION_LENGTH = 20000
+export const MAX_TASK_DEPENDENCIES = 50
+
+/* ---
   KNOWLEDGE
 --- */
 

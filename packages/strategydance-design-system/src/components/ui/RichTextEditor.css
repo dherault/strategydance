@@ -23,8 +23,8 @@
 
 /*
   The text as `RichText` sets it. The left padding is the side menu's gutter, where the "+" and the
-  drag handle of the block under the pointer appear: the menu's 52px, which BlockNote sets flush
-  against the text, and 6px between it and the frame.
+  drag handle of the block under the pointer appear: the menu's 58px, its buttons flush against the
+  frame and 6px between them and the text.
 
   On a touch screen the text is 16px instead, as every field's is there: iOS zooms the page into an
   editable element whose text is smaller when it takes focus. `RichText` keeps its 15px, since its
@@ -62,11 +62,11 @@
 /*
   Below `md` a page has no margin to hang the side menu in, and a touch screen shows it on a tap
   as a pointer does on a hover. So the text keeps a gutter of its own on the left, the menu's
-  52px: the "+" starts where the page's title does, and nothing is added on the right
+  58px: the "+" starts where the page's title does, and nothing is added on the right
 */
 @media (width < 48rem) {
   [data-appearance='document'] .rich-text-editor.bn-root .bn-editor {
-    padding-left: 52px;
+    padding-left: 58px;
   }
 }
 
@@ -851,8 +851,13 @@
 /*
   The side menu's "+" and drag handle, in the neutral scale rather than Tailwind's gray, and filled
   as a transparent button is under the pointer and while the block's menu is open. Each is 26px
-  wide around its 18px icon, which keeps the menu at the 52px the editor's gutter leaves it
+  wide around its 18px icon, and the menu keeps 6px clear on its right, which BlockNote sets flush
+  against the text: 58px, the editor's gutter, so the buttons meet its frame
 */
+.rich-text-editor.bn-root .bn-side-menu {
+  padding-right: 6px;
+}
+
 .rich-text-editor.bn-root .bn-side-menu .bn-button {
   width: 26px;
   border-radius: var(--radius-xs);

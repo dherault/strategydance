@@ -729,8 +729,9 @@ type ConversationTranscriptEntry @table @unique(fields: ["conversation", "positi
 # own count.
 #
 # Written by the search route, under a lock on the searcher's membership, and read only by the
-# backend. The daily sweep deletes the rows over a day old
-type ConversationSearch @table @index(fields: ["userId", "organizationId", "createdAt"]) {
+# backend. The daily sweep deletes the rows over a day old, whoever made them, which the index on
+# `createdAt` alone serves, since the count's index leads with the searcher
+type ConversationSearch @table @index(fields: ["userId", "organizationId", "createdAt"]) @index(fields: ["createdAt"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Implies a `userId: String!` column, cascade deleting
   user: User!

@@ -179,6 +179,7 @@ query GetOrganizationTeam($organizationId: UUID!)
       email
       displayName
       imageUrl
+      imageThumbnailUrl
     }
   }
   organizationInvitations(

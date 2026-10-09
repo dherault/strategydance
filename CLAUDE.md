@@ -229,8 +229,8 @@ them: `FormField` for react-hook-form, `TextDivider`.
 A field's text is 16px on a touch screen, whatever it is elsewhere. iOS zooms the page into a
 focused input, textarea or editable element whose text is smaller, and leaves it zoomed.
 `inputClassName` carries `pointer-coarse:text-base`, so a field built on it has it; one that is
-not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, and so does
-text a field opens over, as a task's does. Never put `maximum-scale=1` in the viewport instead:
+not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, as must a
+field that opens over text set smaller. Never put `maximum-scale=1` in the viewport instead:
 Android then refuses the pinch zoom people read by.
 
 Oswald, the display face, hangs its descenders 0.24em below its baseline, below the line box of
@@ -530,14 +530,23 @@ A conversation is kept twice, once for Claude and once for the page, and
   same two
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
-organization and day on which they changed their own Today data, their top priority, a task
-list or task, their checklist or their log. The day is the one the change was made on, never
-the day it was about, and `RecordActivity` holds it to the caller's today. The mutations that
-make those changes do not write the row themselves, since each would need a `$date` it has no
-other use for, a breaking connector change: the web app calls `recordActivity` once one goes
-through, from the `change` helpers of `useTaskLists`, `useTasks` and `useChecklist` and from the
-components that set a priority or write the log. A new way to change Today data calls it too, or
-the days it is used on go uncounted.
+organization and day on which they changed their own Today data, their top priority, their
+checklist or their log, or any task on the team's board. The day is the one the change was made
+on, never the day it was about, and `RecordActivity` holds it to the caller's today. The
+mutations that make those changes do not write the row themselves, since each would need a
+`$date` it has no other use for, a breaking connector change: the web app calls `recordActivity`
+once one goes through, from the `change` helpers of `useChecklist` and `useTaskChanges` and from
+the components that set a priority or write the log. A new way to change Today data or the board
+calls it too, or the days it is used on go uncounted.
+
+The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
+organization changes, as its knowledge. Each field is written by a mutation of its own, so two
+members editing one task keep each other's changes, and a move writes the one task that moved,
+halfway between its new neighbours. `TaskDependency` links a task to those it waits on: the server
+refuses a task waiting on itself or on one waiting on it, and the page offers no pick that would
+close a longer loop. The board reads two live queries, `GetTasks` and `GetTaskDescriptions`, so a
+drag does not push every description to every open board. Removing a member takes them off the
+tasks they were doing.
 
 ### Routing
 

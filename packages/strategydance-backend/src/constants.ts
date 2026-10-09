@@ -168,6 +168,51 @@ export const CONVERSATION_READ_CALLS_AT_ONCE = 4
 export const CONVERSATION_RUN_REQUEUE_WINDOW_MS = 20 * 60 * 1000
 
 /* ---
+  MODULES
+--- */
+
+/*
+  The revision of the Model Context Protocol the modules are served and reached at: stateless, with
+  no `initialize` handshake. Strategy Dance's agent pins it, since both ends are Strategy Dance's
+*/
+export const MODULE_PROTOCOL_VERSION = '2026-07-28'
+
+/*
+  Where a module's write takes its idempotency key, in the call's `_meta`, since MCP has none of its
+  own, and how long one may be. Written out again in each `…ForAgent` write's check: change them
+  together
+*/
+export const MODULE_IDEMPOTENCY_KEY_META = 'com.strategydance/idempotencyKey'
+export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
+
+// How long an external agent's call results are kept for its retries. Strategy Dance's agent's last
+// as long as their conversation, so a Resume however late still finds them
+export const MODULE_CALL_RESULT_LIFETIME_MS = 24 * 60 * 60 * 1000
+
+/*
+  The Knowledge module's bounds. A search answers at most 10 documents, of at most 20 candidates
+  whose plain text is loaded to cut an excerpt around a matched word, and says when more matched.
+  Before it reads the index it indexes up to 20 documents a page from before `contentText` left
+  unindexed. A list pages in fifties
+*/
+export const MAX_KNOWLEDGE_SEARCH_RESULTS = 10
+export const MAX_KNOWLEDGE_SEARCH_CANDIDATES = 20
+export const KNOWLEDGE_SEARCH_EXCERPT_LENGTH = 240
+export const MAX_KNOWLEDGE_DOCUMENTS_INDEXED = 20
+export const KNOWLEDGE_LIST_PAGE_SIZE = 50
+
+/*
+  How much of a document's text one read answers, in characters, each block counted with its id
+  and the JSON around it, so a page stays short of the 50000 characters a tool result is cut at
+  while a document holds 200000
+*/
+export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
+
+// How many times an agent's edit is applied to a document whose snapshot somebody folded more into
+// meanwhile, read again each time, before the module gives up
+export const KNOWLEDGE_FOLD_ATTEMPTS = 3
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`

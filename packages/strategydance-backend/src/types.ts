@@ -3,6 +3,7 @@ import type {
   BetaMessageStreamParams,
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
+import type { ModuleScope } from 'strategydance-core'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
@@ -136,3 +137,93 @@ export type KnowledgeDocumentEdit =
   | { type: 'replaceBlocks'; fromId: string; toId: string; markdown: string }
   /** A piece of text that occurs exactly once, replaced */
   | { type: 'replaceText'; find: string; replace: string }
+
+/* ---
+  MODULES
+--- */
+
+/*
+  Who calls a module, verified before its server is built, and never from a tool's arguments: the
+  member a run acts as, for Strategy Dance's agent, or a member's connection, for an agent of their
+  own. `membershipCreatedAt` is the membership's as it was verified, so a member removed, or removed
+  and invited back, stops every agent acting as them at its next call. `idempotencyScope` is what
+  their keys are kept under, `conversation:<id>` for the agent and `connection:<id>` for an external
+  one, so two clients choosing the same key never meet
+*/
+export type ModuleCaller = {
+  kind: 'agent' | 'external'
+  userId: string
+  organizationId: string
+  membershipCreatedAt: string
+  scopes: ModuleScope[]
+  idempotencyScope: string
+}
+
+// A write a module was called for under an idempotency key: the key, the tool, and a hash of its
+// arguments, which a call sent again under the key has to match
+export type ModuleCall = {
+  key: string
+  tool: string
+  argumentsHash: string
+}
+
+/* ---
+  KNOWLEDGE MODULE
+--- */
+
+/*
+  Why the Knowledge module refused a call, which its tool words for the model: each is something the
+  model can act on, by telling the member, reading the document again, or changing what it sent
+*/
+export type KnowledgeRefusal =
+  /** The caller is no longer the member the module was built for */
+  | { outcome: 'notMember' }
+  /** The caller's connection may read but not write */
+  | { outcome: 'readOnly' }
+  /** No document by that id in the organization, or one deleted */
+  | { outcome: 'notFound' }
+  /** The team keeps the document from agents */
+  | { outcome: 'keptFromAi' }
+  /** The team keeps agents from changing the document */
+  | { outcome: 'closedToAi' }
+  /** The text changed since the agent read it: a block it named is gone, or the version moved */
+  | { outcome: 'changed' }
+  /** A whole text replaced without the version a read gave */
+  | { outcome: 'versionRequired' }
+  /** The organization keeps as many documents as it may */
+  | { outcome: 'full' }
+  /** A document starts with a title or some text */
+  | { outcome: 'empty' }
+  /** The edit would take the document past what it may hold */
+  | { outcome: 'contentTooLong' }
+  | { outcome: 'stateTooLong' }
+  /** The text to replace does not occur, or occurs more than once */
+  | { outcome: 'textNotFound' }
+  | { outcome: 'textNotUnique'; count: number }
+  /** A block range whose first block comes after its last */
+  | { outcome: 'invalidRange' }
+  /** The document holds something the edit cannot be applied to as it stands */
+  | { outcome: 'unreadable' }
+  /** The edit would build a document the editor cannot hold */
+  | { outcome: 'invalidEdit' }
+  /** A restore of a document deleted over a day ago, or one not deleted */
+  | { outcome: 'goneForGood' }
+  | { outcome: 'notDeleted' }
+  /** An idempotency key sent before with another call */
+  | { outcome: 'keyConflict' }
+  /** A cursor no read gave */
+  | { outcome: 'invalidCursor' }
+
+// What a write of the Knowledge module answers: its result, or the one stored under its key when the
+// call was sent before, or why it was refused
+export type KnowledgeWriteResult<Result> =
+  | { outcome: 'written'; result: Result }
+  | { outcome: 'answered'; result: unknown }
+  | KnowledgeRefusal
+
+// What each of the Knowledge module's tools is registered with: who calls it, and the web address of
+// a document for an external caller, whose results carry them, undefined for Strategy Dance's agent
+export type KnowledgeToolContext = {
+  caller: ModuleCaller
+  toAddress: (documentId: string) => Promise<string | undefined>
+}

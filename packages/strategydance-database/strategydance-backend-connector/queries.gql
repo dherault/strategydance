@@ -691,3 +691,170 @@ query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $c
     usage
   }
 }
+
+# Why `RecordConversationSearch` refused a search: whether the caller is still a member, and their
+# searches in the organization in the last ten minutes, newest first, the 120th of which says when
+# the next one fits. Read only once a search has been refused. `$userId` is the uid the backend
+# verified
+query GetConversationSearchQuota($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+  }
+  conversationSearches(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      createdAt: { gt_time: { now: true, sub: { minutes: 10 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 120
+  ) {
+    createdAt
+  }
+}
+
+# The caller's conversations whose title holds every word of the query, through the title's
+# full-text index (see `Conversation.title`): `PLAIN` splits the query into words and requires
+# them all, in any order. All of them, as somebody keeps at most 1000 conversations in an
+# organization. Only their own, while they are a member, and none deleted. `$userId` is the uid the
+# backend verified
+query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query: String!) @auth(level: NO_ACCESS) {
+  conversations_search(
+    query: $query
+    queryFormat: PLAIN
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}
+
+# A page of the member's and the agent's messages, in the caller's conversations, whose text holds
+# every word of the query, through the text's full-text index (see `ConversationMessage.text`),
+# most relevant first. 500 at a time, and only their conversation's id, since the search answers
+# with conversations: the backend collects them page after page, and stops at ten pages, when a
+# few conversations with thousands of matches would otherwise keep it reading. Only the caller's
+# own conversations, while they are a member, and none deleted. `$userId` is the uid the backend
+# verified
+query SearchConversationMessages($organizationId: UUID!, $userId: String!, $query: String!, $offset: Int!)
+@auth(level: NO_ACCESS) {
+  conversationMessages_search(
+    query: $query
+    queryFormat: PLAIN
+    where: {
+      kind: { in: [MEMBER_TEXT, AGENT_TEXT] }
+      conversation: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+      }
+    }
+    limit: 500
+    offset: $offset
+  ) {
+    conversationId
+  }
+}
+
+# The caller's conversations, most recently active first, with how many messages each holds, from
+# which the backend picks those whose messages a search by substring reads. Only their own, while
+# they are a member, and none deleted. `$userId` is the uid the backend verified
+query GetConversationSearchCorpus($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  conversations(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    # `id` breaks the tie between two conversations active in the same instant
+    orderBy: [{ updatedAt: DESC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    messageCount
+  }
+}
+
+# A search by substring, for Chinese and Japanese, which put no space between words, so the
+# full-text indexes cannot find a word inside a sentence: the caller's conversations whose title
+# matches every pattern, or, among `$recentIds`, holding a member's or an agent's message whose text
+# matches every pattern. Each pattern is a LIKE pattern, `%word%` with the word's `%`, `_` and `\`
+# escaped, ignoring case. Always eight, one a word: the backend fills those a query leaves over with
+# `%`, which matches any text.
+#
+# No index serves such a match, so it reads a bounded corpus: the titles of at most 1000
+# conversations, and the messages of `$recentIds`, the most recently active conversations whose
+# messages add up to at most 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES` in strategydance-core). Only
+# the caller's own, while they are a member, and none deleted. `$userId` is the uid the backend
+# verified
+query SearchConversationsBySubstring(
+  $organizationId: UUID!
+  $userId: String!
+  $recentIds: [UUID!]!
+  $pattern0: String!
+  $pattern1: String!
+  $pattern2: String!
+  $pattern3: String!
+  $pattern4: String!
+  $pattern5: String!
+  $pattern6: String!
+  $pattern7: String!
+) @auth(level: NO_ACCESS) {
+  conversations(
+    # Data Connect refuses `_and` or `_or` beside plain fields, so each level is one or the other
+    where: {
+      _and: [
+        {
+          userId: { eq: $userId }
+          organizationId: { eq: $organizationId }
+          deletedAt: { isNull: true }
+          organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+        }
+        {
+          _or: [
+            {
+              _and: [
+                { title: { pattern: { like: $pattern0, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern1, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern2, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern3, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern4, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern5, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern6, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern7, ignoreCase: true } } }
+              ]
+            }
+            {
+              id: { in: $recentIds }
+              conversationMessages_on_conversation: {
+                exist: {
+                  _and: [
+                    { kind: { in: [MEMBER_TEXT, AGENT_TEXT] } }
+                    { text: { pattern: { like: $pattern0, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern1, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern2, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern3, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern4, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern5, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern6, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern7, ignoreCase: true } } }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}

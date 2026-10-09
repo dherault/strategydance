@@ -1,4 +1,5 @@
 import { type QueryKey, useQueryClient } from '@tanstack/react-query'
+import { executeQuery } from 'firebase/data-connect'
 import {
   type CompanyAspect,
   type GetTaskDescriptionData,
@@ -9,6 +10,7 @@ import {
   assignTask as assignTaskMutation,
   createTask as createTaskMutation,
   deleteTask as deleteTaskMutation,
+  getTasksRef,
   moveTask as moveTaskMutation,
   removeTaskDependency as removeTaskDependencyMutation,
   renameTask as renameTaskMutation,
@@ -28,6 +30,7 @@ import createId from '~utils/common/createId'
 import writeOptimistically from '~utils/common/writeOptimistically'
 import compareTasks from '~utils/task/compareTasks'
 import getTaskDependents from '~utils/task/getTaskDependents'
+import getTaskLoopingDependents from '~utils/task/getTaskLoopingDependents'
 import getTaskMovePosition from '~utils/task/getTaskMovePosition'
 import getTaskRestoreLoops from '~utils/task/getTaskRestoreLoops'
 
@@ -332,7 +335,11 @@ function useTaskChanges() {
 
   /*
     Puts a deleted task back where it was, with the links that the server kept for it, but for any
-    that would close a loop with a link made while it was gone: those are taken off once it is back
+    that would close a loop with a link made while it was gone: those are taken off once it is back.
+
+    The board reads past every deleted task's links, so a task deleted alongside this one and
+    brought back since can hold a link the snapshot never saw. Once this one is back, the board is
+    read again as the server has it, and any link still closing a loop through it is taken off too
   */
   async function restoreTask(snapshot: TaskSnapshot) {
     const { task, description, dependentIds } = snapshot
@@ -360,6 +367,12 @@ function useTaskChanges() {
       }),
       ...loopingIds.map(dependentId => unlinkTasks(dependentId, task.id)),
     ])
+
+    const { data } = await executeQuery(getTasksRef(dataConnect, { organizationId: organizationId! }))
+
+    await Promise.all(
+      getTaskLoopingDependents(task.id, data.tasks).map(dependentId => unlinkTasks(dependentId, task.id)),
+    )
   }
 
   /*

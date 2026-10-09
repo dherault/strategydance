@@ -52,6 +52,7 @@
   "task.memberYou": "{name} - 自分",
   "task.moreAspects": "+{count}",
   "task.moreChips": "他+{count}件",
+  "task.moved": "{name}を{status}に移動しました。{count}件中{position}番目",
   "task.namePlaceholder": "タスク名",
   "task.nameRequired": "名前を入力してください。",
   "task.newTask": "新しいタスク",

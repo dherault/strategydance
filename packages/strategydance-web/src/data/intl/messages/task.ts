@@ -410,6 +410,12 @@ const taskMessages = defineMessages({
     defaultMessage: 'Open',
     description: 'Button in the notification after a task was added, which opens the task.',
   },
+  moved: {
+    id: 'task.moved',
+    defaultMessage: '{name} moved to {status}, position {position} of {count}',
+    description:
+      'Announced to screen readers after a task card was moved from the keyboard. {status} is its column, such as "To do", and {position} its place among the {count} tasks there.',
+  },
   canStartNow: {
     id: 'task.canStartNow',
     defaultMessage: '{name} can start now',

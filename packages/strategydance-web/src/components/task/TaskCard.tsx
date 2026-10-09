@@ -34,7 +34,8 @@ type Props = {
 /*
   One task on the board, which opens it: its name, a lock while it waits on unfinished tasks, the
   aspects it is about, two at most or one and how many more, when it is due, red once late, and who
-  is doing it. A link, so it opens in a tab of its own too, and the whole card drags
+  is doing it. A link, so it opens in a tab of its own too, and the whole card drags, or moves with
+  Alt and the arrow keys from the keyboard
 */
 function TaskCard({ task, blockerCount, isLate, assignee, isDragged, dragProps }: Props) {
   const { formatMessage } = useIntl()
@@ -54,6 +55,7 @@ function TaskCard({ task, blockerCount, isLate, assignee, isDragged, dragProps }
         to="/$organizationSlug/tasks/$taskId"
         params={{ organizationSlug, taskId: task.id }}
         state={{ isFromTaskBoard: true }}
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
         resetScroll={false}
         draggable={false}
         className="flex flex-col gap-2.5 rounded-xs border border-border bg-white p-3 text-inherit no-underline transition-colors duration-150 ease-in-out hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"

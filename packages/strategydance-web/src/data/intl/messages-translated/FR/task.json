@@ -52,6 +52,7 @@
   "task.memberYou": "{name} - moi",
   "task.moreAspects": "+{count}",
   "task.moreChips": "+{count} autres",
+  "task.moved": "{name} déplacé vers {status}, position {position} sur {count}",
   "task.namePlaceholder": "Nom de la tâche",
   "task.nameRequired": "Entrez un nom.",
   "task.newTask": "Nouvelle tâche",

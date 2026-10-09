@@ -52,6 +52,7 @@
   "task.memberYou": "{name} - 我",
   "task.moreAspects": "+{count}",
   "task.moreChips": "+{count} 项",
+  "task.moved": "{name} 已移动至 {status}，第 {position} 项（共 {count} 项）",
   "task.namePlaceholder": "任务名称",
   "task.nameRequired": "请输入名称。",
   "task.newTask": "新建任务",

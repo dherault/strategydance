@@ -20,6 +20,7 @@ import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLocalDate from '~hooks/common/useLocalDate'
 import useMoveTask from '~hooks/task/useMoveTask'
 import useTaskBoardDrag from '~hooks/task/useTaskBoardDrag'
+import useTaskBoardKeyboard from '~hooks/task/useTaskBoardKeyboard'
 import useTaskBoardReads from '~hooks/task/useTaskBoardReads'
 import useTaskDescriptions from '~hooks/task/useTaskDescriptions'
 import useTasks from '~hooks/task/useTasks'
@@ -72,6 +73,8 @@ function TaskBoard() {
   // Kept by the compiled render until the descriptions move, so a keystroke parses none of them
   const descriptionTexts = getTaskDescriptionTexts(descriptions)
   const visibleTasks = filterTasks(tasks, { query, assignee, aspects }, { viewerId, descriptionTexts })
+  const columns = new Map(TASK_STATUSES.map(status => [status, visibleTasks.filter(task => task.status === status)]))
+  const { announcement, getCardKeyDown } = useTaskBoardKeyboard({ columns, onMove: move })
   const tasksById = new Map(tasks.map(task => [task.id, task]))
   const membersById = new Map(members.map(member => [member.user.id, member]))
 
@@ -132,7 +135,7 @@ function TaskBoard() {
         />
         <div className="grid grid-cols-[repeat(4,minmax(216px,1fr))] items-stretch gap-3 overflow-x-auto pb-1">
           {TASK_STATUSES.map(status => {
-            const column = visibleTasks.filter(task => task.status === status)
+            const column = columns.get(status) ?? []
 
             return (
               <TaskBoardColumn
@@ -148,11 +151,18 @@ function TaskBoard() {
                 draggedId={draggedId}
                 columnProps={getColumnProps(status)}
                 getCardProps={getCardProps}
+                getCardKeyDown={getCardKeyDown}
                 onAdd={() => setDraftStatus(status)}
               />
             )
           })}
         </div>
+        <p
+          aria-live="polite"
+          className="sr-only"
+        >
+          {announcement}
+        </p>
       </div>
     )
   }

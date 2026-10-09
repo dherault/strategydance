@@ -1,5 +1,5 @@
 import { PlusIcon } from 'lucide-react'
-import { type ComponentProps, Fragment } from 'react'
+import { type ComponentProps, Fragment, type KeyboardEventHandler } from 'react'
 import { useIntl } from 'react-intl'
 import { TaskStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -31,6 +31,8 @@ type Props = {
   draggedId: string | null
   columnProps: ComponentProps<'section'>
   getCardProps: (taskId: string) => ComponentProps<'li'>
+  // What moves a card from the keyboard, from `useTaskBoardKeyboard`
+  getCardKeyDown: (task: Task) => KeyboardEventHandler<HTMLElement>
   onAdd: () => void
 }
 
@@ -60,6 +62,7 @@ function TaskBoardColumn({
   draggedId,
   columnProps,
   getCardProps,
+  getCardKeyDown,
   onAdd,
 }: Props) {
   const { formatMessage } = useIntl()
@@ -109,7 +112,7 @@ function TaskBoardColumn({
               isLate={isTaskLate(task, today)}
               assignee={task.assigneeId ? (membersById.get(task.assigneeId) ?? null) : null}
               isDragged={draggedId === task.id}
-              dragProps={getCardProps(task.id)}
+              dragProps={{ ...getCardProps(task.id), onKeyDown: getCardKeyDown(task) }}
             />
           </Fragment>
         ))}

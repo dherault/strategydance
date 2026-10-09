@@ -3079,6 +3079,10 @@
         "hash": "221a00afd551fe43",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "task.moved": {
+        "hash": "d5563b67ab257350",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "task.namePlaceholder": {
         "hash": "fdc7f4f7b2da6164",
         "locales": "DE,ES,FR,JA,PT,ZH"

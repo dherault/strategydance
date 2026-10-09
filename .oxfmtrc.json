@@ -23,6 +23,7 @@
       { "groupName": "middleware", "elementNamePattern": ["~middleware/**"] },
       { "groupName": "routes", "elementNamePattern": ["~routes/**"] },
       { "groupName": "domain", "elementNamePattern": ["~domain/**"] },
+      { "groupName": "modules", "elementNamePattern": ["~modules/**"] },
       { "groupName": "rest", "elementNamePattern": ["~*", "~*/**"] }
     ],
     "groups": [
@@ -40,6 +41,7 @@
       "middleware",
       "routes",
       "domain",
+      "modules",
       "parent",
       "sibling",
       "index",

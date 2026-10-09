@@ -37,6 +37,7 @@
       "~types": ["./src/types.ts"],
       "~domain/*": ["./src/domain/*"],
       "~middleware/*": ["./src/middleware/*"],
+      "~modules/*": ["./src/modules/*"],
       "~routes/*": ["./src/routes/*"],
       "~utils/*": ["./src/utils/*"]
     }

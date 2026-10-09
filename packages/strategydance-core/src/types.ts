@@ -1,3 +1,5 @@
+import type { MODULES } from './constants'
+
 /*
   The envelope every backend response is wrapped in, success and failure alike. Declared here
   because the backend writes it and the web app reads it, and a copy on each side would drift
@@ -185,3 +187,25 @@ export type SearchConversationsData = {
   conversationIds: string[]
   coverage: ConversationSearchCoverage
 }
+
+/* ---
+  MODULES
+--- */
+
+// One of `MODULES`: what a module is called, where it is served, what MCP clients show for it, and
+// the scopes a consent to it grants
+export type ModuleDefinition = {
+  readonly name: string
+  readonly path: string
+  readonly title: string
+  readonly scopes: {
+    readonly read: string
+    readonly write: string
+  }
+}
+
+// The name of one of `MODULES`
+export type ModuleName = (typeof MODULES)[number]['name']
+
+// A scope one of `MODULES` grants
+export type ModuleScope = (typeof MODULES)[number]['scopes'][keyof ModuleDefinition['scopes']]

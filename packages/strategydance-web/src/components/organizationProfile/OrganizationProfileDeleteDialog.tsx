@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
+import { toOrganizationPathSegment } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
   Dialog,
@@ -13,8 +14,6 @@ import {
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
-
-import toOrganizationPathSegment from '~utils/organization/toOrganizationPathSegment'
 
 import Spinner from '~components/common/Spinner'
 

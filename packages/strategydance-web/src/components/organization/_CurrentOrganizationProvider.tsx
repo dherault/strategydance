@@ -1,13 +1,12 @@
 import { useMatch } from '@tanstack/react-router'
 import { type PropsWithChildren, useEffect } from 'react'
+import { toOrganizationPathSegment } from 'strategydance-core'
 
 import type { CurrentOrganizationContextType } from '~contexts/CurrentOrganizationContext'
 import CurrentOrganizationContext from '~contexts/CurrentOrganizationContext'
 
 import usePersistedState from '~hooks/common/usePersistedState'
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
-
-import toOrganizationPathSegment from '~utils/organization/toOrganizationPathSegment'
 
 /*
   Owns the choice of organization, and nothing else. `_UserOrganizationsProvider` owns the list,

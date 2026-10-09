@@ -710,8 +710,9 @@ it yet, and Claude Code reaches it locally over stdio.
   - **`version` comes only with a page that holds the whole document**, a hash of every block's id
     and Markdown, since `content` replaces a document small enough to read whole: a longer one is
     edited by its blocks. Whatever a cursor says, a page that holds everything was read whole, so
-    the cursor needs no signature to keep an agent from a version of text it did not see. `content`
-    without a version is refused before anything is read.
+    the cursor needs no signature to keep an agent from a version of text it did not see. An update
+    answers a version only once it replaced the whole text, which the agent then wrote whole.
+    `content` without a version is refused before anything is read.
   - **A page's budget counts its JSON**, each block's Markdown as escaped, so a page of quotes,
     backslashes or line breaks stays as far short of a result's 50000 characters as one of words.
   - **A document keeps a title or some text.** An update that would leave it with neither, a blank

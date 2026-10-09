@@ -971,8 +971,10 @@ mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tra
 # Makes a task wait on another of the same board. Adding a link that exists already changes nothing
 # and succeeds.
 #
-# Both tasks are live and the organization's. A task waits on at most 50 others
-# (`MAX_TASK_DEPENDENCIES` in strategydance-core), and never on itself or on a task that waits on it.
+# Both tasks are live and the organization's. A task waits on at most 50 live others
+# (`MAX_TASK_DEPENDENCIES` in strategydance-core), as many as the board shows it, its links to deleted
+# tasks aside, and never on itself or on a task that waits on it. Bringing a deleted task back can
+# take a task waiting on it past 50, by the links that come back with it.
 # Counted and checked under a lock: the first step writes the organization's row, and finds nothing
 # unless the caller belongs to it, so links added at once, as a pick of several tasks sends them,
 # count one after the other, and two members linking two tasks both ways cannot both succeed. A
@@ -1008,8 +1010,14 @@ mutation AddTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependencyId
       @check(expr: "size(this) == 0", message: "A task cannot wait on a task that waits on it") {
       taskId
     }
-    others: taskDependencies(where: { taskId: { eq: $taskId }, dependencyId: { ne: $dependencyId } }, limit: 50)
-      @check(expr: "size(this) < 50", message: "A task waits on at most 50 others") {
+    others: taskDependencies(
+      where: {
+        taskId: { eq: $taskId }
+        dependencyId: { ne: $dependencyId }
+        dependency: { deletedAt: { isNull: true } }
+      }
+      limit: 50
+    ) @check(expr: "size(this) < 50", message: "A task waits on at most 50 others") {
       dependencyId
     }
   }

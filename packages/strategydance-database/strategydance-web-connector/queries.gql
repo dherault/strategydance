@@ -565,7 +565,8 @@ query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(
 # page reads already, so a task carries only its people's ids.
 #
 # Read up to 1000 tasks, as many as an organization keeps (`MAX_TASKS` in strategydance-core), so
-# the board is never cut short, and up to 50 links a task (`MAX_TASK_DEPENDENCIES`).
+# the board is never cut short, and up to 100 links a task: twice the 50 a task may make
+# (`MAX_TASK_DEPENDENCIES`), since bringing a deleted task back can take a task past them.
 #
 # A live query: each `@refresh` names a mutation that changes what a card shows or where it sits.
 # Saving a description is not among them, so a description pushes only itself. Removing a member
@@ -664,7 +665,7 @@ query GetTasks($organizationId: UUID!)
     aspects
     createdById
     createdAt
-    dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
+    dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 100) {
       dependencyId
     }
   }

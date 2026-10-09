@@ -1,4 +1,4 @@
-import { useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
+import { useLocation, useNavigate, useRouter } from '@tanstack/react-router'
 import { Trash2Icon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { MAX_TASK_DEPENDENCIES } from 'strategydance-core'
@@ -43,8 +43,9 @@ type Props = {
   A task opened from the board, at an address of its own: everything about it, each field saved on
   its own as it changes, as any member of its organization may. A teammate's change shows here as
   it lands. A linked task opens in its place, replacing its address rather than adding one, and
-  closing goes back to the board: a step back in history when there is one, which leaves it as it
-  was before the task opened, or the board in its place when the address was opened directly.
+  closing goes back to the board: a step back in history when the board opened it, which leaves
+  history as it was before, or the board in its place when the address was reached any other way,
+  so a page visited before it is never where closing lands.
 
   A task waits on at most 50 others, so its pickers offer no more once it does, nor a task to block
   that waits on as many already.
@@ -55,7 +56,8 @@ function TaskDialog({ taskId }: Props) {
   const { formatMessage, formatDate } = useIntl()
   const navigate = useNavigate()
   const router = useRouter()
-  const canGoBack = useCanGoBack()
+  // Whether the board opened this task, which its history entry keeps through a reload
+  const isFromTaskBoard = useLocation({ select: location => location.state.isFromTaskBoard === true })
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: viewer } = useAuthentication()
   const { data: tasks } = useTasks()
@@ -85,7 +87,7 @@ function TaskDialog({ taskId }: Props) {
   const addedOn = formatDate(new Date(task.createdAt), { month: 'long', day: 'numeric' })
 
   function close() {
-    if (canGoBack) router.history.back()
+    if (isFromTaskBoard) router.history.back()
     else navigate({ to: '/$organizationSlug/tasks', params: { organizationSlug }, replace: true, resetScroll: false })
   }
 
@@ -94,6 +96,7 @@ function TaskDialog({ taskId }: Props) {
       to: '/$organizationSlug/tasks/$taskId',
       params: { organizationSlug, taskId: otherId },
       replace: true,
+      state: { isFromTaskBoard },
       resetScroll: false,
     })
   }

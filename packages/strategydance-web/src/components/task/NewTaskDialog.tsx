@@ -120,6 +120,7 @@ function NewTaskDialog({ status, onClose }: Props) {
           navigate({
             to: '/$organizationSlug/tasks/$taskId',
             params: { organizationSlug, taskId: id },
+            state: { isFromTaskBoard: true },
             resetScroll: false,
           }),
       },

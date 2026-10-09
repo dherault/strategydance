@@ -53,6 +53,7 @@ function TaskCard({ task, blockerCount, isLate, assignee, isDragged, dragProps }
       <Link
         to="/$organizationSlug/tasks/$taskId"
         params={{ organizationSlug, taskId: task.id }}
+        state={{ isFromTaskBoard: true }}
         resetScroll={false}
         draggable={false}
         className="flex flex-col gap-2.5 rounded-xs border border-border bg-white p-3 text-inherit no-underline transition-colors duration-150 ease-in-out hover:border-neutral-300 hover:text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"

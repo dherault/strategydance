@@ -140,6 +140,18 @@ export type TaskSnapshot = {
   dependentIds: string[]
 }
 
+/*
+  What history keeps for an address beside the router's own: whether the task board opened the task
+  it names, so closing the task steps back to the board's entry rather than adding one. Extended on
+  `@tanstack/history`, a dependency of the web package for this alone at the version the router
+  pins: a router bump that moves it fails the typecheck where the key is read, until it follows
+*/
+declare module '@tanstack/history' {
+  interface HistoryState {
+    isFromTaskBoard?: boolean
+  }
+}
+
 // Whose tasks the board shows: everybody's, the reader's, Strategy Dance's, or a member's by uid
 // behind a prefix, as `toTaskAssigneeValue` writes it, so no uid reads as one of the others
 export type TaskAssigneeFilter = 'all' | 'me' | 'agent' | `member:${string}`

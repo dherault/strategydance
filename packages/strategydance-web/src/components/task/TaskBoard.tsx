@@ -25,6 +25,7 @@ import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import filterTasks from '~utils/task/filterTasks'
+import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
 
 import PageHeader from '~components/layout/PageHeader'
 import NewTaskDialog from '~components/task/NewTaskDialog'
@@ -66,7 +67,9 @@ function TaskBoard() {
   const viewerId = viewer?.uid ?? null
   const members = team.userOrganizations
   const isFiltering = query.trim() !== '' || assignee !== 'all' || aspects.length > 0
-  const visibleTasks = filterTasks(tasks, { query, assignee, aspects }, { viewerId, descriptions })
+  // Kept by the compiled render until the descriptions move, so a keystroke parses none of them
+  const descriptionTexts = getTaskDescriptionTexts(descriptions)
+  const visibleTasks = filterTasks(tasks, { query, assignee, aspects }, { viewerId, descriptionTexts })
   const tasksById = new Map(tasks.map(task => [task.id, task]))
   const membersById = new Map(members.map(member => [member.user.id, member]))
 

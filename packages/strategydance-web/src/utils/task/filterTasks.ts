@@ -1,6 +1,4 @@
 import type { CompanyAspect } from 'strategydance-database/web'
-import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
-import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 
 import type { Task, TaskAssigneeFilter } from '~types'
 
@@ -14,15 +12,15 @@ type Filters = {
 
 type Context = {
   viewerId: string | null
-  // Each task's description, serialized, by its id
-  descriptions: ReadonlyMap<string, string>
+  // Each task's description as words in lowercase, by its id, from `getTaskDescriptionTexts`
+  descriptionTexts: ReadonlyMap<string, string>
 }
 
 // The tasks the board's filters leave on it, in the order they came in
 function filterTasks(
   tasks: readonly Task[],
   { query, assignee, aspects }: Filters,
-  { viewerId, descriptions }: Context,
+  { viewerId, descriptionTexts }: Context,
 ) {
   const words = query.trim().toLocaleLowerCase()
 
@@ -33,12 +31,7 @@ function filterTasks(
     if (aspects.length && !task.aspects.some(aspect => aspects.includes(aspect))) return false
     if (!words) return true
 
-    return (
-      task.name.toLocaleLowerCase().includes(words)
-      || getRichTextText(parseRichText(descriptions.get(task.id)))
-        .toLocaleLowerCase()
-        .includes(words)
-    )
+    return task.name.toLocaleLowerCase().includes(words) || (descriptionTexts.get(task.id) ?? '').includes(words)
   })
 }
 

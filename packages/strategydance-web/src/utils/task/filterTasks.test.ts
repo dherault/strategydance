@@ -5,6 +5,7 @@ import { CompanyAspect, TaskStatus } from 'strategydance-database/web'
 import type { Task } from '~types'
 
 import filterTasks from '~utils/task/filterTasks'
+import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
 
 function makeTask(id: string, overrides: Partial<Task> = {}): Task {
   return {
@@ -42,7 +43,7 @@ const descriptions = new Map([
     ]),
   ],
 ])
-const context = { viewerId: 'me', descriptions }
+const context = { viewerId: 'me', descriptionTexts: getTaskDescriptionTexts(descriptions) }
 
 function ids(list: Task[]) {
   return list.map(task => task.id)

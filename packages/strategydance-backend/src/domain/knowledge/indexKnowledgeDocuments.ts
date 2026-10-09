@@ -42,10 +42,14 @@ async function indexKnowledgeDocuments(caller: ModuleCaller): Promise<IndexKnowl
     }),
   )
 
-  return {
-    outcome: 'indexed',
-    isComplete: data.documents.length <= MAX_KNOWLEDGE_DOCUMENTS_INDEXED && written.every(Boolean),
-  }
+  if (data.documents.length > MAX_KNOWLEDGE_DOCUMENTS_INDEXED) return { outcome: 'indexed', isComplete: false }
+  if (written.every(Boolean)) return { outcome: 'indexed', isComplete: true }
+
+  // A write that changed nothing lost to a fold, which leaves the document for the next search, or to
+  // another search that indexed it first: only a read again tells the two apart
+  const { data: again } = await getUnindexedDocumentsForAgent(dataConnect, reference)
+
+  return { outcome: 'indexed', isComplete: again.documents.length === 0 }
 }
 
 export default indexKnowledgeDocuments

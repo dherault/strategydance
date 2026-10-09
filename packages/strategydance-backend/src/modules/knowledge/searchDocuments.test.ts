@@ -114,6 +114,20 @@ describe('search_documents', () => {
     expect(found.isIndexComplete).toBe(false)
   })
 
+  it('says the index is complete when another search indexed a document first', async () => {
+    const kit = await connect()
+    const document = documents.store('Old words', { title: 'Notes', contentText: null })
+
+    fake.beforeOperation = async name => {
+      if (name === 'IndexDocumentTextForAgent') fake.documents.get(document.id)!.contentText = 'Old words'
+    }
+
+    const found = await kit.answer<Found>('search_documents', { query: 'notes' })
+
+    expect(found.isIndexComplete).toBe(true)
+    expect(found.documents.map(match => match.id)).toEqual([document.id])
+  })
+
   it('says the index is incomplete while more than 20 documents wait to be indexed', async () => {
     const kit = await connect()
 

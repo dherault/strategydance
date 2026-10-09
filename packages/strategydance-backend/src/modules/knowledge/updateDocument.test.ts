@@ -227,6 +227,16 @@ describe('update_document', () => {
     expect(fake.calls).toEqual([])
   })
 
+  it('answers a version after a whole text replaced alone, never after an edit of part of it', async () => {
+    const kit = await connect()
+    const document = documents.store('Intro')
+
+    expect(await kit.answer('update_document', { id: document.id, append: '' })).not.toHaveProperty('version')
+    expect(
+      await kit.answer('update_document', { id: document.id, replaceText: { find: 'Intro', replace: 'Opening' } }),
+    ).not.toHaveProperty('version')
+  })
+
   it('answers the title an edit alone leaves out, so a rename meanwhile is never answered stale', async () => {
     const kit = await connect()
     const document = documents.store('Plan', { title: 'Before' })

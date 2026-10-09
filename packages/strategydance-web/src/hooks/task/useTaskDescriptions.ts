@@ -4,15 +4,15 @@ import { getTaskDescriptionsRef } from 'strategydance-database/web'
 
 import type { DataSource } from '~types'
 
-import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import { dataConnect } from '~data/firebase'
 
 /*
-  The descriptions of the current organization's tasks, by task id, kept live as `useTasks` keeps
-  the board: the board searches them and a task's dialog shows its own. Apart from the board, so a
-  card moved does not push every description to every member with the page open.
+  The descriptions of the current organization's tasks, by task id, for the board's search. Read
+  rather than kept live, so a save pushes no description to every open board: a task's dialog keeps
+  its own live through `useTaskDescription`, the reader's own saves land here at once, and a
+  teammate's do when the page is opened again or the tab comes back into focus.
 
   A task with no row here yet, as one just added in another tab, reads as having no description
 */
@@ -32,12 +32,6 @@ function useTaskDescriptions(): DataSource<ReadonlyMap<string, string>> & { hasF
     },
     enabled: Boolean(organizationId),
     retryOnMount: false,
-  })
-
-  useLiveQuerySubscription({
-    name: 'task descriptions',
-    queryKey: organizationId ? ['GetTaskDescriptions', organizationId] : null,
-    createQueryRef: () => getTaskDescriptionsRef(dataConnect, { organizationId: organizationId! }),
   })
 
   return {

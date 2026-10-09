@@ -15,6 +15,7 @@ import useDeleteTask from '~hooks/task/useDeleteTask'
 import useMoveTask from '~hooks/task/useMoveTask'
 import useReportTaskError from '~hooks/task/useReportTaskError'
 import useTaskChanges from '~hooks/task/useTaskChanges'
+import useTaskDescription from '~hooks/task/useTaskDescription'
 import useTaskDescriptions from '~hooks/task/useTaskDescriptions'
 import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
@@ -62,6 +63,7 @@ function TaskDialog({ taskId }: Props) {
   const { data: viewer } = useAuthentication()
   const { data: tasks } = useTasks()
   const { data: descriptions } = useTaskDescriptions()
+  const { data: description } = useTaskDescription(taskId)
   const { data: team } = useOrganizationTeam()
   const today = useLocalDate()
   const changes = useTaskChanges()
@@ -128,7 +130,7 @@ function TaskDialog({ taskId }: Props) {
       main={
         <>
           <TaskDescriptionField
-            value={descriptions.get(taskId) ?? ''}
+            value={description ?? descriptions.get(taskId) ?? ''}
             onSave={description => report(changes.updateTaskDescription(taskId, description))}
           />
           <TaskDependencyField

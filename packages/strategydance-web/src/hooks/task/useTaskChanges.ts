@@ -1,6 +1,7 @@
 import { type QueryKey, useQueryClient } from '@tanstack/react-query'
 import {
   type CompanyAspect,
+  type GetTaskDescriptionData,
   type GetTaskDescriptionsData,
   type GetTasksData,
   type TaskStatus,
@@ -81,8 +82,16 @@ function useTaskChanges() {
     setTasks(tasks => tasks.map(task => (task.id === taskId ? update(task) : task)))
   }
 
-  // Null takes the task's description out, as a deleted task's is
+  function getDescriptionKey(taskId: string) {
+    return ['GetTaskDescription', organizationId, taskId]
+  }
+
+  // In the board's descriptions and the task's own. Null takes it out, as a deleted task's is
   function setDescription(taskId: string, description: string | null) {
+    queryClient.setQueryData<GetTaskDescriptionData>(
+      getDescriptionKey(taskId),
+      current => current && { ...current, tasks: description === null ? [] : [{ id: taskId, description }] },
+    )
     queryClient.setQueryData<GetTaskDescriptionsData>(
       descriptionsKey,
       current =>
@@ -199,7 +208,7 @@ function useTaskChanges() {
   function updateTaskDescription(taskId: string, description: string) {
     return change({
       rowKey: `task:${taskId}`,
-      queryKeys: [descriptionsKey],
+      queryKeys: [getDescriptionKey(taskId), descriptionsKey],
       apply: () => setDescription(taskId, description),
       write: () =>
         updateTaskDescriptionMutation(dataConnect, { organizationId: organizationId!, id: taskId, description }),

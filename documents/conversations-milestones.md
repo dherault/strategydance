@@ -821,9 +821,10 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   tasks at one position on either side of a page's end neither skipped nor repeated, `total` right,
   and the members on the first page alone; a query found in a name and in a description whatever its
   case, one holding a quote or a backslash, which the stored JSON escapes, found too, and one past
-  100 characters refused; `assignee: "nobody"` and `"agent"` filtered, and aspects matched on any;
-  an external caller's results carrying addresses, by its id for an organization without a slug, and
-  the agent's none; no write recording an `ActivityDay`.
+  100 characters refused; a done task waiting on an unfinished one never blocked, in `list_tasks`,
+  in `read_task` and in what `remove_task_dependency` answers; `assignee: "nobody"` and `"agent"`
+  filtered, and aspects matched on any; an external caller's results carrying addresses, by its id
+  for an organization without a slug, and the agent's none; no write recording an `ActivityDay`.
 - Verify: with `bun run mcp:tasks` added to Claude Code locally and the board open in a tab, have
   it read the board, create three tasks for a plan, link them in order, assign one to a teammate and
   one to Strategy Dance, and move one to Done, the cards arriving without a reload; save a

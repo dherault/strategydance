@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Calendar } from 'strategydance-design-system/components/ui/Calendar'
@@ -31,13 +31,25 @@ type Props = {
   calendar to pick another, with today and no date a click away. The calendar focuses the day
   picked, or today, so the arrow keys move from there.
 
-  The calendar opens over the field, from its top edge, rather than under it, which leaves it the
-  most room below: it stays on that side however its months run
+  The calendar opens over the field, from its top edge and flush with its right one, which leaves
+  it the most room below. Its months all take six weeks, so it never jumps as they run. It is set
+  to the left of the field and pulled back over it by the field's width, rather than under it,
+  since Radix slides a popover along its anchor's edge to keep it on screen but never across it:
+  under the field, a window too short for it would cut it off, where beside it, it slides up
 */
 function TaskDueDateField({ value, isLate, today, onChange }: Props) {
   const { formatMessage, locale } = useIntl()
   const formatTaskDueDate = useFormatTaskDueDate()
   const [isOpen, setIsOpen] = useState(false)
+  // How wide the field is as the calendar opens, which it is pulled back over
+  const [fieldWidth, setFieldWidth] = useState(0)
+  const anchorRef = useRef<HTMLSpanElement>(null)
+
+  function changeOpen(nextIsOpen: boolean) {
+    if (nextIsOpen) setFieldWidth(anchorRef.current?.offsetWidth ?? 0)
+
+    setIsOpen(nextIsOpen)
+  }
 
   function pick(dueDate: string | null) {
     if (dueDate !== value) onChange(dueDate)
@@ -52,7 +64,7 @@ function TaskDueDateField({ value, isLate, today, onChange }: Props) {
       <span className="text-sm font-medium text-foreground">{formatMessage(taskMessages.completeBy)}</span>
       <Popover
         open={isOpen}
-        onOpenChange={setIsOpen}
+        onOpenChange={changeOpen}
       >
         <div className="relative">
           <PopoverTrigger asChild>
@@ -76,14 +88,18 @@ function TaskDueDateField({ value, isLate, today, onChange }: Props) {
           */}
           <PopoverAnchor asChild>
             <span
+              ref={anchorRef}
               aria-hidden="true"
               className="absolute -inset-x-2 top-0"
             />
           </PopoverAnchor>
         </div>
         <PopoverContent
-          align="end"
-          sideOffset={0}
+          side="left"
+          align="start"
+          sideOffset={-fieldWidth}
+          sticky="always"
+          collisionPadding={8}
           className="w-auto p-3"
           onOpenAutoFocus={event => event.preventDefault()}
         >

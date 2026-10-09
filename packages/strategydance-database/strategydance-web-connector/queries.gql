@@ -572,7 +572,9 @@ query GetMemberLatestLogEntries($organizationId: UUID!, $userId: String!) @auth(
 #
 # A live query: each `@refresh` names a mutation that changes what a card shows or where it sits.
 # Saving a description is not among them, so a description pushes only itself. Removing a member
-# empties theirs, and deleting the organization empties everybody's
+# empties theirs, and deleting the organization empties everybody's. The daily sweep's
+# `PruneDeletedTasks` takes away the links of tasks long deleted, which frees room under the cap,
+# and names no organization, so every open board reads again, once a day
 query GetTasks($organizationId: UUID!)
 @auth(level: USER)
 @refresh(
@@ -646,7 +648,8 @@ query GetTasks($organizationId: UUID!)
     operation: "DeleteOrganization"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
-) {
+)
+@refresh(onMutationExecuted: { operation: "PruneDeletedTasks" }) {
   tasks(
     where: {
       organizationId: { eq: $organizationId }

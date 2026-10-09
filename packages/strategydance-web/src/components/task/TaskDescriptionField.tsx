@@ -1,3 +1,4 @@
+import { PencilIcon } from 'lucide-react'
 import { type MouseEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { MAX_TASK_DESCRIPTION_LENGTH } from 'strategydance-core'
@@ -27,7 +28,9 @@ type Props = {
 /*
   A task's description, drawn as its text until clicked, when the design system's editor takes its
   place, writing a post's blocks: headings, quotes, lists and checklists. A click on a link in the
-  text follows it rather than opening the editor.
+  text follows it rather than opening the editor. The text stays ordinary content, its links links,
+  rather than the inside of a button, and the pencil beside the title is the way in from the
+  keyboard.
 
   Save, or ⌘Enter, keeps what was written, and an emptied editor clears the description; Cancel
   leaves it as it was. Escape is the editor's while it is open, so it never closes the dialog and
@@ -76,26 +79,27 @@ function TaskDescriptionField({ value, onSave, onDraftChange }: Props) {
 
   return (
     <section className="flex flex-col gap-1.5">
-      <h3
-        id="task-description-label"
-        className="m-0 font-sans text-sm leading-normal font-medium text-foreground"
-      >
-        {formatMessage(taskMessages.description)}
-      </h3>
+      <div className="flex min-h-5 items-center justify-between gap-3">
+        <h3 className="m-0 font-sans text-sm leading-normal font-medium text-foreground">
+          {formatMessage(taskMessages.description)}
+        </h3>
+        {change === null ? (
+          <Button
+            variant="transparent"
+            size="sm"
+            icon={<PencilIcon />}
+            aria-label={formatMessage(taskMessages.editDescription)}
+            title={formatMessage(taskMessages.editDescription)}
+            className="-my-1.5 text-neutral-500 not-disabled:hover:text-secondary"
+            onClick={start}
+          />
+        ) : null}
+      </div>
       {change === null ? (
         <div
-          role="button"
-          tabIndex={0}
           title={formatMessage(taskMessages.editDescription)}
-          aria-labelledby="task-description-label"
           className={TASK_EDITABLE_CLASS_NAME}
           onClick={handleClick}
-          onKeyDown={event => {
-            if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-              event.preventDefault()
-              start()
-            }
-          }}
         >
           {hasRichText(value) ? (
             <RichText

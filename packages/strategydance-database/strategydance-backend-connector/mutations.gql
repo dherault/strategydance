@@ -2241,3 +2241,535 @@ mutation RecordConversationSearch($organizationId: UUID!, $userId: String!) @aut
 mutation DeleteExpiredConversationSearches @auth(level: NO_ACCESS) {
   conversationSearch_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }
+
+# The Knowledge module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
+#
+# Each runs as one transaction that checks the membership the module read, then, when the call
+# carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult` first, `$result` being
+# what the module answers, and only then writes. A second call under the same key, at once or later,
+# finds the key taken and writes nothing, and the module reads the row back. A call without a key
+# skips the insert and keeps no row; its key's variables then say nothing and are not stored.
+# `$expiresAt` is null for a row that lives as long as its scope.
+#
+# Each write is named in `GetLiveDocument`'s refreshes, on `$id`, so an open editor sees the
+# revision move whichever agent made the edit, and in `GetOrganizationDocuments`' when it changes
+# what a card shows, on `$organizationId`
+
+# Seeds a document stored before the editor was shared, which has no snapshot, from its `content`,
+# as `SeedDocumentState` does for a tab and under its condition, before anything hands out the ids
+# of its blocks. Refused when a tab seeded it first, whose snapshot the module then reads
+mutation SeedDocumentStateForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $state: String!
+  $revision: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+    }
+  }
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      state: { isNull: true }
+      revision: { eq: $revision }
+    }
+    data: { state: $state, revision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The document was seeded or changed elsewhere since it was read")
+}
+
+# Adds a document an agent wrote, its first snapshot built from the agent's Markdown, `content` and
+# `contentText` beside it. Held to `CreateDocument`'s bounds and to the 1000 documents an
+# organization keeps, counted under the same lock on the organization's row, so an agent and a page
+# adding at once cannot pass it. It starts with agents allowed to read and change it, as a document
+# made on the page does, so the agent that made it can go on with it, and the team can turn either
+# off
+mutation CreateDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $title: String!
+  $aspects: [CompanyAspect!]!
+  $state: String!
+  $content: String!
+  $contentText: String!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+    @check(
+      expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
+      message: "A document's title is at most 200 characters on one line"
+    )
+    @check(
+      expr: "size(vars.content) <= 200000 && size(vars.contentText) <= 200000"
+      message: "A document's content is at most 200000 characters"
+    )
+    @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+    @check(
+      expr: "vars.title.matches('[[:^space:]]') || vars.content != ''"
+      message: "A document starts with a title or some text"
+    )
+    @check(
+      expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "A document is tagged with each aspect at most once"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+      id
+    }
+  }
+  document_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      createdById: $userId
+      title: $title
+      content: $content
+      contentText: $contentText
+      aspects: $aspects
+      isAiReadable: true
+      isAiWritable: true
+      state: $state
+    }
+  )
+}
+
+# Stores an agent's edit of a document's text: the snapshot it read with every pending update
+# merged in and the edit applied, `content` and `contentText` read from it, in one write of the row,
+# with the title too when the call changes it, then deletes the updates it merged. As a tab's
+# compaction does, it is refused unless `$revision` is still the stored one, which it moves on, so
+# it never writes over a snapshot somebody folded more into; the module then reads again and
+# reapplies the edit. A revision moves when a document is seeded too, so a fold of a document read
+# without a snapshot seeds it under `SeedDocumentState`'s condition. Refused as well once the
+# document is deleted, or the team keeps agents from reading or changing it.
+#
+# A push that lands meanwhile is not among `$updateIds` and stays pending, and merges with the edit
+# as two members' edits merge. A whole document replaced (`$isWholeReplacement`) was replaced as
+# the agent read it, so once the row is locked the fold also checks that no update is pending
+# beyond those it merged, and the module reads again when one is.
+#
+# No bound on an update's length, as a fold writes the whole snapshot: `CompactDocument`'s bounds,
+# on what the edit produced. `$title` is left out when the call does not change it, which leaves the
+# column alone and is what `GetOrganizationDocuments`' refresh asks of a fold before it pushes the
+# list, so an agent's writing pushes a card to nobody
+mutation FoldDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $revision: Int!
+  $state: String!
+  $content: String!
+  $contentText: String!
+  $updateIds: [UUID!]!
+  $title: String
+  $isWholeReplacement: Boolean!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      isAiWritable: { eq: true }
+      revision: { eq: $revision }
+    }
+    data: {
+      state: $state
+      content: $content
+      contentText: $contentText
+      title: $title
+      revision_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
+  # A mutation takes one query step, and the pending updates have to be read once the row above is
+  # locked, so the membership and the variables are checked here too, after the writes before it:
+  # a refusal rolls them back all the same
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+        )
+        @check(
+          expr: "!has(vars.title) || vars.title == null || (size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$'))"
+          message: "A document's title is at most 200 characters on one line"
+        )
+        @check(
+          expr: "size(vars.content) <= 200000 && size(vars.contentText) <= 200000"
+          message: "A document's content is at most 200000 characters"
+        )
+        @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+    }
+    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+      @check(
+        expr: "!vars.isWholeReplacement || size(this) == 0"
+        message: "The document was edited since it was read"
+      ) {
+      id
+    }
+  }
+  documentUpdate_deleteMany(where: { documentId: { eq: $id }, id: { in: $updateIds } })
+}
+
+# Retitles a document for an agent, held to what `RenameDocument` holds a title to, when the call
+# changes its title alone
+mutation RenameDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $title: String!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+        )
+        @check(
+          expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
+          message: "A document's title is at most 200 characters on one line"
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      isAiWritable: { eq: true }
+    }
+    data: { title: $title, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
+}
+
+# Tags a document with its aspects for an agent, the list written whole, each aspect once, as the
+# aspects dialog does
+mutation SetDocumentAspectsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $aspects: [CompanyAspect!]!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+        )
+        @check(
+          expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+          message: "A document is tagged with each aspect at most once"
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      isAiWritable: { eq: true }
+    }
+    data: { aspects: $aspects, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
+}
+
+# Deletes a document for an agent as its page's Delete does, setting `deletedAt`, so it can be
+# restored for a day, then prunes the organization's documents deleted over a day ago, as
+# `DeleteDocument` does. Unlike the page's, a document gone already is refused, so the agent hears it
+mutation DeleteDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      isAiWritable: { eq: true }
+    }
+    data: { deletedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
+  document_deleteMany(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
+}
+
+# Takes back a delete for an agent, as `RestoreDocument` does: within a day of it, and against the
+# 1000 documents an organization keeps, under the same lock on its row
+mutation RestoreDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+      id
+    }
+  }
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+      isAiReadable: { eq: true }
+      isAiWritable: { eq: true }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The document is gone for good or closed to agents")
+}
+
+# Fills a document's plain text from its `content` before a search, where a page from before
+# `contentText` left it null, only while the document is at the revision the module read and still
+# not indexed: a fold landing in between nulls it again or writes its own, and either way this one
+# would be stale, so a conflict writes nothing and leaves it for the next search. `updatedAt` stays,
+# since nothing a reader sees changed
+mutation IndexDocumentTextForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $revision: Int!
+  $contentText: String!
+) @auth(level: NO_ACCESS) {
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      revision: { eq: $revision }
+      contentText: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    data: { contentText: $contentText }
+  )
+}
+
+# The backfill's, as `IndexDocumentTextForAgent` without a caller: any organization's document, at
+# the revision the script read and still not indexed
+mutation IndexDocumentText($id: UUID!, $revision: Int!, $contentText: String!) @auth(level: NO_ACCESS) {
+  document_updateMany(
+    where: { id: { eq: $id }, revision: { eq: $revision }, contentText: { isNull: true } }
+    data: { contentText: $contentText }
+  )
+}
+
+# The daily sweep's: deletes every organization's documents deleted over a day ago, past their
+# restore, so a day means a day whether or not anybody deletes another. Deleting them twice deletes
+# nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredDocuments @auth(level: NO_ACCESS) {
+  document_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# The daily sweep's: deletes the module call results past their expiry, an external agent's a day
+# after its call, which no retry reads any more. Strategy Dance's agent's never expire: they go
+# with their conversation
+mutation DeleteExpiredModuleCallResults @auth(level: NO_ACCESS) {
+  moduleCallResult_deleteMany(where: { expiresAt: { lt_time: { now: true } } })
+}

@@ -60,7 +60,14 @@ describe('filterTasks', () => {
   it('keeps the tasks of an assignee', () => {
     expect(ids(filterTasks(tasks, { query: '', assignee: 'me', aspects: [] }, context))).toEqual(['a'])
     expect(ids(filterTasks(tasks, { query: '', assignee: 'agent', aspects: [] }, context))).toEqual(['b'])
-    expect(ids(filterTasks(tasks, { query: '', assignee: 'sam', aspects: [] }, context))).toEqual(['c'])
+    expect(ids(filterTasks(tasks, { query: '', assignee: 'member:sam', aspects: [] }, context))).toEqual(['c'])
+  })
+
+  it('reads a member named like another filter as that member', () => {
+    const named = [...tasks, makeTask('d', { assigneeId: 'agent' })]
+
+    expect(ids(filterTasks(named, { query: '', assignee: 'member:agent', aspects: [] }, context))).toEqual(['d'])
+    expect(ids(filterTasks(named, { query: '', assignee: 'agent', aspects: [] }, context))).toEqual(['b'])
   })
 
   it('keeps a task about any of the aspects picked', () => {

@@ -10,6 +10,7 @@ import type { OrganizationMember, TaskAssigneeFilter } from '~types'
 
 import { COMPANY_ASPECTS } from '~constants'
 
+import toTaskAssigneeValue from '~utils/task/toTaskAssigneeValue'
 import getMemberName from '~utils/team/getMemberName'
 
 import TaskAssigneeAvatar from '~components/task/TaskAssigneeAvatar'
@@ -85,9 +86,12 @@ function TaskBoardFilters({
           { value: 'agent', label: renderOption(formatMessage(taskMessages.strategyDance), null, true) },
           ...members
             .filter(member => member.user.id !== viewerId)
-            .map(member => ({ value: member.user.id, label: renderOption(getMemberName(member), member) })),
+            .map(member => ({
+              value: toTaskAssigneeValue({ assigneeId: member.user.id, isAssignedToAgent: false }),
+              label: renderOption(getMemberName(member), member),
+            })),
         ]}
-        onValueChange={onAssigneeChange}
+        onValueChange={value => onAssigneeChange(value as TaskAssigneeFilter)}
       />
       <MultiSelect
         value={aspects}

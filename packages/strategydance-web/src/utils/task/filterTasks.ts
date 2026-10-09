@@ -29,7 +29,7 @@ function filterTasks(
   return tasks.filter(task => {
     if (assignee === 'agent' && !task.isAssignedToAgent) return false
     if (assignee === 'me' && task.assigneeId !== viewerId) return false
-    if (assignee !== 'all' && assignee !== 'agent' && assignee !== 'me' && task.assigneeId !== assignee) return false
+    if (assignee.startsWith('member:') && task.assigneeId !== assignee.slice('member:'.length)) return false
     if (aspects.length && !task.aspects.some(aspect => aspects.includes(aspect))) return false
     if (!words) return true
 

@@ -141,7 +141,8 @@ export type TaskSnapshot = {
 }
 
 // Whose tasks the board shows: everybody's, the reader's, Strategy Dance's, or a member's by uid
-export type TaskAssigneeFilter = 'all' | 'me' | 'agent' | (string & {})
+// behind a prefix, as `toTaskAssigneeValue` writes it, so no uid reads as one of the others
+export type TaskAssigneeFilter = 'all' | 'me' | 'agent' | `member:${string}`
 
 // Somebody's checklist as the Today page opens it: who they are, their columns with the last week
 // of ticks, and how far back their ticks go

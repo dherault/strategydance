@@ -3,6 +3,8 @@ import type { TaskStatus } from 'strategydance-database/web'
 
 import type { Task } from '~types'
 
+import isTaskDropInPlace from '~utils/task/isTaskDropInPlace'
+
 type DropTarget = {
   status: TaskStatus
   // The card the dragged one would land before, or null for the column's end
@@ -21,7 +23,8 @@ type Options = {
 
   Spread `getCardProps` on each card and `getColumnProps` on each column, and read `getDropMarker`
   to draw the line where the card would land. Dropping calls `onMove` once. A card dragged out of
-  the board, or let go where it already sits, moves nothing.
+  the board, or let go where it already sits among the cards its column shows, moves nothing, so a
+  drop that changes nothing in sight never moves it past cards the filters hide.
 
   The keyboard moves a card through its dialog's status instead, which says where it went
 */
@@ -74,7 +77,13 @@ function useTaskBoardDrag({ onMove }: Options) {
       onDrop: (event: DragEvent<HTMLElement>) => {
         event.preventDefault()
 
-        if (draggedId !== null && dropTarget) onMove(draggedId, dropTarget.status, dropTarget.beforeId)
+        const shownIds = [...event.currentTarget.querySelectorAll<HTMLElement>('[data-task-id]')].map(
+          card => card.dataset.taskId ?? '',
+        )
+
+        if (draggedId !== null && dropTarget && !isTaskDropInPlace(shownIds, draggedId, dropTarget.beforeId)) {
+          onMove(draggedId, dropTarget.status, dropTarget.beforeId)
+        }
 
         reset()
       },
@@ -89,13 +98,9 @@ function useTaskBoardDrag({ onMove }: Options) {
   function getDropMarker(status: TaskStatus, column: readonly Task[]) {
     if (draggedId === null || dropTarget?.status !== status) return undefined
 
-    const index = column.findIndex(task => task.id === draggedId)
+    const shownIds = column.map(task => task.id)
 
-    if (index >= 0 && (dropTarget.beforeId === draggedId || dropTarget.beforeId === (column[index + 1]?.id ?? null))) {
-      return undefined
-    }
-
-    return dropTarget.beforeId
+    return isTaskDropInPlace(shownIds, draggedId, dropTarget.beforeId) ? undefined : dropTarget.beforeId
   }
 
   return {

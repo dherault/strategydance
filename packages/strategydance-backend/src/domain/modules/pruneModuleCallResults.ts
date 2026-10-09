@@ -2,6 +2,8 @@ import { deleteExpiredModuleCallResults } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
 
+import logger from '~utils/logger'
+
 /*
   The daily sweep's: deletes the module call results past their expiry, an external agent's a day
   after its call, which no retry reads any more. Deleting them twice deletes nothing, so a sweep
@@ -9,6 +11,8 @@ import { dataConnect } from '~firebase'
 */
 async function pruneModuleCallResults() {
   const { data } = await deleteExpiredModuleCallResults(dataConnect)
+
+  logger.info(`Swept module call results: ${data.moduleCallResult_deleteMany} deleted`)
 
   return { deleted: data.moduleCallResult_deleteMany }
 }

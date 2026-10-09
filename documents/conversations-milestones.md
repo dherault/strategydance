@@ -803,10 +803,10 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   tests run against; the test kit, `createKnowledgeModuleTestKit` made to take the module, drives
   either.
 - `CLAUDE.md`: Module conventions say that tasks carry no AI permission, every agent changing any
-  task as any member can; § The database's rule on `ActivityDay` says that an agent's change never
-  counts; § The database says that every write of a task's description writes `descriptionText`
-  beside it, or nulls it; Commands gain `mcp:tasks` and `check:tasks-module`, and Module conventions
-  `backfill:task-text`.
+  task as any member can; § The database's rule on `ActivityDay` says that an agent's change to the
+  board never counts, while M23's top priority still does; § The database says that every write of a
+  task's description writes `descriptionText` beside it, or nulls it; Commands gain `mcp:tasks` and
+  `check:tasks-module`, and Module conventions `backfill:task-text`.
 - Tests (database mocked, through an SDK `Client` on the module's handler): a removed member's call
   refused, and one carrying the `membershipCreatedAt` of a membership since ended; a caller without
   the write scope refused by every write tool, nothing written; a write called twice with one key

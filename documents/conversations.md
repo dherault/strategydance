@@ -1295,10 +1295,12 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   back until a prune has run. From M15 it refuses one deleted over a day ago, a condition in its
   `where` rather than a new variable, and so does `restore_task`, so the result's promise, Undo and
   the agent's restore all mean one day.
-- **No streak.** A change an agent makes counts toward nobody's build in public streak: no module
-  write records an `ActivityDay`, for Strategy Dance's agent or an external one, as David chose on
-  2026-10-09, so a streak counts what members do themselves. `CLAUDE.md`'s rule that every new way
-  to change the board records activity says so from M15.
+- **No streak.** A change an agent makes to the board counts toward nobody's build in public streak:
+  no write of the Tasks module records an `ActivityDay`, for Strategy Dance's agent or an external
+  one, as David chose on 2026-10-09, so a streak counts what members do themselves. `CLAUDE.md`'s
+  rule that every new way to change the board records activity says so from M15. It covers the board
+  alone: the `set_top_priority` tool of M23 still records the day, as every change to Today data
+  does.
 - **Text is checked before the database sees it**, as the Knowledge module's schemas check theirs: a
   name, a description, a query or an id holding U+0000, which Postgres refuses in any text, is
   refused with a result the model can act on, and every bound is the schema's, so a call past one is

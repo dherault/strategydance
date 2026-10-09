@@ -846,8 +846,10 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
 - The tools' labels in the `conversation` catalogue, running and done, and `bun run translate`;
   the system prompt's knowledge section.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
-  title, or struck through when deleted. A `delete_document` row offers Restore, through
-  `RestoreDocument`, while the document is deleted and the day has not passed.
+  title, or, for an id the list does not hold, since it leaves deleted documents out, the title the
+  agent wrote, struck through, whether the document was deleted, pruned or never there. A
+  `delete_document` row offers Restore, through `RestoreDocument`, while the list does not hold the
+  document and a day has not passed since the call.
 - Tests (scripted client, database mocked): the client connecting with no `initialize` handshake;
   the converted tools list's bytes pinned, every name in it, built-in or a module's, unique,
   `minLength` and its kin dropped, `strict` and eager input streaming set; a module write sent with
@@ -876,12 +878,13 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
 - The tools' labels in the `conversation` catalogue, running and done, and `bun run translate`; the
   system prompt's tasks paragraph, with "cannot change tasks" gone from it (see The agent).
 - `task:` links: the design system's `Markdown` lets `task:` through beside `doc:`, for `renderLink`
-  to draw, and the thread resolves them against the organization's live board, `GetTasks`, read
-  only once a reply holds one: the task's current name with a task icon, opening the task in its
-  dialog over the board, struck through when the task is deleted. `CLAUDE.md`'s line on `Markdown`
-  says so.
-- A `delete_task` row offers Restore, through `RestoreTask`, while the task is deleted and the day
-  has not passed.
+  to draw, and the thread resolves them against the organization's live board, `GetTasks`, read only
+  once a reply holds one: the task's current name with a task icon, opening the task in its dialog
+  over the board, or, for an id the board does not hold, since `GetTasks` leaves deleted tasks out,
+  the name the agent wrote, struck through, whether the task was deleted, pruned or never there. No
+  query is added. `CLAUDE.md`'s line on `Markdown` says so.
+- A `delete_task` row offers Restore, through `RestoreTask`, while the board does not hold the task
+  and a day has not passed since the call.
 - The tools list then holds sixteen module tools: the pull request records what the converted list
   costs a cached request, so whether Claude's tool search (`defer_loading`) should keep some of
   them out is decided on that figure, which is David's call.
@@ -889,7 +892,9 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
   it unique; a crash between a `create_task` and the worker recording it, the next worker calling
   again and one task made; consecutive `list_tasks`, `read_task` and `search_documents` calls
   running four at a time, and writes alone, in order; `Markdown` keeping a `task:` link and still
-  dropping a `javascript:` one; a `task:` link to a deleted task drawn struck through.
+  dropping a `javascript:` one; a `task:` link whose id the board does not hold, a deleted task's
+  and an unknown one alike, drawn struck through with the name the agent wrote, and drawn again
+  with the task's current name once it is restored.
 - Verify: with the board open in another tab, talk a launch through and ask the agent to turn the
   plan into tasks, linked in order and assigned, and watch the cards arrive without a reload; ask it
   to mark one done and hear which can start; open a task from a link in its reply; ask it to delete

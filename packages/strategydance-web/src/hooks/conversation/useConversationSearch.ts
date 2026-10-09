@@ -37,8 +37,9 @@ const EMPTY_STATE: SearchState = { key: '', result: null, failure: null }
   A query that holds nothing, more than 100 characters or more than 8 words is never sent, as the
   backend would refuse it.
 
-  The last answer stays while the next loads, so the list does not flash empty between keystrokes.
-  A failure stands until the query changes or `retry` asks again
+  The last answer stays while the next loads, so the list does not flash empty between keystrokes,
+  and `isSearching` says one is on its way, which a query past the bounds never is. A failure
+  stands until the query changes or `retry` asks again
 */
 function useConversationSearch(query: string) {
   const { organization } = useCurrentOrganization()
@@ -82,9 +83,12 @@ function useConversationSearch(query: string) {
     }
   }, [isSearchable, organizationId, trimmedQuery, key])
 
+  const isAnswered = state.key === key
+
   return {
     result: state.result,
-    failure: state.key === key ? state.failure : null,
+    isSearching: isSearchable && !isAnswered,
+    failure: isAnswered ? state.failure : null,
     retry: () => setAttempt(attempt + 1),
   }
 }

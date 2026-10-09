@@ -37,7 +37,7 @@ type Props = {
 */
 function ConversationSearchResults({ query, conversations, onClear }: Props) {
   const { formatMessage } = useIntl()
-  const { result, failure, retry } = useConversationSearch(query)
+  const { result, isSearching, failure, retry } = useConversationSearch(query)
 
   if (failure) {
     return (
@@ -58,7 +58,10 @@ function ConversationSearchResults({ query, conversations, onClear }: Props) {
     )
   }
 
+  // Nothing yet, and nothing coming while the query holds more words than a search takes
   if (!result) {
+    if (!isSearching) return null
+
     return (
       <div className="flex min-h-40 items-center justify-center">
         <Spinner />

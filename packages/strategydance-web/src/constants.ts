@@ -136,6 +136,10 @@ export const CONVERSATION_RUN_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
 */
 export const CONVERSATION_ANSWER_RECONCILE_DELAY_MS = 5000
 
+// How long the conversations' search field waits after the last keystroke before it searches, so
+// a word typed is one search rather than one a letter
+export const CONVERSATION_SEARCH_DELAY_MS = 300
+
 /* ---
   BUILD IN PUBLIC
 --- */

@@ -58,7 +58,7 @@ before their neighbours.
 | M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | #113 |
 | M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | #120 |
 | M10 | Stop, resume, retry, failures and refusals | backend, database, web | M7, M9 | #121 |
-| M11 | Questions | backend, database, web | M10 | |
+| M11 | Questions | backend, database, web | M10 | #122 |
 | M12 | Searching conversations | backend, database, web | M8, M9 | |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | |
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
@@ -504,6 +504,40 @@ plan's one open question about Data Connect.
   119 lets exactly one through.
 - Verify: search real conversations in English, French, Chinese and Japanese; a word that only an
   agent's reply holds; a narrower search after the best matches.
+- Built with these settled, on 2026-10-09:
+  - **`simple` works**, on the emulator (3.4.21) and in the SQL it writes: each `@searchable`
+    column becomes a generated `tsvector`, `to_tsvector('simple'::regconfig, …)`, with a GIN
+    index, an additive migration. Capitals and accents ("ÉQUIPE", "été") and French elisions
+    ("l'équipe") match, and "run" misses "running".
+  - **A `_search` takes `where` with relation filters, `limit` and `offset`, but its `orderBy`
+    cannot name the relevance**, so pages read by offset could repeat a message across a tie at
+    their boundary and skip another, then answer every match all the same. The messages are read
+    once, the 5000 most relevant, rather than in ten pages of 500: one ranking of the matches
+    rather than ten, and a single snapshot.
+  - **A filter level holds plain fields or `_and`/`_or`, never both**, so the substring search
+    nests the caller's fields in an `_and` entry. It is one query over conversations: a title
+    matching every pattern, or, among the recent ones, a member or agent message that does
+    (`exist`). It always takes eight patterns, the backend filling those a query leaves over with
+    `%`, so none is optional.
+  - **The route answers ids and a `coverage`**: `ALL`, `BEST_MATCHES` once a 5001st message,
+    read as a sentinel, says the 5000 left some out short of every conversation, or `RECENT` once
+    the substring path left some conversations' messages unread. The page filters its live list by the ids, so the results keep the list's order and
+    stay live. The recent note shows only when a conversation was actually left out.
+  - **A refused record is read again** (`GetConversationSearchQuota`), to tell the allowance used
+    up, with `Retry-After` from the 120th newest search, from a membership gone.
+  - **The in-memory limiter is made per router**, so a second router in a test stands for another
+    instance, and the shared count refuses what its fresh limiter lets through.
+  - **The field is the design system's new `SearchInput`**, an `Input` with a magnifier, built as
+    `PasswordInput` is. Past eight words it says so and sends nothing. The results are mounted only
+    while the field holds something, so clearing it forgets the last search; while a newer search
+    loads, the last answer stays.
+  - Verified with `bun run check:conversation-search` against an emulator of the branch's schema,
+    the two searches at once at 119 included, and in the browser at 1280 and 390 wide: English,
+    French, Chinese and Japanese conversations, a word only the agent's reply held, through the
+    placeholder's real run, the best matches over 6000 matching messages and the narrower search
+    after them, the recent note past 20000 messages, no match and Clear search, Escape, a ninth
+    word, a typed word sent once, a slower search aborted by the next, and a 429. Not seen with the
+    real model's replies, which the search reads as it reads any other agent text.
 
 ### M13: Rich text, Markdown and shared documents on the backend
 

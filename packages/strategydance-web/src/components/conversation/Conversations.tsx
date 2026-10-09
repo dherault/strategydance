@@ -1,4 +1,5 @@
 import { MessagesSquareIcon } from 'lucide-react'
+import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -14,6 +15,8 @@ import {
 import useConversations from '~hooks/conversation/useConversations'
 
 import Spinner from '~components/common/Spinner'
+import ConversationSearchField from '~components/conversation/ConversationSearchField'
+import ConversationSearchResults from '~components/conversation/ConversationSearchResults'
 import ConversationTable from '~components/conversation/ConversationTable'
 import NewConversationButton from '~components/conversation/NewConversationButton'
 import ContainerLayout from '~components/layout/ContainerLayout'
@@ -24,11 +27,14 @@ import navigationMessages from '~data/intl/messages/navigation'
 
 /*
   The reader's conversations with Strategy Dance in the current organization, latest activity
-  first. Private: nobody else sees them, administrators included
+  first. Private: nobody else sees them, administrators included.
+
+  Once there is one, a field above the list searches them, and the list shows what it found
 */
 function Conversations() {
   const { formatMessage } = useIntl()
   const { data: conversations, loading, refetch, hasFailed } = useConversations()
+  const [query, setQuery] = useState('')
 
   function renderBody() {
     if (hasFailed) {
@@ -69,7 +75,23 @@ function Conversations() {
       )
     }
 
-    return <ConversationTable conversations={conversations} />
+    return (
+      <div className="flex flex-col gap-3">
+        <ConversationSearchField
+          value={query}
+          onChange={setQuery}
+        />
+        {query.trim() ? (
+          <ConversationSearchResults
+            query={query}
+            conversations={conversations}
+            onClear={() => setQuery('')}
+          />
+        ) : (
+          <ConversationTable conversations={conversations} />
+        )}
+      </div>
+    )
   }
 
   return (

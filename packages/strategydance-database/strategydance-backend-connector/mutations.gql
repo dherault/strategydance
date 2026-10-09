@@ -2197,3 +2197,42 @@ mutation DeleteClaimedConversations($ids: [UUID!]!) @auth(level: NO_ACCESS) {
     }
   )
 }
+
+# Records a search of the caller's conversations, holding them to 120 in ten minutes in an
+# organization (`MAX_CONVERSATION_SEARCHES` in strategydance-core: change the two together, as the
+# operation cannot import it). The search route runs it before it searches anything.
+#
+# The first step writes the caller's membership, the lock a conversation's start takes too, so the
+# count after it sees every search the caller made there that committed before it: two at once at
+# 119 let exactly one through, whichever instances run them. The allowance is the membership's,
+# per member and organization, which is exactly what the lock serializes. Read to 120, since past
+# that a search is refused whatever the rest are. `$userId` is the uid the backend verified
+mutation RecordConversationSearch($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can search its conversations")
+  query @redact {
+    conversationSearches(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { gt_time: { now: true, sub: { minutes: 10 } } }
+      }
+      limit: 120
+    )
+      @check(
+        expr: "size(this) < 120"
+        message: "Somebody searches their conversations at most 120 times in ten minutes in an organization"
+      ) {
+      id
+    }
+  }
+  conversationSearch_insert(data: { userId: $userId, organizationId: $organizationId })
+}
+
+# The daily sweep's: deletes the searches made over a day ago, whoever made them, which no count
+# reads any more. Deleting them twice deletes nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredConversationSearches @auth(level: NO_ACCESS) {
+  conversationSearch_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}

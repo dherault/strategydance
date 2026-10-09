@@ -403,6 +403,15 @@ export const MAX_SEARCH_QUERY_LENGTH = 100
 export const MAX_SEARCH_TERMS = 8
 
 /*
+  How many times somebody may search their conversations in an organization in ten minutes, which
+  nobody searching by hand reaches and a script does. Held twice: in each backend instance's memory,
+  which turns a script away cheaply, and in the database, across instances, where
+  `RecordConversationSearch` writes the same numbers out: change them together
+*/
+export const MAX_CONVERSATION_SEARCHES = 120
+export const CONVERSATION_SEARCH_WINDOW_MINUTES = 10
+
+/*
   How far a search in a language written without spaces, Chinese or Japanese, reads. No index
   serves a match inside a sentence, so it reads the messages of the most recently active
   conversations, and the text of the most recently updated documents, up to these many

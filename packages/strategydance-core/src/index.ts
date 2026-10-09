@@ -10,4 +10,6 @@ export * from './helpers/email'
 
 export * from './helpers/organization'
 
+export * from './helpers/search'
+
 export * from './helpers/timezone'

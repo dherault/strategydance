@@ -1,4 +1,10 @@
-import { MAX_ACTIVE_RUNS_PER_MEMBER, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
+import {
+  CONVERSATION_SEARCH_WINDOW_MINUTES,
+  MAX_ACTIVE_RUNS_PER_MEMBER,
+  MAX_CONVERSATION_MESSAGES,
+  MAX_CONVERSATION_SEARCHES,
+  MAX_CONVERSATIONS,
+} from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
@@ -6,9 +12,10 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
   The backend connector's conversation operations, over tables kept in memory, for the domain's
   tests, which mock `strategydance-database/backend` with it. Each operation mirrors the conditions
   of its namesake in the connector, in the same order, and throws the same messages, so a test reads
-  as the behaviour it checks rather than as a script of answers. `check:conversation-runs` checks
-  those conditions against the emulators, which is what keeps the two alike: change one with the
-  other.
+  as the behaviour it checks rather than as a script of answers. `check:conversation-runs` and
+  `check:conversation-search` check those conditions against the emulators, which is what keeps the
+  two alike: change one with the other. A search matches words and patterns as near as a test
+  needs, which the second checks against Postgres' own.
 
   An operation checks everything before it changes anything, so it applies whole or not at all, as
   a transaction does, and runs without yielding, so two called at once take turns as two locked
@@ -166,6 +173,14 @@ export type FakeMembership = {
   jobTitle: string | null
 }
 
+// A search somebody made of their conversations, which counts against their allowance
+export type FakeSearch = {
+  id: string
+  userId: string
+  organizationId: string
+  createdAt: string
+}
+
 export type FakeOrganization = {
   name: string
   brief: string | null
@@ -179,6 +194,9 @@ type AnyVariables = Record<string, any>
 
 const RUN_IN_FLIGHT = ['QUEUED', 'RUNNING']
 
+// The messages a search reads, the member's and the agent's, and never a question or a note
+const SEARCHED_KINDS = ['MEMBER_TEXT', 'AGENT_TEXT']
+
 function createConversationDatabaseFake() {
   const users = new Map<string, FakeUser>()
   const memberships = new Map<string, FakeMembership>()
@@ -187,6 +205,7 @@ function createConversationDatabaseFake() {
   const runs = new Map<string, FakeRun>()
   const messages = new Map<string, FakeMessage>()
   const entries = new Map<string, FakeEntry>()
+  const searches = new Map<string, FakeSearch>()
   // Every operation called, by name, in order
   const calls: string[] = []
   let stamps = 0
@@ -199,6 +218,7 @@ function createConversationDatabaseFake() {
     runs,
     messages,
     entries,
+    searches,
     calls,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
   }
@@ -339,6 +359,82 @@ function createConversationDatabaseFake() {
         && conversation.organizationId === id(variables.organizationId)
         && conversation.deletedAt === null,
     )
+  }
+
+  // The caller's searches in an organization in the last ten minutes, newest first
+  function recentSearches(userId: unknown, organizationId: unknown) {
+    const since = Date.now() - CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000
+
+    return [...searches.values()]
+      .filter(
+        search =>
+          search.userId === userId
+          && search.organizationId === id(organizationId)
+          && Date.parse(search.createdAt) > since,
+      )
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+  }
+
+  // The conversations a search reads: the caller's own in the organization, while they are a member
+  // of it, and none deleted
+  function searchedConversations(variables: AnyVariables) {
+    if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) return []
+
+    return keptConversations(variables)
+  }
+
+  // The searched messages, by their conversation's id
+  function searchedMessages(conversationIds: Set<string>) {
+    const byConversation = new Map<string, FakeMessage[]>()
+
+    for (const message of messages.values()) {
+      if (
+        !conversationIds.has(message.conversationId)
+        || !SEARCHED_KINDS.includes(message.kind)
+        || message.text === null
+      ) {
+        continue
+      }
+
+      byConversation.set(message.conversationId, [...(byConversation.get(message.conversationId) ?? []), message])
+    }
+
+    return byConversation
+  }
+
+  // The words the `simple` configuration finds in a text, as near as a test needs: lowercased, split
+  // on anything that is neither a letter nor a digit
+  function splitWords(text: string) {
+    return text
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean)
+  }
+
+  // How often a text holds the words of a query, which stands for its relevance, or 0 unless it
+  // holds every one of them, as `PLAIN` requires
+  function scoreMatch(text: string, query: string) {
+    const words = splitWords(text)
+    const counts = splitWords(query).map(term => words.filter(word => word === term).length)
+
+    return counts.length && counts.every(count => count > 0) ? counts.reduce((sum, count) => sum + count, 0) : 0
+  }
+
+  // Whether a text matches a LIKE pattern ignoring case: `%` any run of characters, `_` any one, and
+  // `\` making the character after it itself
+  function matchesLike(text: string, pattern: string) {
+    let source = ''
+
+    for (let index = 0; index < pattern.length; index++) {
+      const character = pattern[index]!
+
+      if (character === '\\') source += (pattern[++index] ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      else if (character === '%') source += '.*'
+      else if (character === '_') source += '.'
+      else source += character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    }
+
+    return new RegExp(`^${source}$`, 'isu').test(text)
   }
 
   function conversationMessages(conversationId: string) {
@@ -2017,6 +2113,100 @@ function createConversationDatabaseFake() {
 
       return { conversationRun_updateMany: 1 }
     },
+
+    RecordConversationSearch: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can search its conversations')
+      }
+
+      if (recentSearches(variables.userId, variables.organizationId).length >= MAX_CONVERSATION_SEARCHES) {
+        refuse('Somebody searches their conversations at most 120 times in ten minutes in an organization')
+      }
+
+      const search = {
+        id: crypto.randomUUID().replaceAll('-', ''),
+        userId: variables.userId,
+        organizationId: id(variables.organizationId),
+        createdAt: stamp(),
+      }
+
+      searches.set(search.id, search)
+
+      return { conversationSearch_insert: { id: search.id } }
+    },
+
+    GetConversationSearchQuota: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      return {
+        userOrganization: membership ? { role: membership.role } : null,
+        conversationSearches: recentSearches(variables.userId, variables.organizationId)
+          .slice(0, MAX_CONVERSATION_SEARCHES)
+          .map(search => ({ createdAt: search.createdAt })),
+      }
+    },
+
+    SearchConversationTitles: variables => ({
+      conversations_search: searchedConversations(variables)
+        .map(conversation => ({ conversation, score: scoreMatch(conversation.title, variables.query) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score || (a.conversation.id < b.conversation.id ? -1 : 1))
+        .slice(0, MAX_CONVERSATIONS)
+        .map(({ conversation }) => ({ id: conversation.id })),
+    }),
+
+    SearchConversationMessages: variables => {
+      const conversationIds = new Set(searchedConversations(variables).map(conversation => conversation.id))
+
+      return {
+        conversationMessages_search: [...searchedMessages(conversationIds).values()]
+          .flat()
+          .map(message => ({ message, score: scoreMatch(message.text ?? '', variables.query) }))
+          .filter(({ score }) => score > 0)
+          .sort((a, b) => b.score - a.score || (a.message.id < b.message.id ? -1 : 1))
+          .slice(0, 5001)
+          .map(({ message }) => ({ conversationId: message.conversationId })),
+      }
+    },
+
+    GetConversationSearchCorpus: variables => ({
+      conversations: searchedConversations(variables)
+        .sort((a, b) => (a.updatedAt !== b.updatedAt ? (a.updatedAt < b.updatedAt ? 1 : -1) : a.id < b.id ? -1 : 1))
+        .slice(0, MAX_CONVERSATIONS)
+        .map(conversation => ({ id: conversation.id, messageCount: conversation.messageCount })),
+    }),
+
+    SearchConversationsBySubstring: variables => {
+      const patterns = Array.from({ length: 8 }, (_, index) => String(variables[`pattern${index}`]))
+      const recentIds = new Set((variables.recentIds as string[]).map(id))
+      const recentMessages = searchedMessages(recentIds)
+      const matchesAll = (text: string) => patterns.every(pattern => matchesLike(text, pattern))
+
+      return {
+        conversations: searchedConversations(variables)
+          .filter(
+            conversation =>
+              matchesAll(conversation.title)
+              || (recentMessages.get(conversation.id) ?? []).some(message => matchesAll(message.text ?? '')),
+          )
+          .slice(0, MAX_CONVERSATIONS)
+          .map(conversation => ({ id: conversation.id })),
+      }
+    },
+
+    DeleteExpiredConversationSearches: () => {
+      const before = Date.now() - 24 * 60 * 60 * 1000
+      let deleted = 0
+
+      for (const search of searches.values()) {
+        if (Date.parse(search.createdAt) < before) {
+          searches.delete(search.id)
+          deleted++
+        }
+      }
+
+      return { conversationSearch_deleteMany: deleted }
+    },
   }
 
   // The generated SDK's names: `startConversation(dataConnect, variables)` for `StartConversation`
@@ -2041,7 +2231,7 @@ function createConversationDatabaseFake() {
 
   // Empties every table, for the next test
   function reset() {
-    for (const table of [users, memberships, conversations, runs, messages, entries]) table.clear()
+    for (const table of [users, memberships, conversations, runs, messages, entries, searches]) table.clear()
 
     calls.length = 0
     fake.beforeOperation = async () => {}

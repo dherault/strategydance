@@ -470,12 +470,17 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   private search terms never sit in a logged URL, runs Data Connect's full-text
   search through an index. `Conversation.title` and `ConversationMessage.text` are `@searchable`
   (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
-  every word: titles in one query (`limit: 1000`), and member and agent messages paged 500 at a
-  time by relevance, collecting distinct conversations until there are 1000 or ten pages have been
-  read. Both filter on the caller, their membership and `deletedAt`. Results are the best matches,
-  not a guaranteed full set: a few conversations with thousands of matching messages can use up the
-  pages, so when the pages run out the list says it shows the best matches and invites a narrower
-  search.
+  every word: titles in one query (`limit: 1000`), and the 5000 most relevant member and agent
+  messages in another, whose distinct conversations join the titles'. Both filter on the caller,
+  their membership and `deletedAt`. Results are the best matches, not a guaranteed full set: a few
+  conversations with thousands of matching messages can use up the 5000, which one more message
+  read past them reveals, and only then does the list say it shows the best matches and invite a
+  narrower search. The messages are read once rather
+  than in pages: a `_search` is ordered by relevance alone, since its `orderBy` cannot name it, so
+  pages read by offset could skip a message at a tie across their boundary, and each would rank
+  every match again anyway. The route answers the conversations' ids and how far it looked
+  (`coverage`: `ALL`, `BEST_MATCHES` or `RECENT`), and the page picks them out of the live list it
+  already holds, so the results keep its order and stay live.
 - **Chinese and Japanese need another path.** The `simple` configuration splits words on spaces and
   punctuation, which Chinese and Japanese text does not use, so it cannot find a word inside a
   sentence. A query holding CJK characters runs as substring matches instead: split on spaces as any
@@ -486,18 +491,23 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   corpus rather than everything the member has: the titles of all their conversations (at most
   1000), and the messages of their most recently active ones only, taken newest first by
   `messageCount` until they reach 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES`), so one search scans at
-  most 21000 rows, and the list says it searched recent conversations. The Knowledge module's
+  most 21000 rows, and the list says it searched recent conversations whenever that left one's
+  messages unread. It is one query over the conversations, a title or, among the recent ones, a
+  message (`exist`) matching every pattern, which always takes eight, those a query leaves over
+  filled with `%`. The Knowledge module's
   `search_documents` does the same on the titles of all the organization's documents AI may read
   and the `contentText` of the 100 most recently updated of them
   (`MAX_SUBSTRING_SEARCH_DOCUMENTS`), still at most 20 candidates. Tests run a search in both
   languages.
 - **Every search is bounded at the door**: a query of at most 100 characters and 8 terms
   (`MAX_SEARCH_QUERY_LENGTH`, `MAX_SEARCH_TERMS`), refused with a 400 past either, which the field
-  enforces as the member types and `search_documents`' schema enforces for every agent. The field
+  enforces as the member types and `search_documents`' schema enforces for every agent, and
+  refused too when it holds U+0000, which Postgres refuses in any text. The field
   waits 300 ms after the last keystroke and aborts the request it replaces. Since a caller can
   skip the field, the route is metered on the server in two layers, as invitations are:
   `conversationSearchRateLimitMiddleware` (120 searches per caller in ten minutes, keyed by the
-  verified caller, the address only if there is none, counted in the instance's memory) turns a
+  verified caller, the address only if there is none, counted in the instance's memory, one
+  limiter a router, which `createConversationSearchRateLimitMiddleware` makes) turns a
   script away cheaply, and the database holds the bound across instances, which autoscaling would
   otherwise multiply: the route's first mutation locks the caller's membership row, as a run start
   does, then inserts a `ConversationSearch` row (the caller, the organization, `createdAt`, indexed
@@ -505,7 +515,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   than ten minutes, a read of at most 120 under `@check`. The allowance is per organization, the
   scope the locked row has, so the lock serializes exactly what it counts: two instances at once
   cannot both see 119, and every instance draws on one allowance. Both refuse with `ERROR_CODE_TOO_MANY_REQUESTS`, which somebody
-  searching never reaches, and the daily sweeper deletes rows over a day old. Strategy Dance's
+  searching never reaches, the database's with a `Retry-After` its refusal reads again, and the
+  daily sweeper deletes rows over a day old. Past eight words the field says so and sends nothing. Strategy Dance's
   agent's searches are bounded by its tool calls per run instead. An external agent has no run, so
   each `search_documents` it makes draws on the same allowance, a `ConversationSearch` row under
   the same lock, per member and organization, and is refused past it with a result saying so (see

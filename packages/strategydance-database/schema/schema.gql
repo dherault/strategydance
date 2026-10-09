@@ -519,8 +519,9 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   # Implies an `organizationId: UUID!` column, cascade deleting
   organization: Organization!
   # One line of at most 120 characters (`MAX_CONVERSATION_TITLE_LENGTH` in strategydance-core): the
-  # first message's text, a suggestion's title, or the first file's name, cut short
-  title: String!
+  # first message's text, a suggestion's title, or the first file's name, cut short. Searchable,
+  # with the `simple` configuration, as `ConversationMessage.text` is: see there
+  title: String! @searchable(language: "simple")
   # Which aspects of the company it is about, each once, in no particular order. The pages show
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")
@@ -646,8 +647,13 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   run: ConversationRun
   kind: ConversationMessageKind!
   # The text of a message or a reply, in Markdown, at most 20000 characters
-  # (`MAX_CONVERSATION_MESSAGE_LENGTH`), without U+0000, which Postgres refuses in `text`
-  text: String
+  # (`MAX_CONVERSATION_MESSAGE_LENGTH`), without U+0000, which Postgres refuses in `text`.
+  #
+  # Searchable, which keeps a generated `tsvector` column and its index beside it. The `simple`
+  # configuration splits words and lowercases them, in any of the app's languages, and stems
+  # nothing, so "run" never matches "running". Chinese and Japanese put no space between words, so
+  # the backend searches them by substring instead
+  text: String @searchable(language: "simple")
   # Where a reply cites the web: each span's offsets in `text`, with its sources' addresses, titles
   # and quoted text
   citations: Any
@@ -714,5 +720,22 @@ type ConversationTranscriptEntry @table @unique(fields: ["conversation", "positi
   # Within a text drawn in pieces, past 20000 characters, how many of its pieces are drawn: the
   # cursor's piece, 0 between texts
   drawnPieces: Int! @default(value: 0)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# A search somebody made of their conversations, kept so the backend can hold them to 120 searches
+# in ten minutes in an organization. Counted in the database rather than in a server's memory,
+# because Cloud Run spreads one caller's requests over several instances, and each would keep its
+# own count.
+#
+# Written by the search route, under a lock on the searcher's membership, and read only by the
+# backend. The daily sweep deletes the rows over a day old, whoever made them, which the index on
+# `createdAt` alone serves, since the count's index leads with the searcher
+type ConversationSearch @table @index(fields: ["userId", "organizationId", "createdAt"]) @index(fields: ["createdAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
   createdAt: Timestamp! @default(expr: "request.time")
 }

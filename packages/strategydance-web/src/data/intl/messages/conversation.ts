@@ -41,6 +41,63 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Try again',
     description: 'Button that reads the conversations again after they failed to load.',
   },
+  searchLabel: {
+    id: 'conversation.search.label',
+    defaultMessage: 'Search conversations',
+    description:
+      "Placeholder and accessible name of the field above the Conversations page's list, which finds the reader's conversations whose title or one message holds every word typed.",
+  },
+  searchTooManyWords: {
+    id: 'conversation.search.tooManyWords',
+    defaultMessage: 'Search with at most {max, number} words.',
+    description:
+      'Shown under the conversations search field when the reader typed more words than a search takes, and nothing is searched until they remove some. {max} is a number such as 8.',
+  },
+  searchNoMatchTitle: {
+    id: 'conversation.search.noMatchTitle',
+    defaultMessage: 'No conversations match “{query}”',
+    description:
+      "Title of what the Conversations page shows when no conversation holds every word searched for. {query} is what the reader typed. Use your language's quotation marks.",
+  },
+  searchNoMatchText: {
+    id: 'conversation.search.noMatchText',
+    defaultMessage: 'Search looks at titles and messages.',
+    description:
+      'Line under the title shown when a search of the conversations found nothing, saying what the search reads: their titles and the messages in them.',
+  },
+  searchClear: {
+    id: 'conversation.search.clear',
+    defaultMessage: 'Clear search',
+    description: 'Button that empties the conversations search field, so the whole list shows again.',
+  },
+  searchBestMatches: {
+    id: 'conversation.search.bestMatches',
+    defaultMessage: 'Showing the best matches. Add a word to find the rest.',
+    description:
+      'Line above the search results when so many messages matched that the search kept only the most relevant conversations. Adding a word narrows the search.',
+  },
+  searchRecent: {
+    id: 'conversation.search.recent',
+    defaultMessage: 'Searched every title, and the messages of your most recent conversations.',
+    description:
+      "Line above the results of a search in Chinese or Japanese, which reads the titles of all the reader's conversations but only the messages of the latest ones.",
+  },
+  searchError: {
+    id: 'conversation.search.error',
+    defaultMessage: 'The search failed. Check your connection and try again.',
+    description: 'Shown in place of the search results when the search could not be done.',
+  },
+  searchTooMany: {
+    id: 'conversation.search.tooMany',
+    defaultMessage: 'You searched many times in a few minutes. Try again shortly.',
+    description:
+      'Shown in place of the search results when the reader made as many searches as anybody may in ten minutes.',
+  },
+  searchRetry: {
+    id: 'conversation.search.retry',
+    defaultMessage: 'Try again',
+    description: 'Button that runs the same search again after it failed.',
+  },
   columnConversation: {
     id: 'conversation.column.conversation',
     defaultMessage: 'Conversation',

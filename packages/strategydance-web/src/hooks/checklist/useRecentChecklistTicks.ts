@@ -30,7 +30,7 @@ function useRecentChecklistTicks(): DataSource<GetRecentChecklistTicksData['chec
   const isEnabled = Boolean(organizationId && viewerId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
-    // The key names whose ticks they are, as `useTaskLists`' does
+    // The key names whose ticks they are, as `useChecklist`'s does
     queryKey: ['GetRecentChecklistTicks', organizationId, viewerId],
     queryFn: async () => {
       const { data: ticks } = await executeQuery(

@@ -14,7 +14,8 @@ type Options = {
   queryKeys: QueryKey[]
   // The row it changes, whose writes queue behind each other
   rowKey: string
-  // The rows it depends on, such as the list a task is on, whose queued writes it waits for
+  // The rows it depends on, such as one it points at that was just created, whose queued writes it
+  // waits for
   after?: string[]
   // Writes the change into the cache
   apply: () => void

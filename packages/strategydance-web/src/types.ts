@@ -18,9 +18,6 @@ import type {
   GetOrganizationInvitationData,
   GetOrganizationLogData,
   GetOrganizationTeamData,
-  GetTaskListsData,
-  GetTaskListSummariesData,
-  GetTasksData,
   GetTodayPreferencesData,
 } from 'strategydance-database/web'
 
@@ -114,16 +111,6 @@ export type StagedImage =
 // How the reader's own Today page lists the team's priorities: the order they chose, and whom they
 // hid, both as user ids
 export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
-
-// One of the reader's task lists, with how many of its tasks are still open
-export type TaskList = GetTaskListsData['taskLists'][number]
-
-// One task on a list, where it sits in it, and whether it is done
-export type Task = GetTasksData['tasks'][number]
-
-// One of the reader's task lists as the build in public page reads it: its counts, and the few
-// tasks its cards list
-export type TaskListSummary = GetTaskListSummariesData['taskLists'][number]
 
 // Somebody's checklist as the Today page opens it: who they are, their columns with the last week
 // of ticks, and how far back their ticks go

@@ -86,7 +86,7 @@ function send(day: PendingDay, attempt = 0) {
 /*
   Marks today as a day the reader was active in an organization, for the streak the build in
   public page counts, once a change of theirs on their Today page has gone through: their top
-  priority, a task list or a task, their checklist or their log. See `RecordActivity`.
+  priority, their checklist or their log. See `RecordActivity`.
 
   Sent at most once a day per organization from a tab, and never awaited: the change it follows
   has already succeeded, and a streak missing a day is no reason to tell the reader it failed. A

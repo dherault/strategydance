@@ -707,11 +707,13 @@ it yet, and Claude Code reaches it locally over stdio.
     snapshot unchanged; a title beside a text edit rides in the fold's one write of the row. An
     omitted `$title` leaves the column alone, and a null one would write null into it, so the
     backend leaves it out.
-  - **`version` comes on the last page of a reading alone**, a hash of every block's id and
-    Markdown: the cursor carries the first page's, and the last page answers it only while the text
-    is still that version, so an agent never holds a version of text it did not read whole, neither
-    from a first page nor from pages read across an edit. `content` without a version is refused
-    before anything is read.
+  - **`version` comes only with a page that holds the whole document**, a hash of every block's id
+    and Markdown, since `content` replaces a document small enough to read whole: a longer one is
+    edited by its blocks. Whatever a cursor says, a page that holds everything was read whole, so
+    the cursor needs no signature to keep an agent from a version of text it did not see. `content`
+    without a version is refused before anything is read.
+  - **A page's budget counts its JSON**, each block's Markdown as escaped, so a page of quotes,
+    backslashes or line breaks stays as far short of a result's 50000 characters as one of words.
   - **A document keeps a title or some text.** An update that would leave it with neither, a blank
     title on a textless document or an edit emptying an untitled one, is refused, as creating one
     with neither is, since the page deletes a document somebody empties rather than keep it. The

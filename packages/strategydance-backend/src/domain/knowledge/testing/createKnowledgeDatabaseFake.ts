@@ -361,16 +361,20 @@ function createKnowledgeDatabaseFake() {
     SearchDocumentsBySubstringForAgent: variables => {
       const patterns = [0, 1, 2, 3, 4, 5, 6, 7].map(index => String(variables[`pattern${index}`]))
       const recentIds = new Set((variables.recentIds as string[]).map(id))
-      const matchesAll = (text: string) => patterns.every(pattern => matchesLike(text, pattern))
 
       return {
         documents: isMember(variables)
           ? [...documents.values()]
               .filter(document => isReadable(document, variables) && hasAspects(document, variables.aspects))
-              .filter(
-                document =>
-                  matchesAll(document.title)
-                  || (recentIds.has(document.id) && document.contentText !== null && matchesAll(document.contentText)),
+              // Each pattern in the title, or in the text of a recent document
+              .filter(document =>
+                patterns.every(
+                  pattern =>
+                    matchesLike(document.title, pattern)
+                    || (recentIds.has(document.id)
+                      && document.contentText !== null
+                      && matchesLike(document.contentText, pattern)),
+                ),
               )
               .slice(0, 20)
               .map(searchRow)

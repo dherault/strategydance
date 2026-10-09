@@ -403,6 +403,11 @@ async function checkSearch() {
     !(await bySubstring(['推出'], [])).includes(chinese) && (await bySubstring(['计划'], [])).includes(chinese),
   )
   check('a substring escapes LIKE wildcards', (await bySubstring(['%'], [chinese])).length === 0)
+  check(
+    'a substring search takes each word from the title or the text',
+    (await bySubstring(['计划', '推出'], [chinese])).includes(chinese)
+      && !(await bySubstring(['计划', '推出'], [])).includes(chinese),
+  )
 }
 
 async function checkIndexing() {

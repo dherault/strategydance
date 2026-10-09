@@ -150,6 +150,17 @@ describe('search_documents', () => {
     expect(fake.calls).toContain('SearchDocumentsBySubstringForAgent')
   })
 
+  it('finds the words of a Chinese query split between the title and the text, as the index would', async () => {
+    const kit = await connect()
+    const split = documents.store('我们下个月推出新产品。', { title: '营销计划' })
+
+    documents.store('我们下个月推出新产品。', { title: '会议记录' })
+
+    const found = await kit.answer<Found>('search_documents', { query: '营销 推出' })
+
+    expect(found.documents.map(match => match.id)).toEqual([split.id])
+  })
+
   it('refuses a query past 100 characters or 8 words with a result the model can read', async () => {
     const kit = await connect()
 

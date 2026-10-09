@@ -961,9 +961,10 @@ query GetDocumentSearchCorpusForAgent(
   }
 }
 
-# A search in Chinese or Japanese, by substring, as `SearchConversationsBySubstring` searches
-# conversations: every pattern in the title of any document agents may read, or in the plain text
-# of one of the recent ones, up to 20. Always eight patterns, those a query leaves over `%`
+# A search in Chinese or Japanese, by substring: every pattern in the title of any document agents
+# may read, or in the plain text of one of the recent ones, each pattern in either, as the full-text
+# search takes each word from the title or the text, up to 20. Always eight patterns, those a query
+# leaves over `%`
 query SearchDocumentsBySubstringForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -996,31 +997,50 @@ query SearchDocumentsBySubstringForAgent(
         }
         {
           _or: [
-            {
-              _and: [
-                { title: { pattern: { like: $pattern0, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern1, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern2, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern3, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern4, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern5, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern6, ignoreCase: true } } }
-                { title: { pattern: { like: $pattern7, ignoreCase: true } } }
-              ]
-            }
-            {
-              _and: [
-                { id: { in: $recentIds } }
-                { contentText: { pattern: { like: $pattern0, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern1, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern2, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern3, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern4, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern5, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern6, ignoreCase: true } } }
-                { contentText: { pattern: { like: $pattern7, ignoreCase: true } } }
-              ]
-            }
+            { title: { pattern: { like: $pattern0, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern0, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern1, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern1, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern2, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern2, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern3, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern3, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern4, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern4, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern5, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern5, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern6, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern6, ignoreCase: true } } }] }
+          ]
+        }
+        {
+          _or: [
+            { title: { pattern: { like: $pattern7, ignoreCase: true } } }
+            { _and: [{ id: { in: $recentIds } }, { contentText: { pattern: { like: $pattern7, ignoreCase: true } } }] }
           ]
         }
       ]

@@ -59,7 +59,14 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
   text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last, and never
-  loads an image: draw the agent's text through it, never through `react-markdown` directly. It
+  loads an image: draw the agent's text through it, never through `react-markdown` directly. An
+  agent reads and writes a document's text in Markdown through the pair in its `lib/`,
+  `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
+  the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, and
+  a table without a header row under an empty one. `markdownToRichText` parses with markdown-it,
+  never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by
+  the thousand, text an agent could be told to write, and its tests hold markdown-it to the
+  length of a document. It
   imports itself by its package name, `strategydance-design-system/*` mapped to its `src/`, the
   alias shadcn writes with, so a component resolves the same when another package reads it as
   source. Its tokens and components
@@ -406,7 +413,10 @@ caret is, and `GetDocumentPresences` keeps them live for the carets and the face
 
 - Anything that writes a document's text, an agent included, writes it through Yjs. Once a
   document has a snapshot, a write to `content` alone is refused, and the next compaction would
-  write over it anyway
+  write over it anyway. The backend reads and writes it through `domain/knowledge/` alone, on the
+  rows a caller read: the snapshot with every pending update merged, as top-level blocks with
+  their ids and Markdown, and an edit folded into it, which says the `state`, `content` and
+  `contentText` to store and the updates to delete
 - Outside an editor, the text is written as a difference, through the design system's
   `updateRichTextYDoc`, never as a document rebuilt from blocks, which shares no history with the
   stored one and merges as a second copy. It keeps the nodes y-prosemirror's read produced, with
@@ -609,6 +619,12 @@ location off the router inside it, as `AuthenticationBouncer` does.
 in `routes/`, the Express middleware in `middleware/`, what a route does in `domain/`, helpers
 in `utils/`, one concern per file.
 
+- Rich text, its Yjs helpers and its Markdown come from the design system's `lib/`, imported by
+  their exported paths, `strategydance-design-system/lib/*`, never a component, and `yjs` at the
+  design system's range, so one copy resolves: the helpers test their Yjs types with `instanceof`.
+  The backend's `tsc` follows those modules into the editor's block specs, which build elements
+  with `document` in functions only an editor on a page calls, so its `lib` takes DOM, and the
+  emails' with it, so the two still agree
 - Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
   through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
   calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`

@@ -132,19 +132,21 @@ describe('searching by the full-text indexes', () => {
     expect((await search('pricing')).conversationIds).toEqual([kept])
   })
 
-  test('stops once every conversation somebody can keep has matched', async () => {
+  test('answers every match once every conversation somebody can keep has matched', async () => {
     for (let index = 0; index < MAX_CONVERSATIONS; index++) {
-      insertMessage(insertConversation({ title: `Conversation ${index}` }), 'MEMBER_TEXT', 'pricing')
+      const conversationId = insertConversation({ title: `Conversation ${index}` })
+
+      for (let message = 0; message < 6; message++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing')
     }
 
     const result = await search('pricing')
 
+    // The 5000 messages read reach only some of them, and the titles the rest
     expect(result.conversationIds).toHaveLength(MAX_CONVERSATIONS)
     expect(result.coverage).toBe('ALL')
-    expect(countCalls('SearchConversationMessages')).toBe(2)
   })
 
-  test('stops after ten pages, and answers the best matches', async () => {
+  test('reads the messages once, to 5000, and answers the best matches past them', async () => {
     const crowded = [insertConversation({ title: 'A' }), insertConversation({ title: 'B' })]
     const late = insertConversation({ title: 'C' })
 
@@ -152,25 +154,25 @@ describe('searching by the full-text indexes', () => {
       for (let index = 0; index < 3000; index++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing pricing')
     }
 
-    // Less relevant, so it comes after the ten pages
+    // Less relevant, so it comes after the 5000 read
     insertMessage(late, 'MEMBER_TEXT', 'pricing')
 
     const result = await search('pricing')
 
     expect(result.coverage).toBe('BEST_MATCHES')
     expect(result.conversationIds.sort()).toEqual([...crowded].sort())
-    expect(countCalls('SearchConversationMessages')).toBe(10)
+    expect(countCalls('SearchConversationMessages')).toBe(1)
   })
 
-  test('reads every page up to the tenth while they come back full', async () => {
+  test('answers every match while the messages fall short of 5000', async () => {
     const conversationId = insertConversation({ title: 'Launch' })
 
-    for (let index = 0; index < 4500; index++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing')
+    for (let index = 0; index < 4999; index++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing')
 
     const result = await search('pricing')
 
     expect(result.coverage).toBe('ALL')
-    expect(countCalls('SearchConversationMessages')).toBe(10)
+    expect(countCalls('SearchConversationMessages')).toBe(1)
   })
 })
 

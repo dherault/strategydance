@@ -297,12 +297,11 @@ async function checkFullText() {
 
     return data.conversations_search.map(conversation => conversation.id)
   }
-  const messages = async (query: string, offset = 0) => {
+  const messages = async (query: string) => {
     const { data } = await searchConversationMessages(dataConnect, {
       organizationId,
       userId: userIds.searcher,
       query,
-      offset,
     })
 
     return data.conversationMessages_search.map(message => message.conversationId)
@@ -319,7 +318,8 @@ async function checkFullText() {
   check('a message search finds the agent’s words, through Markdown', isSameSet(await messages('anchor'), [pricing]))
   check('a message search stems nothing: "run" misses "running"', isSameSet(await messages('run'), [hiring]))
   check('a message search leaves notes out', isSameSet(await messages('premium'), [pricing]))
-  check('a message search pages by offset', (await messages('premium', 500)).length === 0)
+  // One row a message, which the backend counts to 5000
+  check('a message search answers each matching message', isSameSet(await messages('the'), [pricing, pricing]))
   check('a French word is found inside an elision', isSameSet(await messages('équipe'), [french]))
   check('a French title is found in capitals', isSameSet(await titles('ÉQUIPE'), [french]))
   check('a word with an accent is found without the punctuation around it', isSameSet(await messages('été'), [french]))

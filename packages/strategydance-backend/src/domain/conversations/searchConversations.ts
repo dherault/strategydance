@@ -21,10 +21,9 @@ import isSubstringSearchQuery from '~utils/isSubstringSearchQuery'
 
 import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSearchPatterns'
 
-// How many messages `SearchConversationMessages` reads at a time, its `limit`, and how many pages a
-// search reads at most, so a few conversations with thousands of matches never keep it reading
-const MESSAGE_PAGE_SIZE = 500
-const MAX_MESSAGE_PAGES = 10
+// How many messages `SearchConversationMessages` reads at most, its `limit`: past it, a few
+// conversations with thousands of matches have used up the read
+const MAX_SEARCHED_MESSAGES = 5000
 
 const SEARCH_WINDOW_MS = CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000
 
@@ -103,36 +102,25 @@ async function recordSearch(reference: SearchReference) {
 }
 
 /*
-  The full-text search: every title holding the words, then the messages holding them, most
-  relevant first, a page at a time, collecting their conversations until every conversation the
-  caller can keep has matched, the messages run out, or ten pages are read. Past ten full pages the
-  answer is the best matches, which a narrower search completes
+  The full-text search: every title holding the words, and the 5000 most relevant messages holding
+  them, read at once rather than in pages, which a relevance order with no tie-break could make
+  skip a message at their boundary. The answer is every match while the messages read fell short of
+  5000, or reached every conversation the caller can keep, and the best matches otherwise, which a
+  narrower search completes
 */
 async function searchFullText(reference: SearchReference, query: string): Promise<SearchConversationsData> {
-  const [titles, firstPage] = await Promise.all([
+  const [titles, messages] = await Promise.all([
     searchConversationTitles(dataConnect, { ...reference, query }),
-    searchConversationMessages(dataConnect, { ...reference, query, offset: 0 }),
+    searchConversationMessages(dataConnect, { ...reference, query }),
   ])
   const conversationIds = new Set(titles.data.conversations_search.map(conversation => conversation.id))
-  let page = firstPage.data.conversationMessages_search
+  const matches = messages.data.conversationMessages_search
 
-  for (let pages = 1; ; pages++) {
-    for (const message of page) conversationIds.add(message.conversationId)
+  for (const message of matches) conversationIds.add(message.conversationId)
 
-    if (conversationIds.size >= MAX_CONVERSATIONS || page.length < MESSAGE_PAGE_SIZE) {
-      return { conversationIds: [...conversationIds], coverage: 'ALL' }
-    }
+  const isComplete = matches.length < MAX_SEARCHED_MESSAGES || conversationIds.size >= MAX_CONVERSATIONS
 
-    if (pages === MAX_MESSAGE_PAGES) return { conversationIds: [...conversationIds], coverage: 'BEST_MATCHES' }
-
-    const { data } = await searchConversationMessages(dataConnect, {
-      ...reference,
-      query,
-      offset: pages * MESSAGE_PAGE_SIZE,
-    })
-
-    page = data.conversationMessages_search
-  }
+  return { conversationIds: [...conversationIds], coverage: isComplete ? 'ALL' : 'BEST_MATCHES' }
 }
 
 /*

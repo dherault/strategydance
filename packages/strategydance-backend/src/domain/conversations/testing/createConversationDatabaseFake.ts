@@ -2164,7 +2164,7 @@ function createConversationDatabaseFake() {
           .map(message => ({ message, score: scoreMatch(message.text ?? '', variables.query) }))
           .filter(({ score }) => score > 0)
           .sort((a, b) => b.score - a.score || (a.message.id < b.message.id ? -1 : 1))
-          .slice(variables.offset, variables.offset + 500)
+          .slice(0, 5000)
           .map(({ message }) => ({ conversationId: message.conversationId })),
       }
     },

@@ -112,20 +112,24 @@ function NewTaskDialog({ status, onClose }: Props) {
       blockedIds: draft.blockedIds.filter(taskId => tasksById.has(taskId)),
     })
 
-    report(written)
     onClose()
-    toast.success(formatMessage(taskMessages.created), {
-      action: {
-        label: formatMessage(taskMessages.open),
-        onClick: () =>
-          navigate({
-            to: '/$organizationSlug/tasks/$taskId',
-            params: { organizationSlug, taskId: id },
-            state: { isFromTaskBoard: true },
-            resetScroll: false,
-          }),
-      },
-    })
+    // Once the server has it and its links, so Open never points at a task it refused
+    report(
+      written.then(() => {
+        toast.success(formatMessage(taskMessages.created), {
+          action: {
+            label: formatMessage(taskMessages.open),
+            onClick: () =>
+              navigate({
+                to: '/$organizationSlug/tasks/$taskId',
+                params: { organizationSlug, taskId: id },
+                state: { isFromTaskBoard: true },
+                resetScroll: false,
+              }),
+          },
+        })
+      }),
+    )
   }
 
   return (

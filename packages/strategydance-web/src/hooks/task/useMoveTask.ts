@@ -12,7 +12,8 @@ import taskMessages from '~data/intl/messages/task'
 
 /*
   Moves a task into a column, before a task or past the last, as a drop on the board or the
-  dialog's status does. A task moved to Done says which of the tasks waiting on it can start now
+  dialog's status does. A task moved to Done says which of the tasks waiting on it can start now,
+  once the server has the move
 */
 function useMoveTask() {
   const { formatMessage } = useIntl()
@@ -25,10 +26,13 @@ function useMoveTask() {
     const freed =
       task && task.status !== TaskStatus.DONE && status === TaskStatus.DONE ? getTasksUnblockedBy(taskId, tasks) : []
 
-    report(moveTask(taskId, status, beforeId))
-
-    if (freed.length === 1) toast.success(formatMessage(taskMessages.canStartNow, { name: freed[0]!.name }))
-    else if (freed.length > 1) toast.success(formatMessage(taskMessages.tasksCanStartNow, { count: freed.length }))
+    // Said once the server has the move, never for one it refused
+    report(
+      moveTask(taskId, status, beforeId).then(() => {
+        if (freed.length === 1) toast.success(formatMessage(taskMessages.canStartNow, { name: freed[0]!.name }))
+        else if (freed.length > 1) toast.success(formatMessage(taskMessages.tasksCanStartNow, { count: freed.length }))
+      }),
+    )
   }
 }
 

@@ -230,7 +230,12 @@ function createOrganizationsRouter() {
         })
 
         if (upload.outcome === 'too-large') {
-          respondError(response, 413, ERROR_CODE_BAD_REQUEST, `The ${kind} or its thumbnail is too large`)
+          respondError(
+            response,
+            413,
+            ERROR_CODE_BAD_REQUEST,
+            takesThumbnail ? `The ${kind} or its thumbnail is too large` : `The ${kind} is too large`,
+          )
 
           return
         }

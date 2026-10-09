@@ -5,25 +5,49 @@ import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   ConversationNoteKind,
   ConversationRunStatus,
+  answerConversationQuestion,
   claimDeletedConversations,
   claimQueuedConversationRun,
   connectorConfig,
+  continueConversationRun,
   deleteClaimedConversations,
+  ConversationToolStatus,
   drawConversationAgentText,
+  drawConversationAgentTextPiece,
+  drawConversationClientToolCall,
+  drawConversationQuestion,
+  drawConversationToolCall,
   expireQueuedConversationRunLease,
   finishConversationRun,
+  finishConversationRunWaiting,
   finishConversationRunWithNote,
+  finishConversationToolCall,
   getClaimedConversations,
+  getConversationCalls,
+  getConversationRequestContext,
+  getConversationRetryContext,
   getConversationRunContext,
+  getConversationRunControlContext,
+  getConversationRunLedgers,
+  getConversationRunStop,
+  getConversationTranscript,
   getConversationSendContext,
+  getConversationTurnContext,
   interruptConversationRun,
   interruptDeadConversationRun,
   reclaimConversationRun,
   renewConversationRunLease,
   renewQueuedConversationRunLease,
+  requestConversationRunStop,
+  resumeConversationRun,
+  retryConversationRun,
   sendConversationMessage,
+  sendConversationMessageAnsweringCalls,
   startConversation,
+  startConversationToolCall,
+  stopQueuedConversationRun,
   storeConversationTurn,
+  storeConversationTurnWithContext,
 } from 'strategydance-database/backend'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
@@ -77,6 +101,11 @@ const userIds = {
   pruner: `check-conversation-runs-${checkId}-pruner`,
   queuer: `check-conversation-runs-${checkId}-queuer`,
   sweeper: `check-conversation-runs-${checkId}-sweeper`,
+  drawer: `check-conversation-runs-${checkId}-drawer`,
+  stopper: `check-conversation-runs-${checkId}-stopper`,
+  resumer: `check-conversation-runs-${checkId}-resumer`,
+  retrier: `check-conversation-runs-${checkId}-retrier`,
+  asker: `check-conversation-runs-${checkId}-asker`,
 }
 
 const failures: string[] = []
@@ -97,6 +126,23 @@ async function read<Data>(query: string, variables: Variables = {}) {
   const { data } = await dataConnect.executeGraphql<Data, Variables>(query, { variables })
 
   return data
+}
+
+// Whether two JSON values are the same whatever their keys' order, since an `Any` column is
+// Postgres `jsonb`, which gives its keys back in an order of its own
+function isSameJson(a: unknown, b: unknown) {
+  const sorted = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(sorted)
+      : value !== null && typeof value === 'object'
+        ? Object.fromEntries(
+            Object.entries(value)
+              .sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))
+              .map(([key, item]) => [key, sorted(item)]),
+          )
+        : value
+
+  return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b))
 }
 
 // The cause of a refusal, which the Admin SDK puts on the first line of its message, or null when
@@ -606,14 +652,375 @@ async function checkDeadRuns() {
   )
 
   await expireLease(started.runId)
-  await interruptDeadConversationRun(dataConnect, interrupt)
+  await interruptDeadConversationRun(dataConnect, { ...interrupt, failure: 'Its worker stopped renewing its lease' })
 
   check(
-    'a run past its lease is finalized as interrupted, with its note',
+    'a run past its lease is finalized as interrupted, with its note and why',
     (await readRun(started.runId))?.status === ConversationRunStatus.INTERRUPTED
       && (await readConversation(started.conversationId))?.activeRunId === null
-      && (await readMessageAt(started.conversationId, 1))?.noteKind === ConversationNoteKind.INTERRUPTED,
+      && (await readMessageAt(started.conversationId, 1))?.noteKind === ConversationNoteKind.INTERRUPTED
+      && (
+        await read<{ conversationRun: { failure: string | null } | null }>(
+          `query ReadDeadFailure($id: UUID!) { conversationRun(id: $id) { failure } }`,
+          { id: started.runId },
+        )
+      ).conversationRun?.failure === 'Its worker stopped renewing its lease',
   )
+}
+
+/*
+  Stopping a run as its member asks: a queued one at once, with its note, and a claimed one asked to
+  stop, which its worker reads and ends
+*/
+async function checkStopping() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.stopper)
+  const queued = await start(userIds.stopper, membershipCreatedAt)
+  const queuedReference = {
+    organizationId,
+    userId: queued.userId,
+    conversationId: queued.conversationId,
+    runId: queued.runId,
+  }
+  const stopQueued = (reference: typeof queuedReference) =>
+    stopQueuedConversationRun(dataConnect, {
+      ...reference,
+      noteId: createId(),
+      position: 1,
+      preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+    })
+
+  check(
+    'a queued run is not asked to stop, only a claimed one',
+    (await requestConversationRunStop(dataConnect, queuedReference)).data.conversationRun_updateMany === 0,
+  )
+
+  await stopQueued(queuedReference)
+
+  check(
+    'a queued run stops at once, with its note and why, and lets its conversation go',
+    (await readRun(queued.runId))?.status === ConversationRunStatus.STOPPED
+      && (await readConversation(queued.conversationId))?.activeRunId === null
+      && (await readMessageAt(queued.conversationId, 1))?.noteKind === ConversationNoteKind.STOPPED
+      && (
+        await read<{ conversationRun: { failure: string | null } | null }>(
+          `query ReadFailure($id: UUID!) { conversationRun(id: $id) { failure } }`,
+          { id: queued.runId },
+        )
+      ).conversationRun?.failure === 'Its member stopped it while it was queued',
+  )
+  check('a stopped run is not stopped again', (await refusal(stopQueued(queuedReference))) !== null)
+
+  const claimed = await start(userIds.stopper, membershipCreatedAt)
+  const claimedReference = {
+    organizationId,
+    userId: claimed.userId,
+    conversationId: claimed.conversationId,
+    runId: claimed.runId,
+  }
+
+  await claimQueuedConversationRun(dataConnect, fence(claimed, 0))
+
+  check('a claimed run is not stopped as a queued one', (await refusal(stopQueued(claimedReference))) !== null)
+  check(
+    'a claimed run is asked to stop once',
+    (await requestConversationRunStop(dataConnect, claimedReference)).data.conversationRun_updateMany === 1
+      && (await requestConversationRunStop(dataConnect, claimedReference)).data.conversationRun_updateMany === 0,
+  )
+
+  const { data: asked } = await getConversationRunStop(dataConnect, claimedReference)
+  const { data: unseen } = await getConversationRunStop(dataConnect, { ...claimedReference, userId: userIds.member })
+
+  check(
+    'its worker reads that it was asked, and nobody else reads its run',
+    Boolean(asked.conversationRuns[0]?.stopRequestedAt) && unseen.conversationRuns.length === 0,
+  )
+
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(claimed, 1),
+    status: ConversationRunStatus.STOPPED,
+    noteKind: ConversationNoteKind.STOPPED,
+    noteId: createId(),
+    position: 1,
+    preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+    failure: 'Its member stopped it before its next request',
+  })
+
+  check(
+    'a run its worker stops ends stopped, with its note',
+    (await readRun(claimed.runId))?.status === ConversationRunStatus.STOPPED
+      && (await readMessageAt(claimed.conversationId, 1))?.noteKind === ConversationNoteKind.STOPPED,
+  )
+}
+
+/*
+  Resuming a run from its note: the note goes, a run starts on the anchor of the one it resumes, and
+  that run draws what the one it resumes stored and left undrawn
+*/
+async function checkResuming() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.resumer)
+  const started = await start(userIds.resumer, membershipCreatedAt)
+  const entryId = createId()
+  const noteId = createId()
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+  await storeConversationTurn(dataConnect, {
+    ...fence(started, 1),
+    entryId,
+    position: 1,
+    content: JSON.stringify([{ type: 'text', text: 'Stored, never drawn' }]),
+  })
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(started, 1),
+    status: ConversationRunStatus.STOPPED,
+    noteKind: ConversationNoteKind.STOPPED,
+    noteId,
+    position: 1,
+    preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+    failure: 'Its member stopped it before its next request',
+  })
+
+  const runId = createId()
+  const resume = (overrides: Variables = {}) =>
+    resumeConversationRun(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      membershipCreatedAt,
+      resumedRunId: started.runId,
+      resumedRunNumber: 0,
+      anchorPosition: 0,
+      noteId,
+      notePosition: 1,
+      nextMessagePosition: 2,
+      preview: { kind: 'MEMBER_TEXT', text: 'Checked message' },
+      previewMessageId: started.messageId,
+      runId,
+      runNumber: 1,
+      ...overrides,
+    })
+
+  check(
+    'a run resumes only the run right before it, from the newest message',
+    (await refusal(resume({ runNumber: 2 }))) !== null && (await refusal(resume({ notePosition: 0 }))) !== null,
+  )
+
+  await write(
+    `mutation AddAspects($conversationId: UUID!) {
+      conversationMessage_insert(data: { conversationId: $conversationId, kind: ASPECTS, position: 2, aspects: [STRATEGY] })
+      conversation_update(id: $conversationId, data: { nextMessagePosition_update: { inc: 1 }, messageCount_update: { inc: 1 } })
+    }`,
+    { conversationId: started.conversationId },
+  )
+
+  check(
+    'a run whose note something follows is not resumed',
+    (await refusal(resume())) !== null && (await refusal(resume({ nextMessagePosition: 3 }))) !== null,
+  )
+
+  await write(
+    `mutation RemoveAspects($conversationId: UUID!) {
+      conversationMessage_deleteMany(where: { conversationId: { eq: $conversationId }, kind: { eq: ASPECTS } })
+      conversation_update(id: $conversationId, data: { nextMessagePosition_update: { dec: 1 }, messageCount_update: { dec: 1 } })
+    }`,
+    { conversationId: started.conversationId },
+  )
+
+  const { data: control } = await getConversationRunControlContext(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+  })
+
+  check(
+    'a resume reads the latest runs, and the note and the message before it',
+    control.latestRuns[0]?.id === started.runId
+      && control.latestMessages[0]?.id === noteId
+      && control.latestMessages[1]?.id === started.messageId
+      && control.newestMessages[0]?.id === noteId,
+  )
+
+  await resume()
+
+  const conversation = await readConversation(started.conversationId)
+
+  check(
+    'a resume deletes the note and starts a run on the anchor',
+    (await readMessageAt(started.conversationId, 1)) === null
+      && conversation?.activeRunId === runId
+      && conversation.messageCount === 1
+      && conversation.previewMessageId === started.messageId
+      && (
+        await read<{ conversationRun: { trigger: string; status: string; anchorPosition: number } | null }>(
+          `query ReadResumed($id: UUID!) { conversationRun(id: $id) { trigger status anchorPosition } }`,
+          { id: runId },
+        )
+      ).conversationRun?.trigger === 'RESUME',
+  )
+  check('a run is resumed once', (await refusal(resume({ runId: createId(), runNumber: 2 }))) !== null)
+
+  const resumed = { ...started, runId }
+
+  await claimQueuedConversationRun(dataConnect, fence(resumed, 0))
+  await drawConversationAgentText(dataConnect, {
+    ...fence(resumed, 1),
+    entryId,
+    fromBlock: 0,
+    toBlock: 1,
+    messageId: createId(),
+    position: 2,
+    text: 'Stored, never drawn',
+    preview: { kind: 'AGENT_TEXT', text: 'Stored, never drawn' },
+  })
+
+  check(
+    'a resumed run draws what the run it resumes stored',
+    (await readMessageAt(started.conversationId, 2))?.kind === 'AGENT_TEXT',
+  )
+
+  await finishConversationRun(dataConnect, { ...fence(resumed, 1), status: ConversationRunStatus.COMPLETED })
+}
+
+/*
+  Retrying a run that ended with a note: back to its anchor, the messages its runs drew deleted but
+  the member's and an aspects note, the transcript cut, the history moved on, and a run on the anchor
+*/
+async function checkRetrying() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.retrier)
+  const started = await start(userIds.retrier, membershipCreatedAt)
+  const entryId = createId()
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+  await storeConversationTurnWithContext(dataConnect, {
+    ...fence(started, 1),
+    contextEntryId: createId(),
+    contextPosition: 1,
+    contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+    contextHash: 'hash',
+    entryId,
+    position: 2,
+    content: JSON.stringify([{ type: 'text', text: 'Half a reply' }]),
+  })
+  await drawConversationAgentText(dataConnect, {
+    ...fence(started, 1),
+    entryId,
+    fromBlock: 0,
+    toBlock: 1,
+    messageId: createId(),
+    position: 1,
+    text: 'Half a reply',
+    preview: { kind: 'AGENT_TEXT', text: 'Half a reply' },
+  })
+  await write(
+    `mutation AddAspects($conversationId: UUID!) {
+      conversationMessage_insert(data: { conversationId: $conversationId, kind: ASPECTS, position: 2, aspects: [STRATEGY] })
+      conversation_update(id: $conversationId, data: { nextMessagePosition_update: { inc: 1 }, messageCount_update: { inc: 1 }, isFull: true })
+    }`,
+    { conversationId: started.conversationId },
+  )
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(started, 1),
+    status: ConversationRunStatus.FAILED,
+    noteKind: ConversationNoteKind.FAILED,
+    noteId: createId(),
+    position: 3,
+    preview: { kind: 'NOTE', noteKind: 'FAILED' },
+    failure: 'Checked',
+  })
+
+  const key = { organizationId, userId: started.userId, conversationId: started.conversationId }
+  const { data: context } = await getConversationRetryContext(dataConnect, { ...key, anchorPosition: 0 })
+
+  check(
+    'a retry reads the runs on the anchor, what they drew and by which run, and the newest message it keeps',
+    context.anchorRuns.length === 1
+      && context.anchorRuns[0]?.id === started.runId
+      && context.drawnMessages[0]?._count === 2
+      && context.drawnRuns.length === 2
+      && context.drawnRuns.every(({ run }) => run?.id === started.runId)
+      && context.keptMessages[0]?.id === started.messageId,
+  )
+
+  const { data: ledgers } = await getConversationRunLedgers(dataConnect, { ...key, runIds: [started.runId] })
+  const { data: unseenLedgers } = await getConversationRunLedgers(dataConnect, {
+    ...key,
+    userId: userIds.member,
+    runIds: [started.runId],
+  })
+
+  check(
+    'a run’s ledger is read by its id, and by nobody else',
+    ledgers.conversationRuns[0]?.id === started.runId && unseenLedgers.conversationRuns.length === 0,
+  )
+
+  const runId = createId()
+  const retry = (overrides: Variables = {}) =>
+    retryConversationRun(dataConnect, {
+      ...key,
+      membershipCreatedAt,
+      retriedRunId: started.runId,
+      retriedRunNumber: 0,
+      anchorPosition: 0,
+      historyRevision: 0,
+      deletedCount: 2,
+      preview: { kind: 'MEMBER_TEXT', text: 'Checked message' },
+      previewMessageId: started.messageId,
+      runId,
+      runNumber: 1,
+      ...overrides,
+    })
+
+  check(
+    'a retry that counted other messages, or read another history, deletes nothing',
+    (await refusal(retry({ deletedCount: 1 }))) !== null
+      && (await refusal(retry({ historyRevision: 1 }))) !== null
+      && (await readMessageAt(started.conversationId, 1))?.kind === 'AGENT_TEXT',
+  )
+
+  await retry()
+
+  const conversation = await read<{
+    conversation: {
+      activeRunId: string | null
+      messageCount: number
+      historyRevision: number
+      unreadCount: number
+      isFull: boolean
+      previewMessageId: string | null
+    } | null
+  }>(
+    `query ReadRetried($id: UUID!) {
+      conversation(id: $id) { activeRunId messageCount historyRevision unreadCount isFull previewMessageId }
+    }`,
+    { id: started.conversationId },
+  )
+  const { data: transcript } = await getConversationTranscript(dataConnect, { ...key, afterPosition: -1 })
+
+  check(
+    'a retry deletes what the runs drew, but the member’s message and an aspects note',
+    (await readMessageAt(started.conversationId, 0))?.kind === 'MEMBER_TEXT'
+      && (await readMessageAt(started.conversationId, 1)) === null
+      && (await readMessageAt(started.conversationId, 2))?.kind === 'ASPECTS'
+      && (await readMessageAt(started.conversationId, 3)) === null,
+  )
+  check(
+    'a retry cuts the transcript back to the anchor',
+    transcript.conversationTranscriptEntries.map(({ position }) => position).join() === '0',
+  )
+  check(
+    'a retry moves the history on, reads nothing unread, frees a full conversation and takes the new run',
+    conversation.conversation?.activeRunId === runId
+      && conversation.conversation.messageCount === 2
+      && conversation.conversation.historyRevision === 1
+      && conversation.conversation.unreadCount === 0
+      && conversation.conversation.isFull === false
+      && conversation.conversation.previewMessageId === started.messageId,
+  )
+  check('a run is retried once', (await refusal(retry({ runId: createId(), runNumber: 2, deletedCount: 0 }))) !== null)
+
+  const retried = { ...started, runId }
+
+  await claimQueuedConversationRun(dataConnect, fence(retried, 0))
+  await finishConversationRun(dataConnect, { ...fence(retried, 1), status: ConversationRunStatus.COMPLETED })
 }
 
 /*
@@ -957,6 +1364,603 @@ async function checkSweeping() {
   )
 }
 
+/*
+  What a run's request to Claude is built from and what its reply draws: the context stored with
+  the first part, the transcript read in order, a web search's call, a text drawn in pieces with
+  its citations, the usage the run's writes carry, and a conversation marked full
+*/
+async function checkReplies() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.drawer)
+  const started = await start(userIds.drawer, membershipCreatedAt)
+  const reference = {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    runId: started.runId,
+  }
+  const readRunLedger = async () => {
+    const data = await read<{ conversationRun: { context: string | null; usage: unknown } | null }>(
+      `query ReadRunLedger($id: UUID!) { conversationRun(id: $id) { context usage } }`,
+      { id: started.runId },
+    )
+
+    return data.conversationRun
+  }
+  const readEntries = async () => {
+    const data = await read<{
+      conversationTranscriptEntries: {
+        position: number
+        role: string
+        contextHash: string | null
+        drawnBlocks: number
+        drawnPieces: number
+      }[]
+    }>(
+      `query ReadEntries($id: UUID!) {
+        conversationTranscriptEntries(where: { conversationId: { eq: $id } }, orderBy: [{ position: ASC }]) { position role contextHash drawnBlocks drawnPieces }
+      }`,
+      { id: started.conversationId },
+    )
+
+    return data.conversationTranscriptEntries
+  }
+  const readDrawn = async (id: string) => {
+    const data = await read<{
+      conversationMessage: {
+        kind: string
+        text: string | null
+        citations: unknown
+        toolName: string | null
+        toolStatus: string | null
+        toolOutput: string | null
+      } | null
+    }>(
+      `query ReadDrawn($id: UUID!) { conversationMessage(id: $id) { kind text citations toolName toolStatus toolOutput } }`,
+      { id },
+    )
+
+    return data.conversationMessage
+  }
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+
+  const fenced = fence(started, 1)
+  const context = JSON.stringify({ hash: 'profile-hash', content: [{ type: 'text', text: 'Context' }] })
+  const reserved = { requests: [{ model: 'claude-opus-5-5', isSettled: false }] }
+
+  await renewConversationRunLease(dataConnect, { ...fenced, context, usage: reserved })
+  await renewConversationRunLease(dataConnect, fenced)
+
+  const ledger = await readRunLedger()
+
+  check(
+    'a renewal writes the run’s context and usage, and one without them keeps them',
+    ledger?.context === context && isSameJson(ledger.usage, reserved),
+  )
+
+  const entryId = createId()
+  const turn = JSON.stringify([
+    { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: 'pricing' } },
+    { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_1', content: [] },
+    { type: 'text', text: 'First' },
+    { type: 'text', text: 'Second', citations: null },
+  ])
+  const withContext = {
+    ...fenced,
+    contextEntryId: createId(),
+    contextPosition: 1,
+    contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+    contextHash: 'profile-hash',
+    entryId,
+    position: 2,
+    content: turn,
+  }
+
+  check(
+    'a reply is stored right after its context or not at all',
+    (await refusal(storeConversationTurnWithContext(dataConnect, { ...withContext, position: 3 }))) !== null
+      && (await readEntries()).length === 1,
+  )
+
+  const settled = { requests: [{ model: 'claude-opus-5-5', isSettled: true, outputTokens: 12 }] }
+
+  await storeConversationTurnWithContext(dataConnect, { ...withContext, usage: settled })
+
+  const stored = await readEntries()
+
+  check(
+    'the context is stored with its hash just before the run’s first part, which settles the usage',
+    stored.map(({ role }) => role).join() === 'USER,SYSTEM,ASSISTANT'
+      && stored[1]?.contextHash === 'profile-hash'
+      && isSameJson((await readRunLedger())?.usage, settled),
+  )
+
+  const conversationKey = { organizationId, userId: started.userId, conversationId: started.conversationId }
+  const { data: page } = await getConversationTranscript(dataConnect, { ...conversationKey, afterPosition: 0 })
+  const { data: strangers } = await getConversationTranscript(dataConnect, {
+    ...conversationKey,
+    userId: userIds.member,
+    afterPosition: -1,
+  })
+
+  check(
+    'the transcript is read after a position, in order, by its author alone',
+    page.conversationTranscriptEntries.map(({ position }) => position).join() === '1,2'
+      && page.conversationTranscriptEntries[0]?.contextHash === 'profile-hash'
+      && strangers.conversationTranscriptEntries.length === 0,
+  )
+
+  const { data: runContext } = await getConversationRunContext(dataConnect, reference)
+
+  check(
+    'a run’s context reads its replies with their cursors, its context and its usage',
+    runContext.runEntries.length === 1
+      && runContext.runEntries[0]?.drawnPieces === 0
+      && runContext.conversationRuns[0]?.context === context,
+  )
+
+  const callId = createId()
+  const call = {
+    ...fenced,
+    entryId,
+    fromBlock: 0,
+    toBlock: 2,
+    messageId: callId,
+    position: 1,
+    toolUseId: 'srvtoolu_1',
+    toolName: 'web_search',
+    toolStatus: ConversationToolStatus.SUCCEEDED,
+    toolInput: '{"query":"pricing"}',
+    toolOutput: '{"results":[]}',
+    preview: { kind: 'TOOL_CALL', toolName: 'web_search', toolStatus: 'SUCCEEDED' },
+  }
+
+  check(
+    'a server tool call is drawn finished or not at all',
+    (await refusal(drawConversationToolCall(dataConnect, { ...call, toolStatus: ConversationToolStatus.RUNNING })))
+      !== null,
+  )
+
+  await drawConversationToolCall(dataConnect, call)
+
+  const drawnCall = await readDrawn(callId)
+
+  check(
+    'a web search is drawn as a finished call past its blocks, unread left alone',
+    drawnCall?.kind === 'TOOL_CALL'
+      && drawnCall.toolStatus === 'SUCCEEDED'
+      && drawnCall.toolOutput === '{"results":[]}'
+      && (await readEntries())[2]?.drawnBlocks === 2
+      && (await readConversation(started.conversationId))?.unreadCount === 0,
+  )
+
+  const citations = [{ start: 0, end: 5, sources: [{ url: 'https://example.com', title: 'Example', citedText: 'x' }] }]
+  const first = {
+    ...fenced,
+    entryId,
+    fromBlock: 2,
+    toBlock: 2,
+    toPiece: 1,
+    messageId: createId(),
+    position: 2,
+    text: 'First',
+    citations,
+    preview: { kind: 'AGENT_TEXT', text: 'First' },
+  }
+
+  check(
+    'a first piece never moves the cursor back',
+    (await refusal(drawConversationAgentText(dataConnect, { ...first, toBlock: 1 }))) !== null,
+  )
+
+  await drawConversationAgentText(dataConnect, first)
+
+  check(
+    'a first piece moves the cursor to the next piece, keeps its citations and adds the unread',
+    (await readEntries())[2]?.drawnPieces === 1
+      && isSameJson((await readDrawn(first.messageId))?.citations, citations)
+      && (await readConversation(started.conversationId))?.unreadCount === 1,
+  )
+  check(
+    'a whole text is not drawn while a text is part drawn',
+    (await refusal(
+      drawConversationAgentText(dataConnect, { ...first, toPiece: undefined, toBlock: 4, messageId: createId() }),
+    )) !== null,
+  )
+
+  const piece = {
+    ...fenced,
+    entryId,
+    block: 2,
+    fromPiece: 1,
+    toBlock: 2,
+    toPiece: 2,
+    messageId: createId(),
+    position: 3,
+    text: 'Fir',
+    preview: { kind: 'AGENT_TEXT', text: 'Fir' },
+  }
+
+  await drawConversationAgentTextPiece(dataConnect, piece)
+
+  check(
+    'a later piece is drawn once, and adds no unread',
+    (await refusal(drawConversationAgentTextPiece(dataConnect, { ...piece, messageId: createId(), position: 4 })))
+      !== null && (await readConversation(started.conversationId))?.unreadCount === 1,
+  )
+
+  await drawConversationAgentTextPiece(dataConnect, {
+    ...piece,
+    fromPiece: 2,
+    toBlock: 4,
+    toPiece: 0,
+    messageId: createId(),
+    position: 4,
+    text: 'st',
+    preview: { kind: 'AGENT_TEXT', text: 'st' },
+  })
+
+  const drawnEntry = (await readEntries())[2]
+
+  check(
+    'the last piece moves the cursor past the text and back to piece 0',
+    drawnEntry?.drawnBlocks === 4 && drawnEntry.drawnPieces === 0,
+  )
+
+  const { data: requestContext } = await getConversationRequestContext(dataConnect, conversationKey)
+
+  check(
+    'a request’s context reads the member, the organization, the conversation and its runs’ usage',
+    requestContext.organization?.name === 'Checked organization'
+      && requestContext.userOrganization?.role !== undefined
+      && requestContext.conversations.length === 1
+      && requestContext.conversationRuns[0]?.id === started.runId,
+  )
+
+  check(
+    'a run cannot end with another status’s note',
+    (await refusal(
+      finishConversationRunWithNote(dataConnect, {
+        ...fenced,
+        status: ConversationRunStatus.STOPPED,
+        noteKind: ConversationNoteKind.FULL,
+        noteId: createId(),
+        position: 5,
+        preview: { kind: 'NOTE', noteKind: 'FULL' },
+        failure: 'Mismatched',
+      }),
+    )) !== null,
+  )
+
+  await finishConversationRunWithNote(dataConnect, {
+    ...fenced,
+    status: ConversationRunStatus.FAILED,
+    noteKind: ConversationNoteKind.FULL,
+    noteId: createId(),
+    position: 5,
+    preview: { kind: 'NOTE', noteKind: 'FULL' },
+    isFull: true,
+    usage: settled,
+    failure: 'Its next request would take 900000 input tokens',
+  })
+
+  const ended = await read<{
+    conversation: { isFull: boolean } | null
+    conversationRun: { failure: string | null } | null
+  }>(
+    `query ReadFull($id: UUID!, $runId: UUID!) { conversation(id: $id) { isFull } conversationRun(id: $runId) { failure } }`,
+    { id: started.conversationId, runId: started.runId },
+  )
+
+  check('a run ending full marks its conversation full', ended.conversation?.isFull === true)
+  check(
+    'a run ending with a note says why',
+    ended.conversationRun?.failure === 'Its next request would take 900000 input tokens',
+  )
+
+  const finished = await start(userIds.drawer, membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(finished, 0))
+  await finishConversationRun(dataConnect, {
+    ...fence(finished, 1),
+    status: ConversationRunStatus.COMPLETED,
+    usage: settled,
+  })
+
+  const finishedLedger = await read<{ conversationRun: { usage: unknown } | null }>(
+    `query ReadFinished($id: UUID!) { conversationRun(id: $id) { usage } }`,
+    { id: finished.runId },
+  )
+
+  check('a run finishing settles its usage', isSameJson(finishedLedger.conversationRun?.usage, settled))
+}
+
+/*
+  Questions and the calls of a turn: drawing a question within its bounds and a call to run,
+  starting and finishing a call with the results the run keeps, ending a run waiting on its
+  questions, answers counted under the conversation's lock, so two last answers at once never both
+  see the other waiting, and an answer's continuation raced against a send, exactly one consuming
+  the waiting turn
+*/
+async function checkQuestions() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.asker)
+
+  // A run that asked two questions and called a tool beside them, all drawn, its call run, waiting
+  async function startWaiting() {
+    const started = await start(userIds.asker, membershipCreatedAt)
+    const entryId = createId()
+    const questions = [createId(), createId()]
+    const callId = createId()
+
+    await claimQueuedConversationRun(dataConnect, fence(started, 0))
+    await storeConversationTurnWithContext(dataConnect, {
+      ...fence(started, 1),
+      contextEntryId: createId(),
+      contextPosition: 1,
+      contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+      contextHash: 'hash',
+      entryId,
+      position: 2,
+      content: JSON.stringify([
+        { type: 'tool_use', id: `toolu_${questions[0]}`, name: 'ask_user', input: {} },
+        { type: 'tool_use', id: `toolu_${questions[1]}`, name: 'ask_user', input: {} },
+        { type: 'tool_use', id: `toolu_${callId}`, name: 'read_log', input: {} },
+      ]),
+    })
+
+    const question = (index: number, overrides: Variables = {}) =>
+      drawConversationQuestion(dataConnect, {
+        ...fence(started, 1),
+        entryId,
+        fromBlock: index,
+        toBlock: index + 1,
+        messageId: questions[index] ?? '',
+        position: index + 1,
+        toolUseId: `toolu_${questions[index]}`,
+        questionPrompt: `Question ${index}`,
+        questionOptions: ['A', 'B'],
+        isMultipleChoice: true,
+        preview: { kind: 'QUESTION', questionState: 'WAITING', text: `Question ${index}` },
+        ...overrides,
+      })
+
+    return { started, entryId, questions, callId, question }
+  }
+
+  const waiting = await startWaiting()
+  const { started, entryId, questions, callId, question } = waiting
+
+  check(
+    'a question past its bounds is never drawn',
+    (await refusal(question(0, { questionPrompt: 'a'.repeat(1001) }))) !== null
+      && (await refusal(question(0, { questionOptions: ['A'] }))) !== null
+      && (await refusal(question(0, { questionOptions: ['A', 'b'.repeat(201)] }))) !== null,
+  )
+  check(
+    'a question at its bounds is drawn, unread',
+    (await refusal(question(0, { questionPrompt: 'a'.repeat(1000), questionOptions: ['A', 'b'.repeat(200)] }))) === null
+      && (await readConversation(started.conversationId))?.unreadCount === 1,
+  )
+  check('a question is drawn once', (await refusal(question(0))) !== null)
+
+  await question(1)
+
+  const call = (overrides: Variables = {}) =>
+    drawConversationClientToolCall(dataConnect, {
+      ...fence(started, 1),
+      entryId,
+      fromBlock: 2,
+      toBlock: 3,
+      messageId: callId,
+      position: 3,
+      toolUseId: `toolu_${callId}`,
+      toolName: 'read_log',
+      toolInput: '{}',
+      preview: { kind: 'TOOL_CALL', toolName: 'read_log', toolStatus: 'RUNNING' },
+      ...overrides,
+    })
+
+  check('a call to run is drawn running', (await refusal(call())) === null)
+
+  const startCall = () => startConversationToolCall(dataConnect, { ...fence(started, 1), messageId: callId })
+  const finishCall = (overrides: Variables = {}) =>
+    finishConversationToolCall(dataConnect, {
+      ...fence(started, 1),
+      messageId: callId,
+      toolStatus: ConversationToolStatus.SUCCEEDED,
+      toolOutput: '{"entries":[]}',
+      toolDurationMs: 12,
+      pendingToolResults: JSON.stringify([{ type: 'tool_result', tool_use_id: `toolu_${callId}`, content: '[]' }]),
+      preview: { kind: 'TOOL_CALL', toolName: 'read_log', toolStatus: 'SUCCEEDED' },
+      ...overrides,
+    })
+
+  check(
+    'a call starts, and starts again after a crash',
+    (await refusal(startCall())) === null && (await refusal(startCall())) === null,
+  )
+  check('a call finishes only succeeded or failed', (await refusal(finishCall({ toolStatus: 'CANCELLED' }))) !== null)
+  check('a call finishes, its result kept on the run', (await refusal(finishCall())) === null)
+  check(
+    'a call finishes once, and never starts again once it has',
+    (await refusal(finishCall())) !== null && (await refusal(startCall())) !== null,
+  )
+
+  const { data: calls } = await getConversationCalls(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    toolUseIds: [`toolu_${callId}`],
+  })
+
+  check(
+    'the run keeps the results of its turn’s calls',
+    calls.latestRuns[0]?.pendingToolResults?.includes(`toolu_${callId}`) === true
+      && calls.conversationMessages[0]?.toolStatus === ConversationToolStatus.SUCCEEDED,
+  )
+
+  await finishConversationRunWaiting(dataConnect, { ...fence(started, 1) })
+
+  const waitingConversation = await read<{
+    conversation: { isAwaitingAnswer: boolean; activeRunId: string | null } | null
+  }>(`query ReadWaiting($id: UUID!) { conversation(id: $id) { isAwaitingAnswer activeRunId } }`, {
+    id: started.conversationId,
+  })
+
+  check(
+    'a run ending on questions waits, and its conversation waits for the answers',
+    (await readRun(started.runId))?.status === ConversationRunStatus.WAITING
+      && waitingConversation.conversation?.isAwaitingAnswer === true
+      && waitingConversation.conversation.activeRunId === null,
+  )
+
+  const answer = (index: number, overrides: Variables = {}) =>
+    answerConversationQuestion(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      runId: started.runId,
+      messageId: questions[index] ?? '',
+      previewMessageId: callId,
+      answerSelected: ['A'],
+      ...overrides,
+    })
+
+  check(
+    'an answer is refused once the preview moved, or past its bounds',
+    (await refusal(answer(0, { previewMessageId: createId() }))) !== null
+      && (await refusal(answer(0, { answerSelected: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] }))) !== null
+      && (await refusal(answer(0, { answerSelected: [], answerOther: 'a'.repeat(501) }))) !== null
+      && (await refusal(answer(0, { answerSelected: [] }))) !== null,
+  )
+
+  const continueRun = (runId: string) =>
+    continueConversationRun(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      membershipCreatedAt,
+      waitingRunId: started.runId,
+      runId,
+      runNumber: 1,
+      content: JSON.stringify([{ type: 'tool_result', tool_use_id: 'x', content: '' }]),
+      transcriptPosition: 3,
+    })
+
+  const { data: firstAnswer } = await answer(0)
+
+  check('an answer counts the questions still waiting', firstAnswer.left?.conversationMessages.length === 1)
+  check('a question is answered once', (await refusal(answer(0))) !== null)
+  check('nothing carries on while a question waits', (await refusal(continueRun(createId()))) !== null)
+
+  const { data: lastAnswer } = await answer(1, { answerSelected: [], answerOther: 'Own words' })
+
+  check('the last answer finds none waiting', lastAnswer.left?.conversationMessages.length === 0)
+
+  const send = (overrides: Variables = {}) =>
+    sendConversationMessageAnsweringCalls(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      membershipCreatedAt,
+      messageId: createId(),
+      text: 'Instead',
+      preview: { kind: 'MEMBER_TEXT', text: 'Instead' },
+      position: 4,
+      runId: createId(),
+      runNumber: 1,
+      content: JSON.stringify([{ type: 'text', text: 'Instead' }]),
+      transcriptPosition: 3,
+      lastRunId: started.runId,
+      isLastRunWaiting: true,
+      skippedQuestionIds: [],
+      ...overrides,
+    })
+
+  check(
+    'a send that reads the waiting run wrong, or skips a question answered, is refused',
+    (await refusal(send({ isLastRunWaiting: false }))) !== null
+      && (await refusal(send({ skippedQuestionIds: [questions[0]] }))) !== null,
+  )
+
+  const races = await Promise.all([refusal(continueRun(createId())), refusal(send())])
+
+  check(
+    'an answer’s continuation and a send at once consume the waiting turn once',
+    races.filter(raced => raced === null).length === 1
+      && (await readRun(started.runId))?.status === ConversationRunStatus.CONTINUED,
+  )
+  check('a consumed turn is consumed by nothing else', (await refusal(continueRun(createId()))) !== null)
+
+  // Two last answers at once, each to its own question: the lock has the second see the first
+  const second = await startWaiting()
+
+  await second.question(0)
+  await second.question(1)
+  await finishConversationRunWaiting(dataConnect, { ...fence(second.started, 1) })
+
+  const answerSecond = (index: number) =>
+    answerConversationQuestion(dataConnect, {
+      organizationId,
+      userId: second.started.userId,
+      conversationId: second.started.conversationId,
+      runId: second.started.runId,
+      messageId: second.questions[index] ?? '',
+      previewMessageId: second.questions[1] ?? '',
+      answerSelected: ['B'],
+    })
+  const lefts = await Promise.all([answerSecond(0), answerSecond(1)])
+
+  check(
+    'two last answers at once never both see the other waiting',
+    lefts
+      .map(({ data }) => data.left?.conversationMessages.length ?? -1)
+      .sort()
+      .join() === '0,1',
+  )
+
+  // A call drawn by one run is cancelled by the next run's end, which runs it after a resume
+  await write(
+    `mutation AddRunningCall($conversationId: UUID!, $runId: UUID!) {
+      conversationMessage_insert(data: { conversationId: $conversationId, runId: $runId, kind: TOOL_CALL, toolName: "read_log", toolStatus: RUNNING, position: 999 })
+    }`,
+    { conversationId: started.conversationId, runId: started.runId },
+  )
+
+  const { data: turn } = await getConversationTurnContext(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+  })
+  const [continuing] = turn.latestRuns
+
+  if (!continuing) throw new Error('No run carries the conversation on')
+
+  const continued = { ...started, runId: continuing.id }
+
+  await claimQueuedConversationRun(dataConnect, fence(continued, 0))
+  await finishConversationRunWithNote(dataConnect, {
+    ...fence(continued, 1),
+    status: ConversationRunStatus.STOPPED,
+    noteKind: ConversationNoteKind.STOPPED,
+    noteId: createId(),
+    position: (await readConversation(started.conversationId))?.nextMessagePosition ?? 0,
+    preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+  })
+
+  const toolStatus = await read<{ conversationMessages: { toolStatus: string | null }[] }>(
+    `query ReadCall($conversationId: UUID!) {
+      conversationMessages(where: { conversationId: { eq: $conversationId }, position: { eq: 999 } }) { toolStatus }
+    }`,
+    { conversationId: started.conversationId },
+  )
+
+  check(
+    'a run’s end cancels the calls running in its conversation, whichever run drew them',
+    toolStatus.conversationMessages[0]?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+}
+
 try {
   await setUp()
 
@@ -966,12 +1970,17 @@ try {
   await checkFinishing()
   await checkMembership()
   await checkDeadRuns()
+  await checkStopping()
+  await checkResuming()
+  await checkRetrying()
   await checkQueuedLeases()
   // The claiming checks leave the sender's conversation idle, its next position 2 and its next run 1
   await checkSending(started)
   await checkCaps()
   await checkPruning()
   await checkSweeping()
+  await checkReplies()
+  await checkQuestions()
 } finally {
   await tearDown()
 }

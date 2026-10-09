@@ -1,6 +1,7 @@
 import { CheckIcon, SkipForwardIcon } from 'lucide-react'
-import { useId } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 import { useIntl } from 'react-intl'
+import { MAX_ANSWER_OTHER_LENGTH, checkConversationAnswer } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Checkbox } from 'strategydance-design-system/components/ui/Checkbox'
 import { Input } from 'strategydance-design-system/components/ui/Input'
@@ -9,34 +10,128 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { ConversationMessageBody, ConversationThreadEntry } from '~types'
 
+import useAnswerConversationQuestion from '~hooks/conversation/useAnswerConversationQuestion'
+
+import getConversationAnswerFailure, {
+  type ConversationAnswerFailure,
+} from '~utils/conversation/getConversationAnswerFailure'
+import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
+
+import Spinner from '~components/common/Spinner'
+
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
+  conversationId: string
   entry: ConversationThreadEntry
   body: ConversationMessageBody
+  // The run the conversation waits on, while it waits for this question's answer, and null otherwise
+  waitingRunId: string | null
+  // Whether another question of the same turn still waits, which answering this one leaves waiting
+  hasOtherWaiting: boolean
+  onRunStart: (startedRun: StartedConversationRun) => void
 }
 
-/*
-  A question Strategy Dance asked, with its options as radios, or checkboxes when several apply.
+const NOTICE_MESSAGES = {
+  conflict: conversationMessages.questionConflict,
+  unavailable: conversationMessages.questionUnavailable,
+  error: conversationMessages.questionError,
+  queued: conversationMessages.questionQueued,
+} as const
 
-  Answered, the options chosen are ticked and the rest muted, and an answer in the reader's own
-  words shows as one more option. Skipped, everything is muted. Waiting, it shows how to answer,
-  every control off until answering arrives with the composer's questions
+/*
+  A question Strategy Dance asked, with its options as radios, or checkboxes when several apply,
+  and a last option in the reader's own words, which typing in its field chooses.
+
+  Waiting, while the conversation waits for it, the reader answers it: Send answer goes once the
+  answer fits the question, as the backend checks it, and the run that carries the conversation on
+  starts once every question of the turn is answered. One the response it belongs to was stopped or
+  cut off before, which a resume makes answerable again, shows its options off. Answered, the
+  options chosen are ticked and the rest muted, and an answer in the reader's own words shows as one
+  more option. Skipped, everything is muted
 */
-function ConversationQuestion({ entry, body }: Props) {
+function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOtherWaiting, onRunStart }: Props) {
   const { formatMessage } = useIntl()
+  const answerConversationQuestion = useAnswerConversationQuestion()
   const promptId = useId()
   const name = useId()
+  const [selected, setSelected] = useState<string[]>([])
+  const [isOtherChosen, setIsOtherChosen] = useState(false)
+  const [other, setOther] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  /*
+    What sending the answer came to when it did not start a run: a failure, or an answer kept that
+    the conversation goes on from later, the reader having runs going elsewhere. Each is said while
+    the conversation still waits on the run it was sent to, and goes once the live data moves on
+  */
+  const [notice, setNotice] = useState<{
+    kind: ConversationAnswerFailure | 'queued'
+    waitingRunId: string
+  } | null>(null)
   const options = body.questionOptions ?? []
   const isMultipleChoice = body.isMultipleChoice ?? false
   const Control = isMultipleChoice ? Checkbox : Radio
   const isSkipped = entry.isAnswerSkipped
   const isAnswered = !isSkipped && Boolean(entry.answeredAt)
   const isWaiting = !isSkipped && !isAnswered
-  const selected = entry.answerSelected ?? []
+  const isAnswerable = isWaiting && waitingRunId !== null
+  const answer = { selected, other: isOtherChosen ? other : null }
+  const canSend =
+    isAnswerable && !isSending && checkConversationAnswer({ options, isMultipleChoice }, answer).outcome === 'valid'
+  const answeredOptions = entry.answerSelected ?? []
+
+  function choose(option: string, isChecked: boolean) {
+    if (!isMultipleChoice) {
+      setSelected([option])
+      setIsOtherChosen(false)
+
+      return
+    }
+
+    setSelected(current =>
+      isChecked
+        ? options.filter(candidate => candidate === option || current.includes(candidate))
+        : current.filter(candidate => candidate !== option),
+    )
+  }
+
+  function chooseOther(isChecked: boolean) {
+    setIsOtherChosen(isChecked)
+
+    if (isChecked && !isMultipleChoice) setSelected([])
+  }
+
+  function write(value: string) {
+    setOther(value)
+
+    if (value.trim() && !isOtherChosen) chooseOther(true)
+  }
+
+  async function send(event: FormEvent) {
+    event.preventDefault()
+
+    if (!canSend || !waitingRunId) return
+
+    setIsSending(true)
+    setNotice(null)
+
+    try {
+      const { runId } = await answerConversationQuestion({ conversationId, messageId: entry.id, answer })
+
+      if (runId) onRunStart({ runId, previousRunId: waitingRunId })
+      else if (!hasOtherWaiting) setNotice({ kind: 'queued', waitingRunId })
+    } catch (error) {
+      console.error('The answer could not be sent', error)
+
+      setNotice({ kind: getConversationAnswerFailure(error), waitingRunId })
+    } finally {
+      setIsSending(false)
+    }
+  }
 
   function renderEyebrow() {
-    if (isWaiting) return formatMessage(conversationMessages.questionWaiting)
+    if (isAnswerable) return formatMessage(conversationMessages.questionWaiting)
+    if (isWaiting) return formatMessage(conversationMessages.questionUnanswered)
 
     return (
       <>
@@ -66,7 +161,7 @@ function ConversationQuestion({ entry, body }: Props) {
       return (
         <>
           {options.map(option => (
-            <div key={option}>{renderAnsweredOption(option, isAnswered && selected.includes(option))}</div>
+            <div key={option}>{renderAnsweredOption(option, isAnswered && answeredOptions.includes(option))}</div>
           ))}
           {isAnswered && entry.answerOther ? (
             <div>
@@ -77,6 +172,8 @@ function ConversationQuestion({ entry, body }: Props) {
       )
     }
 
+    const isOff = !isAnswerable || isSending
+
     return (
       <>
         {options.map(option => (
@@ -84,20 +181,29 @@ function ConversationQuestion({ entry, body }: Props) {
             <Control
               name={name}
               label={option}
-              disabled
+              checked={selected.includes(option)}
+              disabled={isOff}
+              onChange={event => choose(option, event.target.checked)}
             />
           </div>
         ))}
-        <div className="flex items-center gap-2 opacity-50">
+        <div className={cn('flex items-center gap-2', !isAnswerable && 'opacity-50')}>
           <Control
             name={name}
             aria-label={formatMessage(conversationMessages.questionWriteOwn)}
-            disabled
+            checked={isOtherChosen}
+            disabled={isOff}
+            onChange={event => chooseOther(event.target.checked)}
           />
           <Input
             placeholder={formatMessage(conversationMessages.questionWriteOwn)}
             aria-label={formatMessage(conversationMessages.questionOwnAnswer)}
-            disabled
+            value={other}
+            // Two code units a character at most, as `maxLength` counts them: the answer's check
+            // holds the words to their 500 characters
+            maxLength={MAX_ANSWER_OTHER_LENGTH * 2}
+            disabled={isOff}
+            onChange={event => write(event.target.value)}
             className="h-8 min-w-0 flex-1 text-sm"
           />
         </div>
@@ -105,19 +211,35 @@ function ConversationQuestion({ entry, body }: Props) {
     )
   }
 
+  function renderNotice() {
+    if (!notice || notice.waitingRunId !== waitingRunId) return null
+
+    const isFailure = notice.kind !== 'queued'
+
+    return (
+      <p
+        role={isFailure ? 'alert' : 'status'}
+        className={cn('m-0 text-xs', isFailure ? 'text-danger' : 'text-muted-foreground')}
+      >
+        {formatMessage(NOTICE_MESSAGES[notice.kind])}
+      </p>
+    )
+  }
+
   return (
-    <div
+    <form
       role={isWaiting && !isMultipleChoice ? 'radiogroup' : 'group'}
       aria-labelledby={promptId}
+      onSubmit={send}
       className={cn(
         'flex min-w-0 flex-col gap-3 rounded-xs border bg-white px-3.5 pt-3.5 pb-3',
-        isWaiting ? 'border-primary-200' : 'border-border',
+        isAnswerable ? 'border-primary-200' : 'border-border',
       )}
     >
       <span
         className={cn(
           'flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase',
-          isWaiting ? 'text-primary' : 'text-muted-foreground',
+          isAnswerable ? 'text-primary' : 'text-muted-foreground',
         )}
       >
         {renderEyebrow()}
@@ -139,17 +261,20 @@ function ConversationQuestion({ entry, body }: Props) {
         </p>
       ) : null}
       <div className="flex flex-col gap-2.5">{renderOptions()}</div>
-      {isWaiting ? (
+      {renderNotice()}
+      {isAnswerable ? (
         <div className="flex justify-end">
           <Button
+            type="submit"
             size="sm"
-            disabled
+            icon={isSending ? <Spinner tone="current" /> : undefined}
+            disabled={!canSend}
           >
             {formatMessage(conversationMessages.questionSend)}
           </Button>
         </div>
       ) : null}
-    </div>
+    </form>
   )
 }
 

@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'bun:test'
 
-import { MAX_CONVERSATION_PREVIEW_LENGTH } from '../constants'
+import { MAX_ANSWER_OTHER_LENGTH, MAX_CONVERSATION_PREVIEW_LENGTH } from '../constants'
 
-import { buildConversationPreview, buildConversationTitle } from './conversation'
+import {
+  buildConversationPreview,
+  buildConversationTitle,
+  checkConversationAnswer,
+  hasControlCharacter,
+} from './conversation'
 
 function previewText(text: string) {
   const preview = buildConversationPreview({ kind: 'AGENT_TEXT', text })
@@ -293,5 +298,84 @@ describe('buildConversationTitle', () => {
     expect(buildConversationTitle('| Plan | Price |\n| --- | --- |\n| Solo | 19 |')).toBe(
       '| Plan | Price | | --- | --- | | Solo | 19 |',
     )
+  })
+})
+
+describe('hasControlCharacter', () => {
+  it('finds a control character, U+0000 and line breaks included, and nothing in plain text', () => {
+    expect(hasControlCharacter('A plain answer, with an accent: é')).toBe(false)
+    expect(hasControlCharacter(`acct${String.fromCharCode(0)}admin`)).toBe(true)
+    expect(hasControlCharacter('two\nlines')).toBe(true)
+    expect(hasControlCharacter(`bell${String.fromCharCode(7)}`)).toBe(true)
+    expect(hasControlCharacter(`next line${String.fromCharCode(0x85)}`)).toBe(true)
+  })
+})
+
+describe('checkConversationAnswer', () => {
+  const single = { options: ['€19', '€29', '€49'], isMultipleChoice: false }
+  const multiple = { options: ['X', 'Product Hunt', 'LinkedIn'], isMultipleChoice: true }
+
+  it('takes one option, or own words, for a single-choice question', () => {
+    expect(checkConversationAnswer(single, { selected: ['€29'], other: null })).toEqual({
+      outcome: 'valid',
+      answer: { selected: ['€29'], other: null },
+    })
+    expect(checkConversationAnswer(single, { selected: [], other: '  Free for a month  ' })).toEqual({
+      outcome: 'valid',
+      answer: { selected: [], other: 'Free for a month' },
+    })
+  })
+
+  it('takes several options and own words for a multiple-choice question, in the question’s order', () => {
+    expect(checkConversationAnswer(multiple, { selected: ['LinkedIn', 'X'], other: 'A newsletter' })).toEqual({
+      outcome: 'valid',
+      answer: { selected: ['X', 'LinkedIn'], other: 'A newsletter' },
+    })
+  })
+
+  it('reads own words of whitespace alone as none', () => {
+    expect(checkConversationAnswer(multiple, { selected: ['X'], other: '   ' })).toEqual({
+      outcome: 'valid',
+      answer: { selected: ['X'], other: null },
+    })
+  })
+
+  it('refuses an option the question does not offer, and one chosen twice', () => {
+    expect(checkConversationAnswer(single, { selected: ['€99'], other: null }).outcome).toBe('invalid')
+    expect(checkConversationAnswer(multiple, { selected: ['X', 'X'], other: null }).outcome).toBe('invalid')
+  })
+
+  it('refuses a second option, or an option with own words, for a single-choice question', () => {
+    expect(checkConversationAnswer(single, { selected: ['€19', '€29'], other: null }).outcome).toBe('invalid')
+    expect(checkConversationAnswer(single, { selected: ['€19'], other: 'Or less' }).outcome).toBe('invalid')
+  })
+
+  it('refuses an answer that chooses nothing and says nothing', () => {
+    expect(checkConversationAnswer(single, { selected: [], other: null }).outcome).toBe('invalid')
+    expect(checkConversationAnswer(multiple, { selected: [], other: ' ' }).outcome).toBe('invalid')
+  })
+
+  it('takes own words at their bound, and refuses them a character past it', () => {
+    const atBound = 'a'.repeat(MAX_ANSWER_OTHER_LENGTH)
+
+    expect(checkConversationAnswer(single, { selected: [], other: atBound }).outcome).toBe('valid')
+    expect(checkConversationAnswer(single, { selected: [], other: `${atBound}a` }).outcome).toBe('invalid')
+  })
+
+  it('counts own words in characters, an emoji as one, as the database does', () => {
+    expect(checkConversationAnswer(single, { selected: [], other: '🎉'.repeat(MAX_ANSWER_OTHER_LENGTH) }).outcome).toBe(
+      'valid',
+    )
+  })
+
+  it('refuses own words holding a control character, U+0000 included, or a line break', () => {
+    for (const other of [
+      `acct${String.fromCharCode(0)}admin`,
+      'two\nlines',
+      'two\r\nlines',
+      `two${String.fromCharCode(0x2028)}lines`,
+    ]) {
+      expect(checkConversationAnswer(single, { selected: [], other }).outcome).toBe('invalid')
+    }
   })
 })

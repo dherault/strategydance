@@ -129,4 +129,84 @@ describe('Markdown', () => {
       ),
     ).toStartWith('<div class="text-sm/[1.6] ')
   })
+
+  describe('citations', () => {
+    function renderCited(value: string, citations: { offset: number; key: string }[], withRenderer = true) {
+      return renderToStaticMarkup(
+        <Markdown
+          value={value}
+          citations={citations}
+          renderCitation={withRenderer ? key => <sup>[{key}]</sup> : undefined}
+        />,
+      ).replaceAll(/ class="[^"]*"/g, '')
+    }
+
+    it('draws a marker right after the span it cites, inside the text', () => {
+      expect(renderCited('Notion charges 10 per member, Coda 12.', [{ offset: 28, key: '1' }])).toBe(
+        '<div><p>Notion charges 10 per member<sup>[1]</sup>, Coda 12.</p></div>',
+      )
+    })
+
+    it('draws several markers each at its own offset', () => {
+      expect(
+        renderCited('Notion charges 10, Coda 12.', [
+          { offset: 17, key: '1' },
+          { offset: 26, key: '2' },
+        ]),
+      ).toBe('<div><p>Notion charges 10<sup>[1]</sup>, Coda 12<sup>[2]</sup>.</p></div>')
+    })
+
+    it('draws a marker in bold text, and after a link rather than inside it', () => {
+      expect(renderCited('**Notion** is cheaper', [{ offset: 8, key: '1' }])).toBe(
+        '<div><p><strong>Notion<sup>[1]</sup></strong> is cheaper</p></div>',
+      )
+      expect(renderCited('[Notion](https://notion.so) pricing', [{ offset: 5, key: '1' }])).toContain(
+        'Notion</a><sup>[1]</sup> pricing',
+      )
+    })
+
+    it('draws the markers of one offset together, in the order given, in text as after bold text', () => {
+      const citations = [
+        { offset: 17, key: '1' },
+        { offset: 17, key: '2' },
+      ]
+
+      expect(renderCited('Notion charges 10, Coda 12.', citations)).toBe(
+        '<div><p>Notion charges 10<sup>[1]</sup><sup>[2]</sup>, Coda 12.</p></div>',
+      )
+      expect(
+        renderCited('Notion charges **10**, Coda 12.', [
+          { offset: 21, key: '1' },
+          { offset: 21, key: '2' },
+        ]),
+      ).toBe('<div><p>Notion charges <strong>10<sup>[1]</sup><sup>[2]</sup></strong>, Coda 12.</p></div>')
+    })
+
+    it('draws a marker between two blocks at the end of the first', () => {
+      expect(renderCited('First paragraph.\n\nSecond.', [{ offset: 17, key: '1' }])).toBe(
+        '<div><p>First paragraph.<sup>[1]</sup></p>\n<p>Second.</p></div>',
+      )
+    })
+
+    it('draws a marker at its place in text whose source escapes, references or indents shortened', () => {
+      expect(renderCited('A \\*star\\* here', [{ offset: 10, key: '1' }])).toBe(
+        '<div><p>A *star*<sup>[1]</sup> here</p></div>',
+      )
+      expect(renderCited('Fish &amp; chips here', [{ offset: 16, key: '1' }])).toBe(
+        '<div><p>Fish &amp; chips<sup>[1]</sup> here</p></div>',
+      )
+      expect(renderCited('Smile &#x1F600;', [{ offset: 15, key: '1' }])).toBe(
+        '<div><p>Smile 😀<sup>[1]</sup></p></div>',
+      )
+      expect(renderCited('A &#x1F600; b', [{ offset: 11, key: '1' }])).toBe('<div><p>A 😀<sup>[1]</sup> b</p></div>')
+      expect(renderCited('First line\n    second line here', [{ offset: 26, key: '1' }])).toBe(
+        '<div><p>First line<br/>\nsecond line<sup>[1]</sup> here</p></div>',
+      )
+    })
+
+    it('draws nothing without a renderer, and keeps a footnote unwrapped', () => {
+      expect(renderCited('Cited text.', [{ offset: 10, key: '1' }], false)).toBe('<div><p>Cited text.</p></div>')
+      expect(renderElements('Text[^1]\n\n[^1]: A note')).not.toContain('<sup')
+    })
+  })
 })

@@ -8,8 +8,10 @@
 #    its own middleware. It keeps Cloud Run's defaults, timeout included
 # 2. `strategydance-worker`, the very image the backend now runs, by digest, started with
 #    `SERVICE=worker`, which mounts the internal routes and nothing else. Private: the invoker check
-#    stays on, and only `conversation-tasks` may invoke it, a grant made by hand once (Setup 3 in
-#    `documents/conversations.md`), so Cloud Run refuses any other caller before the code runs. A
+#    stays on, and `conversation-tasks` is the one account granted the invoker role on it, by hand
+#    once (Setup 3 in `documents/conversations.md`). Holders of Cloud Run's invoke permission across
+#    the project, its owners and `deployer`, can call it as they can any service; Cloud Run refuses
+#    everybody else before the code runs. A
 #    task's request stays open for its whole run, hence the 15-minute timeout, and runs go a few at a
 #    time on an instance
 #

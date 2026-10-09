@@ -9,6 +9,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import validateMiddleware from '~middleware/validate'
 
+import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
 import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
 import runConversation from '~domain/conversations/runConversation'
 
@@ -17,9 +18,11 @@ import runConversation from '~domain/conversations/runConversation'
   backend.
 
   No route here checks App Check or a token. The worker is private: Cloud Run's invoker check is on,
-  and only the `conversation-tasks` service account may invoke it, so Cloud Run refuses any other
-  caller before this code runs. Cloud Tasks and Cloud Scheduler call it as that account, with an
-  OIDC token Cloud Run checks
+  and the `conversation-tasks` service account is the one account granted the invoker role on it.
+  Holders of Cloud Run's invoke permission across the project, its owners and `deployer`, can call
+  it too, as they can any service there, and Cloud Run refuses everybody else, a caller with no
+  token included, before this code runs. Cloud Tasks and Cloud Scheduler call it as
+  `conversation-tasks`, with an OIDC token Cloud Run checks
 */
 function createInternalRouter() {
   const router = Router()
@@ -74,11 +77,13 @@ function createInternalRouter() {
   /*
     Removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
     Scheduler asks once a day: today the conversations deleted over a day ago. A milestone that
-    keeps something else deleted for a while adds its prune here. Every step is idempotent, so a
+    keeps something else deleted for a while adds its prune here. So does one that keeps a count
+    for a while, as the conversation searches over a day old go. Every step is idempotent, so a
     sweep that failed is finished by the next. Takes no body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     await pruneDeletedConversations()
+    await pruneConversationSearches()
 
     response.json({ status: 'success' })
   })

@@ -1,8 +1,9 @@
-import { buildConversationPreview } from 'strategydance-core'
+import { type ConversationPreview, buildConversationPreview } from 'strategydance-core'
 import {
   ConversationNoteKind,
   type ConversationRunStatus,
   finishConversationRun,
+  finishConversationRunWaiting,
   finishConversationRunWithNote,
   interruptConversationRun,
 } from 'strategydance-database/backend'
@@ -11,6 +12,7 @@ import type { ConversationRunFence, ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import type { ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 
@@ -18,18 +20,32 @@ import deriveConversationMessageId from '~domain/conversations/deriveConversatio
   How a worker ends its run:
 
   - `finished`: completed, or stopped in a conversation deleted meanwhile, without a note
-  - `noted`: with a note the thread draws, such as a run at a limit that sends no further request
+  - `waiting`: on the questions its turn asked, until an answer or a send consumes the turn
+  - `noted`: with a note the thread draws, and why, for the logs: failed, at a limit that sends no
+    further request or after Claude's API failed it, full when its next request would not fit
+    Claude's context, which marks its conversation so, stopped as its member asked, or refused
   - `interrupted`: its author is no longer the member it was queued under, fenced on the run alone,
-    at the attempt the worker read or claimed, with the note saying so
+    at the attempt the worker read or claimed, with the note saying so and why
 */
 export type ConversationRunEnding =
-  | { kind: 'finished'; status: ConversationRunStatus.COMPLETED | ConversationRunStatus.STOPPED }
   | {
-      kind: 'noted'
-      status: ConversationRunStatus.FAILED
-      noteKind: ConversationNoteKind.FAILED | ConversationNoteKind.FULL
+      kind: 'finished'
+      status: ConversationRunStatus.COMPLETED | ConversationRunStatus.STOPPED
+      usage?: ConversationRunUsage
     }
-  | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number }
+  | ({
+      kind: 'noted'
+      failure: string
+      usage?: ConversationRunUsage
+      isFull?: boolean
+    } & (
+      | { status: ConversationRunStatus.FAILED; noteKind: ConversationNoteKind.FAILED | ConversationNoteKind.FULL }
+      | { status: ConversationRunStatus.STOPPED; noteKind: ConversationNoteKind.STOPPED }
+      | { status: ConversationRunStatus.REFUSED; noteKind: ConversationNoteKind.REFUSED }
+    ))
+  // With the preview of a call it cancels, when the preview shows it
+  | { kind: 'waiting'; usage?: ConversationRunUsage; preview?: ConversationPreview | null }
+  | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number; failure: string }
 
 type EndConversationRunInput = {
   ending: ConversationRunEnding
@@ -41,9 +57,10 @@ type EndConversationRunInput = {
 }
 
 /*
-  Ends a run as its worker decided, in one write. A note's id derives from the run, which has one
-  at most, so a route that finalizes the same run meanwhile and the worker never both add theirs.
-  A note at a counter something moved meanwhile is refused, and the worker reads again and retries
+  Ends a run as its worker decided, in one write, which settles its usage ledger when the worker
+  holds one. A note's id derives from the run, which has one at most, so a route that finalizes the
+  same run meanwhile and the worker never both add theirs. A note at a counter something moved
+  meanwhile is refused, and the worker reads again and retries
 */
 async function endConversationRun({ ending, fence, lease, position }: EndConversationRunInput) {
   const write = <T>(operation: () => Promise<T>) => (lease ? lease.write(operation) : operation())
@@ -56,6 +73,7 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
         noteId: deriveConversationMessageId(ending.reference.runId, 'note'),
         position,
         preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
+        failure: ending.failure,
       }),
     )
 
@@ -64,8 +82,26 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
 
   if (!fence) throw new Error('A run ends as its worker decides only once it is claimed')
 
+  if (ending.kind === 'waiting') {
+    await write(() =>
+      finishConversationRunWaiting(dataConnect, {
+        ...fence,
+        ...(ending.usage ? { usage: ending.usage } : {}),
+        ...(ending.preview ? { preview: ending.preview } : {}),
+      }),
+    )
+
+    return
+  }
+
   if (ending.kind === 'finished') {
-    await write(() => finishConversationRun(dataConnect, { ...fence, status: ending.status }))
+    await write(() =>
+      finishConversationRun(dataConnect, {
+        ...fence,
+        status: ending.status,
+        ...(ending.usage ? { usage: ending.usage } : {}),
+      }),
+    )
 
     return
   }
@@ -78,6 +114,9 @@ async function endConversationRun({ ending, fence, lease, position }: EndConvers
       noteId: deriveConversationMessageId(fence.runId, 'note'),
       position,
       preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
+      failure: ending.failure,
+      ...(ending.usage ? { usage: ending.usage } : {}),
+      ...(ending.isFull ? { isFull: true } : {}),
     }),
   )
 }

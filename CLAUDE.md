@@ -43,7 +43,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them, storing the pictures of documents' text, reading what a
-  web page says of itself for a link preview, and sending conversations' messages. Its image runs
+  web page says of itself for a link preview, and sending and searching conversations. Its image runs
   a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
   and sweeps what was deleted once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
@@ -88,7 +88,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | --- | --- |
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
-| `bun run dev:backend` | The backend on http://localhost:3003, against the emulators |
+| `bun run dev:backend` | The backend on http://localhost:3003, against the emulators. It answers conversations with Claude, which costs money, unless started with `CONVERSATION_AGENT=placeholder`, which answers with a stand-in reply |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
@@ -325,8 +325,14 @@ only way the app talks to them.
   still checks that uid against the rows it touches
 - The generated SDKs cannot pass a `_Data` list variable, so no connector can batch insert:
   the backend calls a single-row mutation once per row instead
+- A level of a `where` holds plain fields or `_and`, `_or` and `_not`, never both: Data Connect
+  refuses the mix, so the plain fields go in an `_and` entry of their own, as
+  `SearchConversationsBySubstring` puts them
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
+- A `query` step of a mutation does not see what the same mutation wrote, though it sees what
+  another transaction committed before it once a lock is taken. Count around the rows the mutation
+  writes, by their ids, as `AnswerConversationQuestion` leaves out the question it answers
 - A mutation writes each row once. Data Connect runs the first write to a row and silently skips
   any later one in the same mutation, aliased or not: an `organization_update` row lock followed
   by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
@@ -429,6 +435,16 @@ A conversation is kept twice, once for Claude and once for the page, and
   the JSON text of exactly what was sent, never `Any`, so the transcript replays byte for byte.
   Data Connect stores `Any` as Postgres `jsonb`, which keeps one of two duplicate keys and refuses
   U+0000 in a string
+- A run's `usage` is a ledger (`conversationRunUsage`): each request is reserved at its measured
+  input before it is sent, in the fenced write that renews the lease, and settled from its answer
+  with the model, why it stopped and where its part was stored. A worker taking a run over charges
+  an unsettled request at its estimate. What a request came to, the turn to store or the run's
+  end, is kept until it is written, so a refused write is tried again and never paid for twice
+- A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
+  entries, one write each, the first with the run's context message. A crash between two leaves
+  the turn paused at its last stored part, which the ledger says, and the next worker sends its
+  continuation. A part is one response of a paused turn; a piece is one slice of a reply past 20000
+  characters, drawn as its own message, the entry's cursor keeping its piece (`drawnPieces`)
 - The thread, `ConversationMessage`, is a drawing of the transcript, and what the page reads. Its
   messages are ordered by `position`, never by time, since two mutations can share an instant: a
   mutation that inserts messages first claims their positions on the conversation's
@@ -471,11 +487,37 @@ A conversation is kept twice, once for Claude and once for the page, and
   with its note. A worker taking over after a crash draws from the entry's cursor, `drawnBlocks`,
   and derives the same ids, so drawing a message twice is a conflict rather than a copy. The
   member's message keeps the browser's id, which makes a retried send store it once, and names the
-  run it started, so a Retry deletes a run's messages but that one
+  run it started, so a Retry deletes a run's messages but that one. Drawing finds an entry by its
+  id and cursor, never by the run that stored it, so a resumed run draws what the run it carries on
+  left undrawn, under its own name
+- A member stops a run through its `stopRequestedAt`, which its worker reads before each request and
+  every two seconds while one streams (`createConversationRequestSignal`); a turn already answered
+  is still stored and drawn, since it was paid for. A queued run is stopped by the route at once.
+  Resume deletes the stopped or interrupted note, the thread's newest message, and moves no
+  `historyRevision`, so it refuses once anything follows the note; Retry cuts the transcript after
+  the run's anchor and deletes the messages of every run on that anchor, so it moves
+  `historyRevision`, and every tab reads its pages again. Both start a run on the same anchor, and a
+  route that receives either again answers with the run numbered right after the one it names
+- Every run that ends with a note says why in its `failure`, for the logs, and
+  `FinishConversationRunWithNote` pairs each status with its own note: failed with failed or full,
+  stopped with stopped, refused with refused
+- Conversations are searched by the backend alone, `POST …/conversations/search`, since what a
+  search finds is messages, which no web query could group by conversation. `Conversation.title`
+  and `ConversationMessage.text` are `@searchable(language: "simple")`, which splits words and
+  lowercases them in every language the app speaks and stems nothing, read with
+  `queryFormat: PLAIN`, which needs every word. A `_search` is ordered by its relevance alone:
+  its `orderBy` cannot name it. A query holding Chinese or Japanese, which put no space between
+  words, matches by substring instead (`isSubstringSearchQuery`), over every title and the
+  messages of the most recently active conversations to 20000. Only member and agent messages
+  are searched, never a question, a tool call or a note
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
-  mounts. Locally, `bun run grant:administrator` makes an account staff
+  mounts. Locally the gate is lifted, so every member of every organization has them: the web
+  against the emulators (`EMULATORS_REQUESTED`) and the development backend
+  (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
+  the tests keep it. A gate added for conversations, as the integrations' will be, keys off the
+  same two
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task
@@ -581,14 +623,16 @@ in `utils/`, one concern per file.
   `strategydance-worker`, started with `SERVICE=worker` (`IS_WORKER`), mounts `routes/internal.ts`
   at `/internal` and nothing else, so neither answers the other's routes. A route Cloud Tasks or
   Cloud Scheduler calls goes in `routes/internal.ts`, never beside the backend's
-- The worker is private where the backend is public: its invoker check stays on, and only
+- The worker is private where the backend is public: its invoker check stays on, and
   `conversation-tasks@strategydance.iam.gserviceaccount.com`, the account Cloud Tasks and Cloud
-  Scheduler call it as with an OIDC token, holds `roles/run.invoker` on it, granted on the service
-  alone, never on the project. Cloud Run refuses any other caller before the code runs, so no
-  internal route verifies a token by hand. On the public backend it would have to, and a run of
-  up to fifteen minutes would share its instances and its timeout. The worker's timeout is fifteen
-  minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its address is Cloud
-  Run's deterministic one, `WORKER_URL`, which is also the token's audience
+  Scheduler call it as with an OIDC token, is the one account granted `roles/run.invoker` on it,
+  on the service alone, never on the project. Anybody holding Cloud Run's invoke permission across
+  the project can call it too, as they can any service there: its owners, and `deployer` through
+  `roles/run.admin`. Cloud Run refuses everybody else before the code runs, a caller with no token
+  included, so no internal route verifies a token by hand. On the public backend it would have to,
+  and a run of up to fifteen minutes would share its instances and its timeout. The worker's
+  timeout is fifteen minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its
+  address is Cloud Run's deterministic one, `WORKER_URL`, which is also the token's audience
 - Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
   service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
   but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. For conversations'
@@ -615,6 +659,13 @@ in `utils/`, one concern per file.
   and a Storage rule cannot read who administers what. It stores each under a fresh name with
   its own download token, writes that URL to the row, and deletes the file the row pointed at
   before. `storage.rules` grants clients nothing under `organizations/`
+- A logo arrives as a form, with the thumbnail the page drew of it (`createImageThumbnail`, fitted
+  inside `THUMBNAIL_SIZE`), and is stored beside it as `logoThumbnailUrl`. A profile picture's
+  thumbnail is the page's to write, beside the picture in Storage, as `imageThumbnailUrl`. The
+  organization switcher and the user menu draw the thumbnail and fall back to the picture, which is
+  all a picture from before thumbnails, or from Google, has. The other small faces, a team member's,
+  a Today identity's and a document's presences, still draw the picture, until their queries select
+  the thumbnail
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back
@@ -643,17 +694,43 @@ in `utils/`, one concern per file.
   and a run that could not be queued stays queued while the send answers 503
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
-  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches. A
-  milestone that keeps something deleted for a while adds its prune there, idempotent like the
-  rest, so a sweep that failed is finished by the next
+  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, and
+  the conversation searches over a day old, which no count reads any more. A milestone that keeps
+  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
+  sweep that failed is finished by the next
+- A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
+  `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
+  limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across
+  instances, per member and organization, under a lock on the membership, in `ConversationSearch`
+  rows. The query travels in the body, never the address, and is never logged
 - A worker's writes go through its run's lease (`createConversationRunLease`), one after the
   other, so they land in the order it made them and never beside a renewal of its own, and its
   steps are read afresh each time (`runConversation`), so taking over after a crash follows the
   same path as carrying on
+- What a run asks Claude lives in `domain/agent/`. Claude is reached through a `ClaudeClient`: the
+  real one on Anthropic's API, the placeholder `CONVERSATION_AGENT=placeholder` picks in
+  development, and the tests' scripted one, which records each request's bytes. Every request is
+  built by `buildConversationRequest`, in one key order, so the next request starts with the last
+  one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
+  hash, and the tools are frozen: a change to either costs every conversation its earlier
+  reasoning once, as `drop_block` lets a replay do, so it ships with a release that means to. Load
+  the `claude-api` skill before writing code that calls Claude
+- A tool the agent calls, beside Claude's own web search, is declared in `CONVERSATION_TOOLS` and run
+  by a `ConversationToolRunner` in `CONVERSATION_TOOL_RUNNERS`: its name, whether it only reads,
+  which lets it run four at a time beside the reads next to it, and a `run` that checks its own
+  input, since Claude's streams in unchecked, and answers JSON or throws a sentence Claude can act
+  on. What becomes of each call is planned from the transcript alone (`planConversationToolCalls`),
+  so a worker taking over plans the same; each call starts and finishes in fenced writes, its result
+  kept on the run in `pendingToolResults` until the entry answering the turn is stored; and that
+  entry, for the worker, an answer's continuation and a send alike, comes from
+  `buildConversationToolResults`, one result per call in the turn's order. `ask_user` is answered by
+  the member instead: only the turn the transcript ends on holds questions without an answer, so
+  what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. `bun run check:conversation-runs`, in the backend's package, checks
-  those conditions against the emulators. An operation changed is changed in both
+  conditions and refusals. `bun run check:conversation-runs` and `bun run check:conversation-search`,
+  in the backend's package, check those conditions against the emulators, the second also what
+  Postgres' full-text search and LIKE match. An operation changed is changed in both
 
 ## Email conventions
 

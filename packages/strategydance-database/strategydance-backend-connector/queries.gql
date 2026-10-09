@@ -70,7 +70,9 @@ query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
 #   back never passes for the one who sent
 # - the conversation, when it exists: whose it is, whether it is deleted, the run in flight, its
 #   counters and whether it is full
-# - its transcript's last entry, after which the message's entry goes
+# - its transcript's last entry, after which the message's entry goes, and whose calls left open,
+#   questions waiting or calls a stop kept from running, it answers first, and its latest run,
+#   which it consumes when that run waits for an answer
 # - the message by the id the browser made for it, when a send with that id went through already,
 #   with the run it started, so a retried send answers with that run
 # - the caller's runs in flight in the organization, deleted conversations' included, each with its
@@ -101,8 +103,22 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     orderBy: [{ position: DESC }]
     limit: 1
   ) {
+    id
     position
     role
+    content
+  }
+  # The latest run, whose turn the message answers the open calls of first, and which it consumes
+  # when it waits for an answer
+  latestRuns: conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 1
+  ) {
+    id
+    status
   }
   # The message's kind is selected at the top level of the operation, which is what has the
   # generated SDK declare its enum, here and for the other operations of the connector
@@ -140,6 +156,201 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
   }
 }
 
+# The usage ledgers of some runs of the caller's conversation, which say how each part they stored
+# of a turn ended: the runs a resumed run carries the turn of, after crashes that each left a part
+# paused
+query GetConversationRunLedgers($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runIds: [UUID!]!)
+@auth(level: NO_ACCESS) {
+  conversationRuns(
+    where: {
+      id: { in: $runIds }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 100
+  ) {
+    id
+    usage
+  }
+}
+
+# What a resume or a retry reads of a conversation before it starts a run on a run that ended:
+#
+# - the caller's membership, whose `createdAt` the run records
+# - the conversation's counters, and which run it has in flight
+# - its two latest runs: the one a resume or a retry acts on, and the one it started already when
+#   it is sent again after its first try went through, with the results of the calls their turn
+#   finished, which a resumed run carries on
+# - the caller's runs in flight in the organization, which a dead one among is finalized before
+#   they are counted
+# - its two newest messages that are not aspects notes: a stopped note to resume, and what the
+#   preview shows once it goes, with what the preview is built from
+#
+# Only the caller's conversation in that organization
+query GetConversationRunControlContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+    activeRunId
+    nextRunNumber
+    nextMessagePosition
+    messageCount
+    historyRevision
+  }
+  latestRuns: conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 2
+  ) {
+    id
+    number
+    trigger
+    status
+    anchorPosition
+    leaseExpiresAt
+    pendingToolResults
+  }
+  conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 3
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+  latestMessages: conversationMessages(
+    where: {
+      kind: { ne: ASPECTS }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 2
+  ) {
+    id
+    kind
+    position
+    text
+    noteKind
+    toolName
+    toolStatus
+    questionPrompt
+    answerSelected
+    answerOther
+    isAnswerSkipped
+    run {
+      id
+    }
+  }
+  # Whether a message follows the newest that is not an aspects note, which a resume refuses
+  newestMessages: conversationMessages(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    id
+  }
+}
+
+# What a retry reads of the runs on the anchor it goes back to, the member's entry the retried run
+# answers, besides the control context:
+#
+# - the runs on that anchor, the retried run and those it resumed, latest first, which a retry
+#   received again answers with, the messages they drew being gone already
+# - how many messages those runs drew, which the retry deletes, and the run of each, newest first,
+#   which the page drops: as many as a conversation can hold, past its 2000 by what the last runs
+#   drew. The member's message that started one names it too, and stays
+# - the newest message the retry keeps that is not an aspects note, which the preview then shows
+#
+# Only the caller's conversation in that organization
+query GetConversationRetryContext(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $anchorPosition: Int!
+) @auth(level: NO_ACCESS) {
+  anchorRuns: conversationRuns(
+    where: {
+      anchorPosition: { eq: $anchorPosition }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 100
+  ) {
+    id
+  }
+  drawnMessages: conversationMessages(
+    where: {
+      kind: { ne: MEMBER_TEXT }
+      run: { anchorPosition: { eq: $anchorPosition } }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+  ) {
+    _count
+  }
+  drawnRuns: conversationMessages(
+    where: {
+      kind: { ne: MEMBER_TEXT }
+      run: { anchorPosition: { eq: $anchorPosition } }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 5000
+  ) {
+    run {
+      id
+    }
+  }
+  keptMessages: conversationMessages(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        {
+          conversation: {
+            id: { eq: $conversationId }
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+          }
+        }
+        { kind: { ne: ASPECTS } }
+        {
+          _or: [
+            { runId: { isNull: true } }
+            { kind: { eq: MEMBER_TEXT } }
+            { run: { anchorPosition: { ne: $anchorPosition } } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    id
+    kind
+    text
+    noteKind
+    toolName
+    toolStatus
+    questionPrompt
+    answerSelected
+    answerOther
+    isAnswerSkipped
+  }
+}
+
 # What a worker reads of a run before each step it takes, in one read:
 #
 # - the run, matched with the conversation, its author and its organization it was queued for, so a
@@ -152,6 +363,8 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
 #   worker taking over after a crash carries on
 # - the messages the run has drawn, which it may draw 100 of (`MAX_CONVERSATION_RUN_ENTRIES` in
 #   strategydance-core): the member's message that started it is not one
+# - the run's context, once built, and its usage, with each request it reserved and settled
+# - the run's latest replies in the transcript, which the worker stores once each
 #
 # The reconcile route reads it too, with the caller the backend verified as `$userId`
 query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
@@ -169,16 +382,20 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     status
     attempts
     createdAt
+    startedAt
     membershipCreatedAt
     leaseExpiresAt
     stopRequestedAt
     anchorPosition
+    context
+    usage
   }
   conversation(id: $conversationId) {
     deletedAt
     activeRunId
     nextMessagePosition
     messageCount
+    previewMessageId
   }
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
@@ -196,15 +413,195 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     role
     content
     drawnBlocks
+    drawnPieces
     run {
       id
     }
+  }
+  # The run's latest replies, newest first, which a write refused partway stored some of: a turn
+  # holds a few parts at most, and a run that calls tools stores a turn for each request
+  runEntries: conversationTranscriptEntries(
+    where: { conversationId: { eq: $conversationId }, runId: { eq: $runId }, role: { eq: ASSISTANT } }
+    orderBy: [{ position: DESC }]
+    limit: 10
+  ) {
+    id
+    position
+    content
+    drawnBlocks
+    drawnPieces
   }
   # A note's kind is selected at the top level here, which has the generated SDK declare its enum
   conversationMessages(where: { runId: { eq: $runId }, kind: { ne: MEMBER_TEXT } }, limit: 100) {
     id
     kind
     noteKind
+    toolStatus
+  }
+}
+
+# The calls of the turn a conversation's transcript ends on, by the ids Claude gave them, as the
+# thread draws them: the questions with their answers, and the calls to Strategy Dance's own tools
+# with their status, their output and whether they started. And the latest run, with the results of
+# the calls of that turn which finished, kept until the entry that sends them is stored. What the
+# worker reads before it runs a turn's calls, and what a send, a resume and a continuation read
+# before they answer them. Only the caller's conversation in that organization
+query GetConversationCalls($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $toolUseIds: [String!]!)
+@auth(level: NO_ACCESS) {
+  conversationMessages(
+    where: {
+      toolUseId: { in: $toolUseIds }
+      kind: { in: [TOOL_CALL, QUESTION] }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: ASC }]
+    limit: 1000
+  ) {
+    id
+    kind
+    toolUseId
+    toolName
+    toolStatus
+    toolOutput
+    toolStartedAt
+    questionOptions
+    isMultipleChoice
+    answerSelected
+    answerOther
+    isAnswerSkipped
+    answeredAt
+  }
+  latestRuns: conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 1
+  ) {
+    id
+    status
+    pendingToolResults
+  }
+}
+
+# What answering a question, and carrying a conversation on once its questions are answered, read
+# of it first, in one read:
+#
+# - the caller's membership, whose `createdAt` the run records
+# - the conversation: whose it is, whether it is deleted, whether it waits for an answer, the run in
+#   flight, which message its preview shows and its run counter
+# - its two latest runs: the one waiting, and the one a continuation started already, when it is
+#   reached again
+# - the caller's runs in flight in the organization, which a dead one among is finalized before
+#   they are counted
+# - its transcript's last entry, the turn whose calls the answers go back with
+# - the questions still waiting, conversation-wide, since only the turn it ends on can hold any
+#
+# Only the caller's conversation in that organization
+query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+    activeRunId
+    isAwaitingAnswer
+    previewMessageId
+    nextRunNumber
+  }
+  latestRuns: conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 2
+  ) {
+    id
+    number
+    trigger
+    status
+    leaseExpiresAt
+  }
+  conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 3
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+  conversationTranscriptEntries(
+    where: {
+      conversationId: { eq: $conversationId }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    id
+    position
+    role
+    content
+  }
+  waitingQuestions: conversationMessages(
+    where: {
+      kind: { eq: QUESTION }
+      answeredAt: { isNull: true }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}
+
+# A question of the caller's conversation, by its id, as an answer is checked against it: its
+# options, whether several may be chosen, and its answer once it has one. Its kind is selected at
+# the top level, which has the generated SDK declare its enum
+query GetConversationQuestion($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationMessages(
+    where: {
+      id: { eq: $messageId }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    id
+    kind
+    toolUseId
+    questionPrompt
+    questionOptions
+    isMultipleChoice
+    answerSelected
+    answerOther
+    isAnswerSkipped
+    answeredAt
+  }
+}
+
+# Whether a run's member asked it to stop, which its worker reads every two seconds while a request
+# streams, in the caller's conversation
+query GetConversationRunStop($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationRuns(
+    where: {
+      id: { eq: $runId }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    status
+    stopRequestedAt
   }
 }
 
@@ -215,6 +612,249 @@ query GetClaimedConversations @auth(level: NO_ACCESS) {
   conversations(
     where: { pruneClaimedAt: { isNull: false }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
     limit: 20
+  ) {
+    id
+  }
+}
+
+# A page of a conversation's transcript, after a position, in order, which the worker reads whole
+# before each request to Claude, and from a run's anchor for the turn it draws: each entry's
+# content as the JSON text it was sent as, with its role, its run, how much of it the thread has
+# drawn and, on a context message, the hash of its profile part. A hundred at a time, since
+# a reply that searched the web carries its encrypted results. Only the caller's conversation in
+# that organization, whose author `$userId` is, as the backend verified it
+query GetConversationTranscript($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $afterPosition: Int!)
+@auth(level: NO_ACCESS) {
+  conversationTranscriptEntries(
+    where: {
+      conversationId: { eq: $conversationId }
+      position: { gt: $afterPosition }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: ASC }]
+    limit: 100
+  ) {
+    id
+    position
+    role
+    content
+    contextHash
+    drawnBlocks
+    drawnPieces
+    run {
+      id
+    }
+  }
+}
+
+# What a run's request to Claude is built and measured from, besides the transcript:
+#
+# - the member, their membership and the organization, which the context message tells Claude of:
+#   the member's name, time zone, language, bio, role and job title, and the organization's name,
+#   brief and explored aspects
+# - the conversation's aspects
+# - its 20 latest runs' usage, whose latest request with its reply still in the transcript the
+#   measurement starts from, so a conversation about to pass Claude's context is marked full
+#
+# `$userId` is the uid the backend verified, never one a client sent
+query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  user(key: { id: $userId }) {
+    displayName
+    timezone
+    locale
+    bio
+  }
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    jobTitle
+  }
+  organization(id: $organizationId) {
+    name
+    brief
+    exploredAspects
+  }
+  conversations(
+    where: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    limit: 1
+  ) {
+    aspects
+  }
+  conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 20
+  ) {
+    id
+    usage
+  }
+}
+
+# Why `RecordConversationSearch` refused a search: whether the caller is still a member, and their
+# searches in the organization in the last ten minutes, newest first, the 120th of which says when
+# the next one fits. Read only once a search has been refused. `$userId` is the uid the backend
+# verified
+query GetConversationSearchQuota($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+  }
+  conversationSearches(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      createdAt: { gt_time: { now: true, sub: { minutes: 10 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 120
+  ) {
+    createdAt
+  }
+}
+
+# The caller's conversations whose title holds every word of the query, through the title's
+# full-text index (see `Conversation.title`): `PLAIN` splits the query into words and requires
+# them all, in any order. All of them, as somebody keeps at most 1000 conversations in an
+# organization. Only their own, while they are a member, and none deleted. `$userId` is the uid the
+# backend verified
+query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query: String!) @auth(level: NO_ACCESS) {
+  conversations_search(
+    query: $query
+    queryFormat: PLAIN
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}
+
+# The member's and the agent's messages, in the caller's conversations, whose text holds every
+# word of the query, through the text's full-text index (see `ConversationMessage.text`), most
+# relevant first, and only their conversation's id, since the search answers with conversations.
+#
+# Read once rather than in pages: a `_search` is ordered by its relevance alone, which its
+# `orderBy` cannot name, so pages read by offset could repeat a message across a tie at their
+# boundary and skip another, and each page would rank every match again anyway. To 5001: the 5000
+# most relevant, and one more, which says that a few conversations with thousands of matches used
+# up the read, when the backend answers the best matches, and only then. Only the caller's own conversations, while they are a member, and none deleted.
+# `$userId` is the uid the backend verified
+query SearchConversationMessages($organizationId: UUID!, $userId: String!, $query: String!) @auth(level: NO_ACCESS) {
+  conversationMessages_search(
+    query: $query
+    queryFormat: PLAIN
+    where: {
+      kind: { in: [MEMBER_TEXT, AGENT_TEXT] }
+      conversation: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+      }
+    }
+    limit: 5001
+  ) {
+    conversationId
+  }
+}
+
+# The caller's conversations, most recently active first, with how many messages each holds, from
+# which the backend picks those whose messages a search by substring reads. Only their own, while
+# they are a member, and none deleted. `$userId` is the uid the backend verified
+query GetConversationSearchCorpus($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  conversations(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    # `id` breaks the tie between two conversations active in the same instant
+    orderBy: [{ updatedAt: DESC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    messageCount
+  }
+}
+
+# A search by substring, for Chinese and Japanese, which put no space between words, so the
+# full-text indexes cannot find a word inside a sentence: the caller's conversations whose title
+# matches every pattern, or, among `$recentIds`, holding a member's or an agent's message whose text
+# matches every pattern. Each pattern is a LIKE pattern, `%word%` with the word's `%`, `_` and `\`
+# escaped, ignoring case. Always eight, one a word: the backend fills those a query leaves over with
+# `%`, which matches any text.
+#
+# No index serves such a match, so it reads a bounded corpus: the titles of at most 1000
+# conversations, and the messages of `$recentIds`, the most recently active conversations whose
+# messages add up to at most 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES` in strategydance-core). Only
+# the caller's own, while they are a member, and none deleted. `$userId` is the uid the backend
+# verified
+query SearchConversationsBySubstring(
+  $organizationId: UUID!
+  $userId: String!
+  $recentIds: [UUID!]!
+  $pattern0: String!
+  $pattern1: String!
+  $pattern2: String!
+  $pattern3: String!
+  $pattern4: String!
+  $pattern5: String!
+  $pattern6: String!
+  $pattern7: String!
+) @auth(level: NO_ACCESS) {
+  conversations(
+    # Data Connect refuses `_and` or `_or` beside plain fields, so each level is one or the other
+    where: {
+      _and: [
+        {
+          userId: { eq: $userId }
+          organizationId: { eq: $organizationId }
+          deletedAt: { isNull: true }
+          organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+        }
+        {
+          _or: [
+            {
+              _and: [
+                { title: { pattern: { like: $pattern0, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern1, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern2, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern3, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern4, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern5, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern6, ignoreCase: true } } }
+                { title: { pattern: { like: $pattern7, ignoreCase: true } } }
+              ]
+            }
+            {
+              id: { in: $recentIds }
+              conversationMessages_on_conversation: {
+                exist: {
+                  _and: [
+                    { kind: { in: [MEMBER_TEXT, AGENT_TEXT] } }
+                    { text: { pattern: { like: $pattern0, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern1, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern2, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern3, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern4, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern5, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern6, ignoreCase: true } } }
+                    { text: { pattern: { like: $pattern7, ignoreCase: true } } }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+    limit: 1000
   ) {
     id
   }

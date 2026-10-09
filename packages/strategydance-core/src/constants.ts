@@ -174,6 +174,20 @@ export const MAX_ORGANIZATION_IMAGE_SIZES: Record<OrganizationImageKind, number>
   banner: 5 * 1024 * 1024,
 }
 
+/*
+  The square a thumbnail fits inside, in pixels. The page draws one as it uploads a logo or a
+  profile picture, and uploads it beside the picture, for where the picture is drawn small: the
+  organization switcher, the user menu
+*/
+export const THUMBNAIL_SIZE = 256
+
+/*
+  In bytes. A thumbnail's pixels, uncompressed, take a quarter of a megabyte, so this holds any
+  thumbnail and refuses a full picture sent as one. The backend refuses a larger one, and so does
+  `storage.rules`, which cannot read it from here and writes it out again
+*/
+export const MAX_THUMBNAIL_SIZE = 512 * 1024
+
 /* ---
   USERS
 --- */
@@ -305,7 +319,8 @@ export const MAX_RICH_TEXT_IMAGE_SIZE = 10 * 1024 * 1024
 /*
   Conversations are open to Strategy Dance's own administrators (`User.isAdministrator`) alone
   while they are built, and everything that offers one or runs one asks this first. It hides an
-  unfinished feature and protects no data: a conversation is its author's alone either way
+  unfinished feature and protects no data: a conversation is its author's alone either way.
+  Locally, against the emulators and on the development backend, everybody has them
 */
 export const ARE_CONVERSATIONS_STAFF_ONLY: boolean = true
 
@@ -344,6 +359,13 @@ export const MAX_CONVERSATION_TITLE_LENGTH = 120
   as several pieces, split between its blocks
 */
 export const MAX_CONVERSATION_MESSAGE_LENGTH = 20000
+
+/*
+  How many input tokens a request to Claude may take before its conversation counts as full, short
+  of the model's 1M-token context: a conversation whose next request would pass it takes no more
+  messages until a retry shortens it
+*/
+export const MAX_CONVERSATION_INPUT_TOKENS = 800000
 
 /*
   How much of a conversation's last entry its preview keeps, in characters of plain text, so the
@@ -393,6 +415,15 @@ export const MAX_PENDING_CONVERSATION_ATTACHMENTS = 30
 */
 export const MAX_SEARCH_QUERY_LENGTH = 100
 export const MAX_SEARCH_TERMS = 8
+
+/*
+  How many times somebody may search their conversations in an organization in ten minutes, which
+  nobody searching by hand reaches and a script does. Held twice: in each backend instance's memory,
+  which turns a script away cheaply, and in the database, across instances, where
+  `RecordConversationSearch` writes the same numbers out: change them together
+*/
+export const MAX_CONVERSATION_SEARCHES = 120
+export const CONVERSATION_SEARCH_WINDOW_MINUTES = 10
 
 /*
   How far a search in a language written without spaces, Chinese or Japanese, reads. No index

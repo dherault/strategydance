@@ -11,6 +11,7 @@ import {
   ConversationMessageKind,
   ConversationRunStatus,
   getConversationSendContext,
+  sendConversationMessageAnsweringCalls,
   sendConversationMessage as sendConversationMessageMutation,
   startConversation,
 } from 'strategydance-database/backend'
@@ -19,6 +20,9 @@ import { dataConnect } from '~firebase'
 
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
+import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
+import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 
 // How many times a send reads where the conversation stands and tries, before it gives up
@@ -68,6 +72,11 @@ type SendConversationMessageResult =
     in flight. A conversation whose run still waits in the queue has that run queued again before
     the send is answered busy, so a run whose task was lost does not keep it busy
 
+  When the conversation's last turn left calls open, a question waiting, or calls a stop or a crash
+  kept from running, the message's entry answers them first, as The transcript says: a question by
+  its answer, or skipped, and a call by its result, or as stopped or interrupted. A run waiting on
+  its questions is consumed, so an answer's continuation and the send never both carry it on.
+
   A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
   A write refused anyway, because a send with the same id, a run or an aspects note got there in
@@ -103,7 +112,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
       // A run past its lease that is still coming, its task found or queued again, is alive too, and
       // is queued again like any other still waiting, which answers whether it is
-      const state = isDead(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
+      const state = isDeadConversationRun(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
 
       if (state === 'alive' && sent.run.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
         return { outcome: 'unavailable' }
@@ -112,22 +121,8 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       return { outcome: 'sent', runId: sent.run.id }
     }
 
-    // Read again once one has ended, which freed its conversation and the caller's allowance. One
-    // still coming counts as in flight, as it was read, and asking the queue again changes nothing
-    let hasEnded = false
-
-    for (const run of data.conversationRuns.filter(isDead)) {
-      const state = await finalizeDeadConversationRun({
-        organizationId,
-        userId,
-        conversationId: run.conversation.id,
-        runId: run.id,
-      })
-
-      if (state === 'ended') hasEnded = true
-    }
-
-    if (hasEnded && round < MAX_ROUNDS) continue
+    // Read again once one has ended, which freed its conversation and the caller's allowance
+    if ((await finalizeDeadConversationRuns(input, data.conversationRuns)) && round < MAX_ROUNDS) continue
 
     if (conversation && (conversation.userId !== userId || conversation.organizationId !== organizationId)) {
       return { outcome: 'missing' }
@@ -166,13 +161,32 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     try {
       if (conversation) {
         const [lastEntry] = data.conversationTranscriptEntries
-
-        await sendConversationMessageMutation(dataConnect, {
+        const answering = await readConversationOpenCalls(input, lastEntry, {
+          skipsQuestions: true,
+          follows: [{ type: 'text', text: input.text }],
+        })
+        const sent = {
           ...message,
           position: conversation.nextMessagePosition,
           runNumber: conversation.nextRunNumber,
           transcriptPosition: lastEntry ? lastEntry.position + 1 : 0,
-        })
+        }
+
+        if (answering) {
+          const lastRun = answering.latestRun
+
+          if (!lastRun) throw new Error(`Conversation ${conversationId} has calls open and no run`)
+
+          await sendConversationMessageAnsweringCalls(dataConnect, {
+            ...sent,
+            content: answering.content,
+            lastRunId: lastRun.id,
+            isLastRunWaiting: lastRun.status === ConversationRunStatus.WAITING,
+            skippedQuestionIds: answering.waitingQuestionIds,
+          })
+        } else {
+          await sendConversationMessageMutation(dataConnect, sent)
+        }
       } else {
         await startConversation(dataConnect, { ...message, title: buildConversationTitle(input.drawnText) })
       }
@@ -186,15 +200,6 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
     return { outcome: 'sent', runId }
   }
-}
-
-// Whether a run is in flight past its lease, which says its worker died with it
-function isDead(run: { status: ConversationRunStatus; leaseExpiresAt?: string | null }) {
-  return (
-    (run.status === ConversationRunStatus.QUEUED || run.status === ConversationRunStatus.RUNNING)
-    && Boolean(run.leaseExpiresAt)
-    && Date.parse(run.leaseExpiresAt ?? '') < Date.now()
-  )
 }
 
 export default sendConversationMessage

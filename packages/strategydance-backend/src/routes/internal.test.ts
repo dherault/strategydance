@@ -6,7 +6,7 @@ import express from 'express'
 
 import type { ConversationRunReference } from '~types'
 
-import createPlaceholderAgent from '~domain/agent/createPlaceholderAgent'
+import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
@@ -17,8 +17,10 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 
 mock.module('strategydance-database/backend', () => fake.sdk)
 
-// The agent every run is answered by, without the pauses it makes for a person to watch
-mock.module('~domain/agent/conversationAgent', () => ({ default: createPlaceholderAgent({ stepDurationMs: 0 }) }))
+// The client every run asks, the placeholder without the pauses it makes for a person to watch
+mock.module('~domain/agent/conversationClaudeClient', () => ({
+  default: createPlaceholderClaudeClient({ stepDurationMs: 0 }),
+}))
 
 const { default: createInternalRouter } = await import('./internal')
 
@@ -153,5 +155,22 @@ describe('POST /internal/sweep', () => {
     expect(await response.json()).toEqual({ status: 'success' })
     expect(fake.conversations.has(old.conversationId)).toBe(false)
     expect(fake.conversations.has(kept.conversationId)).toBe(true)
+  })
+
+  test('removes the conversation searches made over a day ago, and keeps the rest', async () => {
+    const search = (hoursAgo: number) => ({
+      id: createId(),
+      userId: AUTHOR,
+      organizationId: ORGANIZATION_ID,
+      createdAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+    })
+    const old = search(25)
+    const kept = search(1)
+
+    fake.searches.set(old.id, old)
+    fake.searches.set(kept.id, kept)
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect([...fake.searches.keys()]).toEqual([kept.id])
   })
 })

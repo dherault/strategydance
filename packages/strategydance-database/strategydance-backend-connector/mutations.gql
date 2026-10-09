@@ -90,9 +90,10 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
   organizationInvitation_deleteMany(where: { id: { eq: $id }, organizationId: { eq: $organizationId } })
 }
 
-# Points an organization's logo at a file the backend has just put in Storage, or clears it with
-# null, for one of its administrators. Answers with the URL it replaced, whose file the backend
-# then deletes.
+# Points an organization's logo and its thumbnail at the files the backend has just put in
+# Storage, or clears them with null, for one of its administrators. Answers with the URLs it
+# replaced, whose files the backend then deletes. The backend passes both, the thumbnail null for
+# a logo sent without one, which clears the thumbnail the previous logo had.
 #
 # Data Connect runs one write per row in a mutation, a second one silently changing nothing, so
 # there is no separate row lock here as elsewhere: the URL is read, then written, which takes the
@@ -100,16 +101,20 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
 # the lock, so two uploads in the same instant can both read the URL the first replaces: the file
 # the second wrote over is then named by neither answer and stays behind. That costs a file, never
 # a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
-# Only the membership is redacted, since the URL is the answer
-mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String)
+# Only the membership is redacted, since the URLs are the answer
+mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String, $logoThumbnailUrl: String)
 @auth(level: NO_ACCESS)
 @transaction {
   previous: query {
     organization(id: $organizationId) {
       logoUrl
+      logoThumbnailUrl
     }
   }
-  organization_update(id: $organizationId, data: { logoUrl: $logoUrl, updatedAt_expr: "request.time" })
+  organization_update(
+    id: $organizationId
+    data: { logoUrl: $logoUrl, logoThumbnailUrl: $logoThumbnailUrl, updatedAt_expr: "request.time" }
+  )
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its logo") {
@@ -118,7 +123,7 @@ mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoU
   }
 }
 
-# The banner's twin of `UpdateOrganizationLogo`, on the same terms
+# The banner's twin of `UpdateOrganizationLogo`, on the same terms, with no thumbnail
 mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $bannerUrl: String)
 @auth(level: NO_ACCESS)
 @transaction {
@@ -404,11 +409,330 @@ mutation SendConversationMessage(
   )
 }
 
+# Sends a message to one of the caller's conversations whose last turn left calls open, a question
+# waiting or calls a stop or a crash kept from running, and queues the run that answers it: the
+# message's transcript entry answers those calls first, as the backend built it. As
+# `SendConversationMessage`, and besides:
+#
+# - the last run, when it waits for an answer (`$isLastRunWaiting`), moves from `WAITING` to
+#   `CONTINUED`, so a continuation an answer started meanwhile and this send never both consume
+#   its turn, and a run that does not wait is left as it is
+# - the questions still waiting are skipped, exactly those the backend read as waiting
+#   (`$skippedQuestionIds`), so an answer recorded since it read them refuses the send, which reads
+#   again rather than tell Claude a question answered was skipped
+# - the conversation waits for no answer any more
+mutation SendConversationMessageAnsweringCalls(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $messageId: UUID!
+  $text: String!
+  $preview: Any!
+  $position: Int!
+  $runId: UUID!
+  $runNumber: Int!
+  $content: String!
+  $transcriptPosition: Int!
+  $lastRunId: UUID!
+  $isLastRunWaiting: Boolean!
+  $skippedQuestionIds: [UUID!]!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(expr: "size(vars.text) <= 20000", message: "A message holds at most 20000 characters")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the send read it") {
+      userId
+    }
+    sent: conversationMessages(where: { id: { eq: $messageId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The message was sent already") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      isFull: { eq: false }
+      messageCount: { lt: 2000 }
+      nextMessagePosition: { eq: $position }
+      nextRunNumber: { eq: $runNumber }
+    }
+    data: {
+      activeRunId: $runId
+      isAwaitingAnswer: false
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      nextRunNumber_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message")
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $lastRunId }
+      status: { eq: WAITING }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { status: CONTINUED }
+  ) @check(expr: "this == (vars.isLastRunWaiting ? 1 : 0)", message: "The last run no longer waits as the send read it")
+  conversationMessage_updateMany(
+    where: {
+      id: { in: $skippedQuestionIds }
+      conversationId: { eq: $conversationId }
+      kind: { eq: QUESTION }
+      answeredAt: { isNull: true }
+    }
+    data: { isAnswerSkipped: true, answeredAt_expr: "request.time" }
+  ) @check(expr: "this == size(vars.skippedQuestionIds)", message: "The questions changed since the send read them")
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: MESSAGE
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $transcriptPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: MEMBER_TEXT
+      text: $text
+      position: $position
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: {
+      conversationId: $conversationId
+      runId: $runId
+      position: $transcriptPosition
+      role: USER
+      content: $content
+    }
+  )
+}
+
+# Records the member's answer to a question of the turn their conversation waits on, and answers
+# with the questions of that turn still waiting, which the backend continues the conversation once
+# none are. Answers are serialized on the conversation, so two sent at once never both see the
+# other missing:
+#
+# - the conversation's row is locked first, only while it is the caller's, not deleted, waits for an
+#   answer, and its preview still shows the message the backend read (`$previewMessageId`, always
+#   passed). `$preview` rebuilds it, given only when that message is the question answered, so the
+#   list's "Question: …" turns into "Answered: …" for the last question shown, and stays for an
+#   earlier one
+# - the run the backend read waits still
+# - the question is answered, only while it waits, its options by their text and its own words on
+#   one line, as the backend checked them against it
+# - the other questions of the turn still waiting are read, after the lock, so an answer another
+#   request recorded first is seen. A step reading what its own mutation wrote does not see it, so
+#   the question answered is left out by its id rather than by its answer
+#
+# The answer goes into the transcript as it is recorded, so it is bounded here too
+mutation AnswerConversationQuestion(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $messageId: UUID!
+  $previewMessageId: UUID!
+  $preview: Any
+  $answerSelected: [String!]!
+  $answerOther: String
+) @auth(level: NO_ACCESS) @transaction {
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAwaitingAnswer: { eq: true }
+      previewMessageId: { eq: $previewMessageId }
+    }
+    data: { preview: $preview, updatedAt_expr: "request.time" }
+  )
+    @check(expr: "this == 1", message: "The conversation waits for no answer, or its preview moved")
+    @check(
+      expr: "size(vars.answerSelected) <= 6 && (!has(vars.answerOther) || vars.answerOther == null || size(vars.answerOther) <= 500) && (size(vars.answerSelected) > 0 || (has(vars.answerOther) && vars.answerOther != null))"
+      message: "An answer chooses at most 6 options, or says something in at most 500 characters"
+    )
+  query @redact {
+    waiting: conversationRuns(
+      where: {
+        id: { eq: $runId }
+        status: { eq: WAITING }
+        conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The run no longer waits for an answer") {
+      id
+    }
+  }
+  conversationMessage_updateMany(
+    where: {
+      id: { eq: $messageId }
+      conversationId: { eq: $conversationId }
+      kind: { eq: QUESTION }
+      answeredAt: { isNull: true }
+    }
+    data: { answerSelected: $answerSelected, answerOther: $answerOther, answeredAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The question waits no more")
+  left: query {
+    conversationMessages(
+      where: {
+        id: { ne: $messageId }
+        conversationId: { eq: $conversationId }
+        kind: { eq: QUESTION }
+        answeredAt: { isNull: true }
+      }
+      limit: 1000
+    ) {
+      id
+    }
+  }
+}
+
+# Carries a conversation on once every question of the turn it waits on is answered: the answers,
+# with the results of the calls that ran beside them, go into the transcript as the backend built
+# them, and a run answers them, as a send starts one. Reached from the answer route, the same answer
+# sent again, and the reconcile route, so a backend that stopped between the last answer and this
+# leaves nothing behind. In one mutation:
+#
+# - the caller's membership row is locked, as a send locks it, and they hold fewer than 3 runs in
+#   flight in the organization: past them the continuation starts later, from the reconcile route
+# - no question waits any more
+# - the waiting run moves from `WAITING` to `CONTINUED`, which a send consuming the turn also does,
+#   so only one of them carries it on, and a late one finds nothing to consume
+# - the conversation takes the run and waits for no answer any more. A full one too: the run then
+#   ends at once with the full note, which is how a question waiting there is still answered
+# - the run is inserted, queued with a twenty minutes' lease and anchored on the answers' entry,
+#   then the entry
+mutation ContinueConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $waitingRunId: UUID!
+  $runId: UUID!
+  $runNumber: Int!
+  $content: String!
+  $transcriptPosition: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the continuation read it") {
+      userId
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    waitingQuestions: conversationMessages(
+      where: { conversationId: { eq: $conversationId }, kind: { eq: QUESTION }, answeredAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "A question of the turn still waits") {
+      id
+    }
+  }
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $waitingRunId }
+      status: { eq: WAITING }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { status: CONTINUED }
+  ) @check(expr: "this == 1", message: "The run's turn was consumed already")
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      nextRunNumber: { eq: $runNumber }
+    }
+    data: {
+      activeRunId: $runId
+      isAwaitingAnswer: false
+      nextRunNumber_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the run")
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: ANSWER
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $transcriptPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: {
+      conversationId: $conversationId
+      runId: $runId
+      position: $transcriptPosition
+      role: USER
+      content: $content
+    }
+  )
+}
+
 # Finalizes a run that died with its worker, which a route finds past its lease: queued and never
 # claimed in time, or claimed by a worker that stopped renewing. It ends `INTERRUPTED`, its calls
 # still running are cancelled, and the thread says so in a note, at a position claimed on the
-# conversation's counter. Only while the run is still dead, so a worker that renewed its lease in
-# the meantime keeps it.
+# conversation's counter, and `$failure` says why, for the logs. Only while the run is still dead,
+# so a worker that renewed its lease in the meantime keeps it.
 #
 # The conversation's row is written once: it takes the note and lets go of the run, which it names.
 # Or which it names no longer, which can only be a run something else let go of, and the note is
@@ -423,6 +747,7 @@ mutation InterruptDeadConversationRun(
   $noteId: UUID!
   $position: Int!
   $preview: Any!
+  $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -431,10 +756,10 @@ mutation InterruptDeadConversationRun(
       leaseExpiresAt: { lt_time: { now: true } }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
-    data: { status: INTERRUPTED, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is not dead")
   conversationMessage_updateMany(
-    where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -513,6 +838,325 @@ mutation ExpireQueuedConversationRunLease(
   )
 }
 
+# Asks a claimed run to stop, as its member did: its worker reads `stopRequestedAt` before each
+# request and every two seconds while one streams, then ends the run `STOPPED` with its note. Only
+# while the run is running and not asked already, in the caller's conversation. One conditional
+# update and no transaction, and the backend reads whether it asked.
+#
+# `$conversationId` is the run's own, which its page's live run refreshes on, so every tab shows it
+# stopping
+mutation RequestConversationRunStop($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $runId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      stopRequestedAt: { isNull: true }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Stops a run still waiting in the queue, as its member asked, at once rather than when a worker
+# claims it, so they can send again straight away: it ends `STOPPED` with its note, at a position
+# claimed on the conversation's counter, and a task delivered later finds it ended and does
+# nothing. Only while the run is still queued, so one a worker claimed meanwhile is asked to stop
+# instead.
+#
+# The conversation's row is written once, as `InterruptDeadConversationRun` writes it
+mutation StopQueuedConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: {
+      status: STOPPED
+      failure: "Its member stopped it while it was queued"
+      endedAt_expr: "request.time"
+      leaseExpiresAt: null
+    }
+  ) @check(expr: "this == 1", message: "The run is no longer queued")
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: STOPPED
+      position: $position
+    }
+  )
+}
+
+# Resumes a run its member stopped, or that died with its worker, from its note: the note goes,
+# which is the thread's newest message, and a run starts on the anchor of the run it resumes, which
+# carries that run's response on. In one mutation:
+#
+# - the caller's membership row is locked, as a send locks it, and they hold fewer than 3 runs in
+#   flight in the organization
+# - the resumed run is the conversation's latest, numbered right before the new one, and stopped or
+#   interrupted
+# - the conversation is idle, not deleted, its counter right after the note, and it takes the new
+#   run, with one message fewer and the preview of the message before the note
+# - the note is deleted
+# - the run is inserted, queued with a twenty minutes' lease, as a send queues one, with the
+#   results of the calls the resumed run's turn finished (`$pendingToolResults`), which it carries
+#   on: it runs the others, and sends them all
+#
+# A resume sent again after its first try went through finds the conversation taken, and the
+# backend answers with the run it started
+mutation ResumeConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $resumedRunId: UUID!
+  $resumedRunNumber: Int!
+  $anchorPosition: Int!
+  $noteId: UUID!
+  $notePosition: Int!
+  $nextMessagePosition: Int!
+  $preview: Any
+  $previewMessageId: UUID
+  $runId: UUID!
+  $runNumber: Int!
+  $pendingToolResults: String
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(
+      expr: "vars.runNumber == vars.resumedRunNumber + 1 && vars.nextMessagePosition == vars.notePosition + 1"
+      message: "A run resumes the run right before it, from the newest message"
+    )
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the resume read it") {
+      userId
+    }
+    resumed: conversationRuns(
+      where: {
+        id: { eq: $resumedRunId }
+        number: { eq: $resumedRunNumber }
+        anchorPosition: { eq: $anchorPosition }
+        status: { in: [STOPPED, INTERRUPTED] }
+        conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "Only a stopped or interrupted run resumes") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      nextRunNumber: { eq: $runNumber }
+      nextMessagePosition: { eq: $nextMessagePosition }
+    }
+    data: {
+      activeRunId: $runId
+      preview: $preview
+      previewMessageId: $previewMessageId
+      nextRunNumber_update: { inc: 1 }
+      messageCount_update: { dec: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not resume that run")
+  conversationMessage_deleteMany(
+    where: {
+      id: { eq: $noteId }
+      conversationId: { eq: $conversationId }
+      runId: { eq: $resumedRunId }
+      kind: { eq: NOTE }
+      position: { eq: $notePosition }
+    }
+  ) @check(expr: "this == 1", message: "The run's note is not the newest message")
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: RESUME
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      pendingToolResults: $pendingToolResults
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+}
+
+# Retries a run that stopped, failed, was refused or died with its worker: the transcript is cut
+# back to the run's anchor, the member's entry it answers, its context message included, and every
+# message the runs on that anchor drew is deleted, the run retried and those it resumed, never the
+# member's message that started one, which names the run too. A run starts on that anchor, with a
+# context message of its own. In one mutation:
+#
+# - the caller's membership row is locked, as a send locks it, and they hold fewer than 3 runs in
+#   flight in the organization
+# - the retried run is the conversation's latest, numbered right before the new one, and ended
+#   with a note
+# - the conversation is idle, not deleted, its history where the retry read it, and it takes the new
+#   run, with as many messages fewer as are deleted, its history moved on so every page reads it
+#   again, nothing unread, no longer full, and the preview of the newest message kept
+# - the messages are deleted, exactly as many as the retry counted
+# - the transcript after the anchor is deleted
+# - the run is inserted, queued with a twenty minutes' lease, as a send queues one
+#
+# A retry sent again after its first try went through finds the conversation taken, and the backend
+# answers with the run it started
+mutation RetryConversationRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $retriedRunId: UUID!
+  $retriedRunNumber: Int!
+  $anchorPosition: Int!
+  $historyRevision: Int!
+  $deletedCount: Int!
+  $preview: Any
+  $previewMessageId: UUID
+  $runId: UUID!
+  $runNumber: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(expr: "vars.runNumber == vars.retriedRunNumber + 1", message: "A run retries the run right before it")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the retry read it") {
+      userId
+    }
+    retried: conversationRuns(
+      where: {
+        id: { eq: $retriedRunId }
+        number: { eq: $retriedRunNumber }
+        anchorPosition: { eq: $anchorPosition }
+        status: { in: [STOPPED, FAILED, REFUSED, INTERRUPTED] }
+        conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "Only a run that ended with a note is retried") {
+      id
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+  }
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      nextRunNumber: { eq: $runNumber }
+      historyRevision: { eq: $historyRevision }
+    }
+    data: {
+      activeRunId: $runId
+      preview: $preview
+      previewMessageId: $previewMessageId
+      unreadCount: 0
+      isFull: false
+      nextRunNumber_update: { inc: 1 }
+      historyRevision_update: { inc: 1 }
+      messageCount_update: { dec: $deletedCount }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not retry that run")
+  conversationMessage_deleteMany(
+    where: {
+      conversationId: { eq: $conversationId }
+      kind: { ne: MEMBER_TEXT }
+      run: { anchorPosition: { eq: $anchorPosition } }
+    }
+  ) @check(expr: "this == vars.deletedCount", message: "The runs' messages changed since the retry read them")
+  conversationTranscriptEntry_deleteMany(
+    where: { conversationId: { eq: $conversationId }, position: { gt: $anchorPosition } }
+  )
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: RETRY
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+}
+
 # Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
 # attempt, which every later write of that worker matches, so a worker that lost the run writes
 # nothing more. `$attempts` is the count the worker read, so of two workers claiming at once only
@@ -588,7 +1232,9 @@ mutation ReclaimConversationRun(
 }
 
 # Renews a claimed run's lease for another minute, and writes the progress line the thinking
-# indicator shows when there is a new one: an omitted `$step` leaves the one before.
+# indicator shows when there is a new one: an omitted `$step` leaves the one before. Before a
+# request to Claude it also writes the run's context, built once, and its usage with the request
+# reserved, each left as it was when omitted.
 #
 # This is the fence every write of a worker starts with: the run still `RUNNING`, at the attempt
 # the worker claimed (`$attempts`, after its claim), and its author still the member it was queued
@@ -602,6 +1248,8 @@ mutation RenewConversationRunLease(
   $attempts: Int!
   $membershipCreatedAt: Timestamp!
   $step: String
+  $context: String
+  $usage: Any
 ) @auth(level: NO_ACCESS) {
   conversationRun_updateMany(
     where: {
@@ -620,14 +1268,641 @@ mutation RenewConversationRunLease(
         }
       }
     }
-    data: { step: $step, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+    data: { step: $step, context: $context, usage: $usage, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
   )
 }
 
 # Stores a turn of the agent in the transcript, as the JSON text of exactly what it answered, after
-# the last entry. Fenced as `RenewConversationRunLease` is, which renews the lease in the same
-# write. The entry's id is the backend's, so the messages drawn from it can derive theirs
+# the last entry: a whole turn, or one part of a turn paused by `pause_turn`. Fenced as
+# `RenewConversationRunLease` is, which renews the lease in the same write, and settles the
+# request's usage there. The entry's id is the backend's, so the messages drawn from it can derive
+# theirs
 mutation StoreConversationTurn(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $position: Int!
+  $content: String!
+  $usage: Any
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { usage: $usage, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationTranscriptEntry_insert(
+    data: {
+      id: $entryId
+      conversationId: $conversationId
+      runId: $runId
+      position: $position
+      role: ASSISTANT
+      content: $content
+    }
+  )
+}
+
+# Stores a run's first turn with its context message, which every request of the run sent last
+# until now: the `SYSTEM` entry, with the hash of its profile part, then the `ASSISTANT` entry, at
+# consecutive positions, so the transcript never ends on a context message. Fenced and settling the
+# request's usage as `StoreConversationTurn` does
+mutation StoreConversationTurnWithContext(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $contextEntryId: UUID!
+  $contextPosition: Int!
+  $contextContent: String!
+  $contextHash: String!
+  $entryId: UUID!
+  $position: Int!
+  $content: String!
+  $usage: Any
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { usage: $usage, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(expr: "vars.position == vars.contextPosition + 1", message: "The reply follows its context")
+  system: conversationTranscriptEntry_insert(
+    data: {
+      id: $contextEntryId
+      conversationId: $conversationId
+      runId: $runId
+      position: $contextPosition
+      role: SYSTEM
+      content: $contextContent
+      contextHash: $contextHash
+    }
+  )
+  assistant: conversationTranscriptEntry_insert(
+    data: {
+      id: $entryId
+      conversationId: $conversationId
+      runId: $runId
+      position: $position
+      role: ASSISTANT
+      content: $content
+    }
+  )
+}
+
+# Draws text the agent wrote as a message of the thread, at a position claimed on the
+# conversation's counter, and moves its transcript entry's cursor past the blocks it was drawn
+# from, in one mutation, so a worker taking over after a crash draws the rest and nothing twice.
+# The message's id derives from the entry and the blocks, so drawing it twice is a conflict anyway.
+# Its citations, the spans web search sources, go with it. The entry is found by its id and cursor,
+# whichever run stored it, so a resumed run draws what the run it carries on left undrawn, under
+# its own name.
+#
+# A text past 20000 characters is drawn in pieces: this draws the first, with `$toPiece` 1 and the
+# cursor moved to the text's first block, past the blocks before it that draw nothing, and
+# `DrawConversationAgentTextPiece` the rest. An omitted `$toPiece`
+# draws the whole text and leaves the cursor's piece at 0.
+#
+# A reply adds one to the unread count and becomes the preview. A conversation deleted meanwhile
+# takes nothing, and its worker stops. Fenced as `RenewConversationRunLease` is
+mutation DrawConversationAgentText(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $text: String!
+  $citations: Any
+  $preview: Any!
+  $toPiece: Int
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "size(vars.text) <= 20000 && ((vars.toBlock > vars.fromBlock && (!has(vars.toPiece) || vars.toPiece == 0)) || (has(vars.toPiece) && vars.toPiece == 1 && vars.toBlock >= vars.fromBlock))"
+      message: "A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      unreadCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
+    data: { drawnBlocks: $toBlock, drawnPieces: $toPiece }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: AGENT_TEXT
+      text: $text
+      citations: $citations
+      position: $position
+    }
+  )
+}
+
+# Draws a later piece of a text past 20000 characters, the first having gone through
+# `DrawConversationAgentText`: at a position claimed on the counter, with the cursor moved from
+# this piece to the next, or past the text's blocks for its last piece, so a crash between two
+# pieces draws the rest once. It becomes the preview, and adds nothing to the unread count, which
+# the reply's first piece counted. Fenced as `RenewConversationRunLease` is
+mutation DrawConversationAgentTextPiece(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $block: Int!
+  $fromPiece: Int!
+  $toBlock: Int!
+  $toPiece: Int!
+  $messageId: UUID!
+  $position: Int!
+  $text: String!
+  $citations: Any
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "size(vars.text) <= 20000 && vars.fromPiece >= 1 && ((vars.toBlock == vars.block && vars.toPiece == vars.fromPiece + 1) || (vars.toBlock > vars.block && vars.toPiece == 0))"
+      message: "A later piece moves the cursor to the next, or past its text, and holds at most 20000 characters"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $block }
+      drawnPieces: { eq: $fromPiece }
+    }
+    data: { drawnBlocks: $toBlock, drawnPieces: $toPiece }
+  ) @check(expr: "this == 1", message: "That piece was drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: AGENT_TEXT
+      text: $text
+      citations: $citations
+      position: $position
+    }
+  )
+}
+
+# Draws a call to a tool that ran on Claude's side, a web search, as a finished `TOOL_CALL`: its
+# input and its output as JSON text, succeeded or failed, at a position claimed on the counter,
+# with the cursor moved past the call's block. It becomes the preview, and adds nothing to the
+# unread count. Fenced as `RenewConversationRunLease` is
+mutation DrawConversationToolCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $toolUseId: String!
+  $toolName: String!
+  $toolStatus: ConversationToolStatus!
+  $toolInput: String!
+  $toolOutput: String!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.toBlock > vars.fromBlock && (vars.toolStatus == 'SUCCEEDED' || vars.toolStatus == 'FAILED')"
+      message: "A call is drawn from one block or more, finished"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
+    data: { drawnBlocks: $toBlock }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: TOOL_CALL
+      toolUseId: $toolUseId
+      toolName: $toolName
+      toolStatus: $toolStatus
+      toolInput: $toolInput
+      toolOutput: $toolOutput
+      position: $position
+    }
+  )
+}
+
+# Draws a question the agent asked with `ask_user` as a `QUESTION`, waiting: its prompt, its options
+# and whether several may be chosen, as the backend checked them against the question's bounds,
+# which they go back into the transcript within. At a position claimed on the counter, with the
+# cursor moved past the call's block, as `DrawConversationAgentText` draws a reply. A question adds
+# one to the unread count and becomes the preview. Fenced as `RenewConversationRunLease` is
+mutation DrawConversationQuestion(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $toolUseId: String!
+  $questionPrompt: String!
+  $questionOptions: [String!]!
+  $isMultipleChoice: Boolean!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.toBlock > vars.fromBlock && size(vars.questionPrompt) <= 1000 && size(vars.questionOptions) >= 2 && size(vars.questionOptions) <= 6 && vars.questionOptions.all(option, size(option) <= 200)"
+      message: "A question is drawn from its call, with a prompt of at most 1000 characters and 2 to 6 options of at most 200"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      unreadCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
+    data: { drawnBlocks: $toBlock }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: QUESTION
+      toolUseId: $toolUseId
+      questionPrompt: $questionPrompt
+      questionOptions: $questionOptions
+      isMultipleChoice: $isMultipleChoice
+      position: $position
+    }
+  )
+}
+
+# Draws a call to one of Strategy Dance's own tools as a `TOOL_CALL`, `RUNNING` with its input and
+# no output yet, before it starts: `StartConversationToolCall` starts it and
+# `FinishConversationToolCall` records what it came to. At a position claimed on the counter, with
+# the cursor moved past the call's block. It becomes the preview, and adds nothing to the unread
+# count. A call the worker will not run, past a limit or to a tool it does not know, is drawn
+# finished and failed through `DrawConversationToolCall` instead. Fenced as
+# `RenewConversationRunLease` is
+mutation DrawConversationClientToolCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $toolUseId: String!
+  $toolName: String!
+  $toolInput: String!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(expr: "vars.toBlock > vars.fromBlock", message: "A call is drawn from one block or more")
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
+    data: { drawnBlocks: $toBlock }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: TOOL_CALL
+      toolUseId: $toolUseId
+      toolName: $toolName
+      toolStatus: RUNNING
+      toolInput: $toolInput
+      position: $position
+    }
+  )
+}
+
+# Starts a call the thread shows, before the worker makes it, so a worker fenced out never makes
+# one: `RUNNING`, with when it started. A call drawn and never started, one a crash left started
+# with no result, which runs again, and one a stop cancelled, which a resumed run runs, all start
+# here; a finished one never does. The call is found by its id in the run's conversation, whichever
+# run drew it, so a resumed run starts what the run it carries on drew. Fenced as
+# `RenewConversationRunLease` is
+mutation StartConversationToolCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $messageId: UUID!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationMessage_updateMany(
+    where: {
+      id: { eq: $messageId }
+      conversationId: { eq: $conversationId }
+      kind: { eq: TOOL_CALL }
+      toolStatus: { in: [RUNNING, CANCELLED] }
+    }
+    data: { toolStatus: RUNNING, toolStartedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The call has finished already")
+}
+
+# Records what a call came to, once it has: succeeded or failed, its output as JSON text, lossless
+# as the transcript is, and how long it took, only while it is still running, so a call that
+# answers after its time was up changes nothing. The run keeps the results of its turn's calls that
+# have finished (`$pendingToolResults`, JSON text), in the fenced write, until the entry that sends
+# them is stored, so a worker taking over after a crash runs none of them again. The preview
+# follows the call only while it shows it. Fenced as `RenewConversationRunLease` is
+mutation FinishConversationToolCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $messageId: UUID!
+  $toolStatus: ConversationToolStatus!
+  $toolOutput: String!
+  $toolDurationMs: Int!
+  $pendingToolResults: String!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { pendingToolResults: $pendingToolResults, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.toolStatus == 'SUCCEEDED' || vars.toolStatus == 'FAILED'"
+      message: "A call finishes succeeded or failed"
+    )
+  conversationMessage_updateMany(
+    where: {
+      id: { eq: $messageId }
+      conversationId: { eq: $conversationId }
+      kind: { eq: TOOL_CALL }
+      toolStatus: { eq: RUNNING }
+    }
+    data: { toolStatus: $toolStatus, toolOutput: $toolOutput, toolDurationMs: $toolDurationMs }
+  ) @check(expr: "this == 1", message: "The call is no longer running")
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, previewMessageId: { eq: $messageId } }
+    data: { preview: $preview }
+  )
+}
+
+# Stores the results of a turn's calls in the transcript, after the turn, as the user entry that
+# answers them, in their order, then goes round to Claude. The run lets go of the results it kept
+# meanwhile, in the fenced write. Fenced as `RenewConversationRunLease` is
+mutation StoreConversationToolResults(
   $organizationId: UUID!
   $userId: String!
   $conversationId: UUID!
@@ -655,7 +1930,7 @@ mutation StoreConversationTurn(
         }
       }
     }
-    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+    data: { pendingToolResults: null, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
   ) @check(expr: "this == 1", message: "The run is no longer this worker's")
   conversationTranscriptEntry_insert(
     data: {
@@ -663,33 +1938,26 @@ mutation StoreConversationTurn(
       conversationId: $conversationId
       runId: $runId
       position: $position
-      role: ASSISTANT
+      role: USER
       content: $content
     }
   )
 }
 
-# Draws text the agent wrote as a message of the thread, at a position claimed on the
-# conversation's counter, and moves its transcript entry's cursor past the blocks it was drawn
-# from, in one mutation, so a worker taking over after a crash draws the rest and nothing twice.
-# The message's id derives from the entry and the blocks, so drawing it twice is a conflict anyway.
-#
-# A reply adds one to the unread count and becomes the preview. A conversation deleted meanwhile
-# takes nothing, and its worker stops. Fenced as `RenewConversationRunLease` is
-mutation DrawConversationAgentText(
+# Ends a run on the questions its turn asked: `WAITING`, with `$usage` settling what its requests
+# used, until an answer or a send consumes its turn. A call a stop kept from starting is cancelled,
+# and `$preview`, given when the preview shows that call, says so. The conversation lets go of the
+# run where it still names it, and waits for the member's answer, which the sidebar's badge and the
+# list read. Fenced as `RenewConversationRunLease` is
+mutation FinishConversationRunWaiting(
   $organizationId: UUID!
   $userId: String!
   $conversationId: UUID!
   $runId: UUID!
   $attempts: Int!
   $membershipCreatedAt: Timestamp!
-  $entryId: UUID!
-  $fromBlock: Int!
-  $toBlock: Int!
-  $messageId: UUID!
-  $position: Int!
-  $text: String!
-  $preview: Any!
+  $usage: Any
+  $preview: Any
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -708,43 +1976,23 @@ mutation DrawConversationAgentText(
         }
       }
     }
-    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+    data: { status: WAITING, usage: $usage, endedAt_expr: "request.time", leaseExpiresAt: null }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
   )
-    @check(expr: "this == 1", message: "The run is no longer this worker's")
-    @check(
-      expr: "vars.toBlock > vars.fromBlock && size(vars.text) <= 20000"
-      message: "A message is drawn from one block or more, and holds at most 20000 characters"
-    )
   conversation_updateMany(
-    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
-    data: {
-      preview: $preview
-      previewMessageId: $messageId
-      nextMessagePosition_update: { inc: 1 }
-      messageCount_update: { inc: 1 }
-      unreadCount_update: { inc: 1 }
-      updatedAt_expr: "request.time"
-    }
-  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
-  conversationTranscriptEntry_updateMany(
-    where: { id: { eq: $entryId }, runId: { eq: $runId }, drawnBlocks: { eq: $fromBlock } }
-    data: { drawnBlocks: $toBlock }
-  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
-  conversationMessage_insert(
-    data: {
-      id: $messageId
-      conversationId: $conversationId
-      runId: $runId
-      kind: AGENT_TEXT
-      text: $text
-      position: $position
-    }
+    where: { id: { eq: $conversationId }, activeRunId: { eq: $runId } }
+    data: { activeRunId: null, isAwaitingAnswer: true, preview: $preview, updatedAt_expr: "request.time" }
   )
 }
 
 # Ends a run its worker brought to an end: `COMPLETED`, or `STOPPED` in a conversation deleted
-# meanwhile. The conversation lets go of it only while it still names it, deleted or not, so a
-# conversation restored later is not stuck busy. Fenced as `RenewConversationRunLease` is
+# meanwhile, with `$usage` settling what its requests used, left as it was when omitted. A call the
+# deletion kept from finishing is cancelled. The conversation lets go of it only while it still
+# names it, deleted or not, so a conversation restored later is not stuck busy. Fenced as
+# `RenewConversationRunLease` is
 mutation FinishConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -753,6 +2001,7 @@ mutation FinishConversationRun(
   $attempts: Int!
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
+  $usage: Any
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -771,13 +2020,17 @@ mutation FinishConversationRun(
         }
       }
     }
-    data: { status: $status, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: $status, usage: $usage, endedAt_expr: "request.time", leaseExpiresAt: null }
   )
     @check(expr: "this == 1", message: "The run is no longer this worker's")
     @check(
       expr: "vars.status == 'COMPLETED' || vars.status == 'STOPPED'"
       message: "A run ends this way completed or stopped"
     )
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
   conversation_updateMany(
     where: { id: { eq: $conversationId }, activeRunId: { eq: $runId } }
     data: { activeRunId: null }
@@ -787,7 +2040,11 @@ mutation FinishConversationRun(
 # Ends a run its worker brought to an end with a note the thread draws, such as a run at a limit
 # that sends no further request: the conversation takes the note at a position claimed on its
 # counter and lets go of the run in the same write. A note can take a conversation past its 2000
-# messages, as the turn before it can. Fenced as `RenewConversationRunLease` is
+# messages, as the turn before it can. Each status takes its own note: a failed run says it failed
+# or is full, a stopped one that it stopped, a refused one that Claude refused. `$isFull` marks the
+# conversation full when its next request would not fit Claude's context, which the send route then
+# refuses, `$usage` settles what the run's requests used, and `$failure` says why it ended, for the
+# logs; each is left as it was when omitted. Fenced as `RenewConversationRunLease` is
 mutation FinishConversationRunWithNote(
   $organizationId: UUID!
   $userId: String!
@@ -800,6 +2057,9 @@ mutation FinishConversationRunWithNote(
   $noteId: UUID!
   $position: Int!
   $preview: Any!
+  $usage: Any
+  $isFull: Boolean
+  $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -818,15 +2078,15 @@ mutation FinishConversationRunWithNote(
         }
       }
     }
-    data: { status: $status, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: $status, usage: $usage, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   )
     @check(expr: "this == 1", message: "The run is no longer this worker's")
     @check(
-      expr: "vars.status == 'FAILED' || vars.status == 'STOPPED' || vars.status == 'REFUSED'"
-      message: "A run ends with a note failed, stopped or refused"
+      expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
+      message: "A run ends with its own note: failed or full, stopped, or refused"
     )
   conversationMessage_updateMany(
-    where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -840,6 +2100,7 @@ mutation FinishConversationRunWithNote(
     }
     data: {
       activeRunId: null
+      isFull: $isFull
       preview: $preview
       previewMessageId: $noteId
       nextMessagePosition_update: { inc: 1 }
@@ -860,9 +2121,9 @@ mutation FinishConversationRunWithNote(
 }
 
 # Ends a run whose author is no longer the member it was queued under, removed, invited back since
-# or no longer staff, as `INTERRUPTED`, with its note, so nothing is left for a later delivery to
-# take up. Fenced on the run alone, at the attempt the worker read or claimed, since the membership
-# the other writes match is the one that is gone
+# or no longer staff, as `INTERRUPTED`, with its note and why, for the logs, so nothing is left for a
+# later delivery to take up. Fenced on the run alone, at the attempt the worker read or claimed,
+# since the membership the other writes match is the one that is gone
 mutation InterruptConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -872,6 +2133,7 @@ mutation InterruptConversationRun(
   $noteId: UUID!
   $position: Int!
   $preview: Any!
+  $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -880,10 +2142,10 @@ mutation InterruptConversationRun(
       attempts: { eq: $attempts }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
-    data: { status: INTERRUPTED, endedAt_expr: "request.time", leaseExpiresAt: null }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is no longer this worker's")
   conversationMessage_updateMany(
-    where: { runId: { eq: $runId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -939,4 +2201,43 @@ mutation DeleteClaimedConversations($ids: [UUID!]!) @auth(level: NO_ACCESS) {
       deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
     }
   )
+}
+
+# Records a search of the caller's conversations, holding them to 120 in ten minutes in an
+# organization (`MAX_CONVERSATION_SEARCHES` in strategydance-core: change the two together, as the
+# operation cannot import it). The search route runs it before it searches anything.
+#
+# The first step writes the caller's membership, the lock a conversation's start takes too, so the
+# count after it sees every search the caller made there that committed before it: two at once at
+# 119 let exactly one through, whichever instances run them. The allowance is the membership's,
+# per member and organization, which is exactly what the lock serializes. Read to 120, since past
+# that a search is refused whatever the rest are. `$userId` is the uid the backend verified
+mutation RecordConversationSearch($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can search its conversations")
+  query @redact {
+    conversationSearches(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { gt_time: { now: true, sub: { minutes: 10 } } }
+      }
+      limit: 120
+    )
+      @check(
+        expr: "size(this) < 120"
+        message: "Somebody searches their conversations at most 120 times in ten minutes in an organization"
+      ) {
+      id
+    }
+  }
+  conversationSearch_insert(data: { userId: $userId, organizationId: $organizationId })
+}
+
+# The daily sweep's: deletes the searches made over a day ago, whoever made them, which no count
+# reads any more. Deleting them twice deletes nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredConversationSearches @auth(level: NO_ACCESS) {
+  conversationSearch_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }

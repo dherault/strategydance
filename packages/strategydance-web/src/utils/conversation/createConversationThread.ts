@@ -1,3 +1,5 @@
+import { ConversationMessageKind } from 'strategydance-database/web'
+
 import type {
   ConversationMessageBody,
   ConversationPage,
@@ -94,6 +96,10 @@ function createConversationThread({
   let awaitedRevision = -Infinity
   let bodiesRetryDelayMs = bodiesRetryDelay
   let bodiesRetryTimeout: ReturnType<typeof setTimeout> | undefined
+  // The runs this page's Retry deleted the messages of, and the history it deleted them from, whose
+  // tails may still carry them until one from the next history comes
+  let droppedRuns = new Set<string>()
+  let droppedRevision = -Infinity
   let snapshot = createSnapshot()
 
   function createSnapshot(): ConversationThreadSnapshot {
@@ -147,6 +153,20 @@ function createConversationThread({
     bodies = next
   }
 
+  // Whether an entry is one a run this page's Retry deleted drew: every one but the member's message
+  // that started the run, which names it too and stays
+  function isDropped({ kind, run }: ConversationThreadEntry) {
+    return kind !== ConversationMessageKind.MEMBER_TEXT && run !== undefined && droppedRuns.has(run.id)
+  }
+
+  // The thread without what this page's Retry deleted, which a tail or a page read before it landed
+  // still carries
+  function withoutDropped(next: ConversationThreadState) {
+    if (!droppedRuns.size || !next.entries.some(isDropped)) return next
+
+    return { ...next, entries: next.entries.filter(entry => !isDropped(entry)) }
+  }
+
   function schedule() {
     if (!listeners.size) return
 
@@ -183,7 +203,7 @@ function createConversationThread({
 
       const previous = state
 
-      state = mergeConversationPage(state, { before, ...page }, pageLength)
+      state = withoutDropped(mergeConversationPage(state, { before, ...page }, pageLength))
       keepBodies(page.messages.map(toBody))
 
       if (state !== previous && isForReader) isOlderWanted = false
@@ -255,7 +275,10 @@ function createConversationThread({
     receive: (next: ConversationTail) => {
       const previous = state
 
-      state = mergeConversationTail(state, next, tailLength)
+      if (next.historyRevision > droppedRevision) droppedRuns = new Set()
+
+      state = withoutDropped(mergeConversationTail(state, next, tailLength))
+
       isGone = false
 
       if (state !== previous) {
@@ -264,6 +287,25 @@ function createConversationThread({
       }
 
       schedule()
+    },
+    /*
+      Drops the messages some runs drew, but the member's message that started one, from the tail
+      and every page the thread holds, as soon as this page's Retry has deleted them, rather than
+      once the tail of the next history has come and the pages are read again. A tail or a page of
+      the history they were deleted from, read before the Retry landed, brings none of them back
+    */
+    dropRuns: (runIds: string[]) => {
+      droppedRuns = new Set([...droppedRuns, ...runIds])
+      droppedRevision = Math.max(droppedRevision, state.revision)
+
+      const previous = state
+
+      state = withoutDropped(state)
+
+      if (state === previous) return
+
+      keepBodies()
+      emit()
     },
     // Reads the messages before the oldest held, when there are any, as the reader scrolls up to
     // them, or again after a read failed

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { ConversationMessageKind, ConversationToolStatus } from 'strategydance-database/web'
+import {
+  ConversationMessageKind,
+  ConversationNoteKind,
+  ConversationRunStatus,
+  ConversationToolStatus,
+} from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -12,7 +17,9 @@ import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
+import groupConversationReplies from '~utils/conversation/groupConversationReplies'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
+import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 
 import Spinner from '~components/common/Spinner'
@@ -21,7 +28,9 @@ import ConversationAspectsNote from '~components/conversation/ConversationAspect
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
 import ConversationMessagePlaceholder from '~components/conversation/ConversationMessagePlaceholder'
 import ConversationNote from '~components/conversation/ConversationNote'
+import ConversationNoteActions from '~components/conversation/ConversationNoteActions'
 import ConversationQuestion from '~components/conversation/ConversationQuestion'
+import ConversationSources from '~components/conversation/ConversationSources'
 import ConversationThinking from '~components/conversation/ConversationThinking'
 import ConversationToolCall from '~components/conversation/ConversationToolCall'
 import ConversationToolCallDialog from '~components/conversation/ConversationToolCallDialog'
@@ -35,12 +44,18 @@ type Props = {
   conversation: Conversation
   // The conversation's latest run, or null before its first
   run: ConversationRun | null
+  // The run the reader last started from the page, and what records it
+  startedRun: StartedConversationRun | null
+  onRunStart: (startedRun: StartedConversationRun) => void
 }
 
 /*
-  A conversation's thread, read-only: each entry as the design draws its kind, oldest first, and
-  the thinking indicator after them while a run goes, until its lease passes, when the backend is
-  asked to reconcile it. Older entries load as the reader scrolls up
+  A conversation's thread: each entry as the design draws its kind, oldest first, and the thinking
+  indicator after them while a run goes, until its lease passes, when the backend is asked to
+  reconcile it. The questions of the turn the conversation waits on are answered in place, and a
+  run waiting on questions all answered is reconciled too, in case its last answer could not carry
+  it on. The note that ends the latest response, when it is the last entry and nothing goes,
+  offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
   The replies it shows are marked read once the latest is drawn whole.
 
@@ -48,20 +63,26 @@ type Props = {
   the top still showing, the next one is asked for here. That reads where the top is rather than
   what the observer said last, which it says after the page has moved the top away
 */
-function ConversationThread({ conversation, run }: Props) {
+function ConversationThread({ conversation, run, startedRun, onRunStart }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
-  const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder } = useConversationThread(conversation)
+  const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder, dropRuns } = useConversationThread(conversation)
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
+  const waitingQuestions = entries.filter(
+    ({ kind, answeredAt, isAnswerSkipped }) =>
+      kind === ConversationMessageKind.QUESTION && !answeredAt && !isAnswerSkipped,
+  )
+  // The run the conversation waits on for the answers to its questions, while it does
+  const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
 
   useConversationThreadScroll(listRef)
   useMarkConversationRead(conversation, isLatestShown)
-  useReconcileConversationRun(conversation.id, run)
+  useReconcileConversationRun(conversation.id, run, !waitingQuestions.length)
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -90,13 +111,16 @@ function ConversationThread({ conversation, run }: Props) {
     if (bottom >= -OLDER_MARGIN_PX && top <= window.innerHeight) loadOlder()
   }, [olderStatus, hasOlder, entries, loadOlder])
 
+  const replies = groupConversationReplies(entries, bodies)
   const isWorking = isConversationRunGoing(run)
+  const isAwaiting = isAwaitingConversationRun(startedRun, run)
   const runningCall = entries.findLast(
     ({ kind, toolStatus }) =>
       kind === ConversationMessageKind.TOOL_CALL && toolStatus === ConversationToolStatus.RUNNING,
   )
 
   function getStep() {
+    if (run?.stopRequestedAt) return formatMessage(conversationMessages.stopping)
     if (run?.step) return run.step
 
     if (runningCall?.toolName) {
@@ -106,14 +130,49 @@ function ConversationThread({ conversation, run }: Props) {
     return null
   }
 
+  // Resume and Retry, under the note that ends the latest response, while it is the last entry and
+  // nothing goes
+  function renderNoteActions(entry: ConversationThreadEntry) {
+    const runId = entry.run?.id
+
+    if (!runId || runId !== run?.id || entry.id !== entries.at(-1)?.id || isWorking || isAwaiting) return null
+
+    return (
+      <ConversationNoteActions
+        key={runId}
+        conversationId={conversation.id}
+        runId={runId}
+        canResume={
+          entry.noteKind === ConversationNoteKind.STOPPED || entry.noteKind === ConversationNoteKind.INTERRUPTED
+        }
+        onRunStart={onRunStart}
+        onRunsRemove={dropRuns}
+      />
+    )
+  }
+
   function renderEntry(entry: ConversationThreadEntry) {
     const body = bodies.get(entry.id)
 
     switch (entry.kind) {
       case ConversationMessageKind.MEMBER_TEXT:
         return body ? <ConversationMemberMessage text={body.text ?? ''} /> : <ConversationMessagePlaceholder isMember />
-      case ConversationMessageKind.AGENT_TEXT:
-        return body ? <ConversationAgentMessage text={body.text ?? ''} /> : <ConversationMessagePlaceholder />
+      case ConversationMessageKind.AGENT_TEXT: {
+        const piece = replies.get(entry.id)
+
+        if (!body) return <ConversationMessagePlaceholder />
+
+        return (
+          <>
+            <ConversationAgentMessage
+              text={body.text ?? ''}
+              markers={piece?.markers}
+              sources={piece?.sources}
+            />
+            {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
+          </>
+        )
+      }
       case ConversationMessageKind.TOOL_CALL:
         return (
           <ConversationToolCall
@@ -125,8 +184,12 @@ function ConversationThread({ conversation, run }: Props) {
       case ConversationMessageKind.QUESTION:
         return body ? (
           <ConversationQuestion
+            conversationId={conversation.id}
             entry={entry}
             body={body}
+            waitingRunId={waitingRunId}
+            hasOtherWaiting={waitingQuestions.some(({ id }) => id !== entry.id)}
+            onRunStart={onRunStart}
           />
         ) : (
           <ConversationMessagePlaceholder />
@@ -139,7 +202,12 @@ function ConversationThread({ conversation, run }: Props) {
           />
         )
       case ConversationMessageKind.NOTE:
-        return entry.noteKind ? <ConversationNote noteKind={entry.noteKind} /> : null
+        return entry.noteKind ? (
+          <ConversationNote
+            noteKind={entry.noteKind}
+            actions={renderNoteActions(entry)}
+          />
+        ) : null
       default:
         return null
     }
@@ -186,9 +254,11 @@ function ConversationThread({ conversation, run }: Props) {
             data-entry-id={entry.id}
             className={cn(
               'flex min-w-0 flex-col',
-              // Consecutive calls sit closer together, as one stretch of work
-              entry.kind === ConversationMessageKind.TOOL_CALL
-                && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL
+              // Consecutive calls sit closer together, as one stretch of work, and a reply's pieces as
+              // the paragraphs of one reply
+              ((entry.kind === ConversationMessageKind.TOOL_CALL
+                && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL)
+                || replies.get(entry.id)?.isContinuation)
                 && '-mt-2',
             )}
           >

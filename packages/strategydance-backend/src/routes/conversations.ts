@@ -1,5 +1,6 @@
 import express, { type Request, type Response, Router } from 'express'
 import {
+  type AnswerConversationQuestionData,
   type ApiResponse,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
@@ -9,8 +10,18 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
+  ERROR_CODE_TOO_MANY_REQUESTS,
+  MAX_ANSWER_OTHER_LENGTH,
   MAX_CONVERSATIONS,
+  MAX_QUESTION_OPTIONS,
+  MAX_QUESTION_OPTION_LENGTH,
+  MAX_SEARCH_QUERY_LENGTH,
+  MAX_SEARCH_TERMS,
+  type ResumeConversationRunData,
+  type RetryConversationRunData,
+  type SearchConversationsData,
   type SendConversationMessageData,
+  splitSearchTerms,
 } from 'strategydance-core'
 import { z } from 'zod'
 
@@ -22,13 +33,19 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
+import createConversationSearchRateLimitMiddleware from '~middleware/conversationSearchRateLimit'
 import organizationMemberMiddleware from '~middleware/organizationMember'
 import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 
+import answerConversationQuestion from '~domain/conversations/answerConversationQuestion'
 import parseConversationMessageText from '~domain/conversations/parseConversationMessageText'
 import reconcileConversationRun from '~domain/conversations/reconcileConversationRun'
+import resumeConversationRun from '~domain/conversations/resumeConversationRun'
+import retryConversationRun from '~domain/conversations/retryConversationRun'
+import searchConversations from '~domain/conversations/searchConversations'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
+import stopConversationRun from '~domain/conversations/stopConversationRun'
 
 /*
   A member's conversations in an organization, mounted at
@@ -38,7 +55,8 @@ import sendConversationMessage from '~domain/conversations/sendConversationMessa
 
   Each route runs its middleware in one order: the body parsed, App Check, the caller's token, the
   parameters and the body checked, then the caller's membership and whether they are staff, which
-  read and write nothing before them
+  read and write nothing before them. The search is metered between the token and the checks, as
+  the routes other routers meter are
 */
 function createConversationsRouter() {
   const router = Router({ mergeParams: true })
@@ -148,6 +166,83 @@ function createConversationsRouter() {
   )
 
   /* ---
+    ANSWERS
+  --- */
+
+  const answersBodySchema = z.object({
+    // The question answered, a message of the conversation
+    messageId: z.string().regex(UUID_PATTERN),
+    // The options chosen, by their text, and the member's own words, bounded here at two code units
+    // a character, since a character outside the Basic Multilingual Plane takes two: the answer's
+    // check against its question holds them to the question's options and to 500 characters
+    selected: z.array(z.string().max(MAX_QUESTION_OPTION_LENGTH * 2)).max(MAX_QUESTION_OPTIONS),
+    other: z
+      .string()
+      .max(MAX_ANSWER_OTHER_LENGTH * 2)
+      .nullable(),
+  })
+
+  type AnswersRequest = Request<
+    z.infer<typeof messagesParamsSchema>,
+    ApiResponse<AnswerConversationQuestionData>,
+    z.infer<typeof answersBodySchema>
+  >
+
+  /*
+    Answers a question of the turn one of the caller's conversations waits on: 202 with the run that
+    carries the conversation on once no question of the turn waits, or null while another does, or
+    while the caller has as many runs going as they may, when the page's reconcile starts it later.
+    The same answer sent again is answered the same, and carries the conversation on when its first
+    try could not. Refused with a 400 when the answer does not fit its question, as
+    `checkConversationAnswer` reads it, and with a 409 when the question was skipped, answered
+    otherwise, or waits for nothing any more. Answered with a 503 when the run is started but could
+    not be queued, which the same answer sent again queues again
+  */
+  router.post(
+    '/:conversationId/answers',
+    express.json({ limit: '32kb' }),
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: messagesParamsSchema, body: answersBodySchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: AnswersRequest, response: Response<ApiResponse<AnswerConversationQuestionData>>) => {
+      const result = await answerConversationQuestion({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        messageId: toCanonicalUuid(request.body.messageId),
+        answer: { selected: request.body.selected, other: request.body.other },
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This question is not in one of your conversations')
+
+          return
+        case 'invalid':
+          respondError(response, 400, ERROR_CODE_BAD_REQUEST, result.reason)
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This question waits for no answer')
+
+          return
+        case 'unavailable':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The answer is kept, but cannot be followed now')
+
+          return
+        case 'answered':
+          response.status(202).json({ status: 'success', data: { runId: result.runId } })
+      }
+    },
+  )
+
+  /* ---
     RUNS
   --- */
 
@@ -188,6 +283,228 @@ function createConversationsRouter() {
       }
 
       response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Stops a run, as its member asked from its page: a queued run ends stopped at once, with its
+    note, a run a worker holds is asked to stop, which its worker does within two seconds, and a run
+    that died with its worker ends interrupted. A run that has ended is left as it is, so a stop sent
+    twice answers the same. Takes no body
+  */
+  router.post(
+    '/:conversationId/runs/:runId/stop',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: runParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: RunRequest, response: Response<ApiResponse>) => {
+      const result = await stopConversationRun({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        runId: toCanonicalUuid(request.params.runId),
+      })
+
+      if (result.outcome === 'missing') {
+        respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This run is not in one of your conversations')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Resumes a run its member stopped, or that died with its worker, from its note, while the note is
+    the conversation's newest message: the note goes, and a run carries the response on, 202 with
+    its id. A resume sent again after its first try went through is answered with the run it
+    started. Refused with a 409 when the run is not the latest, did not stop or die, or something
+    follows its note, and when a run goes or the caller has 3 in flight. Answered with a 503 when the
+    run is started but could not be queued, which the same resume sent again queues again. Takes no
+    body
+  */
+  router.post(
+    '/:conversationId/runs/:runId/resume',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: runParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: Request<z.infer<typeof runParamsSchema>, ApiResponse<ResumeConversationRunData>, unknown>,
+      response: Response<ApiResponse<ResumeConversationRunData>>,
+    ) => {
+      const result = await resumeConversationRun({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        runId: toCanonicalUuid(request.params.runId),
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation no longer exists')
+
+          return
+        case 'busy':
+          respondError(response, 409, ERROR_CODE_CONVERSATION_BUSY, 'A response is still going, try again later')
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be resumed')
+
+          return
+        case 'unavailable':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The response could not be resumed now')
+
+          return
+        case 'resumed':
+          response.status(202).json({ status: 'success', data: { runId: result.runId } })
+      }
+    },
+  )
+
+  /*
+    Retries a run that ended with a note, from that note: the conversation goes back to the
+    member's entry the run answered, the messages the run and those it resumed drew go, and a run
+    answers that entry again, 202 with its id and the runs whose messages went. A retry sent again
+    after its first try went through is answered with the run it started. Never refused for a full
+    conversation, whose room it gives back. Refused with a 409 when the run is not the latest or did
+    not end with a note, and when a run goes or the caller has 3 in flight. Answered with a 503 when
+    the run is started but could not be queued, which the same retry sent again queues again. Takes
+    no body
+  */
+  router.post(
+    '/:conversationId/runs/:runId/retry',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: runParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: Request<z.infer<typeof runParamsSchema>, ApiResponse<RetryConversationRunData>, unknown>,
+      response: Response<ApiResponse<RetryConversationRunData>>,
+    ) => {
+      const result = await retryConversationRun({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        runId: toCanonicalUuid(request.params.runId),
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation no longer exists')
+
+          return
+        case 'busy':
+          respondError(response, 409, ERROR_CODE_CONVERSATION_BUSY, 'A response is still going, try again later')
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be retried')
+
+          return
+        case 'unavailable':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The response could not be retried now')
+
+          return
+        case 'retried':
+          response
+            .status(202)
+            .json({ status: 'success', data: { runId: result.runId, removedRunIds: result.removedRunIds } })
+      }
+    },
+  )
+
+  /* ---
+    SEARCH
+  --- */
+
+  const searchParamsSchema = z.object({
+    organizationId: z.string().regex(UUID_PATTERN),
+  })
+
+  // Bounded in UTF-16 code units, as the search field's `maxLength` counts them
+  const searchBodySchema = z.object({
+    query: z
+      .string()
+      .trim()
+      .min(1, 'A search holds at least one word')
+      .max(MAX_SEARCH_QUERY_LENGTH, `A search holds at most ${MAX_SEARCH_QUERY_LENGTH} characters`)
+      .refine(
+        query => splitSearchTerms(query).length <= MAX_SEARCH_TERMS,
+        `A search holds at most ${MAX_SEARCH_TERMS} words`,
+      )
+      // Postgres refuses U+0000 in any text it is sent, which a field cannot type and a script can
+      .refine(query => !query.includes('\u0000'), 'A search holds no U+0000'),
+  })
+
+  type SearchRequest = Request<
+    z.infer<typeof searchParamsSchema>,
+    ApiResponse<SearchConversationsData>,
+    z.infer<typeof searchBodySchema>
+  >
+
+  // This router's count, one instance's, made once, as `createConversationSearchRateLimitMiddleware`
+  // explains
+  const searchRateLimitMiddleware = createConversationSearchRateLimitMiddleware()
+
+  /*
+    Searches the caller's conversations in the organization for every word of a query, in a title or
+    in one of the member's or the agent's messages, and answers the ids of those it found with how
+    far it looked. The query travels in the body rather than the address, so what somebody looks for
+    in their own conversations never sits in a logged URL. It is trimmed, and refused with a 400
+    when it holds nothing, more than 100 characters, more than 8 words or U+0000.
+
+    Metered twice, both refusing with a 429: the instance's count turns a script away before
+    anything reads the database, and the database's, which every instance shares, says in
+    `Retry-After` when the next search fits
+  */
+  router.post(
+    '/search',
+    express.json({ limit: '4kb' }),
+    appCheckMiddleware,
+    authenticationMiddleware,
+    searchRateLimitMiddleware,
+    validateMiddleware({ params: searchParamsSchema, body: searchBodySchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: SearchRequest, response: Response<ApiResponse<SearchConversationsData>>) => {
+      const result = await searchConversations({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        query: request.body.query,
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'tooMany':
+          // At least a second: the oldest search may have aged out between the read and now
+          response.setHeader('Retry-After', Math.max(1, Math.ceil(result.retryAfterMs / 1000)))
+          respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many searches, try again in a few minutes')
+
+          return
+        case 'found':
+          response.json({
+            status: 'success',
+            data: { conversationIds: result.conversationIds, coverage: result.coverage },
+          })
+      }
     },
   )
 

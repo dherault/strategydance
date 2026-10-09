@@ -33,6 +33,26 @@ service firebase.storage {
         && request.auth.uid == userId;
     }
 
+    // The ceiling is strategydance-core's `MAX_THUMBNAIL_SIZE`, which a rule cannot import
+    function isThumbnail() {
+      return request.resource.size <= 512 * 1024
+        && request.resource.contentType.matches('^image/(png|jpeg|gif|webp)$');
+    }
+
+    /*
+      The profile picture fitted inside 256 pixels, which the account page draws as it uploads the
+      picture, for where it is drawn small. One fixed object beside the picture, on the same terms
+      and for the same reasons, deleted with it
+    */
+    match /users/{userId}/profile-picture-thumbnail {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && isThumbnail();
+      allow delete: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
     /*
       Nothing matches `organizations/`, where an organization's logo and banner live, and that is
       the rule: Storage refuses whatever no rule allows. Only an administrator may change them,

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { ConversationRunStatus } from 'strategydance-database/web'
 
-import { CONVERSATION_RUN_RECONCILE_MARGIN_MS } from '~constants'
+import { CONVERSATION_ANSWER_RECONCILE_DELAY_MS, CONVERSATION_RUN_RECONCILE_MARGIN_MS } from '~constants'
 
 import getConversationRunReconcileDelay from './getConversationRunReconcileDelay'
 
@@ -40,5 +40,15 @@ describe('getConversationRunReconcileDelay', () => {
       null,
     )
     expect(getConversationRunReconcileDelay(null, NOW)).toBe(null)
+  })
+
+  test('asks a few seconds in for a run waiting on questions all answered, and never while one waits', () => {
+    const waiting = { status: ConversationRunStatus.WAITING, leaseExpiresAt: null }
+
+    expect(getConversationRunReconcileDelay(waiting, NOW, { isEveryQuestionAnswered: true })).toBe(
+      CONVERSATION_ANSWER_RECONCILE_DELAY_MS,
+    )
+    expect(getConversationRunReconcileDelay(waiting, NOW, { isEveryQuestionAnswered: false })).toBe(null)
+    expect(getConversationRunReconcileDelay(waiting, NOW)).toBe(null)
   })
 })

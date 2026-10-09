@@ -1,4 +1,4 @@
-import { ArrowUpIcon } from 'lucide-react'
+import { ArrowUpIcon, SquareIcon } from 'lucide-react'
 import { type ChangeEvent, type FormEvent, type KeyboardEvent, useRef, useState } from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { MAX_CONVERSATION_MESSAGE_LENGTH, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
@@ -8,6 +8,7 @@ import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 import type { Conversation, ConversationRun } from '~types'
 
 import useSendConversationMessage from '~hooks/conversation/useSendConversationMessage'
+import useStopConversationRun from '~hooks/conversation/useStopConversationRun'
 
 import createId from '~utils/common/createId'
 import getConversationSendFailure, {
@@ -41,16 +42,21 @@ type Props = {
   conversation: Conversation | null
   // Its latest run, or null before its first
   run: ConversationRun | null
+  // The run the reader last started from the page, and what records it
+  startedRun: StartedConversationRun | null
+  onRunStart: (startedRun: StartedConversationRun | null) => void
 }
 
 /*
   Where the reader writes to Strategy Dance, at the foot of a conversation: a field that grows
-  with what is written, and a button that sends it. Text only for now: stopping a run, mentions
-  and attachments come later.
+  with what is written, and a button that sends it. Text only for now: mentions and attachments
+  come later.
 
   Nothing is sent while a run goes, nor once the conversation is full, though the reader can
   write meanwhile. A first send's run counts as going from the moment the backend answers, before
-  the page's live read of it lands, so a second send never races it.
+  the page's live read of it lands, so a second send never races it. While a run goes, Stop takes
+  the place of Send, and once the reader asked, in this tab or another, it waits for the run to
+  end.
 
   A send that fails keeps its words in the field, and says why. Sending the same words again sends
   them under the same message's id, so a send that did reach the backend, and only lost its answer,
@@ -62,20 +68,27 @@ type Props = {
   It is the last thing on its page, so a draft keeps it, and what is written in it, when its first
   message stores it
 */
-function ConversationComposer({ conversationId, conversation, run }: Props) {
+function ConversationComposer({ conversationId, conversation, run, startedRun, onRunStart }: Props) {
   const { formatMessage } = useIntl()
   const sendConversationMessage = useSendConversationMessage()
+  const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
   const [failedSend, setFailedSend] = useState<FailedSend | null>(null)
-  const [startedRun, setStartedRun] = useState<StartedConversationRun | null>(null)
+  const [stoppingRunId, setStoppingRunId] = useState<string | null>(null)
+  const [failedStopRunId, setFailedStopRunId] = useState<string | null>(null)
 
   const trimmedText = text.trim()
   const isFull = conversation ? conversation.isFull || conversation.messageCount >= MAX_CONVERSATION_MESSAGES : false
-  const isRunGoing = isConversationRunGoing(run) || isAwaitingConversationRun(startedRun, run)
+  const isAwaiting = isAwaitingConversationRun(startedRun, run)
+  const isRunGoing = isConversationRunGoing(run) || isAwaiting
   const canSend = !!trimmedText && !isSending && !isRunGoing && !isFull
+  // The run Stop stops: the one going, or the one the reader just started, before the read shows it
+  const goingRunId = isAwaiting ? (startedRun?.runId ?? null) : isConversationRunGoing(run) ? (run?.id ?? null) : null
+  const isStopping =
+    goingRunId !== null && (stoppingRunId === goingRunId || (run?.id === goingRunId && !!run.stopRequestedAt))
   const shownFailure = isFull ? 'full' : failure
 
   async function send() {
@@ -95,7 +108,7 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
       // What was written while it went is the reader's next message
       setText(current => (current === sentValue ? '' : current))
       setFailedSend(null)
-      setStartedRun(isRetry ? null : { runId, previousRunId })
+      onRunStart(isRetry ? null : { runId, previousRunId })
 
       // Unless the reader has left the page while it went, for one this must not move
       const textarea = textareaRef.current
@@ -112,6 +125,22 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
       setFailure(getConversationSendFailure(error))
     } finally {
       setIsSending(false)
+    }
+  }
+
+  async function stop() {
+    if (!goingRunId || isStopping) return
+
+    setStoppingRunId(goingRunId)
+    setFailedStopRunId(null)
+
+    try {
+      await stopConversationRun({ conversationId, runId: goingRunId })
+    } catch (error) {
+      console.error('The response could not be stopped', error)
+
+      setStoppingRunId(null)
+      setFailedStopRunId(goingRunId)
     }
   }
 
@@ -145,6 +174,14 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
           {formatMessage(FAILURE_MESSAGES[shownFailure], { max: MAX_CONVERSATIONS })}
         </p>
       ) : null}
+      {goingRunId !== null && failedStopRunId === goingRunId ? (
+        <p
+          role="alert"
+          className="m-0 text-sm text-danger"
+        >
+          {formatMessage(conversationMessages.composerStopError)}
+        </p>
+      ) : null}
       <div className="flex items-end gap-1.5">
         <Textarea
           ref={textareaRef}
@@ -161,15 +198,28 @@ function ConversationComposer({ conversationId, conversation, run }: Props) {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
         />
-        <Button
-          type="submit"
-          size="sm"
-          icon={isSending ? <Spinner tone="current" /> : <ArrowUpIcon />}
-          aria-label={formatMessage(conversationMessages.composerSend)}
-          disabled={!canSend}
-          // Keeps the field focused, so a touch screen keeps its keyboard up for the next message
-          onMouseDown={event => event.preventDefault()}
-        />
+        {isRunGoing ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={isStopping ? <Spinner tone="current" /> : <SquareIcon className="fill-current" />}
+            aria-label={formatMessage(conversationMessages.composerStop)}
+            disabled={isStopping}
+            onMouseDown={event => event.preventDefault()}
+            onClick={stop}
+          />
+        ) : (
+          <Button
+            type="submit"
+            size="sm"
+            icon={isSending ? <Spinner tone="current" /> : <ArrowUpIcon />}
+            aria-label={formatMessage(conversationMessages.composerSend)}
+            disabled={!canSend}
+            // Keeps the field focused, so a touch screen keeps its keyboard up for the next message
+            onMouseDown={event => event.preventDefault()}
+          />
+        )}
       </div>
     </form>
   )

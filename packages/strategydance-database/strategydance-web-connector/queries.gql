@@ -6,6 +6,8 @@ query GetCurrentUser @auth(level: USER) {
     email
     displayName
     imageUrl
+    # What the user menu draws, small
+    imageThumbnailUrl
     bio
     locale
     timezone
@@ -65,6 +67,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       name
       exploredAspects
       logoUrl
+      # What the organization switcher draws, small
+      logoThumbnailUrl
       bannerUrl
       color
       brief
@@ -1024,6 +1028,48 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AnswerConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1073,6 +1119,24 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
@@ -1180,6 +1244,84 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "InterruptConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationAgentTextPiece"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationClientToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AnswerConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1329,8 +1471,8 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
 }
 
 # A conversation's latest run, the one with the highest number, whose status says whether Strategy
-# Dance is working and whose step is the progress line it shows meanwhile. A queued run is timed
-# from `createdAt`.
+# Dance is working and whose step is the progress line it shows meanwhile, or that it is stopping
+# once its member asked. A queued run is timed from `createdAt`.
 #
 # A live query of its own, so the progress lines and lease renewals a run writes wake this small
 # read rather than the thread. The backend's run mutations join its `@refresh` list as they arrive
@@ -1416,6 +1558,24 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "StoreConversationTurnWithContext"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationAgentTextPiece"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenewQueuedConversationRunLease"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
@@ -1423,6 +1583,78 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "ExpireQueuedConversationRunLease"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RequestConversationRunStop"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationClientToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StoreConversationToolResults"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )
@@ -1459,6 +1691,7 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
     createdAt
     startedAt
     leaseExpiresAt
+    stopRequestedAt
   }
 }
 

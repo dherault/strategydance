@@ -23,7 +23,8 @@ function toTail(conversation: Conversation): ConversationTail {
   the older messages read in pages and each message's body, by `createConversationThread`.
 
   The thread is made once, from the conversation as the page first read it, so its first paint has
-  the tail, and every later tail is handed to it from an effect, which is safe to repeat. Pages are
+  the tail, and every later tail is handed to it from an effect, which is safe to repeat. A Retry
+  from this page drops the runs it deleted through `dropRuns` at once. Pages are
   read from the server alone, since the SDK would hand back a cached page from before a Retry.
   Under `ConversationWait`, which is keyed on the organization, so the one read here is the
   conversation's
@@ -59,7 +60,7 @@ function useConversationThread(conversation: Conversation) {
 
   const snapshot = useSyncExternalStore(thread.subscribe, thread.getSnapshot, thread.getSnapshot)
 
-  return { ...snapshot, loadOlder: thread.loadOlder }
+  return { ...snapshot, loadOlder: thread.loadOlder, dropRuns: thread.dropRuns }
 }
 
 export default useConversationThread

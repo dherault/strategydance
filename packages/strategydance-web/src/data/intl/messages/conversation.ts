@@ -41,6 +41,63 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Try again',
     description: 'Button that reads the conversations again after they failed to load.',
   },
+  searchLabel: {
+    id: 'conversation.search.label',
+    defaultMessage: 'Search conversations',
+    description:
+      "Placeholder and accessible name of the field above the Conversations page's list, which finds the reader's conversations whose title or one message holds every word typed.",
+  },
+  searchTooManyWords: {
+    id: 'conversation.search.tooManyWords',
+    defaultMessage: 'Search with at most {max, number} words.',
+    description:
+      'Shown under the conversations search field when the reader typed more words than a search takes, and nothing is searched until they remove some. {max} is a number such as 8.',
+  },
+  searchNoMatchTitle: {
+    id: 'conversation.search.noMatchTitle',
+    defaultMessage: 'No conversations match “{query}”',
+    description:
+      "Title of what the Conversations page shows when no conversation holds every word searched for. {query} is what the reader typed. Use your language's quotation marks.",
+  },
+  searchNoMatchText: {
+    id: 'conversation.search.noMatchText',
+    defaultMessage: 'Search looks at titles and messages.',
+    description:
+      'Line under the title shown when a search of the conversations found nothing, saying what the search reads: their titles and the messages in them.',
+  },
+  searchClear: {
+    id: 'conversation.search.clear',
+    defaultMessage: 'Clear search',
+    description: 'Button that empties the conversations search field, so the whole list shows again.',
+  },
+  searchBestMatches: {
+    id: 'conversation.search.bestMatches',
+    defaultMessage: 'Showing the best matches. Add a word to find the rest.',
+    description:
+      'Line above the search results when so many messages matched that the search kept only the most relevant conversations. Adding a word narrows the search.',
+  },
+  searchRecent: {
+    id: 'conversation.search.recent',
+    defaultMessage: 'Searched every title, and the messages of your most recent conversations.',
+    description:
+      "Line above the results of a search in Chinese or Japanese, which reads the titles of all the reader's conversations but only the messages of the latest ones.",
+  },
+  searchError: {
+    id: 'conversation.search.error',
+    defaultMessage: 'The search failed. Check your connection and try again.',
+    description: 'Shown in place of the search results when the search could not be done.',
+  },
+  searchTooMany: {
+    id: 'conversation.search.tooMany',
+    defaultMessage: 'You searched many times in a few minutes. Try again shortly.',
+    description:
+      'Shown in place of the search results when the reader made as many searches as anybody may in ten minutes.',
+  },
+  searchRetry: {
+    id: 'conversation.search.retry',
+    defaultMessage: 'Try again',
+    description: 'Button that runs the same search again after it failed.',
+  },
   columnConversation: {
     id: 'conversation.column.conversation',
     defaultMessage: 'Conversation',
@@ -193,6 +250,23 @@ const conversationMessages = defineMessages({
     id: 'conversation.note.full',
     defaultMessage: 'This conversation is full. Start a new one to go on.',
     description: 'Note in a conversation that holds as much as it can, so it takes no more messages.',
+  },
+  noteResume: {
+    id: 'conversation.note.resume',
+    defaultMessage: 'Resume',
+    description:
+      'Button under the note that ends a conversation when the reader stopped the AI or its answer was interrupted. It lets the AI carry the same answer on.',
+  },
+  noteRetry: {
+    id: 'conversation.note.retry',
+    defaultMessage: 'Retry',
+    description:
+      "Button under the note that ends a conversation when the AI's answer stopped, failed or was refused. It removes that answer and has the AI answer the reader's last message again.",
+  },
+  noteActionError: {
+    id: 'conversation.note.actionError',
+    defaultMessage: 'That did not go through. Check your connection and try again.',
+    description: "Shown under the Resume and Retry buttons when the server did not take the reader's click.",
   },
 
   /* ---
@@ -528,6 +602,35 @@ const conversationMessages = defineMessages({
     description:
       'Small heading over a question the AI asked, which the reader did not answer and wrote something else instead.',
   },
+  questionUnanswered: {
+    id: 'conversation.question.unanswered',
+    defaultMessage: 'Not answered',
+    description:
+      'Small heading over a question the AI asked that the reader cannot answer for now, because the response it belongs to was stopped or cut off. Resuming the response makes it answerable again.',
+  },
+  questionError: {
+    id: 'conversation.question.error',
+    defaultMessage: 'Your answer could not be sent. Check your connection and try again.',
+    description: "Shown under a question when sending the reader's answer failed. Their choices stay as they were.",
+  },
+  questionConflict: {
+    id: 'conversation.question.conflict',
+    defaultMessage: 'This question was answered or skipped elsewhere.',
+    description:
+      "Shown under a question when the reader's answer was refused because the question was answered in another tab, or skipped by a message sent meanwhile.",
+  },
+  questionUnavailable: {
+    id: 'conversation.question.unavailable',
+    defaultMessage: 'Your answer is kept. Strategy Dance will go on in a moment.',
+    description:
+      "Shown under a question when the reader's answer was saved but the AI could not start on it right away. It starts by itself shortly.",
+  },
+  questionQueued: {
+    id: 'conversation.question.queued',
+    defaultMessage: 'Your answer is kept. Strategy Dance will go on once one of your other conversations is done.',
+    description:
+      "Shown under a question when the reader's answer was saved, but the AI is already answering in as many of the reader's other conversations as it can at once, so it starts on this one later, by itself.",
+  },
   aspectsTagged: {
     id: 'conversation.aspectsNote.tagged',
     defaultMessage: 'Strategy Dance tagged this conversation',
@@ -543,6 +646,22 @@ const conversationMessages = defineMessages({
     id: 'conversation.aspectsNote.removed',
     defaultMessage: 'You removed all aspects',
     description: 'Line in a conversation, when the reader took every aspect off it.',
+  },
+  sources: {
+    id: 'conversation.sources',
+    defaultMessage: 'Sources',
+    description: 'Label over the list of web pages a reply from the AI cites, under the reply.',
+  },
+  citationLabel: {
+    id: 'conversation.citationLabel',
+    defaultMessage: 'Source {number}: {title}',
+    description:
+      'Accessible name and tooltip of the small number after a sentence of a reply that cites a web page. {number} is the source in the list under the reply, {title} the page.',
+  },
+  stopping: {
+    id: 'conversation.stopping',
+    defaultMessage: 'Stopping',
+    description: 'What the AI is shown doing once the reader asked it to stop answering, until it has.',
   },
   thinking: {
     id: 'conversation.thinking',
@@ -586,6 +705,18 @@ const conversationMessages = defineMessages({
     id: 'conversation.composer.send',
     defaultMessage: 'Send',
     description: 'Accessible name of the button, an arrow, that sends what the reader wrote to the AI.',
+  },
+  composerStop: {
+    id: 'conversation.composer.stop',
+    defaultMessage: 'Stop response',
+    description:
+      'Accessible name of the button, a square, that takes the place of Send while the AI answers, and stops the answer.',
+  },
+  composerStopError: {
+    id: 'conversation.composer.stopError',
+    defaultMessage: 'The response could not be stopped. Check your connection and try again.',
+    description:
+      'Shown above the message field when the reader asked the AI to stop answering and the server did not get it.',
   },
   composerError: {
     id: 'conversation.composer.error',

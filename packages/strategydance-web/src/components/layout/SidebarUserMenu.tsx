@@ -37,8 +37,9 @@ function SidebarUserMenu() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg">
+              {/* The thumbnail, or the picture itself for one from before thumbnails or from Google */}
               <Avatar
-                src={user?.imageUrl ?? undefined}
+                src={user?.imageThumbnailUrl ?? user?.imageUrl ?? undefined}
                 name={name}
               />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -1,4 +1,9 @@
-import { DEVELOPMENT_API_PORT, DEVELOPMENT_APP_URL, PRODUCTION_APP_URL } from 'strategydance-core'
+import {
+  ARE_CONVERSATIONS_STAFF_ONLY,
+  DEVELOPMENT_API_PORT,
+  DEVELOPMENT_APP_URL,
+  PRODUCTION_APP_URL,
+} from 'strategydance-core'
 
 /* ---
   ENVIRONMENT
@@ -19,6 +24,14 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
   and the backend everything but them
 */
 export const IS_WORKER = process.env.SERVICE === 'worker'
+
+/*
+  Whether conversations are open to Strategy Dance's administrators alone in this process: while
+  they are built (`ARE_CONVERSATIONS_STAFF_ONLY`), everywhere but the development backend, where
+  every member of every organization has them, so the whole feature can be tried locally without
+  granting anybody anything. Cloud Run and the tests keep the gate
+*/
+export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !IS_DEVELOPMENT
 
 /* ---
   ARCHITECTURE
@@ -51,7 +64,8 @@ export const WORKER_URL = `https://strategydance-worker-${GOOGLE_CLOUD_PROJECT_N
 */
 export const CONVERSATION_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/conversation-runs`
 
-// Who Cloud Tasks and Cloud Scheduler call the worker as, the only account that may invoke it
+// Who Cloud Tasks and Cloud Scheduler call the worker as, the one account granted the invoker role
+// on it. The project's owners and `deployer` can call it too, as they can any service there
 export const CONVERSATION_TASKS_SERVICE_ACCOUNT = 'conversation-tasks@strategydance.iam.gserviceaccount.com'
 
 /*
@@ -112,9 +126,38 @@ export const CONVERSATION_RUN_STEP_INTERVAL_MS = 1000
 */
 export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
 
+/*
+  Whether conversations are answered by the placeholder client rather than Claude: in development
+  only, when `CONVERSATION_AGENT=placeholder` spares a developer what every request to the real
+  model costs. Production always asks Claude
+*/
+export const IS_CONVERSATION_AGENT_PLACEHOLDER = !IS_PRODUCTION && process.env.CONVERSATION_AGENT === 'placeholder'
+
 // How long a task's delivery may take, the run it delivers going the whole time: as long as the
 // worker's own timeout, which `deploy:backend` sets
 export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60
+
+/*
+  A run's own limits, beside the entries it draws: at most 25 requests to Claude, and none started
+  once 10 minutes have passed since it was first claimed. A request already streaming then has until
+  14 minutes, when its stream is cut, so the run ends with its note within the task's 15-minute
+  delivery
+*/
+export const CONVERSATION_RUN_MAX_REQUESTS = 25
+export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
+export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
+
+// How often a worker reads whether its run's member asked to stop it while a request streams. It
+// reads it before each request too
+export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
+
+/*
+  How long one of Strategy Dance's own tools may take on a call, and how many calls that only read
+  run at once, side by side: a call past its time fails, and whatever it answers later is dropped.
+  A call that writes runs alone, so writes land in the order Claude made them
+*/
+export const CONVERSATION_TOOL_CALL_TIMEOUT_MS = 60 * 1000
+export const CONVERSATION_READ_CALLS_AT_ONCE = 4
 
 /*
   How long after a run was queued a route that finds its task gone queues it again, rather than

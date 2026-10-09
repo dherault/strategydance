@@ -30,6 +30,7 @@ import createId from '~utils/common/createId'
 import writeOptimistically from '~utils/common/writeOptimistically'
 import compareTasks from '~utils/task/compareTasks'
 import getTaskDependents from '~utils/task/getTaskDependents'
+import getTaskLinkCount from '~utils/task/getTaskLinkCount'
 import getTaskLoopingDependents from '~utils/task/getTaskLoopingDependents'
 import getTaskMovePosition from '~utils/task/getTaskMovePosition'
 import getTaskRestoreLoops from '~utils/task/getTaskRestoreLoops'
@@ -132,7 +133,11 @@ function useTaskChanges() {
         updateTask(taskId, task =>
           task.dependencies.some(link => link.dependencyId === dependencyId)
             ? task
-            : { ...task, dependencies: [...task.dependencies, { dependencyId }] },
+            : {
+                ...task,
+                dependencies: [...task.dependencies, { dependencyId }],
+                linkCount: [{ _count: getTaskLinkCount(task) + 1 }],
+              },
         ),
       write: () => addTaskDependencyMutation(dataConnect, { organizationId: organizationId!, taskId, dependencyId }),
     })
@@ -143,10 +148,15 @@ function useTaskChanges() {
       rowKey: `taskDependency:${taskId}:${dependencyId}`,
       after: [`task:${taskId}`, `task:${dependencyId}`],
       apply: () =>
-        updateTask(taskId, task => ({
-          ...task,
-          dependencies: task.dependencies.filter(link => link.dependencyId !== dependencyId),
-        })),
+        updateTask(taskId, task =>
+          task.dependencies.some(link => link.dependencyId === dependencyId)
+            ? {
+                ...task,
+                dependencies: task.dependencies.filter(link => link.dependencyId !== dependencyId),
+                linkCount: [{ _count: Math.max(0, getTaskLinkCount(task) - 1) }],
+              }
+            : task,
+        ),
       write: () => removeTaskDependencyMutation(dataConnect, { organizationId: organizationId!, taskId, dependencyId }),
     })
   }
@@ -170,6 +180,7 @@ function useTaskChanges() {
       createdById: viewer?.uid ?? null,
       createdAt: new Date().toISOString(),
       dependencies: [],
+      linkCount: [{ _count: 0 }],
     }
     const created = change({
       rowKey: `task:${id}`,

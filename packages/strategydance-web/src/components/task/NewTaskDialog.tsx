@@ -21,6 +21,7 @@ import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import getTaskDependencyOptions from '~utils/task/getTaskDependencyOptions'
+import getTaskLinkCount from '~utils/task/getTaskLinkCount'
 import isTaskLate from '~utils/task/isTaskLate'
 
 import TaskAspectsField from '~components/task/TaskAspectsField'
@@ -182,7 +183,7 @@ function NewTaskDialog({ status, onClose }: Props) {
             linkedTasks={draft.blockedIds.flatMap(taskId => tasksById.get(taskId) ?? [])}
             options={blockedOptions}
             membersById={membersById}
-            isOptionDisabled={other => other.dependencies.length >= MAX_TASK_DEPENDENCIES}
+            isOptionDisabled={other => getTaskLinkCount(other) >= MAX_TASK_DEPENDENCIES}
             onChange={blockedIds => update({ blockedIds })}
           />
         </>

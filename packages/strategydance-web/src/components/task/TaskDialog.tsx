@@ -22,6 +22,7 @@ import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import getTaskDependencyOptions from '~utils/task/getTaskDependencyOptions'
 import getTaskDependents from '~utils/task/getTaskDependents'
+import getTaskLinkCount from '~utils/task/getTaskLinkCount'
 import isTaskLate from '~utils/task/isTaskLate'
 import getMemberName from '~utils/team/getMemberName'
 
@@ -48,8 +49,8 @@ type Props = {
   history as it was before, or the board in its place when the address was reached any other way,
   so a page visited before it is never where closing lands.
 
-  A task waits on at most 50 others, so its pickers offer no more once it does, nor a task to block
-  that waits on as many already.
+  A task holds at most 50 links, its links to deleted tasks counted, so its pickers offer no more
+  once it does, nor a task to block that holds as many already.
 
   Deleting goes back to the board first, then offers to take the task back, links and all
 */
@@ -139,7 +140,7 @@ function TaskDialog({ taskId }: Props) {
             linkedTasks={dependencies}
             options={dependencyOptions}
             membersById={membersById}
-            isOptionDisabled={() => dependencies.length >= MAX_TASK_DEPENDENCIES}
+            isOptionDisabled={() => getTaskLinkCount(task) >= MAX_TASK_DEPENDENCIES}
             onChange={ids => report(changes.setTaskDependencies(taskId, ids))}
             onOpen={open}
           />
@@ -149,7 +150,7 @@ function TaskDialog({ taskId }: Props) {
             linkedTasks={dependents}
             options={blockedOptions}
             membersById={membersById}
-            isOptionDisabled={other => other.dependencies.length >= MAX_TASK_DEPENDENCIES}
+            isOptionDisabled={other => getTaskLinkCount(other) >= MAX_TASK_DEPENDENCIES}
             onChange={ids => report(changes.setTaskBlocks(taskId, ids))}
             onOpen={open}
           />

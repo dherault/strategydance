@@ -19,6 +19,7 @@ function makeTask(id: string, dependencyIds: string[] = []): Task {
     createdById: null,
     createdAt: '2026-10-09T10:00:00Z',
     dependencies: dependencyIds.map(dependencyId => ({ dependencyId })),
+    linkCount: [{ _count: dependencyIds.length }],
   }
 }
 

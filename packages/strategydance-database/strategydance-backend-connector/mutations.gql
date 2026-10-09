@@ -90,9 +90,10 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
   organizationInvitation_deleteMany(where: { id: { eq: $id }, organizationId: { eq: $organizationId } })
 }
 
-# Points an organization's logo at a file the backend has just put in Storage, or clears it with
-# null, for one of its administrators. Answers with the URL it replaced, whose file the backend
-# then deletes.
+# Points an organization's logo and its thumbnail at the files the backend has just put in
+# Storage, or clears them with null, for one of its administrators. Answers with the URLs it
+# replaced, whose files the backend then deletes. The backend passes both, the thumbnail null for
+# a logo sent without one, which clears the thumbnail the previous logo had.
 #
 # Data Connect runs one write per row in a mutation, a second one silently changing nothing, so
 # there is no separate row lock here as elsewhere: the URL is read, then written, which takes the
@@ -100,16 +101,20 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
 # the lock, so two uploads in the same instant can both read the URL the first replaces: the file
 # the second wrote over is then named by neither answer and stays behind. That costs a file, never
 # a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
-# Only the membership is redacted, since the URL is the answer
-mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String)
+# Only the membership is redacted, since the URLs are the answer
+mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String, $logoThumbnailUrl: String)
 @auth(level: NO_ACCESS)
 @transaction {
   previous: query {
     organization(id: $organizationId) {
       logoUrl
+      logoThumbnailUrl
     }
   }
-  organization_update(id: $organizationId, data: { logoUrl: $logoUrl, updatedAt_expr: "request.time" })
+  organization_update(
+    id: $organizationId
+    data: { logoUrl: $logoUrl, logoThumbnailUrl: $logoThumbnailUrl, updatedAt_expr: "request.time" }
+  )
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can change its logo") {
@@ -118,7 +123,7 @@ mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoU
   }
 }
 
-# The banner's twin of `UpdateOrganizationLogo`, on the same terms
+# The banner's twin of `UpdateOrganizationLogo`, on the same terms, with no thumbnail
 mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $bannerUrl: String)
 @auth(level: NO_ACCESS)
 @transaction {

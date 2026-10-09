@@ -174,6 +174,20 @@ export const MAX_ORGANIZATION_IMAGE_SIZES: Record<OrganizationImageKind, number>
   banner: 5 * 1024 * 1024,
 }
 
+/*
+  The square a thumbnail fits inside, in pixels. The page draws one as it uploads a logo or a
+  profile picture, and uploads it beside the picture, for where the picture is drawn small: the
+  organization switcher, the user menu
+*/
+export const THUMBNAIL_SIZE = 256
+
+/*
+  In bytes. A thumbnail's pixels, uncompressed, take a quarter of a megabyte, so this holds any
+  thumbnail and refuses a full picture sent as one. The backend refuses a larger one, and so does
+  `storage.rules`, which cannot read it from here and writes it out again
+*/
+export const MAX_THUMBNAIL_SIZE = 512 * 1024
+
 /* ---
   USERS
 --- */

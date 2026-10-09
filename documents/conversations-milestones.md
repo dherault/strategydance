@@ -839,9 +839,9 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   past 100 characters refused; a name, a description and a query holding U+0000 refused before any
   operation runs, and a query of `%`, `_` and `\` matching only the tasks that hold them as written;
   a done task waiting on an unfinished one never blocked, in `list_tasks`, in `read_task` and in
-  what `remove_task_dependency` answers; `assignee: "nobody"` and `"agent"` filtered, and aspects
-  matched on any; an external caller's results carrying addresses, by its id for an organization
-  without a slug, and the agent's none; no write recording an `ActivityDay`.
+  what `remove_task_dependency` answers; `assignee: "unassigned"` and `"agent"` filtered, and
+  aspects matched on any; an external caller's results carrying addresses, by its id for an
+  organization without a slug, and the agent's none; no write recording an `ActivityDay`.
 - Verify: with `bun run mcp:tasks` added to Claude Code locally and the board open in a tab, have
   it read the board, create three tasks for a plan, link them in order, assign one to a teammate and
   one to Strategy Dance, and move one to Done, the cards arriving without a reload; save a

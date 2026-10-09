@@ -544,9 +544,11 @@ organization changes, as its knowledge. Each field is written by a mutation of i
 members editing one task keep each other's changes, and a move writes the one task that moved,
 halfway between its new neighbours. `TaskDependency` links a task to those it waits on: the server
 refuses a task waiting on itself or on one waiting on it, and the page offers no pick that would
-close a longer loop. The board reads two live queries, `GetTasks` and `GetTaskDescriptions`, so a
-drag does not push every description to every open board. Removing a member takes them off the
-tasks they were doing.
+close a longer loop, nor an Undo that would bring one back. The board keeps `GetTasks` live,
+without the descriptions, and reads them once for its search through `GetTaskDescriptions`, again
+on focus; a task's dialog keeps its own live through `GetTaskDescription`. A query that held every
+description live would push them all to every open board at each save, and a drag would too.
+Removing a member takes them off the tasks they were doing.
 
 ### Routing
 

@@ -15,6 +15,8 @@ function buildUrl(name: string) {
 }
 
 const saves: { name: string; bytes: Buffer }[] = []
+// Every name a save was asked for, stored or not
+const attempts: string[] = []
 const deletions: string[] = []
 let saveFailures: (Error | undefined)[]
 let rowFailure: Error | undefined
@@ -26,6 +28,8 @@ mock.module('~firebase', () => ({
     name: BUCKET,
     file: (name: string) => ({
       save: async (bytes: Buffer) => {
+        attempts.push(name)
+
         const failure = saveFailures.shift()
 
         if (failure) throw failure
@@ -57,6 +61,7 @@ const { default: replaceOrganizationImage } = await import('./replaceOrganizatio
 
 beforeEach(() => {
   saves.length = 0
+  attempts.length = 0
   deletions.length = 0
   saveFailures = []
   rowFailure = undefined
@@ -138,6 +143,23 @@ describe('replaceOrganizationImage', () => {
       }),
     ).rejects.toThrow('Storage is down')
     expect(logoWrites).toEqual([])
-    expect(deletions).toEqual([saves[0].name])
+    expect(deletions.toSorted()).toEqual(attempts.toSorted())
+    expect(deletions).toContain(saves[0].name)
+  })
+
+  test('deletes a file whose save failed, which Storage may have stored before the answer was lost', async () => {
+    saveFailures = [new Error('Connection reset')]
+
+    await expect(
+      replaceOrganizationImage({
+        organizationId: ORGANIZATION_ID,
+        userId: 'admin',
+        kind: 'logo',
+        image: IMAGE,
+        thumbnail: THUMBNAIL,
+      }),
+    ).rejects.toThrow('Connection reset')
+    expect(deletions).toContain(attempts[0])
+    expect(deletions).toHaveLength(2)
   })
 })

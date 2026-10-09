@@ -26,12 +26,13 @@ type ReplaceOrganizationImageInput = {
 
 type ReplaceOrganizationImageResult = { outcome: 'forbidden' } | { outcome: 'replaced'; url: string }
 
-/*
-  Saves a file under a fresh name in the organization's folder for that kind of picture, with a
-  download token of its own, and answers with its name and URL
-*/
-async function saveImageFile(organizationId: string, kind: OrganizationImageKind, { bytes, contentType }: ImageFile) {
-  const name = `${buildOrganizationStoragePrefix(organizationId, kind)}${randomUUID()}`
+// A fresh name in the organization's folder for that kind of picture
+function createImageFileName(organizationId: string, kind: OrganizationImageKind) {
+  return `${buildOrganizationStoragePrefix(organizationId, kind)}${randomUUID()}`
+}
+
+// Saves a file under a name, with a download token of its own, and answers with its URL
+async function saveImageFile(name: string, { bytes, contentType }: ImageFile) {
   const token = randomUUID()
 
   await bucket.file(name).save(bytes, {
@@ -48,7 +49,7 @@ async function saveImageFile(organizationId: string, kind: OrganizationImageKind
     },
   })
 
-  return { name, url: buildStorageDownloadUrl({ origin: STORAGE_DOWNLOAD_ORIGIN, bucket: bucket.name, name, token }) }
+  return buildStorageDownloadUrl({ origin: STORAGE_DOWNLOAD_ORIGIN, bucket: bucket.name, name, token })
 }
 
 /*
@@ -62,8 +63,9 @@ async function saveImageFile(organizationId: string, kind: OrganizationImageKind
   sent without a thumbnail clears the previous one's, which the page then draws the logo in place
   of.
 
-  A refused or failed row write, or a thumbnail that fails to save, deletes the new files, so
-  nothing is left that no row points at
+  A refused or failed row write, or a file that fails to save, deletes the new files, so nothing is
+  left that no row points at. Their names are drawn before either is sent, so a save that failed
+  only on the way back, the file stored and its answer lost, is deleted too
 */
 async function replaceOrganizationImage({
   organizationId,
@@ -72,36 +74,29 @@ async function replaceOrganizationImage({
   image,
   thumbnail,
 }: ReplaceOrganizationImageInput): Promise<ReplaceOrganizationImageResult> {
-  const savedNames: string[] = []
+  const name = createImageFileName(organizationId, kind)
+  const thumbnailName = thumbnail ? createImageFileName(organizationId, kind) : null
   let url: string
   let previousUrls: (string | null)[]
 
   try {
-    const saved = await saveImageFile(organizationId, kind, image)
+    url = await saveImageFile(name, image)
 
-    savedNames.push(saved.name)
-    url = saved.url
+    const thumbnailUrl = thumbnail && thumbnailName ? await saveImageFile(thumbnailName, thumbnail) : null
 
-    const savedThumbnail = thumbnail ? await saveImageFile(organizationId, kind, thumbnail) : null
-
-    if (savedThumbnail) savedNames.push(savedThumbnail.name)
-
-    previousUrls = await writeOrganizationImageUrl({
-      organizationId,
-      userId,
-      kind,
-      url,
-      thumbnailUrl: savedThumbnail?.url ?? null,
-    })
+    previousUrls = await writeOrganizationImageUrl({ organizationId, userId, kind, url, thumbnailUrl })
   } catch (error) {
+    // A name never saved is not found, which the delete ignores
     await Promise.all(
-      savedNames.map(async name => {
-        try {
-          await bucket.file(name).delete({ ignoreNotFound: true })
-        } catch (deleteError) {
-          logger.error(`Organization images: could not delete ${name} after its upload failed`, deleteError)
-        }
-      }),
+      [name, thumbnailName]
+        .filter(fileName => fileName !== null)
+        .map(async fileName => {
+          try {
+            await bucket.file(fileName).delete({ ignoreNotFound: true })
+          } catch (deleteError) {
+            logger.error(`Organization images: could not delete ${fileName} after its upload failed`, deleteError)
+          }
+        }),
     )
 
     if (isAdministratorRefusal(error)) return { outcome: 'forbidden' }

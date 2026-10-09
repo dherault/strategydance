@@ -61,7 +61,7 @@ before their neighbours.
 | M11 | Questions | backend, database, web | M10 | #122 |
 | M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
-| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
+| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
 | M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
 | M16 | The authorization server | backend, database, core, root | M14, setup 10 | |
 | M17 | The consent page and Connected agents | web, backend, database, root | M16 | |
@@ -707,9 +707,16 @@ it yet, and Claude Code reaches it locally over stdio.
     snapshot unchanged; a title beside a text edit rides in the fold's one write of the row. An
     omitted `$title` leaves the column alone, and a null one would write null into it, so the
     backend leaves it out.
-  - **`version` comes back on every page** of `read_document`, as a hash of every block's id and
-    Markdown, and the tool's description asks for a document read whole before its content is
-    replaced. `content` without a version is refused before anything is read.
+  - **`version` is the version a reading started from**, a hash of every block's id and Markdown:
+    the cursor carries the first page's, and a later page answers it only while the text is still
+    that version, and none once somebody changed it, so pages read across an edit never add up to a
+    version the agent did not see whole. `content` without a version is refused before anything is
+    read.
+  - **A document keeps a title or some text.** An update that would leave it with neither, a blank
+    title on a textless document or an edit emptying an untitled one, is refused, as creating one
+    with neither is, since the page deletes a document somebody empties rather than keep it.
+  - **The substring search takes each word from the title or the text**, as the full-text search
+    does, each pattern in the title or in the text of a recent document.
   - **Search answers at most 10 of its at most 20 candidates**, with `hasMore` when more matched and
     `isIndexComplete` false while documents an old page left unindexed remain.
   - **The page's `RestoreDocument` refuses past a day too**, not only the agent's restore, so a day

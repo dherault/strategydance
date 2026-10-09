@@ -85,6 +85,21 @@ describe('idempotency keys', () => {
     expect(fake.results.size).toBe(1)
   })
 
+  it('answers nothing stored to a member removed and invited back, refusing them as the write would', async () => {
+    const kit = await connect()
+    const document = documents.store('Intro')
+    const args = { id: document.id, append: 'Once' }
+
+    await kit.answer('update_document', args, 'key-1')
+
+    fake.removeMember('member', ORGANIZATION_ID)
+    fake.addMember('member', ORGANIZATION_ID)
+
+    expect(await kit.refusal('update_document', args, 'key-1')).toBe(
+      'The member is no longer in this organization, so its knowledge is closed to you.',
+    )
+  })
+
   it('keeps nothing for a call without a key', async () => {
     const kit = await connect()
     const document = documents.store('Intro')

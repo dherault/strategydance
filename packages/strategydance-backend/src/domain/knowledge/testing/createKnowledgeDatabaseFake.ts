@@ -460,7 +460,7 @@ function createKnowledgeDatabaseFake() {
     GetModuleCallResult: variables => {
       const stored = results.get(resultKey(variables.idempotencyScope, variables.idempotencyKey))
 
-      return { moduleCallResult: stored ?? null }
+      return { membership: isMember(variables) ? [{ userId: variables.userId }] : [], moduleCallResult: stored ?? null }
     },
 
     SeedDocumentStateForAgent: variables => {

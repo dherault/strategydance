@@ -221,13 +221,25 @@ async function checkIdempotency() {
 
   await create('first-key', 'Keyed')
 
-  const stored = await getModuleCallResult(dataConnect, { idempotencyScope: scope, idempotencyKey: 'first-key' })
+  const stored = await getModuleCallResult(dataConnect, {
+    ...caller(),
+    idempotencyScope: scope,
+    idempotencyKey: 'first-key',
+  })
+  const strangers = await getModuleCallResult(dataConnect, {
+    ...caller(),
+    membershipCreatedAt: '2020-01-01T00:00:00Z',
+    idempotencyScope: scope,
+    idempotencyKey: 'first-key',
+  })
 
   check(
     'a write with a key inserts its call result, which reads back',
     stored.data.moduleCallResult?.tool === 'create_document'
-      && stored.data.moduleCallResult.result === JSON.stringify({ title: 'Keyed' }),
+      && stored.data.moduleCallResult.result === JSON.stringify({ title: 'Keyed' })
+      && stored.data.membership.length === 1,
   )
+  check('a call result is read with no membership but the one the module read', strangers.data.membership.length === 0)
 
   const again = await refusal(create('first-key', 'Again'))
 

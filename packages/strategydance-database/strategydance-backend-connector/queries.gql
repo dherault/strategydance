@@ -1188,8 +1188,21 @@ query GetDocumentForAgent($organizationId: UUID!, $userId: String!, $membershipC
 }
 
 # What a module's write answered under an idempotency key, read before the write runs, and again
-# when the write finds its key taken
-query GetModuleCallResult($idempotencyScope: String!, $idempotencyKey: String!) @auth(level: NO_ACCESS) {
+# when the write finds its key taken, with the membership the module read: a stored result answers
+# only a caller who is still that member, as the write itself would refuse anybody else
+query GetModuleCallResult(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
   moduleCallResult(key: { idempotencyScope: $idempotencyScope, idempotencyKey: $idempotencyKey }) {
     userId
     organizationId

@@ -501,7 +501,11 @@ A conversation is kept twice, once for Claude and once for the page, and
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
-  mounts. Locally, `bun run grant:administrator` makes an account staff
+  mounts. Locally the gate is lifted, so every member of every organization has them: the web
+  against the emulators (`EMULATORS_REQUESTED`) and the development backend
+  (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
+  the tests keep it. A gate added for conversations, as the integrations' will be, keys off the
+  same two
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, a task

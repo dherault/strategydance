@@ -1082,8 +1082,8 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 
 ### M28: Launch
 
-- Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY` and
-  `ARE_MODULES_STAFF_ONLY`.
+- Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`, the backend's
+  `IS_CONVERSATIONS_RELEASE_GATED` and `ARE_MODULES_STAFF_ONLY`.
 - `CLAUDE.md`: a Conversations section with what a new tool needs, the transcript's rules and the
   run lifecycle, where earlier milestones have not written it.
 - Whether to list the modules in the MCP Registry, under the `com.strategydance` name a DNS record

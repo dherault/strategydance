@@ -1516,7 +1516,10 @@ worker's claim checks the role again, so a queued run stops too:
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
 - All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M28 removes.
-  Locally, `bun run grant:administrator <email>` makes an account staff.
+  Locally it is lifted, so every member of every organization has conversations: the web against
+  the emulators (`EMULATORS_REQUESTED`) and the development backend
+  (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
+  the tests keep the gate.
 - Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, also removed in M28, since an
   external agent reaches them without any conversation: the consent page's Allow refuses anybody
   else, the token verifier checks the role on every call, so a connection outlives no lost role,

@@ -1,12 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
-import {
-  ARE_CONVERSATIONS_STAFF_ONLY,
-  MAX_CONVERSATION_MESSAGES,
-  MAX_CONVERSATION_RUN_ENTRIES,
-  buildConversationPreview,
-} from 'strategydance-core'
+import { MAX_CONVERSATION_MESSAGES, MAX_CONVERSATION_RUN_ENTRIES, buildConversationPreview } from 'strategydance-core'
 import {
   ConversationMessageKind,
   ConversationNoteKind,
@@ -35,6 +30,7 @@ import {
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
   CONVERSATION_TOOL_CALL_TIMEOUT_MS,
+  IS_CONVERSATIONS_RELEASE_GATED,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -657,11 +653,11 @@ function describeAuthorChange(context: ConversationRunContext, membershipCreated
 }
 
 // Whether the run's author is still the member it was queued under, and still staff while
-// conversations are open to staff alone
+// conversations are open to staff alone here
 function isAuthorStill(context: ConversationRunContext, membershipCreatedAt: string) {
   return (
     context.userOrganization?.createdAt === membershipCreatedAt
-    && (!ARE_CONVERSATIONS_STAFF_ONLY || context.user?.isAdministrator === true)
+    && (!IS_CONVERSATIONS_RELEASE_GATED || context.user?.isAdministrator === true)
   )
 }
 

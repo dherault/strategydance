@@ -305,7 +305,8 @@ export const MAX_RICH_TEXT_IMAGE_SIZE = 10 * 1024 * 1024
 /*
   Conversations are open to Strategy Dance's own administrators (`User.isAdministrator`) alone
   while they are built, and everything that offers one or runs one asks this first. It hides an
-  unfinished feature and protects no data: a conversation is its author's alone either way
+  unfinished feature and protects no data: a conversation is its author's alone either way.
+  Locally, against the emulators and on the development backend, everybody has them
 */
 export const ARE_CONVERSATIONS_STAFF_ONLY: boolean = true
 

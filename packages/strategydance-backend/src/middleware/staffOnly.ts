@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from 'express'
-import { ARE_CONVERSATIONS_STAFF_ONLY, ERROR_CODE_FORBIDDEN } from 'strategydance-core'
+import { ERROR_CODE_FORBIDDEN } from 'strategydance-core'
 import { getUserStaffStatus } from 'strategydance-database/backend'
+
+import { IS_CONVERSATIONS_RELEASE_GATED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -9,7 +11,8 @@ import respondError from '~utils/respondError'
 
 /*
   Lets through only Strategy Dance's own administrators while conversations are open to them alone
-  (`ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core), and everybody once they launch.
+  (`ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core), and everybody once they launch, as it
+  already does on the development backend (`IS_CONVERSATIONS_RELEASE_GATED`).
 
   It runs after `authenticationMiddleware`. The gate hides an unfinished feature and protects no
   data: a conversation is its author's alone either way, which the operations behind each route
@@ -17,7 +20,7 @@ import respondError from '~utils/respondError'
   longer staff stops too
 */
 async function staffOnlyMiddleware(request: Request, response: Response, next: NextFunction) {
-  if (!ARE_CONVERSATIONS_STAFF_ONLY) {
+  if (!IS_CONVERSATIONS_RELEASE_GATED) {
     next()
 
     return

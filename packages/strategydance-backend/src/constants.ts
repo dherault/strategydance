@@ -1,4 +1,9 @@
-import { DEVELOPMENT_API_PORT, DEVELOPMENT_APP_URL, PRODUCTION_APP_URL } from 'strategydance-core'
+import {
+  ARE_CONVERSATIONS_STAFF_ONLY,
+  DEVELOPMENT_API_PORT,
+  DEVELOPMENT_APP_URL,
+  PRODUCTION_APP_URL,
+} from 'strategydance-core'
 
 /* ---
   ENVIRONMENT
@@ -19,6 +24,14 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
   and the backend everything but them
 */
 export const IS_WORKER = process.env.SERVICE === 'worker'
+
+/*
+  Whether conversations are open to Strategy Dance's administrators alone in this process: while
+  they are built (`ARE_CONVERSATIONS_STAFF_ONLY`), everywhere but the development backend, where
+  every member of every organization has them, so the whole feature can be tried locally without
+  granting anybody anything. Cloud Run and the tests keep the gate
+*/
+export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !IS_DEVELOPMENT
 
 /* ---
   ARCHITECTURE

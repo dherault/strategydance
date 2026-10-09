@@ -21,8 +21,8 @@ import isSubstringSearchQuery from '~utils/isSubstringSearchQuery'
 
 import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSearchPatterns'
 
-// How many messages `SearchConversationMessages` reads at most, its `limit`: past it, a few
-// conversations with thousands of matches have used up the read
+// How many messages a search reads at most. `SearchConversationMessages` reads one more, whose
+// presence says that a few conversations with thousands of matches used up the read
 const MAX_SEARCHED_MESSAGES = 5000
 
 const SEARCH_WINDOW_MS = CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000
@@ -104,8 +104,8 @@ async function recordSearch(reference: SearchReference) {
 /*
   The full-text search: every title holding the words, and the 5000 most relevant messages holding
   them, read at once rather than in pages, which a relevance order with no tie-break could make
-  skip a message at their boundary. The answer is every match while the messages read fell short of
-  5000, or reached every conversation the caller can keep, and the best matches otherwise, which a
+  skip a message at their boundary. The answer is every match unless a message past the 5000 was
+  there, short of every conversation the caller can keep, when it is the best matches, which a
   narrower search completes
 */
 async function searchFullText(reference: SearchReference, query: string): Promise<SearchConversationsData> {
@@ -114,11 +114,12 @@ async function searchFullText(reference: SearchReference, query: string): Promis
     searchConversationMessages(dataConnect, { ...reference, query }),
   ])
   const conversationIds = new Set(titles.data.conversations_search.map(conversation => conversation.id))
-  const matches = messages.data.conversationMessages_search
+  const matches = messages.data.conversationMessages_search.slice(0, MAX_SEARCHED_MESSAGES)
+  const isCut = messages.data.conversationMessages_search.length > MAX_SEARCHED_MESSAGES
 
   for (const message of matches) conversationIds.add(message.conversationId)
 
-  const isComplete = matches.length < MAX_SEARCHED_MESSAGES || conversationIds.size >= MAX_CONVERSATIONS
+  const isComplete = !isCut || conversationIds.size >= MAX_CONVERSATIONS
 
   return { conversationIds: [...conversationIds], coverage: isComplete ? 'ALL' : 'BEST_MATCHES' }
 }

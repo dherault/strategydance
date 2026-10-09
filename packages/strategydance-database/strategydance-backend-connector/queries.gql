@@ -738,11 +738,11 @@ query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query:
 # word of the query, through the text's full-text index (see `ConversationMessage.text`), most
 # relevant first, and only their conversation's id, since the search answers with conversations.
 #
-# Read once, to 5000, rather than in pages: a `_search` is ordered by its relevance alone, which its
+# Read once rather than in pages: a `_search` is ordered by its relevance alone, which its
 # `orderBy` cannot name, so pages read by offset could repeat a message across a tie at their
-# boundary and skip another, and each page would rank every match again anyway. Past 5000, a few
-# conversations with thousands of matches have used up the read, and the backend answers the best
-# matches. Only the caller's own conversations, while they are a member, and none deleted.
+# boundary and skip another, and each page would rank every match again anyway. To 5001: the 5000
+# most relevant, and one more, which says that a few conversations with thousands of matches used
+# up the read, when the backend answers the best matches, and only then. Only the caller's own conversations, while they are a member, and none deleted.
 # `$userId` is the uid the backend verified
 query SearchConversationMessages($organizationId: UUID!, $userId: String!, $query: String!) @auth(level: NO_ACCESS) {
   conversationMessages_search(
@@ -757,7 +757,7 @@ query SearchConversationMessages($organizationId: UUID!, $userId: String!, $quer
         organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
       }
     }
-    limit: 5000
+    limit: 5001
   ) {
     conversationId
   }

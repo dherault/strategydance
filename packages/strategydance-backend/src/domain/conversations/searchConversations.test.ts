@@ -164,10 +164,10 @@ describe('searching by the full-text indexes', () => {
     expect(countCalls('SearchConversationMessages')).toBe(1)
   })
 
-  test('answers every match while the messages fall short of 5000', async () => {
+  test('answers every match when exactly 5000 messages match', async () => {
     const conversationId = insertConversation({ title: 'Launch' })
 
-    for (let index = 0; index < 4999; index++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing')
+    for (let index = 0; index < 5000; index++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing')
 
     const result = await search('pricing')
 

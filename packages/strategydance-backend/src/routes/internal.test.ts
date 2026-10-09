@@ -8,14 +8,18 @@ import type { ConversationRunReference } from '~types'
 
 import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
+import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
 
 const fake = createConversationDatabaseFake()
+
+// The sweep prunes documents and module call results too, which the Knowledge module's fake holds
+const knowledge = createKnowledgeDatabaseFake()
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
-mock.module('strategydance-database/backend', () => fake.sdk)
+mock.module('strategydance-database/backend', () => ({ ...knowledge.sdk, ...fake.sdk }))
 
 // The client every run asks, the placeholder without the pauses it makes for a person to watch
 mock.module('~domain/agent/conversationClaudeClient', () => ({
@@ -172,5 +176,39 @@ describe('POST /internal/sweep', () => {
 
     expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
     expect([...fake.searches.keys()]).toEqual([kept.id])
+  })
+
+  test('removes the documents deleted over a day ago in every organization, and keeps the rest', async () => {
+    const deletedAt = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
+    const old = knowledge.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(25) })
+    const elsewhere = knowledge.insertDocument({ organizationId: createId(), deletedAt: deletedAt(30) })
+    const recent = knowledge.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(1) })
+    const live = knowledge.insertDocument({ organizationId: ORGANIZATION_ID })
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect(knowledge.documents.has(old.id)).toBe(false)
+    expect(knowledge.documents.has(elsewhere.id)).toBe(false)
+    expect([...knowledge.documents.keys()].sort()).toEqual([recent.id, live.id].sort())
+  })
+
+  test('removes the module call results past their expiry, and keeps those that never expire', async () => {
+    const result = (key: string, expiresAt: string | null) => ({
+      idempotencyScope: 'connection:checked',
+      idempotencyKey: key,
+      userId: AUTHOR,
+      organizationId: ORGANIZATION_ID,
+      tool: 'delete_document',
+      argumentsHash: 'hash',
+      result: '{}',
+      expiresAt,
+      createdAt: new Date().toISOString(),
+    })
+
+    knowledge.results.set('expired', result('expired', new Date(Date.now() - 1000).toISOString()))
+    knowledge.results.set('pending', result('pending', new Date(Date.now() + 60 * 60 * 1000).toISOString()))
+    knowledge.results.set('forever', result('forever', null))
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect([...knowledge.results.keys()].sort()).toEqual(['forever', 'pending'])
   })
 })

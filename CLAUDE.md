@@ -722,9 +722,10 @@ in `utils/`, one concern per file.
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
   deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, and
-  the conversation searches over a day old, which no count reads any more. A milestone that keeps
-  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
-  sweep that failed is finished by the next
+  the conversation searches over a day old, which no count reads any more, and the board's tasks
+  deleted over a day ago, with their links (`PruneDeletedTasks`). A milestone that keeps something
+  deleted, or counted, for a while adds its prune there, idempotent like the rest, so a sweep that
+  failed is finished by the next
 - A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
   `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
   limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across

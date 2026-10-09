@@ -5,6 +5,7 @@ import {
   ContactRoundIcon,
   FileTextIcon,
   LighthouseIcon,
+  SquareKanbanIcon,
   StoreIcon,
   UsersRoundIcon,
 } from 'lucide-react'
@@ -55,6 +56,13 @@ function SidebarNavigation() {
             label={formatMessage(navigationMessages.today)}
             icon={<CalendarIcon />}
             link={{ to: '/$organizationSlug/today', params: { organizationSlug } }}
+          />
+          <NavigationLink
+            path={`/${organizationSlug}/tasks`}
+            isNested
+            label={formatMessage(navigationMessages.tasks)}
+            icon={<SquareKanbanIcon />}
+            link={{ to: '/$organizationSlug/tasks', params: { organizationSlug } }}
           />
           <NavigationLink
             path={`/${organizationSlug}/build-in-public`}

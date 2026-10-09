@@ -103,7 +103,7 @@
   "buildInPublic.statementCard": "Declaração em destaque",
   "buildInPublic.streakChargePending": "Você não atualizou a página Hoje hoje, então 1 carga de sequência será usada no final do dia.",
   "buildInPublic.streakCharges": "<strong>{count} de {total}</strong> cargas de sequência",
-  "buildInPublic.streakChargesHelp": "Cada dia em que você atualiza a página Hoje adiciona uma carga, até {total}. Um dia sem atualização consome uma e mantém a sua sequência ativa.",
+  "buildInPublic.streakChargesHelp": "Cada dia em que você atualiza a página Hoje ou as tarefas adiciona uma carga, até {total}. Um dia sem atualização consome uma e mantém a sua sequência ativa.",
   "buildInPublic.streakChargesHelpLabel": "Como funcionam as cargas de sequência",
   "buildInPublic.streakDays": "{count, plural, one {Sequência de # dia} other {Sequência de # dias}}",
   "buildInPublic.streakDescription": "Dias consecutivos com pelo menos uma atualização",

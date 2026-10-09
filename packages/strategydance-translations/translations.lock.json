@@ -910,7 +910,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.streakChargesHelp": {
-        "hash": "e43a145991f1039f",
+        "hash": "2afbd8f67437368f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.streakChargesHelpLabel": {
@@ -2479,6 +2479,10 @@
         "hash": "688e6fd634c62b96",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.tasks": {
+        "hash": "8c811420121bb9a6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.team": {
         "hash": "03ad6ce6084d28da",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2859,6 +2863,328 @@
       },
       "support.write": {
         "hash": "f2ed22f8a55ba286",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
+    "task": {
+      "task.addDescription": {
+        "hash": "238dad1a4da63e85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.addedBy": {
+        "hash": "4c5975b9aaa961d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.addedOn": {
+        "hash": "8d391500d989f4c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.aspects": {
+        "hash": "92f574e783f70647",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.aspectsFilterLabel": {
+        "hash": "401a4363d25f850e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.aspectsFilterPlaceholder": {
+        "hash": "2f731df71b732dd3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.aspectsLabel": {
+        "hash": "35e588283588737a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.assignedToMe": {
+        "hash": "5b0f5d715738f8ae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.assignee": {
+        "hash": "69b8f12826a73eb0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.assigneeFilterLabel": {
+        "hash": "e1e20ce87471b6bf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.blockedBy": {
+        "hash": "20979fe0dd735c75",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.blocks": {
+        "hash": "3b57ddfb0910b1fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.canStartNow": {
+        "hash": "3e272da8330e216a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.cancel": {
+        "hash": "a616749234824127",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.changeDate": {
+        "hash": "9d77d1e6274d5d9a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.chooseAspects": {
+        "hash": "e7503912eceb392a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.chooseTasks": {
+        "hash": "479199675b698526",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.clear": {
+        "hash": "3e9e1c9f289cdce9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.clearDate": {
+        "hash": "4b37ee5c2e746b54",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.clearFilters": {
+        "hash": "4044baa96c6051c4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.close": {
+        "hash": "f7fcfec5be2ad9c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.columnEmpty": {
+        "hash": "6429e5988fef09b7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.columnNoMatch": {
+        "hash": "e8ce9a45bdeb9a55",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.completeBy": {
+        "hash": "11d22d9291cc718a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.confirmDelete": {
+        "hash": "3b2a0698ae5b03ea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.createTask": {
+        "hash": "88d04b148e28d507",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.created": {
+        "hash": "d7e216b26ff79b26",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.deleteTask": {
+        "hash": "10e512bfca3fb606",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.deleted": {
+        "hash": "ade646fb625a7bf0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.dependsOn": {
+        "hash": "dedf24266a769138",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.description": {
+        "hash": "33996229b0667623",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.descriptionPlaceholder": {
+        "hash": "a66eae954d5a1551",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.descriptionTooLong": {
+        "hash": "a53ddfacb91f112f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.dueToday": {
+        "hash": "f288bb0c9b752ae4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.dueTomorrow": {
+        "hash": "5fcaf33db341bcd9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.dueYesterday": {
+        "hash": "63bbe5e11d80b1f3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editAspects": {
+        "hash": "b1d8aeb41f735050",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editBlocks": {
+        "hash": "fff4cf0accc776ca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editDependsOn": {
+        "hash": "41cee2f31ffc76d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editDescription": {
+        "hash": "4bb363ae84dd83d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editName": {
+        "hash": "299c2c2e531f13ed",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorError": {
+        "hash": "64e68bc3ca343990",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorTurnInto": {
+        "hash": "1a9f5c08ef242b76",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.emptyText": {
+        "hash": "5ba6966bb1ae0729",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.emptyTitle": {
+        "hash": "c04a4119b26935ca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.everyone": {
+        "hash": "92a38d1b8d811272",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.lead": {
+        "hash": "90ad0c3f7af4f53e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.loadError": {
+        "hash": "766a143aa829d25f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.loadingEditor": {
+        "hash": "222a8c2a8c965eec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.memberYou": {
+        "hash": "c9a4c34059870f23",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.moreAspects": {
+        "hash": "c0f988dba0c854fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.moreChips": {
+        "hash": "221a00afd551fe43",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.namePlaceholder": {
+        "hash": "fdc7f4f7b2da6164",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.nameRequired": {
+        "hash": "01524518e6abd8af",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.newTask": {
+        "hash": "b935f88186d223f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.newTaskDescription": {
+        "hash": "f8304118dbd8f308",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.newTaskInColumn": {
+        "hash": "442ad2c7bf325785",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.noAspects": {
+        "hash": "fae3adc184021aeb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.noAspectsFound": {
+        "hash": "bbd33dcaf0426552",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.noDate": {
+        "hash": "ba393d9f0be9c2ae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.noLinks": {
+        "hash": "96f6851b43c73a2d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.noTasksFound": {
+        "hash": "1f1e43c81bb998e4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.open": {
+        "hash": "84c2dd6aa4aeb12f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.overdue": {
+        "hash": "c6d9b47237e382c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.retry": {
+        "hash": "44e0cee8623012bf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.save": {
+        "hash": "1f9fbe92d0ea5579",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.saveError": {
+        "hash": "b6bbcbc92463a56f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.saveHint": {
+        "hash": "c7181b3503c21f26",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.searchAspects": {
+        "hash": "e72b185611b7955c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.searchPlaceholder": {
+        "hash": "1419f0286d9a7c23",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.searchTasks": {
+        "hash": "37539da96b4027fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.status": {
+        "hash": "a5bac6000be9ff61",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.statusBacklog": {
+        "hash": "f9be9a73abd36825",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.statusDone": {
+        "hash": "003f22a7730f3012",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.statusOngoing": {
+        "hash": "bf0f6b414793e635",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.statusTodo": {
+        "hash": "a0764ab190deb8d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.strategyDance": {
+        "hash": "329d0e7efbf98a6c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.tasksCanStartNow": {
+        "hash": "e596fd389596ccfb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.unassigned": {
+        "hash": "9f57b5c2e89667e8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.undo": {
+        "hash": "319639ff8d2e4eab",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },

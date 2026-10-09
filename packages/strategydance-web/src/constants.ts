@@ -33,6 +33,7 @@ export const MESSAGE_TYPES = [
   'onboarding',
   'organizationProfile',
   'support',
+  'task',
   'team',
   'today',
 ] as const

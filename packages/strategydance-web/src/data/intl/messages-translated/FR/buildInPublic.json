@@ -103,7 +103,7 @@
   "buildInPublic.statementCard": "Affirmation forte",
   "buildInPublic.streakChargePending": "Vous n'avez pas mis à jour la page Aujourd'hui aujourd'hui, 1 charge de série sera donc utilisée à la fin de la journée.",
   "buildInPublic.streakCharges": "<strong>{count} sur {total}</strong> charges de série",
-  "buildInPublic.streakChargesHelp": "Chaque jour où vous mettez à jour la page Aujourd'hui ajoute une charge, jusqu'à {total}. Un jour sans mise à jour en utilise une et préserve votre série.",
+  "buildInPublic.streakChargesHelp": "Chaque jour où vous mettez à jour la page Aujourd'hui ou les tâches ajoute une charge, jusqu'à {total}. Un jour sans mise à jour en utilise une et préserve votre série.",
   "buildInPublic.streakChargesHelpLabel": "Fonctionnement des charges de série",
   "buildInPublic.streakDays": "{count, plural, one {Série de # jour} other {Série de # jours}}",
   "buildInPublic.streakDescription": "Jours consécutifs avec au moins une mise à jour",

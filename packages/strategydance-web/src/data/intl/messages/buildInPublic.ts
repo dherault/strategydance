@@ -226,9 +226,9 @@ const buildInPublicMessages = defineMessages({
   streakChargesHelp: {
     id: 'buildInPublic.streakChargesHelp',
     defaultMessage:
-      'Each day you update the Today page adds a charge, up to {total}. A day without an update uses one and keeps your streak going.',
+      'Each day you update the Today page or the tasks adds a charge, up to {total}. A day without an update uses one and keeps your streak going.',
     description:
-      'Tooltip explaining streak charges, opened from an info button beside the count of charges. {total} is the most charges the reader can hold, which is 2. The Today page is where the reader sets their priority, tasks, checklist and log.',
+      "Tooltip explaining streak charges, opened from an info button beside the count of charges. {total} is the most charges the reader can hold, which is 2. The Today page is where the reader sets their priority, checklist and log, and the tasks are the team's board.",
   },
   streakChargesHelpLabel: {
     id: 'buildInPublic.streakChargesHelpLabel',

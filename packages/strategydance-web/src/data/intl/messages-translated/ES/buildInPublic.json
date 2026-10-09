@@ -103,7 +103,7 @@
   "buildInPublic.statementCard": "Declaración destacada",
   "buildInPublic.streakChargePending": "Hoy no has actualizado la página Hoy, por lo que se usará 1 carga de racha al final del día.",
   "buildInPublic.streakCharges": "<strong>{count} de {total}</strong> cargas de racha",
-  "buildInPublic.streakChargesHelp": "Cada día que actualizas la página Hoy sumas una carga, hasta {total}. Un día sin actualizaciones usa una y mantiene tu racha.",
+  "buildInPublic.streakChargesHelp": "Cada día que actualizas la página Hoy o las tareas sumas una carga, hasta {total}. Un día sin actualizaciones usa una y mantiene tu racha.",
   "buildInPublic.streakChargesHelpLabel": "Cómo funcionan las cargas de racha",
   "buildInPublic.streakDays": "{count, plural, one {Racha de # día} other {Racha de # días}}",
   "buildInPublic.streakDescription": "Días consecutivos con al menos una actualización",

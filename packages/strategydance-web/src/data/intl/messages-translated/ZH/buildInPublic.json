@@ -103,7 +103,7 @@
   "buildInPublic.statementCard": "醒目陈述",
   "buildInPublic.streakChargePending": "你今天尚未更新“今日”页面，因此将在今天结束时消耗 1 次连续充能。",
   "buildInPublic.streakCharges": "<strong>{count} / {total}</strong> 连续充能",
-  "buildInPublic.streakChargesHelp": "每天更新“今日”页面都会增加 1 次充能，上限为 {total} 次。若某天未更新，将消耗 1 次充能以保持连续记录。",
+  "buildInPublic.streakChargesHelp": "每天更新“今日”页面或任务都会增加 1 次充能，上限为 {total} 次。若某天未更新，将消耗 1 次充能以保持连续记录。",
   "buildInPublic.streakChargesHelpLabel": "连续充能运作方式",
   "buildInPublic.streakDays": "{count, plural, other {连续 # 天}}",
   "buildInPublic.streakDescription": "至少更新一次的连续天数",

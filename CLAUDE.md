@@ -229,8 +229,8 @@ them: `FormField` for react-hook-form, `TextDivider`.
 A field's text is 16px on a touch screen, whatever it is elsewhere. iOS zooms the page into a
 focused input, textarea or editable element whose text is smaller, and leaves it zoomed.
 `inputClassName` carries `pointer-coarse:text-base`, so a field built on it has it; one that is
-not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, and so does
-text a field opens over, as a task's does. Never put `maximum-scale=1` in the viewport instead:
+not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, as must a
+field that opens over text set smaller. Never put `maximum-scale=1` in the viewport instead:
 Android then refuses the pinch zoom people read by.
 
 Oswald, the display face, hangs its descenders 0.24em below its baseline, below the line box of
@@ -530,14 +530,26 @@ A conversation is kept twice, once for Claude and once for the page, and
   same two
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
-organization and day on which they changed their own Today data, their top priority, a task
-list or task, their checklist or their log. The day is the one the change was made on, never
-the day it was about, and `RecordActivity` holds it to the caller's today. The mutations that
-make those changes do not write the row themselves, since each would need a `$date` it has no
-other use for, a breaking connector change: the web app calls `recordActivity` once one goes
-through, from the `change` helpers of `useTaskLists`, `useTasks` and `useChecklist` and from the
-components that set a priority or write the log. A new way to change Today data calls it too, or
-the days it is used on go uncounted.
+organization and day on which they changed their own Today data, their top priority, their
+checklist or their log, or any task on the team's board. The day is the one the change was made
+on, never the day it was about, and `RecordActivity` holds it to the caller's today. The
+mutations that make those changes do not write the row themselves, since each would need a
+`$date` it has no other use for, a breaking connector change: the web app calls `recordActivity`
+once one goes through, from the `change` helpers of `useChecklist` and `useTaskChanges` and from
+the components that set a priority or write the log. A new way to change Today data or the board
+calls it too, or the days it is used on go uncounted.
+
+The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
+organization changes, as its knowledge. Each field is written by a mutation of its own, so two
+members editing one task keep each other's changes, and a move writes the one task that moved,
+halfway between its new neighbours. `TaskDependency` links a task to those it waits on: the server
+refuses a task waiting on itself or on one waiting on it, and the page offers no pick that would
+close a longer loop, nor an Undo that would bring one back. The board keeps `GetTasks` live,
+without the descriptions, and reads them once for its search through `GetTaskDescriptions`, again
+on focus; a task's dialog keeps its own live through `GetTaskDescription`, and opens it for
+writing only once that read lands, since the search's copy can be older than a teammate's save. A
+query that held every description live would push them all to every open board at each save, and a
+drag would too. Removing a member takes them off the tasks they were doing.
 
 ### Routing
 
@@ -678,10 +690,10 @@ in `utils/`, one concern per file.
 - A logo arrives as a form, with the thumbnail the page drew of it (`createImageThumbnail`, fitted
   inside `THUMBNAIL_SIZE`), and is stored beside it as `logoThumbnailUrl`. A profile picture's
   thumbnail is the page's to write, beside the picture in Storage, as `imageThumbnailUrl`. The
-  organization switcher and the user menu draw the thumbnail and fall back to the picture, which is
-  all a picture from before thumbnails, or from Google, has. The other small faces, a team member's,
-  a Today identity's and a document's presences, still draw the picture, until their queries select
-  the thumbnail
+  organization switcher, the user menu and the task board's faces draw the thumbnail and fall back to
+  the picture, which is all a picture from before thumbnails, or from Google, has. The team's query
+  selects it for the board; the other small faces, a team member's on the team page, a Today
+  identity's and a document's presences, still draw the picture, until they draw it too
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back
@@ -711,9 +723,10 @@ in `utils/`, one concern per file.
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
   deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, and
-  the conversation searches over a day old, which no count reads any more. A milestone that keeps
-  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
-  sweep that failed is finished by the next
+  the conversation searches over a day old, which no count reads any more, and the board's tasks
+  deleted over a day ago, with their links (`PruneDeletedTasks`). A milestone that keeps something
+  deleted, or counted, for a while adds its prune there, idempotent like the rest, so a sweep that
+  failed is finished by the next
 - A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
   `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
   limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across

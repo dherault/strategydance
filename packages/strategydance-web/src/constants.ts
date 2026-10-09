@@ -1,4 +1,4 @@
-import { CompanyAspect } from 'strategydance-database/web'
+import { CompanyAspect, TaskStatus } from 'strategydance-database/web'
 
 import type { CardTone } from '~types'
 
@@ -107,6 +107,30 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
   CompanyAspect.FINANCES,
   CompanyAspect.LEGAL,
 ]
+
+/* ---
+  TASKS
+--- */
+
+/*
+  The board's columns, left to right: the statuses a task moves through. The schema's order happens
+  to be the same, but reordering it is a breaking migration, so the board's is kept here, and
+  `constants.test.ts` fails when this stops listing each of the schema's statuses exactly once
+*/
+export const TASK_STATUSES: readonly TaskStatus[] = [
+  TaskStatus.BACKLOG,
+  TaskStatus.TODO,
+  TaskStatus.ONGOING,
+  TaskStatus.DONE,
+]
+
+// The badge each status wears where a task is listed outside its column, as in another's links
+export const TASK_STATUS_BADGE_VARIANTS: Record<TaskStatus, 'neutral' | 'secondary' | 'primary' | 'success'> = {
+  [TaskStatus.BACKLOG]: 'neutral',
+  [TaskStatus.TODO]: 'secondary',
+  [TaskStatus.ONGOING]: 'primary',
+  [TaskStatus.DONE]: 'success',
+}
 
 /* ---
   CONVERSATIONS

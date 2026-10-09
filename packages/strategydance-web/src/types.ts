@@ -18,10 +18,9 @@ import type {
   GetOrganizationInvitationData,
   GetOrganizationLogData,
   GetOrganizationTeamData,
-  GetTaskListsData,
-  GetTaskListSummariesData,
   GetTasksData,
   GetTodayPreferencesData,
+  TaskStatus,
 } from 'strategydance-database/web'
 
 import type { CARD_ACCENT_COLORS, MESSAGE_TYPES } from '~constants'
@@ -115,15 +114,47 @@ export type StagedImage =
 // hid, both as user ids
 export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
 
-// One of the reader's task lists, with how many of its tasks are still open
-export type TaskList = GetTaskListsData['taskLists'][number]
-
-// One task on a list, where it sits in it, and whether it is done
+// One task on its organization's board: where it sits, who is doing it, when it is due, what it is
+// about and which tasks it waits on. Its description is read apart, by `useTaskDescriptions`
 export type Task = GetTasksData['tasks'][number]
 
-// One of the reader's task lists as the build in public page reads it: its counts, and the few
-// tasks its cards list
-export type TaskListSummary = GetTaskListSummariesData['taskLists'][number]
+// What a task is made of before it is stored, as the new task's dialog collects it, with the tasks
+// it will wait on and those that will wait on it
+export type TaskDraft = {
+  name: string
+  description: string
+  status: TaskStatus
+  assigneeId: string | null
+  isAssignedToAgent: boolean
+  dueDate: string | null
+  aspects: CompanyAspect[]
+  dependencyIds: string[]
+  blockedIds: string[]
+}
+
+// A task as it was when it was deleted, with what an Undo puts back around it: its description, and
+// the tasks that waited on it
+export type TaskSnapshot = {
+  task: Task
+  description: string
+  dependentIds: string[]
+}
+
+/*
+  What history keeps for an address beside the router's own: whether the task board opened the task
+  it names, so closing the task steps back to the board's entry rather than adding one. Extended on
+  `@tanstack/history`, a dependency of the web package for this alone at the version the router
+  pins: a router bump that moves it fails the typecheck where the key is read, until it follows
+*/
+declare module '@tanstack/history' {
+  interface HistoryState {
+    isFromTaskBoard?: boolean
+  }
+}
+
+// Whose tasks the board shows: everybody's, the reader's, Strategy Dance's, or a member's by uid
+// behind a prefix, as `toTaskAssigneeValue` writes it, so no uid reads as one of the others
+export type TaskAssigneeFilter = 'all' | 'me' | 'agent' | `member:${string}`
 
 // Somebody's checklist as the Today page opens it: who they are, their columns with the last week
 // of ticks, and how far back their ticks go

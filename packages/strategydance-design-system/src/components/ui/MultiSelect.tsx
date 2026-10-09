@@ -68,6 +68,8 @@ type Props = {
   name?: string
   id?: string
   defaultOpen?: boolean
+  /** Called as the list opens and closes, as when a field shown only while editing leaves on close */
+  onOpenChange?: (open: boolean) => void
   /** The side of the trigger the list opens on */
   side?: 'bottom' | 'top'
   /** Names the select when it has no visible label */
@@ -266,6 +268,7 @@ function MultiSelect({
   name,
   id,
   defaultOpen = false,
+  onOpenChange,
   side = 'bottom',
   'aria-label': ariaLabel,
   selectAllLabel = 'Select all',
@@ -400,6 +403,11 @@ function MultiSelect({
   */
   function findPortalContainer(trigger: HTMLElement | null) {
     portalContainerRef.current = trigger?.closest<HTMLElement>('[role="dialog"], [role="alertdialog"]') ?? null
+  }
+
+  function changeOpen(nextOpen: boolean) {
+    setOpen(nextOpen)
+    onOpenChange?.(nextOpen)
   }
 
   function updateValue(nextValue: string[]) {
@@ -592,7 +600,7 @@ function MultiSelect({
         if (eventDetails.isItemPress) eventDetails.cancel()
       }}
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={changeOpen}
       disabled={disabled}
       name={name}
     >
@@ -672,7 +680,7 @@ function MultiSelect({
                 <button
                   type="button"
                   onMouseDown={preventFocusChange}
-                  onClick={() => setOpen(false)}
+                  onClick={() => changeOpen(false)}
                   className={cn(footerButtonClassName, 'border-l border-border')}
                 >
                   {closeLabel}

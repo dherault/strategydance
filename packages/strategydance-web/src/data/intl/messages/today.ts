@@ -142,7 +142,7 @@ const todayMessages = defineMessages({
     id: 'today.viewOnly',
     defaultMessage: 'View only',
     description:
-      "Label beside a section of the Today page, the tasks or the checklist, when it shows a teammate's, which the reader can read but not change.",
+      "Label beside the checklist on the Today page when it shows a teammate's, which the reader can read but not change.",
   },
   retry: {
     id: 'today.retry',

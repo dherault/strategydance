@@ -28,7 +28,11 @@ const recordActivityMutation = mock(
   },
 )
 
-mock.module('strategydance-database/web', () => ({ CompanyAspect: {}, recordActivity: recordActivityMutation }))
+mock.module('strategydance-database/web', () => ({
+  CompanyAspect: {},
+  TaskStatus: {},
+  recordActivity: recordActivityMutation,
+}))
 
 mock.module('~data/firebase', () => ({
   authentication: { currentUser: { uid: 'alex' }, authStateReady: async () => {} },

@@ -470,16 +470,16 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   private search terms never sit in a logged URL, runs Data Connect's full-text
   search through an index. `Conversation.title` and `ConversationMessage.text` are `@searchable`
   (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
-  every word: titles in one query (`limit: 1000`), and member and agent messages paged 500 at a
-  time by relevance, collecting distinct conversations until there are 1000 or ten pages have been
-  read. Both filter on the caller, their membership and `deletedAt`. Results are the best matches,
-  not a guaranteed full set: a few conversations with thousands of matching messages can use up the
-  pages, so when the pages run out the list says it shows the best matches and invites a narrower
-  search. The route answers the conversations' ids and how far it looked (`coverage`: `ALL`,
-  `BEST_MATCHES` or `RECENT`), and the page picks them out of the live list it already holds, so
-  the results keep its order and stay live. A `_search` is ordered by relevance alone, since its
-  `orderBy` cannot name it, so a tie across two pages can repeat or skip a message, which
-  collecting distinct conversations absorbs.
+  every word: titles in one query (`limit: 1000`), and the 5000 most relevant member and agent
+  messages in another, whose distinct conversations join the titles'. Both filter on the caller,
+  their membership and `deletedAt`. Results are the best matches, not a guaranteed full set: a few
+  conversations with thousands of matching messages can use up the 5000, so when they do the list
+  says it shows the best matches and invites a narrower search. The messages are read once rather
+  than in pages: a `_search` is ordered by relevance alone, since its `orderBy` cannot name it, so
+  pages read by offset could skip a message at a tie across their boundary, and each would rank
+  every match again anyway. The route answers the conversations' ids and how far it looked
+  (`coverage`: `ALL`, `BEST_MATCHES` or `RECENT`), and the page picks them out of the live list it
+  already holds, so the results keep its order and stay live.
 - **Chinese and Japanese need another path.** The `simple` configuration splits words on spaces and
   punctuation, which Chinese and Japanese text does not use, so it cannot find a word inside a
   sentence. A query holding CJK characters runs as substring matches instead: split on spaces as any
@@ -500,7 +500,8 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   languages.
 - **Every search is bounded at the door**: a query of at most 100 characters and 8 terms
   (`MAX_SEARCH_QUERY_LENGTH`, `MAX_SEARCH_TERMS`), refused with a 400 past either, which the field
-  enforces as the member types and `search_documents`' schema enforces for every agent. The field
+  enforces as the member types and `search_documents`' schema enforces for every agent, and
+  refused too when it holds U+0000, which Postgres refuses in any text. The field
   waits 300 ms after the last keystroke and aborts the request it replaces. Since a caller can
   skip the field, the route is metered on the server in two layers, as invitations are:
   `conversationSearchRateLimitMiddleware` (120 searches per caller in ten minutes, keyed by the

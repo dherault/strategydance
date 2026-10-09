@@ -510,16 +510,17 @@ plan's one open question about Data Connect.
     index, an additive migration. Capitals and accents ("ÉQUIPE", "été") and French elisions
     ("l'équipe") match, and "run" misses "running".
   - **A `_search` takes `where` with relation filters, `limit` and `offset`, but its `orderBy`
-    cannot name the relevance**, so the message pages follow the relevance alone, and a tie
-    across two pages can repeat a message or skip one. Collecting distinct conversations, and the
-    best matches being what they say, absorb both.
+    cannot name the relevance**, so pages read by offset could repeat a message across a tie at
+    their boundary and skip another, then answer every match all the same. The messages are read
+    once, the 5000 most relevant, rather than in ten pages of 500: one ranking of the matches
+    rather than ten, and a single snapshot.
   - **A filter level holds plain fields or `_and`/`_or`, never both**, so the substring search
     nests the caller's fields in an `_and` entry. It is one query over conversations: a title
     matching every pattern, or, among the recent ones, a member or agent message that does
     (`exist`). It always takes eight patterns, the backend filling those a query leaves over with
     `%`, so none is optional.
-  - **The route answers ids and a `coverage`**: `ALL`, `BEST_MATCHES` once ten full pages of
-    messages were read, or `RECENT` once the substring path left some conversations' messages
+  - **The route answers ids and a `coverage`**: `ALL`, `BEST_MATCHES` once the read came back
+    with 5000 messages short of every conversation, or `RECENT` once the substring path left some conversations' messages
     unread. The page filters its live list by the ids, so the results keep the list's order and
     stay live. The recent note shows only when a conversation was actually left out.
   - **A refused record is read again** (`GetConversationSearchQuota`), to tell the allowance used

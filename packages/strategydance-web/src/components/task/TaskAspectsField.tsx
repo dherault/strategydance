@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import type { CompanyAspect } from 'strategydance-database/web'
 import { CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { MultiSelect } from 'strategydance-design-system/components/ui/MultiSelect'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import { COMPANY_ASPECTS } from '~constants'
 
@@ -19,11 +20,19 @@ type Props = {
   onChange: (aspects: CompanyAspect[]) => void
 }
 
-// The aspects of the company a task is about, as badges, which a click turns into a list to pick
-// them from. Each pick is a change of its own, and closing the list shows the badges again
+/*
+  The aspects of the company a task is about, as badges, which a click turns into a list to pick
+  them from. Each pick is a change of its own, and closing the list shows the badges again.
+
+  The badges stand as tall as the list's field, and the field keeps the height the badges had, two
+  rows of them included, so nothing under them moves as one turns into the other
+*/
 function TaskAspectsField({ value, onChange }: Props) {
   const { formatMessage } = useIntl()
   const [isEditing, setIsEditing] = useState(false)
+  // How tall the badges stood as editing began, which the field keeps
+  const [editingHeight, setEditingHeight] = useState<number | null>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const aspects = COMPANY_ASPECTS.filter(aspect => value.includes(aspect))
 
@@ -31,28 +40,34 @@ function TaskAspectsField({ value, onChange }: Props) {
     <div className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-foreground">{formatMessage(taskMessages.aspects)}</span>
       {isEditing ? (
-        <MultiSelect
-          defaultOpen
-          value={value}
-          placeholder={formatMessage(taskMessages.chooseAspects)}
-          aria-label={formatMessage(taskMessages.aspects)}
-          searchPlaceholder={formatMessage(taskMessages.searchAspects)}
-          emptyText={formatMessage(taskMessages.noAspectsFound)}
-          clearLabel={formatMessage(taskMessages.clear)}
-          closeLabel={formatMessage(taskMessages.close)}
-          moreLabel={count => formatMessage(taskMessages.moreChips, { count })}
-          options={COMPANY_ASPECTS.map(aspect => ({ value: aspect, label: formatMessage(aspectMessages[aspect]) }))}
-          onValueChange={values => onChange(values as CompanyAspect[])}
-          onOpenChange={isOpen => {
-            if (!isOpen) setIsEditing(false)
-          }}
-        />
+        <div style={editingHeight ? { minHeight: editingHeight } : undefined}>
+          <MultiSelect
+            defaultOpen
+            value={value}
+            placeholder={formatMessage(taskMessages.chooseAspects)}
+            aria-label={formatMessage(taskMessages.aspects)}
+            searchPlaceholder={formatMessage(taskMessages.searchAspects)}
+            emptyText={formatMessage(taskMessages.noAspectsFound)}
+            clearLabel={formatMessage(taskMessages.clear)}
+            closeLabel={formatMessage(taskMessages.close)}
+            moreLabel={count => formatMessage(taskMessages.moreChips, { count })}
+            options={COMPANY_ASPECTS.map(aspect => ({ value: aspect, label: formatMessage(aspectMessages[aspect]) }))}
+            onValueChange={values => onChange(values as CompanyAspect[])}
+            onOpenChange={isOpen => {
+              if (!isOpen) setIsEditing(false)
+            }}
+          />
+        </div>
       ) : (
         <button
+          ref={buttonRef}
           type="button"
           title={formatMessage(taskMessages.editAspects)}
-          className={TASK_EDITABLE_CLASS_NAME}
-          onClick={() => setIsEditing(true)}
+          className={cn(TASK_EDITABLE_CLASS_NAME, 'flex min-h-10 items-center')}
+          onClick={() => {
+            setEditingHeight(buttonRef.current?.offsetHeight ?? null)
+            setIsEditing(true)
+          }}
         >
           {aspects.length ? (
             <span className="flex flex-wrap gap-1.5">

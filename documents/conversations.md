@@ -1242,10 +1242,13 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   (`RICH_TEXT_POST_BLOCKS`: paragraphs, headings, quotes, lists and check lists), and saved whole,
   never shared as a document's text is. `read_task` reads it through `richTextToMarkdown`, and a
   write goes through `markdownToRichText`, whatever falls outside a post's blocks becoming
-  paragraphs, as the task's editor holds it, and is refused past `MAX_TASK_DESCRIPTION_LENGTH` once
-  serialized. A write replaces what a member saved, so it names the `version` the model read, and
-  the write is guarded on the task as it was read, below, so a member's save landing in between
-  refuses it rather than being lost.
+  paragraphs, as the task's editor holds it: a code block a paragraph of its text, and a table,
+  which `normalizeRichText` would drop with its text, since it keeps no block without text of its
+  own, a paragraph per row, its cells' text joined by ` | `, turned so by the module before the
+  blocks are normalized, and is refused past `MAX_TASK_DESCRIPTION_LENGTH` once serialized. A write
+  replaces what a member saved, so it names the `version` the model read, and the write is guarded
+  on the task as it was read, below, so a member's save landing in between refuses it rather than
+  being lost.
 - **One write, guarded on what it read.** `update_task` reads the task, then writes the fields it
   names in one backend mutation, whose omitted variables leave their columns alone and whose null
   ones clear them, as M14 found Data Connect does, on a condition that the task's `updatedAt` is
@@ -1588,9 +1591,10 @@ leaving it out of the range.
 
 A task's description is a post's blocks, `RICH_TEXT_POST_BLOCKS`, as a log entry's are, stored as
 one serialized string and saved whole rather than shared: the Tasks module reads it through
-`richTextToMarkdown` and writes it through `markdownToRichText`, whatever a post cannot hold, a code
-block or a table, written as paragraphs, and replaces it only while it is still the `version` the
-model read (see Modules).
+`richTextToMarkdown` and writes it through `markdownToRichText`, whatever a post cannot hold written
+as paragraphs, a table's rows turned into paragraphs of their cells' text first, since normalizing
+would drop a table with its text, and replaces it only while it is still the `version` the model
+read (see Modules).
 
 **A document's text is shared**, so the Knowledge module reads and writes it as an editor does,
 for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The database):

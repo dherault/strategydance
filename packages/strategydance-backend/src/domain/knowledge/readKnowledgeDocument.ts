@@ -13,13 +13,11 @@ import paginateKnowledgeDocumentBlocks, {
 } from '~domain/knowledge/paginateKnowledgeDocumentBlocks'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 
-// Where the next page starts, and the version the reading's first page read, which its later pages
-// answer only while the text is still that version
+// Where the next page starts
 const cursorSchema = z.object({
   id: z.string().min(1),
   offset: z.int().nonnegative(),
   hash: z.string().optional(),
-  version: z.string().min(1),
 })
 
 export type KnowledgeDocumentReading = {
@@ -28,8 +26,7 @@ export type KnowledgeDocumentReading = {
   aspects: CompanyAspect[]
   isAiWritable: boolean
   updatedAt: string
-  // The version of the whole text, on the last page of a reading whose text did not change since
-  // its first page
+  // The version of the whole text, on a page that holds all of it
   version?: string
   blocks: KnowledgeDocumentPageBlock[]
   // Where the next page starts, while more remains
@@ -46,10 +43,10 @@ type ReadKnowledgeDocumentResult = { outcome: 'read'; reading: KnowledgeDocument
   before anything of the document is loaded, when the team keeps it from agents.
 
   Its version is a hash of the whole text, which a whole text replaced has to name, so it says the
-  agent saw all of that text. A reading starts from one version, which its cursor carries, and only
-  its last page answers it, and only while the text is still that version: no page before the end,
-  and none once somebody changed the text, so an agent never holds a version of text it did not
-  read whole. A reading started again from the start takes the version then
+  agent saw all of that text: only a page that holds the whole document answers it, from its first
+  block to its last, as a document small enough to read whole is the one whose content an agent
+  replaces. A longer one is edited by its blocks. Whatever a cursor says, a page holding everything
+  was read whole, so nothing an agent sends earns a version of text it did not see
 */
 async function readKnowledgeDocument(
   caller: ModuleCaller,
@@ -69,9 +66,8 @@ async function readKnowledgeDocument(
 
   const page = paginateKnowledgeDocumentBlocks(read.blocks, cursor)
   const { title, aspects, isAiWritable, updatedAt } = loaded.document
-  const version = hashKnowledgeDocumentText(read.blocks)
-  // A page that starts the document, the first or one started again, starts a reading of its own
-  const readingVersion = cursor && page.restart !== 'document' ? cursor.version : version
+  const [first] = page.blocks
+  const isWhole = !page.next && (read.blocks.length === 0 || (first?.id === read.blocks[0]?.id && !first?.offset))
 
   return {
     outcome: 'read',
@@ -81,9 +77,9 @@ async function readKnowledgeDocument(
       aspects,
       isAiWritable,
       updatedAt,
-      ...(!page.next && readingVersion === version && { version }),
+      ...(isWhole && { version: hashKnowledgeDocumentText(read.blocks) }),
       blocks: page.blocks,
-      ...(page.next && { next: encodeCursor({ ...page.next, version: readingVersion }) }),
+      ...(page.next && { next: encodeCursor(page.next) }),
       ...(page.restart && { restart: page.restart }),
     },
   }

@@ -189,42 +189,25 @@ describe('read_document', () => {
     expect(third.blocks.map(block => block.markdown)).toEqual(['Intro', 'Short now'])
   })
 
-  it('answers the version on the last page of a reading alone, and only while nobody changed the text', async () => {
+  it('answers the version only with a page that holds the whole document', async () => {
     const kit = await connect()
+    const short = documents.store('One\n\nTwo')
     const markdown = Array.from({ length: 1000 }, (_, index) => `Paragraph ${index} ${'w'.repeat(80)}`).join('\n\n')
-    const document = documents.store(markdown)
+    const long = documents.store(markdown)
+    const whole = await kit.answer<Reading>('read_document', { id: short.id })
 
-    // Every page of a reading, from the start, a member typing after the first when asked
-    async function readPages(edit = false) {
-      const pages = [await kit.answer<Reading>('read_document', { id: document.id })]
+    expect(whole.version).toBeString()
+    expect(whole.next).toBeUndefined()
 
-      if (edit) documents.type(document.id, 0, 0, 'Edited ')
+    // A longer document is edited by its blocks: no page of it, the last included, gives a version
+    const pages = [await kit.answer<Reading>('read_document', { id: long.id })]
 
-      while (pages.at(-1)!.next) {
-        pages.push(await kit.answer<Reading>('read_document', { id: document.id, from: pages.at(-1)!.next }))
-      }
-
-      return pages
+    while (pages.at(-1)!.next) {
+      pages.push(await kit.answer<Reading>('read_document', { id: long.id, from: pages.at(-1)!.next }))
     }
 
-    const whole = await readPages()
-
-    expect(whole.length).toBeGreaterThan(1)
-    expect(whole.slice(0, -1).every(page => page.version === undefined)).toBe(true)
-    expect(whole.at(-1)!.version).toBeString()
-
-    // A member edits a block the first page already gave
-    const across = await readPages(true)
-
-    expect(across.every(page => page.version === undefined)).toBe(true)
-    expect(
-      await kit.refusal('update_document', { id: document.id, version: whole.at(-1)!.version, content: 'Rewritten' }),
-    ).toBe('The document changed since you read it. Read it again first.')
-
-    const again = await readPages()
-
-    expect(again.at(-1)!.version).toBeString()
-    expect(again.at(-1)!.version).not.toBe(whole.at(-1)!.version)
+    expect(pages.length).toBeGreaterThan(1)
+    expect(pages.every(page => page.version === undefined)).toBe(true)
   })
 
   it('refuses a document the team keeps from AI, before anything of it is loaded, whoever mentions it', async () => {

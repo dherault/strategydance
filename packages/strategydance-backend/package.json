@@ -14,9 +14,11 @@
     "check:conversation-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationRuns.ts",
     "check:conversation-search": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationSearch.ts",
     "check:knowledge-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkKnowledgeModule.ts",
+    "check:tasks-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkTasksModule.ts",
     "mcp:knowledge": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/serveModule.ts knowledge",
     "mcp:tasks": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/serveModule.ts tasks",
     "backfill:document-text": "bun scripts/backfillDocumentText.ts",
+    "backfill:task-text": "bun scripts/backfillTaskText.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
     "send:conversation": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/sendConversationMessage.ts",
     "deploy": "bash scripts/deploy.sh"

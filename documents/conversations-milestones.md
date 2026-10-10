@@ -62,7 +62,7 @@ M27 well before their neighbours.
 | M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
-| M15 | The Tasks module | database, core, backend, web, root | M14 | |
+| M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
 | M16 | Knowledge in conversations | backend, database, web | M10, M14 | |
 | M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | |
 | M18 | The authorization server | backend, database, core, root | M14, setup 10 | |

@@ -645,6 +645,45 @@ query GetTasks($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "CreateTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+# An agent's update pushes the board unless it carries a description alone, which changes nothing a
+# card shows, as the page's own description save does not push it. Every update names some field, so
+# one without a description always changes a card
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && (!has(mutation.variables.description) || has(mutation.variables.name) || has(mutation.variables.status) || has(mutation.variables.isAssignedToAgent) || has(mutation.variables.dueDate) || has(mutation.variables.aspects))"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AddTaskDependencyForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveTaskDependencyForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -729,6 +768,24 @@ query GetTaskDescription($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id && has(mutation.variables.description)"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTaskForAgent"
     condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
   }
 )

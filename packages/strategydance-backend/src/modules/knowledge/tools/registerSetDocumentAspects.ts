@@ -5,9 +5,10 @@ import type { KnowledgeToolContext } from '~types'
 
 import setKnowledgeDocumentAspects from '~domain/knowledge/setKnowledgeDocumentAspects'
 
-import { aspectSchema, aspectsSchema, documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
+import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
+import { aspectSchema, aspectsSchema } from '~modules/moduleSchemas'
 
 const TOOL = 'set_document_aspects'
 

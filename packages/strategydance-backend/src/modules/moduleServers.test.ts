@@ -5,9 +5,9 @@ import { MODULES } from 'strategydance-core'
 
 import { MODULE_PROTOCOL_VERSION } from '~constants'
 
-import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
-const fake = createKnowledgeDatabaseFake()
+const fake = createModuleDatabaseFake()
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 mock.module('strategydance-database/backend', () => fake.sdk)

@@ -5,10 +5,10 @@ import type { KnowledgeWriteResult, ModuleCall, ModuleCaller } from '~types'
 import { dataConnect } from '~firebase'
 
 import explainKnowledgeDocumentRefusal from '~domain/knowledge/explainKnowledgeDocumentRefusal'
-import isKnowledgeRefusal from '~domain/knowledge/isKnowledgeRefusal'
-import { NOT_MEMBER_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
+import isOperationRefusal from '~domain/modules/isOperationRefusal'
+import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
 
 // How long a deleted document can be restored, as its page's Undo and the sweep hold it
@@ -50,7 +50,7 @@ async function deleteKnowledgeDocument(
     const answeredMeanwhile = isModuleCallKeyTaken(error) ? await answerFromModuleCall(caller, call) : null
 
     if (answeredMeanwhile) return answeredMeanwhile
-    if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+    if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
 
     const refusal = await explainKnowledgeDocumentRefusal(caller, id, { isWrite: true })
 

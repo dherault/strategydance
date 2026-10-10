@@ -8,18 +8,18 @@ import type { ConversationRunReference } from '~types'
 
 import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
-import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 const fake = createConversationDatabaseFake()
 
-// The sweep prunes documents and module call results too, which the Knowledge module's fake holds
-const knowledge = createKnowledgeDatabaseFake()
+// The sweep prunes documents and module call results too, which the modules' fake holds
+const modules = createModuleDatabaseFake()
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
-mock.module('strategydance-database/backend', () => ({ ...knowledge.sdk, ...fake.sdk }))
+mock.module('strategydance-database/backend', () => ({ ...modules.sdk, ...fake.sdk }))
 
 // The board's prune, which the conversations' fake does not hold: its own test covers it
 const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
@@ -194,15 +194,15 @@ describe('POST /internal/sweep', () => {
 
   test('removes the documents deleted over a day ago in every organization, and keeps the rest', async () => {
     const deletedAt = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
-    const old = knowledge.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(25) })
-    const elsewhere = knowledge.insertDocument({ organizationId: createId(), deletedAt: deletedAt(30) })
-    const recent = knowledge.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(1) })
-    const live = knowledge.insertDocument({ organizationId: ORGANIZATION_ID })
+    const old = modules.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(25) })
+    const elsewhere = modules.insertDocument({ organizationId: createId(), deletedAt: deletedAt(30) })
+    const recent = modules.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(1) })
+    const live = modules.insertDocument({ organizationId: ORGANIZATION_ID })
 
     expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
-    expect(knowledge.documents.has(old.id)).toBe(false)
-    expect(knowledge.documents.has(elsewhere.id)).toBe(false)
-    expect([...knowledge.documents.keys()].sort()).toEqual([recent.id, live.id].sort())
+    expect(modules.documents.has(old.id)).toBe(false)
+    expect(modules.documents.has(elsewhere.id)).toBe(false)
+    expect([...modules.documents.keys()].sort()).toEqual([recent.id, live.id].sort())
   })
 
   test('removes the module call results past their expiry, and keeps those that never expire', async () => {
@@ -218,11 +218,11 @@ describe('POST /internal/sweep', () => {
       createdAt: new Date().toISOString(),
     })
 
-    knowledge.results.set('expired', result('expired', new Date(Date.now() - 1000).toISOString()))
-    knowledge.results.set('pending', result('pending', new Date(Date.now() + 60 * 60 * 1000).toISOString()))
-    knowledge.results.set('forever', result('forever', null))
+    modules.results.set('expired', result('expired', new Date(Date.now() - 1000).toISOString()))
+    modules.results.set('pending', result('pending', new Date(Date.now() + 60 * 60 * 1000).toISOString()))
+    modules.results.set('forever', result('forever', null))
 
     expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
-    expect([...knowledge.results.keys()].sort()).toEqual(['forever', 'pending'])
+    expect([...modules.results.keys()].sort()).toEqual(['forever', 'pending'])
   })
 })

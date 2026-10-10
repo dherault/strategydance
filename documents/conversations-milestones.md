@@ -847,6 +847,56 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   one to Strategy Dance, and move one to Done, the cards arriving without a reload; save a
   description in the task's dialog while Claude Code rewrites it from an older read, and see its
   write refused; delete a task and restore it.
+- Built with these settled, on 2026-10-10:
+  - **One fake for every module.** A module's handler loads every module's server, and Bun refuses a
+    test whose mock lacks a name any of them imports (`Export named … not found`), so
+    `createModuleDatabaseFake` puts a base, the memberships, the call results and their operations,
+    together with `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`. The test kit,
+    `createModuleTestKit(name, caller)`, the write tools' check, `readModuleWriteCall`, the web
+    addresses, `createModuleAddresses`, the schema helpers and `isOperationRefusal` are the frame's,
+    shared rather than copied.
+  - **`has()` sees a variable sent as null**: `UpdateTaskForAgent` refuses `name: null`, and an
+    omitted variable leaves its column alone while a null one clears it, checked against the
+    emulator. `GetTasks` refreshes on an update unless it carries a description alone,
+    `!has(description) || has(<a card's field>)`, which holds whichever way a cleared due date reads.
+  - **A check under an empty list speaks first.** With the membership gone, the variables' checks
+    nested under it are never invoked, and Data Connect refused a removed member's write with the
+    idempotency key's message. Marked `optional: true`, they leave the refusal to the membership's
+    own check. Knowledge's writes share the shape and reach the right answer through
+    `explainKnowledgeDocumentRefusal`'s second read; `CLAUDE.md` records the rule.
+  - **The board is read whole.** Every tool reads the live board, at most 1000 tasks without their
+    descriptions, and filters, orders, pages, places and checks loops in memory, on core's helpers;
+    only a query's pattern runs in SQL, one substring on the name or the plain text, never split
+    into words, as the board's own search matches.
+  - **The board's order** compares an instant to the microsecond however many digits Data Connect
+    wrote its fraction with, and an id as Postgres orders a UUID, so a cursor holding the last task's
+    status, position, instant and id resumes exactly.
+  - **Answers read back.** An assignee is answered as `"member:<id>"`, `"agent"` or `"unassigned"`,
+    with `assigneeName`, the values the tools take; a task's links come as `dependsOn` and
+    `waitedOnBy`, each `{ tasks, count }`, and a move to Done as `canStartNow`. A replaced
+    description answers its new `version`, a hash of the description as stored.
+  - **A restore blocked by a loop names the tasks waiting on the deleted one** whose links would close
+    it, as the page's `getTaskRestoreLoops` finds them, and `remove_task_dependency` takes a link to a
+    deleted task, so the model can take one off before restoring. A link already there is written
+    again as an upsert, so its key is kept, and answered `isNew: false`.
+  - **Budgets count addresses**: a page of `list_tasks` and a `read_task` count each task's web
+    address, which an external caller's results carry, within 40000 and 45000 characters.
+  - **"50 tasks it waits on and 999 waiting on it" is 1050 tasks**, past `MAX_TASKS` and past what
+    the board read holds, so the read test has 50 and 949, the whole board; the freed tasks test has
+    the 999 of a board of 1000.
+  - **`check:tasks-module` is the backend package's**, as `check:knowledge-module` is: the Commands
+    row for `mcp:tasks` names it rather than a root command. A list variable holds at most 100 rows,
+    so the script fills a board in hundreds.
+  - Verified with `bun run check:tasks-module` and `bun run check:knowledge-module` against an
+    emulator of the branch's schema, every check passing; with the SDK's stdio client, a 2025 one as
+    Claude Code's is, driving `mcp:tasks` through every tool; in the browser at 1280 and 390 wide, the
+    board open while the module created three tasks, linked them, refused the link closing a loop,
+    assigned one to a teammate and one to Strategy Dance, moved one to Done, answering the task it
+    freed, cleared a due date, deleted one and restored it, every change arriving without a reload;
+    a description saved in the task's dialog storing its plain text, and the module's write from an
+    older read refused; a task created on the page storing its plain text; and the backfill over 250
+    unindexed tasks, run again with nothing left. Not seen from Claude Code itself, which
+    `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>` connects.
 
 ### M16: Knowledge in conversations
 

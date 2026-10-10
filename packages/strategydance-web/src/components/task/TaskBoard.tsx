@@ -28,6 +28,7 @@ import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import filterTasks from '~utils/task/filterTasks'
 import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
+import toTaskLinks from '~utils/task/toTaskLinks'
 
 import PageHeader from '~components/layout/PageHeader'
 import NewTaskDialog from '~components/task/NewTaskDialog'
@@ -75,7 +76,7 @@ function TaskBoard() {
   const visibleTasks = filterTasks(tasks, { query, assignee, aspects }, { viewerId, descriptionTexts })
   const columns = new Map(TASK_STATUSES.map(status => [status, visibleTasks.filter(task => task.status === status)]))
   const { announcement, getCardKeyDown } = useTaskBoardKeyboard({ columns, onMove: move })
-  const tasksById = new Map(tasks.map(task => [task.id, task]))
+  const linksById = new Map(tasks.map(task => [task.id, toTaskLinks(task)]))
   const membersById = new Map(members.map(member => [member.user.id, member]))
 
   function clearFilters() {
@@ -142,7 +143,7 @@ function TaskBoard() {
                 key={status}
                 status={status}
                 tasks={column}
-                tasksById={tasksById}
+                linksById={linksById}
                 membersById={membersById}
                 today={today}
                 isFiltering={isFiltering}

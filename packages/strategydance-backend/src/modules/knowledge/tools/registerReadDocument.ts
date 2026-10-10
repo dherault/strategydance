@@ -5,8 +5,9 @@ import type { KnowledgeToolContext } from '~types'
 
 import readKnowledgeDocument from '~domain/knowledge/readKnowledgeDocument'
 
-import { aspectSchema, documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
+import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
 import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
+import { aspectSchema } from '~modules/moduleSchemas'
 import toToolResult from '~modules/toToolResult'
 
 const inputSchema = z.object({

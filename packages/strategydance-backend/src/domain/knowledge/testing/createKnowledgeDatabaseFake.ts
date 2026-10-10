@@ -1,34 +1,17 @@
 import { MAX_DOCUMENTS } from 'strategydance-core'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import type { AnyVariables, ModuleDatabaseFakeBase } from '~domain/modules/testing/createModuleDatabaseFakeBase'
 
 /*
-  The backend connector's Knowledge module operations, over tables kept in memory, for the module's
-  tests, which mock `strategydance-database/backend` with it. Each operation mirrors the conditions
-  of its namesake in the connector, in the same order, and throws the same messages, so a test reads
-  as the behaviour it checks rather than as a script of answers. `check:knowledge-module` checks
-  those conditions against the emulators, which is what keeps the two alike: change one with the
-  other. A search matches words and patterns as near as a test needs, which that script checks
-  against Postgres' own.
-
-  An operation checks everything before it changes anything, so it applies whole or not at all, as
-  a transaction does, and runs without yielding, so two called at once take turns as two locked
-  transactions do. `beforeOperation` runs first, which is where a test lets something happen
-  meanwhile, a tab pushing an edit say. Times are the clock's, which a test moves with
-  `setSystemTime`. Ids are kept as Data Connect keeps them, dashless
+  The backend connector's Knowledge module operations, over tables kept in memory, added to a
+  module database fake's base, which `createModuleDatabaseFake` builds with every module's, for the
+  modules' tests, which mock `strategydance-database/backend` with it. Each operation mirrors the
+  conditions of its namesake in the connector, in the same order, and throws the same messages, so a
+  test reads as the behaviour it checks rather than as a script of answers. `check:knowledge-module`
+  checks those conditions against the emulators, which is what keeps the two alike: change one with
+  the other. A search matches words and patterns as near as a test needs, which that script checks
+  against Postgres' own
 */
-
-export const CompanyAspect = {
-  STRATEGY: 'STRATEGY',
-  PEOPLE: 'PEOPLE',
-  FINANCES: 'FINANCES',
-  PRODUCT: 'PRODUCT',
-  ENGINEERING: 'ENGINEERING',
-  DESIGN: 'DESIGN',
-  MARKETING: 'MARKETING',
-  SALES: 'SALES',
-  LEGAL: 'LEGAL',
-} as const
 
 export type FakeDocument = {
   id: string
@@ -53,93 +36,16 @@ export type FakeDocumentUpdate = {
   createdAt: string
 }
 
-export type FakeModuleCallResult = {
-  idempotencyScope: string
-  idempotencyKey: string
-  userId: string
-  organizationId: string
-  tool: string
-  argumentsHash: string
-  result: string
-  expiresAt: string | null
-  createdAt: string
-}
-
-type Variables = Record<string, unknown>
-
-// What a test reads the variables of an operation as
-type AnyVariables = Record<string, any>
-
 const DAY_MS = 24 * 60 * 60 * 1000
 
-function createKnowledgeDatabaseFake() {
-  const memberships = new Map<string, { createdAt: string }>()
-  const organizations = new Map<string, { slug: string | null }>()
+function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base) {
+  const { stamp, id, isMember, membershipOf, matchesLike, insertResult, storeResult, checkKey } = base
   const documents = new Map<string, FakeDocument>()
   const updates: FakeDocumentUpdate[] = []
-  const results = new Map<string, FakeModuleCallResult>()
-  // Every operation called, by name, in order
-  const calls: string[] = []
-  let stamps = 0
 
-  const fake = {
-    memberships,
-    organizations,
-    documents,
-    updates,
-    results,
-    calls,
-    beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
-  }
-
-  function now() {
-    return new Date().toISOString()
-  }
-
-  // A time no other stamp shares, to the microsecond, as Postgres keeps one
-  function stamp() {
-    stamps++
-
-    return now().replace('Z', `${String(stamps % 1000).padStart(3, '0')}Z`)
-  }
-
-  function id(value: unknown) {
-    return toCanonicalUuid(String(value))
-  }
-
-  function membershipKey(userId: unknown, organizationId: unknown) {
-    return `${userId}:${id(organizationId)}`
-  }
-
-  function resultKey(scope: unknown, key: unknown) {
-    return `${scope}\n${key}`
-  }
-
+  // Declared here rather than read off the base, so a call narrows what follows it
   function refuse(message: string): never {
     throw new Error(message)
-  }
-
-  function addMember(userId: string, organizationId: string, { slug = null }: { slug?: string | null } = {}) {
-    if (!organizations.has(id(organizationId))) organizations.set(id(organizationId), { slug })
-
-    const createdAt = stamp()
-
-    memberships.set(membershipKey(userId, organizationId), { createdAt })
-
-    return createdAt
-  }
-
-  function removeMember(userId: string, organizationId: string) {
-    memberships.delete(membershipKey(userId, organizationId))
-  }
-
-  // Whether the caller is still the member the module read, as each operation matches the
-  // membership on its `createdAt`
-  function isMember(variables: AnyVariables) {
-    return (
-      memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
-      === variables.membershipCreatedAt
-    )
   }
 
   // A document written straight into its table, as a page would have stored it
@@ -217,57 +123,10 @@ function createKnowledgeDatabaseFake() {
       .filter(Boolean)
   }
 
-  // A LIKE pattern as the backend escapes one, matched ignoring case
-  function matchesLike(text: string, pattern: string) {
-    let source = ''
-
-    for (let index = 0; index < pattern.length; index++) {
-      const character = pattern[index]!
-
-      if (character === '\\') source += (pattern[++index] ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      else if (character === '%') source += '.*'
-      else if (character === '_') source += '.'
-      else source += character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    }
-
-    return new RegExp(`^${source}$`, 'isu').test(text)
-  }
-
   function searchRow(document: FakeDocument) {
     const { id: documentId, title, aspects, updatedAt, isAiWritable, contentText } = document
 
     return { id: documentId, title, aspects, updatedAt, isAiWritable, contentText }
-  }
-
-  // The key's insert every write makes first when its call carries one
-  function insertResult(variables: AnyVariables) {
-    if (!variables.isKeyed) return
-
-    if (results.has(resultKey(variables.idempotencyScope, variables.idempotencyKey))) {
-      refuse('violates SQL unique constraint: module_call_result_pkey (aborted)')
-    }
-  }
-
-  function storeResult(variables: AnyVariables) {
-    if (!variables.isKeyed) return
-
-    results.set(resultKey(variables.idempotencyScope, variables.idempotencyKey), {
-      idempotencyScope: String(variables.idempotencyScope),
-      idempotencyKey: String(variables.idempotencyKey),
-      userId: String(variables.userId),
-      organizationId: id(variables.organizationId),
-      tool: String(variables.tool),
-      argumentsHash: String(variables.argumentsHash),
-      result: String(variables.result),
-      expiresAt: (variables.expiresAt as string | null | undefined) ?? null,
-      createdAt: now(),
-    })
-  }
-
-  function checkKey(variables: AnyVariables) {
-    if (variables.isKeyed && !(variables.idempotencyKey.length >= 1 && variables.idempotencyKey.length <= 200)) {
-      refuse('An idempotency key is 1 to 200 characters')
-    }
   }
 
   // A document agents may change, as every write but a create and a restore matches it
@@ -305,12 +164,12 @@ function createKnowledgeDatabaseFake() {
     }
   }
 
-  const operations: Record<string, (variables: AnyVariables) => unknown> = {
+  base.addOperations({
     GetDocumentAccessForAgent: variables => {
       const document = documents.get(id(variables.id))
 
       return {
-        membership: isMember(variables) ? [{ userId: variables.userId }] : [],
+        membership: membershipOf(variables),
         documents:
           document && document.organizationId === id(variables.organizationId)
             ? [
@@ -322,12 +181,6 @@ function createKnowledgeDatabaseFake() {
               ]
             : [],
       }
-    },
-
-    GetOrganizationForAgent: variables => {
-      const organization = organizations.get(id(variables.organizationId))
-
-      return { organization: organization ? { id: id(variables.organizationId), slug: organization.slug } : null }
     },
 
     SearchDocumentsForAgent: variables => {
@@ -383,7 +236,7 @@ function createKnowledgeDatabaseFake() {
     },
 
     GetUnindexedDocumentsForAgent: variables => ({
-      membership: isMember(variables) ? [{ userId: variables.userId }] : [],
+      membership: membershipOf(variables),
       documents: isMember(variables)
         ? [...documents.values()]
             .filter(document => isReadable(document, variables) && document.contentText === null)
@@ -421,7 +274,7 @@ function createKnowledgeDatabaseFake() {
       })
 
       return {
-        membership: isMember(variables) ? [{ userId: variables.userId }] : [],
+        membership: membershipOf(variables),
         atCursor: listed
           .filter(document => document.updatedAt === variables.before)
           .sort((a, b) => (a.id < b.id ? -1 : 1))
@@ -455,12 +308,6 @@ function createKnowledgeDatabaseFake() {
           },
         ],
       }
-    },
-
-    GetModuleCallResult: variables => {
-      const stored = results.get(resultKey(variables.idempotencyScope, variables.idempotencyKey))
-
-      return { membership: isMember(variables) ? [{ userId: variables.userId }] : [], moduleCallResult: stored ?? null }
     },
 
     SeedDocumentStateForAgent: variables => {
@@ -654,19 +501,6 @@ function createKnowledgeDatabaseFake() {
 
     DeleteExpiredDocuments: () => ({ document_deleteMany: pruneDeleted() }),
 
-    DeleteExpiredModuleCallResults: () => {
-      let deleted = 0
-
-      for (const [key, stored] of results) {
-        if (stored.expiresAt !== null && Date.parse(stored.expiresAt) < Date.now()) {
-          results.delete(key)
-          deleted++
-        }
-      }
-
-      return { moduleCallResult_deleteMany: deleted }
-    },
-
     GetUnindexedDocuments: variables => {
       const skipped = new Set((variables.skippedIds as string[]).map(id))
 
@@ -687,42 +521,16 @@ function createKnowledgeDatabaseFake() {
 
       return { document_updateMany: isIndexed ? 1 : 0 }
     },
-  }
-
-  // The generated SDK's names: `getDocumentForAgent(dataConnect, variables)` for `GetDocumentForAgent`
-  const sdk: Record<string, unknown> = { CompanyAspect }
-
-  for (const [name, operation] of Object.entries(operations)) {
-    sdk[name.charAt(0).toLowerCase() + name.slice(1)] = async (_dataConnect: unknown, variables: Variables = {}) => {
-      calls.push(name)
-
-      await fake.beforeOperation(name, variables)
-
-      return { data: operation(variables) }
-    }
-  }
-
-  // Empties every table, for the next test
-  function reset() {
-    for (const table of [memberships, organizations, documents, results]) table.clear()
-
-    updates.length = 0
-    calls.length = 0
-    fake.beforeOperation = async () => {}
-  }
-
-  return Object.assign(fake, {
-    sdk,
-    addMember,
-    removeMember,
-    insertDocument,
-    pushUpdate,
-    compactWithoutText,
-    pendingUpdates,
-    reset,
   })
+
+  base.onReset(() => {
+    documents.clear()
+    updates.length = 0
+  })
+
+  return Object.assign(base, { documents, updates, insertDocument, pushUpdate, compactWithoutText, pendingUpdates })
 }
 
-export type KnowledgeDatabaseFake = ReturnType<typeof createKnowledgeDatabaseFake>
+export type KnowledgeDatabaseFake = ReturnType<typeof createKnowledgeDatabaseFake<ModuleDatabaseFakeBase>>
 
 export default createKnowledgeDatabaseFake

@@ -4,6 +4,7 @@ import {
   DEVELOPMENT_APP_URL,
   PRODUCTION_APP_URL,
 } from 'strategydance-core'
+import type { TaskStatus } from 'strategydance-database/backend'
 
 /* ---
   ENVIRONMENT
@@ -211,6 +212,30 @@ export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
 // How many times an agent's edit is applied to a document whose snapshot somebody folded more into
 // meanwhile, read again each time, before the module gives up
 export const KNOWLEDGE_FOLD_ATTEMPTS = 3
+
+/*
+  The board's columns, left to right, as the web's `TASK_STATUSES` lists them: the order the Tasks
+  module lists a board in, column by column. Strings rather than the enum's values, which a test
+  holds to the schema's, so reading them loads nothing of the database's
+*/
+export const TASK_STATUSES: readonly `${TaskStatus}`[] = ['BACKLOG', 'TODO', 'ONGOING', 'DONE']
+
+/*
+  The Tasks module's bounds. A list answers at most 100 tasks and 40000 characters of JSON a page.
+  A read answers at most 45000, each list of links cut at 20 with its count, short of the 50000
+  characters a tool result is cut at, as is a move to Done naming the first 50 tasks it frees. A loop
+  refused names its first 20 tasks. Before a query it indexes up to 20 tasks a page from before
+  `descriptionText` left unindexed. An update lost to another write is read again and reapplied, three
+  times at most
+*/
+export const TASK_LIST_PAGE_SIZE = 100
+export const TASK_LIST_PAGE_LENGTH = 40000
+export const TASK_READ_LENGTH = 45000
+export const TASK_READ_LINKS = 20
+export const MAX_FREED_TASKS_NAMED = 50
+export const MAX_LOOP_TASKS_NAMED = 20
+export const MAX_TASKS_INDEXED = 20
+export const TASK_UPDATE_ATTEMPTS = 3
 
 /* ---
   SECRETS

@@ -189,6 +189,21 @@ export type SearchConversationsData = {
 }
 
 /* ---
+  TASKS
+--- */
+
+/*
+  What the board's helpers read of a task: its id, whether it is done, and the ids of the tasks it
+  waits on. Plain rather than a row of the database's, so the page and the backend count the same
+  from what each of them reads
+*/
+export type TaskLinks = {
+  readonly id: string
+  readonly isDone: boolean
+  readonly dependencyIds: readonly string[]
+}
+
+/* ---
   MODULES
 --- */
 

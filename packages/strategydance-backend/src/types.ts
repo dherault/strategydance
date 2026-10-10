@@ -4,6 +4,7 @@ import type {
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ModuleScope } from 'strategydance-core'
+import type { CompanyAspect, TaskStatus } from 'strategydance-database/backend'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
@@ -226,4 +227,103 @@ export type KnowledgeWriteResult<Result> =
 export type KnowledgeToolContext = {
   caller: ModuleCaller
   toAddress: (documentId: string) => Promise<string | undefined>
+}
+
+/* ---
+  TASKS MODULE
+--- */
+
+// A live task as the Tasks module reads the board, without its description: what it waits on among
+// the live tasks, and its count of every link, those to deleted tasks included
+export type BoardTask = {
+  id: string
+  name: string
+  status: TaskStatus
+  position: number
+  assigneeId: string | null
+  isAssignedToAgent: boolean
+  dueDate: string | null
+  aspects: CompanyAspect[]
+  createdAt: string
+  updatedAt: string
+  dependencyIds: string[]
+  linkCount: number
+}
+
+// A member of the organization, by name, which is null for one who never gave one
+export type BoardMember = {
+  id: string
+  name: string | null
+}
+
+// The live board and the team, as every tool of the Tasks module reads them
+export type TaskBoard = {
+  tasks: BoardTask[]
+  members: BoardMember[]
+}
+
+// A task named in an answer or a refusal: its id and its name
+export type TaskReference = {
+  id: string
+  name: string
+}
+
+// Who does a task, as the board's assignment select names it, which the module reads and writes alike,
+// with `"me"`, the caller, for the module to read
+export type TaskAssignee = 'agent' | 'unassigned' | `member:${string}`
+
+/*
+  Why the Tasks module refused a call, which its tool words for the model: each is something the
+  model can act on, by telling the member, reading the task again, or changing what it sent
+*/
+export type TasksRefusal =
+  /** The caller is no longer the member the module was built for */
+  | { outcome: 'notMember' }
+  /** The caller's connection may read but not write */
+  | { outcome: 'readOnly' }
+  /** No live task by that id on the board */
+  | { outcome: 'notFound' }
+  /** A task assigned to somebody who is not a member of the organization */
+  | { outcome: 'assigneeNotMember' }
+  /** The board keeps as many tasks as it may */
+  | { outcome: 'full' }
+  /** The description changed since the agent read it */
+  | { outcome: 'changed' }
+  /** A description replaced without the version a read gave */
+  | { outcome: 'versionRequired' }
+  /** A description past what a task holds once stored */
+  | { outcome: 'descriptionTooLong' }
+  /** A move before a task that is not in the column it names */
+  | { outcome: 'notInColumn' }
+  /** A move into a gap too narrow for a float */
+  | { outcome: 'noRoom' }
+  /** An update other writes kept landing before, every time it was read again */
+  | { outcome: 'busy' }
+  /** A link from a task to itself, one that would close a loop, or one past the 50 a task holds */
+  | { outcome: 'selfDependency' }
+  | { outcome: 'loop'; tasks: TaskReference[]; length: number }
+  | { outcome: 'tooManyDependencies' }
+  /** A link removed that is not there */
+  | { outcome: 'notLinked' }
+  /** A restore of a task not deleted, of one deleted over a day ago, or one whose links would loop */
+  | { outcome: 'notDeleted' }
+  | { outcome: 'goneForGood' }
+  | { outcome: 'restoreLoop'; tasks: TaskReference[]; count: number }
+  /** An idempotency key sent before with another call */
+  | { outcome: 'keyConflict' }
+  /** A cursor no list gave */
+  | { outcome: 'invalidCursor' }
+
+// What a write of the Tasks module answers: its result, or the one stored under its key when the call
+// was sent before, or why it was refused
+export type TasksWriteResult<Result> =
+  | { outcome: 'written'; result: Result }
+  | { outcome: 'answered'; result: unknown }
+  | TasksRefusal
+
+// What each of the Tasks module's tools is registered with: who calls it, and the web address of a
+// task for an external caller, whose results carry them, undefined for Strategy Dance's agent
+export type TasksToolContext = {
+  caller: ModuleCaller
+  toAddress: (taskId: string) => Promise<string | undefined>
 }

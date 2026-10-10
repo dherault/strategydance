@@ -4,11 +4,12 @@ import type { KnowledgeWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
 
-import isKnowledgeRefusal from '~domain/knowledge/isKnowledgeRefusal'
-import { FULL_REFUSAL, NOT_MEMBER_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
+import { FULL_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentAccess from '~domain/knowledge/readKnowledgeDocumentAccess'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
+import isOperationRefusal from '~domain/modules/isOperationRefusal'
+import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
 
 // How long after its delete a document can be restored, as `RestoreDocumentForAgent` holds it
@@ -47,8 +48,8 @@ async function restoreKnowledgeDocument(
     const answeredMeanwhile = isModuleCallKeyTaken(error) ? await answerFromModuleCall(caller, call) : null
 
     if (answeredMeanwhile) return answeredMeanwhile
-    if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
-    if (isKnowledgeRefusal(error, FULL_REFUSAL)) return { outcome: 'full' }
+    if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+    if (isOperationRefusal(error, FULL_REFUSAL)) return { outcome: 'full' }
 
     const access = await readKnowledgeDocumentAccess(caller, id)
 

@@ -8,7 +8,7 @@ import {
   type TaskStatus,
   addTaskDependency as addTaskDependencyMutation,
   assignTask as assignTaskMutation,
-  createTask as createTaskMutation,
+  createTaskWithText as createTaskMutation,
   deleteTask as deleteTaskMutation,
   getTasksRef,
   moveTask as moveTaskMutation,
@@ -16,9 +16,11 @@ import {
   renameTask as renameTaskMutation,
   restoreTask as restoreTaskMutation,
   updateTaskAspects as updateTaskAspectsMutation,
-  updateTaskDescription as updateTaskDescriptionMutation,
+  updateTaskDescriptionWithText as updateTaskDescriptionMutation,
   updateTaskDueDate as updateTaskDueDateMutation,
 } from 'strategydance-database/web'
+import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
+import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 
 import type { Task, TaskDraft, TaskSnapshot } from '~types'
 
@@ -195,6 +197,8 @@ function useTaskChanges() {
           id,
           name: task.name,
           description: draft.description,
+          // With the plain text of its description, which agents' queries match
+          descriptionText: getRichTextText(parseRichText(draft.description)),
           status: task.status,
           position: task.position,
           assigneeId: task.assigneeId,
@@ -225,7 +229,12 @@ function useTaskChanges() {
       queryKeys: [getDescriptionKey(taskId), descriptionsKey],
       apply: () => setDescription(taskId, description),
       write: () =>
-        updateTaskDescriptionMutation(dataConnect, { organizationId: organizationId!, id: taskId, description }),
+        updateTaskDescriptionMutation(dataConnect, {
+          organizationId: organizationId!,
+          id: taskId,
+          description,
+          descriptionText: getRichTextText(parseRichText(description)),
+        }),
     })
   }
 

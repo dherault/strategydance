@@ -2968,22 +2968,27 @@ mutation UpdateTaskForAgent(
         @check(
           expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
           message: "An idempotency key is 1 to 200 characters"
+          optional: true
         )
         @check(
           expr: "!has(vars.name) || (vars.name != null && size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$'))"
           message: "A task's name is 1 to 120 characters on one line, with no space at either end"
+          optional: true
         )
         @check(
           expr: "(!has(vars.description) || (vars.description != null && size(vars.description) <= 20000)) && (!has(vars.descriptionText) || vars.descriptionText == null || size(vars.descriptionText) <= 20000)"
           message: "A task's description is at most 20000 characters"
+          optional: true
         )
         @check(
           expr: "!has(vars.aspects) || (vars.aspects != null && vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect)))"
           message: "A task is tagged with each aspect at most once"
+          optional: true
         )
         @check(
           expr: "!has(vars.isAssignedToAgent) || vars.isAssignedToAgent != true || !has(vars.assigneeId) || vars.assigneeId == null"
           message: "A task is assigned to a member or to Strategy Dance, not both"
+          optional: true
         )
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -3132,6 +3137,7 @@ mutation RemoveTaskDependencyForAgent(
         @check(
           expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
           message: "An idempotency key is 1 to 200 characters"
+          optional: true
         )
     }
   }
@@ -3185,6 +3191,7 @@ mutation DeleteTaskForAgent(
         @check(
           expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
           message: "An idempotency key is 1 to 200 characters"
+          optional: true
         )
     }
   }

@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The thirty-one milestones that build the conversations feature, each one pull request into `dev`
+The thirty milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
@@ -70,7 +70,6 @@ M28 well before their neighbours.
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
 | M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
 | M22 | Mentioning knowledge in the composer | web | M7, M16 | |
-| M23 | Team, log and top priority tools | backend, database, web | M9, M13 | |
 | M24 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
 | M25 | The dock | web | M7 | |
 | M26 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
@@ -804,9 +803,9 @@ tools describes it: nothing in the app calls it yet, and Claude Code reaches it 
   either.
 - `CLAUDE.md`: Module conventions say that tasks carry no AI permission, every agent changing any
   task as any member can; § The database's rule on `ActivityDay` says that an agent's change to the
-  board never counts, while M23's top priority still does; § The database says that every write of a
-  task's description writes `descriptionText` beside it, or nulls it; Commands gain `mcp:tasks` and
-  `check:tasks-module`, and Module conventions `backfill:task-text`.
+  board never counts; § The database says that every write of a task's description writes
+  `descriptionText` beside it, or nulls it; Commands gain `mcp:tasks` and `check:tasks-module`, and
+  Module conventions `backfill:task-text`.
 - Tests (database mocked, through an SDK `Client` on the module's handler): a removed member's call
   refused, and one carrying the `membershipCreatedAt` of a membership since ended; a caller without
   the write scope refused by every write tool, nothing written; a write called twice with one key
@@ -1097,28 +1096,6 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   mentions sent as `[Title](doc:<id>)`, all as The composer describes.
 - Verify: mention two documents, send, see the links in the bubble and the agent read them; mention
   one with Read off and see the agent say it cannot read it.
-
-### M23: Team, log and top priority tools
-
-- Backend-connector operations reading the team (as `GetOrganizationTeam` does, without emails) and
-  the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
-  converted with `richTextToMarkdown`, both paged with a cursor as Tools describes.
-- Tests: a team of 60 read in three pages with `total` right; a single 50000-character log entry
-  read across pages that join back whole, and one made of a single 50000-character paragraph too;
-  a page continuing an entry saying so.
-- The three tools' labels in the `conversation` catalogue, running and done ("Reading your team",
-  "Reading the log", "Setting your top priority"), and `bun run translate`.
-- `set_top_priority`, through one backend mutation `SetTopPriorityForAgent($organizationId,
-  $userId, $topPriority, $date)`: it checks membership, writes the member's own `topPriority`
-  (through `markdownToRichText`, held to the Today page's two limits, `MAX_TOP_PRIORITY_TEXT_LENGTH`
-  of text and `MAX_TOP_PRIORITY_LENGTH` serialized) and `topPriorityUpdatedAt`, and upserts their
-  `activityDay` row, as `CLAUDE.md` asks of every change to Today data, with `RecordActivity`'s check
-  that `$date`, computed from the member's time zone, is their today, all beside the fenced run
-  write and the call's result, so a crash leaves the priority set once or not at all. Its
-  `$organizationId` matches `GetOrganizationTeam`'s refresh, so an open Today page updates at once.
-- Verify: "What is everybody working on?", "What did I log this week?", and "Make shipping the
-  pricing page my priority": the Today page updates without a reload, and the build in public streak
-  counts the day once the page is reloaded (`GetActivityDays` is not live).
 
 ### M24: Aspect tagging, suggestions and the aspect page section
 

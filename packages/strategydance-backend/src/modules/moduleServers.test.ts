@@ -53,7 +53,8 @@ describe('MODULE_SERVERS', () => {
     for (const module of MODULES) {
       expect(MODULE_SERVERS[module.name]).toBeFunction()
       expect(module.path).toBe(`/mcp/${module.name}`)
-      expect(module.scopes).toEqual({ read: `${module.name}:read`, write: `${module.name}:write` })
+      expect(module.scopes.read).toBe(`${module.name}:read`)
+      expect(module.scopes.write).toBe(`${module.name}:write`)
     }
   })
 
@@ -76,6 +77,19 @@ describe('MODULE_SERVERS', () => {
       'set_document_aspects',
       'delete_document',
       'restore_document',
+    ])
+  })
+
+  it('lists the eight tools of the Tasks module, reads first', async () => {
+    expect(await listToolNames('tasks')).toEqual([
+      'list_tasks',
+      'read_task',
+      'create_task',
+      'update_task',
+      'add_task_dependency',
+      'remove_task_dependency',
+      'delete_task',
+      'restore_task',
     ])
   })
 })

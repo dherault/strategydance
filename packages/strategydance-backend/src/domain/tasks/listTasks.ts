@@ -55,16 +55,16 @@ export type ListedTask = {
   url?: string
 }
 
-type ListTasksResult =
-  | {
-      outcome: 'listed'
-      tasks: ListedTask[]
-      total: number
-      members?: BoardMember[]
-      cursor?: string
-      isIndexComplete?: boolean
-    }
-  | TasksRefusal
+// A page of the board, as `list_tasks` answers it
+export type ListedTasksPage = {
+  tasks: ListedTask[]
+  total: number
+  members?: BoardMember[]
+  cursor?: string
+  isIndexComplete?: boolean
+}
+
+type ListTasksResult = { outcome: 'listed'; page: ListedTasksPage } | TasksRefusal
 
 /*
   A page of the board's live tasks, filtered as the board's own filters are, in the board's order:
@@ -155,17 +155,19 @@ async function listTasks(
 
   return {
     outcome: 'listed',
-    ...frame,
-    tasks: page,
-    ...(lastTask
-      && remaining.length > page.length && {
-        cursor: encodeCursor({
-          status: lastTask.status,
-          position: lastTask.position,
-          createdAt: lastTask.createdAt,
-          id: lastTask.id,
+    page: {
+      ...frame,
+      tasks: page,
+      ...(lastTask
+        && remaining.length > page.length && {
+          cursor: encodeCursor({
+            status: lastTask.status,
+            position: lastTask.position,
+            createdAt: lastTask.createdAt,
+            id: lastTask.id,
+          }),
         }),
-      }),
+    },
   }
 }
 

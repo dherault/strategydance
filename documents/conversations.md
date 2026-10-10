@@ -335,7 +335,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
     result holding a NUL character could not be stored at all. So `content`, the run's `context`
     and `pendingToolResults` are `String` columns holding `JSON.stringify` of exactly what was
     sent, which escapes U+0000, and are parsed again only to be sent. A call's `toolInput` and
-    `toolOutput` are JSON text the same way, lossless, since an approval (M30) shows the member
+    `toolOutput` are JSON text the same way, lossless, since an approval (M29) shows the member
     the exact arguments that will run: the dialog draws them with control characters escaped, so
     `acct\u0000admin` reads as such rather than as `acctadmin`. A question's prompt and options and
     an answer's own words go back into the transcript from their columns, so they are refused at
@@ -345,7 +345,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
     does not count key order as an edit: a replay with a `tool_use` input's keys reordered as
     `jsonb` reorders them dropped no thinking block and read as much from the cache. JSON text
     stays for what `jsonb` would lose, a duplicate key and U+0000.
-- **`ConversationAttachment`**, added with the attachments in M26: `id` (made by the client, also
+- **`ConversationAttachment`**, added with the attachments in M25: `id` (made by the client, also
   the file's name in Storage), `user`,
   `organization`, `conversationId` (a plain UUID rather than a reference, since a draft's files are
   uploaded before the conversation exists), `message` (optional, set when sent), `status`
@@ -376,7 +376,7 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
 `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
-`CONVERSATION_SUGGESTION_IDS` (M24), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
+`CONVERSATION_SUGGESTION_IDS` (M23), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
 codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
 
 ### Who writes what
@@ -470,9 +470,9 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
   win; files and rows go only after the claim, and every sweep also finishes the conversations
   claimed before and still present, its deletions idempotent, so a prune that failed after claiming
-  is completed by the next. Until conversations keep files (M26), `StartConversation` deletes the
+  is completed by the next. Until conversations keep files (M25), `StartConversation` deletes the
   member's conversations deleted over a day ago directly, under the membership lock
-  `RestoreConversation` also takes, so the two never both win without a claim; M26 moves the prune
+  `RestoreConversation` also takes, so the two never both win without a claim; M25 moves the prune
   out to claim, files, then rows. Each milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
@@ -829,7 +829,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
-  mutation. An approval (M30) is answered the same way. As M11 built it:
+  mutation. An approval (M29) is answered the same way. As M11 built it:
   - The answer is checked against its question before anything is recorded, by strategydance-core's
     `checkConversationAnswer`, which the page uses too: options of that question, each once, one at
     most for a single choice, own words on one line of at most 500 characters without a control
@@ -1091,9 +1091,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | The Knowledge module's | `search_documents`, `list_documents`, `read_document`, `create_document`, `update_document`, `set_document_aspects`, `delete_document` and `restore_document`, an MCP server's tools the worker reaches in process (see Modules) | M16 |
 | The Tasks module's | `list_tasks`, `read_task`, `create_task`, `update_task`, `add_task_dependency`, `remove_task_dependency`, `delete_task` and `restore_task`, a second MCP server's tools, reached as the Knowledge module's are (see Modules) | M17 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M11 |
-| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M30 |
-| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M30 |
-| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M30 |
+| `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M29 |
+| `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M29 |
+| `call_integration_tool` | `{ integration, tool, arguments }`: calls it as this member, after their approval unless an administrator allowed the tool to run without it | M29 |
 
 - Each tool's description says when to call it, which is what Opus reads to decide.
 - A result goes back as JSON, cut to 50000 characters with a note saying so. A failure goes back
@@ -1118,7 +1118,7 @@ A module is one of Strategy Dance's capabilities served as an MCP server, which 
 agent uses and which a member can add to an external agent of their own: claude.ai, ChatGPT, Claude
 Code, Cursor. Knowledge comes first, from M14, and the team's tasks second, from M15; budget,
 software solutions, directories and marketing tactics are the ones David has in mind next. A module
-is the reverse of an integration (M28 to M30): an integration is another company's server, which the
+is the reverse of an integration (M27 to M29): an integration is another company's server, which the
 agent calls; a module is Strategy Dance's, which any agent a member connected may call as that
 member.
 
@@ -1189,7 +1189,7 @@ agents in M20:
   document the team keeps from AI is neither found, listed nor read by any agent, and one the team
   keeps from AI's changes is changed by none. A member who connects an external agent lets what AI
   may read reach that agent's provider. Members decide which agents they connect, as David chose on
-  2026-10-07, and no organization setting governs it; the legal review before M31 names it.
+  2026-10-07, and no organization setting governs it; the legal review before M30 names it.
 - **Addresses.** An external agent's results carry each document's web address,
   `https://strategydance.com/<organization>/knowledge/<id>`, where `<organization>` is the segment
   the app's paths lead with: the organization's slug, or its id while it has none, as
@@ -1229,7 +1229,7 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
 - **The board is the team's.** Any member reads and changes any task, and so does any agent acting
   as one: tasks carry no AI permission, unlike documents, as David chose on 2026-10-09, since a
   task is a short brief the whole team shares and nothing on the board is private. What an external
-  agent reads of it reaches that agent's provider, which the legal review before M31 names with the
+  agent reads of it reaches that agent's provider, which the legal review before M30 names with the
   rest.
 - **A description is a post's.** It is stored as a post's blocks, serialized
   (`RICH_TEXT_POST_BLOCKS`: paragraphs, headings, quotes, lists and check lists), and saved whole,
@@ -1562,7 +1562,7 @@ the agent's list, as the Tasks module does in M15, M17 and M21, which `drop_bloc
 loss of earlier reasoning, as any tool is. Past a dozen tools, Claude's tool search
 (`defer_loading`) keeps the definitions out of the context without touching the cached prefix.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
-David's call at M31.
+David's call at M30.
 
 ### Rich text and Markdown
 
@@ -1672,7 +1672,7 @@ address, and whatever an injected instruction wrote into it, out from the reader
 
 ### Release gate
 
-Until M31, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M30, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -1685,18 +1685,18 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M28 and M29, the OAuth initiation included: an authorization's state only exists once a staff
+  M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M31.
+  caller being staff until M30.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M31 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M30 removes.
   Locally it is lifted, so every member of every organization has conversations: the web against
   the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep the gate.
-- Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, also removed in M31, since an
+- Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, also removed in M30, since an
   external agent reaches them without any conversation: the consent page's Allow refuses anybody
   else, the token verifier checks the role on every call, so a connection outlives no lost role,
   and the Connected agents tab and the Use with your agents button show for staff only. The
@@ -1715,8 +1715,8 @@ account, and until both exist every send in production answers 503.
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
-   file or a chat). The workspace's default inference region is the legal review's call before M31.
-   Check the organization's rate limit tier before staff use, and raise it before M31.
+   file or a chat). The workspace's default inference region is the legal review's call before M30.
+   Check the organization's rate limit tier before staff use, and raise it before M30.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -1754,13 +1754,13 @@ account, and until both exist every send in production answers 503.
      --oidc-token-audience https://strategydance-worker-995028545701.us-central1.run.app \
      --attempt-deadline 15m
    ```
-7. For M26: the bucket's lifecycle rule deleting objects under `pending/` older than two days
+7. For M25: the bucket's lifecycle rule deleting objects under `pending/` older than two days
    (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
    development run cost money from the first request: the workspace's spend limit (step 1), and a
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting
    at 50%, 90% and 100% (done on 2026-10-04).
-9. For M28 to M30: a Cloud KMS key for integration secrets, with
+9. For M27 to M29: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
 10. For M18: the secret refresh tokens' successors are derived under, 32 random bytes typed into
     Secret Manager as `oauth-token-secret` (`openssl rand -base64 32 | gcloud secrets create
@@ -1775,7 +1775,7 @@ At first-party list prices ($4 per million input tokens, $20 per million output,
 cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M31
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M30
 adds a section on it to `operations-costs.md`.
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
@@ -1791,7 +1791,7 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Spend**: nothing caps usage until credits exist; the budget alert is the guard.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
-  checked before staff use and raised before M31.
+  checked before staff use and raised before M30.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
@@ -1815,7 +1815,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   Claude's, bounded by its output, so neither is reachable without injected text making the model
   write such a shape; moving both to markdown-it, or bounding what they parse, closes it.
 - **Processing location**: the API runs inference in the workspace's default region unless a
-  request names one (`inference_geo`). The legal review before M31 picks it, and names Anthropic as
+  request names one (`inference_geo`). The legal review before M30 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
   they are deleted.
 - **Prompt injection**: knowledge, tasks, the web, files and integrations carry text others wrote,
@@ -1828,14 +1828,14 @@ the lifetime is chosen from what members' pauses turn out to be.
   change, move, reassign or delete any task on the board, which no AI permission bounds. The AI
   permissions, the tool call row each write leaves in the thread, the version checks, and a delete
   that stays restorable for a day, with Restore on its row, limit it; if that proves too loose,
-  M30's approval entry can gate those writes too. The text of a document the team keeps from AI
+  M29's approval entry can gate those writes too. The text of a document the team keeps from AI
   never reaches the model, so nothing injected can get it read out.
 - **External agents act as the member.** One a member connected reads and, with read and write
   access, changes whatever AI may in that organization, every task on its board included, which
   carries no AI permission, on that member's word alone: no setting lets an organization refuse
   external agents, and no administrator sees the connections, by David's decision on 2026-10-07.
   What AI may read then reaches the agent's provider, OpenAI or Cursor say, which the legal review
-  before M31 names; injected text reaching that agent can do what its access allows. The AI
+  before M30 names; injected text reaching that agent can do what its access allows. The AI
   permissions bound it, a connection can be read only, and the member disconnects it from Connected
   agents. If teams ask for more, an organization switch and an administrators' view of connections
   fit the data as it is.

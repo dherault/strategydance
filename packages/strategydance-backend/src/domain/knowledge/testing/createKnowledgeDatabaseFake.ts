@@ -39,7 +39,7 @@ export type FakeDocumentUpdate = {
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base) {
-  const { stamp, id, isMember, membershipOf, insertResult, storeResult, checkKey } = base
+  const { stamp, id, isMember, membershipOf, matchesLike, insertResult, storeResult, checkKey } = base
   const documents = new Map<string, FakeDocument>()
   const updates: FakeDocumentUpdate[] = []
 
@@ -121,22 +121,6 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
       .toLowerCase()
       .split(/[^\p{L}\p{N}]+/u)
       .filter(Boolean)
-  }
-
-  // A LIKE pattern as the backend escapes one, matched ignoring case
-  function matchesLike(text: string, pattern: string) {
-    let source = ''
-
-    for (let index = 0; index < pattern.length; index++) {
-      const character = pattern[index]!
-
-      if (character === '\\') source += (pattern[++index] ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      else if (character === '%') source += '.*'
-      else if (character === '_') source += '.'
-      else source += character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    }
-
-    return new RegExp(`^${source}$`, 'isu').test(text)
   }
 
   function searchRow(document: FakeDocument) {

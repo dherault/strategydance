@@ -1,5 +1,6 @@
 import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
+import createTasksDatabaseFake from '~domain/tasks/testing/createTasksDatabaseFake'
 
 /*
   The backend connector's operations every module uses, over tables kept in memory, for the modules'
@@ -8,7 +9,7 @@ import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDa
   of, and their call results and memberships are one
 */
 function createModuleDatabaseFake() {
-  return createKnowledgeDatabaseFake(createModuleDatabaseFakeBase())
+  return createTasksDatabaseFake(createKnowledgeDatabaseFake(createModuleDatabaseFakeBase()))
 }
 
 export type ModuleDatabaseFake = ReturnType<typeof createModuleDatabaseFake>

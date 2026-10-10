@@ -145,6 +145,22 @@ function createModuleDatabaseFakeBase() {
     return isMember(variables) ? [{ userId: variables.userId }] : []
   }
 
+  // A LIKE pattern as the backend escapes one, matched ignoring case
+  function matchesLike(text: string, pattern: string) {
+    let source = ''
+
+    for (let index = 0; index < pattern.length; index++) {
+      const character = pattern[index]!
+
+      if (character === '\\') source += (pattern[++index] ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      else if (character === '%') source += '.*'
+      else if (character === '_') source += '.'
+      else source += character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    }
+
+    return new RegExp(`^${source}$`, 'isu').test(text)
+  }
+
   // The key's insert every write makes first when its call carries one
   function insertResult(variables: AnyVariables) {
     if (!variables.isKeyed) return
@@ -246,6 +262,7 @@ function createModuleDatabaseFakeBase() {
     isMember,
     membersOf,
     membershipOf,
+    matchesLike,
     insertResult,
     storeResult,
     checkKey,

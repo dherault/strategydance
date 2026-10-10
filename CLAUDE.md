@@ -100,6 +100,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
+| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -345,6 +346,10 @@ only way the app talks to them.
   supported"). A check that has to follow a write, once its row is locked, goes in that one step,
   after the write, with the membership's and the variables' checks beside it, as
   `FoldDocumentForAgent` does: a refusal there rolls back the writes before it all the same
+- A `@check` on a field under a list a step reads is never invoked when the list is empty, and Data
+  Connect then refuses with that check's message rather than the list's own. A variable's check
+  nested under the membership a write reads takes `optional: true`, as the Tasks module's writes'
+  do, so a removed member is refused with the membership's message, which the module matches
 - A step runs or not on a variable through `@include(if: $flag)`, as a module's write inserts its
   `ModuleCallResult` only when its call carries a key. The step's variables are still required,
   so a call that skips it sends them empty
@@ -552,8 +557,10 @@ on, never the day it was about, and `RecordActivity` holds it to the caller's to
 mutations that make those changes do not write the row themselves, since each would need a
 `$date` it has no other use for, a breaking connector change: the web app calls `recordActivity`
 once one goes through, from the `change` helpers of `useChecklist` and `useTaskChanges` and from
-the components that set a priority or write the log. A new way to change Today data or the board
-calls it too, or the days it is used on go uncounted.
+the components that set a priority or write the log. A new way for a member to change Today data
+or the board calls it too, or the days it is used on go uncounted. An agent's change to the board
+never counts: no write of the Tasks module records an `ActivityDay`, for Strategy Dance's agent or a
+member's own, so a streak counts what members do themselves.
 
 The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
 organization changes, as its knowledge. Each field is written by a mutation of its own, so two
@@ -566,6 +573,15 @@ on focus; a task's dialog keeps its own live through `GetTaskDescription`, and o
 writing only once that read lands, since the search's copy can be older than a teammate's save. A
 query that held every description live would push them all to every open board at each save, and a
 drag would too. Removing a member takes them off the tasks they were doing.
+
+Every write of a task's description writes its plain text beside it, `descriptionText`, which the
+Tasks module's `list_tasks` matches a query against, never the serialized blocks: the page through
+`CreateTaskWithText` and `UpdateTaskDescriptionWithText`, which take it as required, and the module's
+own writes. `CreateTask` and `UpdateTaskDescription` stay for pages from before, and write null
+instead, which means not indexed yet, never stale: a query indexes such a task from its description
+first, while its `updatedAt` is the one it read. A new way to write a description writes
+`descriptionText` too, or nulls it. `RestoreTask` refuses a task deleted over a day ago, whether or
+not a prune has run, so a day means a day wherever a restore starts.
 
 ### Routing
 
@@ -781,16 +797,20 @@ in `utils/`, one concern per file.
 ## Module conventions
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
-agent uses in its own process and which a member can add to an agent of their own: Knowledge first,
-the rest later. `MODULES` in strategydance-core lists each one's name, path, title and scopes, and
-[conversations.md](documents/conversations.md) § Modules says what each does and why.
+agent uses in its own process and which a member can add to an agent of their own: Knowledge and the
+team's tasks first, the rest later. `MODULES` in strategydance-core lists each one's name, path,
+title and scopes, and [conversations.md](documents/conversations.md) § Modules says what each does
+and why.
 
 - A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)` for one
   caller, one file per tool registering it, which only validates, calls `domain/<name>/` and shapes
   the result. `src/modules/` holds the frame: `MODULE_SERVERS`, by the module's name, and
   `createModuleHandler`, the SDK's `createMcpHandler` around it, which builds a fresh server for
   each request, answering JSON, statelessly. Strategy Dance's agent and the public endpoint both go
-  through that one handler, so they get the same tools and checks
+  through that one handler, so they get the same tools and checks. What every module's tools share
+  sits beside it, `readModuleWriteCall`, `createModuleAddresses` and `moduleSchemas`, and in
+  `domain/modules/` the call results and `isOperationRefusal`: a module adds its own to them rather
+  than copy them
 - The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
   request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
@@ -815,20 +835,27 @@ the rest later. `MODULES` in strategydance-core lists each one's name, path, tit
 - What a module reads and writes goes through backend-connector operations named `…ForAgent`, which
   take `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller, Strategy
   Dance's agent and a member's own alike: a document whose `isAiReadable` is off is never loaded,
-  whatever the call, and one whose `isAiWritable` is off is never changed. Each write is named in
-  the refreshes of the live queries whose rows it changes, in a web query too, since a mutation the
-  backend runs fires them
+  whatever the call, and one whose `isAiWritable` is off is never changed. Tasks carry no AI
+  permission: the board is the team's, and any agent changes any task as any member can. Each write
+  is named in the refreshes of the live queries whose rows it changes, in a web query too, since a
+  mutation the backend runs fires them
 - The tests drive a module through the SDK's `Client`, pinned to the 2026-07-28 revision, on a
   transport whose `fetch` hands each request to the module's handler with the caller as `authInfo`
-  (`createKnowledgeModuleTestKit`), never the SDK's in-memory transport, which speaks only the 2025
-  revisions. They run against `createKnowledgeDatabaseFake`, the operations over tables in memory,
-  and `bun run check:knowledge-module`, in the backend's package, checks those conditions against
-  the emulators: an operation changed is changed in both
-- `bun run mcp:knowledge <email>` serves the Knowledge module over stdio for a client on this
-  machine, against the emulators only. stdout is the protocol's there, so the script points the
-  logger's info lines at stderr
-- `bun run backfill:document-text --production`, in the backend's package, fills the plain text of
-  documents stored before `contentText` existed, run by hand once, after the release that added it
+  (`createModuleTestKit`, which takes the module's name), never the SDK's in-memory transport, which
+  speaks only the 2025 revisions. They run against `createModuleDatabaseFake`, the operations over
+  tables in memory: one base holding the memberships and the call results, to which each module's
+  fake, `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`, adds its own, since a module's
+  handler loads every module's server and Bun refuses an import the mock does not hold. A new
+  module's fake joins it. `bun run check:knowledge-module` and `bun run check:tasks-module`, in the
+  backend's package, check those conditions against the emulators: an operation changed is changed
+  in both
+- `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
+  client on this machine, against the emulators only, through one script, `serveModule.ts`, which
+  takes the module's name. stdout is the protocol's there, so the script points the logger's info
+  lines at stderr
+- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
+  backend's package, fill the plain text of documents stored before `contentText` existed and of
+  tasks stored before `descriptionText` did, each run by hand once, after the release that added it
 
 ## Email conventions
 

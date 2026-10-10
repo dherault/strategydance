@@ -31,7 +31,13 @@ export type RestoredTask = {
   kept, and against the 1000 tasks an organization keeps. The board reads past a deleted task's links,
   so nothing kept a link made meanwhile from leading back to it: a restore whose kept links would close
   a loop is refused, naming the tasks waiting on it whose links would, the first 20 with their count,
-  so the agent removes one first, where the page's Undo removes them itself
+  so the agent removes one first, where the page's Undo removes them itself. The board is read before
+  the restore takes the organization's lock, so a link made at that very instant can still close one,
+  as two members linking at once can, and only leaves its tasks blocked until somebody removes a link.
+
+  A refusal the restore itself gives is worded from the task read again, since another restore
+  landing meanwhile, which fills the board's last place or finds the task no longer deleted, makes
+  the task not deleted rather than the board full or the task gone
 */
 async function restoreTask(
   caller: ModuleCaller,
@@ -96,11 +102,20 @@ async function restoreTask(
 
     if (answeredMeanwhile) return answeredMeanwhile
     if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
-    if (isOperationRefusal(error, FULL_REFUSAL)) return { outcome: 'full' }
-    // Restored, or pruned, between the read and the write
-    if (isOperationRefusal(error, GONE_REFUSAL)) return { outcome: 'goneForGood' }
 
-    throw error
+    const isFull = isOperationRefusal(error, FULL_REFUSAL)
+
+    if (!isFull && !isOperationRefusal(error, GONE_REFUSAL)) throw error
+
+    // Restored by another call, or pruned, between the read and the write
+    const { data: again } = await getTaskForAgent(dataConnect, { ...reference, id: taskId })
+    const [current] = again.tasks
+
+    if (again.membership.length === 0) return { outcome: 'notMember' }
+    if (!current) return { outcome: 'notFound' }
+    if (!current.deletedAt) return { outcome: 'notDeleted' }
+
+    return { outcome: isFull ? 'full' : 'goneForGood' }
   }
 }
 

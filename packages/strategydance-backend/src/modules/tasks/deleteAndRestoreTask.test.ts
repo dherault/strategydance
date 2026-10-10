@@ -52,6 +52,34 @@ describe('delete_task and restore_task', () => {
     expect(await kit.refusal('restore_task', { id: crypto.randomUUID() })).toContain('No task on the board')
   })
 
+  it('says a task another call restored meanwhile is not deleted, rather than gone or the board full', async () => {
+    const kit = await board.connect()
+    const task = board.add({ deletedAt: new Date().toISOString() })
+
+    fake.beforeOperation = async name => {
+      if (name === 'RestoreTaskForAgent') fake.tasks.get(task.id)!.deletedAt = null
+    }
+
+    expect(await kit.refusal('restore_task', { id: task.id })).toBe(
+      'The task is not deleted, so there is nothing to restore.',
+    )
+
+    const other = board.add({ deletedAt: new Date().toISOString() })
+
+    // With the first task back, the board holds 999 live tasks as the restore reads it
+    for (let index = 0; index < MAX_TASKS - 2; index++) board.add()
+
+    // Restored meanwhile, which fills the board's last place
+    fake.beforeOperation = async name => {
+      if (name === 'RestoreTaskForAgent') fake.tasks.get(other.id)!.deletedAt = null
+    }
+
+    expect(await kit.refusal('restore_task', { id: other.id })).toBe(
+      'The task is not deleted, so there is nothing to restore.',
+    )
+    expect(fake.calls.filter(call => call === 'GetTaskForAgent')).toHaveLength(4)
+  })
+
   it('refuses a restore at the cap', async () => {
     const kit = await board.connect()
     const task = board.add({ deletedAt: new Date().toISOString() })

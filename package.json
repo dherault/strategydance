@@ -28,6 +28,7 @@
     "probe:claude": "cd packages/strategydance-backend && bun run probe:claude",
     "send:conversation": "cd packages/strategydance-backend && bun run send:conversation",
     "mcp:knowledge": "cd packages/strategydance-backend && bun run --silent mcp:knowledge",
+    "mcp:tasks": "cd packages/strategydance-backend && bun run --silent mcp:tasks",
     "generate:database": "cd packages/strategydance-database && bun run generate",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives && oxfmt --check",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix && oxfmt",

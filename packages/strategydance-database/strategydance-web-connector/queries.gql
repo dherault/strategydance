@@ -585,6 +585,12 @@ query GetTasks($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "CreateTaskWithText"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenameTask"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -705,6 +711,12 @@ query GetTaskDescription($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "UpdateTaskDescription"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskDescriptionWithText"
     condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
   }
 )

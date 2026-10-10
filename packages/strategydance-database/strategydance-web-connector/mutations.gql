@@ -727,6 +727,97 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
 # characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
 # characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
 # assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
+# and blocks are linked once it is stored, by `AddTaskDependency`.
+#
+# `$descriptionText` is the plain text of `$description`, which the Tasks module's queries match, at
+# most as long. The refusals' messages are `CreateTask`'s: change them together
+mutation CreateTaskWithText(
+  $organizationId: UUID!
+  $id: UUID!
+  $name: String!
+  $description: String!
+  $descriptionText: String!
+  $status: TaskStatus!
+  $position: Float!
+  $assigneeId: String
+  $isAssignedToAgent: Boolean!
+  $dueDate: Date
+  $aspects: [CompanyAspect!]!
+) @auth(level: USER) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "Only a member of an organization can add to its tasks")
+    @check(
+      expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A task's name is 1 to 120 characters on one line, with no space at either end"
+    )
+    @check(
+      expr: "size(vars.description) <= 20000 && size(vars.descriptionText) <= 20000"
+      message: "A task's description is at most 20000 characters"
+    )
+    @check(
+      expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "A task is tagged with each aspect at most once"
+    )
+    @check(
+      expr: "!vars.isAssignedToAgent || !has(vars.assigneeId) || vars.assigneeId == null"
+      message: "A task is assigned to a member or to Strategy Dance, not both"
+    )
+  query @redact {
+    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+      id
+    }
+    # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
+    assignees: userOrganizations(
+      where: { organizationId: { eq: $organizationId }, userId: { eq: $assigneeId } }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.assigneeId) || vars.assigneeId == null || size(this) == 1"
+        message: "A task is assigned to a member of its organization"
+      ) {
+      role
+    }
+  }
+  task_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      createdById_expr: "auth.uid"
+      name: $name
+      description: $description
+      descriptionText: $descriptionText
+      status: $status
+      position: $position
+      assigneeId: $assigneeId
+      isAssignedToAgent: $isAssignedToAgent
+      dueDate: $dueDate
+      aspects: $aspects
+    }
+  )
+}
+
+# `CreateTaskWithText` as a page from before it sends it, without the plain text, which it leaves
+# null for the backend to fill from `description` before its next query. Kept for those pages, with
+# the same variables, so a release takes nothing from them.
+#
+# Adds a task to an organization's board, which any of its members may do. The id is the page's,
+# which shows the task in its column before the server answers, and so is the position, past the
+# column's last task or before its first.
+#
+# At most 1000 live tasks an organization (`MAX_TASKS` in strategydance-core), counted under a lock:
+# the first step writes the organization's row, and finds nothing unless the caller belongs to it,
+# so two members adding at once count one after the other. A name is one line of at most 120
+# characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
+# characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
+# assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
 # and blocks are linked once it is stored, by `AddTaskDependency`
 mutation CreateTask(
   $organizationId: UUID!
@@ -786,6 +877,7 @@ mutation CreateTask(
       createdById_expr: "auth.uid"
       name: $name
       description: $description
+      descriptionText: null
       status: $status
       position: $position
       assigneeId: $assigneeId
@@ -818,7 +910,33 @@ mutation RenameTask($organizationId: UUID!, $id: UUID!, $name: String!) @auth(le
 }
 
 # Saves a task's description, held to what `CreateTask` holds it to, and an empty string when it has
-# no text
+# no text, with its plain text, `$descriptionText`, which the Tasks module's queries match. The
+# refusals' messages are `UpdateTaskDescription`'s: change them together
+mutation UpdateTaskDescriptionWithText(
+  $organizationId: UUID!
+  $id: UUID!
+  $description: String!
+  $descriptionText: String!
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+        @check(
+          expr: "size(vars.description) <= 20000 && size(vars.descriptionText) <= 20000"
+          message: "A task's description is at most 20000 characters"
+        )
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { description: $description, descriptionText: $descriptionText, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# `UpdateTaskDescriptionWithText` as a page from before it sends it, without the plain text: it
+# leaves `descriptionText` null, never stale, for the backend to fill from `description` before its
+# next query. Kept for those pages, with the same variables, so a release takes nothing from them
 mutation UpdateTaskDescription($organizationId: UUID!, $id: UUID!, $description: String!)
 @auth(level: USER)
 @transaction {
@@ -830,7 +948,7 @@ mutation UpdateTaskDescription($organizationId: UUID!, $id: UUID!, $description:
   }
   task_updateMany(
     where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
-    data: { description: $description, updatedAt_expr: "request.time" }
+    data: { description: $description, descriptionText: null, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No task by that id in the organization")
 }
 
@@ -943,7 +1061,8 @@ mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tran
 }
 
 # Takes back a delete, which the page offers for a few seconds after one, with the links other tasks
-# had to it. Fails once the task was pruned, a day after it was deleted.
+# had to it. Fails once it was deleted over a day ago, whether or not a prune has run since, so a day
+# means a day wherever a restore starts, the Tasks module's included.
 #
 # A task brought back counts against the 1000 as a new one does, under the same lock on the
 # organization's row: without it, deleting a task at the cap, adding another and taking the delete
@@ -963,7 +1082,11 @@ mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tra
     }
   }
   task_updateMany(
-    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: false } }
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+    }
     data: { deletedAt: null }
   ) @check(expr: "this == 1", message: "The task is gone for good")
 }

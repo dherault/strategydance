@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl'
+import { getTasksUnblockedBy } from 'strategydance-core'
 import { TaskStatus } from 'strategydance-database/web'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
@@ -6,7 +7,7 @@ import useReportTaskError from '~hooks/task/useReportTaskError'
 import useTaskChanges from '~hooks/task/useTaskChanges'
 import useTasks from '~hooks/task/useTasks'
 
-import getTasksUnblockedBy from '~utils/task/getTasksUnblockedBy'
+import toTaskLinks from '~utils/task/toTaskLinks'
 
 import taskMessages from '~data/intl/messages/task'
 
@@ -24,7 +25,9 @@ function useMoveTask() {
   return function move(taskId: string, status: TaskStatus, beforeId: string | null = null) {
     const task = tasks.find(({ id }) => id === taskId)
     const freed =
-      task && task.status !== TaskStatus.DONE && status === TaskStatus.DONE ? getTasksUnblockedBy(taskId, tasks) : []
+      task && task.status !== TaskStatus.DONE && status === TaskStatus.DONE
+        ? getTasksUnblockedBy(taskId, tasks.map(toTaskLinks)).flatMap(id => tasks.find(other => other.id === id) ?? [])
+        : []
 
     // Said once the server has the move, never for one it refused
     report(

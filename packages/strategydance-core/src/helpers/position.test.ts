@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import getPositionBetween from '~utils/common/getPositionBetween'
+import { getPositionBetween } from './position'
 
 describe('getPositionBetween', () => {
   it('starts an empty list at one', () => {

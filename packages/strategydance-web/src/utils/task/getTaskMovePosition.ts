@@ -1,6 +1,6 @@
-import type { Task } from '~types'
+import { getPositionBetween } from 'strategydance-core'
 
-import getPositionBetween from '~utils/common/getPositionBetween'
+import type { Task } from '~types'
 
 /*
   Where a task lands in a column, in its order and without the task itself: before the task

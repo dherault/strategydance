@@ -3411,7 +3411,7 @@ mutation CreateOAuthAuthorizationRequest(
 
 # Marks a registered client used when an authorization names it, so a client in use is not pruned.
 # Its own operation, since a skipped step still refuses a null key
-mutation UseOAuthClient($id: UUID!) @auth(level: NO_ACCESS) {
+mutation RecordOAuthClientUse($id: UUID!) @auth(level: NO_ACCESS) {
   oAuthClient_update(id: $id, data: { lastUsedAt_expr: "request.time" })
 }
 

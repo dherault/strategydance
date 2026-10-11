@@ -13,8 +13,10 @@ import { SECRET_ANTHROPIC_API_KEY } from '~constants'
 import retrieveSecret from '~utils/retrieveSecret'
 
 import buildConversationRequest from '~domain/agent/buildConversationRequest'
-import buildConversationTools from '~domain/agent/buildConversationTools'
+import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
+import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 
 /*
   Checks, against Claude's API itself, the facts the conversations agent is built on, which no test
@@ -31,7 +33,8 @@ import connectConversationModules from '~domain/agent/connectConversationModules
   bytes, uploads them through the Files API and has a message read them by id, as the upload route
   and the agent will; sends the agent's own request, its system prompt and every tool it sends, the
   modules' included, as a run builds it, which the API refuses whole when a tool's schema is one it
-  does not take; and sends the first request and the replay straight to each model
+  does not take, twice, the second reading what the first cached, counts what the modules' tools
+  add to every request, and has Claude call a module's tool, which is not strict; and sends the first request and the replay straight to each model
   a refusal may fall back to. It prints what passed, what failed and what it found, and exits
   non-zero naming every check that did not pass.
 
@@ -535,6 +538,9 @@ for (const id of uploaded) {
   THE AGENT'S OWN REQUEST, ITS TOOLS AND ITS MODULES'
 --- */
 
+// The tools a run's requests send, which the checks after the first send too
+let agentTools: ConversationRequestTools = []
+
 await check(
   "The agent's own request is accepted, with its system prompt and every tool it sends, the modules' included",
   async () => {
@@ -550,17 +556,85 @@ await check(
 
     await modules.close()
 
-    const tools = buildConversationTools(modules.tools)
-    const message = await client.beta.messages
-      .stream(buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], tools))
-      .finalMessage()
+    agentTools = buildConversationTools(modules.tools)
+
+    const request = buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], agentTools)
+    const message = await client.beta.messages.stream(request).finalMessage()
 
     finding("The agent's request's usage", message.usage)
     assert(message.stop_reason !== 'refusal', 'the request was refused')
 
-    return `${tools.length} tools, stopped on ${message.stop_reason}`
+    // As a conversation's next request does, reading the system prompt and the tools from the cache
+    const again = await client.beta.messages.stream(request).finalMessage()
+
+    finding("The agent's request sent again: its usage", again.usage)
+    assert(again.usage.cache_read_input_tokens, 'the second request read nothing from the cache')
+
+    return `${agentTools.length} tools, stopped on ${message.stop_reason}`
   },
 )
+
+await check("The modules' tools are counted, what each adds to every request", async () => {
+  assert(agentTools.length, 'no tools listed')
+
+  // What the system prompt and the tools take of a request, as the worker counts it
+  const count = async (tools: ConversationRequestTools) => {
+    const messages: BetaMessageParam[] = [{ role: 'user', content: '.' }]
+    const [withConfig, without] = await Promise.all([
+      client.beta.messages.countTokens({
+        model: CONVERSATION_MODEL,
+        system: CONVERSATION_SYSTEM_PROMPT,
+        tools,
+        messages,
+      }),
+      client.beta.messages.countTokens({ model: CONVERSATION_MODEL, messages }),
+    ])
+
+    return withConfig.input_tokens - without.input_tokens
+  }
+
+  const ownTools = buildConversationTools([])
+  const own = await count(ownTools)
+  const all = await count(agentTools)
+  const each: Record<string, number> = {}
+
+  for (const tool of agentTools.slice(ownTools.length)) {
+    if ('name' in tool) each[tool.name] = (await count([...ownTools, tool])) - own
+  }
+
+  finding('The system prompt and the agent’s own tools, in tokens', own)
+  finding('The modules’ tools, in tokens', all - own)
+  finding('What each module tool adds alone, in tokens', each)
+
+  return `${own} tokens, then ${all - own} for the modules' tools`
+})
+
+await check("A module's tool, which is not strict, is called with an input its schema names", async () => {
+  assert(agentTools.length, 'no tools listed')
+
+  const message = await client.beta.messages
+    .stream(
+      buildConversationRequest(
+        [{ role: 'user', content: 'Which tasks are in the To do column of our board?' }],
+        agentTools,
+      ),
+    )
+    .finalMessage()
+  const call = message.content.find((block): block is BetaToolUseBlock => block.type === 'tool_use')
+  const tool = agentTools.find(item => 'name' in item && item.name === 'list_tasks')
+  const properties = tool && 'input_schema' in tool ? Object.keys(tool.input_schema.properties ?? {}) : []
+  const input = (call?.input ?? {}) as Record<string, unknown>
+
+  finding('The call', call ? { name: call.name, input } : message.stop_reason)
+  assert(call?.name === 'list_tasks', `called ${call?.name ?? 'no tool'}`)
+  assert(
+    Object.keys(input).every(key => properties.includes(key)),
+    `sent ${Object.keys(input).join(', ')}, beyond what list_tasks names`,
+  )
+  assert(input.status === undefined || input.status === 'TODO', `asked for the status ${String(input.status)}`)
+
+  return JSON.stringify(input)
+})
 
 /* ---
   THE REFUSAL FALLBACK, CHOSEN BY THE API

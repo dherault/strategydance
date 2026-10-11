@@ -1,0 +1,145 @@
+import { beforeEach, describe, expect, mock, setSystemTime, afterEach, test } from 'bun:test'
+import { createHash } from 'node:crypto'
+
+import { OAuthError } from '@modelcontextprotocol/server'
+
+import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
+import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
+
+const fake = createOAuthDatabaseFake(createModuleDatabaseFakeBase())
+
+mock.module('~firebase', () => ({ dataConnect: {} }))
+mock.module('strategydance-database/backend', () => fake.sdk)
+
+const { default: createAgentConnectionTokenVerifier } = await import('./createAgentConnectionTokenVerifier')
+const { default: readModuleCaller } = await import('~modules/readModuleCaller')
+
+const KNOWLEDGE = 'http://localhost:3003/mcp/knowledge'
+const TASKS = 'http://localhost:3003/mcp/tasks'
+const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+const MEMBER = 'member'
+const CONNECTION_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+const verifier = createAgentConnectionTokenVerifier(new URL(KNOWLEDGE))
+
+function hash(token: string) {
+  return createHash('sha256').update(token).digest('base64url')
+}
+
+// A connection of the member's, holding a token of each kind, as a code's exchange stores them
+function connect({ scopes = ['knowledge:read'], resource = KNOWLEDGE } = {}) {
+  fake.connections.set(CONNECTION_ID, {
+    id: CONNECTION_ID,
+    userId: MEMBER,
+    organizationId: ORGANIZATION_ID,
+    clientId: 'https://client.example.com/oauth/metadata.json',
+    registeredClientId: null,
+    clientName: 'Example Agent',
+    module: 'knowledge',
+    scopes,
+    createdAt: new Date().toISOString(),
+    lastUsedAt: null,
+  })
+
+  for (const kind of ['ACCESS', 'REFRESH'] as const) {
+    fake.tokens.set(kind, {
+      id: kind,
+      connectionId: CONNECTION_ID,
+      kind,
+      hash: hash(kind.toLowerCase()),
+      resource,
+      issuedFrom: 'request',
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      usedAt: null,
+      successorKeyVersion: null,
+      createdAt: new Date().toISOString(),
+    })
+  }
+}
+
+async function refusal(token: string, from = verifier) {
+  try {
+    await from.verifyAccessToken(token)
+
+    return null
+  } catch (error) {
+    return error instanceof OAuthError ? error.code : String(error)
+  }
+}
+
+let membershipCreatedAt = ''
+
+beforeEach(() => {
+  fake.reset()
+  membershipCreatedAt = fake.addMember(MEMBER, ORGANIZATION_ID)
+  fake.setStaff(MEMBER)
+})
+
+afterEach(() => {
+  setSystemTime()
+})
+
+describe('createAgentConnectionTokenVerifier', () => {
+  test("accepts a valid access token, carrying the row's expiry and resource and the member's caller", async () => {
+    connect({ scopes: ['knowledge:read', 'knowledge:write'] })
+
+    const authInfo = await verifier.verifyAccessToken('access')
+
+    expect(authInfo).toMatchObject({
+      token: 'access',
+      clientId: 'https://client.example.com/oauth/metadata.json',
+      scopes: ['knowledge:read', 'knowledge:write'],
+      expiresAt: Math.floor(Date.parse(fake.tokens.get('ACCESS')!.expiresAt) / 1000),
+      resource: new URL(KNOWLEDGE),
+    })
+    expect(readModuleCaller(authInfo)).toEqual({
+      kind: 'external',
+      userId: MEMBER,
+      organizationId: ORGANIZATION_ID,
+      membershipCreatedAt,
+      scopes: ['knowledge:read', 'knowledge:write'],
+      idempotencyScope: `connection:${CONNECTION_ID}`,
+    })
+  })
+
+  test('refuses a token for another module', async () => {
+    connect()
+
+    expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+  })
+
+  test('refuses a refresh token presented as an access token', async () => {
+    connect()
+
+    expect(await refusal('refresh')).toBe('invalid_token')
+  })
+
+  test('refuses an unknown, an expired and a revoked token', async () => {
+    connect()
+
+    expect(await refusal('unknown')).toBe('invalid_token')
+
+    setSystemTime(Date.now() + 61 * 60 * 1000)
+
+    expect(await refusal('access')).toBe('invalid_token')
+
+    setSystemTime()
+    fake.tokens.delete('ACCESS')
+
+    expect(await refusal('access')).toBe('invalid_token')
+  })
+
+  test("refuses a removed member's token", async () => {
+    connect()
+    fake.removeMember(MEMBER, ORGANIZATION_ID)
+
+    expect(await refusal('access')).toBe('invalid_token')
+  })
+
+  test('refuses an account that is no longer staff, while modules are theirs alone', async () => {
+    connect()
+    fake.setStaff(MEMBER, false)
+
+    expect(await refusal('access')).toBe('invalid_token')
+  })
+})

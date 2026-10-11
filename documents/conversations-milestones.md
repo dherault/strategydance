@@ -1226,8 +1226,14 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     expiry rather than a cap, which would stop a client that refreshes often.
   - **A delayed duplicate follows the chain.** A spent refresh token presented again within its 30
     seconds after the client rotated its successor in turn is answered with the pair whose refresh
-    token is unspent, a few rotations at most, never a spent one the client's next refresh would
-    replay.
+    token is unspent, up to 30 rotations, never a spent one the client's next refresh would replay.
+  - **A connection gone meanwhile is a revoked grant.** A consent replacing it, a revocation or the
+    member's removal landing between a read and an exchange or a rotation makes the new tokens'
+    reference fail, which the emulator reports, as `agent_connection_token_connection_id_fkey`,
+    before the step's check: `isConnectionGoneRefusal` answers it `invalid_grant`, never
+    `server_error`.
+  - **Addresses are refused for a space or a control character** before they are parsed, a redirect
+    address and a resource alike, since the URL parser strips them silently.
   - **The modules' gate lifts on the development backend** (`IS_MODULES_RELEASE_GATED`), as
     conversations' does, so `check:oauth` and a developer's client need no staff role locally.
   - **`OAUTH_ISSUER` honours `API_URL` in development**, so a worktree's backend on another port

@@ -357,7 +357,9 @@ only way the app talks to them.
   skipped: a step whose key a call may lack is an operation of its own, as `RecordOAuthClientUse` is
 - A foreign key a later step violates is reported before an earlier step's `@check`, as
   `ApproveOAuthAuthorizationRequest`'s insert refuses a caller who is not the member before its
-  lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`)
+  lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`), as it
+  reads a token's reference to a connection gone meanwhile as a revoked grant
+  (`isConnectionGoneRefusal`)
 - A mutation writes each row once. Data Connect runs the first write to a row and silently skips
   any later one in the same mutation, aliased or not: an `organization_update` row lock followed
   by another `organization_update`, or by `organization_delete`, changes nothing. When the row a

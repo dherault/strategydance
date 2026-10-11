@@ -25,6 +25,7 @@ describe('countShownDockWindows', () => {
     // Four windows take 1432 pixels, and the button 64 more with its gap
     expect(countShownDockWindows(1456, 4)).toBe(4)
     expect(countShownDockWindows(1456, 5)).toBe(3)
+    expect(countShownDockWindows(1495, 5)).toBe(3)
     expect(countShownDockWindows(1496, 5)).toBe(4)
   })
 

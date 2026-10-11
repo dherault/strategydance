@@ -20,7 +20,8 @@ import conversationMessages from '~data/intl/messages/conversation'
   no dock. The id is made on the click rather than in the render, which has to stay pure.
 
   A reader who keeps as many conversations as they may gets no draft they could never send, but
-  the reason. The list it counts is the one the page under `ConversationsWait` has read
+  the reason. The list it counts is the one the page under `ConversationsWait` has read, and on a
+  wide screen the drafts the dock holds, not stored yet, count too, since each may be sent
 */
 function NewConversationButton() {
   const { formatMessage } = useIntl()
@@ -28,10 +29,16 @@ function NewConversationButton() {
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: conversations } = useConversations()
   const { isMobile } = useSidebar()
-  const { openWindow } = useConversationDock()
+  const { windows, openWindow } = useConversationDock()
 
   function start() {
-    if (conversations.length >= MAX_CONVERSATIONS) {
+    const draftCount = isMobile
+      ? 0
+      : windows.filter(
+          ({ conversationId, isDraft }) => isDraft && !conversations.some(({ id }) => id === conversationId),
+        ).length
+
+    if (conversations.length + draftCount >= MAX_CONVERSATIONS) {
       toast.error(formatMessage(conversationMessages.tooMany, { max: MAX_CONVERSATIONS }))
 
       return

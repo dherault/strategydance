@@ -371,6 +371,24 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expect(fake.connections.size).toBe(1)
   })
 
+  test('refuses a duplicate asking for less than the pair its first use issued, which it would hand out', async () => {
+    const { tokens } = await connect()
+    const first = (await refresh(tokens.refresh_token)).body as unknown as Tokens
+
+    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read' }), 'invalid_grant')
+    expect((await refresh(tokens.refresh_token)).body.access_token).toBe(first.access_token)
+    expect(fake.connections.size).toBe(1)
+  })
+
+  test('answers a duplicate asking for more than a narrowed first use with the pair it issued, and its scopes', async () => {
+    const { tokens } = await connect()
+    const first = (await refresh(tokens.refresh_token, { scope: 'knowledge:read' })).body as unknown as Tokens
+    const duplicate = (await refresh(tokens.refresh_token)).body as unknown as Tokens
+
+    expect(duplicate.access_token).toBe(first.access_token)
+    expect(duplicate.scope).toBe('knowledge:read')
+  })
+
   test('answers two refreshes at once with one pair', async () => {
     const { tokens } = await connect()
     const answers = await Promise.all([refresh(tokens.refresh_token), refresh(tokens.refresh_token)])

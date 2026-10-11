@@ -124,7 +124,7 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
     return refuse('invalid_grant', 'The refresh token was used already, and what it issued is revoked')
   }
 
-  return answerDuplicate(refreshToken, token.successorKeyVersion, token.connection.id)
+  return answerDuplicate(refreshToken, token.successorKeyVersion, token.connection.id, accessScopes)
 }
 
 /*
@@ -132,9 +132,16 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
   its rotation recorded, while both are still stored on its connection, or nothing, so it never
   hands out a token revoked since. When the client has rotated that refresh token in turn, as one
   that refreshed again before a delayed duplicate arrived has, the chain is followed to the pair it
-  holds now, a few links at most, since each was rotated within the 30 seconds before
+  holds now, a few links at most, since each was rotated within the 30 seconds before. A pair whose
+  access token grants more than this refresh asks for is refused, since the duplicate would then
+  hand out access it did not ask for
 */
-async function answerDuplicate(spentToken: string, version: number, connectionId: string): Promise<TokenResult> {
+async function answerDuplicate(
+  spentToken: string,
+  version: number,
+  connectionId: string,
+  accessScopes: string[],
+): Promise<TokenResult> {
   let spent = spentToken
   let successorKeyVersion = version
 
@@ -151,9 +158,13 @@ async function answerDuplicate(spentToken: string, version: number, connectionId
     if (!access || !refresh || access.connectionId !== connectionId || refresh.connectionId !== connectionId) break
 
     if (!refresh.usedAt) {
+      if (access.scopes.some(scope => !accessScopes.includes(scope))) {
+        return refuse('invalid_grant', 'The refresh token was used already, for more access than this refresh asks for')
+      }
+
       const expiresInSeconds = Math.max(0, Math.floor((Date.parse(access.expiresAt) - Date.now()) / 1000))
 
-      // The scopes its rotation issued, whatever this refresh names
+      // The scopes its rotation issued, which this refresh asked for, or fewer
       return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: access.scopes, expiresInSeconds }) }
     }
 

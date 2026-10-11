@@ -1444,8 +1444,9 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     metadata and `OAUTH_PROTOCOL_PATHS` already read it, so serving Tasks changed no route.
   - **Every external `list_tasks` with a query counts, each page included.** A query runs again for
     every page, and a cursor is the agent's to send, so counting the first page alone would let a
-    made-up cursor search for free. A cursor the tool did not give is refused before anything is
-    counted, and a list without a query counts nothing.
+    made-up cursor search for free: a cursor is only checked for its shape, so one the agent writes
+    itself in that shape is read like one the tool gave. A cursor that does not decode to that shape
+    is refused before anything is counted, and a list without a query counts nothing.
   - **The modules share the allowance's code**: `recordModuleSearch`, in `domain/modules/`, counts an
     external caller's search and never Strategy Dance's agent's, and `toTooManySearchesSentence`
     words the refusal, naming the module's read that still works, `list_documents` or `list_tasks`

@@ -21,6 +21,15 @@ describe('needsConversationDocuments', () => {
     ).toBe(true)
   })
 
+  it('needs them whatever the case of the link’s scheme, which its address is read in', () => {
+    expect(
+      needsConversationDocuments(
+        [entry('b', 'AGENT_TEXT')],
+        bodies({ b: '[Pricing](DOC:9f8e7d6c5b4a43219f8e7d6c5b4a4321)' }),
+      ),
+    ).toBe(true)
+  })
+
   it('needs them for a row that deleted one, whatever the replies say', () => {
     expect(needsConversationDocuments([entry('a', 'TOOL_CALL', 'delete_document')], new Map())).toBe(true)
   })

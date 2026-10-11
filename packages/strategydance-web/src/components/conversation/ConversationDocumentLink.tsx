@@ -25,15 +25,15 @@ type Props = {
   A link to knowledge in Strategy Dance's reply, `doc:<id>`: the document's current title with a
   file icon, opening it, whatever the agent wrote. A document the organization no longer holds,
   deleted, pruned or never there, is the agent's words struck through and muted, which a screen
-  reader hears said. Until the
-  documents are read, or when they could not be, the agent's words, neither linked nor struck
+  reader hears said. A link naming no document's id is the agent's words, neither linked nor
+  struck, and so is every link until the documents are read, or when they could not be
 */
 function ConversationDocumentLink({ href, children, documents }: Props) {
   const { formatMessage } = useIntl()
   const organizationSlug = useCurrentOrganizationSlug()
   const documentId = readConversationDocumentId(href)
 
-  if (!documents) {
+  if (!documentId || !documents) {
     return (
       <span>
         <FileTextIcon className={ICON_CLASS_NAME} />
@@ -42,7 +42,7 @@ function ConversationDocumentLink({ href, children, documents }: Props) {
     )
   }
 
-  const document = documentId ? documents.get(documentId) : undefined
+  const document = documents.get(documentId)
 
   if (!document) {
     return (

@@ -17,8 +17,9 @@ import { dataConnect } from '~data/firebase'
 
   The ids are read sorted, so moving a window leaves the read as it is, and opening one keeps the
   last read on screen until the next lands. Whether a read is settled says it is the one for these
-  very ids, which only then says which of them are stored. Only a reader who may have conversations
-  calls it
+  very ids, and current, which only then says which of them are stored: closing a window can bring
+  back the ids of an older read still cached, from before a draft among them was stored, which is
+  read again before it settles anything. Only a reader who may have conversations calls it
 */
 function useDockConversations(conversationIds: string[]) {
   const { data: viewer } = useAuthentication()
@@ -31,7 +32,7 @@ function useDockConversations(conversationIds: string[]) {
   // The key names whose conversations they are: the tab's cache outlives a sign-out
   const queryKey = ['GetDockConversations', organizationId, viewerId, ids]
 
-  const { data, isSuccess, isPlaceholderData } = useQuery({
+  const { data, isSuccess, isPlaceholderData, isFetching } = useQuery({
     queryKey,
     queryFn: async () => {
       const { data: result } = await executeQuery(
@@ -54,7 +55,7 @@ function useDockConversations(conversationIds: string[]) {
     conversations: new Map<string, DockConversation>(
       data?.conversations.map(conversation => [conversation.id, conversation]),
     ),
-    isSettled: isEnabled && isSuccess && !isPlaceholderData,
+    isSettled: isEnabled && isSuccess && !isPlaceholderData && !isFetching,
   }
 }
 

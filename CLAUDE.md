@@ -58,7 +58,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   Base UI copies of shadcn's components, which the design system's never reach, so
   `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
-  text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last, and never
+  text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last (the thread
+  draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`), and never
   loads an image: draw the agent's text through it, never through `react-markdown` directly. An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
@@ -101,7 +102,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -754,7 +755,11 @@ in `utils/`, one concern per file.
   and a run that could not be queued stays queued while the send answers 503
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
-  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, the
+  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, each
+  with what its agent's module calls kept under its scope, `conversation:<id>`
+  (`DeleteConversationModuleCallResults`), since nothing references the conversation from them. It
+  is a conversation's only prune: starting one leaves its author's to it, and `RestoreConversation`
+  refuses one deleted over a day ago whether or not the sweep has run. Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
   organization's documents deleted over a day ago, the conversation searches over a day old, which
   no count reads any more, and the module call results past their expiry. A milestone that keeps
@@ -774,14 +779,17 @@ in `utils/`, one concern per file.
   development, and the tests' scripted one, which records each request's bytes. Every request is
   built by `buildConversationRequest`, in one key order, so the next request starts with the last
   one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
-  hash, and the tools are frozen: a change to either costs every conversation its earlier
-  reasoning once, as `drop_block` lets a replay do, so it ships with a release that means to. Load
-  the `claude-api` skill before writing code that calls Claude
-- A tool the agent calls, beside Claude's own web search, is declared in `CONVERSATION_TOOLS` and run
-  by a `ConversationToolRunner` in `CONVERSATION_TOOL_RUNNERS`: its name, whether it only reads,
-  which lets it run four at a time beside the reads next to it, and a `run` that checks its own
-  input, since Claude's streams in unchecked, and answers JSON or throws a sentence Claude can act
-  on. What becomes of each call is planned from the transcript alone (`planConversationToolCalls`),
+  hash, and so are the tools a request sends (`buildConversationTools`): a change to either costs
+  every conversation its earlier reasoning once, as `drop_block` lets a replay do, so it ships with a
+  release that means to. Load the `claude-api` skill before writing code that calls Claude
+- A tool the agent calls is its own, declared in `CONVERSATION_TOOLS` beside Claude's web search,
+  or a module's (see [Module conventions](#module-conventions)). Each is run by a
+  `ConversationToolRunner`, the modules' from the connection a run opens once it is claimed
+  (`connectConversationModules`): its name, whether it only reads, which lets it run four at a time
+  beside the reads next to it, and a `run` that checks its input, since Claude's streams in
+  unchecked, and answers JSON or throws a sentence Claude can act on. A write the worker stops
+  waiting for is answered as one that may still have run. What becomes of each call is planned from
+  the transcript alone (`planConversationToolCalls`),
   so a worker taking over plans the same; each call starts and finishes in fenced writes, its result
   kept on the run in `pendingToolResults` until the entry answering the turn is stored; and that
   entry, for the worker, an answer's continuation and a send alike, comes from
@@ -790,7 +798,9 @@ in `utils/`, one concern per file.
   what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. `bun run check:conversation-runs` and `bun run check:conversation-search`,
+  conditions and refusals. It holds the modules' fake as `modules`, its operations in the same SDK,
+  since a run's worker loads every module's server, and adds or removes a member in both with one
+  `createdAt`; a test bringing its own runners in passes `connectTestModules(runners)`. `bun run check:conversation-runs` and `bun run check:conversation-search`,
   in the backend's package, check those conditions against the emulators, the second also what
   Postgres' full-text search and LIKE match. An operation changed is changed in both
 
@@ -832,6 +842,21 @@ and why.
   answered with the stored result and anything else refused. The scope is the caller's,
   `conversation:<id>` or `connection:<id>`, never the client's. A write also checks the caller's
   write scope before anything is read
+- Strategy Dance's agent reaches the modules `CONVERSATION_MODULES` lists, in `MODULES`' order, in
+  process: each run's worker connects to them once it is claimed (`connectConversationModules`), as
+  the run's member, every scope, through the module's own handler, by the SDK's client pinned to the
+  2026-07-28 revision on a transport whose `fetch` hands each request to the handler. A module's
+  tools join the request after the agent's own as strict, streamed Claude tools
+  (`toConversationModuleTool`): the bounds a strict schema refuses are dropped, every object is
+  closed, and anything else it refuses throws. A request takes at most 20 strict tools, 24 optional
+  parameters and 16 union ones across them all, which `buildConversationTools.test.ts` counts, so a
+  module's input schemas are written to fit, and `bun run probe:claude` confirms the API takes them
+- The agent keys each write with Claude's id for the call, under `conversation:<id>`, so a worker
+  taking over or a Resume calling it again is answered from its key. Finalizing a dead run, and a send
+  or a continuation answering its calls, read the key of each write it left started
+  (`settleConversationModuleWrites`): a stored result is the call's, recorded `SUCCEEDED` through
+  `SettleConversationToolCall`, which refuses while a run holds the conversation, and anything else
+  is answered as a call that may have run
 - What a module reads and writes goes through backend-connector operations named `…ForAgent`, which
   take `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller, Strategy
   Dance's agent and a member's own alike: a document whose `isAiReadable` is off is never loaded,

@@ -18,7 +18,7 @@ import startOAuthAuthorization from '~domain/oauth/startOAuthAuthorization'
 // What each grant reads, and nothing else, so a code exchange carrying a refresh token's parameters
 // reads none of them
 const CODE_PARAMETERS = ['code', 'redirect_uri', 'client_id', 'code_verifier', 'resource'] as const
-const REFRESH_PARAMETERS = ['refresh_token', 'client_id', 'resource'] as const
+const REFRESH_PARAMETERS = ['refresh_token', 'client_id', 'resource', 'scope'] as const
 const REVOCATION_PARAMETERS = ['token', 'client_id'] as const
 
 // A token request's and a revocation's form, read as text, so a parameter sent twice is seen as such

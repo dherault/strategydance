@@ -19,6 +19,7 @@ type Refresh = {
   refresh_token?: string
   client_id?: string
   resource?: string
+  scope?: string
 }
 
 function refuse(error: string, description: string): TokenResult {
@@ -32,10 +33,14 @@ function refuse(error: string, description: string): TokenResult {
   under the secret's version its first use recorded, so whichever answer arrives last, the client
   holds tokens that work. Presented after that, it revokes the connection: whoever holds it replays
   a token somebody else already used. Only a refresh token is taken here, never an access token, and
-  only from the client it was issued to, for the resource it was issued for
+  only from the client it was issued to, for the resource it was issued for.
+
+  A refresh may name fewer scopes than its token was granted, never others (RFC 6749, 6): the access
+  token it issues holds those alone, and the refresh token keeps the ones it had, so a later refresh
+  naming none gets them all back
 */
 async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promise<TokenResult> {
-  const { refresh_token: refreshToken, client_id: clientId, resource } = values
+  const { refresh_token: refreshToken, client_id: clientId, resource, scope } = values
 
   if (!refreshToken || !clientId) return refuse('invalid_request', 'A refresh names its refresh_token and client_id')
   if (!resource) return refuse('invalid_request', 'A token request names its resource')
@@ -44,13 +49,28 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
   const [token] = data.token
 
   if (!token) return refuse('invalid_grant', 'The refresh token is unknown, expired or revoked')
-  if (clientId !== token.connection.clientId)
+  if (clientId !== token.connection.clientId) {
     return refuse('invalid_grant', 'The refresh token was issued to another client')
-  if (parseModuleResource(resource)?.resource !== token.resource) {
+  }
+
+  const target = parseModuleResource(resource)
+
+  if (!target || target.resource !== token.resource) {
     return refuse('invalid_target', 'The refresh token was issued for another resource')
   }
 
-  const scopes = token.connection.scopes
+  // What the access token holds: the scopes the refresh names, read always among them, within the
+  // refresh token's, in its order
+  const refreshScopes = token.scopes
+  const asked = scope ? new Set(scope.split(' ').filter(Boolean)) : new Set(refreshScopes)
+  const accessScopes = refreshScopes.filter(granted => asked.has(granted))
+
+  if (accessScopes.length !== asked.size || !asked.has(target.module.scopes.read)) {
+    return refuse(
+      'invalid_scope',
+      `A refresh asks for ${target.module.scopes.read}, alone or with the scopes its token was granted`,
+    )
+  }
 
   if (!token.usedAt) {
     const secret = await readOAuthTokenSecret()
@@ -61,6 +81,8 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
         id: token.id,
         connectionId: token.connection.id,
         resource: token.resource,
+        accessScopes,
+        refreshScopes,
         successorKeyVersion: secret.version,
         accessTokenHash: hashOAuthToken(successors.accessToken),
         refreshTokenHash: hashOAuthToken(successors.refreshToken),
@@ -74,7 +96,7 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
       throw error
     }
 
-    return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes }) }
+    return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: accessScopes }) }
   }
 
   if (
@@ -108,7 +130,8 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
 
   const expiresInSeconds = Math.max(0, Math.floor((Date.parse(access.expiresAt) - Date.now()) / 1000))
 
-  return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes, expiresInSeconds }) }
+  // The scopes its first use issued, whatever this one names
+  return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: access.scopes, expiresInSeconds }) }
 }
 
 export default refreshAgentConnectionTokens

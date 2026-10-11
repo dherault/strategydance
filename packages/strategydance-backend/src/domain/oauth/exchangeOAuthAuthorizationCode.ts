@@ -75,6 +75,7 @@ async function exchangeOAuthAuthorizationCode(values: CodeExchange): Promise<Tok
       codeHash,
       connectionId: request.connection.id,
       resource: request.resource,
+      scopes: request.connection.scopes,
       accessTokenHash: hashOAuthToken(accessToken),
       refreshTokenHash: hashOAuthToken(refreshToken),
     })

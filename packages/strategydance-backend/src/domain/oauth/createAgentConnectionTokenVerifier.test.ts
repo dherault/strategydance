@@ -27,7 +27,11 @@ function hash(token: string) {
 }
 
 // A connection of the member's, holding a token of each kind, as a code's exchange stores them
-function connect({ scopes = ['knowledge:read'], resource = KNOWLEDGE } = {}) {
+function connect({
+  scopes = ['knowledge:read'],
+  resource = KNOWLEDGE,
+  accessScopes,
+}: { scopes?: string[]; resource?: string; accessScopes?: string[] } = {}) {
   fake.connections.set(CONNECTION_ID, {
     id: CONNECTION_ID,
     userId: MEMBER,
@@ -48,6 +52,7 @@ function connect({ scopes = ['knowledge:read'], resource = KNOWLEDGE } = {}) {
       kind,
       hash: hash(kind.toLowerCase()),
       resource,
+      scopes: accessScopes ?? scopes,
       issuedFrom: 'request',
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       usedAt: null,
@@ -100,6 +105,15 @@ describe('createAgentConnectionTokenVerifier', () => {
       scopes: ['knowledge:read', 'knowledge:write'],
       idempotencyScope: `connection:${CONNECTION_ID}`,
     })
+  })
+
+  test("carries the scopes a refresh narrowed the token to, within its connection's", async () => {
+    connect({ scopes: ['knowledge:read', 'knowledge:write'], accessScopes: ['knowledge:read'] })
+
+    const authInfo = await verifier.verifyAccessToken('access')
+
+    expect(authInfo.scopes).toEqual(['knowledge:read'])
+    expect(readModuleCaller(authInfo).scopes).toEqual(['knowledge:read'])
   })
 
   test('refuses a token for another module', async () => {

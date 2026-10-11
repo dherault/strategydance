@@ -335,8 +335,14 @@ async function checkFlow() {
   )
 
   // The client refreshes, and its spent token comes back
-  const refresh = (refreshToken: string) =>
-    token({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, resource })
+  const refresh = (refreshToken: string, scope?: string) =>
+    token({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+      resource,
+      ...(scope ? { scope } : {}),
+    })
   const rotated = (await (await refresh(tokens.refresh_token)).json()) as Tokens
   const duplicate = (await (await refresh(tokens.refresh_token)).json()) as Tokens
 
@@ -349,18 +355,27 @@ async function checkFlow() {
     duplicate.access_token === rotated.access_token && duplicate.refresh_token === rotated.refresh_token,
   )
 
+  // A refresh naming read alone narrows its access token, and its refresh token keeps both
+  const narrowed = (await (await refresh(rotated.refresh_token, 'knowledge:read')).json()) as Tokens
+  const narrowedInfo = await knowledgeVerifier.verifyAccessToken(narrowed.access_token).catch(() => null)
+
+  check(
+    'a refresh naming read alone narrows its access token to read',
+    narrowed.scope === 'knowledge:read' && narrowedInfo?.scopes.join(' ') === 'knowledge:read',
+  )
+
   // The client revokes
   const revocation = await fetch(metadata.revocation_endpoint, {
     method: 'POST',
     headers: form,
-    body: new URLSearchParams({ token: rotated.refresh_token, client_id: clientId }),
+    body: new URLSearchParams({ token: narrowed.refresh_token, client_id: clientId }),
   })
 
   check('a refresh token is revoked', revocation.status === 200)
-  check('a revoked refresh token is refused', (await refresh(rotated.refresh_token)).status === 400)
+  check('a revoked refresh token is refused', (await refresh(narrowed.refresh_token)).status === 400)
   check(
     "the revoked connection's access token is refused",
-    (await refusal(knowledgeVerifier.verifyAccessToken(rotated.access_token))) !== null,
+    (await refusal(knowledgeVerifier.verifyAccessToken(narrowed.access_token))) !== null,
   )
 }
 
@@ -443,6 +458,7 @@ function exchange(requestId: string, code: string, connectionId: string) {
       codeHash: createHashOf(code),
       connectionId,
       resource,
+      scopes: READ_WRITE,
       accessTokenHash: createHashOf(accessToken),
       refreshTokenHash: createHashOf(refreshToken),
     }),
@@ -592,6 +608,8 @@ async function checkTokens() {
       id: refreshTokenId,
       connectionId: approval.connectionId,
       resource,
+      accessScopes: ['knowledge:read'],
+      refreshScopes: READ_WRITE,
       successorKeyVersion: 1,
       accessTokenHash: createHashOf(createSecret()),
       refreshTokenHash: createHashOf(createSecret()),

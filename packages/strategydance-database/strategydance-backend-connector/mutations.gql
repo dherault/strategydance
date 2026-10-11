@@ -3497,14 +3497,16 @@ mutation DenyOAuthAuthorizationRequest($id: UUID!) @auth(level: NO_ACCESS) @tran
 
 # Exchanges a code for an access token, valid for an hour (`OAUTH_ACCESS_TOKEN_LIFETIME_MS` in the
 # backend), and a refresh token, for 30 days (`OAUTH_REFRESH_TOKEN_LIFETIME_MS`), both bound to the
-# code's resource. The code is consumed first, once, within its minute, on the connection the backend
-# read: a code used already, expired, or whose connection was replaced or revoked since issues
-# nothing. The tokens' hashes are the backend's own
+# code's resource and granting its connection's scopes, which they may not exceed. The code is
+# consumed first, once, within its minute, on the connection the backend read: a code used already,
+# expired, or whose connection was replaced or revoked since issues nothing. The tokens' hashes are
+# the backend's own
 mutation ExchangeOAuthAuthorizationCode(
   $id: UUID!
   $codeHash: String!
   $connectionId: UUID!
   $resource: String!
+  $scopes: [String!]!
   $accessTokenHash: String!
   $refreshTokenHash: String!
 ) @auth(level: NO_ACCESS) @transaction {
@@ -3513,6 +3515,7 @@ mutation ExchangeOAuthAuthorizationCode(
       id: { eq: $id }
       codeHash: { eq: $codeHash }
       connectionId: { eq: $connectionId }
+      connection: { scopes: { includesAll: $scopes } }
       codeUsedAt: { isNull: true }
       codeExpiresAt: { gt_time: { now: true } }
     }
@@ -3524,6 +3527,7 @@ mutation ExchangeOAuthAuthorizationCode(
       kind: ACCESS
       hash: $accessTokenHash
       resource: $resource
+      scopes: $scopes
       issuedFrom: $id
       expiresAt_time: { now: true, add: { hours: 1 } }
     }
@@ -3534,6 +3538,7 @@ mutation ExchangeOAuthAuthorizationCode(
       kind: REFRESH
       hash: $refreshTokenHash
       resource: $resource
+      scopes: $scopes
       issuedFrom: $id
       expiresAt_time: { now: true, add: { days: 30 } }
     }
@@ -3542,23 +3547,32 @@ mutation ExchangeOAuthAuthorizationCode(
 
 # Rotates a refresh token: it is spent, once, recording the secret's version its successors were
 # derived under, and the successors are stored, an access token for an hour and a refresh token for
-# 30 days, as a code's are. A token spent already, or expired, rotates nothing, and the backend reads
-# it again to answer a duplicate or revoke the connection
+# 30 days, as a code's are. The refresh token keeps the spent one's scopes, and the access token holds
+# those the refresh asked for, neither past the spent token's (RFC 6749, 6). A token spent already,
+# or expired, rotates nothing, and the backend reads it again to answer a duplicate or revoke the
+# connection
 mutation RotateAgentConnectionRefreshToken(
   $id: UUID!
   $connectionId: UUID!
   $resource: String!
+  $accessScopes: [String!]!
+  $refreshScopes: [String!]!
   $successorKeyVersion: Int!
   $accessTokenHash: String!
   $refreshTokenHash: String!
 ) @auth(level: NO_ACCESS) @transaction {
   agentConnectionToken_updateMany(
+    # One `_and`, since a filter cannot name `scopes` twice beside plain fields
     where: {
-      id: { eq: $id }
-      connectionId: { eq: $connectionId }
-      kind: { eq: REFRESH }
-      usedAt: { isNull: true }
-      expiresAt: { gt_time: { now: true } }
+      _and: [
+        { id: { eq: $id } }
+        { connectionId: { eq: $connectionId } }
+        { kind: { eq: REFRESH } }
+        { usedAt: { isNull: true } }
+        { expiresAt: { gt_time: { now: true } } }
+        { scopes: { includesAll: $refreshScopes } }
+        { scopes: { includesAll: $accessScopes } }
+      ]
     }
     data: { usedAt_expr: "request.time", successorKeyVersion: $successorKeyVersion }
   ) @check(expr: "this == 1", message: "The refresh token was used already or has expired")
@@ -3568,6 +3582,7 @@ mutation RotateAgentConnectionRefreshToken(
       kind: ACCESS
       hash: $accessTokenHash
       resource: $resource
+      scopes: $accessScopes
       issuedFrom: $id
       expiresAt_time: { now: true, add: { hours: 1 } }
     }
@@ -3578,6 +3593,7 @@ mutation RotateAgentConnectionRefreshToken(
       kind: REFRESH
       hash: $refreshTokenHash
       resource: $resource
+      scopes: $refreshScopes
       issuedFrom: $id
       expiresAt_time: { now: true, add: { days: 30 } }
     }

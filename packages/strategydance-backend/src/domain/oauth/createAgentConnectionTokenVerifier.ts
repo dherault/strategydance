@@ -54,7 +54,8 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
         userId: membership.userId,
         organizationId: membership.organizationId,
         membershipCreatedAt: membership.createdAt,
-        scopes: connection.scopes as ModuleScope[],
+        // What the token holds, which a refresh may have narrowed, within its connection's
+        scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
         idempotencyScope: `connection:${connection.id}`,
       }
 

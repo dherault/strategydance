@@ -1487,6 +1487,7 @@ query GetAgentConnectionRefreshToken($hash: String!) @auth(level: NO_ACCESS) {
   ) {
     id
     resource
+    scopes
     usedAt
     successorKeyVersion
     connection {
@@ -1514,6 +1515,7 @@ query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
   agentConnectionTokens(where: { hash: { in: $hashes }, expiresAt: { gt_time: { now: true } } }, limit: 2) {
     hash
     kind
+    scopes
     expiresAt
     connectionId
   }
@@ -1528,6 +1530,7 @@ query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
     limit: 1
   ) {
     resource
+    scopes
     expiresAt
     connection {
       id

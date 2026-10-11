@@ -60,6 +60,7 @@ export type FakeAgentConnectionToken = {
   kind: 'ACCESS' | 'REFRESH'
   hash: string
   resource: string
+  scopes: string[]
   issuedFrom: string
   expiresAt: string
   usedAt: string | null
@@ -204,6 +205,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
           {
             id: token.id,
             resource: token.resource,
+            scopes: [...token.scopes],
             usedAt: token.usedAt,
             successorKeyVersion: token.successorKeyVersion,
             connection: { id: connection.id, clientId: connection.clientId, scopes: [...connection.scopes] },
@@ -216,7 +218,13 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     GetAgentConnectionTokens: variables => ({
       agentConnectionTokens: [...tokens.values()]
         .filter(token => (variables.hashes as string[]).includes(token.hash) && isFuture(token.expiresAt))
-        .map(({ hash, kind, expiresAt, connectionId }) => ({ hash, kind, expiresAt, connectionId })),
+        .map(({ hash, kind, scopes, expiresAt, connectionId }) => ({
+          hash,
+          kind,
+          scopes: [...scopes],
+          expiresAt,
+          connectionId,
+        })),
     }),
 
     GetAgentConnectionAccessToken: variables => {
@@ -231,6 +239,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         agentConnectionTokens: [
           {
             resource: token.resource,
+            scopes: [...token.scopes],
             expiresAt: token.expiresAt,
             connection: {
               id: connection.id,
@@ -400,11 +409,15 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     ExchangeOAuthAuthorizationCode: (variables: AnyVariables) => {
       const request = requests.get(id(variables.id))
       const connectionId = id(variables.connectionId)
+      const scopes = variables.scopes as string[]
+      const connection = connections.get(connectionId)
 
       if (
         !request
         || request.codeHash !== variables.codeHash
         || request.connectionId !== connectionId
+        || !connection
+        || !scopes.every(scope => connection.scopes.includes(scope))
         || request.codeUsedAt !== null
         || !isFuture(request.codeExpiresAt)
       ) {
@@ -419,6 +432,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         kind: 'ACCESS',
         hash: variables.accessTokenHash,
         resource: variables.resource,
+        scopes: [...scopes],
         issuedFrom: request.id,
         expiresAt: at(now() + HOUR_MS),
       })
@@ -427,6 +441,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         kind: 'REFRESH',
         hash: variables.refreshTokenHash,
         resource: variables.resource,
+        scopes: [...scopes],
         issuedFrom: request.id,
         expiresAt: at(now() + 30 * DAY_MS),
       })
@@ -437,6 +452,8 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     RotateAgentConnectionRefreshToken: (variables: AnyVariables) => {
       const token = tokens.get(id(variables.id))
       const connectionId = id(variables.connectionId)
+      const accessScopes = variables.accessScopes as string[]
+      const refreshScopes = variables.refreshScopes as string[]
 
       if (
         !token
@@ -444,6 +461,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         || token.kind !== 'REFRESH'
         || token.usedAt !== null
         || !isFuture(token.expiresAt)
+        || ![...accessScopes, ...refreshScopes].every(scope => token.scopes.includes(scope))
       ) {
         refuse('The refresh token was used already or has expired')
       }
@@ -456,6 +474,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         kind: 'ACCESS',
         hash: variables.accessTokenHash,
         resource: variables.resource,
+        scopes: [...accessScopes],
         issuedFrom: token.id,
         expiresAt: at(now() + HOUR_MS),
       })
@@ -464,6 +483,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         kind: 'REFRESH',
         hash: variables.refreshTokenHash,
         resource: variables.resource,
+        scopes: [...refreshScopes],
         issuedFrom: token.id,
         expiresAt: at(now() + 30 * DAY_MS),
       })

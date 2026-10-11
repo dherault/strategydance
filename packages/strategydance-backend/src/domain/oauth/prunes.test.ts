@@ -68,6 +68,7 @@ function insertToken(id: string, expiresAt: string, usedAt: string | null = null
     kind: 'REFRESH',
     hash: id,
     resource: 'http://localhost:3003/mcp/knowledge',
+    scopes: ['knowledge:read'],
     issuedFrom: 'request',
     expiresAt,
     usedAt,

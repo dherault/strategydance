@@ -215,9 +215,21 @@ describe('POST /oauth/token, the authorization code grant', () => {
     })
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(response.headers.get('pragma')).toBe('no-cache')
-    expect([...fake.tokens.values()].map(({ kind, hash: stored, resource }) => ({ kind, stored, resource }))).toEqual([
-      { kind: 'ACCESS', stored: hash(tokens.access_token), resource: KNOWLEDGE },
-      { kind: 'REFRESH', stored: hash(tokens.refresh_token), resource: KNOWLEDGE },
+    expect(
+      [...fake.tokens.values()].map(({ kind, hash: stored, resource, scopes }) => ({ kind, stored, resource, scopes })),
+    ).toEqual([
+      {
+        kind: 'ACCESS',
+        stored: hash(tokens.access_token),
+        resource: KNOWLEDGE,
+        scopes: ['knowledge:read', 'knowledge:write'],
+      },
+      {
+        kind: 'REFRESH',
+        stored: hash(tokens.refresh_token),
+        resource: KNOWLEDGE,
+        scopes: ['knowledge:read', 'knowledge:write'],
+      },
     ])
   })
 
@@ -384,6 +396,28 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expectError(await refresh(tokens.refresh_token, { resource: TASKS }), 'invalid_target')
     expectError(await refresh(tokens.refresh_token, { resource: null }), 'invalid_request')
     expect((await refresh(tokens.refresh_token)).status).toBe(200)
+  })
+
+  test('narrows the access token to the scopes a refresh names, the refresh token keeping its own', async () => {
+    const { tokens } = await connect()
+    const narrowed = await refresh(tokens.refresh_token, { scope: 'knowledge:read' })
+    const narrowedTokens = narrowed.body as unknown as Tokens
+    const scopesOf = (token: string) =>
+      [...fake.tokens.values()].find(({ hash: stored }) => stored === hash(token))?.scopes
+
+    expect(narrowedTokens.scope).toBe('knowledge:read')
+    expect(scopesOf(narrowedTokens.access_token)).toEqual(['knowledge:read'])
+    expect(scopesOf(narrowedTokens.refresh_token)).toEqual(['knowledge:read', 'knowledge:write'])
+    expect((await refresh(narrowedTokens.refresh_token)).body.scope).toBe('knowledge:read knowledge:write')
+  })
+
+  test('refuses a refresh naming a scope its token was not granted, or write without read', async () => {
+    const { tokens } = await connect({ allowed: ['knowledge:read'] })
+
+    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read knowledge:write' }), 'invalid_scope')
+    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read tasks:read' }), 'invalid_scope')
+    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:write' }), 'invalid_scope')
+    expect((await refresh(tokens.refresh_token, { scope: 'knowledge:read' })).body.scope).toBe('knowledge:read')
   })
 
   test('refuses an access token presented as a refresh token', async () => {

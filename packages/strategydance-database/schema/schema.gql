@@ -921,6 +921,10 @@ type AgentConnectionToken @table @index(fields: ["expiresAt"]) {
   # The module's address the token was issued for (RFC 8707), which the verifier compares to the
   # endpoint's, so a token for one module never opens another
   resource: String!
+  # What the token grants, within its connection's scopes. A refresh token keeps those its connection
+  # was granted, and passes them on as it rotates; an access token holds those its refresh asked for,
+  # which may be fewer (RFC 6749, 6), and the verifier reads them
+  scopes: [String!]!
   # What the token was issued from: the authorization request whose code was exchanged, or the
   # refresh token rotated. No reference, since either may be pruned before it
   issuedFrom: UUID!

@@ -13,8 +13,8 @@ import { EMULATORS_REQUESTED } from '~data/firebase'
   project, and keeps the gate.
 
   Everything that offers a conversation asks this first: the sidebar, the pages' bouncer, and the
-  aspect page's section and the dock to come. `UserWait` holds the authenticated area until the
-  reader's row has arrived, so the answer is never a guess
+  dock to come. `UserWait` holds the authenticated area until the reader's row has arrived, so the
+  answer is never a guess
 */
 function useCanUseConversations() {
   const { data: user } = useUser()

@@ -66,7 +66,7 @@ M27 well before their neighbours.
 | M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
 | M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | #139 |
 | M18 | The authorization server | backend, database, core, root | M14, setup 10 | #141 |
-| M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | |
+| M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | #144 |
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
 | M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
 | M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |

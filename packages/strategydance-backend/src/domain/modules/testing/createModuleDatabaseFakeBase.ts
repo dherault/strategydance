@@ -66,6 +66,8 @@ function createModuleDatabaseFakeBase() {
   const calls: string[] = []
   // What each module's fake empties on a reset, besides the tables here
   const resets: (() => void)[] = []
+  // What each fake deletes with a membership, as the references to it cascade
+  const removals: ((userId: string, organizationId: string) => void)[] = []
   let stamps = 0
 
   const fake = {
@@ -123,6 +125,8 @@ function createModuleDatabaseFakeBase() {
 
   function removeMember(userId: string, organizationId: string) {
     memberships.delete(membershipKey(userId, organizationId))
+
+    for (const remove of removals) remove(userId, id(organizationId))
   }
 
   // Whether the caller is still the member the module read, as each operation matches the
@@ -219,6 +223,11 @@ function createModuleDatabaseFakeBase() {
     resets.push(reset)
   }
 
+  // Deletes what references a membership along with it, as Data Connect cascades a required reference
+  function onRemoveMember(remove: (userId: string, organizationId: string) => void) {
+    removals.push(remove)
+  }
+
   addOperations({
     GetOrganizationForAgent: variables => {
       const organization = organizations.get(id(variables.organizationId))
@@ -272,6 +281,7 @@ function createModuleDatabaseFakeBase() {
     checkKey,
     addOperations,
     onReset,
+    onRemoveMember,
     reset,
   })
 }

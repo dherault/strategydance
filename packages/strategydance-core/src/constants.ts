@@ -87,6 +87,13 @@ export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
 // (`MAX_CONVERSATIONS`): starting another takes deleting one first
 export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
 
+/*
+  A 400 set apart for the consent page: the app asking for access could not be verified, its client
+  ID metadata document unreachable, malformed or not naming the address it is sent back to, so the
+  member can do nothing with the request but leave it
+*/
+export const ERROR_CODE_OAUTH_CLIENT_REFUSED = 'OAUTH_CLIENT_REFUSED' // 400
+
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 
@@ -466,3 +473,12 @@ export const MODULES = [
     scopes: { read: 'tasks:read', write: 'tasks:write' },
   },
 ] as const satisfies readonly ModuleDefinition[]
+
+/*
+  The modules reach external agents for Strategy Dance's own administrators (`User.isAdministrator`)
+  alone while they are built: the consent page's Allow refuses anybody else, and the token verifier
+  checks the role on every call, so a connection outlives no lost role. It hides an unfinished
+  feature, as conversations' gate does, and is lifted on the development backend the same way.
+  Strategy Dance's own agent reaches a module behind conversations' gate instead
+*/
+export const ARE_MODULES_STAFF_ONLY: boolean = true

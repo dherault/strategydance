@@ -1,7 +1,10 @@
 import {
   ARE_CONVERSATIONS_STAFF_ONLY,
+  ARE_MODULES_STAFF_ONLY,
   DEVELOPMENT_API_PORT,
+  DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
+  PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
 } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/backend'
@@ -33,6 +36,14 @@ export const IS_WORKER = process.env.SERVICE === 'worker'
   granting anybody anything. Cloud Run and the tests keep the gate
 */
 export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !IS_DEVELOPMENT
+
+/*
+  Whether the modules reach external agents for Strategy Dance's administrators alone in this
+  process: while they are built (`ARE_MODULES_STAFF_ONLY`), everywhere but the development backend,
+  as conversations' gate is. The consent page's Allow and the token verifier ask it. Cloud Run and
+  the tests keep the gate
+*/
+export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
 
 /* ---
   ARCHITECTURE
@@ -238,6 +249,91 @@ export const MAX_TASKS_INDEXED = 20
 export const TASK_UPDATE_ATTEMPTS = 3
 
 /* ---
+  OAUTH
+
+  Strategy Dance's authorization server, which external agents a member connects to a module go
+  through (`documents/conversations.md`, Modules, External agents)
+--- */
+
+/*
+  The issuer, which the metadata, the endpoints and every module's address hang off: the backend's
+  own domain in production, and the development backend otherwise, at `API_URL` when a worktree
+  runs one on another port, so the addresses it names are the ones it answers on
+*/
+export const OAUTH_ISSUER = IS_PRODUCTION ? PRODUCTION_API_URL : (process.env.API_URL ?? DEVELOPMENT_API_URL)
+
+// Where an authorization sends the browser for the member's consent, `?request=<id>` after it
+export const OAUTH_CONSENT_URL = `${APP_URL}/oauth/consent`
+
+/*
+  The protocol's own endpoints, which answer any origin without credentials, since no cookie is
+  involved and no client could otherwise call them from a page: every other route answers the
+  app's origins alone, the consent page's included. Matched exactly, as Express routes them,
+  ignoring case and one trailing slash
+*/
+export const OAUTH_PROTOCOL_PATHS = [
+  '/.well-known/oauth-authorization-server',
+  '/oauth/register',
+  '/oauth/authorize',
+  '/oauth/token',
+  '/oauth/revoke',
+]
+
+/*
+  How long each thing the server hands out lasts: an authorization request awaiting the member's
+  consent, the code Allow issues, an access token and a refresh token. Written out again in the
+  operations that set them, which cannot import them: change them together
+*/
+export const OAUTH_AUTHORIZATION_REQUEST_LIFETIME_MS = 10 * 60 * 1000
+export const OAUTH_CODE_LIFETIME_MS = 60 * 1000
+export const OAUTH_ACCESS_TOKEN_LIFETIME_MS = 60 * 60 * 1000
+export const OAUTH_REFRESH_TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000
+
+/*
+  How long after its rotation a refresh token presented again is answered with the pair its first
+  use issued, as by a client whose answer was lost or two refreshes at once. Presented later, it
+  revokes the connection. Written out again in `GetAgentConnectionRefreshToken`: change the two
+  together
+*/
+export const OAUTH_REFRESH_GRACE_SECONDS = 30
+
+/*
+  What anybody can make the server store before a member has signed in: registrations, 1000 a day
+  in all, and authorization requests, 1000 in ten minutes in all, beside what one address may make.
+  Written out again in `CreateOAuthClient`'s and `CreateOAuthAuthorizationRequest`'s checks: change
+  them together
+*/
+export const MAX_OAUTH_CLIENT_REGISTRATIONS_PER_DAY = 1000
+export const MAX_OAUTH_AUTHORIZATION_REQUESTS = 1000
+
+/*
+  How long a parameter of an authorization may be, a client's id, its redirect address or its
+  `state`, and how many redirect addresses a client may name, so a request stores a bounded row.
+  A client's name is cut to 80 characters (written out again in `CreateOAuthClient`'s check)
+*/
+export const MAX_OAUTH_PARAMETER_LENGTH = 2048
+export const MAX_OAUTH_REDIRECT_URIS = 10
+export const MAX_OAUTH_CLIENT_NAME_LENGTH = 80
+
+/*
+  A client ID metadata document: read through `fetchOutbound` with no redirect, up to 5 KB within
+  five seconds, and kept for an hour, a failure for a minute, at most 500 at once in an instance's
+  memory
+*/
+export const MAX_CLIENT_METADATA_DOCUMENT_BYTES = 5 * 1024
+export const CLIENT_METADATA_DOCUMENT_TIMEOUT_MS = 5000
+export const CLIENT_METADATA_DOCUMENT_LIFETIME_MS = 60 * 60 * 1000
+export const CLIENT_METADATA_DOCUMENT_FAILURE_LIFETIME_MS = 60 * 1000
+export const MAX_CLIENT_METADATA_DOCUMENTS_KEPT = 500
+
+/*
+  What a refresh token's successors are derived under outside production, which reads
+  `oauth-token-secret` from Secret Manager instead: nothing it derives opens anything but the
+  emulators
+*/
+export const DEVELOPMENT_OAUTH_TOKEN_SECRET = 'strategydance-development-oauth-token-secret'
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`
@@ -249,6 +345,10 @@ export const SECRET_RESEND_API_KEY = 'resend-api-key'
 // Claude's API key, for the conversations agent. A machine whose credentials cannot read it sets
 // ANTHROPIC_API_KEY instead
 export const SECRET_ANTHROPIC_API_KEY = 'anthropic-api-key'
+
+// What a rotated refresh token's successors are derived under, read by version, so a duplicate
+// derives under the version its first use recorded. Read only in production
+export const SECRET_OAUTH_TOKEN_SECRET = 'oauth-token-secret'
 
 /* ---
   EMAIL

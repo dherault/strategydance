@@ -1420,3 +1420,148 @@ query GetUnindexedTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
     updatedAt
   }
 }
+
+# The authorization server's operations follow, which the backend's OAuth endpoints run for the
+# external agents a member connects to a module (`documents/conversations.md`, Modules, External
+# agents).
+#
+# Unlike every other operation here, most of them run before any `$userId` has been verified: they
+# find a registered client, an authorization request, a code or a token by its id or its hash,
+# which whoever presents it holds. That is the OAuth flow itself, and the one exception beside the
+# sign-in screen's public lookup. An id is a random UUID, and a code or a token is 256 random bits
+# kept only as its SHA-256 hash, so nothing is found without holding it. The consent page's
+# operations take the member's verified `$userId`, as every other operation does
+
+# A registered client, by the `client_id` its registration answered
+query GetOAuthClient($id: UUID!) @auth(level: NO_ACCESS) {
+  oAuthClient(id: $id) {
+    id
+    name
+    redirectUris
+  }
+}
+
+# An authorization request a member can still decide: undecided and unexpired, by the database's
+# clock, which measured its ten minutes
+query GetPendingOAuthAuthorizationRequest($id: UUID!) @auth(level: NO_ACCESS) {
+  oAuthAuthorizationRequests(
+    where: { id: { eq: $id }, decidedAt: { isNull: true }, expiresAt: { gt_time: { now: true } } }
+    limit: 1
+  ) {
+    id
+    clientId
+    redirectUri
+    resource
+    scopes
+    state
+    expiresAt
+  }
+}
+
+# The authorization request a code was issued on, whatever became of the code, so a code presented
+# again is told from one never issued, with the connection it opens. Its expiry is checked by the
+# exchange itself, on the database's clock
+query GetOAuthAuthorizationRequestByCode($codeHash: String!) @auth(level: NO_ACCESS) {
+  oAuthAuthorizationRequests(where: { codeHash: { eq: $codeHash } }, limit: 1) {
+    id
+    clientId
+    redirectUri
+    codeChallenge
+    resource
+    codeUsedAt
+    connection {
+      id
+      scopes
+    }
+  }
+}
+
+# A refresh token, unexpired, with its connection, and the same token again when it was rotated
+# within the last 30 seconds (`OAUTH_REFRESH_GRACE_SECONDS` in the backend: change the two
+# together), by the database's clock, which wrote `usedAt`: a duplicate within them is answered
+# with the pair its first use issued, and one after them revokes the connection
+query GetAgentConnectionRefreshToken($hash: String!) @auth(level: NO_ACCESS) {
+  token: agentConnectionTokens(
+    where: { hash: { eq: $hash }, kind: { eq: REFRESH }, expiresAt: { gt_time: { now: true } } }
+    limit: 1
+  ) {
+    id
+    resource
+    scopes
+    usedAt
+    successorKeyVersion
+    connection {
+      id
+      clientId
+      scopes
+    }
+  }
+  recentlySpent: agentConnectionTokens(
+    where: {
+      hash: { eq: $hash }
+      kind: { eq: REFRESH }
+      expiresAt: { gt_time: { now: true } }
+      usedAt: { ge_time: { now: true, sub: { seconds: 30 } } }
+    }
+    limit: 1
+  ) {
+    id
+  }
+}
+
+# The successors a duplicate refresh answers with, found by the hashes derived again from the spent
+# token, so the duplicate hands out nothing that was revoked or has expired since, with whether the
+# refresh token was spent in turn, and under which version, so the duplicate follows the chain to
+# the pair the client holds now
+query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
+  agentConnectionTokens(where: { hash: { in: $hashes }, expiresAt: { gt_time: { now: true } } }, limit: 2) {
+    hash
+    kind
+    scopes
+    expiresAt
+    connectionId
+    usedAt
+    successorKeyVersion
+  }
+}
+
+# The token verifier's one read, on every call an external agent makes to a module: an unexpired
+# access token alone, never a refresh token, with its connection, the membership it belongs to and
+# the account's staff role, while modules are for Strategy Dance's administrators alone
+query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
+  agentConnectionTokens(
+    where: { hash: { eq: $hash }, kind: { eq: ACCESS }, expiresAt: { gt_time: { now: true } } }
+    limit: 1
+  ) {
+    resource
+    scopes
+    expiresAt
+    connection {
+      id
+      clientId
+      module
+      scopes
+      membership {
+        userId
+        organizationId
+        createdAt
+        user {
+          isAdministrator
+        }
+      }
+    }
+  }
+}
+
+# A token a client asks to revoke, of either kind and whether or not it has expired, with the client
+# it was issued to, since a client revokes only its own (RFC 7009)
+query GetAgentConnectionTokenForRevocation($hash: String!) @auth(level: NO_ACCESS) {
+  agentConnectionTokens(where: { hash: { eq: $hash } }, limit: 1) {
+    id
+    kind
+    connection {
+      id
+      clientId
+    }
+  }
+}

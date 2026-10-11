@@ -65,7 +65,7 @@ M27 well before their neighbours.
 | M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
 | M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
 | M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | #139 |
-| M18 | The authorization server | backend, database, core, root | M14, setup 10 | |
+| M18 | The authorization server | backend, database, core, root | M14, setup 10 | #141 |
 | M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | |
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
 | M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
@@ -1170,6 +1170,81 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
+- Built with these settled, on 2026-10-11:
+  - **The membership's columns are named.** Data Connect refuses a reference to a key made of
+    references, so `UserOrganization` names `userId` and `organizationId` beside its references,
+    as Data Connect named them anyway, and `AgentConnection.membership` references the two with
+    `@ref`, its constraint named `agent_connection_membership_fkey`, short of Postgres' 63 bytes.
+    The emulator's migration from `dev`'s schema only creates the new tables and their indexes,
+    and touches `user_organization` not at all.
+  - **Allow decides the request last.** The request references the connection Allow inserts, so
+    Allow locks the membership, deletes the earlier connection for that client and module, inserts
+    the new one, then decides the request under `@check(this == 1)`, which rolls the whole mutation
+    back when it refuses. `check:oauth` showed on the emulator, before any backend code, that
+    consenting again, two consents at once for one client, organization and module, Allow sent
+    twice and an Allow racing a Deny each leave one connection and decide once. Data Connect
+    reports the insert's foreign key before the lock's check, so a caller who is not the member is
+    refused by either message, which `isMembershipRefusal` reads as one. The update also matches
+    the request's client and resource, and `includesAll` the scopes granted, so the database
+    itself grants nothing the request did not ask for.
+  - **A registered client is marked used by an operation of its own**, `RecordOAuthClientUse`:
+    a step skipped by `@include` still refuses a null key, so it could not ride in the request's
+    insert for a client ID metadata document's request.
+  - **The protocol's endpoints answer any origin** through the app's `cors`, which takes an options
+    delegate matching `OAUTH_PROTOCOL_PATHS` exactly, as Express routes them, ignoring case and one
+    trailing slash, never by prefix, so the consent page's routes under `/oauth/requests`, a router
+    of their own mounted ahead of the protocol's, keep the app's origins. The protocol's router
+    answers its own errors in OAuth's JSON.
+  - **The metadata names `revocation_endpoint_auth_methods_supported: ["none"]`** beside the token
+    endpoint's, since a field left out means `client_secret_basic`.
+  - **Bounds before anybody signs in**: registration 20 an hour per address and 1000 a day in all,
+    authorization 60 in ten minutes per address and 1000 in ten minutes in all, each a count under
+    `@check` rather than a lock, so a few at once can pass the cap by as many; the consent routes 60
+    in ten minutes per member, as link previews, since reading a request is what fetches a client's
+    document. A client's id, its redirect address and `state` are held to 2048 characters, `state`
+    before any redirect, so an oversized one is never sent back.
+  - **A registered `client_id` is exactly what registration answered**, 32 lowercase hex digits,
+    checked before any read, so two spellings of one client never make two connections. A redirect
+    address's own query is kept byte for byte, the answer appended to it, and one already naming
+    `code`, `state`, `iss` or `error` is refused.
+  - **A code presented again revokes its connection whoever presents it**, before its client,
+    redirect or verifier are compared, as RFC 6749 asks. A refresh token's duplicate within 30
+    seconds is answered only while both successors are still stored on its connection, so it never
+    hands out one revoked since.
+  - **Revoking a refresh token ends the connection; an access token, itself alone.**
+  - **A refresh may narrow its access token.** Each token carries its scopes: a refresh naming fewer
+    than its token holds, never others, issues an access token holding those alone, its refresh
+    token keeping its own (RFC 6749, 6), and the verifier reads the access token's. The rotation
+    checks both against the spent token's in the database, and the exchange against the
+    connection's.
+  - **A registered client is marked used before its request is stored**, so the daily sweep never
+    prunes a client an authorization is naming, and one pruned since it was read stores nothing.
+  - **The consent routes are metered before the staff check**, so a caller who is not staff is
+    counted too, and **the token and revocation endpoints per address**, 600 and 300 in ten
+    minutes, generous since a hosted client, claude.ai or ChatGPT, calls them for every member from
+    a few addresses of its own: the launch revisits them. A connection's rows are bounded by their
+    expiry rather than a cap, which would stop a client that refreshes often.
+  - **A delayed duplicate follows the chain.** A spent refresh token presented again within its 30
+    seconds after the client rotated its successor in turn is answered with the pair whose refresh
+    token is unspent, up to 30 rotations, never a spent one the client's next refresh would replay.
+  - **A connection gone meanwhile is a revoked grant.** A consent replacing it, a revocation or the
+    member's removal landing between a read and an exchange or a rotation makes the new tokens'
+    reference fail, which the emulator reports, as `agent_connection_token_connection_id_fkey`,
+    before the step's check: `isConnectionGoneRefusal` answers it `invalid_grant`, never
+    `server_error`.
+  - **Addresses are refused for a space or a control character** before they are parsed, a redirect
+    address and a resource alike, since the URL parser strips them silently.
+  - **The modules' gate lifts on the development backend** (`IS_MODULES_RELEASE_GATED`), as
+    conversations' does, so `check:oauth` and a developer's client need no staff role locally.
+  - **`OAUTH_ISSUER` honours `API_URL` in development**, so a worktree's backend on another port
+    names itself, as `check:oauth` reaches it.
+  - **`retrieveSecret` reads by version** through `retrieveSecretVersion`, which says which version
+    the latest was. An instance keeps the latest it read for its life, so Setup 10 now keeps the
+    previous version enabled until a deploy has replaced every instance, and a day at least.
+  - Verified with the tests, every item of the list above among them, and `check:oauth` against a
+    scratch suite of the branch's Auth and Data Connect emulators and the branch's backend on its own
+    port: the whole flow over HTTP, the verifier taking the access token and refusing it for the
+    Tasks module and the refresh token, then every operation's condition and race.
 
 ### M19: The consent page and Connected agents
 

@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Maximize2Icon, MinusIcon, XIcon } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useRef } from 'react'
 import { useIntl } from 'react-intl'
+import type { GetConversationData } from 'strategydance-database/web'
 import { Logo } from 'strategydance-design-system/components/brand/Logo'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
@@ -9,9 +11,13 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { ConversationDockWindow as DockWindow, DockConversation } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationDock from '~hooks/conversation/useConversationDock'
+import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+
+import getConversationQueryKey from '~utils/conversation/getConversationQueryKey'
 
 import ConversationDockStatus from '~components/conversation/ConversationDockStatus'
 import ConversationDockWait from '~components/conversation/ConversationDockWait'
@@ -44,6 +50,9 @@ type Props = {
 function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { data: viewer } = useAuthentication()
+  const { organization } = useCurrentOrganization()
   const organizationSlug = useCurrentOrganizationSlug()
   const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
   const [draft, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
@@ -67,12 +76,20 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
     toggleRef.current?.focus()
   }
 
-  // A draft is stored once a send has started its first run, which the dock's read only shows a
-  // moment later: only one no send has stored is discarded with what was written in it
+  /*
+    A draft is stored once a send has started its first run, or once the window's own read of it,
+    cached while it was open, found it: the dock's read can lag both, and fail, and a reload forgets
+    the first. Only a draft nothing says is stored is discarded with what was written in it
+  */
   function close() {
     closeWindow(conversationId)
 
-    if (isDraft && !conversation && !draft.startedRun) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
+    const read = queryClient.getQueryData<GetConversationData>(
+      getConversationQueryKey(organization?.id ?? null, conversationId, viewer?.uid ?? null),
+    )
+    const isStored = !!conversation || !!draft.startedRun || !!read?.conversations.length
+
+    if (isDraft && !isStored) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
   }
 
   function openPage() {

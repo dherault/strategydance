@@ -136,10 +136,14 @@ type Organization @table {
 # leads because a composite key indexes left to right: filtering on it is the read this table
 # exists for
 type UserOrganization @table(key: ["user", "organization"]) {
-  # Implies a `userId: String!` column, String because `User.id` is a Firebase uid
-  user: User!
-  # Implies an `organizationId: UUID!` column, cascade deleting
-  organization: Organization!
+  # Cascade deleting, as is `organization`. Each reference's column is named here, as Data Connect
+  # would name it anyway, since a table cannot reference a key made of references: naming them is
+  # what lets `AgentConnection` reference the membership by the two. `userId` is a String because
+  # `User.id` is a Firebase uid
+  user: User! @ref(fields: "userId")
+  userId: String!
+  organization: Organization! @ref(fields: "organizationId")
+  organizationId: UUID!
   # No default. An insert has to say which, so nobody becomes an administrator by omission
   role: OrganizationRole!
   # What they do there, like "Product designer", written by them or by an administrator. On the
@@ -825,5 +829,150 @@ type ModuleCallResult @table(key: ["idempotencyScope", "idempotencyKey"]) @index
   result: String!
   # Null for a row that lives as long as its scope does
   expiresAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What an access token an external agent holds is for: calling a module, for an hour, or getting
+# the next pair, for 30 days. A token works only as what it is: the verifier takes an access token
+# alone, and the refresh grant a refresh token alone. Append a value; never reorder
+enum AgentConnectionTokenKind {
+  ACCESS
+  REFRESH
+}
+
+# An external agent that registered itself with Strategy Dance's authorization server (RFC 7591),
+# as Cursor still does: a public client, which PKCE proves, with no secret. A client ID metadata
+# document's client registers nothing, and is found by its address instead.
+#
+# Written by `POST /oauth/register`, which anybody can call, so it is rate-limited per address and
+# capped in all, at 1000 a day (`MAX_OAUTH_CLIENT_REGISTRATIONS_PER_DAY` in the backend). The daily
+# sweep deletes one registered over a day ago that has not been used for a day and that no
+# connection uses, which the index on `createdAt` serves
+type OAuthClient @table @index(fields: ["createdAt"]) {
+  # The `client_id` registration answers, as Data Connect writes a UUID: 32 lowercase hex digits
+  id: UUID! @default(expr: "uuidV4()")
+  # What the client called itself, stripped of control and direction characters and cut to 80
+  # characters. Null when it gave none
+  name: String
+  # Where the client may be sent back, loopback addresses alone, which any port of matches (RFC
+  # 8252): a registration proves no domain, so a client redirecting to a website uses a client ID
+  # metadata document instead
+  redirectUris: [String!]!
+  createdAt: Timestamp! @default(expr: "request.time")
+  # When an authorization last named it, so a client in use is not pruned
+  lastUsedAt: Timestamp
+}
+
+# An external agent a member allowed to act as them on one module in one organization, read only or
+# read and write, until they disconnect it, consent again, or stop being that member.
+#
+# The one table that references the membership rather than the account and the organization apart:
+# a connection belongs to the membership, so removing the member, or deleting the organization,
+# deletes it with its tokens, and a member invited back connects again rather than finding an
+# agent still acting as them.
+#
+# Unique on its membership, its client and its module, so consenting again replaces the connection
+# rather than adding one: Allow locks the membership, deletes the earlier connection with its tokens
+# and inserts the new one in one mutation
+type AgentConnection @table @unique(fields: ["membership", "clientId", "module"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Cascade deleting. Its columns are named here, as the membership's are, since Data Connect
+  # cannot reference a key made of references, and its constraint is named short of Postgres' 63
+  # bytes
+  membership: UserOrganization!
+    @ref(
+      fields: ["membershipUserId", "membershipOrganizationId"]
+      references: ["userId", "organizationId"]
+      constraintName: "agent_connection_membership_fkey"
+    )
+  membershipUserId: String!
+  membershipOrganizationId: UUID!
+  # The client's `client_id` as it presented it: a registered client's id, or the address of its
+  # client ID metadata document
+  clientId: String!
+  # The registration, for a registered client, so a registration a connection uses is never pruned.
+  # Implies a `registeredClientId: UUID` column, set to null on delete
+  registeredClient: OAuthClient
+  # The client's name when the member consented, as `OAuthClient.name` keeps it
+  clientName: String
+  # The module's name, one of `MODULES` in strategydance-core
+  module: String!
+  # The scopes granted: the module's read scope, alone or with its write scope
+  scopes: [String!]!
+  createdAt: Timestamp! @default(expr: "request.time")
+  # When an agent last called the module through it, written at most once a minute
+  lastUsedAt: Timestamp
+}
+
+# A token an external agent holds, kept only as its hash, so a leaked table opens nothing.
+#
+# A refresh rotates: the spent token is kept with `usedAt`, and its successors are derived from it
+# under the `oauth-token-secret` version it records, so the same token presented again within 30
+# seconds is answered with the same pair, recomputed, and after that revokes the connection. The
+# daily sweep deletes the tokens past `expiresAt`, which the index serves
+type AgentConnectionToken @table @index(fields: ["expiresAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `connectionId: UUID!` column, cascade deleting
+  connection: AgentConnection!
+  kind: AgentConnectionTokenKind!
+  # SHA-256 of the token, in base64url. The token itself is 256 bits, random or derived, and never
+  # stored
+  hash: String! @unique
+  # The module's address the token was issued for (RFC 8707), which the verifier compares to the
+  # endpoint's, so a token for one module never opens another
+  resource: String!
+  # What the token was issued from: the authorization request whose code was exchanged, or the
+  # refresh token rotated. No reference, since either may be pruned before it
+  issuedFrom: UUID!
+  expiresAt: Timestamp!
+  # When a refresh token was rotated. Null for an access token, and for a refresh token not spent
+  usedAt: Timestamp
+  # The version of `oauth-token-secret` the successors were derived under, so a duplicate derives
+  # them again under the very same version, whichever an instance holds as its latest
+  successorKeyVersion: Int
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# A request an external agent made to act as a member, from `GET /oauth/authorize`, which the
+# member allows or denies on the consent page. Nobody is signed in when it is made, so it is
+# rate-limited per address and capped in all, at 1000 in ten minutes
+# (`MAX_OAUTH_AUTHORIZATION_REQUESTS` in the backend), which the index on `createdAt` serves.
+#
+# It is pending for ten minutes. Allow and Deny each decide it once, under a check that it is still
+# undecided and unexpired, and Allow leaves a code on it, valid for a minute and once, bound to the
+# client, the redirect address, the PKCE challenge, the resource and the scopes. The daily sweep
+# deletes a request expired over a day ago, which the index on `expiresAt` serves, so a code
+# presented again within that day still revokes its connection
+type OAuthAuthorizationRequest @table @index(fields: ["createdAt"]) @index(fields: ["expiresAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # The client's `client_id` as it presented it: a registered client's id, or the address of its
+  # client ID metadata document, which is fetched only once a member reads the request
+  clientId: String!
+  # The registration, for a registered client. Implies a `registeredClientId: UUID` column, set to
+  # null on delete
+  registeredClient: OAuthClient
+  # Where the client asked to be sent back, exactly as it wrote it, which the code's exchange has to
+  # name again
+  redirectUri: String!
+  # The PKCE challenge, S256 alone, in base64url
+  codeChallenge: String!
+  # The module's address (RFC 8707), in its canonical form
+  resource: String!
+  # The scopes asked for: the module's read scope, alone or with its write scope
+  scopes: [String!]!
+  # The client's `state`, sent back with the answer as it wrote it. Null when it sent none
+  state: String
+  expiresAt: Timestamp!
+  # When the member allowed or denied it, and which
+  decidedAt: Timestamp
+  isApproved: Boolean
+  # The connection Allow made. Implies a `connectionId: UUID` column, set to null on delete, so a
+  # code whose connection was replaced or revoked opens nothing
+  connection: AgentConnection
+  # SHA-256 of the code Allow issued, in base64url, by which the token endpoint finds the request
+  codeHash: String @unique
+  codeExpiresAt: Timestamp
+  # When the code was exchanged, so a code presented again revokes its connection
+  codeUsedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
 }

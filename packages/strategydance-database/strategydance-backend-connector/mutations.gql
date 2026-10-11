@@ -3346,3 +3346,277 @@ mutation IndexTaskText($id: UUID!, $updatedAt: Timestamp!, $descriptionText: Str
     data: { descriptionText: $descriptionText }
   )
 }
+
+# The authorization server's writes follow. Most of them run before any `$userId` has been
+# verified, finding a request, a code or a token by its id or its hash, as `queries.gql` says of its
+# reads. Every lifetime is written out here, since Data Connect takes no duration in a variable:
+# each names the backend constant to change with it
+
+# Registers an external agent (RFC 7591), which anybody can do, so registrations are held to 1000 a
+# day in all (`MAX_OAUTH_CLIENT_REGISTRATIONS_PER_DAY` in the backend: change the two together). A
+# count rather than a lock, since no row stands for all of them: a few registrations at once can
+# pass it by as many, which bounds them all the same. Read to 1000, since past that a registration
+# is refused whatever the rest are
+mutation CreateOAuthClient($name: String, $redirectUris: [String!]!) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    oAuthClients(where: { createdAt: { gt_time: { now: true, sub: { days: 1 } } } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "Strategy Dance takes no more registrations today")
+      @check(
+        expr: "!has(vars.name) || vars.name == null || (size(vars.name) >= 1 && size(vars.name) <= 80)"
+        message: "A client's name is 1 to 80 characters"
+      )
+      @check(
+        expr: "size(vars.redirectUris) >= 1 && size(vars.redirectUris) <= 10"
+        message: "A client registers 1 to 10 redirect addresses"
+      ) {
+      id
+    }
+  }
+  oAuthClient_insert(data: { name: $name, redirectUris: $redirectUris })
+}
+
+# Stores an authorization request an external agent made, pending for ten minutes
+# (`OAUTH_AUTHORIZATION_REQUEST_LIFETIME_MS` in the backend). Nobody is signed in yet, so requests
+# are held to 1000 in ten minutes in all (`MAX_OAUTH_AUTHORIZATION_REQUESTS` in the backend), past
+# what any one address may make: a count, as `CreateOAuthClient`'s is. `$registeredClientId` is null
+# for a client ID metadata document's
+mutation CreateOAuthAuthorizationRequest(
+  $clientId: String!
+  $registeredClientId: UUID
+  $redirectUri: String!
+  $codeChallenge: String!
+  $resource: String!
+  $scopes: [String!]!
+  $state: String
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    oAuthAuthorizationRequests(where: { createdAt: { gt_time: { now: true, sub: { minutes: 10 } } } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "Strategy Dance takes no more authorization requests for now") {
+      id
+    }
+  }
+  oAuthAuthorizationRequest_insert(
+    data: {
+      clientId: $clientId
+      registeredClientId: $registeredClientId
+      redirectUri: $redirectUri
+      codeChallenge: $codeChallenge
+      resource: $resource
+      scopes: $scopes
+      state: $state
+      expiresAt_time: { now: true, add: { minutes: 10 } }
+    }
+  )
+}
+
+# Marks a registered client used when an authorization names it, so a client in use is not pruned.
+# Its own operation, since a skipped step still refuses a null key
+mutation UseOAuthClient($id: UUID!) @auth(level: NO_ACCESS) {
+  oAuthClient_update(id: $id, data: { lastUsedAt_expr: "request.time" })
+}
+
+# A member allows an external agent to act as them on one module in one organization: the connection
+# and the code, valid for a minute (`OAUTH_CODE_LIFETIME_MS` in the backend), bound to the request.
+#
+# The first step writes the member's membership, the lock a run's start and a search take too, so
+# two consents at once for one client, organization and module take turns, and refuses anybody who
+# is not that member: by its check, or first by the connection's reference to the membership
+# (`agent_connection_membership_fkey`), which Data Connect reports before the check, and the backend
+# reads the two as one refusal. The earlier connection for that client and module goes, with its tokens, and
+# the new one takes its place, so the member holds one connection for it, of the access they last
+# allowed. The request is decided last, since it references the connection, and only while it is
+# undecided and unexpired, for the client and the resource it names, granting no scope it did not
+# ask for: a check refusing it rolls the whole mutation back, so a double submit, or an Allow racing
+# a Deny, decides it once. `$userId` is the uid the backend verified, and `$connectionId` and
+# `$codeHash` are the backend's own
+mutation ApproveOAuthAuthorizationRequest(
+  $id: UUID!
+  $userId: String!
+  $organizationId: UUID!
+  $connectionId: UUID!
+  $clientId: String!
+  $registeredClientId: UUID
+  $clientName: String
+  $module: String!
+  $resource: String!
+  $scopes: [String!]!
+  $codeHash: String!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can connect an agent to it")
+  agentConnection_deleteMany(
+    where: {
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      clientId: { eq: $clientId }
+      module: { eq: $module }
+    }
+  ) @redact
+  agentConnection_insert(
+    data: {
+      id: $connectionId
+      membershipUserId: $userId
+      membershipOrganizationId: $organizationId
+      clientId: $clientId
+      registeredClientId: $registeredClientId
+      clientName: $clientName
+      module: $module
+      scopes: $scopes
+    }
+  )
+  oAuthAuthorizationRequest_updateMany(
+    where: {
+      id: { eq: $id }
+      clientId: { eq: $clientId }
+      resource: { eq: $resource }
+      scopes: { includesAll: $scopes }
+      decidedAt: { isNull: true }
+      expiresAt: { gt_time: { now: true } }
+    }
+    data: {
+      decidedAt_expr: "request.time"
+      isApproved: true
+      connectionId: $connectionId
+      codeHash: $codeHash
+      codeExpiresAt_time: { now: true, add: { minutes: 1 } }
+    }
+  ) @check(expr: "this == 1", message: "The authorization request was decided already or has expired")
+}
+
+# A member denies an external agent: the request is decided, only while it is undecided and
+# unexpired, so a denied request is never allowed after, nor an allowed one denied
+mutation DenyOAuthAuthorizationRequest($id: UUID!) @auth(level: NO_ACCESS) @transaction {
+  oAuthAuthorizationRequest_updateMany(
+    where: { id: { eq: $id }, decidedAt: { isNull: true }, expiresAt: { gt_time: { now: true } } }
+    data: { decidedAt_expr: "request.time", isApproved: false }
+  ) @check(expr: "this == 1", message: "The authorization request was decided already or has expired")
+}
+
+# Exchanges a code for an access token, valid for an hour (`OAUTH_ACCESS_TOKEN_LIFETIME_MS` in the
+# backend), and a refresh token, for 30 days (`OAUTH_REFRESH_TOKEN_LIFETIME_MS`), both bound to the
+# code's resource. The code is consumed first, once, within its minute, on the connection the backend
+# read: a code used already, expired, or whose connection was replaced or revoked since issues
+# nothing. The tokens' hashes are the backend's own
+mutation ExchangeOAuthAuthorizationCode(
+  $id: UUID!
+  $codeHash: String!
+  $connectionId: UUID!
+  $resource: String!
+  $accessTokenHash: String!
+  $refreshTokenHash: String!
+) @auth(level: NO_ACCESS) @transaction {
+  oAuthAuthorizationRequest_updateMany(
+    where: {
+      id: { eq: $id }
+      codeHash: { eq: $codeHash }
+      connectionId: { eq: $connectionId }
+      codeUsedAt: { isNull: true }
+      codeExpiresAt: { gt_time: { now: true } }
+    }
+    data: { codeUsedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The code was used already or has expired")
+  access: agentConnectionToken_insert(
+    data: {
+      connectionId: $connectionId
+      kind: ACCESS
+      hash: $accessTokenHash
+      resource: $resource
+      issuedFrom: $id
+      expiresAt_time: { now: true, add: { hours: 1 } }
+    }
+  )
+  refresh: agentConnectionToken_insert(
+    data: {
+      connectionId: $connectionId
+      kind: REFRESH
+      hash: $refreshTokenHash
+      resource: $resource
+      issuedFrom: $id
+      expiresAt_time: { now: true, add: { days: 30 } }
+    }
+  )
+}
+
+# Rotates a refresh token: it is spent, once, recording the secret's version its successors were
+# derived under, and the successors are stored, an access token for an hour and a refresh token for
+# 30 days, as a code's are. A token spent already, or expired, rotates nothing, and the backend reads
+# it again to answer a duplicate or revoke the connection
+mutation RotateAgentConnectionRefreshToken(
+  $id: UUID!
+  $connectionId: UUID!
+  $resource: String!
+  $successorKeyVersion: Int!
+  $accessTokenHash: String!
+  $refreshTokenHash: String!
+) @auth(level: NO_ACCESS) @transaction {
+  agentConnectionToken_updateMany(
+    where: {
+      id: { eq: $id }
+      connectionId: { eq: $connectionId }
+      kind: { eq: REFRESH }
+      usedAt: { isNull: true }
+      expiresAt: { gt_time: { now: true } }
+    }
+    data: { usedAt_expr: "request.time", successorKeyVersion: $successorKeyVersion }
+  ) @check(expr: "this == 1", message: "The refresh token was used already or has expired")
+  access: agentConnectionToken_insert(
+    data: {
+      connectionId: $connectionId
+      kind: ACCESS
+      hash: $accessTokenHash
+      resource: $resource
+      issuedFrom: $id
+      expiresAt_time: { now: true, add: { hours: 1 } }
+    }
+  )
+  refresh: agentConnectionToken_insert(
+    data: {
+      connectionId: $connectionId
+      kind: REFRESH
+      hash: $refreshTokenHash
+      resource: $resource
+      issuedFrom: $id
+      expiresAt_time: { now: true, add: { days: 30 } }
+    }
+  )
+}
+
+# Revokes a connection with every token it holds, which their references cascade to: for a code or a
+# spent refresh token presented again, whose holder replays what somebody else already used, and for
+# a refresh token its client revokes. Revoking it twice revokes nothing
+mutation RevokeAgentConnection($id: UUID!) @auth(level: NO_ACCESS) {
+  agentConnection_deleteMany(where: { id: { eq: $id } })
+}
+
+# Revokes one access token its client revokes, leaving the connection and its refresh token
+mutation DeleteAgentConnectionAccessToken($id: UUID!) @auth(level: NO_ACCESS) {
+  agentConnectionToken_deleteMany(where: { id: { eq: $id }, kind: { eq: ACCESS } })
+}
+
+# The daily sweep's: deletes the authorization requests expired over a day ago, so a code presented
+# again within that day is still traced to its connection. Deleting them twice deletes nothing, as
+# for each of the sweep's deletes
+mutation PruneOAuthAuthorizationRequests @auth(level: NO_ACCESS) {
+  oAuthAuthorizationRequest_deleteMany(where: { expiresAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# The daily sweep's: deletes the tokens past their expiry, a refresh token spent or not
+mutation PruneAgentConnectionTokens @auth(level: NO_ACCESS) {
+  agentConnectionToken_deleteMany(where: { expiresAt: { lt_time: { now: true } } })
+}
+
+# The daily sweep's: deletes the registrations made over a day ago that no authorization has named
+# for a day and that no connection uses
+mutation PruneOAuthClients @auth(level: NO_ACCESS) {
+  oAuthClient_deleteMany(
+    where: {
+      _and: [
+        { createdAt: { lt_time: { now: true, sub: { days: 1 } } } }
+        { _or: [{ lastUsedAt: { isNull: true } }, { lastUsedAt: { lt_time: { now: true, sub: { days: 1 } } } }] }
+        { agentConnections_on_registeredClient: { count: { eq: 0 } } }
+      ]
+    }
+  )
+}

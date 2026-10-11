@@ -850,11 +850,13 @@ in `utils/`, one concern per file.
   `ApiResponse` (`respondJsonRpcError` for what they refuse before the handler), and carry no App
   Check, which no external agent can carry: the bearer token is the guard. In order: any other
   method 405; an `Origin` other than the app's 403 (the SDK's `originValidation`, against DNS
-  rebinding), one without passing; `requireBearerAuth` with the token verifier and the endpoint's
-  address as `expectedResource`, a 401 naming the module's protected resource metadata;
-  `moduleRateLimitMiddleware`, per connection; then the body, 1 MiB at most, parsed only once the
-  token is verified and handed to the handler whole, `(request, response) => nodeHandler(request,
-  response, request.body)`, since the parser consumed the stream. They answer the app's origins
+  rebinding), one without passing; `moduleAddressRateLimitMiddleware`, per address, counting
+  refused calls alone, so made-up tokens cost a bounded number of reads; `requireBearerAuth` with
+  the token verifier and the endpoint's address as `expectedResource`, a 401 naming the module's
+  protected resource metadata; `moduleRateLimitMiddleware`, per connection; then the body, 1 MiB at
+  most, parsed only once the token is verified and handed to the handler whole, `(request,
+  response) => nodeHandler(request, response, request.body)`, since the parser consumed the stream.
+  They answer the app's origins
   alone, no browser client being served yet. Each served module's protected resource metadata (RFC
   9728) is `routes/moduleMetadata.ts`, the SDK's `mcpAuthMetadataRouter` mounted at the app's root,
   since its path ends with the module's, never under `/mcp`, and answers any origin, its path in

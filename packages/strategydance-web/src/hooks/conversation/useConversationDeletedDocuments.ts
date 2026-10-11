@@ -13,11 +13,14 @@ import { dataConnect } from '~data/firebase'
 
 const NONE: ReadonlyMap<string, ConversationDeletedDocument> = new Map()
 
+// How many calls' outputs one read takes, `GetConversationToolOutputs`' limit
+const OUTPUTS_LENGTH = 50
+
 /*
   The documents a conversation's `delete_document` calls deleted, by the call's message, and until
-  when each can be restored, read from the calls' outputs in one read for all of them, which never
-  change once a call succeeded: read again only when the rows are others. Empty until it is read,
-  and when it could not be, when no row offers Restore
+  when each can be restored, read from the calls' outputs together, 50 a read, which never change
+  once a call succeeded: read again only when the rows are others. Empty until it is read, and when
+  it could not be, when no row offers Restore
 */
 function useConversationDeletedDocuments(conversationId: string, messageIds: string[]) {
   const { data: viewer } = useAuthentication()
@@ -29,14 +32,21 @@ function useConversationDeletedDocuments(conversationId: string, messageIds: str
   const { data } = useQuery({
     queryKey: ['GetConversationToolOutputs', organizationId, conversationId, messageIds, viewerId],
     queryFn: async () => {
-      const { data: result } = await getConversationToolOutputs(
-        dataConnect,
-        { organizationId: organizationId!, id: conversationId, messageIds },
-        { fetchPolicy: QueryFetchPolicy.SERVER_ONLY },
+      const batches = Array.from({ length: Math.ceil(messageIds.length / OUTPUTS_LENGTH) }, (_, index) =>
+        messageIds.slice(index * OUTPUTS_LENGTH, (index + 1) * OUTPUTS_LENGTH),
+      )
+      const results = await Promise.all(
+        batches.map(batch =>
+          getConversationToolOutputs(
+            dataConnect,
+            { organizationId: organizationId!, id: conversationId, messageIds: batch },
+            { fetchPolicy: QueryFetchPolicy.SERVER_ONLY },
+          ),
+        ),
       )
       const deleted = new Map<string, ConversationDeletedDocument>()
 
-      for (const { id, toolOutput } of result.conversationMessages) {
+      for (const { id, toolOutput } of results.flatMap(({ data }) => data.conversationMessages)) {
         const document = readConversationDeletedDocument(toolOutput)
 
         if (document) deleted.set(id, document)

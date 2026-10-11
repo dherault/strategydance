@@ -22,9 +22,9 @@ describe('readConversationDeletedDocumentIds', () => {
     ).toEqual(['a', 'c'])
   })
 
-  it('reads the latest 50, as one read takes', () => {
+  it('reads every one, however many the thread holds', () => {
     const entries = Array.from({ length: 60 }, (_, index) => entry(String(index).padStart(2, '0'), 'delete_document'))
 
-    expect(readConversationDeletedDocumentIds(entries)).toEqual(entries.slice(10).map(({ id }) => id))
+    expect(readConversationDeletedDocumentIds(entries)).toEqual(entries.map(({ id }) => id))
   })
 })

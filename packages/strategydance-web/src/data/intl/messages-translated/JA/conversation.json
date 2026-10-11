@@ -1,7 +1,7 @@
 {
   "conversation.addAspects": "アスペクトを追加",
   "conversation.allConversations": "すべての会話",
-  "conversation.aspectsDescription": "タグ付けされた各アスペクトのページに表示されます。手動で設定すると、Strategy Danceによる自動タグ付けは行われなくなります。",
+  "conversation.aspectsDescription": "アスペクトを選択するまでは、Strategy Danceが自動で会話にタグ付けします。",
   "conversation.aspectsError": "アスペクトを保存できませんでした。接続を確認してもう一度お試しください。",
   "conversation.aspectsFull": "この会話は上限に達しているため、アスペクトを変更できません。",
   "conversation.aspectsNote.changed": "アスペクトを変更しました",

@@ -1,7 +1,7 @@
 {
   "conversation.addAspects": "Adicionar aspectos",
   "conversation.allConversations": "Todas as conversas",
-  "conversation.aspectsDescription": "Aparece na página de cada aspecto associado. O Strategy Dance deixa de adicionar aspectos depois que você o fizer.",
+  "conversation.aspectsDescription": "O Strategy Dance adiciona tags a uma conversa por conta própria até que você escolha seus aspectos.",
   "conversation.aspectsError": "Não foi possível salvar os aspectos. Verifique sua conexão e tente novamente.",
   "conversation.aspectsFull": "Esta conversa está cheia, portanto seus aspectos não podem mais ser alterados.",
   "conversation.aspectsNote.changed": "Você alterou os aspectos",

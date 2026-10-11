@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
+import type { CompanyAspect } from 'strategydance-database/web'
 
 import useConversation from '~hooks/conversation/useConversation'
 import useConversationRun from '~hooks/conversation/useConversationRun'
@@ -24,7 +25,9 @@ type Props = {
   stored yet, whose thread is empty and says what to ask.
 
   The composer stays where it is whichever the page draws, so a draft's first message, which
-  stores the conversation, leaves it mounted with whatever is written in it.
+  stores the conversation, leaves it mounted with whatever is written in it. A draft holds the
+  aspects its reader picks until that message, which sends them, so Strategy Dance leaves them as
+  they are.
 
   The run the reader last started, by a send, a resume or a retry, is the page's, so the composer
   and the thread both count it as going before the live read of the latest run shows it
@@ -34,6 +37,7 @@ function ConversationPage({ conversationId }: Props) {
   const { data: conversation } = useConversation(conversationId)
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useState<StartedConversationRun | null>(null)
+  const [draftAspects, setDraftAspects] = useState<CompanyAspect[]>([])
 
   return (
     // The column fills the screen, as the design has it, so the composer sits at its foot however
@@ -41,7 +45,11 @@ function ConversationPage({ conversationId }: Props) {
     // column's top padding and, on a phone, the bar over the page
     <ConversationLayout className="min-h-[calc(100svh-1.25rem)] max-md:min-h-[calc(100svh-4.25rem)]">
       <ConversationBar updatedAt={conversation?.updatedAt ?? null} />
-      <ConversationHead conversation={conversation} />
+      <ConversationHead
+        conversation={conversation}
+        draftAspects={draftAspects}
+        onDraftAspectsChange={setDraftAspects}
+      />
       {conversation ? (
         <ConversationThread
           conversation={conversation}
@@ -60,6 +68,7 @@ function ConversationPage({ conversationId }: Props) {
         run={run}
         startedRun={startedRun}
         onRunStart={setStartedRun}
+        draftAspects={draftAspects}
       />
     </ConversationLayout>
   )

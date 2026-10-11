@@ -518,8 +518,7 @@ const conversationMessages = defineMessages({
   },
   aspectsDescription: {
     id: 'conversation.aspectsDescription',
-    defaultMessage:
-      'It shows up on the page of each aspect it is tagged with. Strategy Dance no longer tags it once you do.',
+    defaultMessage: 'Strategy Dance tags a conversation by itself until you pick its aspects.',
     description:
       "Line under the title of the dialog that tags a conversation with aspects of the company. The AI, Strategy Dance, picks a conversation's aspects by itself until the reader picks them.",
   },

@@ -1191,6 +1191,12 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "TagConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "StartConversation"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1402,6 +1408,12 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
   onMutationExecuted: {
     operation: "UpdateConversationAspects"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "TagConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
 @refresh(
@@ -1740,6 +1752,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "DrawConversationAgentText"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "TagConversationAspects"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

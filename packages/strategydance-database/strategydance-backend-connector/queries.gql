@@ -390,12 +390,14 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     context
     usage
   }
+  # Who set its aspects, which says whether the first exchange's run tags it
   conversation(id: $conversationId) {
     deletedAt
     activeRunId
     nextMessagePosition
     messageCount
     previewMessageId
+    aspectsSetBy
   }
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt

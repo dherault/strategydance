@@ -4,6 +4,8 @@ import { MAX_OAUTH_PARAMETER_LENGTH, OAUTH_CONSENT_URL, OAUTH_ISSUER } from '~co
 
 import { dataConnect } from '~firebase'
 
+import toHyphenatedUuid from '~utils/toHyphenatedUuid'
+
 import buildAuthorizationResponseUrl from '~domain/oauth/buildAuthorizationResponseUrl'
 import checkClientIdUrl from '~domain/oauth/checkClientIdUrl'
 import checkPkceChallenge from '~domain/oauth/checkPkceChallenge'
@@ -151,7 +153,7 @@ async function startOAuthAuthorization(query: string): Promise<Authorization> {
     throw error
   }
 
-  return { outcome: 'redirect', url: `${OAUTH_CONSENT_URL}?request=${requestId}` }
+  return { outcome: 'redirect', url: `${OAUTH_CONSENT_URL}?request=${toHyphenatedUuid(requestId)}` }
 }
 
 export default startOAuthAuthorization

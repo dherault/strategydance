@@ -143,10 +143,18 @@ async function requestConversationTagging({
   }
 }
 
-// The request's input as counted, or its JSON length over three when it cannot be: the figure only
-// charges a request a crash left unsettled
+/*
+  The request's input as counted, its schema included, which the API bills as input too (probed on
+  2026-10-11: 528 tokens without it, 856 with it, as billed), or its JSON length over three when it
+  cannot be counted: the figure only charges a request a crash left unsettled
+*/
 async function countInput(client: ClaudeClient, body: ReturnType<typeof buildConversationTaggingRequest>) {
-  const counted: MessageCountTokensParams = { model: body.model, system: body.system, messages: body.messages }
+  const counted: MessageCountTokensParams = {
+    model: body.model,
+    system: body.system,
+    messages: body.messages,
+    output_config: body.output_config,
+  }
 
   try {
     return await client.countTokens(counted)

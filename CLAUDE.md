@@ -604,7 +604,9 @@ A conversation is kept twice, once for Claude and once for the page, and
   its mentions, where its send stands and the run the reader last started are kept by account,
   organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
   drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
-  anything new a message holds, as attachments will, goes there too, never in a view's own state
+  anything new a message holds, as attachments will, goes there too, never in a view's own state.
+  A question's answer under way is kept the same way (`~data/conversationQuestionAnswers`), and
+  anything else a reader has under way in a conversation joins them on `createTabStore`
 - A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
   `scrollerRef`: whatever scrolls the thread, or measures what the reader sees of it, takes that
   box, through `readConversationViewport` and `scrollConversationToEnd`, never `window` directly

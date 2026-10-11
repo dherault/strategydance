@@ -121,6 +121,10 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
         conversationId,
         messageId,
         text: sentText,
+        // A draft's aspects as the reader holds them now, a retry's too: a first send the backend
+        // never stored takes the latest pick, and one it did store brings its conversation in,
+        // whose head then shows the aspects stored. Resending the first pick would drop the latest
+        // in the first case, and a new message's id would store the same words twice in the second
         aspects: conversation ? [] : draftAspects,
       })
 

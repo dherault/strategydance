@@ -679,7 +679,7 @@ async function checkConnectedAgents() {
 
 // A member connects at most `MAX_AGENT_CONNECTIONS` agents, so the Connected agents tab lists every one
 async function checkConnectionCap() {
-  const capClientIds = Array.from({ length: MAX_AGENT_CONNECTIONS + 1 }, (_, index) => {
+  const capClientIds: string[] = Array.from({ length: MAX_AGENT_CONNECTIONS + 1 }, (_, index) => {
     return `https://check-${checkId}-cap${index}.example.com/agent.json`
   })
   const { agentConnections: held } = await read<{ agentConnections: { id: string }[] }>(
@@ -725,11 +725,54 @@ async function checkConnectionCap() {
       && (await readConnections(last)).length === 1,
   )
 
+  // Consents in two organizations at once, one below the cap: the member's row takes them in turn
   await write(
-    `mutation Empty($userId: String!, $clientIds: [String!]!) {
-      agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { in: $clientIds } })
+    `mutation Join($userId: String!, $organizationId: UUID!) {
+      userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
     }`,
-    { userId, clientIds: capClientIds },
+    { userId, organizationId: otherOrganizationId },
+  )
+
+  let heldCap = true
+
+  for (let round = 0; round < 5; round++) {
+    await write(
+      `mutation Free($userId: String!, $clientId: String!) {
+        agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { eq: $clientId } })
+      }`,
+      { userId, clientId: capClientIds[round]! },
+    )
+
+    const racing = [
+      `https://check-${checkId}-race${round}a.example.com/agent.json`,
+      `https://check-${checkId}-race${round}b.example.com/agent.json`,
+    ]
+    const requests = await Promise.all(racing.map(clientId => createRequest(clientId)))
+    const causes = await Promise.all([
+      refusal(approve(requests[0]!, racing[0]!).approval),
+      refusal(approve(requests[1]!, racing[1]!, { organization: otherOrganizationId }).approval),
+    ])
+    const { agentConnections: connected } = await read<{ agentConnections: { id: string }[] }>(
+      `query Held($userId: String!) { agentConnections(where: { membershipUserId: { eq: $userId } }) { id } }`,
+      { userId },
+    )
+
+    capClientIds.push(...racing)
+
+    if (causes.filter(cause => cause === null).length !== 1 || connected.length !== MAX_AGENT_CONNECTIONS) {
+      heldCap = false
+      console.log(`        ${causes.map(cause => cause ?? 'allowed').join(' / ')}, ${connected.length} connected`)
+    }
+  }
+
+  check('consents in two organizations at once, one below the cap, let one through', heldCap)
+
+  await write(
+    `mutation Empty($userId: String!, $clientIds: [String!]!, $otherOrganizationId: UUID!) {
+      agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { in: $clientIds } })
+      userOrganization_delete(key: { userId: $userId, organizationId: $otherOrganizationId })
+    }`,
+    { userId, clientIds: capClientIds, otherOrganizationId },
   )
 }
 

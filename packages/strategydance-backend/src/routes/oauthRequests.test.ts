@@ -426,6 +426,34 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(fake.connections.has('connection-0')).toBe(false)
   })
 
+  test('holds the cap across organizations when consents in two of them go at once', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    for (let index = 0; index < MAX_AGENT_CONNECTIONS - 1; index++) {
+      fake.connections.set(`connection-${index}`, {
+        id: `connection-${index}`,
+        userId: MEMBER,
+        organizationId: ORGANIZATION_ID,
+        clientId: `https://agent${index}.example.com/metadata.json`,
+        registeredClientId: null,
+        clientName: 'An agent',
+        module: 'knowledge',
+        scopes: ['knowledge:read'],
+        createdAt: new Date().toISOString(),
+        lastUsedAt: null,
+      })
+    }
+
+    const requests = await Promise.all([createRequest(), createRequest({ clientId: createDocumentClient() })])
+    const answers = await Promise.all([
+      approve(requests[0]!, undefined, ORGANIZATION_ID),
+      approve(requests[1]!, undefined, OTHER_ORGANIZATION_ID),
+    ])
+
+    expect(answers.map(({ status }) => status).sort()).toEqual([200, 409])
+    expect(fake.connections.size).toBe(MAX_AGENT_CONNECTIONS)
+  })
+
   test('removing the member deletes the connection with its tokens', async () => {
     await approve(await createRequest())
 

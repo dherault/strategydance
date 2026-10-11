@@ -1,4 +1,5 @@
 import type { ConversationSendFailure } from '~utils/conversation/getConversationSendFailure'
+import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 
 /*
   The message the reader is writing to a conversation, and where its sending stands: what a
@@ -15,6 +16,9 @@ export type ConversationComposerDraft = {
   failedSend: { messageId: string; text: string } | null
   // Why the last send failed, until the reader writes again
   failure: ConversationSendFailure | null
+  // The run the reader last started, by a send, a resume, a retry or an answer, which counts as
+  // going before the live read of the latest run shows it, wherever the conversation is drawn
+  startedRun: StartedConversationRun | null
 }
 
 export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
@@ -23,13 +27,21 @@ export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
   sendingMessageId: null,
   failedSend: null,
   failure: null,
+  startedRun: null,
 }
 
 const drafts = new Map<string, ConversationComposerDraft>()
 const listeners = new Set<() => void>()
 
 function isEmpty(draft: ConversationComposerDraft) {
-  return !draft.text && !draft.mentions.size && !draft.sendingMessageId && !draft.failedSend && !draft.failure
+  return (
+    !draft.text
+    && !draft.mentions.size
+    && !draft.sendingMessageId
+    && !draft.failedSend
+    && !draft.failure
+    && !draft.startedRun
+  )
 }
 
 /*

@@ -151,6 +151,10 @@ function ConversationComposer({
         aspects: conversation ? [] : draftAspects,
       })
 
+      // The run is recorded before the send stops going, so no composer drawing the conversation
+      // ever sees neither going, and lets a second send race it
+      onRunStart(isRetry ? null : { runId, previousRunId })
+
       // What was written while it went, its words or a mention picked over words left as they were,
       // is the reader's next message, which stays: only the message as it was sent is cleared
       let isSentAsWritten = false
@@ -166,8 +170,6 @@ function ConversationComposer({
       })
 
       if (isSentAsWritten) mentions.reset()
-
-      onRunStart(isRetry ? null : { runId, previousRunId })
 
       // Unless the reader has left the page while it went, for one this must not move
       const textarea = textareaRef.current

@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useIntl } from 'react-intl'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import useConversation from '~hooks/conversation/useConversation'
 import useConversationRun from '~hooks/conversation/useConversationRun'
-
-import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
+import useConversationStartedRun from '~hooks/conversation/useConversationStartedRun'
 
 import ConversationComposer from '~components/conversation/ConversationComposer'
 import ConversationThread from '~components/conversation/ConversationThread'
@@ -24,14 +23,15 @@ type Props = {
   What an open window of the dock holds: the conversation's thread, small, in a box of its own that
   scrolls, or a draft's line saying what to ask, and the composer under it. As on the page, the
   composer stays where it is whichever the window draws, so a draft's first message, which stores
-  the conversation, leaves it mounted, and the run the reader last started is the window's, so the
-  composer and the thread both count it as going before the live read of the latest run shows it
+  the conversation, leaves it mounted, and the run the reader last started is the conversation's, so
+  the composer and the thread both count it as going before the live read of the latest run shows
+  it, here or on the page
 */
 function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
   const { formatMessage } = useIntl()
   const { data: conversation } = useConversation(conversationId)
   const { data: run } = useConversationRun(conversationId)
-  const [startedRun, setStartedRun] = useState<StartedConversationRun | null>(null)
+  const [startedRun, setStartedRun] = useConversationStartedRun(conversationId)
   const scrollerRef = useRef<HTMLDivElement>(null)
 
   return (

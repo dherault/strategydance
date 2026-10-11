@@ -224,3 +224,31 @@ export type ModuleName = (typeof MODULES)[number]['name']
 
 // A scope one of `MODULES` grants
 export type ModuleScope = (typeof MODULES)[number]['scopes'][keyof ModuleDefinition['scopes']]
+
+/*
+  What the consent page reads of an authorization request an external agent made: who is asking,
+  where the member will be sent back, the module and the access asked for. A registered client is
+  unverified, since nothing proves who registered it; a client ID metadata document's is verified,
+  and its domain is the document's. The name is the client's own, stripped of control and
+  direction characters and cut short, and never comes with a logo, which would load an address of
+  the client's choosing
+*/
+export type OAuthAuthorizationRequestSummary = {
+  client: {
+    name: string | null
+    isVerified: boolean
+    domain: string | null
+  }
+  redirectHost: string
+  // A loopback address, which any program on the member's computer could be listening on
+  isLoopbackRedirect: boolean
+  module: ModuleName
+  scopes: ModuleScope[]
+  expiresAt: string
+}
+
+// Where the consent page sends the browser once the member allowed or denied a request: back to
+// the client, or nowhere when the client could not be verified
+export type OAuthAuthorizationDecision = {
+  redirectUrl: string | null
+}

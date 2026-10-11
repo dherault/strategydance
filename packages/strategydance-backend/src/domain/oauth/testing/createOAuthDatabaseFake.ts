@@ -218,12 +218,14 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     GetAgentConnectionTokens: variables => ({
       agentConnectionTokens: [...tokens.values()]
         .filter(token => (variables.hashes as string[]).includes(token.hash) && isFuture(token.expiresAt))
-        .map(({ hash, kind, scopes, expiresAt, connectionId }) => ({
+        .map(({ hash, kind, scopes, expiresAt, connectionId, usedAt, successorKeyVersion }) => ({
           hash,
           kind,
           scopes: [...scopes],
           expiresAt,
           connectionId,
+          usedAt,
+          successorKeyVersion,
         })),
     }),
 

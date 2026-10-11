@@ -1510,7 +1510,9 @@ query GetAgentConnectionRefreshToken($hash: String!) @auth(level: NO_ACCESS) {
 }
 
 # The successors a duplicate refresh answers with, found by the hashes derived again from the spent
-# token, so the duplicate hands out nothing that was revoked or has expired since
+# token, so the duplicate hands out nothing that was revoked or has expired since, with whether the
+# refresh token was spent in turn, and under which version, so the duplicate follows the chain to
+# the pair the client holds now
 query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
   agentConnectionTokens(where: { hash: { in: $hashes }, expiresAt: { gt_time: { now: true } } }, limit: 2) {
     hash
@@ -1518,6 +1520,8 @@ query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
     scopes
     expiresAt
     connectionId
+    usedAt
+    successorKeyVersion
   }
 }
 

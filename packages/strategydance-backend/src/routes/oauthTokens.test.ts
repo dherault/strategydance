@@ -348,6 +348,18 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expect(fake.connections.size).toBe(1)
   })
 
+  test('answers a duplicate arriving after its successor rotated in turn with the pair the client holds now', async () => {
+    const { tokens } = await connect()
+    const first = (await refresh(tokens.refresh_token)).body as unknown as Tokens
+    const second = (await refresh(first.refresh_token)).body as unknown as Tokens
+    const delayed = (await refresh(tokens.refresh_token)).body as unknown as Tokens
+
+    expect(delayed.access_token).toBe(second.access_token)
+    expect(delayed.refresh_token).toBe(second.refresh_token)
+    expect((await refresh(delayed.refresh_token)).status).toBe(200)
+    expect(fake.connections.size).toBe(1)
+  })
+
   test('answers two refreshes at once with one pair', async () => {
     const { tokens } = await connect()
     const answers = await Promise.all([refresh(tokens.refresh_token), refresh(tokens.refresh_token)])

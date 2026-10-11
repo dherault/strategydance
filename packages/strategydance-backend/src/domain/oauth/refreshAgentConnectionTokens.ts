@@ -22,6 +22,9 @@ type Refresh = {
   scope?: string
 }
 
+// How many rotations a duplicate follows to the pair its client holds now
+const MAX_DUPLICATE_CHAIN = 5
+
 function refuse(error: string, description: string): TokenResult {
   return { outcome: 'error', error, description }
 }
@@ -110,28 +113,46 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
     return refuse('invalid_grant', 'The refresh token was used already, and what it issued is revoked')
   }
 
-  const secret = await readOAuthTokenSecret(token.successorKeyVersion)
-  const successors = deriveSuccessorTokens(refreshToken, secret.value)
-  const accessTokenHash = hashOAuthToken(successors.accessToken)
-  const refreshTokenHash = hashOAuthToken(successors.refreshToken)
-  const { data: stored } = await getAgentConnectionTokens(dataConnect, { hashes: [accessTokenHash, refreshTokenHash] })
-  const access = stored.agentConnectionTokens.find(({ hash }) => hash === accessTokenHash)
-  const refresh = stored.agentConnectionTokens.find(({ hash }) => hash === refreshTokenHash)
+  return answerDuplicate(refreshToken, token.successorKeyVersion, token.connection.id)
+}
 
-  // Both successors still there, on the same connection, or the duplicate hands out nothing
-  if (
-    !access
-    || !refresh
-    || access.connectionId !== token.connection.id
-    || refresh.connectionId !== token.connection.id
-  ) {
-    return refuse('invalid_grant', 'The refresh token was used already')
+/*
+  A duplicate's answer: the pair the spent token was rotated into, derived again under the version
+  its rotation recorded, while both are still stored on its connection, or nothing, so it never
+  hands out a token revoked since. When the client has rotated that refresh token in turn, as one
+  that refreshed again before a delayed duplicate arrived has, the chain is followed to the pair it
+  holds now, a few links at most, since each was rotated within the 30 seconds before
+*/
+async function answerDuplicate(spentToken: string, version: number, connectionId: string): Promise<TokenResult> {
+  let spent = spentToken
+  let successorKeyVersion = version
+
+  for (let link = 0; link < MAX_DUPLICATE_CHAIN; link++) {
+    const secret = await readOAuthTokenSecret(successorKeyVersion)
+    const successors = deriveSuccessorTokens(spent, secret.value)
+    const accessTokenHash = hashOAuthToken(successors.accessToken)
+    const refreshTokenHash = hashOAuthToken(successors.refreshToken)
+    const { data } = await getAgentConnectionTokens(dataConnect, { hashes: [accessTokenHash, refreshTokenHash] })
+    const access = data.agentConnectionTokens.find(({ hash }) => hash === accessTokenHash)
+    const refresh = data.agentConnectionTokens.find(({ hash }) => hash === refreshTokenHash)
+
+    // Both successors still there, on the same connection, or the duplicate hands out nothing
+    if (!access || !refresh || access.connectionId !== connectionId || refresh.connectionId !== connectionId) break
+
+    if (!refresh.usedAt) {
+      const expiresInSeconds = Math.max(0, Math.floor((Date.parse(access.expiresAt) - Date.now()) / 1000))
+
+      // The scopes its rotation issued, whatever this refresh names
+      return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: access.scopes, expiresInSeconds }) }
+    }
+
+    if (refresh.successorKeyVersion === null || refresh.successorKeyVersion === undefined) break
+
+    spent = successors.refreshToken
+    successorKeyVersion = refresh.successorKeyVersion
   }
 
-  const expiresInSeconds = Math.max(0, Math.floor((Date.parse(access.expiresAt) - Date.now()) / 1000))
-
-  // The scopes its first use issued, whatever this one names
-  return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: access.scopes, expiresInSeconds }) }
+  return refuse('invalid_grant', 'The refresh token was used already')
 }
 
 export default refreshAgentConnectionTokens

@@ -353,14 +353,27 @@ only way the app talks to them.
   do, so a removed member is refused with the membership's message, which the module matches
 - A step runs or not on a variable through `@include(if: $flag)`, as a module's write inserts its
   `ModuleCallResult` only when its call carries a key. The step's variables are still required,
-  so a call that skips it sends them empty
+  so a call that skips it sends them empty, and a key it names is refused null even when it is
+  skipped: a step whose key a call may lack is an operation of its own, as `RecordOAuthClientUse` is
+- A foreign key a later step violates is reported before an earlier step's `@check`, as
+  `ApproveOAuthAuthorizationRequest`'s insert refuses a caller who is not the member before its
+  lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`)
 - A mutation writes each row once. Data Connect runs the first write to a row and silently skips
   any later one in the same mutation, aliased or not: an `organization_update` row lock followed
   by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
   mutation locks is the row it writes, the write itself is the lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
-  lookup, and its comment says what that costs
+  lookup, and its comment says what that costs. The other exception is the authorization server's:
+  its backend operations find a registered client, an authorization request, a code or a token by
+  its id or its hash before any `$userId` is verified, since whoever holds a random UUID or a
+  256-bit token is whom the OAuth flow trusts, and only hashes are stored
+- A table references the account and the organization apart, so removing a member, which deletes
+  the membership and nothing else, keeps what they wrote. `AgentConnection` alone references the
+  membership, since a connection is the membership's and goes with it, its tokens with it. Data
+  Connect cannot reference a key made of references, so `UserOrganization` names its columns,
+  `userId` and `organizationId`, and the reference names them with `@ref`, its constraint named
+  short of Postgres' 63 bytes
 - An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
   invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
   has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
@@ -549,7 +562,10 @@ A conversation is kept twice, once for Claude and once for the page, and
   against the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep it. A gate added for conversations, as the integrations' will be, keys off the
-  same two
+  same two. The modules reach external agents under a gate of their own until they launch,
+  `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
+  (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
+  token verifier checks the role on every call
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, their
@@ -740,7 +756,8 @@ in `utils/`, one concern per file.
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
   from Secret Manager through `retrieveSecret` in `utils/`, which caches it for the life of the
   process: the service's account needs Secret Manager's accessor role on it, and a rotated key
-  takes effect with the next revision
+  takes effect with the next revision. A secret read by version, as `oauth-token-secret` is, goes
+  through `retrieveSecretVersion`, which says which version the latest was and keeps each apart
 - Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
   logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
   is how an invitation gets accepted locally
@@ -762,9 +779,26 @@ in `utils/`, one concern per file.
   refuses one deleted over a day ago whether or not the sweep has run. Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
   organization's documents deleted over a day ago, the conversation searches over a day old, which
-  no count reads any more, and the module call results past their expiry. A milestone that keeps
+  no count reads any more, the module call results past their expiry, and the authorization
+  server's requests expired over a day ago, its tokens past their expiry and the registrations
+  nobody uses (`domain/oauth/prune…`). A milestone that keeps
   something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
   sweep that failed is finished by the next
+- Strategy Dance's OAuth authorization server, which external agents go through to reach a module
+  as a member, is the public backend's: the protocol's own endpoints in `routes/oauth.ts`
+  (`register`, `authorize`, `token`, `revoke`), the consent page's in `routes/oauthRequests.ts`,
+  the metadata in `routes/wellKnown.ts`, and what they do in `domain/oauth/`. The protocol's
+  endpoints answer OAuth's own JSON (`respondOAuthError`), a page or a redirect, never
+  `ApiResponse`, carry no App Check, which no client could, answer any origin without credentials
+  (`OAUTH_PROTOCOL_PATHS`, which the app's `cors` reads, matched exactly), never log a body, and
+  find tokens by their hash; registration and authorization are metered per address and capped in
+  all. The consent page's routes keep the app's middleware, App Check, the ID token and
+  `modulesStaffOnlyMiddleware`, and are the only place a client ID metadata document is fetched,
+  once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
+  checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
+  fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
+  against the local backend at `API_URL` and checks the operations against the emulators: an
+  operation changed is changed in both
 - A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
   `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
   limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across

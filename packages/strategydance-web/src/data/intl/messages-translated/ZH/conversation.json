@@ -33,6 +33,7 @@
   "conversation.deleteError": "无法删除该对话。请重试。",
   "conversation.deleteLabel": "删除 {title}",
   "conversation.deleted": "已删除 {title}",
+  "conversation.documentGone": "(已不在团队知识库中)",
   "conversation.editAspects": "编辑领域：{aspects}",
   "conversation.elapsedMinutes": "{minutes} 分 {seconds} 秒",
   "conversation.elapsedSeconds": "{seconds} 秒",

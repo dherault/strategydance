@@ -1285,6 +1285,10 @@
         "hash": "0485437548c5178d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.documentGone": {
+        "hash": "87c6424c781dd84f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.editAspects": {
         "hash": "8751981768e6d041",
         "locales": "DE,ES,FR,JA,PT,ZH"

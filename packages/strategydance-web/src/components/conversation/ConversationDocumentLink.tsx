@@ -1,12 +1,15 @@
 import { Link } from '@tanstack/react-router'
 import { FileTextIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useIntl } from 'react-intl'
 
 import type { KnowledgeDocumentSummary } from '~types'
 
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import readConversationDocumentId from '~utils/conversation/readConversationDocumentId'
+
+import conversationMessages from '~data/intl/messages/conversation'
 
 const ICON_CLASS_NAME = 'mr-[3px] inline-block size-[13px] align-[-2px]'
 
@@ -21,10 +24,12 @@ type Props = {
 /*
   A link to knowledge in Strategy Dance's reply, `doc:<id>`: the document's current title with a
   file icon, opening it, whatever the agent wrote. A document the organization no longer holds,
-  deleted, pruned or never there, is the agent's words struck through and muted. Until the
+  deleted, pruned or never there, is the agent's words struck through and muted, which a screen
+  reader hears said. Until the
   documents are read, or when they could not be, the agent's words, neither linked nor struck
 */
 function ConversationDocumentLink({ href, children, documents }: Props) {
+  const { formatMessage } = useIntl()
   const organizationSlug = useCurrentOrganizationSlug()
   const documentId = readConversationDocumentId(href)
 
@@ -44,6 +49,7 @@ function ConversationDocumentLink({ href, children, documents }: Props) {
       <span className="text-muted-foreground line-through">
         <FileTextIcon className={ICON_CLASS_NAME} />
         {children}
+        <span className="sr-only"> {formatMessage(conversationMessages.documentGone)}</span>
       </span>
     )
   }

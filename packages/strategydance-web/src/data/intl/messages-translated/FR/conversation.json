@@ -33,6 +33,7 @@
   "conversation.deleteError": "Impossible de supprimer la conversation. Réessayez.",
   "conversation.deleteLabel": "Supprimer {title}",
   "conversation.deleted": "{title} supprimé",
+  "conversation.documentGone": "(ne fait plus partie des connaissances de l'équipe)",
   "conversation.editAspects": "Modifier les aspects : {aspects}",
   "conversation.elapsedMinutes": "{minutes} min {seconds} s",
   "conversation.elapsedSeconds": "{seconds} s",

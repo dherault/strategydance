@@ -33,6 +33,7 @@
   "conversation.deleteError": "Die Unterhaltung konnte nicht gelöscht werden. Versuche es erneut.",
   "conversation.deleteLabel": "{title} löschen",
   "conversation.deleted": "{title} gelöscht",
+  "conversation.documentGone": "(nicht mehr im Teamwissen)",
   "conversation.editAspects": "Aspekte bearbeiten: {aspects}",
   "conversation.elapsedMinutes": "{minutes}m {seconds}s",
   "conversation.elapsedSeconds": "{seconds}s",

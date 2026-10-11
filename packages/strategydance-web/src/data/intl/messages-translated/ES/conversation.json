@@ -33,6 +33,7 @@
   "conversation.deleteError": "No se pudo eliminar la conversación. Inténtalo de nuevo.",
   "conversation.deleteLabel": "Eliminar {title}",
   "conversation.deleted": "Se eliminó {title}",
+  "conversation.documentGone": "(ya no está en el conocimiento del equipo)",
   "conversation.editAspects": "Editar aspectos: {aspects}",
   "conversation.elapsedMinutes": "{minutes}m {seconds}s",
   "conversation.elapsedSeconds": "{seconds}s",

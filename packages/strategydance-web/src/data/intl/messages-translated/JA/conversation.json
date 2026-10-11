@@ -33,6 +33,7 @@
   "conversation.deleteError": "会話を削除できませんでした。もう一度お試しください。",
   "conversation.deleteLabel": "{title}を削除",
   "conversation.deleted": "{title}を削除しました",
+  "conversation.documentGone": "（チームのナレッジにはもうありません）",
   "conversation.editAspects": "アスペクトを編集: {aspects}",
   "conversation.elapsedMinutes": "{minutes}分{seconds}秒",
   "conversation.elapsedSeconds": "{seconds}秒",

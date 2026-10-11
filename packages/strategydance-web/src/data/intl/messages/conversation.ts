@@ -537,6 +537,12 @@ const conversationMessages = defineMessages({
     defaultMessage: 'View error',
     description: 'Button on a tool the AI used that failed, which opens what the tool was given and how it failed.',
   },
+  documentGone: {
+    id: 'conversation.documentGone',
+    defaultMessage: "(no longer in the team's knowledge)",
+    description:
+      "Read by screen readers after a link in the AI's reply to an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
+  },
   restoreDocument: {
     id: 'conversation.restoreDocument',
     defaultMessage: 'Restore',

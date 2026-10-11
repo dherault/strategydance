@@ -1,13 +1,9 @@
-import {
-  CONVERSATION_SEARCH_WINDOW_MINUTES,
-  MAX_CONVERSATION_SEARCHES,
-  MAX_DOCUMENT_CONTENT_LENGTH,
-  MAX_DOCUMENTS,
-} from 'strategydance-core'
+import { MAX_DOCUMENT_CONTENT_LENGTH, MAX_DOCUMENTS } from 'strategydance-core'
 
 import type { KnowledgeRefusal } from '~types'
 
 import toToolRefusal from '~modules/toToolRefusal'
+import toTooManySearchesSentence from '~modules/toTooManySearchesSentence'
 
 /*
   A refusal of the Knowledge module, as the model reads it: what happened, in a sentence it can act
@@ -60,15 +56,8 @@ function toSentence(refusal: KnowledgeRefusal) {
     case 'invalidCursor':
       return 'That cursor is not one this tool gave. Start again without it.'
     case 'tooManySearches':
-      return `Searches as the member are limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes, and they reached it. Search again in ${toWait(refusal.retryAfterMs)}, or call list_documents meanwhile.`
+      return toTooManySearchesSentence(refusal.retryAfterMs, 'call list_documents')
   }
-}
-
-// How long until the next search fits, in whole minutes
-function toWait(retryAfterMs: number) {
-  const minutes = Math.max(1, Math.ceil(retryAfterMs / 60_000))
-
-  return minutes === 1 ? 'a minute' : `${minutes} minutes`
 }
 
 export default toKnowledgeRefusal

@@ -162,8 +162,10 @@ knowledge."
   its id anyway. As M22 built it:
   - A mention starts the text or follows a space, and its query runs to the caret, at most 40
     characters on one line. The list sits above the field, over the composer's width, and closes
-    when the caret leaves the query or the field loses the focus; Escape keeps it closed until
-    another mention is typed. Enter picks on a touch screen too while the list shows.
+    when the caret leaves the query or the field loses the focus. Escape closes it for that mention
+    for good, the caret coming back to it included, so an Enter meant to send never picks what the
+    member turned down, while the text up to its `@` stays as it was. Enter picks on a touch screen
+    too while the list shows.
   - The composer tracks each pick by its title, the last pick winning when two documents share one.
     On sending, an `@` followed by a tracked title becomes its link, the longest title first and
     only where a word ends, so `@Planning` is no mention of "Plan". A mention edited by hand is

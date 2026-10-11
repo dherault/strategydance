@@ -1,5 +1,5 @@
 import { type QueryKey, useQueryClient } from '@tanstack/react-query'
-import { executeQuery } from 'firebase/data-connect'
+import { QueryFetchPolicy } from 'firebase/data-connect'
 import {
   type CompanyAspect,
   type GetTaskDescriptionData,
@@ -10,7 +10,7 @@ import {
   assignTask as assignTaskMutation,
   createTaskWithText as createTaskMutation,
   deleteTask as deleteTaskMutation,
-  getTasksRef,
+  getTasks,
   moveTask as moveTaskMutation,
   removeTaskDependency as removeTaskDependencyMutation,
   renameTask as renameTaskMutation,
@@ -423,9 +423,14 @@ function useTaskChanges() {
     })
   }
 
-  // The board as the server has it, past whatever the cache holds
+  // The board as the server has it, past whatever the cache holds: the SDK's own cache answers a
+  // read first by default, and would hand back the board from before the restore
   async function readServerTasks() {
-    const { data } = await executeQuery(getTasksRef(dataConnect, { organizationId: organizationId! }))
+    const { data } = await getTasks(
+      dataConnect,
+      { organizationId: organizationId! },
+      { fetchPolicy: QueryFetchPolicy.SERVER_ONLY },
+    )
 
     return data.tasks
   }

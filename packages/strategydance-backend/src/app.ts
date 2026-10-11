@@ -16,6 +16,7 @@ import createConversationsRouter from '~routes/conversations'
 import createInternalRouter from '~routes/internal'
 import createLinkPreviewsRouter from '~routes/linkPreviews'
 import createOAuthRouter from '~routes/oauth'
+import createOAuthRequestsRouter from '~routes/oauthRequests'
 import createOrganizationsRouter from '~routes/organizations'
 import createUsersRouter from '~routes/users'
 import createWellKnownRouter from '~routes/wellKnown'
@@ -67,6 +68,8 @@ function createApp({ isWorker }: Options) {
 
     app.use('/.well-known', createWellKnownRouter())
     app.use('/link-previews', createLinkPreviewsRouter())
+    // Ahead of the protocol's router, so the consent page's routes answer in the app's envelope
+    app.use('/oauth/requests', createOAuthRequestsRouter())
     app.use('/oauth', createOAuthRouter())
     // Ahead of the organizations' router, so its paths are matched first
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())

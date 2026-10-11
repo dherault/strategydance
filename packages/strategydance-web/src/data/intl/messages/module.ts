@@ -130,6 +130,24 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Deny',
     description: 'Button that refuses to let an external agent use a module.',
   },
+  fullTitle: {
+    id: 'module.fullTitle',
+    defaultMessage: 'You connected as many agents as you can',
+    description:
+      'Title of a warning on the page where a member allows an external agent, when they already connected as many agents as Strategy Dance allows.',
+  },
+  fullDescription: {
+    id: 'module.fullDescription',
+    defaultMessage: 'You can connect up to {max} agents. Disconnect one you no longer use, then allow this one again.',
+    description:
+      'Warning on the page where a member allows an external agent, when they already connected as many agents as Strategy Dance allows. {max} is that number, such as 100.',
+  },
+  openConnectedAgents: {
+    id: 'module.openConnectedAgents',
+    defaultMessage: 'Open Connected agents',
+    description:
+      "Link, opening in a new tab, to the account page's Connected agents tab, where the member disconnects agents.",
+  },
   decideError: {
     id: 'module.decideError',
     defaultMessage: 'Your answer could not be sent. Try again.',

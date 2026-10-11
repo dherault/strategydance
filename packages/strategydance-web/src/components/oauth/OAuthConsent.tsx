@@ -1,8 +1,9 @@
+import { Link } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MODULES } from 'strategydance-core'
+import { ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS, MAX_AGENT_CONNECTIONS, MODULES } from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
-import { Button } from 'strategydance-design-system/components/ui/Button'
+import { Button, buttonVariants } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useOAuthAuthorizationRequest from '~hooks/oauth/useOAuthAuthorizationRequest'
@@ -21,6 +22,7 @@ import OAuthConsentFailureNotice from '~components/oauth/OAuthConsentFailureNoti
 import OAuthConsentNotice from '~components/oauth/OAuthConsentNotice'
 import OAuthConsentOrganization from '~components/oauth/OAuthConsentOrganization'
 
+import { ApiError } from '~data/api'
 import moduleMessages from '~data/intl/messages/module'
 
 type Props = {
@@ -40,7 +42,9 @@ type Outcome = 'redirecting' | 'denied' | 'expired' | 'refused'
   Either answer sends the browser back to the agent, replacing this page, so going back never lands
   on a request already decided. While it leaves, the page says where it is going, and both buttons
   stay off. A request that expired or went meanwhile, or an agent that could not be verified, ends
-  the page instead; anything else is worth another try
+  the page instead. A member who connected as many agents as they may is told so, with the
+  Connected agents tab a new tab away, and the request, left undecided, waits for them to allow it
+  again; anything else is worth another try
 */
 function OAuthConsent({ requestId }: Props) {
   const { formatMessage } = useIntl()
@@ -52,6 +56,7 @@ function OAuthConsent({ requestId }: Props) {
   const [isWriteChosen, setIsWriteChosen] = useState(true)
   const [decision, setDecision] = useState<'allow' | 'deny' | null>(null)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
+  const [isFull, setIsFull] = useState(false)
 
   const definition = MODULES.find(({ name }) => name === request?.module)
 
@@ -84,16 +89,24 @@ function OAuthConsent({ requestId }: Props) {
       return
     }
 
+    setDecision(null)
+
+    if (error instanceof ApiError && error.code === ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS) {
+      setIsFull(true)
+
+      return
+    }
+
     console.error('Failed to answer the authorization request', error)
 
     toast.error(formatMessage(moduleMessages.decideError))
-    setDecision(null)
   }
 
   async function allow() {
     if (!organization) return
 
     setDecision('allow')
+    setIsFull(false)
 
     try {
       const redirectUrl = await approveOAuthAuthorizationRequest(requestId, organization.id, scopes)
@@ -187,6 +200,25 @@ function OAuthConsent({ requestId }: Props) {
           disabled={isDeciding}
         />
       </div>
+      {isFull ? (
+        <Alert
+          variant="warning"
+          title={formatMessage(moduleMessages.fullTitle)}
+          className="max-w-xl"
+          actions={
+            <Link
+              to="/account/connected-agents"
+              target="_blank"
+              rel="noopener"
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+              {formatMessage(moduleMessages.openConnectedAgents)}
+            </Link>
+          }
+        >
+          {formatMessage(moduleMessages.fullDescription, { max: MAX_AGENT_CONNECTIONS })}
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           disabled={isDeciding || !organization}

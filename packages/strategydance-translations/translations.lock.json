@@ -2503,6 +2503,14 @@
         "hash": "f6ee5409d5fce4ac",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.fullDescription": {
+        "hash": "e730c4663f7a0b4b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.fullTitle": {
+        "hash": "3fb0f5196115dc3b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.knowledgeName": {
         "hash": "11870396e2df3f8a",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2545,6 +2553,10 @@
       },
       "module.noOrganizationTitle": {
         "hash": "12bc2fb1d984653e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.openConnectedAgents": {
+        "hash": "87a86b712d03a0a8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.organizationLabel": {

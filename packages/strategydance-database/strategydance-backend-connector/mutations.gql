@@ -3504,13 +3504,18 @@ mutation RecordOAuthClientUse($id: UUID!) @auth(level: NO_ACCESS) {
 # A member allows an external agent to act as them on one module in one organization: the connection
 # and the code, valid for a minute (`OAUTH_CODE_LIFETIME_MS` in the backend), bound to the request.
 #
-# The first step writes the member's membership, the lock a run's start and a search take too, so
-# two consents at once for one client, organization and module take turns, and refuses anybody who
-# is not that member: by its check, or first by the connection's reference to the membership
-# (`agent_connection_membership_fkey`), which Data Connect reports before the check, and the backend
-# reads the two as one refusal. The earlier connection for that client and module goes, with its tokens, and
-# the new one takes its place, so the member holds one connection for it, of the access they last
-# allowed. The request is decided last, since it references the connection, and only while it is
+# The first step writes the member's own row, a lock every consent of theirs takes in whichever
+# organization, so their consents take turns, two at once for one client, organization and module
+# included. Nothing else writes a user row and a membership both, so taking the two in this order
+# waits on nobody holding them the other way. The second writes the member's membership, the lock a
+# run's start and a search take too, and refuses anybody who is not that member: by its check, or
+# first by the connection's reference to the membership (`agent_connection_membership_fkey`), which
+# Data Connect reports before the check, and the backend reads the two as one refusal. A member
+# connects at most 100 agents across their organizations (`MAX_AGENT_CONNECTIONS` in
+# strategydance-core), counted after both, leaving out the connection this one replaces, so the
+# Connected agents tab, which reads that many, lists every one. The earlier connection for that
+# client and module goes, with its tokens, and the new one takes its place, so the member holds
+# one connection for it, of the access they last allowed. The request is decided last, since it references the connection, and only while it is
 # undecided and unexpired, for the client and the resource it names, granting no scope it did not
 # ask for: a check refusing it rolls the whole mutation back, so a double submit, or an Allow racing
 # a Deny, decides it once. `$userId` is the uid the backend verified, and `$connectionId` and
@@ -3528,10 +3533,30 @@ mutation ApproveOAuthAuthorizationRequest(
   $scopes: [String!]!
   $codeHash: String!
 ) @auth(level: NO_ACCESS) @transaction {
+  user_update(key: { id: $userId }, data: { updatedAt_expr: "request.time" }) @redact
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can connect an agent to it")
+  query @redact {
+    agentConnections(
+      where: {
+        _and: [
+          { membershipUserId: { eq: $userId } }
+          {
+            _not: {
+              membershipOrganizationId: { eq: $organizationId }
+              clientId: { eq: $clientId }
+              module: { eq: $module }
+            }
+          }
+        ]
+      }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "A member connects at most 100 agents") {
+      id
+    }
+  }
   agentConnection_deleteMany(
     where: {
       membershipUserId: { eq: $userId }

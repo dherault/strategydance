@@ -384,6 +384,16 @@ only way the app talks to them.
   Connect cannot reference a key made of references, so `UserOrganization` names its columns,
   `userId` and `organizationId`, and the reference names them with `@ref`, its constraint named
   short of Postgres' 63 bytes
+- A member reads and disconnects their own connections through the web connector:
+  `GetAgentConnections`, live, and `DeleteAgentConnection`, keyed by `auth.uid`. The list is
+  refreshed by Allow (`ApproveOAuthAuthorizationRequest`) and Disconnect on the caller's `$userId`,
+  by `RemoveOrganizationMember` on the member removed, and by `DeleteOrganization` for every reader,
+  never by the `lastUsedAt` write. An operation added later that makes or deletes a connection, a
+  membership's included, names itself there. Allow holds a member to `MAX_AGENT_CONNECTIONS`, counted
+  under a lock on the member's own row, which their consents in every organization take in turn,
+  and the list reads that many, so it is never cut short and Disconnect reaches every agent acting
+  as them. The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's
+  reasoning is Postgres', and `check:oauth` guards the outcome
 - An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
   invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
   has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
@@ -581,7 +591,9 @@ A conversation is kept twice, once for Claude and once for the page, and
   same two. The modules reach external agents under a gate of their own until they launch,
   `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
-  token verifier checks the role on every call
+  token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
+  two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
+  tab or a module's "Use with your agents" button
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, their
@@ -640,6 +652,21 @@ other one (`useSwitchOrganization`), a document or a conversation back to its li
 naming an organization the reader is not in is the organization not found page, inside the app's
 frame, and one whose organization goes while its page is open, deleted or the reader removed,
 moves the reader on instead: `CurrentOrganizationBouncer` decides both.
+
+The consent page, `/oauth/consent?request=<id>`, where an external agent's authorization sends the
+member, sits under `_authenticated` outside `_app`, as the invitation page does: the whole screen,
+its own way to log out, and never sent to the prologue, so it says itself when the reader is in no
+organization. `firebase.json` sends `frame-ancestors 'none'` and `X-Frame-Options: DENY` for every
+path under `/oauth`, matched by a case-insensitive regex, since the router ignores case, so a page
+there is never framed by another site dressing Allow up as something else. It reads its request
+once, never again on focus, reconnecting or retry: a read is what has the backend fetch the client's
+metadata document, and a read after the member decided would find the request gone while the
+browser leaves.
+
+TanStack parses each value of a query as JSON before `validateSearch` sees it, so 32 hex digits
+that happen to be decimal, or decimal around one `e`, arrive as a number that lost its digits. An
+id the backend writes into an address the app reads is hyphenated (`toHyphenatedUuid`), which never
+parses, and `validateSearch` takes a string alone.
 
 No path prefix marks a page as authenticated, so code that needs to know asks the question it
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
@@ -872,6 +899,11 @@ and why.
   sits beside it, `readModuleWriteCall`, `createModuleAddresses` and `moduleSchemas`, and in
   `domain/modules/` the call results and `isOperationRefusal`: a module adds its own to them rather
   than copy them
+- A module is worded for members in the web's `module` catalogue, by its name, through
+  `getModuleMessages`, typed over every `ModuleName`: a module added to `MODULES` fails the
+  typecheck until its name and what its read and write access let an agent do are worded there, for
+  the consent page, the Connected agents tab and its dialog. `MODULES`' `title` is the server's own,
+  in English, for what MCP clients show
 - The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
   request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs

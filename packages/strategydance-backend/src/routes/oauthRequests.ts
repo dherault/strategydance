@@ -5,6 +5,8 @@ import {
   ERROR_CODE_FORBIDDEN,
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_OAUTH_CLIENT_REFUSED,
+  ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
+  MAX_AGENT_CONNECTIONS,
   type OAuthAuthorizationDecision,
   type OAuthAuthorizationRequestSummary,
 } from 'strategydance-core'
@@ -110,6 +112,17 @@ function createOAuthRequestsRouter() {
 
       if (approval.outcome === 'forbidden') {
         respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of an organization can connect an agent to it')
+
+        return
+      }
+
+      if (approval.outcome === 'full') {
+        respondError(
+          response,
+          409,
+          ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
+          `A member connects at most ${MAX_AGENT_CONNECTIONS} agents: disconnect one first`,
+        )
 
         return
       }

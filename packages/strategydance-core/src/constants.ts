@@ -94,6 +94,10 @@ export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
 */
 export const ERROR_CODE_OAUTH_CLIENT_REFUSED = 'OAUTH_CLIENT_REFUSED' // 400
 
+// A 409 for a member who connected as many external agents as they may (`MAX_AGENT_CONNECTIONS`):
+// allowing another takes disconnecting one first
+export const ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS = 'TOO_MANY_AGENT_CONNECTIONS' // 409
+
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 
@@ -482,3 +486,11 @@ export const MODULES = [
   Strategy Dance's own agent reaches a module behind conversations' gate instead
 */
 export const ARE_MODULES_STAFF_ONLY: boolean = true
+
+/*
+  How many external agents a member connects across their organizations, a connection being one per
+  client, organization and module. Allow refuses another past it, so the account page's Connected
+  agents tab, which reads every one, lists each agent acting as them, and Disconnect reaches it.
+  Consenting again with an agent already connected replaces its connection, and counts once
+*/
+export const MAX_AGENT_CONNECTIONS = 100

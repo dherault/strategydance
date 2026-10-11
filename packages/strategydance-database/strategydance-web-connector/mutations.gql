@@ -1893,3 +1893,22 @@ mutation UpdateConversationAspects(
     data: { conversationId: $id, kind: ASPECTS, aspects: $aspects, aspectsSetBy: MEMBER, position: $position }
   )
 }
+
+# Disconnects one of the caller's external agents, from the account page's Connected agents tab: the
+# connection goes, and its tokens with it by cascade, so the agent's next call or refresh is refused
+# and it has to ask the member's consent again. Disconnecting one that is gone already, as another
+# tab or the agent's own revocation may have done, changes nothing and succeeds, since the outcome is
+# the one asked for.
+#
+# `$userId` is the caller's own, checked against the token: the Connected agents list's refresh
+# condition reads it, since a mutation's variables are all a condition can match
+mutation DeleteAgentConnection($userId: String!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    user(key: { id_expr: "auth.uid" })
+      @check(expr: "this != null", message: "Only somebody signed in can disconnect an agent")
+      @check(expr: "vars.userId == auth.uid", message: "An agent is disconnected by the member it acts as alone") {
+      id
+    }
+  }
+  agentConnection_deleteMany(where: { id: { eq: $id }, membershipUserId: { eq_expr: "auth.uid" } })
+}

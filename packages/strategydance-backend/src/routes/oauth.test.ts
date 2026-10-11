@@ -5,6 +5,8 @@ import type { AddressInfo } from 'node:net'
 
 import express from 'express'
 
+import toHyphenatedUuid from '~utils/toHyphenatedUuid'
+
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
 import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
 
@@ -205,7 +207,7 @@ describe('GET /oauth/authorize', () => {
     const [request] = [...fake.requests.values()]
 
     expect(response.status).toBe(302)
-    expect(location).toBe(`${CONSENT}${request?.id}`)
+    expect(location).toBe(`${CONSENT}${toHyphenatedUuid(request?.id ?? '')}`)
     expect(request).toEqual(
       expect.objectContaining({
         clientId: CLIENT_ID_URL,

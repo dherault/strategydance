@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
-import { DEVELOPMENT_API_URL } from 'strategydance-core'
+import { DEVELOPMENT_API_URL, MAX_AGENT_CONNECTIONS } from 'strategydance-core'
 import {
   approveOAuthAuthorizationRequest,
   connectorConfig,
@@ -45,6 +45,11 @@ import readModuleCaller from '~modules/readModuleCaller'
   endpoints call them, at once where two requests could race. The domain's tests run against a fake
   of these operations: this is what says the fake's conditions are the SQL's.
 
+  And what the account page's Connected agents tab runs through the browser's connector: its list
+  holds the member's connections alone, and Disconnect deletes one of theirs alone, with its tokens,
+  so the agent's next refresh is refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
+  tab lists every one.
+
   It makes a throwaway organization with a member, removes everything it made, then exits non-zero
   naming each check that failed. The sweep's deletes take no organization: they remove every expired
   request and token, and every unused registration, in the emulator.
@@ -83,7 +88,9 @@ const checkId = createId().slice(0, 8)
 const organizationId = createId()
 const otherOrganizationId = createId()
 const userId = `check-oauth-${checkId}-member`
-const resource = 'http://localhost:3003/mcp/knowledge'
+const otherUserId = `check-oauth-${checkId}-other`
+// The backend's own issuer names its modules, so a token made here is one it refreshes
+const resource = `${apiUrl}/mcp/knowledge`
 const READ_WRITE = ['knowledge:read', 'knowledge:write']
 
 // What the check made that its organization does not take with it, for the tear down
@@ -123,19 +130,23 @@ async function refusal(operation: Promise<unknown>) {
 }
 
 async function setUp() {
-  await webConnector.executeMutation(
-    'CreateCurrentUser',
-    { locale: 'EN', authenticationProviders: [] },
-    { impersonate: { authClaims: { sub: userId, email: `${userId}@example.com` } } },
-  )
+  for (const account of [userId, otherUserId]) {
+    await webConnector.executeMutation(
+      'CreateCurrentUser',
+      { locale: 'EN', authenticationProviders: [] },
+      { impersonate: { authClaims: { sub: account, email: `${account}@example.com` } } },
+    )
+  }
+
   await write(
-    `mutation SetUp($organizationId: UUID!, $otherOrganizationId: UUID!, $userId: String!) {
+    `mutation SetUp($organizationId: UUID!, $otherOrganizationId: UUID!, $userId: String!, $otherUserId: String!) {
       organization_insert(data: { id: $organizationId, name: "Checked organization" })
       other: organization_insert(data: { id: $otherOrganizationId, name: "Another organization" })
       userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
+      otherMember: userOrganization_insert(data: { userId: $otherUserId, organizationId: $organizationId, role: MEMBER })
       user_update(id: $userId, data: { isAdministrator: true })
     }`,
-    { organizationId, otherOrganizationId, userId },
+    { organizationId, otherOrganizationId, userId, otherUserId },
   )
 }
 
@@ -145,12 +156,14 @@ async function tearDown() {
       $organizationId: UUID!
       $otherOrganizationId: UUID!
       $userId: String!
+      $otherUserId: String!
       $clientIds: [String!]!
       $registeredClientIds: [UUID!]!
     ) {
       organization_delete(id: $organizationId)
       other: organization_delete(id: $otherOrganizationId)
       user_delete(id: $userId)
+      otherUser: user_delete(id: $otherUserId)
       oAuthAuthorizationRequest_deleteMany(where: { clientId: { in: $clientIds } })
       oAuthClient_deleteMany(where: { id: { in: $registeredClientIds } })
     }`,
@@ -158,6 +171,7 @@ async function tearDown() {
       organizationId,
       otherOrganizationId,
       userId,
+      otherUserId,
       clientIds: [...clientIds],
       registeredClientIds: [...registeredClientIds],
     },
@@ -397,11 +411,15 @@ async function createRequest(clientId: string, scopes = READ_WRITE) {
   return data.oAuthAuthorizationRequest_insert.id
 }
 
-// Allows a request as the member, answering the connection's id and the code
+// Allows a request as the member, or another account, answering the connection's id and the code
 function approve(
   requestId: string,
   clientId: string,
-  { scopes = READ_WRITE, organization = organizationId }: { scopes?: string[]; organization?: string } = {},
+  {
+    scopes = READ_WRITE,
+    organization = organizationId,
+    user = userId,
+  }: { scopes?: string[]; organization?: string; user?: string } = {},
 ) {
   const connectionId = createId()
   const code = createSecret()
@@ -411,7 +429,7 @@ function approve(
     code,
     approval: approveOAuthAuthorizationRequest(dataConnect, {
       id: requestId,
-      userId,
+      userId: user,
       organizationId: organization,
       connectionId,
       clientId,
@@ -574,6 +592,190 @@ async function checkConsent() {
   )
 }
 
+// The Connected agents tab's list, through the browser's connector as the given account
+async function readAgentConnections(account: string) {
+  const { data } = await webConnector.executeQuery<
+    { agentConnections: { id: string; membership: { organization: { id: string } } }[] },
+    Variables
+  >('GetAgentConnections', {}, { impersonate: { authClaims: { sub: account } } })
+
+  return data.agentConnections
+}
+
+// Disconnect, through the browser's connector as the member, naming the `$userId` given
+function disconnect(connectionId: string, claimedUserId = userId) {
+  return webConnector.executeMutation(
+    'DeleteAgentConnection',
+    { userId: claimedUserId, id: connectionId },
+    { impersonate: { authClaims: { sub: userId } } },
+  )
+}
+
+async function checkConnectedAgents() {
+  const metadata = await readMetadata()
+  const form = { 'Content-Type': 'application/x-www-form-urlencoded' }
+  const clientId = `https://check-${checkId}.example.com/connected.json`
+  const otherClientId = `https://check-${checkId}.example.com/other-member.json`
+
+  // The member connects an agent, and another member of the organization one of their own
+  const requestId = await createRequest(clientId)
+  const connection = approve(requestId, clientId)
+
+  await connection.approval
+
+  const { refreshToken, exchange: exchanged } = exchange(requestId, connection.code, connection.connectionId)
+
+  await exchanged
+
+  const otherRequestId = await createRequest(otherClientId)
+  const otherConnection = approve(otherRequestId, otherClientId, { user: otherUserId })
+
+  await otherConnection.approval
+
+  const listed = await readAgentConnections(userId)
+
+  check(
+    "the Connected agents tab lists the member's connections, with their organization, and nobody else's",
+    listed.some(({ id, membership }) => id === connection.connectionId && membership.organization.id === organizationId)
+      && !listed.some(({ id }) => id === otherConnection.connectionId),
+  )
+  check(
+    'Disconnect naming another account than the caller is refused',
+    (await refusal(disconnect(connection.connectionId, otherUserId))) !== null,
+  )
+  check(
+    "Disconnect of another member's connection goes through and deletes nothing",
+    (await refusal(disconnect(otherConnection.connectionId))) === null
+      && (await readAgentConnections(otherUserId)).some(({ id }) => id === otherConnection.connectionId),
+  )
+
+  // The agent refreshes before Disconnect, and is refused after it
+  const refresh = (token: string) =>
+    fetch(metadata.token_endpoint, {
+      method: 'POST',
+      headers: form,
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: token, client_id: clientId, resource }),
+    })
+  const rotation = await refresh(refreshToken)
+  const rotated = (await rotation.json()) as Tokens
+
+  check('the agent refreshes before Disconnect', rotation.status === 200 && Boolean(rotated.refresh_token))
+  check('Disconnect goes through', (await refusal(disconnect(connection.connectionId))) === null)
+  check(
+    'Disconnect takes the connection off the list',
+    !(await readAgentConnections(userId)).some(({ id }) => id === connection.connectionId),
+  )
+  check("Disconnect deletes the connection's tokens", (await countTokens(connection.connectionId)) === 0)
+
+  const refused = await refresh(rotated.refresh_token)
+  const { error } = (await refused.json()) as { error?: string }
+
+  check("the agent's next refresh is refused after Disconnect", refused.status === 400 && error === 'invalid_grant')
+  check(
+    'Disconnecting again changes nothing and goes through',
+    (await refusal(disconnect(connection.connectionId))) === null,
+  )
+}
+
+// A member connects at most `MAX_AGENT_CONNECTIONS` agents, so the Connected agents tab lists every one
+async function checkConnectionCap() {
+  const capClientIds: string[] = Array.from({ length: MAX_AGENT_CONNECTIONS + 1 }, (_, index) => {
+    return `https://check-${checkId}-cap${index}.example.com/agent.json`
+  })
+  const { agentConnections: held } = await read<{ agentConnections: { id: string }[] }>(
+    `query Held($userId: String!) { agentConnections(where: { membershipUserId: { eq: $userId } }) { id } }`,
+    { userId },
+  )
+  // Literals, since a list of rows cannot travel as a variable
+  const rows = capClientIds
+    .slice(0, MAX_AGENT_CONNECTIONS - 1 - held.length)
+    .map(
+      clientId =>
+        `{ membershipUserId: "${userId}", membershipOrganizationId: "${organizationId}", clientId: "${clientId}", module: "knowledge", scopes: ["knowledge:read"] }`,
+    )
+
+  await write(`mutation Fill { agentConnection_insertMany(data: [${rows.join(', ')}]) }`)
+
+  const last = capClientIds[MAX_AGENT_CONNECTIONS - 1]!
+  const past = capClientIds[MAX_AGENT_CONNECTIONS]!
+  const lastRequest = await createRequest(last)
+
+  check(
+    'an Allow up to the cap goes through',
+    (await refusal(approve(lastRequest, last, { scopes: ['knowledge:read', 'knowledge:write'] }).approval)) === null,
+  )
+
+  const pastRequest = await createRequest(past)
+  const cause = await refusal(approve(pastRequest, past).approval)
+
+  check(
+    'an Allow past the cap is refused, as the backend reads it, and decides nothing',
+    cause !== null
+      && cause.includes('A member connects at most')
+      && (
+        await read<{ oAuthAuthorizationRequest: { decidedAt: string | null } | null }>(
+          `query Decided($id: UUID!) { oAuthAuthorizationRequest(id: $id) { decidedAt } }`,
+          { id: pastRequest },
+        )
+      ).oAuthAuthorizationRequest?.decidedAt === null,
+  )
+  check(
+    'consenting again with an agent connected at the cap replaces it',
+    (await refusal(approve(await createRequest(last), last, { scopes: ['knowledge:read'] }).approval)) === null
+      && (await readConnections(last)).length === 1,
+  )
+
+  // Consents in two organizations at once, one below the cap: the member's row takes them in turn
+  await write(
+    `mutation Join($userId: String!, $organizationId: UUID!) {
+      userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
+    }`,
+    { userId, organizationId: otherOrganizationId },
+  )
+
+  let heldCap = true
+
+  for (let round = 0; round < 5; round++) {
+    await write(
+      `mutation Free($userId: String!, $clientId: String!) {
+        agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { eq: $clientId } })
+      }`,
+      { userId, clientId: capClientIds[round]! },
+    )
+
+    const racing = [
+      `https://check-${checkId}-race${round}a.example.com/agent.json`,
+      `https://check-${checkId}-race${round}b.example.com/agent.json`,
+    ]
+    const requests = await Promise.all(racing.map(clientId => createRequest(clientId)))
+    const causes = await Promise.all([
+      refusal(approve(requests[0]!, racing[0]!).approval),
+      refusal(approve(requests[1]!, racing[1]!, { organization: otherOrganizationId }).approval),
+    ])
+    const { agentConnections: connected } = await read<{ agentConnections: { id: string }[] }>(
+      `query Held($userId: String!) { agentConnections(where: { membershipUserId: { eq: $userId } }) { id } }`,
+      { userId },
+    )
+
+    capClientIds.push(...racing)
+
+    if (causes.filter(cause => cause === null).length !== 1 || connected.length !== MAX_AGENT_CONNECTIONS) {
+      heldCap = false
+      console.log(`        ${causes.map(cause => cause ?? 'allowed').join(' / ')}, ${connected.length} connected`)
+    }
+  }
+
+  check('consents in two organizations at once, one below the cap, let one through', heldCap)
+
+  await write(
+    `mutation Empty($userId: String!, $clientIds: [String!]!, $otherOrganizationId: UUID!) {
+      agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { in: $clientIds } })
+      userOrganization_delete(key: { userId: $userId, organizationId: $otherOrganizationId })
+    }`,
+    { userId, clientIds: capClientIds, otherOrganizationId },
+  )
+}
+
 async function checkTokens() {
   const clientId = `https://check-${checkId}.example.com/tokens.json`
   const otherClientId = `https://check-${checkId}.example.com/other.json`
@@ -678,6 +880,8 @@ try {
   await setUp()
   await checkFlow()
   await checkConsent()
+  await checkConnectedAgents()
+  await checkConnectionCap()
   await checkTokens()
   await checkPrunes()
 } finally {

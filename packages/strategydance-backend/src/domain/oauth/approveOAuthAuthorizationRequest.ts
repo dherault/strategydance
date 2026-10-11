@@ -30,6 +30,7 @@ type Approved =
   | { outcome: 'refused'; reason: string }
   | { outcome: 'invalid'; reason: string }
   | { outcome: 'forbidden' }
+  | { outcome: 'full' }
 
 /*
   A member allows an external agent to act as them on one module in one organization: the client
@@ -37,8 +38,8 @@ type Approved =
   read always among it, and the request is decided once, making the connection and a code valid for
   a minute, which goes back to the client with its `state` and the issuer. Consenting again with the
   same client, organization and module replaces the earlier connection with its tokens. The
-  database refuses anybody who is not the organization's member, and a request decided already or
-  expired
+  database refuses anybody who is not the organization's member, a member who connected as many
+  agents as they may (`MAX_AGENT_CONNECTIONS`), and a request decided already or expired
 */
 async function approveOAuthAuthorizationRequest({
   requestId,
@@ -78,6 +79,7 @@ async function approveOAuthAuthorizationRequest({
     const message = error instanceof Error ? error.message : String(error)
 
     if (isMembershipRefusal(message)) return { outcome: 'forbidden' }
+    if (message.includes('A member connects at most')) return { outcome: 'full' }
     if (message.includes('The authorization request was decided already or has expired')) return { outcome: 'unknown' }
 
     throw error

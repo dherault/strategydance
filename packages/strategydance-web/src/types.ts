@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { Locale } from 'strategydance-core'
 import type {
   CompanyAspect,
+  GetAgentConnectionsData,
   GetAdministrationOrganizationsData,
   GetAdministrationUsersData,
   GetChecklistData,
@@ -101,6 +102,10 @@ export type AdministrationUser = GetAdministrationUsersData['users'][number]
 
 // An organization as the administration's organizations page lists it, with its member count
 export type AdministrationOrganization = GetAdministrationOrganizationsData['organizations'][number]
+
+// An external agent the reader connected, as the account page's Connected agents tab lists it, with
+// the organization it acts in
+export type AgentConnection = GetAgentConnectionsData['agentConnections'][number]
 
 // A picture chosen and being saved, with an object URL that previews it, or undefined for none
 export type StagedImage =

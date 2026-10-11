@@ -4,7 +4,11 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import express, { type NextFunction, type Request, type Response } from 'express'
-import { ERROR_CODE_UNAUTHORIZED_AUTHENTICATION } from 'strategydance-core'
+import {
+  ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
+  ERROR_CODE_UNAUTHORIZED_AUTHENTICATION,
+  MAX_AGENT_CONNECTIONS,
+} from 'strategydance-core'
 
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
 import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
@@ -393,6 +397,61 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     await approve(await createRequest({ clientId: createDocumentClient() }))
 
     expect(fake.connections.size).toBe(2)
+  })
+
+  test('refuses a connection past the cap, and lets a consent replacing one at the cap through', async () => {
+    for (let index = 0; index < MAX_AGENT_CONNECTIONS; index++) {
+      fake.connections.set(`connection-${index}`, {
+        id: `connection-${index}`,
+        userId: MEMBER,
+        organizationId: ORGANIZATION_ID,
+        clientId: index ? `https://agent${index}.example.com/metadata.json` : CLIENT_ID_URL,
+        registeredClientId: null,
+        clientName: 'An agent',
+        module: 'knowledge',
+        scopes: ['knowledge:read'],
+        createdAt: new Date().toISOString(),
+        lastUsedAt: null,
+      })
+    }
+
+    const past = await createRequest({ clientId: createDocumentClient() })
+    const { status, answer } = await approve(past)
+
+    expect(status).toBe(409)
+    expect(answer.status === 'error' && answer.code).toBe(ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS)
+    expect(fake.requests.get(past)?.decidedAt).toBeNull()
+    expect((await approve(await createRequest(), ['knowledge:read'])).status).toBe(200)
+    expect(fake.connections.size).toBe(MAX_AGENT_CONNECTIONS)
+    expect(fake.connections.has('connection-0')).toBe(false)
+  })
+
+  test('holds the cap across organizations when consents in two of them go at once', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    for (let index = 0; index < MAX_AGENT_CONNECTIONS - 1; index++) {
+      fake.connections.set(`connection-${index}`, {
+        id: `connection-${index}`,
+        userId: MEMBER,
+        organizationId: ORGANIZATION_ID,
+        clientId: `https://agent${index}.example.com/metadata.json`,
+        registeredClientId: null,
+        clientName: 'An agent',
+        module: 'knowledge',
+        scopes: ['knowledge:read'],
+        createdAt: new Date().toISOString(),
+        lastUsedAt: null,
+      })
+    }
+
+    const requests = await Promise.all([createRequest(), createRequest({ clientId: createDocumentClient() })])
+    const answers = await Promise.all([
+      approve(requests[0]!, undefined, ORGANIZATION_ID),
+      approve(requests[1]!, undefined, OTHER_ORGANIZATION_ID),
+    ])
+
+    expect(answers.map(({ status }) => status).sort()).toEqual([200, 409])
+    expect(fake.connections.size).toBe(MAX_AGENT_CONNECTIONS)
   })
 
   test('removing the member deletes the connection with its tokens', async () => {

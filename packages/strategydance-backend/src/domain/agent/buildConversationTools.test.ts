@@ -16,8 +16,18 @@ const MAX_STRICT_TOOLS = 20
 const MAX_OPTIONAL_PARAMETERS = 24
 const MAX_UNION_PARAMETERS = 16
 
-// The keywords a strict schema refuses, which the conversion drops
-const REFUSED_KEYWORDS = ['$schema', 'minLength', 'maxLength', 'minimum', 'maximum', 'maxItems', 'multipleOf']
+// The keywords a strict schema refuses, and the patterns that made it too complex, which the
+// conversion drops
+const REFUSED_KEYWORDS = [
+  '$schema',
+  'minLength',
+  'maxLength',
+  'minimum',
+  'maximum',
+  'maxItems',
+  'multipleOf',
+  'pattern',
+]
 
 type Schema = Record<string, unknown>
 
@@ -97,7 +107,7 @@ describe('buildConversationTools', () => {
       'restore_document',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'e656823a0d211e54f3fa29240480c688533f5fe019ef2960f3bfe1f2ebc2bb45',
+      '56eb54263af1f5ce902dc48fe3aac27190f02765c379d54a4bb99d726b51f059',
     )
   })
 

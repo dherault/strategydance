@@ -1,8 +1,12 @@
 import type { BetaTool } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { Tool } from '@modelcontextprotocol/client'
 
-// The bounds a strict tool's schema refuses. The module's own schema still holds a call to them, and
-// a call past one is answered with a sentence the model can act on
+/*
+  The bounds a strict tool's schema refuses, and the patterns it takes but compiles into a grammar
+  that grows with each: with the document's id pattern on five tools, the API refused the agent's
+  request as "Schema is too complex", which `probe:claude` found. The module's own schema still holds
+  a call to all of them, and a call past one is answered with a sentence the model can act on
+*/
 const DROPPED_KEYWORDS = new Set([
   '$schema',
   'minLength',
@@ -13,6 +17,7 @@ const DROPPED_KEYWORDS = new Set([
   'exclusiveMaximum',
   'multipleOf',
   'maxItems',
+  'pattern',
 ])
 
 // The keywords whose value is a schema, or a list or a map of schemas, which the conversion follows
@@ -27,7 +32,6 @@ const KEPT_KEYWORDS = new Set([
   'title',
   'enum',
   'const',
-  'pattern',
   'format',
   'required',
   'default',
@@ -42,10 +46,11 @@ type Schema = Record<string, unknown>
 /*
   A module's tool as Claude takes one in the agent's requests: its name, its description and its
   input schema, strict and streamed as Claude writes it, as the agent's own tools are. A strict
-  schema takes no bound on a text's length, a number's range or a list's size past one item, so
-  those are dropped, and every object refuses properties it does not name. Anything else a strict
-  schema refuses throws, so a module's schema that would cost every request a 400 fails its test
-  instead
+  schema takes no bound on a text's length, a number's range or a list's size past one item, and
+  grows too complex with patterns, so those are dropped, and every object refuses properties it does
+  not name. Anything else a strict schema refuses throws, so such a schema fails its test rather
+  than cost every request a 400. How complex the whole list may grow only the API says, which
+  `probe:claude` asks
 */
 function toConversationModuleTool(tool: Tool): BetaTool {
   return {

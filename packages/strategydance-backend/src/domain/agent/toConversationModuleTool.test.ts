@@ -28,7 +28,7 @@ describe('toConversationModuleTool', () => {
     })
   })
 
-  it('drops the bounds a strict schema refuses, at every depth, and keeps a property named like one', () => {
+  it('drops the bounds a strict schema refuses and its patterns, at every depth, and keeps a property named like one', () => {
     const { input_schema: schema } = toConversationModuleTool({
       name: 'search_documents',
       inputSchema: {
@@ -48,7 +48,7 @@ describe('toConversationModuleTool', () => {
     expect(schema).toEqual({
       type: 'object',
       properties: {
-        query: { type: 'string', pattern: '^[^\\r\\n]*$' },
+        query: { type: 'string' },
         limit: { type: 'integer' },
         minimum: { type: 'array', items: { type: 'string' } },
         aspects: { type: 'array', items: { type: 'string', enum: ['SALES'] }, minItems: 1 },

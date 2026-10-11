@@ -6,7 +6,9 @@ import type { TasksToolContext } from '~types'
 import createTask from '~domain/tasks/createTask'
 
 import { aspectsSchema } from '~modules/moduleSchemas'
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 import readTasksWriteCall from '~modules/tasks/readTasksWriteCall'
+import tasksModule from '~modules/tasks/tasksModule'
 import {
   assigneeSchema,
   descriptionSchema,
@@ -48,6 +50,7 @@ function registerCreateTask(server: McpServer, context: TasksToolContext) {
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(tasksModule),
     },
     async (args, serverContext) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)

@@ -5,7 +5,9 @@ import type { TasksToolContext } from '~types'
 
 import deleteTask from '~domain/tasks/deleteTask'
 
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 import readTasksWriteCall from '~modules/tasks/readTasksWriteCall'
+import tasksModule from '~modules/tasks/tasksModule'
 import { taskIdSchema } from '~modules/tasks/tasksSchemas'
 import toTasksWriteResult from '~modules/tasks/toTasksWriteResult'
 
@@ -29,6 +31,7 @@ function registerDeleteTask(server: McpServer, context: TasksToolContext) {
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(tasksModule),
     },
     async (args, serverContext) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)

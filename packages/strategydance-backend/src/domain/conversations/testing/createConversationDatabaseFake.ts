@@ -2057,6 +2057,54 @@ function createConversationDatabaseFake() {
       return { conversationTranscriptEntry_insert: { id: id(variables.entryId) } }
     },
 
+    TagConversationAspects: variables => {
+      const run = requireFencedRun(variables)
+      const aspects: string[] = variables.aspects
+
+      if (aspects.length < 1 || aspects.length > 3 || new Set(aspects).size !== aspects.length) {
+        refuse('The agent tags a conversation with one to three aspects, each at most once')
+      }
+
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (
+        !conversation
+        || conversation.deletedAt !== null
+        || (conversation.aspectsSetBy ?? null) !== null
+        || conversation.nextMessagePosition !== variables.position
+        || conversation.messageCount >= MAX_CONVERSATION_MESSAGES
+      ) {
+        refuse('The conversation could not be tagged at that position')
+      }
+
+      insertMessage({
+        id: id(variables.noteId),
+        conversationId: conversation.id,
+        runId: null,
+        kind: 'ASPECTS',
+        text: null,
+        noteKind: null,
+        toolStatus: null,
+        position: variables.position,
+        aspects,
+        aspectsSetBy: 'AGENT',
+      })
+      run.leaseExpiresAt = inSeconds(60)
+      run.usage = variables.usage
+      Object.assign(conversation, {
+        aspects,
+        aspectsSetBy: 'AGENT',
+        nextMessagePosition: conversation.nextMessagePosition + 1,
+        messageCount: conversation.messageCount + 1,
+      })
+
+      return {
+        conversationRun_updateMany: 1,
+        conversation_updateMany: 1,
+        conversationMessage_insert: { id: id(variables.noteId) },
+      }
+    },
+
     FinishConversationRunWaiting: variables => {
       const run = requireFencedRun(variables)
 

@@ -13,7 +13,9 @@ import {
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
+  renewConversationRunLease,
   storeConversationToolResults,
+  tagConversationAspects,
 } from 'strategydance-database/backend'
 
 import type {
@@ -50,10 +52,12 @@ import {
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
 import createConversationRunLease, { type ConversationRunLease } from '~domain/conversations/createConversationRunLease'
+import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
 import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import requestConversationTagging from '~domain/conversations/requestConversationTagging'
 import requestConversationTurn, {
   type ConversationRunLimits,
   type ConversationTurnOutcome,
@@ -112,6 +116,8 @@ type ConversationRunContext = GetConversationRunContextData
     then the entry answering them all is stored and the run goes round to Claude. A reply that asked
     the member a question ends the run waiting for the answer instead
   - a reply wholly drawn that called nothing: the run is complete
+  - before either ends the run, a reply wholly drawn to the conversation's first message, by its
+    first run or one carrying it on, while nobody has set its aspects: the request that tags them
   - the member's message, or the results of the reply's calls: Claude's turn, stored part by part as
     it answered, unless the run has drawn its 100 entries, or the conversation holds its 2000, when
     the run fails with a note instead and costs nothing
@@ -377,10 +383,27 @@ async function takeStep({
 
     if (!pausedRequest) {
       const calls = readConversationToolCalls(parts.at(-1)?.blocks ?? [])
+      const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
+      const isEnding = !calls.length || turnPlans.some(({ kind }) => kind === 'question')
+
+      // The first exchange is whole, and the reply ends the run, done or waiting for an answer:
+      // Claude tags the conversation first, before the calls beside a question run, so none runs
+      // twice
+      if (isEnding && shouldTag({ context, usage, startedAt, limits })) {
+        return requestConversationTagging({
+          fence,
+          lease,
+          signal,
+          client,
+          usage,
+          reply: parts.flatMap(({ blocks }) => blocks),
+          streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
+          stopCheckIntervalMs,
+        })
+      }
 
       if (!calls.length) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
 
-      const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
       const ran = await runConversationToolCalls({
         fence,
         lease,
@@ -511,6 +534,12 @@ type WriteOutcomeInput = {
 
 // Writes what a request came to, and answers whether that ended the run
 async function writeOutcome({ outcome, context, fence, lease }: WriteOutcomeInput) {
+  if (outcome.kind === 'tagging') {
+    await writeTagging({ outcome, context, fence, lease })
+
+    return false
+  }
+
   if (outcome.kind === 'ending') {
     await endConversationRun({
       ending: outcome.ending,
@@ -532,9 +561,77 @@ async function writeOutcome({ outcome, context, fence, lease }: WriteOutcomeInpu
   return false
 }
 
+/*
+  Writes what the tagging request came to: the aspects it picked, with their note, while nobody has
+  set the conversation's aspects and it has room for the note, or its ledger alone otherwise, so
+  the request is settled whatever it answered. A tag refused because the member's note moved the
+  counter meanwhile is read again by the next step, which then finds the member's aspects
+*/
+async function writeTagging({
+  outcome,
+  context: { conversation },
+  fence,
+  lease,
+}: WriteOutcomeInput & { outcome: Extract<ConversationTurnOutcome, { kind: 'tagging' }> }) {
+  const { aspects, usage } = outcome
+
+  if (aspects && conversation && !conversation.aspectsSetBy && conversation.messageCount < MAX_CONVERSATION_MESSAGES) {
+    await lease.write(() =>
+      tagConversationAspects(dataConnect, {
+        ...fence,
+        usage,
+        aspects,
+        noteId: deriveConversationMessageId(fence.runId, 'aspects'),
+        position: conversation.nextMessagePosition,
+      }),
+    )
+
+    return
+  }
+
+  const { data } = await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
+
+  if (data.conversationRun_updateMany !== 1) {
+    throw new Error(
+      `Conversation run ${fence.runId}: its tagging's ledger renewed nothing, the run is not this worker's`,
+    )
+  }
+}
+
+/*
+  Whether the run tags its conversation once its reply ends it: a run answering the conversation's
+  first message, its first or one carrying it on, a resume or a retry, while nobody has set its
+  aspects and it has room for the note. Not once its member asked to stop it, nor at its limits, its
+  25 requests or its 10 minutes, and once a run, which its ledger says
+*/
+function shouldTag({
+  context: { conversation, conversationRuns },
+  usage,
+  startedAt,
+  limits,
+}: {
+  context: ConversationRunContext
+  usage: ConversationRunUsage
+  startedAt: string
+  limits: ConversationRunLimits
+}) {
+  const [run] = conversationRuns
+
+  return (
+    run?.anchorPosition === 0
+    && !run.stopRequestedAt
+    && !!conversation
+    && !conversation.aspectsSetBy
+    && conversation.messageCount < MAX_CONVERSATION_MESSAGES
+    && !usage.requests.some(({ purpose }) => purpose === 'tagging')
+    && usage.requests.length < limits.maxRequests
+    && Date.now() - Date.parse(startedAt) < limits.maxDurationMs
+  )
+}
+
 function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   if (!outcome) return null
-  if (outcome.kind === 'turn') return outcome.usage
+  if (outcome.kind === 'turn' || outcome.kind === 'tagging') return outcome.usage
 
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
 }

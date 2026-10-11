@@ -70,7 +70,7 @@ M27 well before their neighbours.
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
 | M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
 | M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
-| M23 | Aspect tagging | backend, database, web | M7, M9 | |
+| M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
 | M24 | The dock | web | M7 | |
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
 | M26 | Attachments in the composer and the thread | web | M22, M25 | |

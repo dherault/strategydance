@@ -187,6 +187,14 @@ describe('GET /oauth/requests/:requestId', () => {
     expect(fetchOutbound).not.toHaveBeenCalled()
   })
 
+  test('meters a caller before the staff check reads anything', async () => {
+    const requestId = await createRequest()
+
+    for (let index = 0; index < 60; index++) expect((await call(requestId, { viewer: 'outsider' })).status).toBe(403)
+
+    expect((await call(requestId, { viewer: 'outsider' })).status).toBe(429)
+  })
+
   test('refuses an account that is not staff, fetching nothing', async () => {
     const requestId = await createRequest()
 

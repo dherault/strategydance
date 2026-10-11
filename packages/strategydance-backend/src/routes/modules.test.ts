@@ -7,7 +7,12 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
 
-import { MAX_MODULE_REQUESTS, MODULE_IDEMPOTENCY_KEY_META, MODULE_PROTOCOL_VERSION } from '~constants'
+import {
+  MAX_MODULE_REQUESTS,
+  MAX_REFUSED_MODULE_REQUESTS,
+  MODULE_IDEMPOTENCY_KEY_META,
+  MODULE_PROTOCOL_VERSION,
+} from '~constants'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -67,6 +72,8 @@ const LEGACY_PROTOCOL_VERSION = '2025-11-25'
 // Mounted as `createApp` mounts them on the public backend
 const app = express()
 
+// As `createApp` trusts Cloud Run's proxy, so a test calls from an address of its own
+app.set('trust proxy', 1)
 app.use('/.well-known', createWellKnownRouter())
 app.use(createModuleMetadataRouter())
 app.use('/oauth/requests', createOAuthRequestsRouter())
@@ -445,16 +452,14 @@ describe('the Knowledge module for external agents', () => {
 
   test('meters each connection apart, answering past its calls 429 in JSON-RPC', async () => {
     const busy = await connect()
+    const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+    const address = { 'X-Forwarded-For': '203.0.113.9' }
 
     for (let index = 0; index < MAX_MODULE_REQUESTS; index++) {
-      await fetch(`${origin}/mcp/knowledge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${busy.access_token}` },
-        body: '{',
-      })
+      expect((await send(list, { token: busy.access_token, headers: address })).status).toBe(200)
     }
 
-    const limited = await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { token: busy.access_token })
+    const limited = await send(list, { token: busy.access_token, headers: address })
 
     expect(limited.status).toBe(429)
     expect(limited.body.error.code).toBe(-32000)
@@ -465,8 +470,29 @@ describe('the Knowledge module for external agents', () => {
 
     const fresh = await connect()
 
-    expect((await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { token: fresh.access_token })).status).toBe(
-      200,
-    )
+    expect((await send(list, { token: fresh.access_token, headers: address })).status).toBe(200)
+  })
+
+  test('meters refused calls per address before any token is read, never the calls it serves', async () => {
+    const { access_token: token } = await connect()
+    const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+    const address = { 'X-Forwarded-For': '203.0.113.7' }
+
+    for (let index = 0; index < MAX_REFUSED_MODULE_REQUESTS - 1; index++) {
+      expect((await send(list, { token: 'made-up', headers: address })).status).toBe(401)
+    }
+    for (let index = 0; index < 5; index++) expect((await send(list, { token, headers: address })).status).toBe(200)
+
+    expect((await send(list, { token: 'made-up', headers: address })).status).toBe(401)
+
+    fake.calls.length = 0
+
+    const limited = await send(list, { token: 'made-up', headers: address })
+
+    expect(limited.status).toBe(429)
+    expect(limited.body.error.code).toBe(-32000)
+    expect(fake.calls).not.toContain('GetAgentConnectionAccessToken')
+    expect((await send(list, { token, headers: address })).status).toBe(429)
+    expect((await send(list, { token, headers: { 'X-Forwarded-For': '203.0.113.8' } })).status).toBe(200)
   })
 })

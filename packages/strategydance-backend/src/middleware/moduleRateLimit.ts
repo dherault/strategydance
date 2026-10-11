@@ -19,6 +19,7 @@ const moduleRateLimitMiddleware = rateLimit({
   limit: MAX_MODULE_REQUESTS,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  identifier: 'per-connection',
   keyGenerator: request =>
     request.auth ? readModuleCaller(request.auth).idempotencyScope : ipKeyGenerator(request.ip ?? ''),
   handler: (_request, response) => {

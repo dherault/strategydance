@@ -212,12 +212,14 @@ export const MODULES_PATH = '/mcp'
 
 /*
   The most a call to a module's endpoint carries, 1 MiB, past a document's 200000 characters
-  escaped as JSON, and how many calls one connection makes in ten minutes, counted in the instance's
-  memory, as the backend's other limits are: one a second on average, which an agent reading a long
-  document in pages and editing it stays well short of
+  escaped as JSON; how many calls one connection makes in ten minutes, one a second on average,
+  which an agent reading a long document in pages and editing it stays well short of; and how many
+  refused calls one address makes in ten minutes, before its token is read. Both counted in the
+  instance's memory, as the backend's other limits are
 */
 export const MAX_MODULE_REQUEST_BYTES = 1024 * 1024
 export const MAX_MODULE_REQUESTS = 600
+export const MAX_REFUSED_MODULE_REQUESTS = 600
 export const MODULE_REQUEST_WINDOW_MS = 10 * 60 * 1000
 
 // How long an external agent's call results are kept for its retries. Strategy Dance's agent's last

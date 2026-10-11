@@ -12,6 +12,7 @@ import logger from '~utils/logger'
 import parseClientErrorStatus from '~utils/parseClientErrorStatus'
 import respondJsonRpcError from '~utils/respondJsonRpcError'
 
+import moduleAddressRateLimitMiddleware from '~middleware/moduleAddressRateLimit'
 import moduleRateLimitMiddleware from '~middleware/moduleRateLimit'
 
 import createAgentConnectionTokenVerifier from '~domain/oauth/createAgentConnectionTokenVerifier'
@@ -28,6 +29,8 @@ import createModuleHandler from '~modules/createModuleHandler'
     no session to `DELETE`
   - A request whose `Origin` is present and is not the app's answers 403, against DNS rebinding, as
     MCP asks. No client running in a browser is served yet, and one that runs elsewhere sends none
+  - The address's rate limit, which counts only refused calls, so tokens made up, or calls past a
+    connection's limit, cost a bounded number of reads of the database
   - The bearer check (RFC 6750), with the token verifier and the endpoint's own address as the
     resource the token must name, so a token for one module never opens another. A request without
     a valid token answers 401, naming the module's protected resource metadata, which names the
@@ -54,6 +57,7 @@ function createModulesRouter() {
     router.post(
       path,
       checkOrigin,
+      moduleAddressRateLimitMiddleware,
       requireBearerAuth({
         verifier: createAgentConnectionTokenVerifier(resource),
         expectedResource: resource,

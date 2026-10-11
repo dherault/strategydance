@@ -27,7 +27,6 @@ import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
-import { type ConversationComposerDraft, updateConversationComposerDraft } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 const FAILURE_MESSAGES = {
@@ -104,14 +103,9 @@ function ConversationComposer({
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  // The message being written and its send, shared by every composer that draws the conversation
-  const draft = useConversationComposerDraft(conversationId)
-
-  // Changes the message, here and in whatever else draws the conversation, should this composer
-  // have gone meanwhile
-  function changeDraft(change: (current: ConversationComposerDraft) => Partial<ConversationComposerDraft>) {
-    updateConversationComposerDraft(conversationId, current => ({ ...current, ...change(current) }))
-  }
+  // The message being written and its send, shared by every composer that draws the conversation,
+  // and what changes it there, should this composer have gone meanwhile
+  const [draft, changeDraft] = useConversationComposerDraft(conversationId)
 
   const mentions = useConversationMentions(textareaRef, draft.mentions, change =>
     changeDraft(current => ({ mentions: change(current.mentions) })),

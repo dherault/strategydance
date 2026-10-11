@@ -37,24 +37,27 @@ function isEmpty(draft: ConversationComposerDraft) {
   composer that draws the conversation: its page and its dock's window, a window minimized and
   opened again, or one the "+N" menu held, all show the same words and the same send. A send that
   lands after its composer has gone, the conversation drawn elsewhere meanwhile, settles there, and
-  a send going in one is going in all. Never stored: a reload starts afresh, as the page always has
+  a send going in one is going in all. Never stored: a reload starts afresh, as the page always has.
+
+  Kept by `${userId}:${conversationId}`, which `useConversationComposerDraft` makes, since the tab
+  outlives a sign-out: one account never finds another's message
 */
-export function readConversationComposerDraft(conversationId: string) {
-  return drafts.get(conversationId) ?? EMPTY_CONVERSATION_COMPOSER_DRAFT
+export function readConversationComposerDraft(key: string) {
+  return drafts.get(key) ?? EMPTY_CONVERSATION_COMPOSER_DRAFT
 }
 
 // Changes what a conversation's composers hold, and forgets it once there is nothing left
 export function updateConversationComposerDraft(
-  conversationId: string,
+  key: string,
   update: (current: ConversationComposerDraft) => ConversationComposerDraft,
 ) {
-  const current = readConversationComposerDraft(conversationId)
+  const current = readConversationComposerDraft(key)
   const next = update(current)
 
   if (next === current) return
 
-  if (!isEmpty(next)) drafts.set(conversationId, next)
-  else if (drafts.has(conversationId)) drafts.delete(conversationId)
+  if (!isEmpty(next)) drafts.set(key, next)
+  else if (drafts.has(key)) drafts.delete(key)
   else return
 
   for (const listener of listeners) listener()

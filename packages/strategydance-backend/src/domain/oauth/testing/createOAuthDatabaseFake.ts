@@ -414,6 +414,10 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       const scopes = variables.scopes as string[]
       const connection = connections.get(connectionId)
 
+      // The new tokens' reference to a connection gone meanwhile, which Data Connect reports first
+      if (!connection)
+        refuse('violates SQL foreign key constraint: agent_connection_token_connection_id_fkey (aborted)')
+
       if (
         !request
         || request.codeHash !== variables.codeHash
@@ -456,6 +460,11 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       const connectionId = id(variables.connectionId)
       const accessScopes = variables.accessScopes as string[]
       const refreshScopes = variables.refreshScopes as string[]
+
+      // The new tokens' reference to a connection gone meanwhile, which Data Connect reports first
+      if (!connections.has(connectionId)) {
+        refuse('violates SQL foreign key constraint: agent_connection_token_connection_id_fkey (aborted)')
+      }
 
       if (
         !token

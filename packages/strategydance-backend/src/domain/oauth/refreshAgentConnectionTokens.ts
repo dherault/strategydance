@@ -11,6 +11,7 @@ import logger from '~utils/logger'
 
 import deriveSuccessorTokens from '~domain/oauth/deriveSuccessorTokens'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
+import isConnectionGoneRefusal from '~domain/oauth/isConnectionGoneRefusal'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
 import readOAuthTokenSecret from '~domain/oauth/readOAuthTokenSecret'
 import toTokenAnswer, { type TokenResult } from '~domain/oauth/toTokenAnswer'
@@ -22,8 +23,13 @@ type Refresh = {
   scope?: string
 }
 
-// How many rotations a duplicate follows to the pair its client holds now
-const MAX_DUPLICATE_CHAIN = 5
+/*
+  How many rotations a duplicate follows to the pair its client holds now. Each was made within the
+  30 seconds since the token presented was spent, and the token endpoint takes a request a second
+  from an address on average, so a client that rotated more than this many times in those seconds
+  is answered `invalid_grant`, its connection left alone
+*/
+const MAX_DUPLICATE_CHAIN = 30
 
 function refuse(error: string, description: string): TokenResult {
   return { outcome: 'error', error, description }
@@ -91,8 +97,13 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
         refreshTokenHash: hashOAuthToken(successors.refreshToken),
       })
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+
+      // The connection went meanwhile, replaced, revoked or its member removed, and the token with it
+      if (isConnectionGoneRefusal(message)) return refuse('invalid_grant', 'The refresh token was revoked')
+
       // Another refresh spent it in between: read it again, as the duplicate it now is
-      if (attempt < 2 && error instanceof Error && error.message.includes('The refresh token was used already')) {
+      if (attempt < 2 && message.includes('The refresh token was used already')) {
         return refreshAgentConnectionTokens(values, attempt + 1)
       }
 
@@ -152,7 +163,7 @@ async function answerDuplicate(spentToken: string, version: number, connectionId
     successorKeyVersion = refresh.successorKeyVersion
   }
 
-  return refuse('invalid_grant', 'The refresh token was used already')
+  return refuse('invalid_grant', 'The refresh token was used already, and rotated too many times since to follow')
 }
 
 export default refreshAgentConnectionTokens

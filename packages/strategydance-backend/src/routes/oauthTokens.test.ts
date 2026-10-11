@@ -287,6 +287,17 @@ describe('POST /oauth/token, the authorization code grant', () => {
     expect(fake.tokens.size).toBe(2)
   })
 
+  test('refuses a code whose connection goes while it is exchanged, as revoked rather than a server error', async () => {
+    const { code } = await issueCode()
+
+    fake.beforeOperation = async name => {
+      if (name === 'ExchangeOAuthAuthorizationCode') fake.removeMember(MEMBER, ORGANIZATION_ID)
+    }
+
+    expectError(await exchange(code), 'invalid_grant')
+    expect(fake.tokens.size).toBe(0)
+  })
+
   test('refuses a code past its minute, revoking nothing', async () => {
     const { code } = await issueCode()
 
@@ -430,6 +441,16 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read tasks:read' }), 'invalid_scope')
     expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:write' }), 'invalid_scope')
     expect((await refresh(tokens.refresh_token, { scope: 'knowledge:read' })).body.scope).toBe('knowledge:read')
+  })
+
+  test('refuses a refresh whose connection goes while it rotates, as revoked rather than a server error', async () => {
+    const { tokens } = await connect()
+
+    fake.beforeOperation = async name => {
+      if (name === 'RotateAgentConnectionRefreshToken') fake.removeMember(MEMBER, ORGANIZATION_ID)
+    }
+
+    expectError(await refresh(tokens.refresh_token), 'invalid_grant')
   })
 
   test('refuses an access token presented as a refresh token', async () => {

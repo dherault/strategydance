@@ -10,6 +10,7 @@ import logger from '~utils/logger'
 
 import createOpaqueToken from '~domain/oauth/createOpaqueToken'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
+import isConnectionGoneRefusal from '~domain/oauth/isConnectionGoneRefusal'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
 import toTokenAnswer, { type TokenResult } from '~domain/oauth/toTokenAnswer'
 import verifyPkce from '~domain/oauth/verifyPkce'
@@ -80,13 +81,17 @@ async function exchangeOAuthAuthorizationCode(values: CodeExchange): Promise<Tok
       refreshTokenHash: hashOAuthToken(refreshToken),
     })
   } catch (error) {
-    if (!(error instanceof Error && error.message.includes('The code was used already or has expired'))) throw error
+    const message = error instanceof Error ? error.message : String(error)
 
-    // Another exchange of the same code may have landed in between, which is a reuse too
+    if (!message.includes('The code was used already or has expired') && !isConnectionGoneRefusal(message)) throw error
+
+    // Another exchange of the same code may have landed in between, which is a reuse too, or the
+    // connection gone, replaced or revoked
     const { data: again } = await getOAuthAuthorizationRequestByCode(dataConnect, { codeHash })
     const [current] = again.oAuthAuthorizationRequests
 
     if (current?.codeUsedAt) return revokeForReuse(current.connection?.id ?? request.connection.id)
+    if (!current?.connection) return refuse('invalid_grant', 'The connection the code opened was replaced or revoked')
 
     return refuse('invalid_grant', 'The code has expired')
   }

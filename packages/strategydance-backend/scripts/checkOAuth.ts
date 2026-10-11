@@ -23,6 +23,7 @@ import { FIREBASE_PROJECT_ID } from '~constants'
 import { authentication, dataConnect } from '~firebase'
 
 import createAgentConnectionTokenVerifier from '~domain/oauth/createAgentConnectionTokenVerifier'
+import isConnectionGoneRefusal from '~domain/oauth/isConnectionGoneRefusal'
 import isMembershipRefusal from '~domain/oauth/isMembershipRefusal'
 
 import readModuleCaller from '~modules/readModuleCaller'
@@ -493,9 +494,14 @@ async function checkConsent() {
   })
 
   check("the replaced connection's code opens nothing", replaced.oAuthAuthorizationRequests[0]?.connection === null)
+
+  const replacedExchange = await refusal(exchange(first, firstApproval.code, firstApproval.connectionId).exchange)
+
   check(
-    "the replaced connection's code is refused at the exchange",
-    (await refusal(exchange(first, firstApproval.code, firstApproval.connectionId).exchange)) !== null,
+    "the replaced connection's code is refused at the exchange, as the backend reads a gone connection",
+    replacedExchange !== null
+      && (isConnectionGoneRefusal(replacedExchange)
+        || replacedExchange.includes('The code was used already or has expired')),
   )
 
   // Allow sent twice

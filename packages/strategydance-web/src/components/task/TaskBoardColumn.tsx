@@ -1,6 +1,7 @@
 import { PlusIcon } from 'lucide-react'
 import { type ComponentProps, Fragment, type KeyboardEventHandler } from 'react'
 import { useIntl } from 'react-intl'
+import { getTaskBlockers, type TaskLinks } from 'strategydance-core'
 import { TaskStatus } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Pill } from 'strategydance-design-system/components/ui/Pill'
@@ -8,7 +9,6 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { OrganizationMember, Task } from '~types'
 
-import getTaskBlockers from '~utils/task/getTaskBlockers'
 import isTaskLate from '~utils/task/isTaskLate'
 
 import TaskCard from '~components/task/TaskCard'
@@ -21,7 +21,7 @@ type Props = {
   // The column's tasks the filters leave, in its order
   tasks: readonly Task[]
   // Every task on the board, for what each waits on
-  tasksById: ReadonlyMap<string, Task>
+  linksById: ReadonlyMap<string, TaskLinks>
   membersById: ReadonlyMap<string, OrganizationMember>
   today: string
   isFiltering: boolean
@@ -53,7 +53,7 @@ function DropLine() {
 function TaskBoardColumn({
   status,
   tasks,
-  tasksById,
+  linksById,
   membersById,
   today,
   isFiltering,
@@ -108,7 +108,9 @@ function TaskBoardColumn({
             {dropMarker === task.id ? <DropLine /> : null}
             <TaskCard
               task={task}
-              blockerCount={task.status === TaskStatus.DONE ? 0 : getTaskBlockers(task, tasksById).length}
+              blockerCount={
+                task.status === TaskStatus.DONE ? 0 : getTaskBlockers(linksById.get(task.id)!, linksById).length
+              }
               isLate={isTaskLate(task, today)}
               assignee={task.assigneeId ? (membersById.get(task.assigneeId) ?? null) : null}
               isDragged={draggedId === task.id}

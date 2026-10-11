@@ -8,8 +8,9 @@ import { MAX_KNOWLEDGE_SEARCH_RESULTS } from '~constants'
 
 import searchKnowledgeDocuments from '~domain/knowledge/searchKnowledgeDocuments'
 
-import { aspectsSchema, documentSummaryShape, hasNoNul } from '~modules/knowledge/knowledgeSchemas'
+import { documentSummaryShape } from '~modules/knowledge/knowledgeSchemas'
 import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
+import { aspectsSchema, hasNoNul } from '~modules/moduleSchemas'
 import toToolResult from '~modules/toToolResult'
 
 const inputSchema = z.object({

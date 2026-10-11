@@ -2,7 +2,6 @@
   Parts of the messages the Knowledge module's operations give when one of their checks refuses,
   which the domain matches to say why: change each with its check in the backend connector
 */
-export const NOT_MEMBER_REFUSAL = 'The caller is no longer a member of the organization'
 export const FULL_REFUSAL = 'An organization keeps at most'
 export const SEEDED_REFUSAL = 'seeded or changed elsewhere since it was read'
 export const FOLDED_REFUSAL = 'The document was folded, deleted or closed to agents since it was read'

@@ -3,14 +3,15 @@ import * as Y from 'yjs'
 
 import createKnowledgeDocumentText from '~domain/knowledge/createKnowledgeDocumentText'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
-import type { FakeDocument, KnowledgeDatabaseFake } from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import type { FakeDocument } from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import type { ModuleDatabaseFake } from '~domain/modules/testing/createModuleDatabaseFake'
 
 /*
   Documents as the Knowledge module's tests meet them, in one organization of the database fake:
   stored as a page stores one, or as a page stored one before the editor was shared, typed into by a
   tab, which pushes its edit as a pending update, and read back as the editor would read them now
 */
-function createKnowledgeTestDocuments(fake: KnowledgeDatabaseFake, organizationId: string) {
+function createKnowledgeTestDocuments(fake: ModuleDatabaseFake, organizationId: string) {
   // The first snapshot, content and plain text of a text written in Markdown
   function measure(markdown: string) {
     const text = createKnowledgeDocumentText(markdown)

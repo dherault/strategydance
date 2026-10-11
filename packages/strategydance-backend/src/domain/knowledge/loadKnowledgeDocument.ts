@@ -5,9 +5,10 @@ import type { KnowledgeRefusal, ModuleCaller, SeededKnowledgeDocumentText } from
 import { dataConnect } from '~firebase'
 
 import explainKnowledgeDocumentRefusal from '~domain/knowledge/explainKnowledgeDocumentRefusal'
-import isKnowledgeRefusal from '~domain/knowledge/isKnowledgeRefusal'
-import { NOT_MEMBER_REFUSAL, SEEDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
+import { SEEDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import seedKnowledgeDocumentText from '~domain/knowledge/seedKnowledgeDocumentText'
+import isOperationRefusal from '~domain/modules/isOperationRefusal'
+import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 
 // How many times a read seeds a document a tab seeds meanwhile: once is enough, since a seeded
 // document never goes back to having no snapshot, and the next read finds the tab's
@@ -66,8 +67,8 @@ async function loadKnowledgeDocument(caller: ModuleCaller, id: string): Promise<
       // Nothing is pushed to a document with no snapshot, so it has no update pending
       return { outcome: 'loaded', document: { ...document, text: { state, updates: [] } } }
     } catch (error) {
-      if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
-      if (!isKnowledgeRefusal(error, SEEDED_REFUSAL)) throw error
+      if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+      if (!isOperationRefusal(error, SEEDED_REFUSAL)) throw error
     }
   }
 

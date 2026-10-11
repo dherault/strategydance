@@ -5,7 +5,7 @@
   Null when the two are so close that no float fits between them, which takes some fifty moves
   into the same gap: the list then needs renumbering
 */
-function getPositionBetween(before: number | null, after: number | null) {
+export function getPositionBetween(before: number | null, after: number | null) {
   if (before === null && after === null) return 1
   if (before === null) return after! - 1
   if (after === null) return before + 1
@@ -14,5 +14,3 @@ function getPositionBetween(before: number | null, after: number | null) {
 
   return position > before && position < after ? position : null
 }
-
-export default getPositionBetween

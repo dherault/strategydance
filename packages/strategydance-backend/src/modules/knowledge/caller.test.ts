@@ -2,16 +2,16 @@ import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import type { ModuleCaller } from '~types'
 
-import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 import createKnowledgeTestDocuments from './testing/createKnowledgeTestDocuments'
 
-const fake = createKnowledgeDatabaseFake()
+const fake = createModuleDatabaseFake()
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 
-const { default: createKnowledgeModuleTestKit } = await import('./testing/createKnowledgeModuleTestKit')
+const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
@@ -20,7 +20,7 @@ const documents = createKnowledgeTestDocuments(fake, ORGANIZATION_ID)
 const NOT_MEMBER = 'The member is no longer in this organization, so its knowledge is closed to you.'
 
 function connect(fields: Partial<ModuleCaller> = {}) {
-  return createKnowledgeModuleTestKit({
+  return createModuleTestKit('knowledge', {
     kind: 'agent',
     userId: 'member',
     organizationId: ORGANIZATION_ID,

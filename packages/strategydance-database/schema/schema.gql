@@ -324,6 +324,14 @@ type Task @table @index(fields: ["organizationId", "status", "position"]) {
   # (`MAX_TASK_DESCRIPTION_LENGTH`), and an empty string when there is none. It is somebody else's for
   # most readers, so it is drawn only through the design system's `RichText`, as a log entry is
   description: String! @default(value: "")
+  # The plain text of `description`, as the design system's `getRichTextText` reads it, so the Tasks
+  # module's `list_tasks` matches a query against words rather than serialized blocks, whose
+  # structural words every description holds. No index serves the pattern it is matched with, so the
+  # query scans the board, which `MAX_TASKS` bounds. Null means not indexed yet, and nothing may leave
+  # it stale: every write of `description` writes it, the `…WithText` operations and the backend's,
+  # while the operations a page from before it sends write null beside their description. The backend
+  # fills a null one from `description` before a query, and a script fills those a release left
+  descriptionText: String
   status: TaskStatus!
   # Where it sits in its column, ascending. A move writes this one row, halfway between its new
   # neighbours, since the SDK cannot batch a renumbering. Ties, as two members adding at once can

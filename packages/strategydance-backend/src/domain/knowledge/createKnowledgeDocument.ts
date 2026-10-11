@@ -8,11 +8,12 @@ import { dataConnect } from '~firebase'
 
 import createKnowledgeDocumentText from '~domain/knowledge/createKnowledgeDocumentText'
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
-import isKnowledgeRefusal from '~domain/knowledge/isKnowledgeRefusal'
-import { FULL_REFUSAL, NOT_MEMBER_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
+import { FULL_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
+import isOperationRefusal from '~domain/modules/isOperationRefusal'
+import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
 
 export type CreatedKnowledgeDocument = {
@@ -68,8 +69,8 @@ async function createKnowledgeDocument(
     const answeredMeanwhile = isModuleCallKeyTaken(error) ? await answerFromModuleCall(caller, call) : null
 
     if (answeredMeanwhile) return answeredMeanwhile
-    if (isKnowledgeRefusal(error, FULL_REFUSAL)) return { outcome: 'full' }
-    if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+    if (isOperationRefusal(error, FULL_REFUSAL)) return { outcome: 'full' }
+    if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
 
     throw error
   }

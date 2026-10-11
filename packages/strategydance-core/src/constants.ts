@@ -459,4 +459,10 @@ export const MODULES = [
     title: 'Strategy Dance Knowledge',
     scopes: { read: 'knowledge:read', write: 'knowledge:write' },
   },
+  {
+    name: 'tasks',
+    path: '/mcp/tasks',
+    title: 'Strategy Dance Tasks',
+    scopes: { read: 'tasks:read', write: 'tasks:write' },
+  },
 ] as const satisfies readonly ModuleDefinition[]

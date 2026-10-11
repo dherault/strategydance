@@ -1222,3 +1222,201 @@ query GetUnindexedDocuments($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
     revision
   }
 }
+
+# The Tasks module's operations follow, named `…ForAgent`: what an agent reads and writes of an
+# organization's board through it, Strategy Dance's own and a member's alike. Each takes the member
+# the backend verified, `$userId`, and the `createdAt` of the membership it read,
+# `$membershipCreatedAt`, so a member removed, or removed and invited back, stops every agent acting
+# as them at its next call. Each read answers that membership beside its rows, so such a caller is
+# refused rather than shown an empty board. A task carries no AI permission: the board is the team's,
+# and an agent acting as a member reads and changes any task, as the member could
+
+# The live board, without descriptions, as `GetTasks` reads it: each task with the live tasks it waits
+# on, its count of every link, those to deleted tasks included, which `AddTaskDependencyForAgent`
+# counts against the cap, and when it last changed, which an update is guarded on. With the members,
+# up to 100 (`MAX_TEAM_SIZE`), by when they joined, so an agent can name and assign them
+query GetTaskBoardForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  members: userOrganizations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
+  ) {
+    userId
+    user {
+      displayName
+    }
+  }
+  tasks(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ position: ASC }, { createdAt: ASC }, { id: ASC }]
+    limit: 1000
+  ) {
+    id
+    name
+    status
+    position
+    assigneeId
+    isAssignedToAgent
+    dueDate
+    aspects
+    createdAt
+    updatedAt
+    dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
+      dependencyId
+    }
+    linkCount: taskDependencies_on_task {
+      _count
+    }
+  }
+}
+
+# One task, deleted or not, with its description and who made it, and its links to live tasks both
+# ways, as bare ids: what it waits on, and what waits on it. `read_task` refuses one that is deleted;
+# `restore_task` reads when it was deleted and the links a restore brings back. Names and statuses
+# come from the board
+query GetTaskForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  tasks(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    id
+    name
+    status
+    assigneeId
+    isAssignedToAgent
+    dueDate
+    aspects
+    description
+    createdAt
+    updatedAt
+    deletedAt
+    createdBy {
+      id
+      displayName
+    }
+    dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
+      dependencyId
+    }
+    dependents: taskDependencies_on_dependency(where: { task: { deletedAt: { isNull: true } } }, limit: 1000) {
+      taskId
+    }
+  }
+}
+
+# The ids of the live tasks whose name or plain text holds a piece of text, whatever its case, as the
+# board's own search matches it: `$pattern` is `%text%`, its `\`, `%` and `_` escaped so it matches
+# only itself. No index serves a pattern, so this scans the board, which `MAX_TASKS` bounds. Never a
+# description: the plain text is matched, never the serialized blocks, whose structural words every
+# description holds
+query SearchTasksForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $pattern: String!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  tasks(
+    # Data Connect refuses `_and` or `_or` beside plain fields, so each level is one or the other
+    where: {
+      _and: [
+        {
+          organizationId: { eq: $organizationId }
+          deletedAt: { isNull: true }
+          organization: {
+            userOrganizations_on_organization: {
+              exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+            }
+          }
+        }
+        {
+          _or: [
+            { name: { pattern: { like: $pattern, ignoreCase: true } } }
+            { descriptionText: { pattern: { like: $pattern, ignoreCase: true } } }
+          ]
+        }
+      ]
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}
+
+# Live tasks whose plain text is not indexed yet, read before a query to index them from their
+# `description`: up to 21, so the backend indexes 20 and knows whether more remain. Only a page from
+# before `descriptionText` leaves one so once the release has run its backfill
+query GetUnindexedTasksForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  tasks(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      descriptionText: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 21
+  ) {
+    id
+    description
+    updatedAt
+  }
+}
+
+# The backfill's, run by hand after a release: up to 100 tasks of any organization not indexed yet,
+# deleted ones included, leaving out those it could not index, so it pages through them and can stop
+# and start again at any point
+query GetUnindexedTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
+  tasks(where: { descriptionText: { isNull: true }, id: { nin: $skippedIds } }, limit: 100) {
+    id
+    description
+    updatedAt
+  }
+}

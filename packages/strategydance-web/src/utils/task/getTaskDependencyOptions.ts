@@ -1,7 +1,9 @@
+import { getTaskPrerequisites } from 'strategydance-core'
+
 import type { Task } from '~types'
 
-import getTaskPrerequisites from '~utils/task/getTaskPrerequisites'
 import getTasksWaitingOn from '~utils/task/getTasksWaitingOn'
+import toTaskLinks from '~utils/task/toTaskLinks'
 
 type Links = {
   // The task's id, or null for one not stored yet
@@ -22,7 +24,10 @@ type Links = {
 */
 function getTaskDependencyOptions({ taskId, dependencyIds, blockedIds }: Links, tasks: readonly Task[]) {
   const waiting = getTasksWaitingOn(taskId ? [taskId, ...blockedIds] : blockedIds, tasks)
-  const prerequisites = getTaskPrerequisites(taskId ? [taskId, ...dependencyIds] : dependencyIds, tasks)
+  const prerequisites = getTaskPrerequisites(
+    taskId ? [taskId, ...dependencyIds] : dependencyIds,
+    tasks.map(toTaskLinks),
+  )
 
   for (const blockedId of blockedIds) waiting.add(blockedId)
   for (const dependencyId of dependencyIds) prerequisites.add(dependencyId)

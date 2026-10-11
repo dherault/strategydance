@@ -9,17 +9,13 @@ import { dataConnect } from '~firebase'
 import explainKnowledgeDocumentRefusal from '~domain/knowledge/explainKnowledgeDocumentRefusal'
 import foldKnowledgeDocumentEdit from '~domain/knowledge/foldKnowledgeDocumentEdit'
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
-import isKnowledgeRefusal from '~domain/knowledge/isKnowledgeRefusal'
-import {
-  EDITED_REFUSAL,
-  EMPTY_REFUSAL,
-  FOLDED_REFUSAL,
-  NOT_MEMBER_REFUSAL,
-} from '~domain/knowledge/knowledgeRefusalMessages'
+import { EDITED_REFUSAL, EMPTY_REFUSAL, FOLDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 import toKnowledgeFoldRefusal from '~domain/knowledge/toKnowledgeFoldRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
+import isOperationRefusal from '~domain/modules/isOperationRefusal'
+import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
 
 type UpdateKnowledgeDocumentInput = {
@@ -88,9 +84,9 @@ async function updateKnowledgeDocument(
       const answeredMeanwhile = isModuleCallKeyTaken(error) ? await answerFromModuleCall(caller, call) : null
 
       if (answeredMeanwhile) return answeredMeanwhile
-      if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+      if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
       // A blank title on a document whose text is empty, as the rename finds it once it holds the row
-      if (isKnowledgeRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
+      if (isOperationRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
 
       const refusal = await explainKnowledgeDocumentRefusal(caller, id, { isWrite: true })
 
@@ -166,12 +162,12 @@ async function updateKnowledgeDocument(
       const answeredMeanwhile = isModuleCallKeyTaken(error) ? await answerFromModuleCall(caller, call) : null
 
       if (answeredMeanwhile) return answeredMeanwhile
-      if (isKnowledgeRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
+      if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
       // The title went blank meanwhile, which the text this edit empties would leave alone
-      if (isKnowledgeRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
+      if (isOperationRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
       // A push landed under a whole text replaced: the next read finds the text moved on
-      if (isKnowledgeRefusal(error, EDITED_REFUSAL)) continue
-      if (!isKnowledgeRefusal(error, FOLDED_REFUSAL)) throw error
+      if (isOperationRefusal(error, EDITED_REFUSAL)) continue
+      if (!isOperationRefusal(error, FOLDED_REFUSAL)) throw error
 
       const refusal = await explainKnowledgeDocumentRefusal(caller, id, { isWrite: true })
 

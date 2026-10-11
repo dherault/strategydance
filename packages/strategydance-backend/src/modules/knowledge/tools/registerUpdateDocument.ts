@@ -6,9 +6,10 @@ import type { KnowledgeDocumentEdit, KnowledgeToolContext } from '~types'
 
 import updateKnowledgeDocument from '~domain/knowledge/updateKnowledgeDocument'
 
-import { documentIdSchema, hasNoNul, markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
+import { documentIdSchema, markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
+import { hasNoNul } from '~modules/moduleSchemas'
 
 const TOOL = 'update_document'
 

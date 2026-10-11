@@ -2807,3 +2807,507 @@ mutation DeleteExpiredDocuments @auth(level: NO_ACCESS) {
 mutation DeleteExpiredModuleCallResults @auth(level: NO_ACCESS) {
   moduleCallResult_deleteMany(where: { expiresAt: { lt_time: { now: true } } })
 }
+
+# The Tasks module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
+#
+# Each runs as one transaction that checks the membership the module read, then, when the call
+# carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult` first, `$result` being what
+# the module answers, and only then writes, as the Knowledge module's writes do. Each holds a task to
+# what the page's operation holds it to, with the same messages where the same rule holds.
+#
+# Each is named in `GetTasks`' refreshes, on `$organizationId`, but an update carrying a description
+# alone, which changes nothing a card shows, and in `GetTaskDescription`'s, on `$id`, when it changes
+# a description, deletes or restores, so an open board and an open task follow an agent's change.
+# None records an `ActivityDay`: what an agent does on the board counts toward nobody's streak
+
+# Adds a task an agent wrote, held to `CreateTask`'s bounds and to the 1000 tasks an organization
+# keeps, counted under the same lock on the organization's row, so an agent and a page adding at once
+# cannot pass it. `$position` is past the last of its column as the module read it, and
+# `$descriptionText` the plain text of `$description`
+mutation CreateTaskForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $name: String!
+  $description: String!
+  $descriptionText: String!
+  $status: TaskStatus!
+  $position: Float!
+  $assigneeId: String
+  $isAssignedToAgent: Boolean!
+  $dueDate: Date
+  $aspects: [CompanyAspect!]!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+    @check(
+      expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
+      message: "A task's name is 1 to 120 characters on one line, with no space at either end"
+    )
+    @check(
+      expr: "size(vars.description) <= 20000 && size(vars.descriptionText) <= 20000"
+      message: "A task's description is at most 20000 characters"
+    )
+    @check(
+      expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "A task is tagged with each aspect at most once"
+    )
+    @check(
+      expr: "!vars.isAssignedToAgent || !has(vars.assigneeId) || vars.assigneeId == null"
+      message: "A task is assigned to a member or to Strategy Dance, not both"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+      id
+    }
+    # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
+    assignees: userOrganizations(
+      where: { organizationId: { eq: $organizationId }, userId: { eq: $assigneeId } }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.assigneeId) || vars.assigneeId == null || size(this) == 1"
+        message: "A task is assigned to a member of its organization"
+      ) {
+      role
+    }
+  }
+  task_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      createdById: $userId
+      name: $name
+      description: $description
+      descriptionText: $descriptionText
+      status: $status
+      position: $position
+      assigneeId: $assigneeId
+      isAssignedToAgent: $isAssignedToAgent
+      dueDate: $dueDate
+      aspects: $aspects
+    }
+  )
+}
+
+# Changes the fields of a task an agent names, and no other, in one write, so a member changing
+# another field meanwhile keeps their change. An omitted variable leaves its column alone and a null
+# one clears it: `$dueDate` null clears the day, and `$assigneeId` null with `$isAssignedToAgent`
+# takes the task off whoever had it. A description comes with its plain text, a move with its column
+# and its place in it, an assignment with both its fields, which the module always sends together.
+#
+# Refused unless the task is still as the module read it, its `updatedAt` unmoved, which every
+# change of a task's fields moves: the module then reads again and reapplies, so a member's save
+# landing in between is never written over, and a description the agent replaces whole is checked
+# against what it read again
+mutation UpdateTaskForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $updatedAt: Timestamp!
+  $name: String
+  $description: String
+  $descriptionText: String
+  $status: TaskStatus
+  $position: Float
+  $assigneeId: String
+  $isAssignedToAgent: Boolean
+  $dueDate: Date
+  $aspects: [CompanyAspect!]
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+        @check(
+          expr: "!has(vars.name) || (vars.name != null && size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$'))"
+          message: "A task's name is 1 to 120 characters on one line, with no space at either end"
+          optional: true
+        )
+        @check(
+          expr: "(!has(vars.description) || (vars.description != null && size(vars.description) <= 20000)) && (!has(vars.descriptionText) || vars.descriptionText == null || size(vars.descriptionText) <= 20000)"
+          message: "A task's description is at most 20000 characters"
+          optional: true
+        )
+        @check(
+          expr: "!has(vars.aspects) || (vars.aspects != null && vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect)))"
+          message: "A task is tagged with each aspect at most once"
+          optional: true
+        )
+        @check(
+          expr: "!has(vars.isAssignedToAgent) || vars.isAssignedToAgent != true || !has(vars.assigneeId) || vars.assigneeId == null"
+          message: "A task is assigned to a member or to Strategy Dance, not both"
+          optional: true
+        )
+    }
+    # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
+    assignees: userOrganizations(
+      where: { organizationId: { eq: $organizationId }, userId: { eq: $assigneeId } }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.assigneeId) || vars.assigneeId == null || size(this) == 1"
+        message: "A task is assigned to a member of its organization"
+      ) {
+      role
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  task_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      updatedAt: { eq: $updatedAt }
+    }
+    data: {
+      name: $name
+      description: $description
+      descriptionText: $descriptionText
+      status: $status
+      position: $position
+      assigneeId: $assigneeId
+      isAssignedToAgent: $isAssignedToAgent
+      dueDate: $dueDate
+      aspects: $aspects
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The task changed or was deleted since it was read")
+}
+
+# Makes a task wait on another for an agent, as `AddTaskDependency` does and under the same lock and
+# checks: both live and the organization's, never itself or a task that waits on it, at most 50 links
+# counting those to deleted tasks. A longer loop is refused by the module, which reads the board's
+# links first; two writers closing one at the same instant only leave its tasks blocked, as two
+# members can. A link that exists already changes nothing
+mutation AddTaskDependencyForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $taskId: UUID!
+  $dependencyId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+    @check(expr: "vars.taskId != vars.dependencyId", message: "A task cannot wait on itself")
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    waiting: tasks(
+      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
+      id
+    }
+    awaited: tasks(
+      where: { id: { eq: $dependencyId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
+      id
+    }
+    reverse: taskDependencies(where: { taskId: { eq: $dependencyId }, dependencyId: { eq: $taskId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "A task cannot wait on a task that waits on it") {
+      taskId
+    }
+    others: taskDependencies(where: { taskId: { eq: $taskId }, dependencyId: { ne: $dependencyId } }, limit: 50)
+      @check(expr: "size(this) < 50", message: "A task waits on at most 50 others") {
+      dependencyId
+    }
+  }
+  taskDependency_upsert(data: { taskId: $taskId, dependencyId: $dependencyId })
+}
+
+# Stops a task waiting on another for an agent. Unlike the page's, a link that is not there is
+# refused, so the agent hears it. The task it named may be deleted, so a link that would close a loop
+# once a deleted task is restored can be taken off before the restore
+mutation RemoveTaskDependencyForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $taskId: UUID!
+  $dependencyId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  taskDependency_deleteMany(
+    where: {
+      taskId: { eq: $taskId }
+      dependencyId: { eq: $dependencyId }
+      task: { organizationId: { eq: $organizationId } }
+    }
+  ) @check(expr: "this == 1", message: "The task does not wait on that one")
+}
+
+# Deletes a task for an agent as its dialog's Delete does, setting `deletedAt` and keeping its links,
+# so it can be restored with them for a day, then prunes the organization's tasks deleted over a day
+# ago, as `DeleteTask` does. Unlike the page's, a task gone already is refused, so the agent hears it
+mutation DeleteTaskForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+  task_deleteMany(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
+}
+
+# Takes back a delete for an agent, as `RestoreTask` does: within a day of it, with the links other
+# tasks had to it, and against the 1000 tasks an organization keeps, under the same lock on its row.
+# The module refuses a restore whose kept links would close a loop with one made meanwhile before it
+# writes, naming them, where the page's Undo removes them itself
+mutation RestoreTaskForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_updateMany(
+    where: {
+      id: { eq: $organizationId }
+      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
+    }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
+      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+      id
+    }
+  }
+  task_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The task is gone for good")
+}
+
+# Fills a task's plain text from its `description` before a query, where a page from before
+# `descriptionText` left it null, only while the task is as the module read it, its `updatedAt`
+# unmoved, and still not indexed: a save landing in between writes its own text or nulls it again,
+# and either way this one would be stale, so a conflict writes nothing and leaves it for the next
+# query. `updatedAt` stays, since nothing a reader sees changed
+mutation IndexTaskTextForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $updatedAt: Timestamp!
+  $descriptionText: String!
+) @auth(level: NO_ACCESS) {
+  task_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      updatedAt: { eq: $updatedAt }
+      descriptionText: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    data: { descriptionText: $descriptionText }
+  )
+}
+
+# The backfill's, as `IndexTaskTextForAgent` without a caller: any organization's task, as the script
+# read it and still not indexed
+mutation IndexTaskText($id: UUID!, $updatedAt: Timestamp!, $descriptionText: String!) @auth(level: NO_ACCESS) {
+  task_updateMany(
+    where: { id: { eq: $id }, updatedAt: { eq: $updatedAt }, descriptionText: { isNull: true } }
+    data: { descriptionText: $descriptionText }
+  )
+}

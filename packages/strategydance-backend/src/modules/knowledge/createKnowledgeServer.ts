@@ -4,7 +4,7 @@ import type { ModuleCaller } from '~types'
 
 import { MODULE_IDEMPOTENCY_KEY_META } from '~constants'
 
-import createKnowledgeAddresses from '~modules/knowledge/createKnowledgeAddresses'
+import createModuleAddresses from '~modules/createModuleAddresses'
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import KNOWLEDGE_TOOLS from '~modules/knowledge/knowledgeTools'
 
@@ -24,7 +24,7 @@ function createKnowledgeServer(caller: ModuleCaller) {
     { name: 'strategydance-knowledge', title: knowledgeModule.title, version: '1.0.0' },
     { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
   )
-  const context = { caller, toAddress: createKnowledgeAddresses(caller) }
+  const context = { caller, toAddress: createModuleAddresses(caller, 'knowledge') }
 
   for (const register of KNOWLEDGE_TOOLS) register(server, context)
 

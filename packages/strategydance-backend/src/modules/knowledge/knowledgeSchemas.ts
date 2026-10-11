@@ -1,19 +1,11 @@
 import { MAX_DOCUMENT_CONTENT_LENGTH, MAX_DOCUMENT_TITLE_LENGTH } from 'strategydance-core'
-import { CompanyAspect } from 'strategydance-database/backend'
 import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
-// Postgres refuses U+0000 in any text, so no argument holds it
-export const hasNoNul = (value: string) => !value.includes('\u0000')
+import { aspectSchema, hasNoNul } from '~modules/moduleSchemas'
 
 export const documentIdSchema = z.string().regex(UUID_PATTERN, 'A document id is a UUID').describe("The document's id")
-
-export const aspectSchema = z.enum(CompanyAspect)
-
-export const aspectsSchema = z
-  .array(aspectSchema)
-  .refine(aspects => new Set(aspects).size === aspects.length, 'Name each aspect at most once')
 
 export const titleSchema = z
   .string()

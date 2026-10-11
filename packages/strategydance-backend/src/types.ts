@@ -1,6 +1,7 @@
 import type {
   BetaMessage,
   BetaMessageStreamParams,
+  BetaTool,
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ModuleScope } from 'strategydance-core'
@@ -75,6 +76,17 @@ export type ConversationToolRunner = {
     input: unknown,
     context: { signal: AbortSignal; reference: ConversationRunReference; toolUseId: string },
   ): Promise<unknown>
+}
+
+/*
+  The modules a run's agent uses, as its worker connected to them for the run's member: their tools
+  as Claude takes them, which the run's requests send after the agent's own, the runners that call
+  them, and what lets go of the connections once the run is done
+*/
+export type ConversationModules = {
+  tools: BetaTool[]
+  runners: ConversationToolRunner[]
+  close(): Promise<void>
 }
 
 /*

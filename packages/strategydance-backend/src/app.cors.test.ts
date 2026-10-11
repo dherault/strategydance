@@ -41,6 +41,7 @@ describe('createApp in production', () => {
   test("answers any origin on the OAuth protocol's endpoints, without credentials", async () => {
     for (const path of [
       '/.well-known/oauth-authorization-server',
+      '/.well-known/oauth-protected-resource/mcp/knowledge',
       '/oauth/register',
       '/oauth/token',
       '/oauth/token/',
@@ -58,10 +59,25 @@ describe('createApp in production', () => {
 
     expect(metadata.headers.get('access-control-allow-origin')).toBe('*')
     expect(((await metadata.json()) as { issuer: string }).issuer).toBe('https://api.strategydance.com')
+
+    const resourceMetadata = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/knowledge`, {
+      headers: { Origin: 'https://agent.example.com' },
+    })
+
+    expect(resourceMetadata.headers.get('access-control-allow-origin')).toBe('*')
+    expect(await resourceMetadata.json()).toMatchObject({
+      resource: 'https://api.strategydance.com/mcp/knowledge',
+      authorization_servers: ['https://api.strategydance.com'],
+    })
   })
 
-  test("keeps the consent page's routes, and every other, to the app's origins", async () => {
-    for (const path of ['/oauth/requests/abc', '/oauth/requests/abc/approve', '/users/welcome-email']) {
+  test("keeps the consent page's routes, the modules' endpoints, and every other, to the app's origins", async () => {
+    for (const path of [
+      '/oauth/requests/abc',
+      '/oauth/requests/abc/approve',
+      '/mcp/knowledge',
+      '/users/welcome-email',
+    ]) {
       const foreign = await preflight(path, 'https://agent.example.com', 'authorization,x-firebase-appcheck')
       const own = await preflight(path, 'https://strategydance.com', 'authorization,x-firebase-appcheck')
 

@@ -3,7 +3,7 @@ import express, { type Request, type Response } from 'express'
 
 import type { ApiResponse } from '~types'
 
-import { ALLOWED_ORIGINS } from '~constants'
+import { ALLOWED_ORIGINS, MODULES_PATH } from '~constants'
 
 import isOAuthProtocolPath from '~utils/isOAuthProtocolPath'
 
@@ -15,6 +15,8 @@ import securityMiddleware from '~middleware/security'
 import createConversationsRouter from '~routes/conversations'
 import createInternalRouter from '~routes/internal'
 import createLinkPreviewsRouter from '~routes/linkPreviews'
+import createModuleMetadataRouter from '~routes/moduleMetadata'
+import createModulesRouter from '~routes/modules'
 import createOAuthRouter from '~routes/oauth'
 import createOAuthRequestsRouter from '~routes/oauthRequests'
 import createOrganizationsRouter from '~routes/organizations'
@@ -30,7 +32,8 @@ type Options = {
   The app of one of the two services the backend's image runs as, apart from the port it listens
   on, so a test can build either:
 
-  - the backend, public, answers the browser: every route but the internal ones
+  - the backend, public, answers the browser and the agents members connect to a module: every
+    route but the internal ones
   - the worker, private, answers Google Cloud: the internal routes, which Cloud Tasks and Cloud
     Scheduler call, and nothing else. Their service account is the one granted the invoker role
     on it, and Cloud Run refuses anybody without Cloud Run's invoke permission
@@ -67,10 +70,13 @@ function createApp({ isWorker }: Options) {
     })
 
     app.use('/.well-known', createWellKnownRouter())
+    // At the root, since each module's protected resource metadata ends with the module's own path
+    app.use(createModuleMetadataRouter())
     app.use('/link-previews', createLinkPreviewsRouter())
     // Ahead of the protocol's router, so the consent page's routes answer in the app's envelope
     app.use('/oauth/requests', createOAuthRequestsRouter())
     app.use('/oauth', createOAuthRouter())
+    app.use(MODULES_PATH, createModulesRouter())
     // Ahead of the organizations' router, so its paths are matched first
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())
     app.use('/organizations', createOrganizationsRouter())

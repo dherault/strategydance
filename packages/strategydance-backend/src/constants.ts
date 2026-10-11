@@ -4,6 +4,7 @@ import {
   DEVELOPMENT_API_PORT,
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
+  MODULES,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
 } from 'strategydance-core'
@@ -201,6 +202,24 @@ export const MODULE_PROTOCOL_VERSION = '2026-07-28'
 export const MODULE_IDEMPOTENCY_KEY_META = 'com.strategydance/idempotencyKey'
 export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
 
+/*
+  The modules the public backend serves to external agents, each at its own address under
+  `MODULES_PATH`, behind the bearer check, with its protected resource metadata at the app's root:
+  Knowledge for now, and every module `MODULES` lists once the Tasks module joins it
+*/
+export const SERVED_MODULES = MODULES.filter(module => module.name === 'knowledge')
+export const MODULES_PATH = '/mcp'
+
+/*
+  The most a call to a module's endpoint carries, 1 MiB, past a document's 200000 characters
+  escaped as JSON, and how many calls one connection makes in ten minutes, counted in the instance's
+  memory, as the backend's other limits are: one a second on average, which an agent reading a long
+  document in pages and editing it stays well short of
+*/
+export const MAX_MODULE_REQUEST_BYTES = 1024 * 1024
+export const MAX_MODULE_REQUESTS = 600
+export const MODULE_REQUEST_WINDOW_MS = 10 * 60 * 1000
+
 // How long an external agent's call results are kept for its retries. Strategy Dance's agent's last
 // as long as their conversation, so a Resume however late still finds them
 export const MODULE_CALL_RESULT_LIFETIME_MS = 24 * 60 * 60 * 1000
@@ -271,12 +290,15 @@ export const OAUTH_CONSENT_URL = `${APP_URL}/oauth/consent`
 
 /*
   The protocol's own endpoints, which answer any origin without credentials, since no cookie is
-  involved and no client could otherwise call them from a page: every other route answers the
-  app's origins alone, the consent page's included. Matched exactly, as Express routes them,
-  ignoring case and one trailing slash
+  involved and no client could otherwise call them from a page: the metadata, the authorization
+  server's and each served module's protected resource metadata (RFC 9728), registration,
+  authorization, the token endpoint and revocation. Every other route answers the app's origins
+  alone, the consent page's and the modules' endpoints included. Matched exactly, as Express routes
+  them, ignoring case and one trailing slash
 */
 export const OAUTH_PROTOCOL_PATHS = [
   '/.well-known/oauth-authorization-server',
+  ...SERVED_MODULES.map(module => `/.well-known/oauth-protected-resource${module.path}`),
   '/oauth/register',
   '/oauth/authorize',
   '/oauth/token',

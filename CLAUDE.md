@@ -43,7 +43,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them, storing the pictures of documents' text, reading what a
-  web page says of itself for a link preview, and sending and searching conversations. Its image runs
+  web page says of itself for a link preview, sending and searching conversations, and serving the
+  modules to the agents members connect, through its own authorization server. Its image runs
   a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
   and sweeps what was deleted once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
@@ -841,8 +842,24 @@ in `utils/`, one concern per file.
   once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
   checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
   fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
-  against the local backend at `API_URL` and checks the operations against the emulators: an
-  operation changed is changed in both
+  against the local backend at `API_URL`, the Knowledge module's endpoint included, and checks the
+  operations against the emulators: an operation changed is changed in both
+- The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
+  backend alone, serve each module `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
+  through the SDK's `toNodeHandler` around the module's handler. They answer MCP's JSON-RPC, never
+  `ApiResponse` (`respondJsonRpcError` for what they refuse before the handler), and carry no App
+  Check, which no external agent can carry: the bearer token is the guard. In order: any other
+  method 405; an `Origin` other than the app's 403 (the SDK's `originValidation`, against DNS
+  rebinding), one without passing; `requireBearerAuth` with the token verifier and the endpoint's
+  address as `expectedResource`, a 401 naming the module's protected resource metadata;
+  `moduleRateLimitMiddleware`, per connection; then the body, 1 MiB at most, parsed only once the
+  token is verified and handed to the handler whole, `(request, response) => nodeHandler(request,
+  response, request.body)`, since the parser consumed the stream. They answer the app's origins
+  alone, no browser client being served yet. Each served module's protected resource metadata (RFC
+  9728) is `routes/moduleMetadata.ts`, the SDK's `mcpAuthMetadataRouter` mounted at the app's root,
+  since its path ends with the module's, never under `/mcp`, and answers any origin, its path in
+  `OAUTH_PROTOCOL_PATHS`. A client of a 2025 revision is served statelessly, over SSE, as the SDK's
+  fallback answers it
 - A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
   `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
   limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across
@@ -902,7 +919,7 @@ and why.
 - A module is worded for members in the web's `module` catalogue, by its name, through
   `getModuleMessages`, typed over every `ModuleName`: a module added to `MODULES` fails the
   typecheck until its name and what its read and write access let an agent do are worded there, for
-  the consent page, the Connected agents tab and its dialog. `MODULES`' `title` is the server's own,
+  the consent page, the Connected agents tab and the dialog its page's "Use with your agents" opens. `MODULES`' `title` is the server's own,
   in English, for what MCP clients show
 - The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
@@ -961,10 +978,34 @@ and why.
   module's fake joins it. `bun run check:knowledge-module` and `bun run check:tasks-module`, in the
   backend's package, check those conditions against the emulators: an operation changed is changed
   in both
+- An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
+  once a member allowed it on the consent page, through the modules' endpoints (see [Backend
+  conventions](#backend-conventions)). Its caller comes from the access token,
+  `createAgentConnectionTokenVerifier` reading it on every call: `kind: 'external'`, the token's
+  scopes within its connection's, the scope `connection:<id>`, and the membership's `createdAt`, so a
+  member removed, an agent disconnected or an account no longer staff is stopped at its next call. A
+  verified token marks its connection used, `lastUsedAt`, at most once a minute
+  (`createAgentConnectionUseRecorder` in memory, `RecordAgentConnectionUse` across instances), which
+  no live query refreshes on
+- A served module's write tools each register `scopeChallenge: requireModuleWriteScope(module)`, so a
+  connection granted read alone still lists every write, and a call to one answers 403
+  `insufficient_scope`, naming the write scope and the resource metadata, as MCP's step-up asks: the
+  client asks the member again, and their new consent replaces the connection. `readModuleWriteCall`'s
+  check stays behind it, a second guard. An external agent's search draws on the member's search
+  allowance (`recordConversationSearch`), which their conversation searches use too, since no run
+  bounds it, and one past it is answered with a result saying when to search again
+- A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
+  its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
+  tool; its searches on the member's allowance; the "Use with your agents" button on its page,
+  `ModuleAgentsButton`, which takes its name and opens the dialog worded from the `module` catalogue;
+  and its endpoint in `check:oauth`. The Tasks module joins in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which
   takes the module's name. stdout is the protocol's there, so the script points the logger's info
-  lines at stderr
+  lines at stderr. The local backend serves a served module over HTTP too, as its own issuer, with
+  the consent page on the local web app: `claude mcp add --transport http
+  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, then `/mcp` in Claude
+  Code to sign in
 - `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
   backend's package, fill the plain text of documents stored before `contentText` existed and of
   tasks stored before `descriptionText` did, each run by hand once, after the release that added it

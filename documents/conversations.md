@@ -208,8 +208,9 @@ Desktop only (768px and up): chat windows pinned to the bottom right, the last o
   Opening a conversation as a page takes it out of the dock, and the dock hides on the conversation
   page. Closing a draft's window discards the draft.
 - "New conversation" opens a draft in a window, as the design's `cvOpen` does. Minimizing a window
-  lets go of its thread and composer, and of what was written in it and not sent, as the design
-  does: a minimized window reads only what its header shows (M24).
+  lets go of its thread and composer: a minimized window reads only what its header shows. What was
+  written and not sent stays, for the life of the tab, though the design loses it, and so does what
+  a conversation moving between its page and the dock, or behind the "+N" button, held (M24).
 - The toasts stay in the bottom right corner, where Sonner puts them, over the dock's windows, as
   David chose on 2026-10-11 (M24).
 - On small screens there is no dock: every "open" goes to the page.

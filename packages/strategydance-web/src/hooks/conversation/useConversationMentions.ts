@@ -168,9 +168,9 @@ function useConversationMentions(
     handleKeyDown,
     // The message as it is sent, each mention a link to its document
     serialize: (text: string) => serializeConversationMentions(text, mentions),
-    // Forgets every mention, once the message holding them is sent
-    clear: () => {
-      onMentionsChange(() => new Map())
+    // Forgets what Escape turned down and closes the list, once the message is sent, whose
+    // mentions the composer forgets with its words
+    reset: () => {
       setDismissed(null)
       close()
     },

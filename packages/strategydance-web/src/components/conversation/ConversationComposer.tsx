@@ -132,6 +132,7 @@ function ConversationComposer({
     if (!canSend) return
 
     const sentValue = text
+    const sentMentions = draft.mentions
     const isRetry = failedSend?.text === sentText
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
@@ -150,14 +151,22 @@ function ConversationComposer({
         aspects: conversation ? [] : draftAspects,
       })
 
-      // What was written while it went is the reader's next message, its mentions with it
-      if (textareaRef.current?.value === sentValue) mentions.clear()
+      // What was written while it went, its words or a mention picked over words left as they were,
+      // is the reader's next message, which stays: only the message as it was sent is cleared
+      let isSentAsWritten = false
 
-      changeDraft(current => ({
-        sendingMessageId: null,
-        failedSend: null,
-        ...(current.text === sentValue ? { text: '', mentions: new Map() } : {}),
-      }))
+      changeDraft(current => {
+        isSentAsWritten = current.text === sentValue && current.mentions === sentMentions
+
+        return {
+          sendingMessageId: null,
+          failedSend: null,
+          ...(isSentAsWritten ? { text: '', mentions: new Map() } : {}),
+        }
+      })
+
+      if (isSentAsWritten) mentions.reset()
+
       onRunStart(isRetry ? null : { runId, previousRunId })
 
       // Unless the reader has left the page while it went, for one this must not move

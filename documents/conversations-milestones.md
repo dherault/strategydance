@@ -1301,6 +1301,13 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     endpoints make knowing no `$userId`, shows on the tab's next read, as the page regains focus.
   - **Disconnect asks twice through the button**, without a dialog: a consent from the agent undoes
     it.
+  - **A member connects at most 100 agents** (`MAX_AGENT_CONNECTIONS`), so the tab, which reads
+    every one, is the whole list and Disconnect reaches each, as `MAX_CONVERSATIONS` bounds the
+    conversations list. Allow counts after the membership's lock, leaving out the connection it
+    replaces, so consenting again at the cap goes through, and answers `TOO_MANY_AGENT_CONNECTIONS`
+    past it, deciding nothing: the page warns, links to the tab in a new one, and lets the member
+    allow again. Consents in two organizations at once hold different locks and can each pass the cap
+    by one, so the list reads 200.
   - **`check:oauth` makes its tokens for the backend's own issuer**, `API_URL`, so it runs against a
     backend on another port, and checks the list and Disconnect through the web connector as two
     members of one organization.

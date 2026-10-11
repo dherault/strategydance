@@ -11,6 +11,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
 
+import useNow from '~hooks/common/useNow'
 import useConversationDeletedDocuments from '~hooks/conversation/useConversationDeletedDocuments'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationThread from '~hooks/conversation/useConversationThread'
@@ -77,6 +78,8 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
   const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
   const deletedDocuments = useConversationDeletedDocuments(conversation.id, readConversationDeletedDocumentIds(entries))
+  // One clock for every row that offers Restore until its day is up
+  const now = useNow()
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
@@ -192,6 +195,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
                 <ConversationDocumentRestore
                   deleted={deletedDocuments.get(entry.id) ?? null}
                   documents={documents}
+                  now={now}
                 />
               ) : null
             }

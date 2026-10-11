@@ -8,6 +8,8 @@ import {
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
+import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
+
 /*
   The backend connector's conversation operations, over tables kept in memory, for the domain's
   tests, which mock `strategydance-database/backend` with it. Each operation mirrors the conditions
@@ -16,6 +18,11 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
   `check:conversation-search` check those conditions against the emulators, which is what keeps the
   two alike: change one with the other. A search matches words and patterns as near as a test
   needs, which the second checks against Postgres' own.
+
+  It holds the modules' fake too, as `modules`, its operations in the same SDK, since a run's worker
+  loads every module's server, and Bun refuses an import the mock does not hold. A member is added
+  to and removed from both at once, with one `createdAt`, so a run and the modules it calls agree on
+  who its author is. Each keeps its own `calls` and `beforeOperation`
 
   An operation checks everything before it changes anything, so it applies whole or not at all, as
   a transaction does, and runs without yielding, so two called at once take turns as two locked
@@ -208,9 +215,11 @@ function createConversationDatabaseFake() {
   const searches = new Map<string, FakeSearch>()
   // Every operation called, by name, in order
   const calls: string[] = []
+  const modules = createModuleDatabaseFake()
   let stamps = 0
 
   const fake = {
+    modules,
     users,
     memberships,
     organizations,
@@ -266,12 +275,14 @@ function createConversationDatabaseFake() {
     const createdAt = stamp()
 
     memberships.set(membershipKey(userId, organizationId), { createdAt, role: 'MEMBER', jobTitle: null })
+    modules.addMember(userId, organizationId, { createdAt })
 
     return createdAt
   }
 
   function removeMember(userId: string, organizationId: string) {
     memberships.delete(membershipKey(userId, organizationId))
+    modules.removeMember(userId, organizationId)
   }
 
   // Whether a conversation was deleted over a day ago, past its Undo
@@ -2202,6 +2213,7 @@ function createConversationDatabaseFake() {
 
   // The generated SDK's names: `startConversation(dataConnect, variables)` for `StartConversation`
   const sdk: Record<string, unknown> = {
+    ...modules.sdk,
     ConversationMessageKind,
     ConversationNoteKind,
     ConversationRunStatus,
@@ -2226,6 +2238,7 @@ function createConversationDatabaseFake() {
 
     calls.length = 0
     fake.beforeOperation = async () => {}
+    modules.reset()
   }
 
   return Object.assign(fake, { sdk, addMember, removeMember, restore, markRead, reset })

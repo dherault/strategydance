@@ -8,20 +8,19 @@ import type { ConversationRunReference } from '~types'
 
 import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
-import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 const fake = createConversationDatabaseFake()
 
 // The sweep prunes documents and module call results too, which the modules' fake holds
-const modules = createModuleDatabaseFake()
+const { modules } = fake
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
-mock.module('strategydance-database/backend', () => ({ ...modules.sdk, ...fake.sdk }))
+mock.module('strategydance-database/backend', () => fake.sdk)
 
-// The board's prune, which the conversations' fake does not hold: its own test covers it
+// The board's prune, which its own test covers
 const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
 
 mock.module('~domain/tasks/pruneDeletedTasks', () => ({ default: pruneDeletedTasks }))

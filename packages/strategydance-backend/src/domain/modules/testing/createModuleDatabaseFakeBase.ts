@@ -103,14 +103,18 @@ function createModuleDatabaseFakeBase() {
     throw new Error(message)
   }
 
+  // A member, joined now unless `createdAt` says when, which a fake holding this one passes so the
+  // two agree on the membership
   function addMember(
     userId: string,
     organizationId: string,
-    { slug = null, displayName = null }: { slug?: string | null; displayName?: string | null } = {},
+    {
+      slug = null,
+      displayName = null,
+      createdAt = stamp(),
+    }: { slug?: string | null; displayName?: string | null; createdAt?: string } = {},
   ) {
     if (!organizations.has(id(organizationId))) organizations.set(id(organizationId), { slug })
-
-    const createdAt = stamp()
 
     memberships.set(membershipKey(userId, organizationId), { createdAt, displayName })
 

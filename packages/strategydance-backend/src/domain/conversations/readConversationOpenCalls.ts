@@ -16,8 +16,11 @@ import buildConversationToolResults from '~domain/conversations/buildConversatio
 import { parsePendingToolResults } from '~domain/conversations/conversationToolResults'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import settleConversationModuleWrites from '~domain/conversations/settleConversationModuleWrites'
 
 type Options = {
+  // The caller's membership, which the module writes the turn's run made were kept under
+  membershipCreatedAt: string
   // Whether a question still waiting is skipped, as a message sent instead of an answer skips it
   skipsQuestions: boolean
   // What the entry holds after the results: the member's message, for a send
@@ -31,13 +34,17 @@ type Options = {
   conversation's latest run, which waits for their answers when its status says so. Null when the
   transcript ends on anything but a turn that called Strategy Dance's own tools.
 
+  A call to a module's write that started and has no result is answered by what the module stored
+  under its key, when it did, and recorded so (`settleConversationModuleWrites`): a write a worker
+  cut off landed after its run was finalized is found here.
+
   The entry is checked against the turn before it is stored, since it becomes the anchor of the run
   that answers it, which a retry cannot cut
 */
 async function readConversationOpenCalls(
   { organizationId, userId, conversationId }: Omit<ConversationRunReference, 'runId'>,
   lastEntry: { role: ConversationTranscriptRole; content: string } | undefined,
-  { skipsQuestions, follows = [] }: Options,
+  { membershipCreatedAt, skipsQuestions, follows = [] }: Options,
 ): Promise<{
   content: string
   waitingQuestionIds: string[]
@@ -57,10 +64,17 @@ async function readConversationOpenCalls(
     toolUseIds: calls.map(({ id }) => id),
   })
   const [latestRun] = data.latestRuns
+  const pending = parsePendingToolResults(latestRun?.pendingToolResults)
+  const settled = await settleConversationModuleWrites({
+    reference: { organizationId, userId, conversationId },
+    membershipCreatedAt,
+    messages: data.conversationMessages,
+    pending,
+  })
   const results = buildConversationToolResults({
     calls,
     messages: data.conversationMessages,
-    pending: parsePendingToolResults(latestRun?.pendingToolResults),
+    pending: new Map([...pending, ...settled]),
     skipsQuestions,
   })
   const entry = [...results, ...follows]

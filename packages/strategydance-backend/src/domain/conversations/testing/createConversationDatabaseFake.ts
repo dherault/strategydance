@@ -1981,6 +1981,30 @@ function createConversationDatabaseFake() {
       return { conversationMessage_updateMany: 1 }
     },
 
+    SettleConversationToolCall: variables => {
+      const message = messages.get(id(variables.messageId))
+      const conversation = message ? conversations.get(message.conversationId) : undefined
+
+      if (
+        !message
+        || !conversation
+        || message.kind !== 'TOOL_CALL'
+        || !['RUNNING', 'CANCELLED'].includes(message.toolStatus ?? '')
+        || !message.toolStartedAt
+        || conversation.id !== id(variables.conversationId)
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.deletedAt !== null
+        || conversation.activeRunId !== null
+      ) {
+        return { conversationMessage_updateMany: 0 }
+      }
+
+      Object.assign(message, { toolStatus: 'SUCCEEDED', toolOutput: variables.toolOutput })
+
+      return { conversationMessage_updateMany: 1 }
+    },
+
     StoreConversationToolResults: variables => {
       const run = requireFencedRun(variables)
 

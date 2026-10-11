@@ -90,7 +90,10 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'waiting' }
 
     const [lastEntry] = data.conversationTranscriptEntries
-    const answering = await readConversationOpenCalls(reference, lastEntry, { skipsQuestions: false })
+    const answering = await readConversationOpenCalls(reference, lastEntry, {
+      membershipCreatedAt: membership.createdAt,
+      skipsQuestions: false,
+    })
 
     if (!answering || !lastEntry) throw new Error(`Conversation ${conversationId} waits on a turn that called nothing`)
 

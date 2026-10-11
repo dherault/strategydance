@@ -1891,6 +1891,40 @@ mutation FinishConversationToolCall(
   )
 }
 
+# Records a call to a module's write that a run left started and unfinished, cancelled when the run
+# ended, as what the module stored under its idempotency key once the backend found it there: the
+# write landed, and its output is the result the module answered. Only once the run has let go of
+# the conversation, `activeRunId` null, so it never meets a worker still writing: a worker whose lease
+# lapsed passes its fence until its run is finalized. Settling a call twice changes nothing, and a
+# call that finished or never started is left as it is.
+#
+# `$userId` is the uid the backend verified, and `$conversationId` what the conversation's page
+# refreshes on
+mutation SettleConversationToolCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $messageId: UUID!
+  $toolOutput: String!
+) @auth(level: NO_ACCESS) {
+  conversationMessage_updateMany(
+    where: {
+      id: { eq: $messageId }
+      kind: { eq: TOOL_CALL }
+      toolStatus: { in: [RUNNING, CANCELLED] }
+      toolStartedAt: { isNull: false }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        activeRunId: { isNull: true }
+      }
+    }
+    data: { toolStatus: SUCCEEDED, toolOutput: $toolOutput }
+  )
+}
+
 # Stores the results of a turn's calls in the transcript, after the turn, as the user entry that
 # answers them, in their order, then goes round to Claude. The run lets go of the results it kept
 # meanwhile, in the fenced write. Fenced as `RenewConversationRunLease` is

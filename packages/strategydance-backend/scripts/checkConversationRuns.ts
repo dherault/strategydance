@@ -43,6 +43,7 @@ import {
   retryConversationRun,
   sendConversationMessage,
   sendConversationMessageAnsweringCalls,
+  settleConversationToolCall,
   startConversation,
   startConversationToolCall,
   stopQueuedConversationRun,
@@ -106,6 +107,7 @@ const userIds = {
   resumer: `check-conversation-runs-${checkId}-resumer`,
   retrier: `check-conversation-runs-${checkId}-retrier`,
   asker: `check-conversation-runs-${checkId}-asker`,
+  settler: `check-conversation-runs-${checkId}-settler`,
 }
 
 const failures: string[] = []
@@ -1961,6 +1963,100 @@ async function checkQuestions() {
   )
 }
 
+/*
+  A call to a module's write that a run left started and unfinished, recorded as what the module
+  stored under its key once the run has let go of the conversation: never a call that finished or
+  never started, nor while a run holds the conversation, nor anybody else's
+*/
+async function checkSettling() {
+  const insertConversation = async (fields: string) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertConversation($id: UUID!, $userId: String!, $organizationId: UUID!) {
+        conversation_insert(data: { id: $id, userId: $userId, organizationId: $organizationId, title: "Settled"${fields} })
+      }`,
+      { id, userId: userIds.settler, organizationId },
+    )
+
+    return id
+  }
+  const insertCall = async (conversationId: string, position: number, fields: string) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertCall($id: UUID!, $conversationId: UUID!, $position: Int!) {
+        conversationMessage_insert(data: { id: $id, conversationId: $conversationId, kind: TOOL_CALL, position: $position, toolUseId: "toolu_settled", toolName: "create_document", toolInput: "{}"${fields} })
+      }`,
+      { id, conversationId, position },
+    )
+
+    return id
+  }
+  const readCall = async (id: string) =>
+    (
+      await read<{ conversationMessage: { toolStatus: string; toolOutput: string | null } | null }>(
+        `query ReadCall($id: UUID!) { conversationMessage(id: $id) { toolStatus toolOutput } }`,
+        { id },
+      )
+    ).conversationMessage
+  const settle = (conversationId: string, messageId: string, userId = userIds.settler) =>
+    settleConversationToolCall(dataConnect, {
+      organizationId,
+      userId,
+      conversationId,
+      messageId,
+      toolOutput: '{"id":"settled"}',
+    })
+
+  const idle = await insertConversation('')
+  const busy = await insertConversation(`, activeRunId: "${createId()}"`)
+  const deleted = await insertConversation(', deletedAt_expr: "request.time"')
+  const started = ', toolStartedAt_expr: "request.time"'
+  const cancelled = await insertCall(idle, 0, `, toolStatus: CANCELLED${started}`)
+  const running = await insertCall(idle, 1, `, toolStatus: RUNNING${started}`)
+  const neverStarted = await insertCall(idle, 2, ', toolStatus: CANCELLED')
+  const finished = await insertCall(idle, 3, `, toolStatus: FAILED, toolOutput: "{}"${started}`)
+  const spare = await insertCall(idle, 4, `, toolStatus: CANCELLED${started}`)
+  const whileBusy = await insertCall(busy, 0, `, toolStatus: RUNNING${started}`)
+  const whileDeleted = await insertCall(deleted, 0, `, toolStatus: CANCELLED${started}`)
+
+  const { data: settled } = await settle(idle, cancelled)
+
+  check(
+    'a started call a run left cancelled is settled with what the module stored',
+    settled.conversationMessage_updateMany === 1
+      && (await readCall(cancelled))?.toolStatus === ConversationToolStatus.SUCCEEDED
+      && (await readCall(cancelled))?.toolOutput === '{"id":"settled"}',
+  )
+  check(
+    'a started call left running is settled once its run let go of the conversation',
+    (await settle(idle, running)).data.conversationMessage_updateMany === 1,
+  )
+  check(
+    'a call settled again changes nothing',
+    (await settle(idle, cancelled)).data.conversationMessage_updateMany === 0,
+  )
+  check(
+    'a call that never started, or that finished, is not settled',
+    (await settle(idle, neverStarted)).data.conversationMessage_updateMany === 0
+      && (await settle(idle, finished)).data.conversationMessage_updateMany === 0
+      && (await readCall(finished))?.toolStatus === ConversationToolStatus.FAILED,
+  )
+  check(
+    'nothing is settled while a run holds the conversation, or once it is deleted',
+    (await settle(busy, whileBusy)).data.conversationMessage_updateMany === 0
+      && (await settle(deleted, whileDeleted)).data.conversationMessage_updateMany === 0
+      && (await readCall(whileBusy))?.toolStatus === ConversationToolStatus.RUNNING,
+  )
+  check(
+    "another member's call, and a call named under another conversation, are not settled",
+    (await settle(idle, spare, userIds.author)).data.conversationMessage_updateMany === 0
+      && (await settle(busy, spare)).data.conversationMessage_updateMany === 0
+      && (await readCall(spare))?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+}
+
 try {
   await setUp()
 
@@ -1981,6 +2077,7 @@ try {
   await checkSweeping()
   await checkReplies()
   await checkQuestions()
+  await checkSettling()
 } finally {
   await tearDown()
 }

@@ -1376,8 +1376,10 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   built-in ones: name, description, `input_schema`, `strict: true` and `eager_input_streaming:
   true`, as the agent's own tools are (see The agent). Strict tools refuse `minLength`, `maxLength`,
   `minimum`, `maximum`, `multipleOf`, `maxItems` and a `minItems` past one, so the conversion drops
-  them, drops `$schema` and closes every object (`additionalProperties: false`), and throws on
-  anything else a strict schema refuses; the module's zod still holds a call to them, and a call
+  them, drops `$schema` and every `pattern`, and closes every object (`additionalProperties:
+  false`), and throws on anything else a strict schema refuses. M16's probe found the API refusing
+  the request as "Schema is too complex" with the patterns kept, the document's id on five tools,
+  though it was within every published limit; the module's zod still holds a call to them, and a call
   past one gets a result the model can act on. A request takes at most 20 strict tools, 24 optional
   parameters and 16 union ones across them all, which the list's test counts: Knowledge's tools
   hold 11 optional parameters and no union, as M16 found. A test pins the converted list's
@@ -1868,6 +1870,8 @@ the lifetime is chosen from what members' pauses turn out to be.
   Tasks module's input schemas about 17 more, `dueDate`'s null among the unions, as M16 counted, so
   M17 cannot add them as they stand: it makes parameters required, sends some tools without
   `strict`, or keeps some out through tool search, and `buildConversationTools.test.ts` holds it to
-  the limits whichever it chooses.
+  the limits whichever it chooses. Past those limits the API also refuses a list whose compiled
+  grammar grows too large, which no test can see: `bun run probe:claude` is the check, run whenever
+  a module's tools change.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.

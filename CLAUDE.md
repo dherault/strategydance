@@ -847,10 +847,12 @@ and why.
   the run's member, every scope, through the module's own handler, by the SDK's client pinned to the
   2026-07-28 revision on a transport whose `fetch` hands each request to the handler. A module's
   tools join the request after the agent's own as strict, streamed Claude tools
-  (`toConversationModuleTool`): the bounds a strict schema refuses are dropped, every object is
-  closed, and anything else it refuses throws. A request takes at most 20 strict tools, 24 optional
-  parameters and 16 union ones across them all, which `buildConversationTools.test.ts` counts, so a
-  module's input schemas are written to fit, and `bun run probe:claude` confirms the API takes them
+  (`toConversationModuleTool`): the bounds a strict schema refuses are dropped, and its patterns,
+  which made the compiled grammar too complex for the API, every object is closed, and anything else
+  it refuses throws. A request takes at most 20 strict tools, 24 optional parameters and 16 union
+  ones across them all, which `buildConversationTools.test.ts` counts, so a module's input schemas
+  are written to fit. How complex the whole list may grow only the API says: run `bun run
+  probe:claude` whenever a module's tools change, since a list it refuses fails every run
 - The agent keys each write with Claude's id for the call, under `conversation:<id>`, so a worker
   taking over or a Resume calling it again is answered from its key. Finalizing a dead run, and a send
   or a continuation answering its calls, read the key of each write it left started

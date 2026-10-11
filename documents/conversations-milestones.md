@@ -942,8 +942,12 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
     optional parameters and 16 union ones across a request, beside refusing `minLength`,
     `maxLength`, `minimum`, `maximum`, `multipleOf`, `maxItems` and a `minItems` past one. The
     conversion (`toConversationModuleTool`) drops those, drops `$schema`, closes every object, which
-    zod's input schemas leave open, keeps `pattern`, and throws on anything else a strict schema
-    refuses. `buildConversationTools.test.ts` pins the list's bytes and counts the limits: Knowledge
+    zod's input schemas leave open, and throws on anything else a strict schema refuses.
+  - **And a grammar too complex.** With the patterns kept, the document's id on five tools and the
+    one-line title's, `probe:claude` found the API refusing the agent's request, "Schema is too
+    complex", within every published limit. The conversion drops `pattern` too, the module's zod
+    still refusing what breaks one, and the API then compiled the list in some 20 seconds, once,
+    and served it from its cache in under two after. `buildConversationTools.test.ts` pins the list's bytes and counts the limits: Knowledge
     holds 11 optional parameters and no union. The Tasks module's input schemas would add about 17
     more, past 24, which M17 settles (see Risks).
   - **The tools are listed per run**, through the module's handler once the run is claimed, and the
@@ -981,8 +985,8 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
   - **The labels** of the tools the plan dropped on 2026-10-10 went from the catalogue; the
     Knowledge tools' running labels kept the ids the plan's earlier names had.
   - **`probe:claude` sends the agent's own request** with its full tools list, which the API refuses
-    whole when a strict schema is one it does not take. Not run in M16: this machine held no
-    credential for the `anthropic-api-key` secret, so it waits for David before the release.
+    whole when a strict schema is one it does not take, or too complex. Run on 2026-10-11, every
+    check passing once the patterns were dropped.
   - Verified with the tests; `check:conversation-runs`, `check:conversation-list` and
     `check:knowledge-module` against an emulator of the branch's schema, every check passing; and in
     the browser at 1280 and 390 wide, the backend's Claude client swapped for a scripted one: a
@@ -991,7 +995,8 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
     itself away, an append arriving in the document open in another tab while the member typed in
     it, Write then Read turned off and refused, and the backend killed while a write that had landed
     was held, the interrupted run's call drawn `SUCCEEDED` from its key, and Resume carrying on with
-    the text appended once. Not seen with the real model, for the reason above.
+    the text appended once. The real model was asked through `probe:claude` alone, not through a
+    conversation in the browser.
 
 ### M17: Tasks in conversations
 

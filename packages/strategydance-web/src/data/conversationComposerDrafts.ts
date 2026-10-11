@@ -1,3 +1,4 @@
+import createTabStore from '~utils/common/createTabStore'
 import type { ConversationSendFailure } from '~utils/conversation/getConversationSendFailure'
 import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 
@@ -30,20 +31,6 @@ export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
   startedRun: null,
 }
 
-const drafts = new Map<string, ConversationComposerDraft>()
-const listeners = new Set<() => void>()
-
-function isEmpty(draft: ConversationComposerDraft) {
-  return (
-    !draft.text
-    && !draft.mentions.size
-    && !draft.sendingMessageId
-    && !draft.failedSend
-    && !draft.failure
-    && !draft.startedRun
-  )
-}
-
 /*
   Each conversation's message being written, kept for the life of the tab and shared by every
   composer that draws the conversation: its page and its dock's window, a window minimized and
@@ -55,31 +42,20 @@ function isEmpty(draft: ConversationComposerDraft) {
   makes, since the tab outlives a sign-out and a draft not stored yet belongs to no organization:
   one account never finds another's message, nor one organization another's
 */
-export function readConversationComposerDraft(key: string) {
-  return drafts.get(key) ?? EMPTY_CONVERSATION_COMPOSER_DRAFT
-}
+const drafts = createTabStore(
+  EMPTY_CONVERSATION_COMPOSER_DRAFT,
+  draft =>
+    !draft.text
+    && !draft.mentions.size
+    && !draft.sendingMessageId
+    && !draft.failedSend
+    && !draft.failure
+    && !draft.startedRun,
+)
+
+export const readConversationComposerDraft = drafts.read
 
 // Changes what a conversation's composers hold, and forgets it once there is nothing left
-export function updateConversationComposerDraft(
-  key: string,
-  update: (current: ConversationComposerDraft) => ConversationComposerDraft,
-) {
-  const current = readConversationComposerDraft(key)
-  const next = update(current)
+export const updateConversationComposerDraft = drafts.update
 
-  if (next === current) return
-
-  if (!isEmpty(next)) drafts.set(key, next)
-  else if (drafts.has(key)) drafts.delete(key)
-  else return
-
-  for (const listener of listeners) listener()
-}
-
-export function subscribeToConversationComposerDrafts(listener: () => void) {
-  listeners.add(listener)
-
-  return () => {
-    listeners.delete(listener)
-  }
-}
+export const subscribeToConversationComposerDrafts = drafts.subscribe

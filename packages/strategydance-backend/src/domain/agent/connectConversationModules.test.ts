@@ -95,7 +95,10 @@ describe('connectConversationModules', () => {
       'read_document',
     ])
 
-    for (const tool of tools) expect(tool).toMatchObject({ strict: true, eager_input_streaming: true })
+    for (const tool of tools) {
+      expect(tool).toMatchObject({ eager_input_streaming: true })
+      expect(tool).not.toHaveProperty('strict')
+    }
   })
 
   it('keys a write with Claude’s id for the call under the conversation’s scope, and a read with nothing', async () => {

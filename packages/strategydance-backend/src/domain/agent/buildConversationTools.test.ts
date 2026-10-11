@@ -1,6 +1,8 @@
 import { describe, expect, it, mock } from 'bun:test'
 import { createHash } from 'node:crypto'
 
+import type { BetaTool } from '@anthropic-ai/sdk/resources/beta/messages/messages'
+
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 const fake = createModuleDatabaseFake()
@@ -10,14 +12,14 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: connectConversationModules } = await import('./connectConversationModules')
 const { default: buildConversationTools } = await import('./buildConversationTools')
+const { default: CONVERSATION_TOOLS } = await import('./conversationTools')
 
 // What a strict tool takes of a request, all its strict tools together (Claude's structured outputs)
 const MAX_STRICT_TOOLS = 20
 const MAX_OPTIONAL_PARAMETERS = 24
 const MAX_UNION_PARAMETERS = 16
 
-// The keywords a strict schema refuses, and the patterns that made it too complex, which the
-// conversion drops
+// The keywords a strict schema refuses, and the patterns that made it too complex
 const REFUSED_KEYWORDS = [
   '$schema',
   'minLength',
@@ -53,7 +55,7 @@ function readName(tool: Awaited<ReturnType<typeof readTools>>[number]) {
   return 'name' in tool ? tool.name : tool.type
 }
 
-// Every schema in a tool's input schema, itself included, through every keyword the conversion follows
+// Every schema in a tool's input schema, itself included, through every keyword that holds one
 function collectSchemas(schema: Schema): Schema[] {
   const nested = [
     ...Object.values((schema.properties as Record<string, Schema> | undefined) ?? {}),
@@ -107,7 +109,7 @@ describe('buildConversationTools', () => {
       'restore_document',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '56eb54263af1f5ce902dc48fe3aac27190f02765c379d54a4bb99d726b51f059',
+      '4502f8377677b05c7048fccb4d2a887d47945dfa0e20aec46b71ee8ea9b9abc3',
     )
   })
 
@@ -119,15 +121,16 @@ describe('buildConversationTools', () => {
     for (const name of names) expect(name).toMatch(/^[a-zA-Z0-9_-]{1,128}$/)
   })
 
-  it('sends every tool of Strategy Dance’s strict and streamed, within what strict tools take', async () => {
-    const strict = (await readTools()).filter(tool => 'input_schema' in tool)
+  it('sends the agent’s own tools strict and streamed, within what strict tools take', async () => {
+    const strict = (await readTools()).filter((tool): tool is BetaTool => 'strict' in tool && tool.strict === true)
     let optional = 0
     let union = 0
 
+    expect(strict.map(readName)).toEqual(['ask_user'])
     expect(strict.length).toBeLessThanOrEqual(MAX_STRICT_TOOLS)
 
     for (const tool of strict) {
-      expect(tool).toMatchObject({ strict: true, eager_input_streaming: true })
+      expect(tool).toMatchObject({ eager_input_streaming: true })
 
       const schema = tool.input_schema as Schema
 
@@ -145,5 +148,18 @@ describe('buildConversationTools', () => {
 
     expect(optional).toBeLessThanOrEqual(MAX_OPTIONAL_PARAMETERS)
     expect(union).toBeLessThanOrEqual(MAX_UNION_PARAMETERS)
+  })
+
+  // A module's tools outgrow what strict tools take, so Claude reads their schemas and the module checks each call
+  it('sends every module’s tool streamed and not strict, its schema naming no dialect', async () => {
+    const moduleTools = (await readTools()).slice(CONVERSATION_TOOLS.length)
+
+    expect(moduleTools.length).toBeGreaterThan(0)
+
+    for (const tool of moduleTools) {
+      expect(tool).toMatchObject({ eager_input_streaming: true })
+      expect(tool).not.toHaveProperty('strict')
+      expect((tool as { input_schema: Schema }).input_schema).not.toHaveProperty('$schema')
+    }
   })
 })

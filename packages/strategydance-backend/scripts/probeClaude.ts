@@ -30,8 +30,8 @@ import connectConversationModules from '~domain/agent/connectConversationModules
   reordered as Postgres `jsonb` would reorder it; counts the tokens of a PDF and an image from their
   bytes, uploads them through the Files API and has a message read them by id, as the upload route
   and the agent will; sends the agent's own request, its system prompt and every tool it sends, the
-  modules' strict ones included, as a run builds it, which the API refuses whole when a strict
-  schema is one it does not take; and sends the first request and the replay straight to each model
+  modules' included, as a run builds it, which the API refuses whole when a tool's schema is one it
+  does not take; and sends the first request and the replay straight to each model
   a refusal may fall back to. It prints what passed, what failed and what it found, and exits
   non-zero naming every check that did not pass.
 
@@ -536,7 +536,7 @@ for (const id of uploaded) {
 --- */
 
 await check(
-  "The agent's own request is accepted, with its system prompt and every tool it sends, the modules' strict ones included",
+  "The agent's own request is accepted, with its system prompt and every tool it sends, the modules' included",
   async () => {
     // The modules' tools as a run's worker lists them, for a member nobody is: listing reads nothing
     const modules = await connectConversationModules({

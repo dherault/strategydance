@@ -165,6 +165,16 @@ export const CONVERSATION_ANSWER_RECONCILE_DELAY_MS = 5000
 // a word typed is one search rather than one a letter
 export const CONVERSATION_SEARCH_DELAY_MS = 300
 
+// How many windows the dock keeps for a member in an organization, as `GetDockConversations` reads
+// them. Opening one more lets go of the one opened longest ago
+export const MAX_DOCK_WINDOWS = 20
+
+// The dock's measures, in pixels, as the design has them: a window's width, the gap between two,
+// and the width the "+N" button takes for the windows that do not fit
+export const DOCK_WINDOW_WIDTH = 352
+export const DOCK_WINDOW_GAP = 8
+export const DOCK_MORE_WIDTH = 56
+
 /* ---
   BUILD IN PUBLIC
 --- */

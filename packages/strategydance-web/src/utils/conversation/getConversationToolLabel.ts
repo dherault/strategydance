@@ -5,30 +5,41 @@ import conversationMessages from '~data/intl/messages/conversation'
 
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
-// What each of the agent's own tools is called while it runs, and once it is done
+// What each of the agent's tools is called while it runs, and once it is done: its own, then the
+// Knowledge module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],
   [
-    'search_knowledge',
+    'search_documents',
     { running: conversationMessages.toolSearchKnowledgeRunning, done: conversationMessages.toolSearchKnowledgeDone },
   ],
   [
-    'read_knowledge',
+    'list_documents',
+    { running: conversationMessages.toolListKnowledgeRunning, done: conversationMessages.toolListKnowledgeDone },
+  ],
+  [
+    'read_document',
     { running: conversationMessages.toolReadKnowledgeRunning, done: conversationMessages.toolReadKnowledgeDone },
   ],
   [
-    'create_knowledge',
+    'create_document',
     { running: conversationMessages.toolCreateKnowledgeRunning, done: conversationMessages.toolCreateKnowledgeDone },
   ],
   [
-    'update_knowledge',
+    'update_document',
     { running: conversationMessages.toolUpdateKnowledgeRunning, done: conversationMessages.toolUpdateKnowledgeDone },
   ],
-  ['get_team', { running: conversationMessages.toolGetTeamRunning, done: conversationMessages.toolGetTeamDone }],
-  ['read_log', { running: conversationMessages.toolReadLogRunning, done: conversationMessages.toolReadLogDone }],
   [
-    'set_top_priority',
-    { running: conversationMessages.toolSetTopPriorityRunning, done: conversationMessages.toolSetTopPriorityDone },
+    'set_document_aspects',
+    { running: conversationMessages.toolTagKnowledgeRunning, done: conversationMessages.toolTagKnowledgeDone },
+  ],
+  [
+    'delete_document',
+    { running: conversationMessages.toolDeleteKnowledgeRunning, done: conversationMessages.toolDeleteKnowledgeDone },
+  ],
+  [
+    'restore_document',
+    { running: conversationMessages.toolRestoreKnowledgeRunning, done: conversationMessages.toolRestoreKnowledgeDone },
   ],
 ])
 

@@ -878,6 +878,36 @@ const conversationMessages = defineMessages({
     description:
       'Shown above the message field when the server could not take the message for now. What the reader wrote stays in the field.',
   },
+  composerAttach: {
+    id: 'conversation.composer.attach',
+    defaultMessage: 'Attach',
+    description:
+      "Accessible name and tooltip of the + button beside the message field, whose menu adds something to the message, such as a mention of the team's knowledge.",
+  },
+  composerMentionKnowledge: {
+    id: 'conversation.composer.mentionKnowledge',
+    defaultMessage: 'Mention knowledge',
+    description:
+      "Item of the + menu beside the message field. It writes @ in the message and lists the team's knowledge documents, such as a note or a plan, to mention, so the AI reads them.",
+  },
+  composerTooLong: {
+    id: 'conversation.composer.tooLong',
+    defaultMessage: 'This message is too long to send. Shorten it a little.',
+    description:
+      'Shown above the message field when what the reader wrote, with the documents it mentions, is longer than a message may be. Send is disabled until it is shorter.',
+  },
+  mentionListLabel: {
+    id: 'conversation.mention.listLabel',
+    defaultMessage: 'Knowledge',
+    description:
+      "Heading of the list that opens above the message field when the reader types @, suggesting the team's knowledge documents, such as a note or a plan, to mention in the message.",
+  },
+  mentionEmpty: {
+    id: 'conversation.mention.empty',
+    defaultMessage: 'No knowledge matches “{query}”',
+    description:
+      "Shown in the list above the message field when no knowledge document's title holds what the reader typed after @. {query} is what they typed, kept as typed.",
+  },
   tooMany: {
     id: 'conversation.tooMany',
     defaultMessage: 'You have {max, number} conversations, as many as you can keep. Delete one to start another.',

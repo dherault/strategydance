@@ -69,7 +69,7 @@ M27 well before their neighbours.
 | M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | |
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
 | M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
-| M22 | Mentioning knowledge in the composer | web | M7, M16 | |
+| M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
 | M23 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
 | M24 | The dock | web | M7 | |
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |

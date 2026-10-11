@@ -25,7 +25,9 @@ M17 and external agents in M21, which moved the milestones after M14 to make roo
 priority, so the milestone that was to build those tools is gone, and the milestones after M22 moved
 down by one. Revised on 2026-10-11, in M16, as David chose: the daily sweep is a conversation's only
 prune, so its module call results go with it. Revised on 2026-10-11, in M17, as David chose: the
-modules' tools reach Claude without `strict`, since the modules outgrow what strict tools take. When a decision changes, change it here first.
+modules' tools reach Claude without `strict`, since the modules outgrow what strict tools take.
+Revised on 2026-10-11, in M22, as David chose: the member's bubble draws only the knowledge it
+mentions, and keeps the rest as typed. When a decision changes, change it here first.
 
 ## The design
 
@@ -115,9 +117,11 @@ export, port the styles from `conversations.css` onto the design system's compon
 
 Each entry is one of:
 
-- **The member's message**: a grey bubble on the right, line breaks kept, links and knowledge
-  mentions drawn; attachments above it, images as thumbnails (a click opens them in a dialog with
-  their name and size), other files as chips with an icon, the name and the size.
+- **The member's message**: a grey bubble on the right, line breaks kept, knowledge mentions
+  drawn as the agent's links to knowledge are, and everything else as the member typed it, Markdown
+  and web addresses included, as David chose in M22; attachments above it, images as thumbnails (a
+  click opens them in a dialog with their name and size), other files as chips with an icon, the
+  name and the size.
 - **Strategy Dance's text**: full width, Markdown limited to paragraphs, bulleted and numbered lists,
   tables, bold, italic and links. A link to knowledge, `[title](doc:<id>)`, shows the document's
   current title with a file icon; a deleted one is struck through and muted. A link to a task,
@@ -155,7 +159,22 @@ knowledge."
   driven by the arrows, Enter or Tab to pick, Escape to close; "No knowledge matches “query”" when
   none does. A pick inserts `@Title`, sent as `[Title](doc:<id>)` with `[`, `]` and `\` in the title
   escaped, since a title may hold any character; the link draws the document's current title from
-  its id anyway.
+  its id anyway. As M22 built it:
+  - A mention starts the text or follows a space, and its query runs to the caret, at most 40
+    characters on one line. The list sits above the field, over the composer's width, and closes
+    when the caret leaves the query or the field loses the focus. Escape closes it for that mention
+    for good, the caret coming back to it included, so an Enter meant to send never picks what the
+    member turned down, while the text up to its `@` stays as it was. Enter picks on a touch screen
+    too while the list shows.
+  - The composer tracks each pick by its title, the last pick winning when two documents share one.
+    On sending, an `@` followed by a tracked title becomes its link, the longest title first and
+    only where a word ends, so `@Planning` is no mention of "Plan". A mention edited by hand is
+    plain text again, and its words a query.
+  - A document without a title is never suggested. The list waits while the documents are read,
+    from the field's first focus, and stays shut if they cannot be, so an `@` is then plain text.
+  - A pick is written as typing would be, so the browser's undo takes it back.
+  - A message whose links take it past `MAX_CONVERSATION_MESSAGE_LENGTH`, though its words fit the
+    field, is not sent: Send is disabled and the composer says it is too long.
 - Attachments: up to ten per message, picked or pasted, shown in a tray above the field with a
   remove button each.
 - Send is disabled when there is nothing to send. While a run goes, a Stop button replaces it.

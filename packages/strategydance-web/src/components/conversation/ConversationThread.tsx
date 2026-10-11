@@ -192,7 +192,14 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
 
     switch (entry.kind) {
       case ConversationMessageKind.MEMBER_TEXT:
-        return body ? <ConversationMemberMessage text={body.text ?? ''} /> : <ConversationMessagePlaceholder isMember />
+        return body ? (
+          <ConversationMemberMessage
+            text={body.text ?? ''}
+            documents={documents}
+          />
+        ) : (
+          <ConversationMessagePlaceholder isMember />
+        )
       case ConversationMessageKind.AGENT_TEXT: {
         const piece = replies.get(entry.id)
 

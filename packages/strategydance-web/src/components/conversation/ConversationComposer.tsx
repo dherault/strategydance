@@ -7,6 +7,7 @@ import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 
 import type { Conversation, ConversationRun } from '~types'
 
+import useConversationMentions from '~hooks/conversation/useConversationMentions'
 import useSendConversationMessage from '~hooks/conversation/useSendConversationMessage'
 import useStopConversationRun from '~hooks/conversation/useStopConversationRun'
 
@@ -19,6 +20,8 @@ import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
 
 import Spinner from '~components/common/Spinner'
+import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
+import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -30,9 +33,10 @@ const FAILURE_MESSAGES = {
   error: conversationMessages.composerError,
 } satisfies Record<ConversationSendFailure, MessageDescriptor>
 
-// The send that failed, kept so that sending the same words again is the same send
+// The send that failed, kept so that sending the same message again is the same send
 type FailedSend = {
   messageId: string
+  // As it was sent, its mentions links to their documents
   text: string
 }
 
@@ -49,8 +53,9 @@ type Props = {
 
 /*
   Where the reader writes to Strategy Dance, at the foot of a conversation: a field that grows
-  with what is written, and a button that sends it. Text only for now: mentions and attachments
-  come later.
+  with what is written, and a button that sends it. Typing `@`, or "Mention knowledge" in the "+"
+  menu, suggests knowledge to mention, and each mention picked is sent as a link to its document
+  (`useConversationMentions`). Attachments come later.
 
   Nothing is sent while a run goes, nor once the conversation is full, though the reader can
   write meanwhile. A first send's run counts as going from the moment the backend answers, before
@@ -58,10 +63,12 @@ type Props = {
   the place of Send, and once the reader asked, in this tab or another, it waits for the run to
   end.
 
-  A send that fails keeps its words in the field, and says why. Sending the same words again sends
-  them under the same message's id, so a send that did reach the backend, and only lost its answer,
-  is stored once. Words changed since are a new message, with an id of its own, rather than a retry
-  the backend would answer with the first words. A retry's answer is not waited on: it can name the
+  A send that fails keeps its words in the field, and says why. Sending the same message again
+  sends it under the same message's id, so a send that did reach the backend, and only lost its
+  answer, is stored once. A message changed since, its words or the documents it mentions, is a new
+  message, with an id of its own, rather than a retry the backend would answer with the first one.
+  A message whose mentions take it past what a message may hold, though its words fit the field,
+  is not sent, and says so. A retry's answer is not waited on: it can name the
   run the first send started, older than one another tab has started since, which the read would
   never move on from. Only a message's first send is sure to start a run newer than any read
 
@@ -73,6 +80,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mentions = useConversationMentions(textareaRef)
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
@@ -81,10 +89,12 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
   const [failedStopRunId, setFailedStopRunId] = useState<string | null>(null)
 
   const trimmedText = text.trim()
+  const sentText = mentions.serialize(trimmedText)
+  const isTooLong = sentText.length > MAX_CONVERSATION_MESSAGE_LENGTH
   const isFull = conversation ? conversation.isFull || conversation.messageCount >= MAX_CONVERSATION_MESSAGES : false
   const isAwaiting = isAwaitingConversationRun(startedRun, run)
   const isRunGoing = isConversationRunGoing(run) || isAwaiting
-  const canSend = !!trimmedText && !isSending && !isRunGoing && !isFull
+  const canSend = !!trimmedText && !isSending && !isRunGoing && !isFull && !isTooLong
   // The run Stop stops: the one going, or the one the reader just started, before the read shows it
   const goingRunId = isAwaiting ? (startedRun?.runId ?? null) : isConversationRunGoing(run) ? (run?.id ?? null) : null
   const isStopping =
@@ -95,7 +105,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
     if (!canSend) return
 
     const sentValue = text
-    const isRetry = failedSend?.text === trimmedText
+    const isRetry = failedSend?.text === sentText
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
 
@@ -103,9 +113,11 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
     setFailure(null)
 
     try {
-      const { runId } = await sendConversationMessage({ conversationId, messageId, text: trimmedText })
+      const { runId } = await sendConversationMessage({ conversationId, messageId, text: sentText })
 
-      // What was written while it went is the reader's next message
+      // What was written while it went is the reader's next message, its mentions with it
+      if (textareaRef.current?.value === sentValue) mentions.clear()
+
       setText(current => (current === sentValue ? '' : current))
       setFailedSend(null)
       onRunStart(isRetry ? null : { runId, previousRunId })
@@ -121,7 +133,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
     } catch (error) {
       console.error('The message could not be sent', error)
 
-      setFailedSend({ messageId, text: trimmedText })
+      setFailedSend({ messageId, text: sentText })
       setFailure(getConversationSendFailure(error))
     } finally {
       setIsSending(false)
@@ -152,9 +164,11 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
   function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
     setText(event.target.value)
     setFailure(null)
+    mentions.detect()
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentions.handleKeyDown(event)) return
     if (!isConversationSendKey(event.nativeEvent, window.matchMedia('(pointer: coarse)').matches)) return
 
     event.preventDefault()
@@ -162,16 +176,36 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
   }
 
   return (
+    // Above the page's bar on a phone, which the list of knowledge to mention can reach
     <form
-      className="sticky bottom-0 flex flex-col gap-2 bg-background pt-3 pb-5"
+      className="sticky bottom-0 z-10 flex flex-col gap-2 bg-background pt-3 pb-5"
       onSubmit={handleSubmit}
     >
+      {mentions.isListShown ? (
+        <ConversationMentionList
+          listId={mentions.listId}
+          getOptionId={mentions.getOptionId}
+          documents={mentions.matches}
+          highlightedIndex={mentions.highlightedIndex}
+          query={mentions.query ?? ''}
+          onHighlight={mentions.highlight}
+          onPick={mentions.pick}
+        />
+      ) : null}
       {shownFailure ? (
         <p
           role="alert"
           className="m-0 text-sm text-danger"
         >
           {formatMessage(FAILURE_MESSAGES[shownFailure], { max: MAX_CONVERSATIONS })}
+        </p>
+      ) : null}
+      {isTooLong ? (
+        <p
+          role="alert"
+          className="m-0 text-sm text-danger"
+        >
+          {formatMessage(conversationMessages.composerTooLong)}
         </p>
       ) : null}
       {goingRunId !== null && failedStopRunId === goingRunId ? (
@@ -183,6 +217,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
         </p>
       ) : null}
       <div className="flex items-end gap-1.5">
+        <ConversationComposerMenu onMentionKnowledge={mentions.insertTrigger} />
         <Textarea
           ref={textareaRef}
           autosize
@@ -192,11 +227,17 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
           maxLength={MAX_CONVERSATION_MESSAGE_LENGTH}
           placeholder={formatMessage(conversationMessages.composerPlaceholder)}
           aria-label={formatMessage(conversationMessages.composerLabel)}
+          aria-autocomplete="list"
+          aria-controls={mentions.matches.length ? mentions.listId : undefined}
+          aria-activedescendant={mentions.matches.length ? mentions.getOptionId(mentions.highlightedIndex) : undefined}
           // A draft has nothing else to do but be written in
           autoFocus={!conversation}
           className="min-h-8 px-2.5 py-[5px] text-sm/5"
+          onFocus={mentions.enable}
           onChange={handleChange}
+          onSelect={mentions.detect}
           onKeyDown={handleKeyDown}
+          onBlur={mentions.close}
         />
         {isRunGoing ? (
           <Button

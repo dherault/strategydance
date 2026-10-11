@@ -60,7 +60,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
   text, links only to web, mail, `doc:` and `task:` addresses, `renderLink` drawing the last two (the
   thread draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`,
-  and a `task:` link from its live board, `ConversationTaskLink`), and never loads an image: draw the agent's text through it, never through `react-markdown` directly. An
+  and a `task:` link from its live board, `ConversationTaskLink`), and never loads an image: draw the agent's text through it, never through `react-markdown` directly.
+  A member's message is not Markdown: the thread draws it as typed, its knowledge mentions,
+  `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
   the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, and
@@ -228,6 +230,12 @@ The frontend has no shadcn setup of its own. Buttons, inputs, selects, alerts, t
 rest come from `strategydance-design-system`, and a primitive it lacks is added there, with a
 story, rather than to `src/components/ui/`. That folder holds only the frontend's glue around
 them: `FormField` for react-hook-form, `TextDivider`.
+
+Text a page writes into a field itself, as a mention's pick does, goes through
+`replaceTextareaRange` in `~utils/common`, which writes it as typing would: a controlled field's
+`onChange` reads it, the caret lands after it, and the browser's undo takes it back, which setting
+its value from state does not. A list a field drives while it keeps the focus, as the mentions' list, is the
+design system's `SuggestionList`.
 
 A field's text is 16px on a touch screen, whatever it is elsewhere. iOS zooms the page into a
 focused input, textarea or editable element whose text is smaller, and leaves it zoomed.

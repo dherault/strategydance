@@ -1217,6 +1217,10 @@
         "hash": "713f0ab16a18ab7d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.attach": {
+        "hash": "66e8bcd286c734d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.composer.busy": {
         "hash": "132ab4e5616ead0f",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1227,6 +1231,10 @@
       },
       "conversation.composer.label": {
         "hash": "16ac60d21b24a121",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.mentionKnowledge": {
+        "hash": "e1812b4a24932a76",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.placeholder": {
@@ -1243,6 +1251,10 @@
       },
       "conversation.composer.stopError": {
         "hash": "e9e329025eb2b432",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.tooLong": {
+        "hash": "dad239e3343aed61",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.unavailable": {
@@ -1315,6 +1327,14 @@
       },
       "conversation.loadError": {
         "hash": "536b6bf6c940fe86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.mention.empty": {
+        "hash": "8b96886d37955977",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.mention.listLabel": {
+        "hash": "0bcbccc30f324068",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.messageLoading": {

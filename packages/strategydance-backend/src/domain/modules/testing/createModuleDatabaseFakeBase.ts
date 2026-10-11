@@ -1,3 +1,5 @@
+import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
+
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 /*
@@ -62,6 +64,8 @@ function createModuleDatabaseFakeBase() {
   const memberships = new Map<string, FakeMembership>()
   const organizations = new Map<string, { slug: string | null }>()
   const results = new Map<string, FakeModuleCallResult>()
+  // The searches counted against each member's allowance, as `ConversationSearch` rows
+  const searches: { userId: string; organizationId: string; createdAt: string }[] = []
   // Every operation called, by name, in order
   const calls: string[] = []
   // What each module's fake empties on a reset, besides the tables here
@@ -74,6 +78,7 @@ function createModuleDatabaseFakeBase() {
     memberships,
     organizations,
     results,
+    searches,
     calls,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
   }
@@ -146,6 +151,16 @@ function createModuleDatabaseFakeBase() {
       .filter(([key]) => key.endsWith(suffix))
       .map(([key, membership]) => ({ userId: key.slice(0, -suffix.length), ...membership }))
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.userId < b.userId ? -1 : 1))
+  }
+
+  // A member's searches younger than the allowance's window, newest first
+  function recentSearches(userId: unknown, organizationId: unknown) {
+    const since = Date.now() - CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000
+
+    return searches
+      .filter(search => search.userId === userId && search.organizationId === id(organizationId))
+      .filter(search => Date.parse(search.createdAt) > since)
+      .toReversed()
   }
 
   // The membership a read answers beside its rows, so a caller who is no longer the member is refused
@@ -253,11 +268,39 @@ function createModuleDatabaseFakeBase() {
 
       return { moduleCallResult_deleteMany: deleted }
     },
+
+    RecordConversationSearch: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can search its conversations')
+      }
+      if (recentSearches(variables.userId, variables.organizationId).length >= MAX_CONVERSATION_SEARCHES) {
+        refuse('Somebody searches their conversations at most 120 times in ten minutes in an organization')
+      }
+
+      searches.push({
+        userId: String(variables.userId),
+        organizationId: id(variables.organizationId),
+        createdAt: stamp(),
+      })
+
+      return { conversationSearch_insert: { id: id(crypto.randomUUID()) } }
+    },
+
+    GetConversationSearchQuota: variables => ({
+      userOrganization: memberships.has(membershipKey(variables.userId, variables.organizationId))
+        ? { role: 'MEMBER' }
+        : null,
+      conversationSearches: recentSearches(variables.userId, variables.organizationId)
+        .slice(0, MAX_CONVERSATION_SEARCHES)
+        .map(({ createdAt }) => ({ createdAt })),
+    }),
   })
 
   // Empties every table, for the next test
   function reset() {
     for (const table of [memberships, organizations, results]) table.clear()
+
+    searches.length = 0
     for (const resetModule of resets) resetModule()
 
     calls.length = 0

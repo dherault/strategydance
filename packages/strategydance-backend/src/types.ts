@@ -226,6 +226,8 @@ export type KnowledgeRefusal =
   | { outcome: 'keyConflict' }
   /** A cursor no read gave */
   | { outcome: 'invalidCursor' }
+  /** An external agent's search past the member's search allowance, until the next one fits */
+  | { outcome: 'tooManySearches'; retryAfterMs: number }
 
 // What a write of the Knowledge module answers: its result, or the one stored under its key when the
 // call was sent before, or why it was refused

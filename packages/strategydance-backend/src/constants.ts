@@ -5,6 +5,7 @@ import {
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
   MODULES,
+  type ModuleName,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
 } from 'strategydance-core'
@@ -205,9 +206,12 @@ export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
 /*
   The modules the public backend serves to external agents, each at its own address under
   `MODULES_PATH`, behind the bearer check, with its protected resource metadata at the app's root:
-  Knowledge for now, and every module `MODULES` lists once the Tasks module joins it
+  Knowledge and Tasks, in `MODULES`' order. A module added to `MODULES` later joins them by its name
+  here, once its write tools are challenged and its searches counted
 */
-export const SERVED_MODULES = MODULES.filter(module => module.name === 'knowledge')
+const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
+
+export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 export const MODULES_PATH = '/mcp'
 
 /*

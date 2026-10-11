@@ -67,7 +67,7 @@ export type ConversationToolCallsOutcome = {
   Each call starts in a fenced write, so a worker that lost its run never makes one, and finishes in
   another that records its result on its message and on the run, with the results kept before it,
   so a worker taking over runs none of them again. A call has 60 seconds: past them it fails, and
-  whatever it answers later changes nothing. A failure goes back to Claude as a sentence it can act
+  whatever it answers later changes nothing, though a write may still land, which its sentence says. A failure goes back to Claude as a sentence it can act
   on.
 
   Before each group starts, the member's stop and the run's time are read: once either is up, the
@@ -196,8 +196,11 @@ async function runCall({ fence, lease, signal, call, messageId, runner, pending,
     // The run is no longer this worker's, which writes nothing more
     if (signal.aborted) throw error
 
+    // A write the worker stopped waiting for can still land, a module's going on in its own mutation
     const reason = timeout.aborted
-      ? `The call took longer than ${timeoutMs / 1000} seconds, and was stopped.`
+      ? runner.isReadOnly
+        ? `The call took longer than ${timeoutMs / 1000} seconds, and was stopped.`
+        : `The call took longer than ${timeoutMs / 1000} seconds and may still have run. Check before you call it again.`
       : error instanceof Error && error.message
         ? error.message
         : 'The call failed.'

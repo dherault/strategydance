@@ -3722,6 +3722,24 @@ mutation DeleteAgentConnectionAccessToken($id: UUID!) @auth(level: NO_ACCESS) {
   agentConnectionToken_deleteMany(where: { id: { eq: $id }, kind: { eq: ACCESS } })
 }
 
+# Marks a connection used when a module's endpoint verified a token of its, at most once a minute
+# whichever instance asks, so an agent calling the module all day costs a write a minute, and the
+# Connected agents tab, whose list no refresh names this for, shows it on its next read. A connection
+# gone since, or one of another member's, writes nothing. `$id` and `$userId` are the verified
+# token's own
+mutation RecordAgentConnectionUse($id: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  agentConnection_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $id } }
+        { membershipUserId: { eq: $userId } }
+        { _or: [{ lastUsedAt: { isNull: true } }, { lastUsedAt: { lt_time: { now: true, sub: { minutes: 1 } } } }] }
+      ]
+    }
+    data: { lastUsedAt_expr: "request.time" }
+  )
+}
+
 # The daily sweep's: deletes the authorization requests expired over a day ago, so a code presented
 # again within that day is still traced to its connection. Deleting them twice deletes nothing, as
 # for each of the sweep's deletes

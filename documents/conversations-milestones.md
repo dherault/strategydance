@@ -1358,6 +1358,53 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   should it insist on a `cursor://` redirect, which the specification rules out, accepting it, a
   deviation PKCE mitigates, is David's call), use it from each, and disconnect one from Connected
   agents and see its next call refused.
+- Built with these settled, on 2026-10-11:
+  - **The adapters are `@modelcontextprotocol/node` 2.1.1 and `@modelcontextprotocol/express`
+    2.0.2**, the latest past the cooldown, both peers of the 2.3.0 server installed.
+  - **Any method but `POST` answers 405 before any check**, since the handler is stateless: it opens
+    no stream to `GET` and holds no session to `DELETE`. Then the `Origin` check, the bearer check,
+    the connection's rate limit and the body, in that order, so nobody unverified has a megabyte
+    parsed.
+  - **The `Origin` check is the SDK's `originValidation`, by hostname**: the app's, `strategydance.com`
+    in production and `localhost` in development. A request without one passes, as clients outside a
+    browser send none.
+  - **A connection makes 600 calls in ten minutes**, counted in the instance's memory and keyed by
+    the connection, as generous as the token endpoint, a 429 in JSON-RPC past it. The launch
+    revisits it with the others.
+  - **The resource metadata answers any origin**, its path joining `OAUTH_PROTOCOL_PATHS`, so a
+    client running in a page discovers the server as it discovers the authorization server; the
+    endpoint keeps to the app's origins. `mcpAuthMetadataRouter` serves the authorization server's
+    metadata too, which `routes/wellKnown.ts`, mounted before it, answers first, both from
+    `buildAuthorizationServerMetadata`.
+  - **A client of a 2025 revision is answered over SSE.** The SDK's stateless fallback streams its
+    answers whatever `responseMode` says, which those clients read; the 2026-07-28 revision's are
+    JSON. Its `initialize` and a session header it sends after are served statelessly.
+  - **`lastUsedAt` is written as a token passes the verifier**, once a minute at most: a recorder in
+    each instance remembers when it last wrote each connection, and `RecordAgentConnectionUse`'s
+    condition, which matches the member's account too, holds the minute across instances. A write
+    that fails is logged and fails no call.
+  - **The challenge makes the tool's own scope check a second guard**: `requireScopes` reads the
+    `AuthInfo`'s scopes, which are the caller's, so the tool's refusal is unreachable through the
+    handler and is tested on its own. Only the Knowledge module's writes are challenged, the Tasks
+    module's joining in M21, and the tools the agent is sent did not change by a byte.
+  - **An external search is counted before it searches**, through `recordConversationSearch`, moved
+    out of `searchConversations` for both to draw on. A removed member is refused before anything is
+    counted, and a search past the allowance is answered with the minutes left and `list_documents`
+    as what still works.
+  - **The dialog takes the module it describes**, so M21 passes `tasks`; its address hangs off the
+    web's `API_URL`, the local backend's against the emulators. It opens from its button as the
+    dialog's trigger, so the focus returns to the button, and its code wraps rather than scrolls.
+    Its link to Connected agents merges `buttonVariants` through `cn`, since the bare string keeps
+    `border-transparent` beside the outline's border and draws none: the consent page's and the
+    organization not found page's outline links show the same missing border, left for a fix of
+    `buttonVariants` itself.
+  - Verified with the tests; `check:oauth` and `check:knowledge-module` against a scratch suite of
+    Auth and Data Connect emulators and the branch's backend on its own port, the endpoint included;
+    the MCP Inspector's CLI 2.9.0 listing the tools, creating, searching and listing; the SDK's client
+    calling every tool over HTTP while the document was open in a browser tab, the append, a
+    replacement and a rename arriving without a reload, a keyed retry applied once and a stale
+    rewrite refused; and the dialog at 1280 and 390 wide. Not seen: Claude Code's own sign-in, which
+    needs an interactive session, and claude.ai, ChatGPT and Cursor, which need production.
 
 ### M21: The Tasks module for external agents
 

@@ -1463,7 +1463,8 @@ authorization server from M18 and a consent page from M19:
   MCP call is short and the worker is private. The module's handler, mounted with `toNodeHandler`,
   builds a server per request from the verified caller, answering JSON (`responseMode: 'json'`),
   stateless as the 2026-07-28 revision is, and serving the 2025 revisions' clients, which still open
-  sessions, statelessly too (`legacy: 'stateless'`). Around it:
+  sessions, statelessly too (`legacy: 'stateless'`), over SSE, as the SDK's fallback answers them
+  (M20). Around it:
   - `requireBearerAuth`, with Strategy Dance's verifier and the endpoint's address as
     `expectedResource`: a request without a valid token answers 401, its `WWW-Authenticate` naming
     the Protected Resource Metadata, `/.well-known/oauth-protected-resource/mcp/knowledge` (RFC
@@ -1472,8 +1473,8 @@ authorization server from M18 and a consent page from M19:
     asks against DNS rebinding. No client running in a browser is served yet.
   - The route parses its own body, at most 1 MiB, and hands it to the handler, `(request, response)
     => nodeHandler(request, response, request.body)`, since the parser has consumed the stream the
-    adapter would otherwise read again; an in-memory rate limit per connection stands in front of
-    it, as the backend's other limits do; GET and DELETE answer 405.
+    adapter would otherwise read again; an in-memory rate limit per connection, 600 calls in ten
+    minutes, stands in front of it, as the backend's other limits do; GET and DELETE answer 405.
   - No App Check, which an external agent cannot carry: the token is the guard. The answers are
     MCP's JSON-RPC, not `ApiResponse`.
   - A connection granted read only still lists every tool: every write tool registers the SDK's

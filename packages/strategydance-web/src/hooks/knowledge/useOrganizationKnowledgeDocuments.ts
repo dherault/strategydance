@@ -11,6 +11,8 @@ import { dataConnect } from '~data/firebase'
 
 const EMPTY_DOCUMENTS: KnowledgeDocumentSummary[] = []
 
+type KnowledgeDocuments = DataSource<KnowledgeDocumentSummary[]> & { hasFailed: boolean }
+
 /*
   The current organization's knowledge, the latest changed first, kept live: the Knowledge page
   and each aspect's page read the same list, and the aspect's page filters it.
@@ -21,12 +23,15 @@ const EMPTY_DOCUMENTS: KnowledgeDocumentSummary[] = []
   is read again whenever a page with it mounts, which is how a card's "Edited" catches up.
 
   A first read that fails is not an empty list: `hasFailed` says so, and it does not retry on
-  mount, for the reason `useOrganizationTeam` gives
+  mount, for the reason `useOrganizationTeam` gives.
+
+  A conversation's thread reads it only once it draws something it decides, `isEnabled` false
+  until then, which neither reads nor subscribes
 */
-function useOrganizationKnowledgeDocuments(): DataSource<KnowledgeDocumentSummary[]> & { hasFailed: boolean } {
+function useOrganizationKnowledgeDocuments({ isEnabled = true }: { isEnabled?: boolean } = {}): KnowledgeDocuments {
   const { organization } = useCurrentOrganization()
 
-  const organizationId = organization?.id ?? null
+  const organizationId = isEnabled ? (organization?.id ?? null) : null
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetOrganizationDocuments', organizationId],

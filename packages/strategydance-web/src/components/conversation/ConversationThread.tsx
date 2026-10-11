@@ -11,6 +11,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
 
+import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
@@ -21,6 +22,7 @@ import groupConversationReplies from '~utils/conversation/groupConversationRepli
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
+import needsConversationDocuments from '~utils/conversation/needsConversationDocuments'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -70,6 +72,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
+  const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
@@ -168,6 +171,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
               text={body.text ?? ''}
               markers={piece?.markers}
               sources={piece?.sources}
+              documents={documents}
             />
             {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
           </>

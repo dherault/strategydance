@@ -51,8 +51,9 @@ function isEmpty(draft: ConversationComposerDraft) {
   lands after its composer has gone, the conversation drawn elsewhere meanwhile, settles there, and
   a send going in one is going in all. Never stored: a reload starts afresh, as the page always has.
 
-  Kept by `${userId}:${conversationId}`, which `useConversationComposerDraft` makes, since the tab
-  outlives a sign-out: one account never finds another's message
+  Kept by `${userId}:${organizationId}:${conversationId}`, which `useConversationComposerDraft`
+  makes, since the tab outlives a sign-out and a draft not stored yet belongs to no organization:
+  one account never finds another's message, nor one organization another's
 */
 export function readConversationComposerDraft(key: string) {
   return drafts.get(key) ?? EMPTY_CONVERSATION_COMPOSER_DRAFT

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
+import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import {
   type ConversationComposerDraft,
@@ -14,14 +15,17 @@ import {
   The message the reader is writing to a conversation, and where its sending stands, as every
   composer drawing the conversation shares it, and what changes it there.
 
-  It is the signed-in account's: the store outlives a sign-out, and another account signing in on
-  the tab, opening the same draft's address from the history, finds nothing of it. A change keeps
-  to the account it was made for, so a send that lands after a sign-out settles that account's
-  message. Nothing is held while the document shell is prerendered
+  It is the signed-in account's in the current organization: the store outlives a sign-out, and
+  another account signing in on the tab, opening the same draft's address from the history, finds
+  nothing of it, nor does the same draft's id under another organization's address, which a draft
+  not stored yet belongs to nothing to stop. A change keeps to the account and organization it was
+  made for, so a send that lands after a sign-out or a switch settles their message. Nothing is held
+  while the document shell is prerendered
 */
 function useConversationComposerDraft(conversationId: string) {
   const { data: viewer } = useAuthentication()
-  const key = `${viewer?.uid ?? ''}:${conversationId}`
+  const { organization } = useCurrentOrganization()
+  const key = `${viewer?.uid ?? ''}:${organization?.id ?? ''}:${conversationId}`
 
   const draft = useSyncExternalStore(
     subscribeToConversationComposerDrafts,

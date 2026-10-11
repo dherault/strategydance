@@ -1,3 +1,5 @@
+import { MAX_AGENT_CONNECTIONS } from 'strategydance-core'
+
 import { OAUTH_REFRESH_GRACE_SECONDS } from '~constants'
 
 import type { AnyVariables, ModuleDatabaseFakeBase } from '~domain/modules/testing/createModuleDatabaseFakeBase'
@@ -350,6 +352,20 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       }
       if (registeredClientId && !clients.has(registeredClientId)) {
         refuse('violates SQL foreign key constraint: agent_connection_registered_client_id_fkey (aborted)')
+      }
+      // Counted after the lock, leaving out the connection this one replaces
+      if (
+        [...connections.values()].filter(
+          connection =>
+            connection.userId === variables.userId
+            && !(
+              connection.organizationId === id(variables.organizationId)
+              && connection.clientId === variables.clientId
+              && connection.module === variables.module
+            ),
+        ).length >= MAX_AGENT_CONNECTIONS
+      ) {
+        refuse('A member connects at most 100 agents')
       }
       if (
         !request

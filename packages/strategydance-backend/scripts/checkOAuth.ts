@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
-import { DEVELOPMENT_API_URL } from 'strategydance-core'
+import { DEVELOPMENT_API_URL, MAX_AGENT_CONNECTIONS } from 'strategydance-core'
 import {
   approveOAuthAuthorizationRequest,
   connectorConfig,
@@ -47,7 +47,8 @@ import readModuleCaller from '~modules/readModuleCaller'
 
   And what the account page's Connected agents tab runs through the browser's connector: its list
   holds the member's connections alone, and Disconnect deletes one of theirs alone, with its tokens,
-  so the agent's next refresh is refused.
+  so the agent's next refresh is refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
+  tab lists every one.
 
   It makes a throwaway organization with a member, removes everything it made, then exits non-zero
   naming each check that failed. The sweep's deletes take no organization: they remove every expired
@@ -676,6 +677,62 @@ async function checkConnectedAgents() {
   )
 }
 
+// A member connects at most `MAX_AGENT_CONNECTIONS` agents, so the Connected agents tab lists every one
+async function checkConnectionCap() {
+  const capClientIds = Array.from({ length: MAX_AGENT_CONNECTIONS + 1 }, (_, index) => {
+    return `https://check-${checkId}-cap${index}.example.com/agent.json`
+  })
+  const { agentConnections: held } = await read<{ agentConnections: { id: string }[] }>(
+    `query Held($userId: String!) { agentConnections(where: { membershipUserId: { eq: $userId } }) { id } }`,
+    { userId },
+  )
+  // Literals, since a list of rows cannot travel as a variable
+  const rows = capClientIds
+    .slice(0, MAX_AGENT_CONNECTIONS - 1 - held.length)
+    .map(
+      clientId =>
+        `{ membershipUserId: "${userId}", membershipOrganizationId: "${organizationId}", clientId: "${clientId}", module: "knowledge", scopes: ["knowledge:read"] }`,
+    )
+
+  await write(`mutation Fill { agentConnection_insertMany(data: [${rows.join(', ')}]) }`)
+
+  const last = capClientIds[MAX_AGENT_CONNECTIONS - 1]!
+  const past = capClientIds[MAX_AGENT_CONNECTIONS]!
+  const lastRequest = await createRequest(last)
+
+  check(
+    'an Allow up to the cap goes through',
+    (await refusal(approve(lastRequest, last, { scopes: ['knowledge:read', 'knowledge:write'] }).approval)) === null,
+  )
+
+  const pastRequest = await createRequest(past)
+  const cause = await refusal(approve(pastRequest, past).approval)
+
+  check(
+    'an Allow past the cap is refused, as the backend reads it, and decides nothing',
+    cause !== null
+      && cause.includes('A member connects at most')
+      && (
+        await read<{ oAuthAuthorizationRequest: { decidedAt: string | null } | null }>(
+          `query Decided($id: UUID!) { oAuthAuthorizationRequest(id: $id) { decidedAt } }`,
+          { id: pastRequest },
+        )
+      ).oAuthAuthorizationRequest?.decidedAt === null,
+  )
+  check(
+    'consenting again with an agent connected at the cap replaces it',
+    (await refusal(approve(await createRequest(last), last, { scopes: ['knowledge:read'] }).approval)) === null
+      && (await readConnections(last)).length === 1,
+  )
+
+  await write(
+    `mutation Empty($userId: String!, $clientIds: [String!]!) {
+      agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { in: $clientIds } })
+    }`,
+    { userId, clientIds: capClientIds },
+  )
+}
+
 async function checkTokens() {
   const clientId = `https://check-${checkId}.example.com/tokens.json`
   const otherClientId = `https://check-${checkId}.example.com/other.json`
@@ -781,6 +838,7 @@ try {
   await checkFlow()
   await checkConsent()
   await checkConnectedAgents()
+  await checkConnectionCap()
   await checkTokens()
   await checkPrunes()
 } finally {

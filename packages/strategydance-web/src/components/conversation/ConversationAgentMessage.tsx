@@ -22,6 +22,8 @@ type Props = {
   documents?: ReadonlyMap<string, KnowledgeDocumentSummary> | null
   // The organization's board by task id, which its links to tasks draw, or null while not read
   tasks?: ReadonlyMap<string, Task> | null
+  // Small in a dock's window, which is narrow
+  size?: 'sm' | 'md'
 }
 
 /*
@@ -31,7 +33,14 @@ type Props = {
   it. A link to knowledge draws the document's current title, and a link to a task the task's
   current name, or the agent's words struck through once the document or the task is gone
 */
-function ConversationAgentMessage({ text, markers = [], sources = [], documents = null, tasks = null }: Props) {
+function ConversationAgentMessage({
+  text,
+  markers = [],
+  sources = [],
+  documents = null,
+  tasks = null,
+  size = 'md',
+}: Props) {
   const { formatMessage } = useIntl()
 
   function renderCitation(key: string) {
@@ -54,7 +63,7 @@ function ConversationAgentMessage({ text, markers = [], sources = [], documents 
   return (
     <Markdown
       value={text}
-      size="md"
+      size={size}
       citations={markers}
       renderCitation={renderCitation}
       renderLink={({ href, children }) =>

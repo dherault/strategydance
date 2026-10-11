@@ -1,5 +1,8 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef } from 'react'
 
+import readConversationViewport from '~utils/conversation/readConversationViewport'
+import scrollConversationToEnd from '~utils/conversation/scrollConversationToEnd'
+
 // How near the bottom the reader counts as reading the latest, which the thread then follows
 const BOTTOM_SLACK_PX = 80
 
@@ -10,25 +13,33 @@ type ScrollPlace = {
   anchors: { id: string; top: number }[]
 }
 
+function isAtBottom(scroller: HTMLElement | null) {
+  if (scroller) return scroller.clientHeight + scroller.scrollTop >= scroller.scrollHeight - BOTTOM_SLACK_PX
+
+  return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - BOTTOM_SLACK_PX
+}
+
 // Where the reader is, read after each of their scrolls
-function measure(list: HTMLElement | null, place: ScrollPlace) {
-  place.isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - BOTTOM_SLACK_PX
+function measure(list: HTMLElement | null, scroller: HTMLElement | null, place: ScrollPlace) {
+  place.isAtBottom = isAtBottom(scroller)
   place.anchors = []
 
   if (!list) return
 
+  const viewport = readConversationViewport(scroller)
+
   for (const element of list.querySelectorAll<HTMLElement>('[data-entry-id]')) {
     const { top, bottom } = element.getBoundingClientRect()
 
-    if (top >= window.innerHeight) return
-    if (bottom > 0) place.anchors.push({ id: element.dataset.entryId!, top })
+    if (top >= viewport.bottom) return
+    if (bottom > viewport.top) place.anchors.push({ id: element.dataset.entryId!, top })
   }
 }
 
 // Puts the reader back where they were once what is drawn has changed size
-function restore(list: HTMLElement | null, place: ScrollPlace) {
+function restore(list: HTMLElement | null, scroller: HTMLElement | null, place: ScrollPlace) {
   if (place.isAtBottom) {
-    window.scrollTo({ top: document.documentElement.scrollHeight })
+    scrollConversationToEnd(scroller)
 
     return
   }
@@ -42,7 +53,7 @@ function restore(list: HTMLElement | null, place: ScrollPlace) {
 
     const shift = element.getBoundingClientRect().top - anchor.top
 
-    if (shift) window.scrollBy({ top: shift })
+    if (shift) (scroller ?? window).scrollBy({ top: shift })
 
     return
   }
@@ -55,36 +66,43 @@ function restore(list: HTMLElement | null, place: ScrollPlace) {
   added above, a body replacing its placeholder, entries another tab's Retry took away. When the
   Retry took that very entry, the first one of those they saw that is left holds the place.
 
-  The window scrolls, not the thread. Browsers anchor a scroll by themselves, but Safari does not,
-  and Chrome's would add to this, so the thread opts out of theirs (`overflow-anchor: none`) and
+  On the conversation's page the window scrolls, not the thread; in a dock's window, the box the
+  window holds the thread in, `scrollerRef`. Browsers anchor a scroll by themselves, but Safari does
+  not, and Chrome's would add to this, so the thread opts out of theirs (`overflow-anchor: none`) and
   this does it everywhere: after every render, and whenever the list changes size
 */
-function useConversationThreadScroll(listRef: RefObject<HTMLElement | null>) {
+function useConversationThreadScroll(
+  listRef: RefObject<HTMLElement | null>,
+  // The box the thread scrolls in, or none when the window scrolls it
+  scrollerRef?: RefObject<HTMLElement | null>,
+) {
   const placeRef = useRef<ScrollPlace>({ isAtBottom: true, anchors: [] })
 
   useLayoutEffect(() => {
-    restore(listRef.current, placeRef.current)
+    restore(listRef.current, scrollerRef?.current ?? null, placeRef.current)
   })
 
   useEffect(() => {
     const list = listRef.current
+    const scroller = scrollerRef?.current ?? null
+    const scrolled = scroller ?? window
     const place = placeRef.current
 
     function handleScroll() {
-      measure(list, place)
+      measure(list, scroller, place)
     }
 
-    const observer = new ResizeObserver(() => restore(list, place))
+    const observer = new ResizeObserver(() => restore(list, scroller, place))
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    scrolled.addEventListener('scroll', handleScroll, { passive: true })
 
     if (list) observer.observe(list)
 
     return () => {
-      window.removeEventListener('scroll', handleScroll)
+      scrolled.removeEventListener('scroll', handleScroll)
       observer.disconnect()
     }
-  }, [listRef])
+  }, [listRef, scrollerRef])
 }
 
 export default useConversationThreadScroll

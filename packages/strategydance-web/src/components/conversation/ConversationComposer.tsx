@@ -1,10 +1,11 @@
 import { ArrowUpIcon, SquareIcon } from 'lucide-react'
-import { type ChangeEvent, type FormEvent, type KeyboardEvent, useRef, useState } from 'react'
+import { type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject, useRef, useState } from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { MAX_CONVERSATION_MESSAGE_LENGTH, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun } from '~types'
 
@@ -19,6 +20,7 @@ import getConversationSendFailure, {
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
+import scrollConversationToEnd from '~utils/conversation/scrollConversationToEnd'
 
 import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
@@ -52,6 +54,13 @@ type Props = {
   onRunStart: (startedRun: StartedConversationRun | null) => void
   // The aspects the reader picked on a draft, which its first message sends
   draftAspects: CompanyAspect[]
+  // At the foot of the conversation's page, or of a dock's window
+  variant?: 'page' | 'dock'
+  // The box the thread scrolls in, in a dock's window, or none on the page, where the window scrolls
+  scrollerRef?: RefObject<HTMLElement | null>
+  // Whether the field takes the focus as it appears: a draft's by default, which has nothing else to
+  // do but be written in
+  isAutoFocused?: boolean
 }
 
 /*
@@ -75,11 +84,21 @@ type Props = {
   run the first send started, older than one another tab has started since, which the read would
   never move on from. Only a message's first send is sure to start a run newer than any read
 
-  It is the last thing on its page, so a draft keeps it, and what is written in it, when its first
-  message stores it. That message carries the aspects the reader picked on the draft, and no later
-  one does
+  It is the last thing on its page, or in its dock's window, so a draft keeps it, and what is written
+  in it, when its first message stores it. That message carries the aspects the reader picked on the
+  draft, and no later one does
 */
-function ConversationComposer({ conversationId, conversation, run, startedRun, onRunStart, draftAspects }: Props) {
+function ConversationComposer({
+  conversationId,
+  conversation,
+  run,
+  startedRun,
+  onRunStart,
+  draftAspects,
+  variant = 'page',
+  scrollerRef,
+  isAutoFocused = !conversation,
+}: Props) {
   const { formatMessage } = useIntl()
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
@@ -141,7 +160,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
       if (textarea) {
         textarea.focus()
         // The thread follows what lands while the reader is at its foot, their own message included
-        window.scrollTo({ top: document.documentElement.scrollHeight })
+        scrollConversationToEnd(scrollerRef?.current ?? null)
       }
     } catch (error) {
       console.error('The message could not be sent', error)
@@ -189,9 +208,12 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
   }
 
   return (
-    // Above the page's bar on a phone, which the list of knowledge to mention can reach
     <form
-      className="sticky bottom-0 z-10 flex flex-col gap-2 bg-background pt-3 pb-5"
+      className={cn(
+        'flex flex-col gap-2 bg-background',
+        // Above the page's bar on a phone, which the list of knowledge to mention can reach
+        variant === 'page' ? 'sticky bottom-0 z-10 pt-3 pb-5' : 'border-t border-border px-3 pt-2.5 pb-3',
+      )}
       onSubmit={handleSubmit}
     >
       {mentions.isListShown ? (
@@ -243,8 +265,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
           aria-autocomplete="list"
           aria-controls={mentions.matches.length ? mentions.listId : undefined}
           aria-activedescendant={mentions.matches.length ? mentions.getOptionId(mentions.highlightedIndex) : undefined}
-          // A draft has nothing else to do but be written in
-          autoFocus={!conversation}
+          autoFocus={isAutoFocused}
           className="min-h-8 px-2.5 py-[5px] text-sm/5"
           onFocus={mentions.enable}
           onChange={handleChange}

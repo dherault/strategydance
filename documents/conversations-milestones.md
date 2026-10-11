@@ -1220,7 +1220,14 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   - **A registered client is marked used before its request is stored**, so the daily sweep never
     prunes a client an authorization is naming, and one pruned since it was read stores nothing.
   - **The consent routes are metered before the staff check**, so a caller who is not staff is
-    counted too.
+    counted too, and **the token and revocation endpoints per address**, 600 and 300 in ten
+    minutes, generous since a hosted client, claude.ai or ChatGPT, calls them for every member from
+    a few addresses of its own: the launch revisits them. A connection's rows are bounded by their
+    expiry rather than a cap, which would stop a client that refreshes often.
+  - **A delayed duplicate follows the chain.** A spent refresh token presented again within its 30
+    seconds after the client rotated its successor in turn is answered with the pair whose refresh
+    token is unspent, a few rotations at most, never a spent one the client's next refresh would
+    replay.
   - **The modules' gate lifts on the development backend** (`IS_MODULES_RELEASE_GATED`), as
     conversations' does, so `check:oauth` and a developer's client need no staff role locally.
   - **`OAUTH_ISSUER` honours `API_URL` in development**, so a worktree's backend on another port

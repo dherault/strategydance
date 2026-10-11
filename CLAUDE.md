@@ -791,8 +791,9 @@ in `utils/`, one concern per file.
   endpoints answer OAuth's own JSON (`respondOAuthError`), a page or a redirect, never
   `ApiResponse`, carry no App Check, which no client could, answer any origin without credentials
   (`OAUTH_PROTOCOL_PATHS`, which the app's `cors` reads, matched exactly), never log a body, and
-  find tokens by their hash; registration and authorization are metered per address and capped in
-  all. The consent page's routes keep the app's middleware, App Check, the ID token and
+  find tokens by their hash. Each is metered per address, registration and authorization capped in
+  all too, the token and revocation endpoints generously, since a hosted client calls them for
+  every member from a few addresses of its own. The consent page's routes keep the app's middleware, App Check, the ID token and
   `modulesStaffOnlyMiddleware`, and are the only place a client ID metadata document is fetched,
   once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
   checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'

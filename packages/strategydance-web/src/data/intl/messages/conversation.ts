@@ -651,6 +651,18 @@ const conversationMessages = defineMessages({
     description:
       "Notification when bringing back an item of the team's knowledge the AI deleted failed, for instance once a day has passed since the delete.",
   },
+  restoreTask: {
+    id: 'conversation.restoreTask',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted a task on the team's board, the shared list of work to do, which brings the task back. Offered for a day after the delete.",
+  },
+  restoreTaskError: {
+    id: 'conversation.restoreTaskError',
+    defaultMessage: 'The task could not be brought back.',
+    description:
+      "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
+  },
   toolCall: {
     id: 'conversation.toolCall',
     defaultMessage: 'Tool call · {name}',

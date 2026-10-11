@@ -1485,6 +1485,14 @@
         "hash": "555883b091f28f04",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.restoreTask": {
+        "hash": "f8ae5b030e484c6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreTaskError": {
+        "hash": "1b1f46ba115bd7a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.retry": {
         "hash": "1f65e210a1787c7c",
         "locales": "DE,ES,FR,JA,PT,ZH"

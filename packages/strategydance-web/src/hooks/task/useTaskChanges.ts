@@ -33,9 +33,9 @@ import writeOptimistically from '~utils/common/writeOptimistically'
 import compareTasks from '~utils/task/compareTasks'
 import getTaskDependents from '~utils/task/getTaskDependents'
 import getTaskLinkCount from '~utils/task/getTaskLinkCount'
-import getTaskLoopingDependents from '~utils/task/getTaskLoopingDependents'
 import getTaskMovePosition from '~utils/task/getTaskMovePosition'
 import getTaskRestoreLoops from '~utils/task/getTaskRestoreLoops'
+import restoreTaskWithoutLoops from '~utils/task/restoreTaskWithoutLoops'
 
 import { dataConnect } from '~data/firebase'
 
@@ -375,33 +375,59 @@ function useTaskChanges() {
     const loopingIds = getTaskRestoreLoops(snapshot, readTasks())
     const relinkedIds = dependentIds.filter(id => !loopingIds.includes(id))
 
-    await Promise.all([
-      change({
-        rowKey: `task:${task.id}`,
-        queryKeys: [tasksKey, descriptionsKey],
-        apply: () => {
-          setTasks(tasks => [
-            ...tasks
-              .filter(({ id }) => id !== task.id)
-              .map(other =>
-                relinkedIds.includes(other.id) && !other.dependencies.some(link => link.dependencyId === task.id)
-                  ? { ...other, dependencies: [...other.dependencies, { dependencyId: task.id }] }
-                  : other,
-              ),
-            task,
-          ])
-          setDescription(task.id, description)
-        },
-        write: () => restoreTaskMutation(dataConnect, { organizationId: organizationId!, id: task.id }),
-      }),
-      ...loopingIds.map(dependentId => unlinkTasks(dependentId, task.id)),
-    ])
+    await restoreTaskWithoutLoops(task.id, {
+      restore: () =>
+        Promise.all([
+          change({
+            rowKey: `task:${task.id}`,
+            queryKeys: [tasksKey, descriptionsKey],
+            apply: () => {
+              setTasks(tasks => [
+                ...tasks
+                  .filter(({ id }) => id !== task.id)
+                  .map(other =>
+                    relinkedIds.includes(other.id) && !other.dependencies.some(link => link.dependencyId === task.id)
+                      ? { ...other, dependencies: [...other.dependencies, { dependencyId: task.id }] }
+                      : other,
+                  ),
+                task,
+              ])
+              setDescription(task.id, description)
+            },
+            write: () => restoreTaskMutation(dataConnect, { organizationId: organizationId!, id: task.id }),
+          }),
+          ...loopingIds.map(dependentId => unlinkTasks(dependentId, task.id)),
+        ]),
+      readTasks: readServerTasks,
+      unlink: dependentId => unlinkTasks(dependentId, task.id),
+    })
+  }
 
+  /*
+    Restores a task deleted where the page took no snapshot of it, as Strategy Dance's agent deletes
+    one: the board learns it from the server once it is back, links and all, and any of them closing
+    a loop is then taken off, as `restoreTask`'s second read does. Each write marks the day active,
+    as every member's change to the board does
+  */
+  function restoreDeletedTask(taskId: string) {
+    return restoreTaskWithoutLoops(taskId, {
+      restore: () =>
+        change({
+          rowKey: `task:${taskId}`,
+          queryKeys: [tasksKey, descriptionsKey],
+          apply: () => {},
+          write: () => restoreTaskMutation(dataConnect, { organizationId: organizationId!, id: taskId }),
+        }),
+      readTasks: readServerTasks,
+      unlink: dependentId => unlinkTasks(dependentId, taskId),
+    })
+  }
+
+  // The board as the server has it, past whatever the cache holds
+  async function readServerTasks() {
     const { data } = await executeQuery(getTasksRef(dataConnect, { organizationId: organizationId! }))
 
-    await Promise.all(
-      getTaskLoopingDependents(task.id, data.tasks).map(dependentId => unlinkTasks(dependentId, task.id)),
-    )
+    return data.tasks
   }
 
   /*
@@ -447,6 +473,7 @@ function useTaskChanges() {
     takeTaskSnapshot,
     deleteTask,
     restoreTask,
+    restoreDeletedTask,
     setTaskDependencies,
     setTaskBlocks,
   }

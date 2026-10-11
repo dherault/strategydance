@@ -83,6 +83,8 @@
   "conversation.restoreDocument": "復元",
   "conversation.restoreDocumentError": "ナレッジを復元できませんでした。",
   "conversation.restoreError": "会話を復元できませんでした。",
+  "conversation.restoreTask": "復元",
+  "conversation.restoreTaskError": "タスクを復元できませんでした。",
   "conversation.retry": "再試行",
   "conversation.save": "保存",
   "conversation.search.bestMatches": "関連性の高い結果を表示しています。検索ワードを追加して絞り込んでください。",

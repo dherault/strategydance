@@ -83,6 +83,8 @@
   "conversation.restoreDocument": "Restaurar",
   "conversation.restoreDocumentError": "No se pudo restaurar el conocimiento.",
   "conversation.restoreError": "No se pudo recuperar la conversación.",
+  "conversation.restoreTask": "Restaurar",
+  "conversation.restoreTaskError": "No se pudo restaurar la tarea.",
   "conversation.retry": "Reintentar",
   "conversation.save": "Guardar",
   "conversation.search.bestMatches": "Mostrando las mejores coincidencias. Añade una palabra para encontrar el resto.",

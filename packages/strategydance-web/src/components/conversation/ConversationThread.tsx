@@ -12,7 +12,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
 
 import useNow from '~hooks/common/useNow'
-import useConversationDeletedDocuments from '~hooks/conversation/useConversationDeletedDocuments'
+import useConversationDeletedItems from '~hooks/conversation/useConversationDeletedItems'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
@@ -20,14 +20,15 @@ import useConversationThreadScroll from '~hooks/conversation/useConversationThre
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 
+import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import groupConversationReplies from '~utils/conversation/groupConversationReplies'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
-import needsConversationTasks from '~utils/conversation/needsConversationTasks'
-import readConversationDeletedDocumentIds from '~utils/conversation/readConversationDeletedDocumentIds'
+import needsConversationTasks, { DELETE_TASK_TOOL_NAME } from '~utils/conversation/needsConversationTasks'
+import readConversationDeletedCallIds from '~utils/conversation/readConversationDeletedCallIds'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -39,6 +40,7 @@ import ConversationNote from '~components/conversation/ConversationNote'
 import ConversationNoteActions from '~components/conversation/ConversationNoteActions'
 import ConversationQuestion from '~components/conversation/ConversationQuestion'
 import ConversationSources from '~components/conversation/ConversationSources'
+import ConversationTaskRestore from '~components/conversation/ConversationTaskRestore'
 import ConversationThinking from '~components/conversation/ConversationThinking'
 import ConversationToolCall from '~components/conversation/ConversationToolCall'
 import ConversationToolCallDialog from '~components/conversation/ConversationToolCallDialog'
@@ -80,7 +82,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
   const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
-  const deletedDocuments = useConversationDeletedDocuments(conversation.id, readConversationDeletedDocumentIds(entries))
+  const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
   // One clock for every row that offers Restore until its day is up
   const now = useNow()
 
@@ -164,6 +166,27 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
     )
   }
 
+  /*
+    Restore, on a row where Strategy Dance deleted a document or a task, while the organization's
+    live list does not hold it and a day has not passed since the call. A row offers nothing else,
+    so a phone keeps its badge while Restore is not shown
+  */
+  function renderRestore(entry: ConversationThreadEntry) {
+    const deleted = entry.toolStatus === ConversationToolStatus.SUCCEEDED ? deletedItems.get(entry.id) : undefined
+
+    if (!deleted) return null
+
+    if (entry.toolName === DELETE_DOCUMENT_TOOL_NAME && canRestoreConversationItem(deleted, documents, now)) {
+      return <ConversationDocumentRestore documentId={deleted.id} />
+    }
+
+    if (entry.toolName === DELETE_TASK_TOOL_NAME && canRestoreConversationItem(deleted, tasks, now)) {
+      return <ConversationTaskRestore taskId={deleted.id} />
+    }
+
+    return null
+  }
+
   function renderEntry(entry: ConversationThreadEntry) {
     const body = bodies.get(entry.id)
 
@@ -194,15 +217,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}
-            action={
-              entry.toolName === DELETE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED ? (
-                <ConversationDocumentRestore
-                  deleted={deletedDocuments.get(entry.id) ?? null}
-                  documents={documents}
-                  now={now}
-                />
-              ) : null
-            }
+            action={renderRestore(entry)}
           />
         )
       case ConversationMessageKind.QUESTION:

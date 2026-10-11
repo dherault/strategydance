@@ -83,6 +83,8 @@
   "conversation.restoreDocument": "Wiederherstellen",
   "conversation.restoreDocumentError": "Das Wissen konnte nicht wiederhergestellt werden.",
   "conversation.restoreError": "Die Unterhaltung konnte nicht wiederhergestellt werden.",
+  "conversation.restoreTask": "Wiederherstellen",
+  "conversation.restoreTaskError": "Die Aufgabe konnte nicht wiederhergestellt werden.",
   "conversation.retry": "Erneut versuchen",
   "conversation.save": "Speichern",
   "conversation.search.bestMatches": "Die besten Treffer werden angezeigt. Füge ein Wort hinzu, um den Rest zu finden.",

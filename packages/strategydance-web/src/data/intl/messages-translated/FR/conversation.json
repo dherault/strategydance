@@ -83,6 +83,8 @@
   "conversation.restoreDocument": "Restaurer",
   "conversation.restoreDocumentError": "La connaissance n'a pas pu être restaurée.",
   "conversation.restoreError": "Impossible de restaurer la conversation.",
+  "conversation.restoreTask": "Restaurer",
+  "conversation.restoreTaskError": "La tâche n'a pas pu être restaurée.",
   "conversation.retry": "Réessayer",
   "conversation.save": "Enregistrer",
   "conversation.search.bestMatches": "Affichage des meilleurs résultats. Ajoutez un mot pour trouver le reste.",

@@ -83,6 +83,8 @@
   "conversation.restoreDocument": "恢复",
   "conversation.restoreDocumentError": "无法恢复该知识。",
   "conversation.restoreError": "无法恢复该对话。",
+  "conversation.restoreTask": "恢复",
+  "conversation.restoreTaskError": "无法恢复该任务。",
   "conversation.retry": "重试",
   "conversation.save": "保存",
   "conversation.search.bestMatches": "正在显示最佳匹配项。添加关键词以查找其余内容。",

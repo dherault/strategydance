@@ -1245,6 +1245,10 @@
         "hash": "e9e329025eb2b432",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.tooLong": {
+        "hash": "dad239e3343aed61",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.composer.unavailable": {
         "hash": "bfe13c28829ece15",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1315,6 +1319,14 @@
       },
       "conversation.loadError": {
         "hash": "536b6bf6c940fe86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.mention.empty": {
+        "hash": "8b96886d37955977",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.mention.listLabel": {
+        "hash": "0bcbccc30f324068",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.messageLoading": {

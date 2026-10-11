@@ -1,0 +1,173 @@
+import { type KeyboardEvent, type RefObject, useId, useState } from 'react'
+
+import type { KnowledgeDocumentSummary } from '~types'
+
+import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationKnowledgeDocuments'
+
+import isComposingKeyPress from '~utils/common/isComposingKeyPress'
+import replaceTextareaRange from '~utils/common/replaceTextareaRange'
+import buildConversationMentionEdit from '~utils/conversation/buildConversationMentionEdit'
+import buildConversationMentionTrigger from '~utils/conversation/buildConversationMentionTrigger'
+import filterConversationMentionDocuments from '~utils/conversation/filterConversationMentionDocuments'
+import findConversationMentionQuery, {
+  type ConversationMentionQuery,
+} from '~utils/conversation/findConversationMentionQuery'
+import serializeConversationMentions from '~utils/conversation/serializeConversationMentions'
+
+/*
+  The knowledge the composer's field mentions, and the list that suggests it while a mention is
+  typed.
+
+  Typing `@` opens the list on the organization's documents, the latest changed first, and what
+  follows narrows it. The arrows move through it, Enter or Tab picks, Escape closes it until
+  another mention is typed. A pick writes `@Title` in the field and tracks the document by its
+  title, the last pick winning when two share one, so the message is sent with each `@Title` as
+  `[Title](doc:<id>)`. Moving the caret off the mention, or leaving the field, closes the list.
+
+  The documents are read from the field's first focus, so the list is ready by the time an `@` is
+  typed, and the read is the thread's own, which costs nothing more. While they land the list
+  waits rather than says nothing matches, and if they cannot be read an `@` stays plain text.
+
+  What the field holds is read off the field itself, never from what was last drawn, so a caret
+  moved by the arrows, the mouse or the field's own change reads the same. The list's rows never
+  take the focus: the field names the highlighted one as its active descendant
+*/
+function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | null>) {
+  const listId = useId()
+  const [mentions, setMentions] = useState<ReadonlyMap<string, string>>(() => new Map())
+  const [mentionQuery, setMentionQuery] = useState<ConversationMentionQuery | null>(null)
+  // The `@` whose list Escape closed, which stays closed while that mention is typed
+  const [dismissedAt, setDismissedAt] = useState<number | null>(null)
+  const [highlightedIndex, setHighlightedIndex] = useState(0)
+  const [isEnabled, setIsEnabled] = useState(false)
+  const { data: documents, initialLoading, hasFailed } = useOrganizationKnowledgeDocuments({ isEnabled })
+
+  const openQuery =
+    mentionQuery && mentionQuery.at !== dismissedAt && !initialLoading && !hasFailed ? mentionQuery : null
+  const matches = openQuery ? filterConversationMentionDocuments(documents, openQuery.query) : []
+  // Nothing matching is said once something is typed, unless the words have moved on past a space,
+  // or never started as a title would
+  const isEmptyShown = !!openQuery && !matches.length && /^\S(.*\S)?$/.test(openQuery.query)
+  const isListShown = matches.length > 0 || isEmptyShown
+  const highlighted = Math.min(highlightedIndex, matches.length - 1)
+
+  function getOptionId(index: number) {
+    return `${listId}-${index}`
+  }
+
+  function enable() {
+    setIsEnabled(true)
+  }
+
+  function close() {
+    setMentionQuery(null)
+    setDismissedAt(null)
+  }
+
+  // Reads the mention at the caret, when nothing is selected
+  function detect() {
+    const textarea = textareaRef.current
+
+    if (!textarea) return
+
+    const { value, selectionStart, selectionEnd } = textarea
+    const next = selectionStart === selectionEnd ? findConversationMentionQuery(value, selectionStart, mentions) : null
+
+    if (next?.at === mentionQuery?.at && next?.query === mentionQuery?.query) return
+    if (!next) {
+      close()
+
+      return
+    }
+
+    setMentionQuery(next)
+    setHighlightedIndex(0)
+  }
+
+  // Writes the document's title over the mention being typed. The field's change reads a mention
+  // there before the pick is tracked, so the list is closed after it
+  function pick(document: KnowledgeDocumentSummary) {
+    const textarea = textareaRef.current
+
+    if (!textarea || !mentionQuery) return
+
+    const title = document.title.trim()
+
+    replaceTextareaRange(textarea, buildConversationMentionEdit(textarea.value, mentionQuery, title))
+    setMentions(current => new Map(current).set(title, document.id))
+    close()
+  }
+
+  // Writes an `@` at the caret, which the field's change reads as a mention to suggest for
+  function insertTrigger() {
+    const textarea = textareaRef.current
+
+    if (!textarea) return
+
+    replaceTextareaRange(
+      textarea,
+      buildConversationMentionTrigger(textarea.value, textarea.selectionStart, textarea.selectionEnd),
+    )
+  }
+
+  // Whether the key press drove the list, which the field then does nothing else with
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (!openQuery || !isListShown || isComposingKeyPress(event.nativeEvent)) return false
+
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      // The list is what Escape closes, not whatever holds the field
+      event.stopPropagation()
+      setDismissedAt(openQuery.at)
+
+      return true
+    }
+
+    const picked = matches[highlighted]
+
+    if (!picked || event.altKey || event.ctrlKey || event.metaKey) return false
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      setHighlightedIndex((highlighted + (event.key === 'ArrowDown' ? 1 : -1) + matches.length) % matches.length)
+
+      return true
+    }
+
+    if ((event.key === 'Enter' || event.key === 'Tab') && !event.shiftKey) {
+      event.preventDefault()
+      pick(picked)
+
+      return true
+    }
+
+    return false
+  }
+
+  return {
+    listId,
+    getOptionId,
+    // The documents the list suggests, and the one Enter would pick
+    matches,
+    highlightedIndex: highlighted,
+    // What is typed after the `@`, while the list is open
+    query: openQuery?.query ?? null,
+    isListShown,
+    enable,
+    detect,
+    close,
+    highlight: setHighlightedIndex,
+    pick,
+    insertTrigger,
+    handleKeyDown,
+    // The message as it is sent, each mention a link to its document
+    serialize: (text: string) => serializeConversationMentions(text, mentions),
+    // Forgets every mention, once the message holding them is sent
+    clear: () => {
+      setMentions(new Map())
+      close()
+    },
+  }
+}
+
+export default useConversationMentions

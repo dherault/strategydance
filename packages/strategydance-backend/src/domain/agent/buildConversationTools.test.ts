@@ -43,12 +43,15 @@ function readName(tool: Awaited<ReturnType<typeof readTools>>[number]) {
   return 'name' in tool ? tool.name : tool.type
 }
 
-// Every schema in a tool's input schema, itself included
+// Every schema in a tool's input schema, itself included, through every keyword the conversion follows
 function collectSchemas(schema: Schema): Schema[] {
   const nested = [
     ...Object.values((schema.properties as Record<string, Schema> | undefined) ?? {}),
+    ...Object.values((schema.$defs as Record<string, Schema> | undefined) ?? {}),
+    ...Object.values((schema.definitions as Record<string, Schema> | undefined) ?? {}),
     ...(schema.items ? [schema.items as Schema] : []),
     ...((schema.anyOf as Schema[] | undefined) ?? []),
+    ...((schema.allOf as Schema[] | undefined) ?? []),
   ]
 
   return [schema, ...nested.flatMap(collectSchemas)]

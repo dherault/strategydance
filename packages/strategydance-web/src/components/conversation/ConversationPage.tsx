@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useIntl } from 'react-intl'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import useConversation from '~hooks/conversation/useConversation'
+import useConversationDock from '~hooks/conversation/useConversationDock'
 import useConversationRun from '~hooks/conversation/useConversationRun'
 
 import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
@@ -30,7 +31,10 @@ type Props = {
   they are.
 
   The run the reader last started, by a send, a resume or a retry, is the page's, so the composer
-  and the thread both count it as going before the live read of the latest run shows it
+  and the thread both count it as going before the live read of the latest run shows it.
+
+  A conversation opened as its page is taken out of the dock, as the design has it: it is never
+  open twice
 */
 function ConversationPage({ conversationId }: Props) {
   const { formatMessage } = useIntl()
@@ -38,13 +42,23 @@ function ConversationPage({ conversationId }: Props) {
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useState<StartedConversationRun | null>(null)
   const [draftAspects, setDraftAspects] = useState<CompanyAspect[]>([])
+  const { closeWindow } = useConversationDock()
+
+  const leaveDock = useEffectEvent(() => closeWindow(conversationId))
+
+  useEffect(() => {
+    leaveDock()
+  }, [conversationId])
 
   return (
     // The column fills the screen, as the design has it, so the composer sits at its foot however
     // short the thread, and a draft's line in the middle of what is left: the screen less the
     // column's top padding and, on a phone, the bar over the page
     <ConversationLayout className="min-h-[calc(100svh-1.25rem)] max-md:min-h-[calc(100svh-4.25rem)]">
-      <ConversationBar updatedAt={conversation?.updatedAt ?? null} />
+      <ConversationBar
+        conversationId={conversationId}
+        updatedAt={conversation?.updatedAt ?? null}
+      />
       <ConversationHead
         conversation={conversation}
         draftAspects={draftAspects}

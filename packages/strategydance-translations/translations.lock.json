@@ -1441,6 +1441,14 @@
         "hash": "410b2e2f9b9d16e3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.openInDock": {
+        "hash": "308002124689e8c9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.openInDockLabel": {
+        "hash": "8e30a80c83aa034b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.preview.answered": {
         "hash": "0de015f6556626f8",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1599,6 +1607,14 @@
       },
       "conversation.search.tooManyWords": {
         "hash": "97c2e1ea77a7eb65",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.showInDock": {
+        "hash": "f356365e595b4853",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.showInDockLabel": {
+        "hash": "7ffc6ae367f34bfa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.sources": {

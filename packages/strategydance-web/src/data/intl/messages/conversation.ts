@@ -143,6 +143,30 @@ const conversationMessages = defineMessages({
     description:
       "What a screen reader says for the button in a conversation's row that deletes it. {title} is the conversation's title.",
   },
+  openInDock: {
+    id: 'conversation.openInDock',
+    defaultMessage: 'Open in dock',
+    description:
+      "Tooltip of the button in a conversation's row, and button on a conversation's page, that opens it as a small window pinned to the bottom right of the screen, beside whatever page the reader is on.",
+  },
+  openInDockLabel: {
+    id: 'conversation.openInDockLabel',
+    defaultMessage: 'Open {title} in dock',
+    description:
+      "What a screen reader says for the button in a conversation's row that opens it as a small window pinned to the bottom right of the screen. {title} is the conversation's title.",
+  },
+  showInDock: {
+    id: 'conversation.showInDock',
+    defaultMessage: 'Show in dock',
+    description:
+      "Tooltip of the button in a conversation's row when the conversation is already open as a small window pinned to the bottom right of the screen, which brings that window forward and opens it.",
+  },
+  showInDockLabel: {
+    id: 'conversation.showInDockLabel',
+    defaultMessage: 'Show {title} in dock',
+    description:
+      "What a screen reader says for the button in a conversation's row when the conversation is already open as a small window pinned to the bottom right of the screen. {title} is the conversation's title.",
+  },
   confirm: {
     id: 'conversation.confirm',
     defaultMessage: 'Confirm?',

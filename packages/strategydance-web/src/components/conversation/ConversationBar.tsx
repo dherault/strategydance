@@ -1,26 +1,31 @@
 import { LockIcon } from 'lucide-react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
+import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 
 import useNow from '~hooks/common/useNow'
 
 import ConversationBackLink from '~components/conversation/ConversationBackLink'
+import ConversationOpenInDockButton from '~components/conversation/ConversationOpenInDockButton'
 import ConversationUpdatedAt from '~components/conversation/ConversationUpdatedAt'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
+  conversationId: string
   // When the conversation last changed, or null for a draft, which is not kept until it is sent
   updatedAt: string | null
 }
 
 /*
   The top of a conversation's page: back to the list, and on the right that it is private, with
-  what that means in a tooltip a tap opens too, and when it last changed
+  what that means in a tooltip a tap opens too, when it last changed, and, on a wide screen, which
+  has a dock, "Open in dock" once it is kept
 */
-function ConversationBar({ updatedAt }: Props) {
+function ConversationBar({ conversationId, updatedAt }: Props) {
   const { formatMessage } = useIntl()
   const now = useNow()
+  const { isMobile } = useSidebar()
 
   return (
     <div className="flex items-center gap-3">
@@ -65,6 +70,7 @@ function ConversationBar({ updatedAt }: Props) {
           )}
         </span>
       </div>
+      {updatedAt && !isMobile ? <ConversationOpenInDockButton conversationId={conversationId} /> : null}
     </div>
   )
 }

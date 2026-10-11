@@ -42,6 +42,11 @@ describe('isValidRedirectUri', () => {
       'https://example.com/cb?state=1',
       'http://127.0.0.1/cb?iss=x',
       'https://example.com/cb?error=x',
+      'https://exa\nmple.com/cb',
+      'http://127.0.0.1/cb\t',
+      ' https://example.com/cb',
+      'https://example.com/c b',
+      'https://example.com/cb\u0085',
       `https://example.com/${'a'.repeat(2048)}`,
       'not an address',
     ]) {

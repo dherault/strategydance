@@ -30,6 +30,9 @@ describe('parseModuleResource', () => {
       'http://localhost:3004/mcp/knowledge',
       'https://api.strategydance.com/mcp/knowledge',
       'http://localhost:3003/MCP/knowledge',
+      'http://local\nhost:3003/mcp/knowledge',
+      'http://localhost:3003/mcp/knowl\tedge',
+      ' http://localhost:3003/mcp/knowledge',
     ]) {
       expect(parseModuleResource(value)).toBeNull()
     }

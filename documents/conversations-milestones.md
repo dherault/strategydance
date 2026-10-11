@@ -1437,6 +1437,38 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   to each, and have it turn a document's plan into tasks on a board open in a tab; in production, as
   staff, add both to claude.ai and use them in one chat; disconnect Tasks from Connected agents and
   see its next call refused while Knowledge's still works.
+- Built with these settled, on 2026-10-11:
+  - **`SERVED_MODULES` stays, a list of names**, `knowledge` and `tasks`, filtered over `MODULES`,
+    rather than `MODULES` itself, so a module added later joins the external agents by its name once
+    its writes are challenged and its searches counted, as `CLAUDE.md` lists. The endpoint, the
+    metadata and `OAUTH_PROTOCOL_PATHS` already read it, so serving Tasks changed no route.
+  - **Every external `list_tasks` with a query counts, each page included.** A query runs again for
+    every page, and a cursor is the agent's to send, so counting the first page alone would let a
+    made-up cursor search for free. A cursor the tool did not give is refused before anything is
+    counted, and a list without a query counts nothing.
+  - **The modules share the allowance's code**: `recordModuleSearch`, in `domain/modules/`, counts an
+    external caller's search and never Strategy Dance's agent's, and `toTooManySearchesSentence`
+    words the refusal, naming the module's read that still works, `list_documents` or `list_tasks`
+    without a query. The Knowledge module's refusal reads as M20 wrote it.
+  - **The tools the agent is sent did not change by a byte**: the challenge is no part of a tool's
+    listing, and `list_tasks`' description does not mention the allowance, as `search_documents`'
+    does not.
+  - **The Tasks page's button hides with New task while the board has failed to load**, as the
+    page's actions did, rather than staying as the Knowledge page's does: `PageHeader` draws its
+    actions' box whenever it is given some, and a member who may not connect agents would get an
+    empty box, a row of its own on a phone.
+  - **The dialog's first Escape closes the copy button's tooltip, and the second the dialog**, at
+    1280 and 390 wide alike: opening it focuses "Copy the address", whose tooltip opens on focus, and
+    Radix closes one layer an Escape. It is M20's dialog as it is, on both pages, left for a change
+    of the dialog itself.
+  - Verified with the tests; `check:oauth`, now covering the Tasks endpoint beside Knowledge's, and
+    `check:tasks-module`, against a scratch suite of emulators with the branch's backend; and the
+    SDK's client over HTTP, as an agent consented to Knowledge through the API and to Tasks on the
+    consent page in a browser, turning a Knowledge document's plan into three tasks that landed on
+    the board open in a tab without a reload, linking, moving, describing at the version read,
+    finding by query, unlinking, deleting off the board and restoring onto it, a keyed retry applied
+    once; and the button and its dialog at 1280 and 390 wide. Not seen: Claude Code's own sign-in,
+    which needs an interactive session, and claude.ai, which needs production.
 
 ### M22: Mentioning knowledge in the composer
 

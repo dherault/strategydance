@@ -15,18 +15,18 @@ const ICON_CLASS_NAME = 'mr-[3px] inline-block size-[13px] align-[-2px]'
 
 type Props = {
   href: string
-  // The link's words, as the agent wrote them
+  // The link's words, as the agent or the member's mention wrote them
   children: ReactNode
   // The organization's documents by id, or null while they are not read
   documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
 }
 
 /*
-  A link to knowledge in Strategy Dance's reply, `doc:<id>`: the document's current title with a
-  file icon, opening it, whatever the agent wrote. A document the organization no longer holds,
-  deleted, pruned or never there, is the agent's words struck through and muted, which a screen
-  reader hears said. A link naming no document's id is the agent's words, neither linked nor
-  struck, and so is every link until the documents are read, or when they could not be
+  A link to knowledge in Strategy Dance's reply, or a member's mention of it, `doc:<id>`: the
+  document's current title with a file icon, opening it, whatever the link's words. A document the
+  organization no longer holds, deleted, pruned or never there, is the link's words struck through
+  and muted, which a screen reader hears said. A link naming no document's id is its words, neither
+  linked nor struck, and so is every link until the documents are read, or when they could not be
 */
 function ConversationDocumentLink({ href, children, documents }: Props) {
   const { formatMessage } = useIntl()

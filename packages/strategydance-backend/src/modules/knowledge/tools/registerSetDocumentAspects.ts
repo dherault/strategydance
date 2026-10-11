@@ -5,10 +5,12 @@ import type { KnowledgeToolContext } from '~types'
 
 import setKnowledgeDocumentAspects from '~domain/knowledge/setKnowledgeDocumentAspects'
 
+import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
 import { aspectSchema, aspectsSchema } from '~modules/moduleSchemas'
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
 const TOOL = 'set_document_aspects'
 
@@ -34,6 +36,7 @@ function registerSetDocumentAspects(server: McpServer, context: KnowledgeToolCon
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(knowledgeModule),
     },
     async (args, serverContext) => {
       const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)

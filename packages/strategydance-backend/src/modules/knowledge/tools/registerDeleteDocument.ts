@@ -5,9 +5,11 @@ import type { KnowledgeToolContext } from '~types'
 
 import deleteKnowledgeDocument from '~domain/knowledge/deleteKnowledgeDocument'
 
+import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
 const TOOL = 'delete_document'
 
@@ -29,6 +31,7 @@ function registerDeleteDocument(server: McpServer, context: KnowledgeToolContext
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(knowledgeModule),
     },
     async (args, serverContext) => {
       const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)

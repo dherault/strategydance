@@ -34,13 +34,22 @@ function connect(fields: Partial<ModuleCaller> = {}) {
 afterEach(() => fake.reset())
 
 describe('the caller', () => {
-  it('refuses every write of a caller without the write scope, before anything is read or written', async () => {
-    const kit = await connect({ scopes: ['knowledge:read'] })
+  it('challenges every write of a caller without the write scope, still listing it, before anything is read or written', async () => {
+    const kit = await connect({ kind: 'external', scopes: ['knowledge:read'], idempotencyScope: 'connection:checked' })
     const document = documents.store('Plan', { deletedAt: null })
-    const readOnly =
-      'This connection may only read knowledge. Ask the member to connect again with write access to change it.'
 
     fake.calls.length = 0
+
+    expect((await kit.client.listTools()).tools.map(tool => tool.name)).toEqual([
+      'search_documents',
+      'list_documents',
+      'read_document',
+      'create_document',
+      'update_document',
+      'set_document_aspects',
+      'delete_document',
+      'restore_document',
+    ])
 
     for (const [name, args] of [
       ['create_document', { title: 'New', aspects: [], content: '' }],
@@ -49,7 +58,10 @@ describe('the caller', () => {
       ['delete_document', { id: document.id }],
       ['restore_document', { id: document.id }],
     ] as const) {
-      expect(await kit.refusal(name, args)).toBe(readOnly)
+      await expect(kit.call(name, args)).rejects.toMatchObject({
+        name: 'InsufficientScopeError',
+        requiredScope: 'knowledge:write',
+      })
     }
 
     expect(fake.calls).toEqual([])

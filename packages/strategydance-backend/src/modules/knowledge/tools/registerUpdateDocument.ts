@@ -6,10 +6,12 @@ import type { KnowledgeDocumentEdit, KnowledgeToolContext } from '~types'
 
 import updateKnowledgeDocument from '~domain/knowledge/updateKnowledgeDocument'
 
+import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema, markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
 import { hasNoNul } from '~modules/moduleSchemas'
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
 const TOOL = 'update_document'
 
@@ -95,6 +97,7 @@ function registerUpdateDocument(server: McpServer, context: KnowledgeToolContext
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(knowledgeModule),
     },
     async (args, serverContext) => {
       const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)

@@ -24,7 +24,8 @@ M17 and external agents in M21, which moved the milestones after M14 to make roo
 2026-10-10, as David chose: the agent reads neither the team's profiles nor the log, and sets no top
 priority, so the milestone that was to build those tools is gone, and the milestones after M22 moved
 down by one. Revised on 2026-10-11, in M16, as David chose: the daily sweep is a conversation's only
-prune, so its module call results go with it. When a decision changes, change it here first.
+prune, so its module call results go with it. Revised on 2026-10-11, in M17, as David chose: the
+modules' tools reach Claude without `strict`, since the modules outgrow what strict tools take. When a decision changes, change it here first.
 
 ## The design
 
@@ -1034,9 +1035,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   `thinking-binding-controls-2026-08-01`; `fallbacks: "default"` with the beta
   `server-side-fallback-2026-07-01` (see Refusals); `output_config.effort` set explicitly to `medium` (Opus
   5.5's default, and the first lever to tune); the static system prompt with a cache breakpoint, plus
-  top-level automatic caching for the conversation's tail; the tools with strict schemas and
-  `eager_input_streaming: true`, as the skill recommends for streamed requests, so every input is
-  validated with zod before it runs; `tool_choice` left at `auto` (Opus 5.5 refuses forced tool use).
+  top-level automatic caching for the conversation's tail; the agent's own tools with strict
+  schemas, the modules' without (see Modules), all with `eager_input_streaming: true`, as the skill
+  recommends for streamed requests, so every input is validated with zod before it runs; `tool_choice` left at `auto` (Opus 5.5 refuses forced tool use).
 - **Thinking cannot be turned off** on Opus 5.5. Under `display: "updates"`, a thinking block with
   text is a short progress line ("Comparing revenue with September"): it becomes `run.step`, which
   the thinking indicator shows, which is what the design's rotating steps are. Without one, the
@@ -1373,18 +1374,19 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   development could not use it, and its calls would leave the worker, beyond its fencing, its
   recovery and its thread.
 - **The tools list** is `tools/list`, converted into Claude tools in `MODULES`' order after the
-  built-in ones: name, description, `input_schema`, `strict: true` and `eager_input_streaming:
-  true`, as the agent's own tools are (see The agent). Strict tools refuse `minLength`, `maxLength`,
-  `minimum`, `maximum`, `multipleOf`, `maxItems` and a `minItems` past one, so the conversion drops
-  them, drops `$schema` and every `pattern`, and closes every object (`additionalProperties:
-  false`), and throws on anything else a strict schema refuses. M16's probe found the API refusing
-  the request as "Schema is too complex" with the patterns kept, the document's id on five tools,
-  though it was within every published limit; the module's zod still holds a call to them, and a call
-  past one gets a result the model can act on. A request takes at most 20 strict tools, 24 optional
-  parameters and 16 union ones across them all, which the list's test counts: Knowledge's tools
-  hold 11 optional parameters and no union, as M16 found. A test pins the converted list's
-  bytes, as the system prompt's are pinned, so an SDK or zod release that writes a schema
-  differently is caught before it costs every conversation its earlier reasoning.
+  built-in ones: name, description, `input_schema` as the module wrote it, less its `$schema`
+  dialect, and `eager_input_streaming: true`, but not `strict`, as David chose in M17. A request
+  takes at most 20 strict tools, 24 optional parameters and 16 union ones across them all, and a
+  strict schema no bound on a text's length or a number's range: M16 sent Knowledge's tools strict,
+  their bounds and patterns dropped, the patterns because the API refused the request as "Schema is
+  too complex" with them, but the Tasks module would have taken the list to 17 strict tools and 28
+  optional parameters, and a third module past 20 tools whatever its schemas. Strict only holds how
+  Claude writes a call; the module's zod checks every call, as it checks an external agent's, and
+  answers one it refuses with a sentence the model can act on. So Claude reads each module schema
+  whole, bounds and patterns included, and only the agent's own tools are strict, which the list's
+  test holds to the limits. A test pins the converted list's bytes, as the system prompt's are
+  pinned, so an SDK or zod release that writes a schema differently is caught before it costs every
+  conversation its earlier reasoning.
 - **A call** is `callTool` with the `tool_use`'s input, and its id as the key for a write. The
   `structuredContent` goes back as the `tool_result`, once, as JSON text cut to 50000 characters as
   every result is, and `isError` as `is_error: true`.
@@ -1405,8 +1407,9 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   reads the board again and removes each link of a task waiting on it that would now close a loop
   (`getTaskLoopingDependents`), and, being a member's change to the board, records the day
   (`recordActivity`). `RestoreTask` refuses anything past the day. The tools list then holds sixteen
-  module tools, and M17 records what it costs a cached request, so whether Claude's tool search
-  keeps some of them out (see Later modules) is decided on that figure.
+  module tools, 7381 tokens of every request beside the system prompt's and the agent's own tools'
+  7201, as M17 counted, which cost a request read from the cache $0.0015 and a write to it $0.037:
+  whether Claude's tool search keeps some of them out (see Later modules) is decided on that figure.
 
 **External agents** reach the Knowledge module from M20 and the Tasks module from M21, through an
 authorization server from M18 and a consent page from M19:
@@ -1576,8 +1579,12 @@ authorization server from M18 and a consent page from M19:
 **Later modules**, budget, software solutions, directories and marketing tactics, each add a folder
 under `src/modules/`, an entry in `MODULES`, their address, scopes and labels, and their tools to
 the agent's list, as the Tasks module does in M15, M17 and M21, which `drop_block` makes a one-time
-loss of earlier reasoning, as any tool is. Past a dozen tools, Claude's tool search
-(`defer_loading`) keeps the definitions out of the context without touching the cached prefix.
+loss of earlier reasoning, as any tool is. Past some 10000 tokens of tool definitions, Claude's tool
+search (`defer_loading`) keeps them out of the context without touching the cached prefix, at the
+cost of a search step before a deferred tool's first use; Knowledge's and the Tasks module's take
+7381 (M17). A tool declared deferred that nothing has used yet is also outside what a replay's
+thinking is checked against, so a module joining that way would cost no conversation its earlier
+reasoning.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
 David's call at M30.
 
@@ -1865,13 +1872,10 @@ the lifetime is chosen from what members' pauses turn out to be.
   client registration, and its SDK changed major version. The handler serves the 2025 revisions'
   clients statelessly, dynamic registration stays while Cursor needs it, the SDK is pinned, and the
   converted tools list's byte test catches a release that would change what conversations replay.
-- **The Tasks module's tools pass what a strict request takes.** A request holds at most 24 optional
-  parameters across its strict tools, and 16 that take several types. Knowledge's hold 11, and the
-  Tasks module's input schemas about 17 more, `dueDate`'s null among the unions, as M16 counted, so
-  M17 cannot add them as they stand: it makes parameters required, sends some tools without
-  `strict`, or keeps some out through tool search, and `buildConversationTools.test.ts` holds it to
-  the limits whichever it chooses. Past those limits the API also refuses a list whose compiled
-  grammar grows too large, which no test can see: `bun run probe:claude` is the check, run whenever
-  a module's tools change.
+- **A module's tool call is not held to its schema by Claude.** The modules' tools are not strict
+  (see Modules), so Claude can write a call the module refuses, which costs a turn: the module's zod
+  answers it with a sentence the model can act on, and `probe:claude` has Claude call a module's
+  tool through the whole list. The API still refuses a tool list whose schemas it does not take,
+  which no test can see: `bun run probe:claude` is the check, run whenever a module's tools change.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.

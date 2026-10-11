@@ -1959,8 +1959,10 @@ query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(l
 # member's. A connection exists only while its membership does, so the organization is always one the
 # caller is in.
 #
-# Read up to 200, past what anybody connects: a connection is unique on its membership, its client
-# and its module, so consenting again replaces one rather than adding one.
+# Read up to 200, twice what anybody may connect (`MAX_AGENT_CONNECTIONS` in strategydance-core, which
+# Allow holds them to), so the list is never cut short: Allow counts under the lock of the membership
+# it connects, and consents in two organizations at the same instant can each pass the cap by one,
+# never by a hundred.
 #
 # A live query, refreshed by what adds or removes a connection of the caller's: Allow on the consent
 # page, which the backend runs through the Admin SDK with the verified `$userId`, Disconnect, and the

@@ -3423,9 +3423,12 @@ mutation RecordOAuthClientUse($id: UUID!) @auth(level: NO_ACCESS) {
 # two consents at once for one client, organization and module take turns, and refuses anybody who
 # is not that member: by its check, or first by the connection's reference to the membership
 # (`agent_connection_membership_fkey`), which Data Connect reports before the check, and the backend
-# reads the two as one refusal. The earlier connection for that client and module goes, with its tokens, and
-# the new one takes its place, so the member holds one connection for it, of the access they last
-# allowed. The request is decided last, since it references the connection, and only while it is
+# reads the two as one refusal. A member connects at most 100 agents across their organizations
+# (`MAX_AGENT_CONNECTIONS` in strategydance-core), counted after the lock, leaving out the connection
+# this one replaces, so the Connected agents tab lists every one: consents in two organizations at
+# the same instant hold different locks, and can each pass the cap by one. The earlier connection for
+# that client and module goes, with its tokens, and the new one takes its place, so the member holds
+# one connection for it, of the access they last allowed. The request is decided last, since it references the connection, and only while it is
 # undecided and unexpired, for the client and the resource it names, granting no scope it did not
 # ask for: a check refusing it rolls the whole mutation back, so a double submit, or an Allow racing
 # a Deny, decides it once. `$userId` is the uid the backend verified, and `$connectionId` and
@@ -3447,6 +3450,25 @@ mutation ApproveOAuthAuthorizationRequest(
     key: { userId: $userId, organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can connect an agent to it")
+  query @redact {
+    agentConnections(
+      where: {
+        _and: [
+          { membershipUserId: { eq: $userId } }
+          {
+            _not: {
+              membershipOrganizationId: { eq: $organizationId }
+              clientId: { eq: $clientId }
+              module: { eq: $module }
+            }
+          }
+        ]
+      }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "A member connects at most 100 agents") {
+      id
+    }
+  }
   agentConnection_deleteMany(
     where: {
       membershipUserId: { eq: $userId }

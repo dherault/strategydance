@@ -1347,6 +1347,22 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - No suggestions and no section on the aspect page, whose design will likely change, as David chose
   on 2026-10-11 (see The aspect page).
 - Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not.
+- Built with these settled, on 2026-10-11, as The agent § Tagging aspects says:
+  - The runs on the first anchor tag, the first or a resume or retry carrying it on, as David chose,
+    once the reply is whole and ends the run, before the calls beside a question run. A run tries
+    once, as its ledger says, the request marked `purpose: "tagging"`, and nothing about it fails a
+    run.
+  - The note belongs to no run, so a Retry keeps it, and it counts toward none of a run's entries.
+  - A draft's empty pick sends no aspects, so the agent still tags, as David chose.
+  - The dialog's line no longer names the aspect page: "Strategy Dance tags a conversation by itself
+    until you pick its aspects."
+  - The tagging request is counted with its schema, which the API bills as input.
+  - Verified: `check:conversation-runs`, `check:conversation-page` and `check:conversation-list`
+    against the emulators; `probe:claude`, every check passing; in the browser at 1280 and 390 wide,
+    with the placeholder, a draft's picked aspects kept through the send with no note, an untagged
+    conversation and an empty pick tagged after the reply, and the list's column; with the real
+    model, a pricing question tagged FINANCES and PRODUCT after a knowledge search and its reply,
+    and a draft sent with Legal left as the member's, no tagging request sent.
 
 ### M24: The dock
 

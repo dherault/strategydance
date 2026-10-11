@@ -159,6 +159,22 @@ describe('markdownToRichText', () => {
         'see https://example.com/',
         [paragraph('see ', { type: 'link', href: 'https://example.com/', content: [run('https://example.com/')] })],
       ],
+      [
+        'written as a web address alone, naming a user',
+        'see https://user:pass@example.com/x',
+        [
+          paragraph('see ', {
+            type: 'link',
+            href: 'https://user:pass@example.com/x',
+            content: [run('https://user:pass@example.com/x')],
+          }),
+        ],
+      ],
+      [
+        'written as a web address alone, before an ideographic full stop',
+        'https://example.com/x。',
+        [paragraph({ type: 'link', href: 'https://example.com/x', content: [run('https://example.com/x')] }, '。')],
+      ],
       ['to a script, as written', '[a](javascript:alert(1))', [paragraph('[a](javascript:alert(1))')]],
       ['to a document, as its words', '[a](doc:123)', [paragraph('a')]],
     ]

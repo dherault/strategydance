@@ -1,5 +1,4 @@
-import MarkdownIt from 'markdown-it'
-import type Token from 'markdown-it/lib/token.mjs'
+import MarkdownIt, { type Token } from 'markdown-it'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
 import {
   type RichTextBlock,
@@ -31,11 +30,12 @@ const STYLE_TOKENS: Record<string, keyof RichTextStyles> = { strong: 'bold', em:
   time growing with the square of what it reads, or worse, on text an agent could be told to write,
   lists or brackets by the thousand say, minutes for the length a document may have, where
   markdown-it stays near a second. HTML is read as tokens, which are only ever written as text, and
-  a web address alone is a link, but not a host name without one, as GFM has it
+  a web address alone is a link, but not a host name without one, as GFM has it, and an address
+  naming a user is a link whole, where linkify-it would end it at the user's name
 */
 const markdownIt = new MarkdownIt({ html: true, linkify: true })
 
-markdownIt.linkify.set({ fuzzyLink: false })
+markdownIt.linkify.set({ fuzzyLink: false, urlAuth: true })
 
 // A token and those it opens, the tree markdown-it lays flat
 type Node = { token: Token; children: Node[] }
@@ -201,6 +201,13 @@ function readInline(tokens: Token[]): RichTextInline[] {
   return inline
 }
 
+// An attribute as markdown-it's own rules set it, a string, though its types allow a plugin's number
+function readAttribute(token: Token, name: string) {
+  const value = token.attrGet(name)
+
+  return value === null ? null : String(value)
+}
+
 function createRun(text: string, styles: RichTextStyles): RichTextRun {
   return { type: 'text', text, ...(Object.keys(styles).length ? { styles } : {}) }
 }
@@ -261,11 +268,11 @@ function readPhrasing(
 
         return
       case 'link_open':
-        pushLink(token.attrGet('href'), runs => readPhrasing(children, getStyles(), runs, depth + 1, true))
+        pushLink(readAttribute(token, 'href'), runs => readPhrasing(children, getStyles(), runs, depth + 1, true))
 
         return
       case 'image': {
-        const href = token.attrGet('src')
+        const href = readAttribute(token, 'src')
         const text = token.content || href
 
         pushLink(href, runs => {

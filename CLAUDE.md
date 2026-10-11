@@ -601,8 +601,8 @@ A conversation is kept twice, once for Claude and once for the page, and
   conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
   a new one joins its refreshes, or a minimized window's count stands still. An open window draws
   the page's own thread and composer, which mark replies read as the page does. A composer's message,
-  its mentions, where its send stands and the run the reader last started are kept by account and
-  conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
+  its mentions, where its send stands and the run the reader last started are kept by account,
+  organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
   drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
   anything new a message holds, as attachments will, goes there too, never in a view's own state
 - A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,

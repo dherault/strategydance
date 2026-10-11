@@ -14,6 +14,9 @@ import pruneDeletedConversations from '~domain/conversations/pruneDeletedConvers
 import runConversation from '~domain/conversations/runConversation'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
+import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
+import pruneOAuthAuthorizationRequests from '~domain/oauth/pruneOAuthAuthorizationRequests'
+import pruneOAuthClients from '~domain/oauth/pruneOAuthClients'
 import pruneDeletedTasks from '~domain/tasks/pruneDeletedTasks'
 
 /*
@@ -82,8 +85,9 @@ function createInternalRouter() {
     Scheduler asks once a day: the conversations, the board's tasks and the documents deleted over a
     day ago. A milestone that keeps something else deleted for a while adds its prune here. So does
     one that keeps a count or a record for a while, as the conversation searches over a day old go,
-    and the module call results past their expiry. Every step is idempotent, so a sweep that failed
-    is finished by the next. Takes no body
+    the module call results past their expiry, and the authorization server's requests expired over
+    a day ago, its tokens past their expiry and the registrations nobody uses. Every step is
+    idempotent, so a sweep that failed is finished by the next. Takes no body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     await pruneDeletedConversations()
@@ -91,6 +95,9 @@ function createInternalRouter() {
     await pruneDeletedTasks()
     await pruneDeletedDocuments()
     await pruneModuleCallResults()
+    await pruneOAuthAuthorizationRequests()
+    await pruneAgentConnectionTokens()
+    await pruneOAuthClients()
 
     response.json({ status: 'success' })
   })

@@ -224,4 +224,33 @@ describe('POST /internal/sweep', () => {
     expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
     expect([...modules.results.keys()].sort()).toEqual(['forever', 'pending'])
   })
+
+  test("prunes the authorization server's expired requests and unused registrations", async () => {
+    const ago = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+
+    modules.clients.set('unused', { id: 'unused', name: null, redirectUris: [], createdAt: ago(25), lastUsedAt: null })
+    modules.clients.set('recent', { id: 'recent', name: null, redirectUris: [], createdAt: ago(1), lastUsedAt: null })
+    modules.requests.set('expired', {
+      id: 'expired',
+      clientId: 'recent',
+      registeredClientId: 'recent',
+      redirectUri: 'http://127.0.0.1/callback',
+      codeChallenge: 'challenge',
+      resource: 'http://localhost:3003/mcp/knowledge',
+      scopes: ['knowledge:read'],
+      state: null,
+      expiresAt: ago(25),
+      decidedAt: null,
+      isApproved: null,
+      connectionId: null,
+      codeHash: null,
+      codeExpiresAt: null,
+      codeUsedAt: null,
+      createdAt: ago(25),
+    })
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect([...modules.clients.keys()]).toEqual(['recent'])
+    expect(modules.requests.size).toBe(0)
+  })
 })

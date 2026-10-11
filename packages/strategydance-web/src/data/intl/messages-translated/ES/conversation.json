@@ -79,6 +79,8 @@
   "conversation.question.unavailable": "Tu respuesta se ha guardado. Strategy Dance continuará en un momento.",
   "conversation.question.waiting": "Esperando tu respuesta",
   "conversation.question.writeOwn": "Escribe tu propia respuesta",
+  "conversation.restoreDocument": "Restaurar",
+  "conversation.restoreDocumentError": "No se pudo restaurar el conocimiento.",
   "conversation.restoreError": "No se pudo recuperar la conversación.",
   "conversation.retry": "Reintentar",
   "conversation.save": "Guardar",

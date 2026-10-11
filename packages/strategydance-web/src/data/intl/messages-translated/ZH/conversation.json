@@ -79,6 +79,8 @@
   "conversation.question.unavailable": "您的回答已保存。Strategy Dance 稍后将继续。",
   "conversation.question.waiting": "等待你的回答",
   "conversation.question.writeOwn": "输入你自己的回答",
+  "conversation.restoreDocument": "恢复",
+  "conversation.restoreDocumentError": "无法恢复该知识。",
   "conversation.restoreError": "无法恢复该对话。",
   "conversation.retry": "重试",
   "conversation.save": "保存",

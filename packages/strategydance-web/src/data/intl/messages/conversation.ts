@@ -537,6 +537,18 @@ const conversationMessages = defineMessages({
     defaultMessage: 'View error',
     description: 'Button on a tool the AI used that failed, which opens what the tool was given and how it failed.',
   },
+  restoreDocument: {
+    id: 'conversation.restoreDocument',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted an item of the team's knowledge, such as a note or a plan, which brings the item back. Offered for a day after the delete.",
+  },
+  restoreDocumentError: {
+    id: 'conversation.restoreDocumentError',
+    defaultMessage: 'The knowledge could not be brought back.',
+    description:
+      "Notification when bringing back an item of the team's knowledge the AI deleted failed, for instance once a day has passed since the delete.",
+  },
   toolCall: {
     id: 'conversation.toolCall',
     defaultMessage: 'Tool call · {name}',

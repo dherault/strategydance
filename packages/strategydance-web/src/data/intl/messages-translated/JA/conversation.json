@@ -79,6 +79,8 @@
   "conversation.question.unavailable": "回答は保存されています。まもなくStrategy Danceが再開します。",
   "conversation.question.waiting": "回答をお待ちしています",
   "conversation.question.writeOwn": "回答を自由に入力",
+  "conversation.restoreDocument": "復元",
+  "conversation.restoreDocumentError": "ナレッジを復元できませんでした。",
   "conversation.restoreError": "会話を復元できませんでした。",
   "conversation.retry": "再試行",
   "conversation.save": "保存",

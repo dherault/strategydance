@@ -1469,6 +1469,14 @@
         "hash": "7e0762a3dc21017a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.restoreDocument": {
+        "hash": "478a3856e52f4e69",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreDocumentError": {
+        "hash": "4b83e9a3fe5a20fb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.restoreError": {
         "hash": "555883b091f28f04",
         "locales": "DE,ES,FR,JA,PT,ZH"

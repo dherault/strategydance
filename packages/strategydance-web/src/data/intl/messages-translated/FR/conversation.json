@@ -79,6 +79,8 @@
   "conversation.question.unavailable": "Votre réponse est enregistrée. Strategy Dance reprendra dans un instant.",
   "conversation.question.waiting": "En attente de votre réponse",
   "conversation.question.writeOwn": "Écrivez votre propre réponse",
+  "conversation.restoreDocument": "Restaurer",
+  "conversation.restoreDocumentError": "La connaissance n'a pas pu être restaurée.",
   "conversation.restoreError": "Impossible de restaurer la conversation.",
   "conversation.retry": "Réessayer",
   "conversation.save": "Enregistrer",

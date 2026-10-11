@@ -22,11 +22,12 @@ import groupConversationReplies from '~utils/conversation/groupConversationRepli
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
-import needsConversationDocuments from '~utils/conversation/needsConversationDocuments'
+import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
+import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
 import ConversationMessagePlaceholder from '~components/conversation/ConversationMessagePlaceholder'
 import ConversationNote from '~components/conversation/ConversationNote'
@@ -183,6 +184,14 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}
+            action={
+              entry.toolName === DELETE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED ? (
+                <ConversationDocumentRestore
+                  messageId={entry.id}
+                  documents={documents}
+                />
+              ) : null
+            }
           />
         )
       case ConversationMessageKind.QUESTION:

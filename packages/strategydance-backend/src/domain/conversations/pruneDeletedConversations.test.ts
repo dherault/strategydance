@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 
@@ -88,6 +88,8 @@ function isLeft(conversationId: string) {
     )
   )
 }
+
+afterEach(() => setSystemTime())
 
 beforeEach(() => {
   fake.reset()
@@ -202,6 +204,22 @@ describe('pruneDeletedConversations', () => {
     expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45, deletedResults: 0 })
     expect(fake.calls.filter(name => name === 'DeleteClaimedConversations')).toHaveLength(3)
     expect(fake.conversations.size).toBe(0)
+  })
+
+  test('stops deleting once its time is up, leaving the rest claimed for the next sweep', async () => {
+    for (let count = 0; count < 45; count++) insertDeleted()
+
+    // Each batch takes three minutes, so the second ends past the sweep's five
+    fake.beforeOperation = async name => {
+      if (name === 'DeleteClaimedConversations') setSystemTime(new Date(Date.now() + 3 * 60 * 1000))
+    }
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 40, deletedResults: 0 })
+    expect(fake.conversations.size).toBe(5)
+
+    fake.beforeOperation = async () => {}
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 5, deletedResults: 0 })
   })
 
   test('deletes nothing, and asks for no delete, when nothing was deleted long enough ago', async () => {

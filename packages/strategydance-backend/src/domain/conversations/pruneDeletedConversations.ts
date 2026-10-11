@@ -14,9 +14,11 @@ import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
 // How many claimed conversations `GetClaimedConversations` reads at a time, its `limit`
 const BATCH_SIZE = 20
 
-// How many batches one sweep deletes at most, so it ends in bounded time: what is left goes the
-// next day
-const MAX_BATCHES = 50
+// How long one sweep deletes batches for at most, so it ends in bounded time, well inside the 15
+// minutes its request has with the sweep's other prunes after it: what is left goes the next day.
+// A time rather than a count of batches, since the sweep is a conversation's only prune, so what it
+// deletes in a day grows with what is deleted, as far as this time allows
+const MAX_DURATION_MS = 5 * 60 * 1000
 
 /*
   Removes every conversation deleted over a day ago, past its Undo, whoever's it is, with its
@@ -35,7 +37,9 @@ async function pruneDeletedConversations() {
   let deleted = 0
   let deletedResults = 0
 
-  for (let batch = 0; batch < MAX_BATCHES; batch++) {
+  const deadline = Date.now() + MAX_DURATION_MS
+
+  while (Date.now() < deadline) {
     const { data } = await getClaimedConversations(dataConnect)
     const ids = data.conversations.map(conversation => conversation.id)
 

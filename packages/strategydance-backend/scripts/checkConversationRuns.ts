@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
+  CompanyAspect,
+  ConversationActor,
   ConversationNoteKind,
   ConversationRunStatus,
   answerConversationQuestion,
@@ -50,6 +52,7 @@ import {
   stopQueuedConversationRun,
   storeConversationTurn,
   storeConversationTurnWithContext,
+  tagConversationAspects,
 } from 'strategydance-database/backend'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
@@ -109,6 +112,7 @@ const userIds = {
   retrier: `check-conversation-runs-${checkId}-retrier`,
   asker: `check-conversation-runs-${checkId}-asker`,
   settler: `check-conversation-runs-${checkId}-settler`,
+  tagger: `check-conversation-runs-${checkId}-tagger`,
 }
 
 const failures: string[] = []
@@ -244,8 +248,14 @@ type Started = {
   runId: string
 }
 
-// Starts a conversation as the backend does, and answers what it made
-async function start(userId: string, membershipCreatedAt: string, overrides: Partial<Started> = {}) {
+// Starts a conversation as the backend does, with the aspects its member picked on the draft when
+// there are, and answers what it made
+async function start(
+  userId: string,
+  membershipCreatedAt: string,
+  overrides: Partial<Started> = {},
+  drafted: { aspects?: CompanyAspect[]; aspectsSetBy?: ConversationActor } = {},
+) {
   const started: Started = {
     userId,
     membershipCreatedAt,
@@ -262,6 +272,7 @@ async function start(userId: string, membershipCreatedAt: string, overrides: Par
     text: 'Checked message',
     preview: { kind: 'MEMBER_TEXT', text: 'Checked message' },
     content: JSON.stringify([{ type: 'text', text: 'Checked message' }]),
+    ...drafted,
   })
 
   return started
@@ -2086,6 +2097,206 @@ async function checkSettling() {
   )
 }
 
+type TaggedConversation = {
+  aspects: string[]
+  aspectsSetBy: string | null
+  nextMessagePosition: number
+  messageCount: number
+  unreadCount: number
+  previewMessageId: string | null
+}
+
+async function readTags(conversationId: string, runId: string, position: number) {
+  return read<{
+    conversation: TaggedConversation | null
+    conversationRun: { usage: unknown; leaseExpiresAt: string | null } | null
+    conversationMessages: {
+      id: string
+      kind: string
+      aspects: string[] | null
+      aspectsSetBy: string | null
+      run: { id: string } | null
+    }[]
+  }>(
+    `query ReadTags($conversationId: UUID!, $runId: UUID!, $position: Int!) {
+      conversation(id: $conversationId) { aspects aspectsSetBy nextMessagePosition messageCount unreadCount previewMessageId }
+      conversationRun(id: $runId) { usage leaseExpiresAt }
+      conversationMessages(where: { conversationId: { eq: $conversationId }, position: { eq: $position } }) {
+        id kind aspects aspectsSetBy run { id }
+      }
+    }`,
+    { conversationId, runId, position },
+  )
+}
+
+// The draft's aspects that start a conversation, and the agent's tag, only while nobody set them
+async function checkTagging() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.tagger)
+  const drafted = await start(
+    userIds.tagger,
+    membershipCreatedAt,
+    {},
+    { aspects: [CompanyAspect.SALES, CompanyAspect.FINANCES], aspectsSetBy: ConversationActor.MEMBER },
+  )
+  const draftedTags = await readTags(drafted.conversationId, drafted.runId, 0)
+
+  check(
+    "a conversation starts with the aspects its member picked on the draft, as the member's, and no note",
+    draftedTags.conversation?.aspects.join() === 'SALES,FINANCES'
+      && draftedTags.conversation.aspectsSetBy === 'MEMBER'
+      && draftedTags.conversation.messageCount === 1
+      && draftedTags.conversationMessages[0]?.kind === 'MEMBER_TEXT',
+  )
+  check(
+    "a draft's aspects named twice, given without their member, or given as the agent's are refused",
+    (await refusal(
+      start(
+        userIds.tagger,
+        membershipCreatedAt,
+        {},
+        {
+          aspects: [CompanyAspect.SALES, CompanyAspect.SALES],
+          aspectsSetBy: ConversationActor.MEMBER,
+        },
+      ),
+    )) !== null
+      && (await refusal(start(userIds.tagger, membershipCreatedAt, {}, { aspects: [CompanyAspect.SALES] }))) !== null
+      && (await refusal(
+        start(
+          userIds.tagger,
+          membershipCreatedAt,
+          {},
+          { aspects: [CompanyAspect.SALES], aspectsSetBy: ConversationActor.AGENT },
+        ),
+      )) !== null
+      && (await refusal(start(userIds.tagger, membershipCreatedAt, {}, { aspectsSetBy: ConversationActor.MEMBER })))
+        !== null,
+  )
+
+  await complete(drafted)
+
+  const untagged = await start(userIds.tagger, membershipCreatedAt)
+  const untaggedTags = await readTags(untagged.conversationId, untagged.runId, 0)
+
+  check(
+    'a conversation started without aspects has none, set by nobody',
+    untaggedTags.conversation?.aspects.length === 0 && untaggedTags.conversation.aspectsSetBy === null,
+  )
+
+  await claimQueuedConversationRun(dataConnect, fence(untagged, 0))
+
+  const usage = {
+    requests: [{ purpose: 'tagging', inputTokens: 300, outputTokens: 20, isSettled: true, inputEndPosition: 0 }],
+    byModel: {},
+  }
+  const tag = (
+    started: Started,
+    attempts: number,
+    position: number,
+    aspects: CompanyAspect[] = [CompanyAspect.PRODUCT],
+  ) =>
+    tagConversationAspects(dataConnect, {
+      ...fence(started, attempts),
+      usage,
+      aspects,
+      noteId: createId(),
+      position,
+    })
+
+  check(
+    'a tag from a worker whose attempt is no longer the run’s is refused',
+    (await refusal(tag(untagged, 0, 1))) !== null,
+  )
+  check(
+    'a tag with no aspect, four, or one twice is refused',
+    (await refusal(tag(untagged, 1, 1, []))) !== null
+      && (await refusal(
+        tag(untagged, 1, 1, [CompanyAspect.SALES, CompanyAspect.LEGAL, CompanyAspect.PRODUCT, CompanyAspect.DESIGN]),
+      )) !== null
+      && (await refusal(tag(untagged, 1, 1, [CompanyAspect.SALES, CompanyAspect.SALES]))) !== null,
+  )
+  check('a tag at a position another write took first is refused', (await refusal(tag(untagged, 1, 2))) !== null)
+
+  const tagFailure = await refusal(tag(untagged, 1, 1, [CompanyAspect.PRODUCT, CompanyAspect.STRATEGY]))
+  const tagged = await readTags(untagged.conversationId, untagged.runId, 1)
+  const [note] = tagged.conversationMessages
+
+  check(
+    "a tag at the counter sets the aspects as the agent's, with their note at that position, which belongs to no run",
+    tagFailure === null
+      && tagged.conversation?.aspects.join() === 'PRODUCT,STRATEGY'
+      && tagged.conversation.aspectsSetBy === 'AGENT'
+      && note?.kind === 'ASPECTS'
+      && note.aspects?.join() === 'PRODUCT,STRATEGY'
+      && note.aspectsSetBy === 'AGENT'
+      && note.run === null,
+  )
+  check(
+    'the tag moves the counter and the count on by one, settles the ledger and renews the lease, and leaves the preview and the unread count alone',
+    tagged.conversation?.nextMessagePosition === 2
+      && tagged.conversation.messageCount === 2
+      && tagged.conversation.unreadCount === untaggedTags.conversation?.unreadCount
+      && tagged.conversation.previewMessageId === untagged.messageId
+      && isSameJson(tagged.conversationRun?.usage, usage)
+      && Date.parse(tagged.conversationRun?.leaseExpiresAt ?? '') > Date.now(),
+  )
+  check('a conversation tagged already is not tagged again', (await refusal(tag(untagged, 1, 2))) !== null)
+
+  await finishConversationRun(dataConnect, { ...fence(untagged, 1), status: ConversationRunStatus.COMPLETED })
+
+  // A member who sets the aspects before the tag lands keeps them
+  const raced = await start(userIds.tagger, membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(raced, 0))
+  await webConnector.executeMutation(
+    'UpdateConversationAspects',
+    { organizationId, userId: userIds.tagger, id: raced.conversationId, aspects: [CompanyAspect.LEGAL], position: 1 },
+    { impersonate: { authClaims: { sub: userIds.tagger } } },
+  )
+
+  const racedFailure = await refusal(tag(raced, 1, 2))
+  const racedTags = await readTags(raced.conversationId, raced.runId, 2)
+
+  check(
+    "the member's aspects, set before the tag, are kept, and the tag is refused",
+    racedFailure !== null
+      && racedTags.conversation?.aspects.join() === 'LEGAL'
+      && racedTags.conversation.aspectsSetBy === 'MEMBER'
+      && racedTags.conversationMessages.length === 0,
+  )
+
+  await finishConversationRun(dataConnect, { ...fence(raced, 1), status: ConversationRunStatus.COMPLETED })
+
+  // The draft's aspects, the member's, are never tagged over
+  const draftedRun = await start(
+    userIds.tagger,
+    membershipCreatedAt,
+    {},
+    { aspects: [CompanyAspect.DESIGN], aspectsSetBy: ConversationActor.MEMBER },
+  )
+
+  await claimQueuedConversationRun(dataConnect, fence(draftedRun, 0))
+  check(
+    "a conversation started with its member's aspects is not tagged",
+    (await refusal(tag(draftedRun, 1, 1))) !== null,
+  )
+  await finishConversationRun(dataConnect, { ...fence(draftedRun, 1), status: ConversationRunStatus.COMPLETED })
+
+  // A conversation full, or deleted, takes no tag
+  const full = await start(userIds.tagger, membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(full, 0))
+  await write(`mutation Fill($id: UUID!) { conversation_update(id: $id, data: { messageCount: 2000 }) }`, {
+    id: full.conversationId,
+  })
+  check('a conversation holding 2000 entries takes no tag', (await refusal(tag(full, 1, 1))) !== null)
+  await write(
+    `mutation Delete($id: UUID!) { conversation_update(id: $id, data: { messageCount: 1, deletedAt_expr: "request.time" }) }`,
+    { id: full.conversationId },
+  )
+  check('a deleted conversation takes no tag', (await refusal(tag(full, 1, 1))) !== null)
+}
+
 try {
   await setUp()
 
@@ -2107,6 +2318,7 @@ try {
   await checkReplies()
   await checkQuestions()
   await checkSettling()
+  await checkTagging()
 } finally {
   await tearDown()
 }

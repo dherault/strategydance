@@ -69,7 +69,8 @@ function restore(list: HTMLElement | null, scroller: HTMLElement | null, place: 
   On the conversation's page the window scrolls, not the thread; in a dock's window, the box the
   window holds the thread in, `scrollerRef`. Browsers anchor a scroll by themselves, but Safari does
   not, and Chrome's would add to this, so the thread opts out of theirs (`overflow-anchor: none`) and
-  this does it everywhere: after every render, and whenever the list changes size
+  this does it everywhere: after every render, and whenever the list changes size, or the box does,
+  which a dock's composer shrinks as it grows
 */
 function useConversationThreadScroll(
   listRef: RefObject<HTMLElement | null>,
@@ -97,6 +98,7 @@ function useConversationThreadScroll(
     scrolled.addEventListener('scroll', handleScroll, { passive: true })
 
     if (list) observer.observe(list)
+    if (scroller) observer.observe(scroller)
 
     return () => {
       scrolled.removeEventListener('scroll', handleScroll)

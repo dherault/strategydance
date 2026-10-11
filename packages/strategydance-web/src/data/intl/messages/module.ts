@@ -2,8 +2,9 @@ import { defineMessages } from 'react-intl'
 
 /*
   Strategy Dance's modules as a member sees them: what each is called and what each access lets an
-  agent do, and the consent page where a member allows an external agent to use one. Registered
-  app-wide, since the account page reads it, and on the consent page, which sits outside the app
+  agent do, the consent page where a member allows an external agent to use one, and the account
+  page's Connected agents tab. Registered app-wide, since the account page reads it, and on the
+  consent page, which sits outside the app
 */
 const moduleMessages = defineMessages({
   knowledgeName: {
@@ -212,6 +213,87 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Create an organization',
     description:
       'Link to the onboarding, on the page where a member allows an external agent, when they belong to no organization yet.',
+  },
+  connectedAgentsTab: {
+    id: 'module.connectedAgentsTab',
+    defaultMessage: 'Connected agents',
+    description:
+      'Tab of the account page listing the external agents, such as Claude or ChatGPT, the member allowed to act as them.',
+  },
+  connectedAgentsLead: {
+    id: 'module.connectedAgentsLead',
+    defaultMessage: 'The agents you allowed to act as you. Disconnecting one stops it at once.',
+    description: "Explanation at the top of the account page's Connected agents tab.",
+  },
+  connectedAgentsEmptyTitle: {
+    id: 'module.connectedAgentsEmptyTitle',
+    defaultMessage: 'No agents connected',
+    description: "Title shown on the account page's Connected agents tab when the member connected none.",
+  },
+  connectedAgentsEmptyDescription: {
+    id: 'module.connectedAgentsEmptyDescription',
+    defaultMessage: 'When you allow an agent such as Claude or ChatGPT to use a module, it shows here.',
+    description: "Shown on the account page's Connected agents tab when the member connected none.",
+  },
+  connectedAgentsLoadError: {
+    id: 'module.connectedAgentsLoadError',
+    defaultMessage: 'Your connected agents could not be loaded.',
+    description:
+      "Error shown on the account page's Connected agents tab when the list could not be read. A retry button follows.",
+  },
+  connectionModule: {
+    id: 'module.connectionModule',
+    defaultMessage: '{moduleName} · {access}',
+    description:
+      'On a connected agent, the module it may use and its access, such as "Knowledge · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
+  },
+  connectedOn: {
+    id: 'module.connectedOn',
+    defaultMessage: 'Connected {date}',
+    description: 'When the member connected an external agent. {date} is a short date, such as "Sep 3".',
+  },
+  lastUsedJustNow: {
+    id: 'module.lastUsedJustNow',
+    defaultMessage: 'Last used just now',
+    description: 'When a connected agent last used its module, when that was less than a minute ago.',
+  },
+  lastUsedAgo: {
+    id: 'module.lastUsedAgo',
+    defaultMessage: 'Last used {time}',
+    description:
+      'When a connected agent last used its module. {time} is a relative time from the browser, such as "5 minutes ago", "yesterday" or "3 days ago".',
+  },
+  lastUsedOn: {
+    id: 'module.lastUsedOn',
+    defaultMessage: 'Last used {date}',
+    description:
+      'When a connected agent last used its module, when that was over a week ago. {date} is a short date, such as "Sep 3".',
+  },
+  neverUsed: {
+    id: 'module.neverUsed',
+    defaultMessage: 'Not used yet',
+    description: 'Shown on a connected agent that has not used its module since the member connected it.',
+  },
+  disconnect: {
+    id: 'module.disconnect',
+    defaultMessage: 'Disconnect',
+    description:
+      'Button that disconnects an external agent, which stops it acting as the member. It asks to be clicked a second time.',
+  },
+  disconnectConfirm: {
+    id: 'module.disconnectConfirm',
+    defaultMessage: 'Disconnect?',
+    description: 'What the Disconnect button says once clicked, asking to be clicked again to disconnect the agent.',
+  },
+  disconnected: {
+    id: 'module.disconnected',
+    defaultMessage: '{agentName} was disconnected',
+    description: "Message shown once an external agent was disconnected. {agentName} is the agent's name.",
+  },
+  disconnectError: {
+    id: 'module.disconnectError',
+    defaultMessage: '{agentName} could not be disconnected',
+    description: "Error shown when disconnecting an external agent failed. {agentName} is the agent's name.",
   },
 })
 

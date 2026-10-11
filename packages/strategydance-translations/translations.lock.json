@@ -2419,6 +2419,34 @@
         "hash": "61e08abb9909c947",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.connectedAgentsEmptyDescription": {
+        "hash": "8d1ef939004b3bdf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectedAgentsEmptyTitle": {
+        "hash": "e03e03d3f86597c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectedAgentsLead": {
+        "hash": "7f8594b6b57af175",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectedAgentsLoadError": {
+        "hash": "4d20e08009093035",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectedAgentsTab": {
+        "hash": "033b155a975b48c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectedOn": {
+        "hash": "8597c0b3b47df06e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectionModule": {
+        "hash": "7f04f1e8713b367d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.consentEyebrow": {
         "hash": "65c76837ec671669",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2451,6 +2479,22 @@
         "hash": "5c808c9e0e70de2b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.disconnect": {
+        "hash": "b0de2f0e14310d7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.disconnectConfirm": {
+        "hash": "0867de268fbed26e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.disconnectError": {
+        "hash": "4045a896eaee9091",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.disconnected": {
+        "hash": "53db53f507dafc55",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.expiredDescription": {
         "hash": "9bdb0686cbf190b4",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2471,12 +2515,28 @@
         "hash": "49cb7850ea3b22e3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.lastUsedAgo": {
+        "hash": "f7bb9251a0ecbfae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.lastUsedJustNow": {
+        "hash": "4979d7036e471a0d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.lastUsedOn": {
+        "hash": "a95ffdb4f74b3b5e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.loopbackTitle": {
         "hash": "f7fe14ad313477f3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.loopbackWarning": {
         "hash": "fc17a6afccf7ce05",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.neverUsed": {
+        "hash": "f3b3f482da53545b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.noOrganizationDescription": {

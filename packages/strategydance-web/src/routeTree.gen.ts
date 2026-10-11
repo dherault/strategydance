@@ -33,6 +33,7 @@ import { Route as AuthenticatedAppOrganizationSlugTasksRouteImport } from './rou
 import { Route as AuthenticatedAppOrganizationSlugTeamRouteImport } from './routes/_authenticated/_app/$organizationSlug/team'
 import { Route as AuthenticatedAppOrganizationSlugTodayRouteImport } from './routes/_authenticated/_app/$organizationSlug/today'
 import { Route as AuthenticatedAppAccountIndexRouteImport } from './routes/_authenticated/_app/account/index'
+import { Route as AuthenticatedAppAccountConnectedAgentsRouteImport } from './routes/_authenticated/_app/account/connected-agents'
 import { Route as AuthenticatedAppAccountSecurityRouteImport } from './routes/_authenticated/_app/account/security'
 import { Route as AuthenticatedAppAdministrationIndexRouteImport } from './routes/_authenticated/_app/administration/index'
 import { Route as AuthenticatedAppAdministrationOrganizationsRouteImport } from './routes/_authenticated/_app/administration/organizations'
@@ -176,6 +177,12 @@ const AuthenticatedAppAccountIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAppAccountRoute,
   } as any)
+const AuthenticatedAppAccountConnectedAgentsRoute =
+  AuthenticatedAppAccountConnectedAgentsRouteImport.update({
+    id: '/connected-agents',
+    path: '/connected-agents',
+    getParentRoute: () => AuthenticatedAppAccountRoute,
+  } as any)
 const AuthenticatedAppAccountSecurityRoute =
   AuthenticatedAppAccountSecurityRouteImport.update({
     id: '/security',
@@ -260,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/$organizationSlug/tasks': typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   '/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
   '/$organizationSlug/today': typeof AuthenticatedAppOrganizationSlugTodayRoute
+  '/account/connected-agents': typeof AuthenticatedAppAccountConnectedAgentsRoute
   '/account/security': typeof AuthenticatedAppAccountSecurityRoute
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/$organizationSlug/tasks': typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   '/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
   '/$organizationSlug/today': typeof AuthenticatedAppOrganizationSlugTodayRoute
+  '/account/connected-agents': typeof AuthenticatedAppAccountConnectedAgentsRoute
   '/account/security': typeof AuthenticatedAppAccountSecurityRoute
   '/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/$organizationSlug/tasks': typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   '/_authenticated/_app/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
   '/_authenticated/_app/$organizationSlug/today': typeof AuthenticatedAppOrganizationSlugTodayRoute
+  '/_authenticated/_app/account/connected-agents': typeof AuthenticatedAppAccountConnectedAgentsRoute
   '/_authenticated/_app/account/security': typeof AuthenticatedAppAccountSecurityRoute
   '/_authenticated/_app/administration/organizations': typeof AuthenticatedAppAdministrationOrganizationsRoute
   '/_authenticated/_app/administration/users': typeof AuthenticatedAppAdministrationUsersRoute
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/tasks'
     | '/$organizationSlug/team'
     | '/$organizationSlug/today'
+    | '/account/connected-agents'
     | '/account/security'
     | '/administration/organizations'
     | '/administration/users'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/tasks'
     | '/$organizationSlug/team'
     | '/$organizationSlug/today'
+    | '/account/connected-agents'
     | '/account/security'
     | '/administration/organizations'
     | '/administration/users'
@@ -427,6 +439,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/$organizationSlug/tasks'
     | '/_authenticated/_app/$organizationSlug/team'
     | '/_authenticated/_app/$organizationSlug/today'
+    | '/_authenticated/_app/account/connected-agents'
     | '/_authenticated/_app/account/security'
     | '/_authenticated/_app/administration/organizations'
     | '/_authenticated/_app/administration/users'
@@ -620,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAccountIndexRouteImport
       parentRoute: typeof AuthenticatedAppAccountRoute
     }
+    '/_authenticated/_app/account/connected-agents': {
+      id: '/_authenticated/_app/account/connected-agents'
+      path: '/connected-agents'
+      fullPath: '/account/connected-agents'
+      preLoaderRoute: typeof AuthenticatedAppAccountConnectedAgentsRouteImport
+      parentRoute: typeof AuthenticatedAppAccountRoute
+    }
     '/_authenticated/_app/account/security': {
       id: '/_authenticated/_app/account/security'
       path: '/security'
@@ -772,12 +792,15 @@ const AuthenticatedAppOrganizationSlugRouteWithChildren =
   )
 
 interface AuthenticatedAppAccountRouteChildren {
+  AuthenticatedAppAccountConnectedAgentsRoute: typeof AuthenticatedAppAccountConnectedAgentsRoute
   AuthenticatedAppAccountSecurityRoute: typeof AuthenticatedAppAccountSecurityRoute
   AuthenticatedAppAccountIndexRoute: typeof AuthenticatedAppAccountIndexRoute
 }
 
 const AuthenticatedAppAccountRouteChildren: AuthenticatedAppAccountRouteChildren =
   {
+    AuthenticatedAppAccountConnectedAgentsRoute:
+      AuthenticatedAppAccountConnectedAgentsRoute,
     AuthenticatedAppAccountSecurityRoute: AuthenticatedAppAccountSecurityRoute,
     AuthenticatedAppAccountIndexRoute: AuthenticatedAppAccountIndexRoute,
   }

@@ -10,7 +10,7 @@ export const ASK_USER_TOOL_NAME = 'ask_user'
   the context, at most five searches a request, then Strategy Dance's own tools, strict and
   streamed as Claude writes them. A strict schema takes no bounds on a text's length or a list's,
   so a tool's bounds are in its description and its input is checked against them before it runs.
-  Later milestones append theirs
+  The tools of the modules the agent uses follow them in a run's requests (`buildConversationTools`)
 */
 const CONVERSATION_TOOLS: NonNullable<BetaMessageStreamParams['tools']> = [
   { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },

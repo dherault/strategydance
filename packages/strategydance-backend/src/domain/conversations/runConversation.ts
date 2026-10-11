@@ -19,6 +19,7 @@ import {
 import type {
   ClaudeClient,
   ConversationContentBlock,
+  ConversationModules,
   ConversationRunFence,
   ConversationRunReference,
   ConversationToolRunner,
@@ -37,8 +38,9 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
+import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
-import CONVERSATION_TOOL_RUNNERS from '~domain/agent/conversationToolRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
@@ -75,8 +77,10 @@ type Options = {
   limits?: Partial<ConversationRunLimits>
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs?: number
-  // The tools the worker runs, which a test can bring in, and how long a call may take
-  tools?: ConversationToolRunner[]
+  // The modules the run's agent uses, connected for its member once the run is claimed, whose tools
+  // its requests send and whose runners run its calls, which a test can bring in, and how long a
+  // call may take
+  connectModules?: (fence: ConversationRunFence) => Promise<ConversationModules>
   toolTimeoutMs?: number
 }
 
@@ -95,9 +99,10 @@ type ConversationRunContext = GetConversationRunContextData
 
   It first claims the run, if it is queued or its worker stopped renewing its lease, and only for
   its author as the member it was queued under, and still staff while conversations are: anybody
-  else's run ends interrupted, with its note, so nothing is left for a later delivery. Then it takes
-  one step at a time, each read afresh, so a worker taking over after a crash carries on where the
-  last one stopped:
+  else's run ends interrupted, with its note, so nothing is left for a later delivery. It connects
+  to the modules its agent uses, as that member, whose tools its requests send after the agent's
+  own. Then it takes one step at a time, each read afresh, so a worker taking over after a crash
+  carries on where the last one stopped:
 
   - the run's reply not wholly drawn yet: the next message of it. The reply is the turn after the
     member's entry the run answers, its anchor, which a resumed run shares with the run it resumes,
@@ -128,7 +133,7 @@ async function runConversation(
     retryDelayMs = 500,
     limits,
     stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
-    tools = CONVERSATION_TOOL_RUNNERS,
+    connectModules = connectConversationModules,
     toolTimeoutMs = CONVERSATION_TOOL_CALL_TIMEOUT_MS,
   }: Options = {},
 ): Promise<'finished' | 'held'> {
@@ -172,6 +177,17 @@ async function runConversation(
     attempts: run.attempts + 1,
     membershipCreatedAt: run.membershipCreatedAt,
   }
+  let modules: ConversationModules
+
+  // Its claimed lease lapses, and the run is claimed again on its next delivery
+  try {
+    modules = await connectModules(fence)
+  } catch (error) {
+    logger.error(`Conversation run ${fence.runId}: could not connect to its modules, left to its lease`, error)
+
+    return 'held'
+  }
+
   const controller = new AbortController()
   const lease = createConversationRunLease({ fence, onLost: () => controller.abort() })
 
@@ -184,11 +200,13 @@ async function runConversation(
       retryDelayMs,
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
-      tools,
+      tools: buildConversationTools(modules.tools),
+      runners: modules.runners,
       toolTimeoutMs,
     })
   } finally {
     await lease.stop()
+    await modules.close()
   }
 }
 
@@ -200,7 +218,9 @@ type StepsInput = {
   retryDelayMs: number
   limits: ConversationRunLimits
   stopCheckIntervalMs: number
-  tools: ConversationToolRunner[]
+  // What the run's requests send, and what runs their calls
+  tools: ConversationRequestTools
+  runners: ConversationToolRunner[]
   toolTimeoutMs: number
 }
 
@@ -213,6 +233,7 @@ async function takeSteps({
   limits,
   stopCheckIntervalMs,
   tools,
+  runners,
   toolTimeoutMs,
 }: StepsInput) {
   const reference = toReference(fence)
@@ -236,6 +257,7 @@ async function takeSteps({
         limits,
         stopCheckIntervalMs,
         tools,
+        runners,
         toolTimeoutMs,
         outcome,
       })
@@ -284,6 +306,7 @@ async function takeStep({
   limits,
   stopCheckIntervalMs,
   tools,
+  runners,
   toolTimeoutMs,
   outcome,
 }: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
@@ -340,7 +363,7 @@ async function takeStep({
     const parts = sinceAnchor
       .filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
       .map(part => ({ ...part, blocks: parseTranscriptContent(part.content) }))
-    const plans = planCalls(parts, tools)
+    const plans = planCalls(parts, runners)
     const drawn = await drawConversationTurn({ fence, lease, entries: parts, plans, position })
 
     if (drawn === 'drawn') return 'next'
@@ -363,7 +386,7 @@ async function takeStep({
         lease,
         signal,
         plans: turnPlans,
-        runners: tools,
+        runners,
         deadline: Date.parse(startedAt) + limits.maxDurationMs,
         timeoutMs: toolTimeoutMs,
       })
@@ -430,6 +453,7 @@ async function takeStep({
       lease,
       signal,
       client,
+      tools,
       runContext: run?.context ?? null,
       usage,
       pausedRequest,
@@ -467,6 +491,7 @@ async function takeStep({
     lease,
     signal,
     client,
+    tools,
     runContext: run?.context ?? null,
     usage,
     pausedRequest: null,
@@ -519,9 +544,9 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   `planConversationToolCalls` plans it, counting each reply's calls after those of the replies
   before it
 */
-function planCalls(parts: { blocks: ConversationContentBlock[] }[], tools: ConversationToolRunner[]) {
+function planCalls(parts: { blocks: ConversationContentBlock[] }[], runners: ConversationToolRunner[]) {
   const plans = new Map<string, ConversationToolCallPlan>()
-  const runnerNames = tools.map(({ name }) => name)
+  const runnerNames = runners.map(({ name }) => name)
   let callsBefore = 0
 
   for (const { blocks } of parts) {

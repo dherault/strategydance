@@ -4,6 +4,8 @@ import { buildConversationPreview } from 'strategydance-core'
 import {
   ConversationNoteKind,
   ConversationRunStatus,
+  ConversationTranscriptRole,
+  getConversationCalls,
   getConversationRunContext,
   interruptDeadConversationRun,
   renewQueuedConversationRunLease,
@@ -15,9 +17,15 @@ import { ARE_CONVERSATION_RUNS_IN_PROCESS, CONVERSATION_RUN_REQUEUE_WINDOW_MS } 
 
 import { dataConnect } from '~firebase'
 
+import logger from '~utils/logger'
+
+import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
+import { parsePendingToolResults } from '~domain/conversations/conversationToolResults'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import findConversationRunTask from '~domain/conversations/findConversationRunTask'
+import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import queueConversationRun from '~domain/conversations/queueConversationRun'
+import settleConversationModuleWrites from '~domain/conversations/settleConversationModuleWrites'
 
 // How many times a run is read and finalized before the caller is told it could not be
 const MAX_TRIES = 4
@@ -40,6 +48,11 @@ type Options = {
   task is there. Its task gone, the run is queued again while it is young (see
   `CONVERSATION_RUN_REQUEUE_WINDOW_MS`), and finalized once it is older. A claimed run past its
   lease is dead whatever the queue holds, and so is a queued one in development, which has no queue.
+
+  Once the run has ended, a call to a module's write it left started is answered by what the module
+  stored under its key, when it stored anything (`settleConversationModuleWrites`): the write
+  landed, and the thread says so. One that fails to is left for the next send, which reads the key
+  again.
 
   A refusal is read again, since something can move the counter or end the run meanwhile: a worker
   that renewed its lease keeps it, and a run something else ended is left as it is. Throws once the
@@ -75,14 +88,49 @@ async function finalizeDeadConversationRun(
         preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
         failure: describeDeath(run.status),
       })
-
-      return 'ended'
     } catch (error) {
       if (tries === MAX_TRIES) throw error
 
       await wait(tries * retryDelayMs)
+
+      continue
     }
+
+    try {
+      await settleStartedWrites(reference, run.membershipCreatedAt, data.conversationTranscriptEntries[0])
+    } catch (error) {
+      logger.warn(`Conversation run ${reference.runId}: its started writes could not be settled`, error)
+    }
+
+    return 'ended'
   }
+}
+
+// The module writes the turn the transcript ends on left started, answered from their keys
+async function settleStartedWrites(
+  { organizationId, userId, conversationId }: ConversationRunReference,
+  membershipCreatedAt: string,
+  lastEntry: { role: ConversationTranscriptRole; content: string } | undefined,
+) {
+  if (lastEntry?.role !== ConversationTranscriptRole.ASSISTANT) return
+
+  const calls = readConversationToolCalls(parseTranscriptContent(lastEntry.content))
+
+  if (!calls.length) return
+
+  const { data } = await getConversationCalls(dataConnect, {
+    organizationId,
+    userId,
+    conversationId,
+    toolUseIds: calls.map(({ id }) => id),
+  })
+
+  await settleConversationModuleWrites({
+    reference: { organizationId, userId, conversationId },
+    membershipCreatedAt,
+    messages: data.conversationMessages,
+    pending: parsePendingToolResults(data.latestRuns[0]?.pendingToolResults),
+  })
 }
 
 // Why a run past its lease died, for the logs

@@ -295,6 +295,18 @@ const conversationMessages = defineMessages({
     description:
       "What the AI did once it searched the team's knowledge, the notes, plans and decisions written down about the company.",
   },
+  toolListKnowledgeRunning: {
+    id: 'conversation.tool.listKnowledge.running',
+    defaultMessage: 'Listing knowledge',
+    description:
+      "What the AI is doing while it looks through the list of the team's knowledge, the notes, plans and decisions written down about the company.",
+  },
+  toolListKnowledgeDone: {
+    id: 'conversation.tool.listKnowledge.done',
+    defaultMessage: 'Listed knowledge',
+    description:
+      "What the AI did once it looked through the list of the team's knowledge, the notes, plans and decisions written down about the company. Past tense.",
+  },
   toolReadKnowledgeRunning: {
     id: 'conversation.tool.readKnowledge.running',
     defaultMessage: 'Opening knowledge',
@@ -325,35 +337,40 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Updated knowledge',
     description: "What the AI did once it changed an item of the team's knowledge, such as a note or a plan.",
   },
-  toolGetTeamRunning: {
-    id: 'conversation.tool.getTeam.running',
-    defaultMessage: 'Reading your team',
-    description: "What the AI is doing while it reads who is in the reader's team and what each works on.",
+  toolTagKnowledgeRunning: {
+    id: 'conversation.tool.tagKnowledge.running',
+    defaultMessage: 'Tagging knowledge',
+    description:
+      "What the AI is doing while it tags an item of the team's knowledge with the aspects of the company it is about, such as strategy or sales.",
   },
-  toolGetTeamDone: {
-    id: 'conversation.tool.getTeam.done',
-    defaultMessage: 'Read your team',
-    description: "What the AI did once it read who is in the reader's team and what each works on. Past tense.",
+  toolTagKnowledgeDone: {
+    id: 'conversation.tool.tagKnowledge.done',
+    defaultMessage: 'Tagged knowledge',
+    description:
+      "What the AI did once it tagged an item of the team's knowledge with the aspects of the company it is about, such as strategy or sales. Past tense.",
   },
-  toolReadLogRunning: {
-    id: 'conversation.tool.readLog.running',
-    defaultMessage: 'Reading the log',
-    description: "What the AI is doing while it reads the team's log, the short daily updates its members write.",
+  toolDeleteKnowledgeRunning: {
+    id: 'conversation.tool.deleteKnowledge.running',
+    defaultMessage: 'Deleting knowledge',
+    description: "What the AI is doing while it deletes an item of the team's knowledge, such as a note or a plan.",
   },
-  toolReadLogDone: {
-    id: 'conversation.tool.readLog.done',
-    defaultMessage: 'Read the log',
-    description: "What the AI did once it read the team's log, the short daily updates its members write. Past tense.",
+  toolDeleteKnowledgeDone: {
+    id: 'conversation.tool.deleteKnowledge.done',
+    defaultMessage: 'Deleted knowledge',
+    description:
+      "What the AI did once it deleted an item of the team's knowledge, such as a note or a plan. Past tense.",
   },
-  toolSetTopPriorityRunning: {
-    id: 'conversation.tool.setTopPriority.running',
-    defaultMessage: 'Setting your top priority',
-    description: "What the AI is doing while it sets the reader's top priority, the one thing they focus on.",
+  toolRestoreKnowledgeRunning: {
+    id: 'conversation.tool.restoreKnowledge.running',
+    defaultMessage: 'Restoring knowledge',
+    description:
+      "What the AI is doing while it brings back an item of the team's knowledge that was deleted, such as a note or a plan.",
   },
-  toolSetTopPriorityDone: {
-    id: 'conversation.tool.setTopPriority.done',
-    defaultMessage: 'Set your top priority',
-    description: "What the AI did once it set the reader's top priority, the one thing they focus on. Past tense.",
+  toolRestoreKnowledgeDone: {
+    id: 'conversation.tool.restoreKnowledge.done',
+    defaultMessage: 'Restored knowledge',
+    description:
+      "What the AI did once it brought back an item of the team's knowledge that was deleted, such as a note or a plan. Past tense.",
   },
 
   /* ---
@@ -520,11 +537,29 @@ const conversationMessages = defineMessages({
     defaultMessage: 'View error',
     description: 'Button on a tool the AI used that failed, which opens what the tool was given and how it failed.',
   },
+  documentGone: {
+    id: 'conversation.documentGone',
+    defaultMessage: "(no longer in the team's knowledge)",
+    description:
+      "Read by screen readers after a link in the AI's reply to an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
+  },
+  restoreDocument: {
+    id: 'conversation.restoreDocument',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted an item of the team's knowledge, such as a note or a plan, which brings the item back. Offered for a day after the delete.",
+  },
+  restoreDocumentError: {
+    id: 'conversation.restoreDocumentError',
+    defaultMessage: 'The knowledge could not be brought back.',
+    description:
+      "Notification when bringing back an item of the team's knowledge the AI deleted failed, for instance once a day has passed since the delete.",
+  },
   toolCall: {
     id: 'conversation.toolCall',
     defaultMessage: 'Tool call · {name}',
     description:
-      "Line under the title of the dialog showing a tool the AI used. {name} is the tool's technical name, such as search_knowledge, kept as it is.",
+      "Line under the title of the dialog showing a tool the AI used. {name} is the tool's technical name, such as search_documents, kept as it is.",
   },
   toolInput: {
     id: 'conversation.toolInput',

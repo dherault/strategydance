@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import { ConversationTranscriptRole } from 'strategydance-database/backend'
 
+import CONVERSATION_TOOLS from '~domain/agent/conversationTools'
+
 import buildConversationRequest, { buildConversationMessages } from './buildConversationRequest'
 
 // Keys out of alphabetical order, and U+0000 escaped, as a stored entry holds them
@@ -43,7 +45,7 @@ describe('buildConversationMessages', () => {
 
 describe('buildConversationRequest', () => {
   test('asks Opus 5.5 as the probe settled, with web search, its questions and the system prompt cached', () => {
-    const request = buildConversationRequest([{ role: 'user', content: 'Hello' }])
+    const request = buildConversationRequest([{ role: 'user', content: 'Hello' }], CONVERSATION_TOOLS)
 
     expect(request).toMatchObject({
       model: 'claude-opus-5-5',
@@ -73,6 +75,7 @@ describe('buildConversationRequest', () => {
           context: CONTEXT,
           parts: [],
         }),
+        CONVERSATION_TOOLS,
       ),
     )
     const next = JSON.stringify(
@@ -87,6 +90,7 @@ describe('buildConversationRequest', () => {
           context: CONTEXT,
           parts: [],
         }),
+        CONVERSATION_TOOLS,
       ),
     )
 

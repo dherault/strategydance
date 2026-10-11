@@ -11,6 +11,7 @@ import {
   connectorConfig,
   continueConversationRun,
   deleteClaimedConversations,
+  deleteConversationModuleCallResults,
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
@@ -43,6 +44,7 @@ import {
   retryConversationRun,
   sendConversationMessage,
   sendConversationMessageAnsweringCalls,
+  settleConversationToolCall,
   startConversation,
   startConversationToolCall,
   stopQueuedConversationRun,
@@ -66,7 +68,7 @@ import { dataConnect } from '~firebase'
   run against a fake of these operations: this is what says the fake's conditions are the SQL's.
 
   The daily sweep's operations take no organization: they reach every conversation in the emulator
-  deleted over a day ago, whoever's it is, which the next start of its author would prune anyway.
+  deleted over a day ago, whoever's it is, which the next sweep would prune anyway.
 
   Like `checkConversationPage.ts`, it refuses to run unless it points at the emulator
 */
@@ -106,6 +108,7 @@ const userIds = {
   resumer: `check-conversation-runs-${checkId}-resumer`,
   retrier: `check-conversation-runs-${checkId}-retrier`,
   asker: `check-conversation-runs-${checkId}-asker`,
+  settler: `check-conversation-runs-${checkId}-settler`,
 }
 
 const failures: string[] = []
@@ -1240,26 +1243,26 @@ async function checkPruning() {
   await start(userIds.pruner, membershipCreatedAt)
 
   check(
-    'starting removes what was deleted over a day ago, and keeps what can still be taken back',
-    (await readConversation(old)) === null && (await readConversation(recent)) !== null,
+    'starting leaves what was deleted over a day ago to the sweep, which deletes what it keeps beside its rows',
+    (await readConversation(old)) !== null && (await readConversation(recent)) !== null,
   )
 
-  const contested = await insertDeleted(2, 0)
-  const [restored] = await Promise.all([
+  const restore = (id: string) =>
     refusal(
       webConnector.executeMutation(
         'RestoreConversation',
-        { organizationId, userId: userIds.pruner, id: contested },
+        { organizationId, userId: userIds.pruner, id },
         { impersonate: { authClaims: { sub: userIds.pruner } } },
       ),
-    ),
-    refusal(start(userIds.pruner, membershipCreatedAt)),
-  ])
-  const remaining = await readConversation(contested)
+    )
 
   check(
-    'a restore and a start at once either bring a conversation back or remove it, never half',
-    restored === null ? remaining?.deletedAt === null : remaining === null,
+    'a conversation deleted over a day ago cannot be restored, before any sweep has claimed it',
+    ((await restore(old))?.includes('gone for good') ?? false) && (await readConversation(old))?.deletedAt != null,
+  )
+  check(
+    'a conversation deleted within the day is restored',
+    (await restore(recent)) === null && (await readConversation(recent))?.deletedAt === null,
   )
 }
 
@@ -1311,7 +1314,7 @@ async function checkSweeping() {
 
   const old = await insertDeleted(2, 0)
   const recent = await insertDeleted(0, 1)
-  const restoredFirst = await insertDeleted(2, 0)
+  const restoredFirst = await insertDeleted(0, 23)
 
   // What cascades from a conversation: a run, its message and its transcript entry
   await write(
@@ -1349,6 +1352,34 @@ async function checkSweeping() {
       && (claimedIds.length === 20 || claimedIds.includes(old))
       && !claimedIds.includes(recent)
       && !claimedIds.includes(restoredFirst),
+  )
+
+  // What the agent's module calls stored under a conversation's scope, which goes before it
+  const insertResult = (scope: string) =>
+    write(
+      `mutation InsertResult($scope: String!, $userId: String!, $organizationId: UUID!) {
+        moduleCallResult_insert(data: { idempotencyScope: $scope, idempotencyKey: "toolu_swept", userId: $userId, organizationId: $organizationId, tool: "create_document", argumentsHash: "hash", result: "{}" })
+      }`,
+      { scope, userId: userIds.sweeper, organizationId },
+    )
+  const countResults = async (scope: string) =>
+    (
+      await read<{ moduleCallResults: unknown[] }>(
+        `query CountResults($scope: String!) { moduleCallResults(where: { idempotencyScope: { eq: $scope } }) { tool } }`,
+        { scope },
+      )
+    ).moduleCallResults.length
+
+  await insertResult(`conversation:${old}`)
+  await insertResult(`conversation:${recent}`)
+
+  const { data: results } = await deleteConversationModuleCallResults(dataConnect, { scopes: [`conversation:${old}`] })
+
+  check(
+    "the sweep deletes the module call results of the conversations it names, by their scope, and nobody else's",
+    results.moduleCallResult_deleteMany === 1
+      && (await countResults(`conversation:${old}`)) === 0
+      && (await countResults(`conversation:${recent}`)) === 1,
   )
 
   const { data: deletion } = await deleteClaimedConversations(dataConnect, { ids: [old, recent, restoredFirst] })
@@ -1961,6 +1992,100 @@ async function checkQuestions() {
   )
 }
 
+/*
+  A call to a module's write that a run left started and unfinished, recorded as what the module
+  stored under its key once the run has let go of the conversation: never a call that finished or
+  never started, nor while a run holds the conversation, nor anybody else's
+*/
+async function checkSettling() {
+  const insertConversation = async (fields: string) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertConversation($id: UUID!, $userId: String!, $organizationId: UUID!) {
+        conversation_insert(data: { id: $id, userId: $userId, organizationId: $organizationId, title: "Settled"${fields} })
+      }`,
+      { id, userId: userIds.settler, organizationId },
+    )
+
+    return id
+  }
+  const insertCall = async (conversationId: string, position: number, fields: string) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertCall($id: UUID!, $conversationId: UUID!, $position: Int!) {
+        conversationMessage_insert(data: { id: $id, conversationId: $conversationId, kind: TOOL_CALL, position: $position, toolUseId: "toolu_settled", toolName: "create_document", toolInput: "{}"${fields} })
+      }`,
+      { id, conversationId, position },
+    )
+
+    return id
+  }
+  const readCall = async (id: string) =>
+    (
+      await read<{ conversationMessage: { toolStatus: string; toolOutput: string | null } | null }>(
+        `query ReadCall($id: UUID!) { conversationMessage(id: $id) { toolStatus toolOutput } }`,
+        { id },
+      )
+    ).conversationMessage
+  const settle = (conversationId: string, messageId: string, userId = userIds.settler) =>
+    settleConversationToolCall(dataConnect, {
+      organizationId,
+      userId,
+      conversationId,
+      messageId,
+      toolOutput: '{"id":"settled"}',
+    })
+
+  const idle = await insertConversation('')
+  const busy = await insertConversation(`, activeRunId: "${createId()}"`)
+  const deleted = await insertConversation(', deletedAt_expr: "request.time"')
+  const started = ', toolStartedAt_expr: "request.time"'
+  const cancelled = await insertCall(idle, 0, `, toolStatus: CANCELLED${started}`)
+  const running = await insertCall(idle, 1, `, toolStatus: RUNNING${started}`)
+  const neverStarted = await insertCall(idle, 2, ', toolStatus: CANCELLED')
+  const finished = await insertCall(idle, 3, `, toolStatus: FAILED, toolOutput: "{}"${started}`)
+  const spare = await insertCall(idle, 4, `, toolStatus: CANCELLED${started}`)
+  const whileBusy = await insertCall(busy, 0, `, toolStatus: RUNNING${started}`)
+  const whileDeleted = await insertCall(deleted, 0, `, toolStatus: CANCELLED${started}`)
+
+  const { data: settled } = await settle(idle, cancelled)
+
+  check(
+    'a started call a run left cancelled is settled with what the module stored',
+    settled.conversationMessage_updateMany === 1
+      && (await readCall(cancelled))?.toolStatus === ConversationToolStatus.SUCCEEDED
+      && (await readCall(cancelled))?.toolOutput === '{"id":"settled"}',
+  )
+  check(
+    'a started call left running is settled once its run let go of the conversation',
+    (await settle(idle, running)).data.conversationMessage_updateMany === 1,
+  )
+  check(
+    'a call settled again changes nothing',
+    (await settle(idle, cancelled)).data.conversationMessage_updateMany === 0,
+  )
+  check(
+    'a call that never started, or that finished, is not settled',
+    (await settle(idle, neverStarted)).data.conversationMessage_updateMany === 0
+      && (await settle(idle, finished)).data.conversationMessage_updateMany === 0
+      && (await readCall(finished))?.toolStatus === ConversationToolStatus.FAILED,
+  )
+  check(
+    'nothing is settled while a run holds the conversation, or once it is deleted',
+    (await settle(busy, whileBusy)).data.conversationMessage_updateMany === 0
+      && (await settle(deleted, whileDeleted)).data.conversationMessage_updateMany === 0
+      && (await readCall(whileBusy))?.toolStatus === ConversationToolStatus.RUNNING,
+  )
+  check(
+    "another member's call, and a call named under another conversation, are not settled",
+    (await settle(idle, spare, userIds.author)).data.conversationMessage_updateMany === 0
+      && (await settle(busy, spare)).data.conversationMessage_updateMany === 0
+      && (await readCall(spare))?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+}
+
 try {
   await setUp()
 
@@ -1981,6 +2106,7 @@ try {
   await checkSweeping()
   await checkReplies()
   await checkQuestions()
+  await checkSettling()
 } finally {
   await tearDown()
 }

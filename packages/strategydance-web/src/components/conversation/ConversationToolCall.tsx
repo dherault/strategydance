@@ -1,4 +1,5 @@
 import { WrenchIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { ConversationToolStatus } from 'strategydance-database/web'
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
@@ -21,14 +22,16 @@ type Props = {
   toolName: string
   status: ConversationToolStatus
   onOpen: () => void
+  // What the row offers beside its output, Restore for a document it deleted say
+  action?: ReactNode
 }
 
 /*
   Something Strategy Dance used while answering: a bordered row with a spinner while it runs or a
   wrench, its label, a "Tool" badge, and under them the tool's name with its state unless it
-  succeeded. A finished call opens its input and output, or its error
+  succeeded. A finished call opens its input and output, or its error, beside what else it offers
 */
-function ConversationToolCall({ toolName, status, onOpen }: Props) {
+function ConversationToolCall({ toolName, status, onOpen, action = null }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const isFailed = status === ConversationToolStatus.FAILED
@@ -60,13 +63,20 @@ function ConversationToolCall({ toolName, status, onOpen }: Props) {
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-secondary">
-            <span className={cn('truncate', status === ConversationToolStatus.CANCELLED && 'text-muted-foreground')}>
+            <span
+              className={cn(
+                'truncate',
+                status === ConversationToolStatus.CANCELLED && 'text-muted-foreground',
+                action && 'max-sm:whitespace-normal',
+              )}
+            >
               {getConversationToolLabel(intl, toolName, status)}
             </span>
+            {/* A row with an action of its own leaves its label the badge's room on a phone, and wraps it */}
             <Badge
               size="sm"
               variant="neutral"
-              className="flex-none"
+              className={cn('flex-none', action && 'max-sm:hidden')}
             >
               {formatMessage(conversationMessages.toolBadge)}
             </Badge>
@@ -81,10 +91,12 @@ function ConversationToolCall({ toolName, status, onOpen }: Props) {
             ) : null}
           </span>
         </span>
+        {action}
         {isFinished ? (
           <Button
             variant="transparent"
             size="sm"
+            className={cn(action && 'max-sm:px-2')}
             onClick={onOpen}
           >
             {formatMessage(isFailed ? conversationMessages.viewError : conversationMessages.viewOutput)}

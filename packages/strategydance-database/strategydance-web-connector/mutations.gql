@@ -1776,8 +1776,9 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
   )
 }
 
-# Takes back a delete, which the page offers for a few seconds after one. Fails once a prune has
-# claimed the conversation, a day after it was deleted, so an Undo and a prune never both win.
+# Takes back a delete, which the page offers for a few seconds after one. Fails once it was deleted
+# over a day ago, whether or not the daily sweep has run since, so a day means a day, and once a
+# prune has claimed the conversation, so an Undo and a prune never both win.
 #
 # A conversation brought back counts against the 1000 as a new one does, under the same lock: the
 # first step writes the caller's own membership, as starting a conversation does, so deleting one at
@@ -1803,7 +1804,7 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
       id: { eq: $id }
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
-      deletedAt: { isNull: false }
+      deletedAt: { ge_time: { now: true, sub: { days: 1 } } }
       pruneClaimedAt: { isNull: true }
     }
     data: { deletedAt: null }

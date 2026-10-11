@@ -11,6 +11,9 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
 
+import useNow from '~hooks/common/useNow'
+import useConversationDeletedDocuments from '~hooks/conversation/useConversationDeletedDocuments'
+import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
@@ -21,10 +24,13 @@ import groupConversationReplies from '~utils/conversation/groupConversationRepli
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
+import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
+import readConversationDeletedDocumentIds from '~utils/conversation/readConversationDeletedDocumentIds'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
+import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
 import ConversationMessagePlaceholder from '~components/conversation/ConversationMessagePlaceholder'
 import ConversationNote from '~components/conversation/ConversationNote'
@@ -70,6 +76,10 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
+  const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
+  const deletedDocuments = useConversationDeletedDocuments(conversation.id, readConversationDeletedDocumentIds(entries))
+  // One clock for every row that offers Restore until its day is up
+  const now = useNow()
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
@@ -168,6 +178,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
               text={body.text ?? ''}
               markers={piece?.markers}
               sources={piece?.sources}
+              documents={documents}
             />
             {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
           </>
@@ -179,6 +190,15 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}
+            action={
+              entry.toolName === DELETE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED ? (
+                <ConversationDocumentRestore
+                  deleted={deletedDocuments.get(entry.id) ?? null}
+                  documents={documents}
+                  now={now}
+                />
+              ) : null
+            }
           />
         )
       case ConversationMessageKind.QUESTION:

@@ -8,6 +8,8 @@ import {
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
+import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
+
 /*
   The backend connector's conversation operations, over tables kept in memory, for the domain's
   tests, which mock `strategydance-database/backend` with it. Each operation mirrors the conditions
@@ -16,6 +18,11 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
   `check:conversation-search` check those conditions against the emulators, which is what keeps the
   two alike: change one with the other. A search matches words and patterns as near as a test
   needs, which the second checks against Postgres' own.
+
+  It holds the modules' fake too, as `modules`, its operations in the same SDK, since a run's worker
+  loads every module's server, and Bun refuses an import the mock does not hold. A member is added
+  to and removed from both at once, with one `createdAt`, so a run and the modules it calls agree on
+  who its author is. Each keeps its own `calls` and `beforeOperation`
 
   An operation checks everything before it changes anything, so it applies whole or not at all, as
   a transaction does, and runs without yielding, so two called at once take turns as two locked
@@ -208,9 +215,11 @@ function createConversationDatabaseFake() {
   const searches = new Map<string, FakeSearch>()
   // Every operation called, by name, in order
   const calls: string[] = []
+  const modules = createModuleDatabaseFake()
   let stamps = 0
 
   const fake = {
+    modules,
     users,
     memberships,
     organizations,
@@ -266,12 +275,14 @@ function createConversationDatabaseFake() {
     const createdAt = stamp()
 
     memberships.set(membershipKey(userId, organizationId), { createdAt, role: 'MEMBER', jobTitle: null })
+    modules.addMember(userId, organizationId, { createdAt })
 
     return createdAt
   }
 
   function removeMember(userId: string, organizationId: string) {
     memberships.delete(membershipKey(userId, organizationId))
+    modules.removeMember(userId, organizationId)
   }
 
   // Whether a conversation was deleted over a day ago, past its Undo
@@ -292,8 +303,9 @@ function createConversationDatabaseFake() {
 
   /*
     The web connector's `RestoreConversation`, as far as a sweep meets it: a deleted conversation of
-    the caller's comes back only while no sweep has claimed it, and is refused as the connector
-    refuses it otherwise. The membership's lock and the count of 1000 are left to its own checks
+    the caller's comes back only within a day of its delete and while no sweep has claimed it, and is
+    refused as the connector refuses it otherwise. The membership's lock and the count of 1000 are
+    left to its own checks
   */
   function restore(conversationId: string, userId: string, organizationId: string) {
     const conversation = conversations.get(id(conversationId))
@@ -303,6 +315,7 @@ function createConversationDatabaseFake() {
       || conversation.userId !== userId
       || conversation.organizationId !== id(organizationId)
       || conversation.deletedAt === null
+      || isPastUndo(conversation)
       || conversation.pruneClaimedAt !== null
     ) {
       refuse('The conversation is gone for good')
@@ -1132,17 +1145,6 @@ function createConversationDatabaseFake() {
       if (keptConversations(variables).length >= MAX_CONVERSATIONS)
         refuse('Somebody keeps at most 1000 conversations in an organization')
       if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
-
-      // Deleting from a map while iterating it visits every entry left once
-      for (const conversation of conversations.values()) {
-        if (
-          conversation.userId === variables.userId
-          && conversation.organizationId === id(variables.organizationId)
-          && isPastUndo(conversation)
-        ) {
-          deleteConversation(conversation.id)
-        }
-      }
 
       conversations.set(conversationId, {
         id: conversationId,
@@ -1979,6 +1981,44 @@ function createConversationDatabaseFake() {
       return { conversationMessage_updateMany: 1 }
     },
 
+    DeleteConversationModuleCallResults: variables => {
+      const scopes = new Set(variables.scopes as string[])
+      let deleted = 0
+
+      for (const [key, result] of modules.results) {
+        if (scopes.has(result.idempotencyScope)) {
+          modules.results.delete(key)
+          deleted++
+        }
+      }
+
+      return { moduleCallResult_deleteMany: deleted }
+    },
+
+    SettleConversationToolCall: variables => {
+      const message = messages.get(id(variables.messageId))
+      const conversation = message ? conversations.get(message.conversationId) : undefined
+
+      if (
+        !message
+        || !conversation
+        || message.kind !== 'TOOL_CALL'
+        || !['RUNNING', 'CANCELLED'].includes(message.toolStatus ?? '')
+        || !message.toolStartedAt
+        || conversation.id !== id(variables.conversationId)
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.deletedAt !== null
+        || conversation.activeRunId !== null
+      ) {
+        return { conversationMessage_updateMany: 0 }
+      }
+
+      Object.assign(message, { toolStatus: 'SUCCEEDED', toolOutput: variables.toolOutput })
+
+      return { conversationMessage_updateMany: 1 }
+    },
+
     StoreConversationToolResults: variables => {
       const run = requireFencedRun(variables)
 
@@ -2211,6 +2251,7 @@ function createConversationDatabaseFake() {
 
   // The generated SDK's names: `startConversation(dataConnect, variables)` for `StartConversation`
   const sdk: Record<string, unknown> = {
+    ...modules.sdk,
     ConversationMessageKind,
     ConversationNoteKind,
     ConversationRunStatus,
@@ -2235,6 +2276,7 @@ function createConversationDatabaseFake() {
 
     calls.length = 0
     fake.beforeOperation = async () => {}
+    modules.reset()
   }
 
   return Object.assign(fake, { sdk, addMember, removeMember, restore, markRead, reset })

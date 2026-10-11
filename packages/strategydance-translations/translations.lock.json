@@ -1285,6 +1285,10 @@
         "hash": "0485437548c5178d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.documentGone": {
+        "hash": "87c6424c781dd84f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.editAspects": {
         "hash": "8751981768e6d041",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1469,6 +1473,14 @@
         "hash": "7e0762a3dc21017a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.restoreDocument": {
+        "hash": "478a3856e52f4e69",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreDocumentError": {
+        "hash": "4b83e9a3fe5a20fb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.restoreError": {
         "hash": "555883b091f28f04",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1553,12 +1565,20 @@
         "hash": "80e599362e8ee722",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.getTeam.done": {
-        "hash": "159c7996f561814d",
+      "conversation.tool.deleteKnowledge.done": {
+        "hash": "8980437b9bf749a4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.getTeam.running": {
-        "hash": "c1c3b0d8c2831bb0",
+      "conversation.tool.deleteKnowledge.running": {
+        "hash": "44d0f0beaf4ae88f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listKnowledge.done": {
+        "hash": "210f05968bba69c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listKnowledge.running": {
+        "hash": "ec3949d2f18fd1b8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.readKnowledge.done": {
@@ -1569,12 +1589,12 @@
         "hash": "64c2f903f021241f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.readLog.done": {
-        "hash": "f7d19eedda955e13",
+      "conversation.tool.restoreKnowledge.done": {
+        "hash": "f6a40cf1a11ab03e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.readLog.running": {
-        "hash": "3c79dc14e571fa7f",
+      "conversation.tool.restoreKnowledge.running": {
+        "hash": "fc9f325533836356",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.searchKnowledge.done": {
@@ -1585,12 +1605,12 @@
         "hash": "ad4aa23eae02d820",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.setTopPriority.done": {
-        "hash": "a11f670f678327d6",
+      "conversation.tool.tagKnowledge.done": {
+        "hash": "bccc7ac0292e72dc",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.setTopPriority.running": {
-        "hash": "f7c8e189dadab232",
+      "conversation.tool.tagKnowledge.running": {
+        "hash": "fff715b6efc94d45",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.updateKnowledge.done": {
@@ -1614,7 +1634,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.toolCall": {
-        "hash": "150d78766f5248b4",
+        "hash": "80058d3133f10ed7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.toolCallLoadError": {

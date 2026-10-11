@@ -23,7 +23,8 @@ through a second module, the Tasks module (see Modules), built in M15 and reachi
 M17 and external agents in M21, which moved the milestones after M14 to make room. Revised on
 2026-10-10, as David chose: the agent reads neither the team's profiles nor the log, and sets no top
 priority, so the milestone that was to build those tools is gone, and the milestones after M22 moved
-down by one. When a decision changes, change it here first.
+down by one. Revised on 2026-10-11, in M16, as David chose: the daily sweep is a conversation's only
+prune, so its module call results go with it. When a decision changes, change it here first.
 
 ## The design
 
@@ -464,16 +465,18 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
   and take the verified `$userId`: creating a conversation, every message and transcript entry,
   runs and their leases, uploads, and pruning (rows, the conversation's `ConversationAttachment` rows
   by `conversationId`, which no reference cascades to, its `ModuleCallResult` rows by their scope,
-  from M16, and its Storage folder), when it creates a
-  conversation, the member's conversations deleted over a day ago, with their files. A prune first
+  from M16, and its Storage folder). A prune first
   claims each conversation, setting `pruneClaimedAt` only where it is still deleted past the window
   and unclaimed, and `RestoreConversation` refuses a claimed one, so Undo and a prune never both
   win; files and rows go only after the claim, and every sweep also finishes the conversations
   claimed before and still present, its deletions idempotent, so a prune that failed after claiming
-  is completed by the next. Until conversations keep files (M25), `StartConversation` deletes the
-  member's conversations deleted over a day ago directly, under the membership lock
-  `RestoreConversation` also takes, so the two never both win without a claim; M25 moves the prune
-  out to claim, files, then rows. Each milestone adds the operations it
+  is completed by the next. The daily sweep is the only prune from M16, as David chose on
+  2026-10-11: `StartConversation` deleted the member's conversations deleted over a day ago directly
+  until then, which could not reach their `ModuleCallResult` rows, found by a scope no reference
+  joins, so it now leaves them to the sweep, which deletes each batch's results by their scope, then
+  the conversations, and `RestoreConversation` refuses one deleted over a day ago whether or not the
+  sweep has run, so a day still means a day. M25 adds files between the claim and the rows. Each
+  milestone adds the operations it
   calls: changing an operation's variables later is a breaking connector change, which stops a
   release.
 - **Search** is the backend's too: `POST …/conversations/search`, the query in the JSON body so
@@ -642,10 +645,18 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     message turns `SUCCEEDED` with it; with none, the call is answered as an interrupted integration
     call is, since a worker cut off during it may still land it. A cancelled call that never started
     is answered as one the member stopped, as before.
-  - **Until M16 gives the worker tools of its own**, every call that runs is treated as a read:
-    one that started and has no result runs again. Every write that ends a run cancels the calls
-    still `RUNNING` in its conversation, not only those its run drew, since only the run in flight
-    has any and a resumed run runs calls the run it carries on drew (M11).
+  - **As M16 built it**, the worker's own tools are the modules': a call to one that started and has
+    no result runs again, a read like any other and a write under its key. Finalizing a dead run, and
+    a send or a continuation answering its calls, read the key of each write it left started
+    (`settleConversationModuleWrites`), matching the call's tool and the run's member, never the
+    arguments' hash, since the key is Claude's id for that one call and a module may normalize what
+    it was sent. `SettleConversationToolCall` records it `SUCCEEDED` only once no run holds the
+    conversation, since a worker past its lease still passes its fence until its run is finalized,
+    so finalizing settles right after its interrupt. A write the worker stops waiting for at its 60
+    seconds is answered as one that may still have run, since the module's mutation goes on
+    without it. Every write that ends a run cancels the calls still `RUNNING` in its conversation,
+    not only those its run drew, since only the run in flight has any and a resumed run runs calls
+    the run it carries on drew (M11).
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
   the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
   with a note. The 10 minutes count from the run's first claim, so a worker taking it over has what
@@ -1364,8 +1375,14 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
 - **The tools list** is `tools/list`, converted into Claude tools in `MODULES`' order after the
   built-in ones: name, description, `input_schema`, `strict: true` and `eager_input_streaming:
   true`, as the agent's own tools are (see The agent). Strict tools refuse `minLength`, `maxLength`,
-  `minimum` and `maximum`, so the conversion drops them; the module's zod still holds a call to
-  them, and a call past one gets a result the model can act on. A test pins the converted list's
+  `minimum`, `maximum`, `multipleOf`, `maxItems` and a `minItems` past one, so the conversion drops
+  them, drops `$schema` and every `pattern`, and closes every object (`additionalProperties:
+  false`), and throws on anything else a strict schema refuses. M16's probe found the API refusing
+  the request as "Schema is too complex" with the patterns kept, the document's id on five tools,
+  though it was within every published limit; the module's zod still holds a call to them, and a call
+  past one gets a result the model can act on. A request takes at most 20 strict tools, 24 optional
+  parameters and 16 union ones across them all, which the list's test counts: Knowledge's tools
+  hold 11 optional parameters and no union, as M16 found. A test pins the converted list's
   bytes, as the system prompt's are pinned, so an SDK or zod release that writes a schema
   differently is caught before it costs every conversation its earlier reasoning.
 - **A call** is `callTool` with the `tool_use`'s input, and its id as the key for a write. The
@@ -1848,5 +1865,13 @@ the lifetime is chosen from what members' pauses turn out to be.
   client registration, and its SDK changed major version. The handler serves the 2025 revisions'
   clients statelessly, dynamic registration stays while Cursor needs it, the SDK is pinned, and the
   converted tools list's byte test catches a release that would change what conversations replay.
+- **The Tasks module's tools pass what a strict request takes.** A request holds at most 24 optional
+  parameters across its strict tools, and 16 that take several types. Knowledge's hold 11, and the
+  Tasks module's input schemas about 17 more, `dueDate`'s null among the unions, as M16 counted, so
+  M17 cannot add them as they stand: it makes parameters required, sends some tools without
+  `strict`, or keeps some out through tool search, and `buildConversationTools.test.ts` holds it to
+  the limits whichever it chooses. Past those limits the API also refuses a list whose compiled
+  grammar grows too large, which no test can see: `bun run probe:claude` is the check, run whenever
+  a module's tools change.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.

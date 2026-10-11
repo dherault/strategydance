@@ -162,6 +162,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       if (conversation) {
         const [lastEntry] = data.conversationTranscriptEntries
         const answering = await readConversationOpenCalls(input, lastEntry, {
+          membershipCreatedAt: membership.createdAt,
           skipsQuestions: true,
           follows: [{ type: 'text', text: input.text }],
         })

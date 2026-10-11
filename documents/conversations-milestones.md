@@ -63,7 +63,7 @@ M27 well before their neighbours.
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
 | M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
-| M16 | Knowledge in conversations | backend, database, web | M10, M14 | |
+| M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
 | M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | |
 | M18 | The authorization server | backend, database, core, root | M14, setup 10 | |
 | M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | |
@@ -937,6 +937,66 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
   to create one and tag it; open both in Knowledge; ask it to delete one and restore it from the
   thread's row; turn Write off on one and ask again; turn Read off on it and ask about it; kill the
   local backend during a write and resume.
+- Built with these settled, on 2026-10-11:
+  - **A strict request has limits beyond keywords.** Claude takes at most 20 strict tools, 24
+    optional parameters and 16 union ones across a request, beside refusing `minLength`,
+    `maxLength`, `minimum`, `maximum`, `multipleOf`, `maxItems` and a `minItems` past one. The
+    conversion (`toConversationModuleTool`) drops those, drops `$schema`, closes every object, which
+    zod's input schemas leave open, and throws on anything else a strict schema refuses.
+  - **And a grammar too complex.** With the patterns kept, the document's id on five tools and the
+    one-line title's, `probe:claude` found the API refusing the agent's request, "Schema is too
+    complex", within every published limit. The conversion drops `pattern` too, the module's zod
+    still refusing what breaks one, and the API then compiled the list in some 20 seconds, once,
+    and served it from its cache in under two after. `buildConversationTools.test.ts` pins the list's bytes and counts the limits: Knowledge
+    holds 11 optional parameters and no union. The Tasks module's input schemas would add about 17
+    more, past 24, which M17 settles (see Risks).
+  - **The tools are listed per run**, through the module's handler once the run is claimed, and the
+    request's list is `buildConversationTools`: the agent's own, then the modules'. The system prompt's
+    and tools' share of a request is counted once for each list. A run that cannot connect is left to
+    its lease, so Cloud Tasks redelivers it.
+  - **A worker past its lease still passes its fence**, which matches the run's status, attempt and
+    membership, never its lease, until its run is finalized. So a started write is settled from its
+    key only once the run has let go of the conversation: right after `InterruptDeadConversationRun`,
+    and by a send or a continuation, `SettleConversationToolCall` refusing while `activeRunId` is set.
+    The settle matches the stored row's tool, member and organization, never the arguments' hash,
+    since the key is Claude's id for that one call and a module's schema may normalize what it was
+    sent (the Tasks module trims a name).
+  - **The stored result is the answer**: a module stores the result its tool answers an agent caller,
+    which carries no address, so `toToolOutput` of the stored row is the bytes the live call would
+    have sent Claude.
+  - **A write past its 60 seconds may still land**, the module's mutation going on once the client
+    gives up, so it is answered "The call took longer than 60 seconds and may still have run. Check
+    before you call it again." The module client's own request timeout sits past the run's.
+  - **The sweep is the only prune**, as David chose: `StartConversation` deleted the member's
+    conversations past a day directly, which could not reach their `ModuleCallResult` rows, found by
+    their scope alone. It now leaves them to the sweep, which deletes each batch's results by their
+    scope (`DeleteConversationModuleCallResults`) before the conversations, and `RestoreConversation`
+    refuses one deleted over a day ago in its `where`, whether or not the sweep has run. Being the
+    only prune, the sweep deletes batches for up to five minutes rather than fifty batches of
+    twenty, which capped it at a thousand conversations a day.
+  - **The conversations' fake holds the modules'** as `modules`, its SDK spread under its own and a
+    member added to both with one `createdAt`, so every test of the worker loads the real module
+    servers; `connectTestModules(runners)` brings a test's own runners in.
+  - **The thread reads the documents only when it needs them**: once a reply's text holds `doc:` or a
+    `delete_document` row is drawn. A link draws the agent's words, unlinked and not struck, until
+    the list lands. A `delete_document` row reads the call's output once, which holds the id and
+    `restorableUntil`, rather than the input, since neither the tail nor the bodies carry a call's
+    input. On a phone, a row with an action of its own hides its "Tool" badge and lets its label wrap.
+  - **The labels** of the tools the plan dropped on 2026-10-10 went from the catalogue; the
+    Knowledge tools' running labels kept the ids the plan's earlier names had.
+  - **`probe:claude` sends the agent's own request** with its full tools list, which the API refuses
+    whole when a strict schema is one it does not take, or too complex. Run on 2026-10-11, every
+    check passing once the patterns were dropped.
+  - Verified with the tests; `check:conversation-runs`, `check:conversation-list` and
+    `check:knowledge-module` against an emulator of the branch's schema, every check passing; and in
+    the browser at 1280 and 390 wide, the backend's Claude client swapped for a scripted one: a
+    document created through the module, its `doc:` link drawn with its title, a dead link struck
+    through, a delete striking both through and offering Restore, which brought it back and took
+    itself away, an append arriving in the document open in another tab while the member typed in
+    it, Write then Read turned off and refused, and the backend killed while a write that had landed
+    was held, the interrupted run's call drawn `SUCCEEDED` from its key, and Resume carrying on with
+    the text appended once. The real model was asked through `probe:claude` alone, not through a
+    conversation in the browser.
 
 ### M17: Tasks in conversations
 

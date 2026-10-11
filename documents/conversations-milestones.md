@@ -1212,6 +1212,15 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     seconds is answered only while both successors are still stored on its connection, so it never
     hands out one revoked since.
   - **Revoking a refresh token ends the connection; an access token, itself alone.**
+  - **A refresh may narrow its access token.** Each token carries its scopes: a refresh naming fewer
+    than its token holds, never others, issues an access token holding those alone, its refresh
+    token keeping its own (RFC 6749, 6), and the verifier reads the access token's. The rotation
+    checks both against the spent token's in the database, and the exchange against the
+    connection's.
+  - **A registered client is marked used before its request is stored**, so the daily sweep never
+    prunes a client an authorization is naming, and one pruned since it was read stores nothing.
+  - **The consent routes are metered before the staff check**, so a caller who is not staff is
+    counted too.
   - **The modules' gate lifts on the development backend** (`IS_MODULES_RELEASE_GATED`), as
     conversations' does, so `check:oauth` and a developer's client need no staff role locally.
   - **`OAUTH_ISSUER` honours `API_URL` in development**, so a worktree's backend on another port

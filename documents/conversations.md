@@ -1533,7 +1533,10 @@ authorization server from M18 and a consent page from M19:
     token, the refresh token an HMAC of `refresh:` and it, so the two always differ. The spent
     token's row records the secret's version it used, `successorKeyVersion`, and a duplicate derives
     again with that very version, read from Secret Manager by its number and kept per version, so
-    instances a rotation left on different versions still answer one pair. Presented again within 30
+    instances a rotation left on different versions still answer one pair. A refresh may name fewer
+    scopes than its token holds, never others (RFC 6749, 6): its access token holds those alone, and
+    its refresh token keeps its own, so each token carries its scopes and the verifier reads the
+    access token's (M18). Presented again within 30
     seconds of its rotation, as by a client whose answer was lost or by two refreshes at once, it is
     answered with the very same pair, recomputed, so whichever answer arrives last, the client holds
     tokens that work, and nothing but hashes is ever stored. Presented after that, it revokes the
@@ -1552,7 +1555,7 @@ authorization server from M18 and a consent page from M19:
   the resource, the scopes asked for, `state` and `expiresAt`; once decided, `decidedAt`, and on
   Allow its connection and its code's hash and expiry), `AgentConnection` (the membership, the
   client's id and name, the module, the scopes granted, `createdAt`, `lastUsedAt`) and
-  `AgentConnectionToken` (its connection, its kind, its hash, its resource, `issuedFrom`,
+  `AgentConnectionToken` (its connection, its kind, its hash, its resource, its scopes, `issuedFrom`,
   `expiresAt`, `usedAt`, `successorKeyVersion`). `issuedFrom` names what a token was issued from,
   the authorization request whose code was exchanged or the refresh token rotated, so a replayed
   refresh token is traced to its connection, as a reused code is to the request it was issued for.

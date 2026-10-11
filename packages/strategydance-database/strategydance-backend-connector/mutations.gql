@@ -2239,6 +2239,15 @@ mutation DeleteClaimedConversations($ids: [UUID!]!) @auth(level: NO_ACCESS) {
   )
 }
 
+# Deletes what the module calls of conversations being pruned stored under their idempotency keys,
+# each conversation's under its scope, `conversation:<id>`, which leads the table's key. The daily
+# sweep deletes them for each batch of claimed conversations before the conversations themselves,
+# since nothing references a conversation from them. Deleting them twice deletes nothing, so a sweep
+# that failed between the two is finished by the next
+mutation DeleteConversationModuleCallResults($scopes: [String!]!) @auth(level: NO_ACCESS) {
+  moduleCallResult_deleteMany(where: { idempotencyScope: { in: $scopes } })
+}
+
 # Records a search of the caller's conversations, holding them to 120 in ten minutes in an
 # organization (`MAX_CONVERSATION_SEARCHES` in strategydance-core: change the two together, as the
 # operation cannot import it). The search route runs it before it searches anything.

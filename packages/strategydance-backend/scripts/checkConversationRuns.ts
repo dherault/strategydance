@@ -11,6 +11,7 @@ import {
   connectorConfig,
   continueConversationRun,
   deleteClaimedConversations,
+  deleteConversationModuleCallResults,
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
@@ -1351,6 +1352,34 @@ async function checkSweeping() {
       && (claimedIds.length === 20 || claimedIds.includes(old))
       && !claimedIds.includes(recent)
       && !claimedIds.includes(restoredFirst),
+  )
+
+  // What the agent's module calls stored under a conversation's scope, which goes before it
+  const insertResult = (scope: string) =>
+    write(
+      `mutation InsertResult($scope: String!, $userId: String!, $organizationId: UUID!) {
+        moduleCallResult_insert(data: { idempotencyScope: $scope, idempotencyKey: "toolu_swept", userId: $userId, organizationId: $organizationId, tool: "create_document", argumentsHash: "hash", result: "{}" })
+      }`,
+      { scope, userId: userIds.sweeper, organizationId },
+    )
+  const countResults = async (scope: string) =>
+    (
+      await read<{ moduleCallResults: unknown[] }>(
+        `query CountResults($scope: String!) { moduleCallResults(where: { idempotencyScope: { eq: $scope } }) { tool } }`,
+        { scope },
+      )
+    ).moduleCallResults.length
+
+  await insertResult(`conversation:${old}`)
+  await insertResult(`conversation:${recent}`)
+
+  const { data: results } = await deleteConversationModuleCallResults(dataConnect, { scopes: [`conversation:${old}`] })
+
+  check(
+    "the sweep deletes the module call results of the conversations it names, by their scope, and nobody else's",
+    results.moduleCallResult_deleteMany === 1
+      && (await countResults(`conversation:${old}`)) === 0
+      && (await countResults(`conversation:${recent}`)) === 1,
   )
 
   const { data: deletion } = await deleteClaimedConversations(dataConnect, { ids: [old, recent, restoredFirst] })

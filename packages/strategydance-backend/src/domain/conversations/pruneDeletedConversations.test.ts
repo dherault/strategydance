@@ -100,16 +100,43 @@ describe('pruneDeletedConversations', () => {
     const old = await start(AUTHOR, 48)
     const othersOld = await start(OTHER, 25)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 2, deleted: 2 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 2, deleted: 2, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
     expect(isLeft(othersOld)).toBe(false)
+  })
+
+  test('removes what the agent’s module calls stored under a pruned conversation’s scope, and no other', async () => {
+    const old = await start(AUTHOR, 48)
+    const kept = await start(AUTHOR, null)
+    const keep = (conversationId: string, key: string) =>
+      fake.modules.results.set(`conversation:${conversationId}\n${key}`, {
+        idempotencyScope: `conversation:${conversationId}`,
+        idempotencyKey: key,
+        userId: AUTHOR,
+        organizationId: ORGANIZATION_ID,
+        tool: 'create_document',
+        argumentsHash: 'hash',
+        result: '{}',
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+      })
+
+    keep(old, 'toolu_1')
+    keep(old, 'toolu_2')
+    keep(kept, 'toolu_3')
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 1, deleted: 1, deletedResults: 2 })
+    expect([...fake.modules.results.keys()]).toEqual([`conversation:${kept}\ntoolu_3`])
+    expect(fake.calls.indexOf('DeleteConversationModuleCallResults')).toBeLessThan(
+      fake.calls.indexOf('DeleteClaimedConversations'),
+    )
   })
 
   test('keeps what can still be taken back, and what is not deleted', async () => {
     const recent = await start(AUTHOR, 23)
     const kept = await start(AUTHOR, null)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedResults: 0 })
     expect(fake.conversations.get(recent)?.pruneClaimedAt).toBeNull()
     expect(isLeft(recent)).toBe(true)
     expect(isLeft(kept)).toBe(true)
@@ -165,14 +192,14 @@ describe('pruneDeletedConversations', () => {
 
     fake.beforeOperation = async () => {}
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
   })
 
   test('deletes twenty at a time', async () => {
     for (let count = 0; count < 45; count++) insertDeleted()
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45, deletedResults: 0 })
     expect(fake.calls.filter(name => name === 'DeleteClaimedConversations')).toHaveLength(3)
     expect(fake.conversations.size).toBe(0)
   })
@@ -180,7 +207,7 @@ describe('pruneDeletedConversations', () => {
   test('deletes nothing, and asks for no delete, when nothing was deleted long enough ago', async () => {
     await start(AUTHOR, null)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedResults: 0 })
     expect(fake.calls).not.toContain('DeleteClaimedConversations')
   })
 })

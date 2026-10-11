@@ -1981,6 +1981,20 @@ function createConversationDatabaseFake() {
       return { conversationMessage_updateMany: 1 }
     },
 
+    DeleteConversationModuleCallResults: variables => {
+      const scopes = new Set(variables.scopes as string[])
+      let deleted = 0
+
+      for (const [key, result] of modules.results) {
+        if (scopes.has(result.idempotencyScope)) {
+          modules.results.delete(key)
+          deleted++
+        }
+      }
+
+      return { moduleCallResult_deleteMany: deleted }
+    },
+
     SettleConversationToolCall: variables => {
       const message = messages.get(id(variables.messageId))
       const conversation = message ? conversations.get(message.conversationId) : undefined

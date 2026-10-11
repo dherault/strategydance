@@ -804,9 +804,9 @@ type ConversationSearch @table @index(fields: ["userId", "organizationId", "crea
 #
 # Keyed on the caller's scope and the key, the scope leading, so a scope's rows are found by the
 # key's own index. The scope is the caller's, never the client's: `conversation:<id>` for Strategy
-# Dance's agent, whose rows go when the conversation is pruned, and `connection:<id>` for an
-# external agent, whose rows expire after a day and which the daily sweep deletes, which the index
-# on `expiresAt` serves
+# Dance's agent, whose rows go when the daily sweep prunes the conversation, by its scope
+# (`DeleteConversationModuleCallResults`), and `connection:<id>` for an external agent, whose rows
+# expire after a day and which the daily sweep deletes, which the index on `expiresAt` serves
 type ModuleCallResult @table(key: ["idempotencyScope", "idempotencyKey"]) @index(fields: ["expiresAt"]) {
   idempotencyScope: String!
   # At most 200 characters, as the caller sent it

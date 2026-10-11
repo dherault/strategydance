@@ -1,15 +1,17 @@
 import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
+import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
 import createTasksDatabaseFake from '~domain/tasks/testing/createTasksDatabaseFake'
 
 /*
   The backend connector's operations every module uses, over tables kept in memory, for the modules'
   tests: one base with each module's tables and operations added to it, so one mock of
   `strategydance-database/backend` serves every module's server, which a module's handler loads all
-  of, and their call results and memberships are one
+  of, and their call results and memberships are one. The authorization server's join them, so an
+  external agent's token is verified against the memberships its calls are
 */
 function createModuleDatabaseFake() {
-  return createTasksDatabaseFake(createKnowledgeDatabaseFake(createModuleDatabaseFakeBase()))
+  return createOAuthDatabaseFake(createTasksDatabaseFake(createKnowledgeDatabaseFake(createModuleDatabaseFakeBase())))
 }
 
 export type ModuleDatabaseFake = ReturnType<typeof createModuleDatabaseFake>

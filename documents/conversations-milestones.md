@@ -967,7 +967,9 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
     conversations past a day directly, which could not reach their `ModuleCallResult` rows, found by
     their scope alone. It now leaves them to the sweep, which deletes each batch's results by their
     scope (`DeleteConversationModuleCallResults`) before the conversations, and `RestoreConversation`
-    refuses one deleted over a day ago in its `where`, whether or not the sweep has run.
+    refuses one deleted over a day ago in its `where`, whether or not the sweep has run. Being the
+    only prune, the sweep deletes batches for up to five minutes rather than fifty batches of
+    twenty, which capped it at a thousand conversations a day.
   - **The conversations' fake holds the modules'** as `modules`, its SDK spread under its own and a
     member added to both with one `createdAt`, so every test of the worker loads the real module
     servers; `connectTestModules(runners)` brings a test's own runners in.

@@ -47,7 +47,8 @@ function ConversationDockMore({ dockWindows, conversations }: Props) {
           <Button
             variant="secondary"
             size="sm"
-            className="shadow-md"
+            // As wide as `countShownDockWindows` counts it, whatever the count
+            className="w-14 shadow-md"
             aria-label={formatMessage(
               needsAttention ? conversationMessages.dockMoreAttentionLabel : conversationMessages.dockMoreLabel,
               { count },

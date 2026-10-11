@@ -7,8 +7,9 @@ export type ConversationMention = {
   id: string
 }
 
-// A letter or a digit: a title followed by one is only the start of a longer word
-const WORD_CHARACTER_PATTERN = /[\p{L}\p{N}]/u
+// A letter, an accent on one, a digit or a joining underscore: a title followed by one is only
+// the start of a longer word
+const WORD_CHARACTER_PATTERN = /[\p{L}\p{M}\p{N}\p{Pc}]/u
 
 /*
   The knowledge a message mentions: each `@` that starts the text or follows a space, followed by

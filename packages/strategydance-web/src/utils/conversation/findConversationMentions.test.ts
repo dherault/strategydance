@@ -27,7 +27,15 @@ describe('findConversationMentions', () => {
   it('finds a title only where a word ends', () => {
     expect(titles('@Planning')).toEqual([])
     expect(titles('@Plans')).toEqual([])
+    expect(titles('@Plan_2026')).toEqual([])
     expect(titles('@Pricing, then @Plan.')).toEqual(['Pricing', 'Plan'])
+  })
+
+  it('finds no title followed by an accent written as a mark of its own', () => {
+    expect(findConversationMentions('@Cafe\u0301', new Map([['Cafe', 'c']]))).toEqual([])
+    expect(findConversationMentions('@Cafe!', new Map([['Cafe', 'c']]))).toEqual([
+      { start: 0, end: 5, title: 'Cafe', id: 'c' },
+    ])
   })
 
   it('finds an `@` only at the start or after a space', () => {

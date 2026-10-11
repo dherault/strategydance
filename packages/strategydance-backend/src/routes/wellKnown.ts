@@ -4,8 +4,8 @@ import buildAuthorizationServerMetadata from '~domain/oauth/buildAuthorizationSe
 
 /*
   The addresses a client discovers the server at, under `/.well-known`, at the app's root as RFC
-  8414 has them: the authorization server's metadata. The modules' protected resource metadata joins
-  them with the endpoint that serves them
+  8414 has them: the authorization server's metadata. Each module's protected resource metadata
+  sits beside it, served by `routes/moduleMetadata.ts`, mounted after this router
 */
 function createWellKnownRouter() {
   const router = Router()

@@ -527,6 +527,19 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       return { agentConnectionToken_deleteMany: deleted ? 1 : 0 }
     },
 
+    RecordAgentConnectionUse: variables => {
+      const connection = connections.get(id(variables.id))
+
+      if (!connection || connection.userId !== variables.userId) return { agentConnection_updateMany: 0 }
+      if (connection.lastUsedAt !== null && Date.parse(connection.lastUsedAt) >= now() - MINUTE_MS) {
+        return { agentConnection_updateMany: 0 }
+      }
+
+      connection.lastUsedAt = stamp()
+
+      return { agentConnection_updateMany: 1 }
+    },
+
     PruneOAuthAuthorizationRequests: () => {
       let deleted = 0
 

@@ -1,6 +1,4 @@
 import {
-  CONVERSATION_SEARCH_WINDOW_MINUTES,
-  MAX_CONVERSATION_SEARCHES,
   MAX_CONVERSATIONS,
   MAX_SUBSTRING_SEARCH_MESSAGES,
   splitSearchTerms,
@@ -8,8 +6,6 @@ import {
 } from 'strategydance-core'
 import {
   getConversationSearchCorpus,
-  getConversationSearchQuota,
-  recordConversationSearch,
   searchConversationMessages,
   searchConversationTitles,
   searchConversationsBySubstring,
@@ -20,12 +16,11 @@ import { dataConnect } from '~firebase'
 import isSubstringSearchQuery from '~utils/isSubstringSearchQuery'
 
 import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSearchPatterns'
+import recordConversationSearch from '~domain/conversations/recordConversationSearch'
 
 // How many messages a search reads at most. `SearchConversationMessages` reads one more, whose
 // presence says that a few conversations with thousands of matches used up the read
 const MAX_SEARCHED_MESSAGES = 5000
-
-const SEARCH_WINDOW_MS = CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000
 
 type SearchReference = {
   organizationId: string
@@ -59,7 +54,7 @@ async function searchConversations({
   query,
 }: SearchConversationsInput): Promise<SearchConversationsResult> {
   const reference = { organizationId, userId }
-  const recorded = await recordSearch(reference)
+  const recorded = await recordConversationSearch(reference)
 
   if (recorded.outcome !== 'recorded') return recorded
 
@@ -68,37 +63,6 @@ async function searchConversations({
     : await searchFullText(reference, query)
 
   return { outcome: 'found', ...found }
-}
-
-/*
-  Records the search under the lock on the caller's membership. A refusal is read again to say why:
-  the allowance used up, and when the 120th newest search ages out of the window, or the caller no
-  longer a member. One that neither explains, the window having moved on meanwhile, is tried once
-  more
-*/
-async function recordSearch(reference: SearchReference) {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await recordConversationSearch(dataConnect, reference)
-
-      return { outcome: 'recorded' as const }
-    } catch (error) {
-      const { data } = await getConversationSearchQuota(dataConnect, reference)
-
-      if (!data.userOrganization) return { outcome: 'forbidden' as const }
-
-      const oldest = data.conversationSearches[MAX_CONVERSATION_SEARCHES - 1]
-
-      if (oldest) {
-        return {
-          outcome: 'tooMany' as const,
-          retryAfterMs: Math.max(0, new Date(oldest.createdAt).getTime() + SEARCH_WINDOW_MS - Date.now()),
-        }
-      }
-
-      if (attempt > 0) throw error
-    }
-  }
 }
 
 /*

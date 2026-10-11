@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { afterEach, describe, expect, it, mock, setSystemTime } from 'bun:test'
+
+import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
 
 import type { ModuleCaller } from '~types'
 
@@ -35,7 +37,10 @@ function connect(fields: Partial<ModuleCaller> = {}) {
   })
 }
 
-afterEach(() => fake.reset())
+afterEach(() => {
+  fake.reset()
+  setSystemTime()
+})
 
 describe('search_documents', () => {
   it('finds the documents whose title and text together hold every word, through the index', async () => {
@@ -184,5 +189,49 @@ describe('search_documents', () => {
     )
     expect(await kit.refusal('search_documents', { query: 'nul\u0000' })).toContain('no U+0000')
     expect(fake.calls).toEqual([])
+  })
+
+  it("draws an external agent's searches on the member's allowance, and refuses one past it, searching nothing", async () => {
+    const kit = await connect({ kind: 'external', idempotencyScope: 'connection:checked' })
+
+    documents.store('Pricing note', { title: 'Pricing' })
+
+    for (let index = 0; index < MAX_CONVERSATION_SEARCHES - 1; index++) {
+      fake.searches.push({ userId: 'member', organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
+    }
+
+    expect((await kit.answer<Found>('search_documents', { query: 'pricing' })).documents).toHaveLength(1)
+    expect(fake.searches).toHaveLength(MAX_CONVERSATION_SEARCHES)
+
+    fake.calls.length = 0
+
+    expect(await kit.refusal('search_documents', { query: 'pricing' })).toBe(
+      `Searches as the member are limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes, and they reached it. Search again in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes, or call list_documents meanwhile.`,
+    )
+    expect(fake.calls).toEqual(['RecordConversationSearch', 'GetConversationSearchQuota'])
+
+    setSystemTime(Date.now() + CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000)
+
+    expect((await kit.answer<Found>('search_documents', { query: 'pricing' })).documents).toHaveLength(1)
+  })
+
+  it("refuses an external agent's search for a removed member before it counts", async () => {
+    const kit = await connect({ kind: 'external', idempotencyScope: 'connection:checked' })
+
+    fake.removeMember('member', ORGANIZATION_ID)
+
+    expect(await kit.refusal('search_documents', { query: 'pricing' })).toContain('no longer in this organization')
+    expect(fake.searches).toEqual([])
+  })
+
+  it("never counts Strategy Dance's agent's searches, which its run bounds", async () => {
+    const kit = await connect()
+
+    for (let index = 0; index < MAX_CONVERSATION_SEARCHES; index++) {
+      fake.searches.push({ userId: 'member', organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
+    }
+
+    expect((await kit.answer<Found>('search_documents', { query: 'pricing' })).documents).toEqual([])
+    expect(fake.calls).not.toContain('RecordConversationSearch')
   })
 })

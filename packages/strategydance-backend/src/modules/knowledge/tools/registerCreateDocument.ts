@@ -5,10 +5,12 @@ import type { KnowledgeToolContext } from '~types'
 
 import createKnowledgeDocument from '~domain/knowledge/createKnowledgeDocument'
 
+import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
 import { aspectSchema, aspectsSchema } from '~modules/moduleSchemas'
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
 const TOOL = 'create_document'
 
@@ -37,6 +39,7 @@ function registerCreateDocument(server: McpServer, context: KnowledgeToolContext
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(knowledgeModule),
     },
     async (args, serverContext) => {
       const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)

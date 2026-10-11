@@ -29,6 +29,8 @@
     "@google-cloud/secret-manager": "^7.1.1",
     "@google-cloud/tasks": "^7.2.1",
     "@modelcontextprotocol/client": "^2.3.0",
+    "@modelcontextprotocol/express": "^2.0.2",
+    "@modelcontextprotocol/node": "^2.1.1",
     "@modelcontextprotocol/server": "^2.3.0",
     "cors": "^2.8.6",
     "entities": "^8.1.0",

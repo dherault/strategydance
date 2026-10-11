@@ -8,6 +8,7 @@ import { IS_MODULES_RELEASE_GATED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
+import createAgentConnectionUseRecorder from '~domain/oauth/createAgentConnectionUseRecorder'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
 
@@ -20,7 +21,8 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
   while modules are for Strategy Dance's administrators alone. A token issued for another module's
   address is refused, so a token for one module never opens another, and so is one whose account
   is no longer staff, so a connection outlives no lost role. A member removed takes their
-  connections with them, so their tokens are found no more.
+  connections with them, so their tokens are found no more. A token that passes marks its connection
+  used, at most once a minute.
 
   It answers the SDK's `AuthInfo` carrying the caller the module acts as, an external agent on the
   member's membership, with the connection's scopes and its own idempotency scope, and the token's
@@ -28,6 +30,7 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
 */
 function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
   const expectedResource = parseModuleResource(resource.href)?.resource
+  const recordUse = createAgentConnectionUseRecorder()
 
   return {
     async verifyAccessToken(token) {
@@ -58,6 +61,8 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
         scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
         idempotencyScope: `connection:${connection.id}`,
       }
+
+      await recordUse(connection.id, membership.userId)
 
       return toModuleAuthInfo(caller, {
         token,

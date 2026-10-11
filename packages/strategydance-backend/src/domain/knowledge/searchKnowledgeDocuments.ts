@@ -13,6 +13,7 @@ import { dataConnect } from '~firebase'
 import isSubstringSearchQuery from '~utils/isSubstringSearchQuery'
 
 import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSearchPatterns'
+import recordConversationSearch from '~domain/conversations/recordConversationSearch'
 import cutKnowledgeSearchExcerpt from '~domain/knowledge/cutKnowledgeSearchExcerpt'
 import indexKnowledgeDocuments from '~domain/knowledge/indexKnowledgeDocuments'
 
@@ -36,6 +37,7 @@ export type KnowledgeSearchMatch = {
 
 type SearchKnowledgeDocumentsResult =
   | { outcome: 'notMember' }
+  | { outcome: 'tooManySearches'; retryAfterMs: number }
   | { outcome: 'found'; documents: KnowledgeSearchMatch[]; hasMore: boolean; isIndexComplete: boolean }
 
 /*
@@ -46,6 +48,10 @@ type SearchKnowledgeDocumentsResult =
   that changed last. The answer says when more matched, and when documents a page from before the
   index left unindexed remain after indexing 20 of them, so the search may have missed one.
 
+  An external agent's search first draws on the member's search allowance, which their own searches
+  of their conversations share, since it has no run to bound it as Strategy Dance's agent has, and
+  is refused past it with when the next one fits.
+
   The plain text is as fresh as the last compaction, which is enough to find a document by: reading
   one reads its shared text. The query is never logged
 */
@@ -53,6 +59,13 @@ async function searchKnowledgeDocuments(
   caller: ModuleCaller,
   { query, aspects, limit }: SearchKnowledgeDocumentsInput,
 ): Promise<SearchKnowledgeDocumentsResult> {
+  if (caller.kind === 'external') {
+    const recorded = await recordConversationSearch({ organizationId: caller.organizationId, userId: caller.userId })
+
+    if (recorded.outcome === 'forbidden') return { outcome: 'notMember' }
+    if (recorded.outcome === 'tooMany') return { outcome: 'tooManySearches', retryAfterMs: recorded.retryAfterMs }
+  }
+
   const indexed = await indexKnowledgeDocuments(caller)
 
   if (indexed.outcome === 'notMember') return indexed

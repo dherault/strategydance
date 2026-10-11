@@ -7,8 +7,10 @@ import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDa
 import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
 
 const fake = createOAuthDatabaseFake(createModuleDatabaseFakeBase())
+const logged = mock((_message: string, _error?: unknown) => {})
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: logged } }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: createAgentConnectionTokenVerifier } = await import('./createAgentConnectionTokenVerifier')
@@ -76,6 +78,7 @@ let membershipCreatedAt = ''
 
 beforeEach(() => {
   fake.reset()
+  logged.mockClear()
   membershipCreatedAt = fake.addMember(MEMBER, ORGANIZATION_ID)
   fake.setStaff(MEMBER)
 })
@@ -155,5 +158,65 @@ describe('createAgentConnectionTokenVerifier', () => {
     fake.setStaff(MEMBER, false)
 
     expect(await refusal('access')).toBe('invalid_token')
+  })
+
+  test('marks the connection used on a verified call, then at most once a minute', async () => {
+    connect()
+
+    const verifying = createAgentConnectionTokenVerifier(new URL(KNOWLEDGE))
+
+    await verifying.verifyAccessToken('access')
+
+    const first = fake.connections.get(CONNECTION_ID)!.lastUsedAt
+
+    expect(first).not.toBeNull()
+
+    await verifying.verifyAccessToken('access')
+
+    expect(fake.calls.filter(name => name === 'RecordAgentConnectionUse')).toHaveLength(1)
+    expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBe(first)
+
+    setSystemTime(Date.now() + 61 * 1000)
+    await verifying.verifyAccessToken('access')
+
+    expect(fake.calls.filter(name => name === 'RecordAgentConnectionUse')).toHaveLength(2)
+    expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).not.toBe(first)
+  })
+
+  test('leaves the minute to the database across instances, each of which asks once', async () => {
+    connect()
+
+    await createAgentConnectionTokenVerifier(new URL(KNOWLEDGE)).verifyAccessToken('access')
+
+    const first = fake.connections.get(CONNECTION_ID)!.lastUsedAt
+
+    await createAgentConnectionTokenVerifier(new URL(KNOWLEDGE)).verifyAccessToken('access')
+
+    expect(fake.calls.filter(name => name === 'RecordAgentConnectionUse')).toHaveLength(2)
+    expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBe(first)
+  })
+
+  test('verifies the token when marking its connection used fails, and logs it', async () => {
+    connect()
+    fake.beforeOperation = async name => {
+      if (name === 'RecordAgentConnectionUse') throw new Error('unavailable')
+    }
+
+    const verifying = createAgentConnectionTokenVerifier(new URL(KNOWLEDGE))
+
+    expect(readModuleCaller(await verifying.verifyAccessToken('access')).userId).toBe(MEMBER)
+    expect(logged).toHaveBeenCalledTimes(1)
+    expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBeNull()
+  })
+
+  test('marks nothing used for a token it refuses', async () => {
+    connect()
+    fake.setStaff(MEMBER, false)
+
+    expect(await refusal('access')).toBe('invalid_token')
+    expect(await refusal('refresh')).toBe('invalid_token')
+    expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+    expect(fake.calls).not.toContain('RecordAgentConnectionUse')
+    expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBeNull()
   })
 })

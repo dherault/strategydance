@@ -1418,16 +1418,16 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 
 ### M24: The dock
 
-- `_ConversationDockProvider` in `router.tsx`'s `Wrap` after `CurrentOrganizationProvider`, with its
-  context and `useConversationDock`. Windows are persisted with `usePersistedState` under one literal
-  key, holding a map keyed by `${userId}:${organizationId}`, since neither is known when `Wrap`
-  mounts.
+- `_ConversationDockProvider` in `router.tsx`'s `InnerWrap`, inside `CurrentOrganizationProvider`,
+  whose organization it reads, with its context and `useConversationDock`. Windows are persisted with
+  `usePersistedState` under one literal key, holding a map keyed by `${userId}:${organizationId}`,
+  since neither is known when it mounts.
 - The dock in `AppLayout`, inside `SidebarProvider` after `SidebarInset`, `z-40`, hidden on mobile
   and on the conversation page: windows, read through `useDockConversations`
   (`GetDockConversations`, only the conversations its windows hold), the "+N" menu, focus, Escape,
   unread counts and `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list
   and the page.
-- Toasts move out of the dock's corner app-wide (Sonner's `position`), checked on a screenshot.
+- Toasts stay in the dock's corner, as David chose on 2026-10-11, checked on a screenshot.
 - Utilities with tests: how many windows fit.
 - Verify: open four conversations at several widths; minimize, close, full page; replies arriving in
   minimized windows count up; a phone width has no dock.

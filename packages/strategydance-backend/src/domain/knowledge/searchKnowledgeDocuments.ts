@@ -13,9 +13,9 @@ import { dataConnect } from '~firebase'
 import isSubstringSearchQuery from '~utils/isSubstringSearchQuery'
 
 import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSearchPatterns'
-import recordConversationSearch from '~domain/conversations/recordConversationSearch'
 import cutKnowledgeSearchExcerpt from '~domain/knowledge/cutKnowledgeSearchExcerpt'
 import indexKnowledgeDocuments from '~domain/knowledge/indexKnowledgeDocuments'
+import recordModuleSearch from '~domain/modules/recordModuleSearch'
 
 type SearchKnowledgeDocumentsInput = {
   // Within `MAX_SEARCH_QUERY_LENGTH` and `MAX_SEARCH_TERMS`, as the tool's schema holds it
@@ -59,12 +59,9 @@ async function searchKnowledgeDocuments(
   caller: ModuleCaller,
   { query, aspects, limit }: SearchKnowledgeDocumentsInput,
 ): Promise<SearchKnowledgeDocumentsResult> {
-  if (caller.kind === 'external') {
-    const recorded = await recordConversationSearch({ organizationId: caller.organizationId, userId: caller.userId })
+  const recorded = await recordModuleSearch(caller)
 
-    if (recorded.outcome === 'forbidden') return { outcome: 'notMember' }
-    if (recorded.outcome === 'tooMany') return { outcome: 'tooManySearches', retryAfterMs: recorded.retryAfterMs }
-  }
+  if (recorded.outcome !== 'recorded') return recorded
 
   const indexed = await indexKnowledgeDocuments(caller)
 

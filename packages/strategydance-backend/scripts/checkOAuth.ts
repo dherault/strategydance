@@ -53,6 +53,11 @@ import readModuleCaller from '~modules/readModuleCaller'
   so the agent's next refresh and its next call to the module are refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
   tab lists every one.
 
+  And the Tasks module's endpoint beside the Knowledge module's, for one agent connected to both:
+  each module's token opens that module alone, a query draws on the member's search allowance, a
+  token granted read alone is challenged when it writes, and Disconnect of one connection leaves the
+  other working.
+
   It makes a throwaway organization with a member, removes everything it made, then exits non-zero
   naming each check that failed. The sweep's deletes take no organization: they remove every expired
   request and token, and every unused registration, in the emulator.
@@ -95,6 +100,13 @@ const otherUserId = `check-oauth-${checkId}-other`
 // The backend's own issuer names its modules, so a token made here is one it refreshes
 const resource = `${apiUrl}/mcp/knowledge`
 const READ_WRITE = ['knowledge:read', 'knowledge:write']
+
+// The modules a check connects an agent to, Knowledge unless it says otherwise
+const KNOWLEDGE = { name: 'knowledge', resource } as const
+const TASKS = { name: 'tasks', resource: `${apiUrl}/mcp/tasks` } as const
+const TASKS_READ_WRITE = ['tasks:read', 'tasks:write']
+
+type CheckedModule = typeof KNOWLEDGE | typeof TASKS
 
 // What the check made that its organization does not take with it, for the tear down
 const clientIds = new Set<string>()
@@ -522,7 +534,7 @@ async function checkFlow() {
 }
 
 // A pending request a client made, asking for read and write unless told otherwise
-async function createRequest(clientId: string, scopes = READ_WRITE) {
+async function createRequest(clientId: string, scopes = READ_WRITE, module: CheckedModule = KNOWLEDGE) {
   clientIds.add(clientId)
 
   const { data } = await createOAuthAuthorizationRequest(dataConnect, {
@@ -530,7 +542,7 @@ async function createRequest(clientId: string, scopes = READ_WRITE) {
     registeredClientId: null,
     redirectUri: 'http://127.0.0.1:43210/callback',
     codeChallenge: createHashOf(createSecret()),
-    resource,
+    resource: module.resource,
     scopes,
     state: 'checked',
   })
@@ -546,7 +558,8 @@ function approve(
     scopes = READ_WRITE,
     organization = organizationId,
     user = userId,
-  }: { scopes?: string[]; organization?: string; user?: string } = {},
+    module = KNOWLEDGE,
+  }: { scopes?: string[]; organization?: string; user?: string; module?: CheckedModule } = {},
 ) {
   const connectionId = createId()
   const code = createSecret()
@@ -562,8 +575,8 @@ function approve(
       clientId,
       registeredClientId: null,
       clientName: 'Checked client',
-      module: 'knowledge',
-      resource,
+      module: module.name,
+      resource: module.resource,
       scopes,
       codeHash: createHashOf(code),
     }),
@@ -592,7 +605,12 @@ async function countTokens(connectionId: string) {
   return data.agentConnectionTokens.length
 }
 
-function exchange(requestId: string, code: string, connectionId: string) {
+function exchange(
+  requestId: string,
+  code: string,
+  connectionId: string,
+  { scopes = READ_WRITE, module = KNOWLEDGE }: { scopes?: string[]; module?: CheckedModule } = {},
+) {
   const accessToken = createSecret()
   const refreshToken = createSecret()
 
@@ -603,8 +621,8 @@ function exchange(requestId: string, code: string, connectionId: string) {
       id: requestId,
       codeHash: createHashOf(code),
       connectionId,
-      resource,
-      scopes: READ_WRITE,
+      resource: module.resource,
+      scopes,
       accessTokenHash: createHashOf(accessToken),
       refreshTokenHash: createHashOf(refreshToken),
     }),
@@ -812,6 +830,138 @@ async function checkConnectedAgents() {
   )
 }
 
+// An agent the member connected to a module, through Allow and the exchange, answering its access token
+// and its connection's id
+async function connectModule(clientId: string, module: CheckedModule, scopes: string[]) {
+  const requestId = await createRequest(clientId, scopes, module)
+  const connection = approve(requestId, clientId, { scopes, module })
+
+  await connection.approval
+
+  const exchanged = exchange(requestId, connection.code, connection.connectionId, { scopes, module })
+
+  await exchanged.exchange
+
+  return { accessToken: exchanged.accessToken, connectionId: connection.connectionId }
+}
+
+async function countSearches() {
+  const data = await read<{ conversationSearches: { id: string }[] }>(
+    `query CountSearches($userId: String!, $organizationId: UUID!) {
+      conversationSearches(where: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }) { id }
+    }`,
+    { userId, organizationId },
+  )
+
+  return data.conversationSearches.length
+}
+
+async function countTasksNamed(name: string) {
+  const data = await read<{ tasks: { id: string }[] }>(
+    `query CountTasksNamed($organizationId: UUID!, $name: String!) {
+      tasks(where: { organizationId: { eq: $organizationId }, name: { eq: $name } }) { id }
+    }`,
+    { organizationId, name },
+  )
+
+  return data.tasks.length
+}
+
+/*
+  The Tasks module's endpoint beside the Knowledge module's, for one agent the member connected to
+  both: each module's token opens that module alone, a query counts against the member's search
+  allowance, a token granted read alone is challenged when it writes, and Disconnect of the Tasks
+  connection stops its calls while the Knowledge connection's go on
+*/
+async function checkTasksEndpoint() {
+  const metadata = await readMetadata()
+  const clientId = `https://check-${checkId}.example.com/both-modules.json`
+  const knowledge = await connectModule(clientId, KNOWLEDGE, READ_WRITE)
+  const tasks = await connectModule(clientId, TASKS, TASKS_READ_WRITE)
+  const resourceMetadataUrl = `${metadata.issuer}/.well-known/oauth-protected-resource/mcp/tasks`
+  const resourceMetadata = (await (await fetch(resourceMetadataUrl)).json()) as {
+    resource?: string
+    authorization_servers?: string[]
+    scopes_supported?: string[]
+  }
+
+  check(
+    "the Tasks module's protected resource metadata names it, its scopes and the authorization server",
+    resourceMetadata.resource === TASKS.resource
+      && resourceMetadata.authorization_servers?.[0] === metadata.issuer
+      && resourceMetadata.scopes_supported?.join(' ') === TASKS_READ_WRITE.join(' '),
+  )
+
+  for (const [name, token] of [
+    ['no token', null],
+    ['a Knowledge token', knowledge.accessToken],
+  ] as const) {
+    const refused = await postModule(TASKS.resource, token, { method: 'tools/list' })
+
+    check(
+      `the Tasks module's endpoint answers ${name} 401, naming its protected resource metadata`,
+      refused.status === 401
+        && (refused.headers.get('www-authenticate') ?? '').includes(`resource_metadata="${resourceMetadataUrl}"`),
+    )
+  }
+
+  check(
+    "the Knowledge module's endpoint answers a Tasks token 401",
+    (await postModule(KNOWLEDGE.resource, tasks.accessToken, { method: 'tools/list' })).status === 401,
+  )
+
+  const name = `Checked ${checkId}`
+  const client = await openModule(TASKS.resource, tasks.accessToken)
+  const { tools } = await client.listTools()
+  const created = await client.callTool({ name: 'create_task', arguments: { name, status: 'TODO' } })
+  const { id: taskId, url } = created.structuredContent as { id: string; url?: string }
+  const searchesBefore = await countSearches()
+  const found = await client.callTool({ name: 'list_tasks', arguments: { query: checkId } })
+  const searchesAfterQuery = await countSearches()
+
+  await client.callTool({ name: 'list_tasks', arguments: {} })
+
+  check("the endpoint lists the Tasks module's eight tools to its access token", tools.length === 8)
+  check(
+    'the endpoint creates a task as the member, with its web address',
+    !created.isError && (await countTasksNamed(name)) === 1 && Boolean(url?.endsWith(`/tasks/${taskId}`)),
+  )
+  check(
+    "an external query finds the task and counts against the member's search allowance",
+    !found.isError
+      && (found.structuredContent as { tasks: { id: string }[] }).tasks.some(({ id }) => id === taskId)
+      && searchesAfterQuery === searchesBefore + 1,
+  )
+  check('an external list without a query counts no search', (await countSearches()) === searchesAfterQuery)
+
+  await client.close()
+
+  const readOnly = await connectModule(`https://check-${checkId}.example.com/tasks-read.json`, TASKS, ['tasks:read'])
+  const challenged = await postModule(TASKS.resource, readOnly.accessToken, {
+    method: 'tools/call',
+    params: { name: 'create_task', arguments: { name: `Refused ${checkId}`, status: 'TODO' } },
+  })
+  const challenge = challenged.headers.get('www-authenticate') ?? ''
+
+  check(
+    "the endpoint challenges a read-only Tasks token's write, naming tasks:write, and writes nothing",
+    challenged.status === 403
+      && challenge.includes('error="insufficient_scope"')
+      && challenge.includes('scope="tasks:write"')
+      && (await countTasksNamed(`Refused ${checkId}`)) === 0,
+  )
+
+  check('Disconnect of the Tasks connection goes through', (await refusal(disconnect(tasks.connectionId))) === null)
+  check(
+    "the Tasks connection's next call is refused after its Disconnect",
+    (await postModule(TASKS.resource, tasks.accessToken, { method: 'tools/list' })).status === 401,
+  )
+  check(
+    "the Knowledge connection of the same agent still calls its module's endpoint",
+    (await postModule(KNOWLEDGE.resource, knowledge.accessToken, { method: 'tools/list' })).status === 200,
+  )
+}
+
 // A member connects at most `MAX_AGENT_CONNECTIONS` agents, so the Connected agents tab lists every one
 async function checkConnectionCap() {
   const capClientIds: string[] = Array.from({ length: MAX_AGENT_CONNECTIONS + 1 }, (_, index) => {
@@ -1016,6 +1166,7 @@ try {
   await checkFlow()
   await checkConsent()
   await checkConnectedAgents()
+  await checkTasksEndpoint()
   await checkConnectionCap()
   await checkTokens()
   await checkPrunes()

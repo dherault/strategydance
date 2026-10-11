@@ -858,7 +858,7 @@ in `utils/`, one concern per file.
   once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
   checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
   fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
-  against the local backend at `API_URL`, the Knowledge module's endpoint included, and checks the
+  against the local backend at `API_URL`, both modules' endpoints included, and checks the
   operations against the emulators: an operation changed is changed in both
 - The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
   backend alone, serve each module `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
@@ -997,7 +997,8 @@ and why.
   backend's package, check those conditions against the emulators: an operation changed is changed
   in both
 - An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
-  once a member allowed it on the consent page, through the modules' endpoints (see [Backend
+  `/mcp/knowledge` and `/mcp/tasks` today, each its own OAuth resource, so one module's token never
+  opens the other, once a member allowed it on the consent page, through the modules' endpoints (see [Backend
   conventions](#backend-conventions)). Its caller comes from the access token,
   `createAgentConnectionTokenVerifier` reading it on every call: `kind: 'external'`, the token's
   scopes within its connection's, the scope `connection:<id>`, and the membership's `createdAt`, so a
@@ -1009,21 +1010,24 @@ and why.
   connection granted read alone still lists every write, and a call to one answers 403
   `insufficient_scope`, naming the write scope and the resource metadata, as MCP's step-up asks: the
   client asks the member again, and their new consent replaces the connection. `readModuleWriteCall`'s
-  check stays behind it, a second guard. An external agent's search draws on the member's search
-  allowance (`recordConversationSearch`), which their conversation searches use too, since no run
-  bounds it, and one past it is answered with a result saying when to search again
+  check stays behind it, a second guard. An external agent's search, a Knowledge `search_documents`
+  or a `list_tasks` with a query, each page of it, draws on the member's search allowance
+  (`recordModuleSearch`, in `domain/modules/`), which their conversation searches use too, since no
+  run bounds it, and one past it is answered with a result saying when to search again
+  (`toTooManySearchesSentence`) and which read still works
 - A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
   its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
   tool; its searches on the member's allowance; the "Use with your agents" button on its page,
   `ModuleAgentsButton`, which takes its name and opens the dialog worded from the `module` catalogue;
-  and its endpoint in `check:oauth`. The Tasks module joins in M21
+  and its endpoint in `check:oauth`. Knowledge joined in M20 and Tasks in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which
   takes the module's name. stdout is the protocol's there, so the script points the logger's info
   lines at stderr. The local backend serves a served module over HTTP too, as its own issuer, with
   the consent page on the local web app: `claude mcp add --transport http
-  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, then `/mcp` in Claude
-  Code to sign in
+  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge` and `claude mcp add
+  --transport http strategydance-tasks-http-local http://localhost:3003/mcp/tasks`, then `/mcp` in
+  Claude Code to sign in to each
 - `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
   backend's package, fill the plain text of documents stored before `contentText` existed and of
   tasks stored before `descriptionText` did, each run by hand once, after the release that added it

@@ -62,6 +62,7 @@ const ISSUER = 'http://localhost:3003'
 const KNOWLEDGE = `${ISSUER}/mcp/knowledge`
 const TASKS = `${ISSUER}/mcp/tasks`
 const RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/knowledge`
+const TASKS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/tasks`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
 const REDIRECT_URI = 'https://client.example.com/callback'
@@ -141,15 +142,15 @@ async function connect({
   return (await exchanged.json()) as Tokens
 }
 
-// An external agent on the endpoint, as the SDK's client calls it over HTTP with its bearer token
-async function open(token: string) {
+// An external agent on a module's endpoint, as the SDK's client calls it over HTTP with its bearer token
+async function open(token: string, path = '/mcp/knowledge') {
   const client = new Client(
     { name: 'external-agent', version: '1.0.0' },
     { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
   )
 
   await client.connect(
-    new StreamableHTTPClientTransport(new URL(`${origin}/mcp/knowledge`), {
+    new StreamableHTTPClientTransport(new URL(`${origin}${path}`), {
       requestInit: { headers: { Authorization: `Bearer ${token}` } },
     }),
   )
@@ -157,12 +158,18 @@ async function open(token: string) {
   return client
 }
 
-// One JSON-RPC request in a 2025 revision, which the handler serves statelessly, as raw HTTP
+// One JSON-RPC request in a 2025 revision, which the handler serves statelessly, as raw HTTP, to the
+// Knowledge module's endpoint unless `path` names another
 async function send(
   message: Record<string, unknown>,
-  { token, headers = {}, method = 'POST' }: { token?: string; headers?: Record<string, string>; method?: string } = {},
+  {
+    token,
+    headers = {},
+    method = 'POST',
+    path = '/mcp/knowledge',
+  }: { token?: string; headers?: Record<string, string>; method?: string; path?: string } = {},
 ): Promise<Answer> {
-  const response = await fetch(`${origin}/mcp/knowledge`, {
+  const response = await fetch(`${origin}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -196,6 +203,10 @@ function callTool(name: string, args: Record<string, unknown>) {
 
 function documentsOfOrganization() {
   return [...fake.documents.values()].filter(document => document.organizationId === ORGANIZATION_ID)
+}
+
+function tasksOfOrganization() {
+  return [...fake.tasks.values()].filter(task => task.organizationId === ORGANIZATION_ID)
 }
 
 beforeEach(() => {
@@ -494,5 +505,137 @@ describe('the Knowledge module for external agents', () => {
     expect(fake.calls).not.toContain('GetAgentConnectionAccessToken')
     expect((await send(list, { token, headers: address })).status).toBe(429)
     expect((await send(list, { token, headers: { 'X-Forwarded-For': '203.0.113.8' } })).status).toBe(200)
+  })
+})
+
+describe('the Tasks module for external agents', () => {
+  const TASKS_PATH = '/mcp/tasks'
+  const READ_WRITE = ['tasks:read', 'tasks:write']
+  const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+
+  test("serves its protected resource metadata at the root, beside the Knowledge module's", async () => {
+    const response = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/tasks`)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      resource: TASKS,
+      authorization_servers: [ISSUER],
+      scopes_supported: ['tasks:read', 'tasks:write'],
+      resource_name: 'Strategy Dance Tasks',
+    })
+  })
+
+  test("answers no token and a Knowledge token 401, naming the Tasks module's protected resource metadata", async () => {
+    const knowledge = await connect()
+
+    for (const token of [undefined, knowledge.access_token]) {
+      const { status, headers } = await send(list, { token, path: TASKS_PATH })
+
+      expect(status).toBe(401)
+      expect(headers.get('www-authenticate')).toContain(`resource_metadata="${TASKS_RESOURCE_METADATA}"`)
+    }
+
+    const tasks = await connect({ scopes: READ_WRITE, resource: TASKS })
+
+    expect((await send(list, { token: tasks.access_token, path: TASKS_PATH })).status).toBe(200)
+  })
+
+  test("serves a valid access token's calls as its member, its results carrying the tasks' addresses", async () => {
+    const client = await open((await connect({ scopes: READ_WRITE, resource: TASKS })).access_token, TASKS_PATH)
+
+    expect((await client.listTools()).tools).toHaveLength(8)
+
+    const created = await client.callTool({ name: 'create_task', arguments: { name: 'Launch plan', status: 'TODO' } })
+    const { id, url } = created.structuredContent as { id: string; url: string }
+
+    expect(created.isError).toBeFalsy()
+    expect(url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/tasks/${id}`)
+    expect(tasksOfOrganization()).toHaveLength(1)
+
+    const listed = await client.callTool({ name: 'list_tasks', arguments: { query: 'launch' } })
+    const read = await client.callTool({ name: 'read_task', arguments: { id } })
+
+    expect((listed.structuredContent as { tasks: unknown[] }).tasks).toEqual([expect.objectContaining({ id, url })])
+    expect(read.structuredContent).toMatchObject({ id, url })
+
+    await client.close()
+  })
+
+  test("challenges a read-only connection's writes, still listing them, until a new consent allows them", async () => {
+    const readOnly = await connect({ scopes: ['tasks:read'], resource: TASKS })
+
+    expect(readOnly.scope).toBe('tasks:read')
+
+    const listed = await send(list, { token: readOnly.access_token, path: TASKS_PATH })
+
+    expect(listed.body.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'list_tasks',
+      'read_task',
+      'create_task',
+      'update_task',
+      'add_task_dependency',
+      'remove_task_dependency',
+      'delete_task',
+      'restore_task',
+    ])
+
+    const challenged = await send(callTool('create_task', { name: 'New', status: 'TODO' }), {
+      token: readOnly.access_token,
+      path: TASKS_PATH,
+    })
+
+    expect(challenged.status).toBe(403)
+    expect(challenged.body.error).toBe('insufficient_scope')
+    expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="tasks:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${TASKS_RESOURCE_METADATA}"`)
+    expect(tasksOfOrganization()).toEqual([])
+
+    const readWrite = await connect({ scopes: READ_WRITE, resource: TASKS })
+    const written = await send(callTool('create_task', { name: 'New', status: 'TODO' }), {
+      token: readWrite.access_token,
+      path: TASKS_PATH,
+    })
+
+    expect(written.status).toBe(200)
+    expect(written.body.result.isError).toBeFalsy()
+    expect(tasksOfOrganization()).toHaveLength(1)
+  })
+
+  test("keeps a client's Knowledge and Tasks connections apart, revoking one leaving the other", async () => {
+    const knowledge = await connect()
+    const tasks = await connect({ scopes: READ_WRITE, resource: TASKS })
+
+    expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(2)
+
+    await fetch(`${origin}/oauth/revoke`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: encode({ token: tasks.refresh_token, client_id: CLIENT_ID }),
+    })
+
+    expect((await send(list, { token: tasks.access_token, path: TASKS_PATH })).status).toBe(401)
+    expect((await send(list, { token: knowledge.access_token })).status).toBe(200)
+  })
+
+  test("answers a query past the member's allowance with a result saying so, and never counts a list without one", async () => {
+    const { access_token: token } = await connect({ scopes: READ_WRITE, resource: TASKS })
+    const unfiltered = await send(callTool('list_tasks', {}), { token, path: TASKS_PATH })
+
+    expect(unfiltered.body.result.isError).toBeFalsy()
+    expect(fake.searches).toEqual([])
+
+    for (let index = 0; index < MAX_CONVERSATION_SEARCHES; index++) {
+      fake.searches.push({ userId: MEMBER, organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
+    }
+
+    const { status, body } = await send(callTool('list_tasks', { query: 'plan' }), { token, path: TASKS_PATH })
+
+    expect(status).toBe(200)
+    expect(body.result.isError).toBe(true)
+    expect(body.result.content[0].text).toContain(
+      `limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes`,
+    )
+    expect((await send(callTool('list_tasks', {}), { token, path: TASKS_PATH })).body.result.isError).toBeFalsy()
   })
 })

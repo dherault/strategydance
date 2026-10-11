@@ -27,7 +27,10 @@ down by one. Revised on 2026-10-11, in M16, as David chose: the daily sweep is a
 prune, so its module call results go with it. Revised on 2026-10-11, in M17, as David chose: the
 modules' tools reach Claude without `strict`, since the modules outgrow what strict tools take.
 Revised on 2026-10-11, in M22, as David chose: the member's bubble draws only the knowledge it
-mentions, and keeps the rest as typed. When a decision changes, change it here first.
+mentions, and keeps the rest as typed. Revised on 2026-10-11, as David chose: no suggestions and no
+Conversations section on the aspect page, since their design will likely change, and the
+`suggestionId` column M2 added is dropped; the agent still tags a conversation's aspects. When a
+decision changes, change it here first.
 
 ## The design
 
@@ -39,10 +42,10 @@ export, port the styles from `conversations.css` onto the design system's compon
 
 | File in the export | What it holds |
 | --- | --- |
-| `pages/Conversations.jsx` | The list, the conversation page, the aspect page section |
+| `pages/Conversations.jsx` | The list, the conversation page, the aspect page section (not built: see The aspect page) |
 | `pages/ConversationThread.jsx` | The thread: messages, tool calls, questions, notes, thinking indicator, composer |
 | `pages/ConversationDock.jsx` | The dock of chat windows |
-| `conversations-data.js` | Seed conversations, the suggestion catalogue, and the behaviour of send, stop, resume, retry, answer, titles and previews |
+| `conversations-data.js` | Seed conversations, the suggestion catalogue (not built: see The aspect page), and the behaviour of send, stop, resume, retry, answer, titles and previews |
 | `conversations.css` | Every `cv-` class: sizes, spacing, states, animations |
 | `pages/Integrations.jsx` | The Integrations page and its catalogue of MCP servers |
 | `routes.jsx`, `App.html` | The sidebar groups, and where the dock mounts |
@@ -66,6 +69,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Usage limits | None yet: a credit system comes later. Until then the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Agent-started conversations | Not in this plan. Orchestration comes later |
+| The aspect page | Unchanged: no Conversations section and no suggestions in this plan, as David chose on 2026-10-11, since their design will likely change. The agent still tags each conversation's aspects (M23) |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone, modules' connections from external agents included |
 | Pull requests | Small, one concern each |
 
@@ -197,35 +201,27 @@ Desktop only (768px and up): chat windows pinned to the bottom right, the last o
   window focuses its composer.
 - As many windows as fit beside the sidebar; the rest sit behind a "+N" button whose menu lists
   them, with a dot when any needs attention.
-- "Open in dock" (the list, the page, a card) opens or expands a window and moves it rightmost.
+- "Open in dock" (the list, the page) opens or expands a window and moves it rightmost.
   Opening a conversation as a page takes it out of the dock, and the dock hides on the conversation
   page. Closing a draft's window discards the draft.
 - On small screens there is no dock: every "open" goes to the page.
 
 ### The aspect page
 
-A "Conversations" section above Knowledge:
-
-- Up to three of the member's latest conversations tagged with the aspect, as cards: the title, two
-  lines of preview, the aspects, a "Needs your answer" badge, the time, and on hover "Open in dock".
-- A dashed card filling the rest of the row while there are fewer than three: "Your conversations
-  tagged with Strategy appear here." ("Older" once there is one).
-- Up to three suggestions the member has not started: dashed cards with a title, the opening
-  question, and "Start conversation →". Starting one opens a draft that begins with Strategy Dance
-  asking that question, titled after the suggestion.
-- "New conversation", already tagged with the aspect, and "All conversations →" once any exists.
-- Three columns, two under 720px of container, one under 460px.
-
-The catalogue holds four suggestions per aspect, from `conversations-data.js`'s `SUGGESTIONS`, each
-with a title and an opener.
+The design adds a "Conversations" section above Knowledge: the member's latest conversations
+tagged with the aspect, as cards, suggestions to start one from, each opening with a question of
+Strategy Dance's, and a "New conversation" button already tagged with the aspect. None of it is in
+this plan, as David chose on 2026-10-11, since that design will likely change: the aspect page stays
+as it is, and a conversation's aspects show in the list and on its page. The agent still tags them
+(see the rules below).
 
 ### Rules the design's store follows
 
 - **Title**: the first message's plain text, whitespace collapsed, cut at a word boundary to 48
-  characters with "…"; a suggestion's title for a conversation started from one; the first file's
-  name for a message with only files, cut the same way (at a word or separator boundary, 48
-  characters and "…"), so no title ever nears `MAX_CONVERSATION_TITLE_LENGTH`.
-- **Preview** (the list, the cards): "Thinking…" while a run goes; otherwise the last entry that is
+  characters with "…"; the first file's name for a message with only files, cut the same way (at a
+  word or separator boundary, 48 characters and "…"), so no title ever nears
+  `MAX_CONVERSATION_TITLE_LENGTH`.
+- **Preview** (the list): "Thinking…" while a run goes; otherwise the last entry that is
   not an aspects note: a note's text; "Question: …", "Skipped: …" or "Answered: a, b"; "Called
   Stripe" or a tool's label, with " · Failed" or " · Cancelled"; a message's plain text without its
   tables, list items joined by commas, prefixed "You: " for the member's; a file's name or "3 files";
@@ -296,9 +292,9 @@ New tables in `schema.gql`, each commented as the existing ones are:
 - **`Conversation`**: `id` (made by the client, as a document's is, so a draft has its id before it
   is stored), `user`, `organization` (both references, as `ChecklistItem` has them, so a member removed
   and invited again finds their conversations), `title`, `aspects`, `aspectsSetBy`
-  (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `suggestionId` (the catalogue key it
-  started from), `activeRunId`, `isAwaitingAnswer` (set by the write that ends a run `WAITING`,
-  cleared by the one that consumes its turn, both of which write the row anyway), `preview` and
+  (`ConversationActor`: `MEMBER` or `AGENT`, null until set), `activeRunId`, `isAwaitingAnswer` (set
+  by the write that ends a run `WAITING`, cleared by the one that consumes its turn, both of which
+  write the row anyway), `preview` and
   `previewMessageId`, `unreadCount`, `nextRunNumber`,
   `nextMessagePosition`, `messageCount` (what it holds, lowered by Retry), `historyRevision` (bumped
   by Retry), `isFull` (see
@@ -307,7 +303,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
   - `activeRunId` is the run in flight, null when idle: a plain UUID rather than a reference,
     because the first send writes the conversation and its run in one mutation, and a reference would
     have it write the conversation's row twice, which Data Connect skips.
-  - `preview` (`Any`) is what the list and the cards show of the last entry: its kind, up to 200
+  - `preview` (`Any`) is what the list shows of the last entry: its kind, up to 200
     characters of plain text, a tool's name and status, a question's state. A core helper,
     `buildConversationPreview`, builds it, whoever inserts the entry writes it, and the web words it
     in the reader's language. The list then selects no message text. Since a question, a tool call
@@ -396,9 +392,9 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
 `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE` (10), `MAX_CONVERSATION_ATTACHMENT_SIZE` (10 MiB),
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
-`MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
-`CONVERSATION_SUGGESTION_IDS` (M23), the release gate `ARE_CONVERSATIONS_STAFF_ONLY`, and the error
-codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
+`MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the release gate
+`ARE_CONVERSATIONS_STAFF_ONLY`, and the error codes `ERROR_CODE_CONVERSATION_BUSY` and
+`ERROR_CODE_CONVERSATION_FULL`.
 
 ### Who writes what
 
@@ -424,13 +420,12 @@ codes `ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`.
     "+N" dot, the ids of the member's conversations with `isAwaitingAnswer` (`limit: 1000`, as many
     as a member can have, so the count is exact; ids alone, at most 36 KB),
     refreshed only by what sets or clears it (a run ending, a waiting turn consumed) and by delete
-    and restore; `GetDockConversations($organizationId, $ids)`, live, for the dock, the conversations
-    its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
+    and restore; and `GetDockConversations($organizationId, $ids)`, live, for the dock, the
+    conversations its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
     `isAwaitingAnswer`, refreshed by message inserts and read too, since a minimized window counts
-    unread replies and clears them; and `GetAspectConversations($organizationId, $aspect)`, live, for the aspect page's
-    section, its latest four, three drawn and the fourth saying older ones exist, refreshed as the
-    list is.
-  - Every live conversation query, this one, `GetConversation` and `GetConversationRun`, also
+    unread replies and clears them.
+  - Every live conversation query, the list and the app-wide reads, `GetConversation` and
+    `GetConversationRun` alike, also
     refreshes on `RemoveOrganizationMember` and `DeleteOrganization`, on their `organizationId`, as
     `GetOrganizationDocuments` does: filtering on current membership only protects the next read, so
     an open subscription must re-run, and come back empty, the moment its reader is removed or the
@@ -1101,13 +1096,6 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   (see The transcript), the member (name, job title, role, bio), the organization (name, brief,
   explored aspects), the conversation's aspects and the member's language. Knowledge and tasks come
   through tools, which keeps it short.
-- **A suggestion's opener** is never stored as something Claude said, since its text comes from the
-  browser: the backend accepts only a `suggestionId` from `CONVERSATION_SUGGESTION_IDS`, and the
-  title and opener the browser sends with it, in the member's language, bounded in length. The first
-  user entry carries them as the member's context, "[The member started this conversation from the
-  suggestion “title”, which asks: “opener”.]", followed by the member's reply in the same entry. The
-  thread shows the opener as Strategy Dance's first message, which only the member, who chose it,
-  can see.
 - **Tagging aspects**: on a conversation's first run, unless the member set its aspects, a side
   request (structured output, effort `low`, no tools) picks one to three aspects from the first
   exchange. It writes them with the note only where `aspectsSetBy` is still null. It goes through
@@ -1721,7 +1709,7 @@ role keeps reading the conversations they wrote, which exposes nothing of anybod
 backend's routes, checked on every action, stop them starting or continuing runs, and the
 worker's claim checks the role again, so a queued run stops too:
 
-- The sidebar item, the aspect page section and the dock show for `user.isAdministrator` only. The
+- The sidebar item and the dock show for `user.isAdministrator` only. The
   sidebar's `useConversationsAwaitingAnswer` runs for staff only and never behind a waiter.
 - The routes sit behind a release bouncer that redirects anybody else to `/today`, as
   `AdministrationBouncer` does, mounted once in the parent layout route `_app/conversations.tsx`
@@ -1838,9 +1826,8 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 150 entries and the dock's few rows; the list of 1000 and the
-  aspect page's cards rerun only when a run starts or ends, and the badge only when a run starts or
-  stops waiting.
+  refreshes the open thread's tail of 150 entries and the dock's few rows; the list of 1000 reruns
+  only when a run starts or ends, and the badge only when a run starts or stops waiting.
   The tail carries no bodies, about 45 KB at most, and each body is read once by id, so a run of
   100 entries sends an open reader a few megabytes of refreshes at most, not hundreds.
 - **Editing the shared text from the backend**: settled by M1. `updateRichTextYDoc` writes an edit

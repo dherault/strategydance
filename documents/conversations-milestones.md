@@ -70,7 +70,7 @@ M27 well before their neighbours.
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
 | M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
 | M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
-| M23 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
+| M23 | Aspect tagging | backend, database, web | M7, M9 | |
 | M24 | The dock | web | M7 | |
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
 | M26 | Attachments in the composer and the thread | web | M22, M25 | |
@@ -188,7 +188,7 @@ The data model, with nothing yet using it.
 ### M5: The conversation page and its thread, read-only
 
 - `_app/conversations.$conversationId.tsx`, under M4's layout route and so behind its release
-  bouncer: search param `isNew` validated (`aspect` in M23), and
+  bouncer: search param `isNew` validated, and
   `beforeLoad` refusing an id that is not one, as `knowledge.$documentId.tsx` does; a
   `ConversationOrganizationBouncer` copied from `KnowledgeOrganizationBouncer`, back to the list when
   the organization changes; waiters keyed on the organization's id; `useConversation` and
@@ -221,8 +221,8 @@ The send route and the whole run lifecycle, answered by a placeholder agent, in 
 process. No queue and no composer yet: a script sends, and the page from M5 shows the reply arrive.
 
 - The conversations router, with its member and staff middleware.
-- `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
-  suggestion and attachments), validated on the server: `text` trimmed, not empty (M25 allows that
+- `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects
+  and attachments), validated on the server: `text` trimmed, not empty (M25 allows that
   with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the
   conversation (title rule, `MAX_CONVERSATIONS` under the membership lock, pruning what the member
   deleted over a day ago) with its message, queued run and first transcript entry, in one mutation;
@@ -429,7 +429,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   line of at most 500 characters (`MAX_ANSWER_OTHER_LENGTH`); an answer chooses at least one option
   or writes something; and a single-choice answer is exactly one of the two, an option or its own
   words, as the radios draw it.
-- The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
+- The question's waiting state in the thread, "Needs your answer" in the list, the
   sidebar badge, and questions in previews, all read from `isAwaitingAnswer`, which ending a run
   `WAITING` sets and consuming its turn clears.
 - Tests: an `ask_user` call whose prompt or one option is a character past its bound refused before
@@ -1263,22 +1263,15 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - Verify: mention two documents, send, see the links in the bubble and the agent read them; mention
   one with Read off and see the agent say it cannot read it.
 
-### M23: Aspect tagging, suggestions and the aspect page section
+### M23: Aspect tagging
 
 - The tagging side request and its note, as The agent describes.
-- The suggestion catalogue: `CONVERSATION_SUGGESTION_IDS` in core (keys like
-  `STRATEGY_ONE_METRIC`), the 36 titles and openers in the `conversation` catalogue.
-- The conversation route's `aspect` and `suggestion` search params, validated; the aspects button on
-  a draft, held in the draft until it is sent; the first message's draft fields (`aspects`,
-  `suggestionId`, `title`, `opener`); the opener inserted in the first send's one mutation, at
-  position 0 before the member's message, so the first send stays atomic and a retry finds it whole;
-  in the transcript, the suggestion carried in the first user entry, never as an assistant entry
-  (see The agent).
-- The aspect page's Conversations section above Knowledge, as designed, through
-  `useAspectConversations` (`GetAspectConversations`), and "New conversation"
-  tagged with the aspect.
-- Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not;
-  start a suggestion and see it leave the cards.
+- The aspects button on a draft, held in the draft until it is sent, and the first message's
+  `aspects`, optional in `POST …/messages`'s body, written with `aspectsSetBy` `MEMBER` in the first
+  send's one mutation, so the agent leaves them alone.
+- No suggestions and no section on the aspect page, whose design will likely change, as David chose
+  on 2026-10-11 (see The aspect page).
+- Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not.
 
 ### M24: The dock
 
@@ -1289,8 +1282,8 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - The dock in `AppLayout`, inside `SidebarProvider` after `SidebarInset`, `z-40`, hidden on mobile
   and on the conversation page: windows, read through `useDockConversations`
   (`GetDockConversations`, only the conversations its windows hold), the "+N" menu, focus, Escape,
-  unread counts and `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list,
-  the page and the cards.
+  unread counts and `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list
+  and the page.
 - Toasts move out of the dock's corner app-wide (Sonner's `position`), checked on a screenshot.
 - Utilities with tests: how many windows fit.
 - Verify: open four conversations at several widths; minimize, close, full page; replies arriving in

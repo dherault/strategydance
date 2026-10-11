@@ -47,6 +47,19 @@
             "value": "public, max-age=31536000, immutable"
           }
         ]
+      },
+      {
+        "regex": "(?i)^/oauth(/.*)?$",
+        "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "frame-ancestors 'none'"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          }
+        ]
       }
     ]
   },

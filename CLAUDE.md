@@ -600,10 +600,11 @@ A conversation is kept twice, once for Claude and once for the page, and
   conversations the windows hold, at most 20, which refreshes on every mutation that changes a
   conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
   a new one joins its refreshes, or a minimized window's count stands still. An open window draws
-  the page's own thread and composer, which mark replies read as the page does. What a composer holds
-  unsent is kept by conversation for the life of the tab (`~data/conversationComposerDrafts`), so a
-  conversation drawn again, on its page or in a window, starts with it: something new a composer
-  holds, as attachments will be, is kept there too
+  the page's own thread and composer, which mark replies read as the page does. A composer's message,
+  its mentions and where its send stands are kept by conversation for the life of the tab
+  (`~data/conversationComposerDrafts`) and shared by every composer drawing it, so a conversation
+  drawn again, on its page or in a window, carries on where it was: anything new a message holds, as
+  attachments will, goes there too, never in a composer's own state
 - A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
   `scrollerRef`: whatever scrolls the thread, or measures what the reader sees of it, takes that
   box, through `readConversationViewport` and `scrollConversationToEnd`, never `window` directly

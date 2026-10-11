@@ -1959,10 +1959,9 @@ query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(l
 # member's. A connection exists only while its membership does, so the organization is always one the
 # caller is in.
 #
-# Read up to 200, twice what anybody may connect (`MAX_AGENT_CONNECTIONS` in strategydance-core, which
-# Allow holds them to), so the list is never cut short: Allow counts under the lock of the membership
-# it connects, and consents in two organizations at the same instant can each pass the cap by one,
-# never by a hundred.
+# Read up to 100, as many as anybody may connect (`MAX_AGENT_CONNECTIONS` in strategydance-core), so
+# the list is never cut short: Allow counts them under a lock on the member's own row, so their
+# consents in every organization take turns.
 #
 # A live query, refreshed by what adds or removes a connection of the caller's: Allow on the consent
 # page, which the backend runs through the Admin SDK with the verified `$userId`, Disconnect, and the
@@ -1989,7 +1988,7 @@ query GetAgentConnections
   }
 )
 @refresh(onMutationExecuted: { operation: "DeleteOrganization" }) {
-  agentConnections(where: { membershipUserId: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }], limit: 200) {
+  agentConnections(where: { membershipUserId: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }], limit: 100) {
     id
     clientId
     clientName

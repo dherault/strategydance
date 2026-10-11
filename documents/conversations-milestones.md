@@ -1303,11 +1303,14 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     it.
   - **A member connects at most 100 agents** (`MAX_AGENT_CONNECTIONS`), so the tab, which reads
     every one, is the whole list and Disconnect reaches each, as `MAX_CONVERSATIONS` bounds the
-    conversations list. Allow counts after the membership's lock, leaving out the connection it
-    replaces, so consenting again at the cap goes through, and answers `TOO_MANY_AGENT_CONNECTIONS`
-    past it, deciding nothing: the page warns, links to the tab in a new one, and lets the member
-    allow again. Consents in two organizations at once hold different locks and can each pass the cap
-    by one, so the list reads 200.
+    conversations list. Allow first writes the member's own row, a lock their consents in every
+    organization take in turn, then the membership, so the count after both is exact, and leaves out
+    the connection it replaces, so consenting again at the cap goes through. Nothing else writes a
+    user row and a membership both, so the order waits on nobody. Past the cap it answers
+    `TOO_MANY_AGENT_CONNECTIONS`, deciding nothing: the page warns, links to the tab in a new one,
+    and lets the member allow again. The list reads exactly 100. The emulator's PGlite runs one
+    transaction at a time, so `check:oauth`'s race of two organizations passes with the lock or
+    without it: it guards the outcome, and Postgres' row lock is what makes it hold.
   - **`check:oauth` makes its tokens for the backend's own issuer**, `API_URL`, so it runs against a
     backend on another port, and checks the list and Disconnect through the web connector as two
     members of one organization.

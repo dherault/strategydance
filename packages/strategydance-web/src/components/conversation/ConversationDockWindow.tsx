@@ -46,7 +46,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
   const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
-  const [, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
+  const [draft, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
   const sectionRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
 
@@ -67,10 +67,12 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
     toggleRef.current?.focus()
   }
 
+  // A draft is stored once a send has started its first run, which the dock's read only shows a
+  // moment later: only one no send has stored is discarded with what was written in it
   function close() {
     closeWindow(conversationId)
 
-    if (isDraft && !conversation) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
+    if (isDraft && !conversation && !draft.startedRun) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
   }
 
   function openPage() {

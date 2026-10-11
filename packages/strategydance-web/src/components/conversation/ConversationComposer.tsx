@@ -17,6 +17,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun } from '~types'
 
+import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationMentions from '~hooks/conversation/useConversationMentions'
 import useSendConversationMessage from '~hooks/conversation/useSendConversationMessage'
 import useStopConversationRun from '~hooks/conversation/useStopConversationRun'
@@ -34,7 +35,7 @@ import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
-import { readConversationComposerDraft, writeConversationComposerDraft } from '~data/conversationComposerDrafts'
+import { readConversationComposerDraft, updateConversationComposerDraft } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 const FAILURE_MESSAGES = {
@@ -116,16 +117,18 @@ function ConversationComposer({
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  // What was written to the conversation and not sent, wherever it was drawn last
-  const [draft] = useState(() => readConversationComposerDraft(conversationId))
-  const mentions = useConversationMentions(textareaRef, draft?.mentions)
-  const [text, setText] = useState(draft?.text ?? '')
+  // What was written to the conversation and not sent, shared by every composer that draws it
+  const draft = useConversationComposerDraft(conversationId)
+  // The mentions it tracked as this composer appeared, which it tracks from then on
+  const [initialMentions] = useState(() => readConversationComposerDraft(conversationId)?.mentions)
+  const mentions = useConversationMentions(textareaRef, initialMentions)
   const [isSending, setIsSending] = useState(false)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
   const [failedSend, setFailedSend] = useState<FailedSend | null>(null)
   const [stoppingRunId, setStoppingRunId] = useState<string | null>(null)
   const [failedStopRunId, setFailedStopRunId] = useState<string | null>(null)
 
+  const text = draft?.text ?? ''
   const trimmedText = text.trim()
   const sentText = mentions.serialize(trimmedText)
   const isTooLong = sentText.length > MAX_CONVERSATION_MESSAGE_LENGTH
@@ -139,11 +142,20 @@ function ConversationComposer({
     goingRunId !== null && (stoppingRunId === goingRunId || (run?.id === goingRunId && !!run.stopRequestedAt))
   const shownFailure = isFull ? 'full' : failure
 
-  // Keeps what is written for the conversation drawn again elsewhere: its page or its dock's window,
-  // one minimized and opened again, or one the "+N" menu held
+  // Keeps the mentions picked beside the words that hold them, for the conversation drawn again
+  // elsewhere: its page or its dock's window, one minimized and opened again, or one the "+N" menu held
   useEffect(() => {
-    writeConversationComposerDraft(conversationId, { text, mentions: mentions.tracked })
-  }, [conversationId, text, mentions.tracked])
+    updateConversationComposerDraft(conversationId, current =>
+      current && current.mentions !== mentions.tracked ? { ...current, mentions: mentions.tracked } : current,
+    )
+  }, [conversationId, mentions.tracked])
+
+  function setText(value: string) {
+    updateConversationComposerDraft(conversationId, current => ({
+      text: value,
+      mentions: current?.mentions ?? mentions.tracked,
+    }))
+  }
 
   async function send() {
     if (!canSend) return
@@ -171,7 +183,8 @@ function ConversationComposer({
       // What was written while it went is the reader's next message, its mentions with it
       if (textareaRef.current?.value === sentValue) mentions.clear()
 
-      setText(current => (current === sentValue ? '' : current))
+      // Here or wherever the conversation is drawn now, should this composer have gone meanwhile
+      updateConversationComposerDraft(conversationId, current => (current?.text === sentValue ? null : current))
       setFailedSend(null)
       onRunStart(isRetry ? null : { runId, previousRunId })
 

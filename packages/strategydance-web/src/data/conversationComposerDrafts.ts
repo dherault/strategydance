@@ -6,19 +6,40 @@ export type ConversationComposerDraft = {
 }
 
 const drafts = new Map<string, ConversationComposerDraft>()
+const listeners = new Set<() => void>()
 
 /*
-  The words written to each conversation and not sent, kept for the life of the tab, so a
-  conversation drawn again elsewhere starts with them: its page and its dock's window, a window
-  minimized and opened again, or one the "+N" menu held. Never stored: a reload starts afresh, as
-  the page always has
+  The words written to each conversation and not sent, kept for the life of the tab and shared by
+  every composer that draws the conversation: its page and its dock's window, a window minimized
+  and opened again, or one the "+N" menu held, all start with them. A send that lands after its
+  composer has gone, the conversation drawn elsewhere meanwhile, still clears them there. Never
+  stored: a reload starts afresh, as the page always has
 */
 export function readConversationComposerDraft(conversationId: string) {
   return drafts.get(conversationId) ?? null
 }
 
-// Keeps what a composer holds, or forgets it once there is nothing left to send
-export function writeConversationComposerDraft(conversationId: string, draft: ConversationComposerDraft | null) {
-  if (draft?.text) drafts.set(conversationId, draft)
-  else drafts.delete(conversationId)
+// Changes what a conversation's composers hold, or forgets it once there is nothing left to send
+export function updateConversationComposerDraft(
+  conversationId: string,
+  update: (current: ConversationComposerDraft | null) => ConversationComposerDraft | null,
+) {
+  const current = drafts.get(conversationId) ?? null
+  const next = update(current)
+
+  if (next === current) return
+
+  if (next?.text) drafts.set(conversationId, next)
+  else if (current) drafts.delete(conversationId)
+  else return
+
+  for (const listener of listeners) listener()
+}
+
+export function subscribeToConversationComposerDrafts(listener: () => void) {
+  listeners.add(listener)
+
+  return () => {
+    listeners.delete(listener)
+  }
 }

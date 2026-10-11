@@ -1269,6 +1269,48 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - Verify: `check:oauth`'s flow with the page approving in a browser instead of the script, at
   desktop and phone widths; signed out first, the page coming back after signing in; Deny; an
   expired request; a connection disconnected from the tab, and the script's next refresh refused.
+- Built with these settled, on 2026-10-11:
+  - **The consent address carries the request's id hyphenated.** TanStack parses each value of a
+    query as JSON first, so 32 hex digits that happen to be decimal, or decimal around one `e`,
+    about one request in a million, would arrive as a number that lost its digits. The backend
+    writes it with `toHyphenatedUuid`, which never parses, and the page's `validateSearch` takes a
+    string alone.
+  - **The page reads its request once**: no retry, no read on focus or reconnecting, never stale. A
+    read is what has the backend fetch a client's metadata document, metered per member, and a read
+    after deciding would answer that the request is gone while the browser leaves for the agent.
+  - **The gate is a screen, not a redirect, and comes before the read**: an account that is not
+    staff is told the page is not available yet, since an agent sent it there, and the backend
+    fetches no document for it. The web's `useCanUseModules` keys off `ARE_MODULES_STAFF_ONLY` and
+    `EMULATORS_REQUESTED`, as `useCanUseConversations` does.
+  - **Either answer replaces the page** (`window.location.replace`), so going back never lands on a
+    request decided. A request expired or gone meanwhile, and an agent that could not be verified,
+    end the page with their own words, never the backend's English; anything else is a toast and
+    another try. A Deny answered with no address, the agent unverified, says the connection was
+    denied and the page may be closed.
+  - **The organization defaults to the one the member has open**, among their own, and a member in
+    none is told so on the page with a way to the prologue, since `_app`'s bouncer is not above it.
+    Deny stays offered.
+  - **Read and write is offered checked when asked for**, and Read alone, unchecked, beside it, each
+    worded by the module: the consent never grants more than was asked, and the member reduces it.
+  - **The frame header is a case-insensitive regex**, `(?i)^/oauth(/.*)?$`, since the router matches
+    paths regardless of case and `/OAuth/consent` would otherwise render unguarded. It sends
+    `X-Frame-Options: DENY` beside `frame-ancestors 'none'`, for browsers without CSP 3.
+  - **`DeleteAgentConnection` deletes by id and `auth.uid`**, so another member's id deletes nothing,
+    and one gone already succeeds, as `DeleteConversation` does. `$userId` checked against the token
+    is what the list's refresh condition reads. A revocation or a reused code, which the protocol's
+    endpoints make knowing no `$userId`, shows on the tab's next read, as the page regains focus.
+  - **Disconnect asks twice through the button**, without a dialog: a consent from the agent undoes
+    it.
+  - **`check:oauth` makes its tokens for the backend's own issuer**, `API_URL`, so it runs against a
+    backend on another port, and checks the list and Disconnect through the web connector as two
+    members of one organization.
+  - Verified with the tests, `check:oauth`, and a browser driving the page and the tab against a
+    scratch suite of the branch's Auth and Data Connect emulators and its backend on its own port:
+    signed out first and back after signing in, Allow for another organization with read alone, the
+    token answer saying read, Deny at phone width, an expired, an unknown and a malformed request,
+    the tab listing a connection, another appearing live, Disconnect removing it without a reload,
+    and the agent's next refresh refused. The page's not-available screen can only be seen against
+    the real project, since the emulators lift the gate.
 
 ### M20: The Knowledge module for external agents
 

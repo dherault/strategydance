@@ -6,16 +6,16 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import type { KnowledgeDocumentSummary } from '~types'
 
 import useNow from '~hooks/common/useNow'
-import useConversationDeletedDocument from '~hooks/conversation/useConversationDeletedDocument'
 import useRestoreConversationDocument from '~hooks/conversation/useRestoreConversationDocument'
 
 import canRestoreConversationDocument from '~utils/conversation/canRestoreConversationDocument'
+import type { ConversationDeletedDocument } from '~utils/conversation/readConversationDeletedDocument'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
-  // The `delete_document` call's message, whose output names the document
-  messageId: string
+  // The document the row's call deleted, as its output said, or null until the thread read it
+  deleted: ConversationDeletedDocument | null
   // The organization's documents by id, or null while they are not read
   documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
 }
@@ -25,10 +25,9 @@ type Props = {
   it and a day has not passed since the call, so a member who sees a document go that they wanted
   kept needs no second request. Once restored, the live list holds it again and the button goes
 */
-function ConversationDocumentRestore({ messageId, documents }: Props) {
+function ConversationDocumentRestore({ deleted, documents }: Props) {
   const { formatMessage } = useIntl()
   const now = useNow()
-  const deleted = useConversationDeletedDocument(messageId)
   const restore = useRestoreConversationDocument()
   const [isRestoring, setIsRestoring] = useState(false)
 

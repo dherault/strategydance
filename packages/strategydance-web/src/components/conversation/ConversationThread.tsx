@@ -11,6 +11,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
 
+import useConversationDeletedDocuments from '~hooks/conversation/useConversationDeletedDocuments'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
@@ -23,6 +24,7 @@ import hasConversationMessageBody from '~utils/conversation/hasConversationMessa
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
+import readConversationDeletedDocumentIds from '~utils/conversation/readConversationDeletedDocumentIds'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -74,6 +76,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
   const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
+  const deletedDocuments = useConversationDeletedDocuments(conversation.id, readConversationDeletedDocumentIds(entries))
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
@@ -187,7 +190,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
             action={
               entry.toolName === DELETE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED ? (
                 <ConversationDocumentRestore
-                  messageId={entry.id}
+                  deleted={deletedDocuments.get(entry.id) ?? null}
                   documents={documents}
                 />
               ) : null

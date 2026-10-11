@@ -1900,6 +1900,31 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
   }
 }
 
+# The outputs of some of a conversation's tool calls that succeeded, by id, which never change once
+# written: what the thread reads of the rows that offer something, a deleted document's Restore, in
+# one read for all of them rather than one each. Up to 50 at a time. Only the caller's own
+# conversation's calls come back, so an id from anywhere else reads nothing
+query GetConversationToolOutputs($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
+  conversationMessages(
+    where: {
+      id: { in: $messageIds }
+      conversationId: { eq: $id }
+      kind: { eq: TOOL_CALL }
+      toolStatus: { eq: SUCCEEDED }
+      conversation: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    limit: 50
+  ) {
+    id
+    toolOutput
+  }
+}
+
 # One tool call's input and output, as its dialog shows them, read each time the dialog opens since
 # a call's output arrives after its message. Both are JSON text, exactly as the call took and gave
 # them

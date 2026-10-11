@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 
+import { CompanyAspect } from 'strategydance-database/backend'
+
+import buildConversationTaggingRequest from './buildConversationTaggingRequest'
 import createPlaceholderClaudeClient from './createPlaceholderClaudeClient'
+import readConversationTagging from './readConversationTagging'
 
 function ask(text: string, { stepDurationMs = 0, signal = new AbortController().signal } = {}) {
   const lines: string[] = []
@@ -35,6 +39,20 @@ describe('createPlaceholderClaudeClient', () => {
     const message = await ask('Ship it 👍🏽').answer
 
     expect(JSON.stringify(message.content[0])).toContain('**9**')
+  })
+
+  test('tags a conversation at once with the strategy aspect, when asked for its schema’s answer', async () => {
+    const lines: string[] = []
+    const message = await createPlaceholderClaudeClient({ stepDurationMs: 1000 }).stream(
+      buildConversationTaggingRequest({
+        member: [{ type: 'text', text: 'Help me price the beta' }],
+        reply: [{ type: 'text', text: 'Flat 19 per month.' }],
+      }),
+      { signal: new AbortController().signal, onProgress: line => lines.push(line) },
+    )
+
+    expect(lines).toEqual([])
+    expect(readConversationTagging(message)).toEqual([CompanyAspect.STRATEGY])
   })
 
   test('gives up when its worker aborts', async () => {

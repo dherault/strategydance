@@ -6,6 +6,8 @@ import respondOAuthError from '~utils/respondOAuthError'
 
 import oauthAuthorizationRateLimitMiddleware from '~middleware/oauthAuthorizationRateLimit'
 import oauthRegistrationRateLimitMiddleware from '~middleware/oauthRegistrationRateLimit'
+import oauthRevocationRateLimitMiddleware from '~middleware/oauthRevocationRateLimit'
+import oauthTokenRateLimitMiddleware from '~middleware/oauthTokenRateLimit'
 
 import exchangeOAuthAuthorizationCode from '~domain/oauth/exchangeOAuthAuthorizationCode'
 import parseOAuthParameters from '~domain/oauth/parseOAuthParameters'
@@ -107,85 +109,97 @@ function createOAuthRouter() {
     that grant's parameters alone. Every client is public, so it names its `client_id`, and every
     request its `resource`
   */
-  router.post('/token', noStoreMiddleware, formParser, async (request: Request, response: Response) => {
-    const form = readForm(request)
+  router.post(
+    '/token',
+    noStoreMiddleware,
+    oauthTokenRateLimitMiddleware,
+    formParser,
+    async (request: Request, response: Response) => {
+      const form = readForm(request)
 
-    if (form === null) {
-      respondOAuthError(
-        response,
-        400,
-        'invalid_request',
-        'A token request is a form, application/x-www-form-urlencoded',
-      )
+      if (form === null) {
+        respondOAuthError(
+          response,
+          400,
+          'invalid_request',
+          'A token request is a form, application/x-www-form-urlencoded',
+        )
 
-      return
-    }
+        return
+      }
 
-    // Any parameter repeated is refused here, whichever grant it belongs to
-    const grant = parseOAuthParameters(form, ['grant_type'])
+      // Any parameter repeated is refused here, whichever grant it belongs to
+      const grant = parseOAuthParameters(form, ['grant_type'])
 
-    if (grant.isRepeated) {
-      respondOAuthError(
-        response,
-        400,
-        'invalid_request',
-        `The request names ${grant.name.slice(0, 100)} more than once`,
-      )
+      if (grant.isRepeated) {
+        respondOAuthError(
+          response,
+          400,
+          'invalid_request',
+          `The request names ${grant.name.slice(0, 100)} more than once`,
+        )
 
-      return
-    }
+        return
+      }
 
-    const grantType = grant.values.grant_type
+      const grantType = grant.values.grant_type
 
-    if (grantType !== 'authorization_code' && grantType !== 'refresh_token') {
-      respondOAuthError(
-        response,
-        400,
-        grantType ? 'unsupported_grant_type' : 'invalid_request',
-        'The server serves the authorization_code and refresh_token grants',
-      )
+      if (grantType !== 'authorization_code' && grantType !== 'refresh_token') {
+        respondOAuthError(
+          response,
+          400,
+          grantType ? 'unsupported_grant_type' : 'invalid_request',
+          'The server serves the authorization_code and refresh_token grants',
+        )
 
-      return
-    }
+        return
+      }
 
-    const result =
-      grantType === 'authorization_code'
-        ? await exchangeOAuthAuthorizationCode(readValues(form, CODE_PARAMETERS))
-        : await refreshAgentConnectionTokens(readValues(form, REFRESH_PARAMETERS))
+      const result =
+        grantType === 'authorization_code'
+          ? await exchangeOAuthAuthorizationCode(readValues(form, CODE_PARAMETERS))
+          : await refreshAgentConnectionTokens(readValues(form, REFRESH_PARAMETERS))
 
-    if (result.outcome === 'error') {
-      respondOAuthError(response, 400, result.error, result.description)
+      if (result.outcome === 'error') {
+        respondOAuthError(response, 400, result.error, result.description)
 
-      return
-    }
+        return
+      }
 
-    response.json(result.tokens)
-  })
+      response.json(result.tokens)
+    },
+  )
 
   /*
     Revokes a token its client holds (RFC 7009): a refresh token ends the connection, an access
     token itself alone. Answered with an empty 200 for a token the server does not know
   */
-  router.post('/revoke', noStoreMiddleware, formParser, async (request: Request, response: Response) => {
-    const form = readForm(request)
-    const parameters = form === null ? null : parseOAuthParameters(form, REVOCATION_PARAMETERS)
+  router.post(
+    '/revoke',
+    noStoreMiddleware,
+    oauthRevocationRateLimitMiddleware,
+    formParser,
+    async (request: Request, response: Response) => {
+      const form = readForm(request)
+      const parameters = form === null ? null : parseOAuthParameters(form, REVOCATION_PARAMETERS)
 
-    if (!parameters || parameters.isRepeated) {
-      respondOAuthError(response, 400, 'invalid_request', 'A revocation is a form naming each parameter once')
+      if (!parameters || parameters.isRepeated) {
+        respondOAuthError(response, 400, 'invalid_request', 'A revocation is a form naming each parameter once')
 
-      return
-    }
+        return
+      }
 
-    const revocation = await revokeAgentConnectionToken(parameters.values)
+      const revocation = await revokeAgentConnectionToken(parameters.values)
 
-    if (revocation.outcome === 'error') {
-      respondOAuthError(response, 400, revocation.error, revocation.description)
+      if (revocation.outcome === 'error') {
+        respondOAuthError(response, 400, revocation.error, revocation.description)
 
-      return
-    }
+        return
+      }
 
-    response.status(200).end()
-  })
+      response.status(200).end()
+    },
+  )
 
   /*
     What any of these endpoints threw, in OAuth's own words: a body that could not be read is the

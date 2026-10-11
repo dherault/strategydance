@@ -169,6 +169,30 @@ describe('POST /oauth/register', () => {
   })
 })
 
+describe('POST /oauth/token and /oauth/revoke', () => {
+  test('meter each address before reading the form, never caching the refusal', async () => {
+    for (const [path, limit] of [
+      ['token', 600],
+      ['revoke', 300],
+    ] as const) {
+      const send = () =>
+        fetch(`${origin}/oauth/${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'grant_type=password',
+        })
+
+      for (let index = 0; index < limit; index++) expect((await send()).status).toBe(400)
+
+      const refused = await send()
+
+      expect(refused.status).toBe(429)
+      expect(((await refused.json()) as { error: string }).error).toBe('too_many_requests')
+      expect(refused.headers.get('cache-control')).toBe('no-store')
+    }
+  })
+})
+
 describe('GET /oauth/authorize', () => {
   beforeEach(() => {
     fake.reset()

@@ -33,9 +33,10 @@ type Props = {
   are marked read as the page marks them. Escape
   minimizes it, and its header then takes the focus.
 
-  Minimized, it reads nothing but what the dock reads: its thread and composer go, and what was
-  written but not sent with them. "Full page" opens the conversation as its page, which takes it out
-  of the dock, and closing a draft's window discards the draft
+  Minimized, it reads nothing but what the dock reads: its thread and composer go, though what was
+  written and not sent stays for when it opens again, as it does for the page "Full page" opens,
+  which takes the conversation out of the dock. Closing a draft's window discards the draft, whose
+  id nothing opens again
 */
 function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const { formatMessage } = useIntl()

@@ -1,5 +1,13 @@
 import { ArrowUpIcon, SquareIcon } from 'lucide-react'
-import { type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject, useRef, useState } from 'react'
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { MAX_CONVERSATION_MESSAGE_LENGTH, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
@@ -26,6 +34,7 @@ import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
+import { readConversationComposerDraft, writeConversationComposerDraft } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 const FAILURE_MESSAGES = {
@@ -86,7 +95,11 @@ type Props = {
 
   It is the last thing on its page, or in its dock's window, so a draft keeps it, and what is written
   in it, when its first message stores it. That message carries the aspects the reader picked on the
-  draft, and no later one does
+  draft, and no later one does.
+
+  What is written and not sent, its mentions with it, outlives the composer for the life of the tab
+  (`conversationComposerDrafts`), so moving a conversation between its page and the dock, or
+  minimizing its window, loses none of it
 */
 function ConversationComposer({
   conversationId,
@@ -103,8 +116,10 @@ function ConversationComposer({
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const mentions = useConversationMentions(textareaRef)
-  const [text, setText] = useState('')
+  // What was written to the conversation and not sent, wherever it was drawn last
+  const [draft] = useState(() => readConversationComposerDraft(conversationId))
+  const mentions = useConversationMentions(textareaRef, draft?.mentions)
+  const [text, setText] = useState(draft?.text ?? '')
   const [isSending, setIsSending] = useState(false)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
   const [failedSend, setFailedSend] = useState<FailedSend | null>(null)
@@ -123,6 +138,12 @@ function ConversationComposer({
   const isStopping =
     goingRunId !== null && (stoppingRunId === goingRunId || (run?.id === goingRunId && !!run.stopRequestedAt))
   const shownFailure = isFull ? 'full' : failure
+
+  // Keeps what is written for the conversation drawn again elsewhere: its page or its dock's window,
+  // one minimized and opened again, or one the "+N" menu held
+  useEffect(() => {
+    writeConversationComposerDraft(conversationId, { text, mentions: mentions.tracked })
+  }, [conversationId, text, mentions.tracked])
 
   async function send() {
     if (!canSend) return

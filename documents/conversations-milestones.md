@@ -1371,6 +1371,14 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   - **A connection makes 600 calls in ten minutes**, counted in the instance's memory and keyed by
     the connection, as generous as the token endpoint, a 429 in JSON-RPC past it. The launch
     revisits it with the others.
+  - **An address makes 600 refused calls in ten minutes**, metered before the bearer check, as the
+    first review round asked: the connection's limit runs only once a token is read, so a made-up
+    token, or a call past a connection's limit, would otherwise cost a read of the database each.
+    Only an answer of 400 or above counts, so a hosted client calling for many members from a few
+    addresses is held by each connection's limit alone.
+  - **The use recorder forgets its oldest write once it holds 10000 connections**, in one step, as
+    the first review round asked: its sweep of entries over a minute old freed nothing when all were
+    younger. A connection forgotten within its minute is only asked of the database again.
   - **The resource metadata answers any origin**, its path joining `OAUTH_PROTOCOL_PATHS`, so a
     client running in a page discovers the server as it discovers the authorization server; the
     endpoint keeps to the app's origins. `mcpAuthMetadataRouter` serves the authorization server's

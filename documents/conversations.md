@@ -1474,7 +1474,9 @@ authorization server from M18 and a consent page from M19:
   - The route parses its own body, at most 1 MiB, and hands it to the handler, `(request, response)
     => nodeHandler(request, response, request.body)`, since the parser has consumed the stream the
     adapter would otherwise read again; an in-memory rate limit per connection, 600 calls in ten
-    minutes, stands in front of it, as the backend's other limits do; GET and DELETE answer 405.
+    minutes, stands in front of it, as the backend's other limits do, and one per address, 600
+    refused calls, in front of the bearer check, so made-up tokens cost a bounded number of reads;
+    GET and DELETE answer 405.
   - No App Check, which an external agent cannot carry: the token is the guard. The answers are
     MCP's JSON-RPC, not `ApiResponse`.
   - A connection granted read only still lists every tool: every write tool registers the SDK's

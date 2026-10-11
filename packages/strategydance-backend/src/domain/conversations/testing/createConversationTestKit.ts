@@ -46,8 +46,15 @@ function createConversationTestKit(
     return membership.createdAt
   }
 
-  // A conversation started as a send starts one, its run queued
-  async function start(text = 'Help me price the beta'): Promise<ConversationRunReference> {
+  /*
+    A conversation started as a send starts one, its run queued, with the aspects its member picked
+    on the draft, so its run asks Claude for its turns alone, unless a test leaves them to the agent
+    to tag with `aspects: null`
+  */
+  async function start(
+    text = 'Help me price the beta',
+    { aspects = ['FINANCES'] }: { aspects?: string[] | null } = {},
+  ): Promise<ConversationRunReference> {
     const reference = { organizationId, userId: author, conversationId: createId(), runId: createId() }
 
     await call('startConversation', {
@@ -58,6 +65,7 @@ function createConversationTestKit(
       text,
       preview: { kind: 'MEMBER_TEXT', text },
       content: serializeTranscriptContent([{ type: 'text', text }]),
+      ...(aspects ? { aspects, aspectsSetBy: 'MEMBER' } : {}),
     })
 
     return reference

@@ -29,7 +29,9 @@ modules' tools reach Claude without `strict`, since the modules outgrow what str
 Revised on 2026-10-11, in M22, as David chose: the member's bubble draws only the knowledge it
 mentions, and keeps the rest as typed. Revised on 2026-10-11, as David chose: no suggestions and no
 Conversations section on the aspect page, since their design will likely change, and the
-`suggestionId` column M2 added is dropped; the agent still tags a conversation's aspects. When a
+`suggestionId` column M2 added is dropped; the agent still tags a conversation's aspects. Revised
+on 2026-10-11, in M23, as David chose: the runs answering a conversation's first message tag it, the
+first or one carrying it on, and a draft's aspects picked as none leave it to the agent. When a
 decision changes, change it here first.
 
 ## The design
@@ -1100,7 +1102,42 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   request (structured output, effort `low`, no tools) picks one to three aspects from the first
   exchange. It writes them with the note only where `aspectsSetBy` is still null. It goes through
   the same accounting as the run's own requests: reserved before it is sent, settled into the run's
-  `usage` after, and counted toward the run's 25 requests.
+  `usage` after, and counted toward the run's 25 requests. As M23 built it:
+  - **Which runs.** A run on the conversation's first anchor, `anchorPosition` 0: its first run, or
+    a resume or a retry carrying it on, as David chose, so a first run that was stopped or failed
+    is tagged once one of those answers. A conversation whose first exchange never gets a reply
+    stays untagged until the member tags it. The run tags once its reply is wholly drawn and ends
+    it: with no call, or with a question, before the calls beside the question run, so none runs
+    twice. Not once its member asked to stop it, at its 25 requests or its 10 minutes, nor at the
+    conversation's 2000 entries.
+  - **What it reads.** The transcript's first entry, the member's message, and the reply: its text
+    and the prompts of the questions it asked, each cut to 8000 characters
+    (`buildConversationTaggingRequest`). A system prompt of its own gives each of the nine aspects a
+    line, and asks for one to three, the most relevant first, the exchange being data. The answer's
+    schema lists the aspects; the API takes no bound on an array's length, so the reader keeps the
+    known ones, each once, the first three (`readConversationTagging`).
+  - **Its ledger entry** is marked `purpose: "tagging"`. It stores no part, so its `turnPosition`
+    stays null, which every reader of a turn's requests already skips: the measurement, the paused
+    part's lookup. A run tries once, which its ledger says. It is reserved at its count, the schema
+    included, which the API bills as input (856 tokens counted and billed when probed, 528 without
+    the schema), and a worker taking the run over charges an unsettled one at its own allowance,
+    8000 output tokens, not a turn's 64000.
+  - **Best effort.** An error of the API, a refusal its fallback refused too, an answer cut at its
+    `max_tokens` or not the schema's, a minute gone or its member's stop leave the conversation
+    untagged, and the run ends as its reply does. The request is settled either way.
+  - **The write**, `TagConversationAspects`, fenced, claims the note's position on the counter and
+    sets the aspects as the agent's only where `aspectsSetBy` is still null and the conversation
+    holds fewer than 2000 entries, and settles the ledger. Refused because the member's note moved
+    the counter meanwhile, it is read again, finds the member's aspects, and writes the ledger
+    alone. The note belongs to no run, as the member's does: it stays out of the 100 entries a run
+    draws, a Retry keeps it with the aspects it shows, and it never becomes the preview or adds to
+    the unread count. Its id derives from the run and `aspects`.
+  - **A draft's aspects**, picked before the first send, travel in that send's body and start the
+    conversation as the member's (`StartConversation`), with no note. A pick of none sends nothing,
+    so the agent still tags, as David chose: the head then reads "Add aspects" as an untouched
+    draft's does.
+  - Probed on 2026-10-11 with the real model: a pricing exchange came back FINANCES and PRODUCT, 24
+    output tokens.
 
 ### Tools
 

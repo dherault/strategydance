@@ -1,6 +1,10 @@
 import type { BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
-import { CONVERSATION_MAX_TOKENS, CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import {
+  CONVERSATION_MAX_TOKENS,
+  CONVERSATION_MODEL,
+  CONVERSATION_TAGGING_MAX_TOKENS,
+} from '~domain/agent/conversationRequestSettings'
 
 // One request to Claude in a run's ledger
 export type ConversationRequestUsage = {
@@ -28,6 +32,9 @@ export type ConversationRequestUsage = {
   // What the models that declined it used before the API fell back, which its own figures leave
   // out; absent from a ledger written before M10
   declined?: ConversationDeclinedAttempt[]
+  // `tagging` for the side request that tags the conversation with its aspects, which stores no
+  // part, so its `turnPosition` stays null; absent for a request for the run's turn
+  purpose?: 'tagging'
 }
 
 // One attempt at a request a model declined partway, before the API fell back to another
@@ -75,7 +82,12 @@ export function parseConversationRunUsage(value: unknown): ConversationRunUsage 
 */
 export function reserveConversationRequest(
   usage: ConversationRunUsage,
-  reservation: { estimatedInputTokens: number; configTokens: number; inputEndPosition: number },
+  reservation: {
+    estimatedInputTokens: number
+    configTokens: number
+    inputEndPosition: number
+    purpose?: ConversationRequestUsage['purpose']
+  },
 ) {
   const request: ConversationRequestUsage = {
     model: null,
@@ -157,7 +169,7 @@ export function placeConversationRequest(usage: ConversationRunUsage, index: num
 /*
   Charges every request a worker reserved and never settled, as one that takes the run over finds
   them: it was sent, and billed, so it counts at its measured input and the whole output it was
-  allowed, marked as estimates
+  allowed, a turn's or the tagging request's, marked as estimates
 */
 export function chargeUnsettledRequests(usage: ConversationRunUsage) {
   if (usage.requests.every(({ isSettled }) => isSettled)) return usage
@@ -170,7 +182,7 @@ export function chargeUnsettledRequests(usage: ConversationRunUsage) {
             ...request,
             model: request.model ?? CONVERSATION_MODEL,
             inputTokens: request.estimatedInputTokens,
-            outputTokens: CONVERSATION_MAX_TOKENS,
+            outputTokens: request.purpose === 'tagging' ? CONVERSATION_TAGGING_MAX_TOKENS : CONVERSATION_MAX_TOKENS,
             isEstimated: true,
             isSettled: true,
           },

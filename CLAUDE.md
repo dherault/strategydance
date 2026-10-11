@@ -495,6 +495,12 @@ A conversation is kept twice, once for Claude and once for the page, and
   with the model, why it stopped and where its part was stored. A worker taking a run over charges
   an unsettled request at its estimate. What a request came to, the turn to store or the run's
   end, is kept until it is written, so a refused write is tried again and never paid for twice
+- A run's side request, today the one that tags a conversation's aspects
+  (`requestConversationTagging`), goes through the same ledger, marked with its `purpose`: it stores
+  no part, so its `turnPosition` stays null, which the readers of a turn's requests skip, and a
+  takeover charges it at its own allowance. It never fails a run, and a run tries it once, as its
+  ledger says. An aspects note belongs to no run, the agent's as the member's, so it counts toward
+  no run's entries and a Retry keeps it
 - A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
   entries, one write each, the first with the run's context message. A crash between two leaves
   the turn paused at its last stored part, which the ledger says, and the next worker sends its

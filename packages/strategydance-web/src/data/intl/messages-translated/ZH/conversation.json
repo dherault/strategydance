@@ -1,7 +1,7 @@
 {
   "conversation.addAspects": "添加领域",
   "conversation.allConversations": "所有对话",
-  "conversation.aspectsDescription": "对话会显示在其所标记的每个领域的页面上。在你标记后，Strategy Dance 将不再自动标记。",
+  "conversation.aspectsDescription": "在你为其选择方面之前，Strategy Dance 会自动为对话添加标签。",
   "conversation.aspectsError": "无法保存领域。请检查网络连接后重试。",
   "conversation.aspectsFull": "此对话已满，无法再更改其所属领域。",
   "conversation.aspectsNote.changed": "你更改了领域",

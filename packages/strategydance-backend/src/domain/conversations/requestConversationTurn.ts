@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_CONVERSATION_INPUT_TOKENS } from 'strategydance-core'
 import {
+  type CompanyAspect,
   ConversationNoteKind,
   ConversationRunStatus,
   ConversationTranscriptRole,
@@ -87,6 +88,8 @@ export type ConversationTurnPart = {
   - `turn`: the turn's parts to store, the first with the run's context when it is not stored yet,
     from `firstPosition` on, with the ledger they settle
   - `ending`: the run ends instead, full or failed, with what its requests used
+  - `tagging`: the aspects the tagging request picked, or null when it picked none, with the ledger
+    it settles (see `requestConversationTagging`)
 */
 export type ConversationTurnOutcome =
   | {
@@ -98,6 +101,7 @@ export type ConversationTurnOutcome =
       usage: ConversationRunUsage
     }
   | { kind: 'ending'; ending: ConversationRunEnding }
+  | { kind: 'tagging'; aspects: CompanyAspect[] | null; usage: ConversationRunUsage }
 
 /*
   Asks Claude for the run's turn: reads the whole transcript, builds the run's context message once

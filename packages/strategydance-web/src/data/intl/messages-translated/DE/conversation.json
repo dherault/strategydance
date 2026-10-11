@@ -1,7 +1,7 @@
 {
   "conversation.addAspects": "Aspekte hinzufügen",
   "conversation.allConversations": "Alle Unterhaltungen",
-  "conversation.aspectsDescription": "Sie wird auf der Seite jedes Aspekts angezeigt, mit dem sie getaggt ist. Strategy Dance taggt sie nicht mehr, sobald du es tust.",
+  "conversation.aspectsDescription": "Strategy Dance taggt eine Unterhaltung von selbst, bis du ihre Aspekte auswählst.",
   "conversation.aspectsError": "Die Aspekte konnten nicht gespeichert werden. Überprüfe deine Verbindung und versuche es erneut.",
   "conversation.aspectsFull": "Diese Unterhaltung ist voll, daher können ihre Aspekte nicht mehr geändert werden.",
   "conversation.aspectsNote.changed": "Du hast die Aspekte geändert",

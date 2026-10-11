@@ -43,6 +43,9 @@ mock.module('~middleware/authentication', () => ({
 
 mock.module('~middleware/organizationMember', () => ({ default: passThrough }))
 
+// A send's run stays queued, since no worker is what these tests are about
+mock.module('~domain/conversations/enqueueRun', () => ({ default: async () => true }))
+
 const { default: createConversationsRouter } = await import('./conversations')
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
@@ -71,6 +74,14 @@ function search(origin: string, query: unknown) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
+  })
+}
+
+function sendMessage(origin: string, conversationId: string, body: Record<string, unknown>) {
+  return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messageId: crypto.randomUUID(), text: 'Help me price the beta', ...body }),
   })
 }
 
@@ -105,6 +116,32 @@ beforeEach(() => {
 
 afterAll(() => {
   for (const server of servers) server.close()
+})
+
+describe('POST /:conversationId/messages', () => {
+  test('starts a conversation with the aspects its member picked on the draft', async () => {
+    const origin = await listen()
+    const conversationId = crypto.randomUUID()
+    const response = await sendMessage(origin, conversationId, { aspects: ['SALES', 'FINANCES'] })
+
+    expect(response.status).toBe(202)
+    expect(fake.conversations.get(conversationId.replaceAll('-', ''))).toMatchObject({
+      aspects: ['SALES', 'FINANCES'],
+      aspectsSetBy: 'MEMBER',
+    })
+  })
+
+  test('refuses an aspect it does not know, or one named twice, before anything is stored', async () => {
+    const origin = await listen()
+
+    for (const aspects of [['PRICING'], ['SALES', 'SALES'], 'SALES']) {
+      const conversationId = crypto.randomUUID()
+      const response = await sendMessage(origin, conversationId, { aspects })
+
+      expect(response.status).toBe(400)
+      expect(fake.conversations.size).toBe(0)
+    }
+  })
 })
 
 describe('POST /search', () => {

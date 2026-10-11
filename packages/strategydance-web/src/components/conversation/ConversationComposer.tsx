@@ -2,6 +2,7 @@ import { ArrowUpIcon, SquareIcon } from 'lucide-react'
 import { type ChangeEvent, type FormEvent, type KeyboardEvent, useRef, useState } from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { MAX_CONVERSATION_MESSAGE_LENGTH, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
+import type { CompanyAspect } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
 
@@ -49,6 +50,8 @@ type Props = {
   // The run the reader last started from the page, and what records it
   startedRun: StartedConversationRun | null
   onRunStart: (startedRun: StartedConversationRun | null) => void
+  // The aspects the reader picked on a draft, which its first message sends
+  draftAspects: CompanyAspect[]
 }
 
 /*
@@ -73,9 +76,10 @@ type Props = {
   never move on from. Only a message's first send is sure to start a run newer than any read
 
   It is the last thing on its page, so a draft keeps it, and what is written in it, when its first
-  message stores it
+  message stores it. That message carries the aspects the reader picked on the draft, and no later
+  one does
 */
-function ConversationComposer({ conversationId, conversation, run, startedRun, onRunStart }: Props) {
+function ConversationComposer({ conversationId, conversation, run, startedRun, onRunStart, draftAspects }: Props) {
   const { formatMessage } = useIntl()
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
@@ -113,7 +117,16 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
     setFailure(null)
 
     try {
-      const { runId } = await sendConversationMessage({ conversationId, messageId, text: sentText })
+      const { runId } = await sendConversationMessage({
+        conversationId,
+        messageId,
+        text: sentText,
+        // A draft's aspects as the reader holds them now, a retry's too: a first send the backend
+        // never stored takes the latest pick, and one it did store brings its conversation in,
+        // whose head then shows the aspects stored. Resending the first pick would drop the latest
+        // in the first case, and a new message's id would store the same words twice in the second
+        aspects: conversation ? [] : draftAspects,
+      })
 
       // What was written while it went is the reader's next message, its mentions with it
       if (textareaRef.current?.value === sentValue) mentions.clear()

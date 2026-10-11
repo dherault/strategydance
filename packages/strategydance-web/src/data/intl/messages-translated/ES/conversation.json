@@ -1,7 +1,7 @@
 {
   "conversation.addAspects": "Añadir aspectos",
   "conversation.allConversations": "Todas las conversaciones",
-  "conversation.aspectsDescription": "Aparece en la página de cada aspecto con el que esté etiquetada. Strategy Dance ya no la etiquetará una vez que lo hagas tú.",
+  "conversation.aspectsDescription": "Strategy Dance etiqueta una conversación por su cuenta hasta que elijas sus aspectos.",
   "conversation.aspectsError": "No se pudieron guardar los aspectos. Comprueba tu conexión e inténtalo de nuevo.",
   "conversation.aspectsFull": "Esta conversación está llena, por lo que sus aspectos ya no pueden modificarse.",
   "conversation.aspectsNote.changed": "Cambiaste los aspectos",

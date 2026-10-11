@@ -163,6 +163,10 @@ export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
 // reads it before each request too
 export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
 
+// How long the request that tags a conversation with its aspects may take before it is cut, and the
+// conversation is left untagged: a few seconds at low effort, so a minute is a request gone wrong
+export const CONVERSATION_TAGGING_TIMEOUT_MS = 60 * 1000
+
 /*
   How long one of Strategy Dance's own tools may take on a call, and how many calls that only read
   run at once, side by side: a call past its time fails, and whatever it answers later is dropped.

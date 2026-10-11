@@ -13,9 +13,11 @@ import { SECRET_ANTHROPIC_API_KEY } from '~constants'
 import retrieveSecret from '~utils/retrieveSecret'
 
 import buildConversationRequest from '~domain/agent/buildConversationRequest'
+import buildConversationTaggingRequest from '~domain/agent/buildConversationTaggingRequest'
 import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import readConversationTagging from '~domain/agent/readConversationTagging'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 
 /*
@@ -34,7 +36,9 @@ import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
   and the agent will; sends the agent's own request, its system prompt and every tool it sends, the
   modules' included, as a run builds it, which the API refuses whole when a tool's schema is one it
   does not take, twice, the second reading what the first cached, counts what the modules' tools
-  add to every request, and has Claude call a module's tool, which is not strict; and sends the first request and the replay straight to each model
+  add to every request, and has Claude call a module's tool, which is not strict; sends the
+  request that tags a conversation with its aspects, its answer held to a schema, and reads it as the
+  worker does; and sends the first request and the replay straight to each model
   a refusal may fall back to. It prints what passed, what failed and what it found, and exits
   non-zero naming every check that did not pass.
 
@@ -634,6 +638,46 @@ await check("A module's tool, which is not strict, is called with an input its s
   assert(input.status === undefined || input.status === 'TODO', `asked for the status ${String(input.status)}`)
 
   return JSON.stringify(input)
+})
+
+/* ---
+  THE TAGGING REQUEST
+--- */
+
+await check('The tagging request is accepted, counted, and answers one to three aspects its schema holds', async () => {
+  const request = buildConversationTaggingRequest({
+    member: [{ type: 'text', text: 'How should I price the beta of my scheduling app for small clinics?' }],
+    reply: [
+      {
+        type: 'text',
+        text: 'Start with one flat plan per clinic, 49 euros a month, with a free month to try it. Charge per seat later, once you know how many people use it at each clinic.',
+      },
+    ],
+  })
+  // As the worker counts it, its schema included
+  const counted = await client.beta.messages.countTokens({
+    model: request.model,
+    system: request.system,
+    messages: request.messages,
+    output_config: request.output_config,
+  })
+  const message = await client.beta.messages.stream(request).finalMessage()
+  const answer = message.content.map(block => (block.type === 'text' ? block.text : '')).join('')
+
+  finding("The tagging request's count, then its usage", { counted: counted.input_tokens, usage: message.usage })
+  finding("The tagging request's count is its billed input", counted.input_tokens === message.usage.input_tokens)
+  finding("The tagging request's answer", answer)
+  assert(message.stop_reason === 'end_turn', `it stopped on ${message.stop_reason}`)
+
+  const aspects = readConversationTagging(message)
+
+  assert(aspects, 'it answered no aspect its schema holds')
+  finding(
+    'The tagging of a pricing exchange holds FINANCES or SALES',
+    aspects.some(aspect => aspect === 'FINANCES' || aspect === 'SALES'),
+  )
+
+  return aspects.join(', ')
 })
 
 /* ---

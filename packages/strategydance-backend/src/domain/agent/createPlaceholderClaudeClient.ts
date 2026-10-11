@@ -19,12 +19,20 @@ type Options = {
   developer what the real model costs: it goes through a few progress lines, two seconds each, long
   enough to restart the backend in the middle of a run, then answers one text block saying so. A
   run's request, its claim, lease and steps, the transcript, the thread and the run's end all work
-  with it as they do with the model. A count is the request's JSON length over four, which is all
-  the full-conversation measurement needs of it
+  with it as they do with the model. A request that asks for an answer held to a schema, as the one
+  that tags a conversation does, is answered at once with the strategy aspect. A count is the
+  request's JSON length over four, which is all the full-conversation measurement needs of it
 */
 function createPlaceholderClaudeClient({ stepDurationMs = 2000 }: Options = {}): ClaudeClient {
   return {
     async stream(body, { signal, onProgress }) {
+      if (body.output_config?.format) {
+        return createClaudeMessage({
+          content: [{ type: 'text', text: JSON.stringify({ aspects: ['STRATEGY'] }), citations: null }],
+          usage: { inputTokens: Math.ceil(JSON.stringify(body).length / 4), outputTokens: 10 },
+        })
+      }
+
       for (const step of PLACEHOLDER_STEPS) {
         onProgress(step)
 

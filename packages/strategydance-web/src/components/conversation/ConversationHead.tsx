@@ -27,18 +27,21 @@ const CONVERSATION_ASPECTS_DIALOG_MESSAGES = {
 type Props = {
   // The stored conversation, or null for a draft
   conversation: Conversation | null
+  // The aspects the reader picked on a draft, which its first message sends, and what changes them
+  draftAspects: CompanyAspect[]
+  onDraftAspectsChange: (aspects: CompanyAspect[]) => void
 }
 
 /*
   A conversation's title, in the display face, and under it its aspects as icons, a button that
-  opens the dialog to change them, or "Add aspects" while it has none. A draft has its title alone:
-  its aspects are sent with its first message.
+  opens the dialog to change them, or "Add aspects" while it has none.
 
   Saving the aspects adds a note to the thread, so the dialog waits for it to land and stays open
   when it cannot: once the conversation is full, which it says before a save as well, or when the
-  save failed
+  save failed. A draft's aspects are only held until its first message sends them, so its dialog
+  closes on a save at once
 */
-function ConversationHead({ conversation }: Props) {
+function ConversationHead({ conversation, draftAspects, onDraftAspectsChange }: Props) {
   const { formatMessage, formatList } = useIntl()
   const updateAspects = useUpdateConversationAspects()
   const [isPicking, setIsPicking] = useState(false)
@@ -47,15 +50,21 @@ function ConversationHead({ conversation }: Props) {
 
   const isFull = conversation ? conversation.messageCount >= MAX_CONVERSATION_MESSAGES : false
   const shownFailure = isFull ? 'full' : failure
+  const aspects = conversation ? conversation.aspects : draftAspects
 
-  async function saveAspects(aspects: CompanyAspect[]) {
-    if (!conversation) return
+  async function saveAspects(picked: CompanyAspect[]) {
+    if (!conversation) {
+      onDraftAspectsChange(picked)
+      setIsPicking(false)
+
+      return
+    }
 
     setIsSaving(true)
     setFailure(null)
 
     try {
-      const result = await updateAspects(conversation, aspects)
+      const result = await updateAspects(conversation, picked)
 
       if (result === 'full') {
         setFailure('full')
@@ -79,9 +88,6 @@ function ConversationHead({ conversation }: Props) {
   }
 
   function renderAspects() {
-    if (!conversation) return null
-
-    const { aspects } = conversation
     const aspectNames = aspects.map(aspect => formatMessage(aspectMessages[aspect]))
 
     return (
@@ -116,9 +122,9 @@ function ConversationHead({ conversation }: Props) {
         {conversation ? conversation.title : formatMessage(conversationMessages.newTitle)}
       </h1>
       {renderAspects()}
-      {isPicking && conversation ? (
+      {isPicking ? (
         <AspectsDialog
-          aspects={conversation.aspects}
+          aspects={aspects}
           messages={CONVERSATION_ASPECTS_DIALOG_MESSAGES}
           onSave={saveAspects}
           onClose={closeDialog}

@@ -82,7 +82,8 @@ function readMembershipCreatedAt() {
   return membership.createdAt
 }
 
-// A conversation started as a send starts one, its run queued
+// A conversation started as a send starts one, its run queued, with the aspects its member picked
+// on the draft, so its run asks Claude for its turns alone (see `runConversation.tagging.test.ts`)
 async function start(text = 'Help me price the beta'): Promise<ConversationRunReference> {
   const reference = { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId: createId(), runId: createId() }
 
@@ -96,6 +97,8 @@ async function start(text = 'Help me price the beta'): Promise<ConversationRunRe
       text,
       preview: { kind: 'MEMBER_TEXT', text },
       content: serializeTranscriptContent([{ type: 'text', text }]),
+      aspects: ['FINANCES'],
+      aspectsSetBy: 'MEMBER',
     },
   )
 

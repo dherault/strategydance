@@ -191,6 +191,11 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
 # Conversations deleted over a day ago are left to the daily sweep, which claims them first and
 # deletes what they keep beside their rows, their module call results among them.
 #
+# `$aspects` are the ones the member picked on the draft, written as the member's with
+# `$aspectsSetBy` `MEMBER`, so the agent leaves them alone. Both are omitted when the member picked
+# none, which leaves the conversation for the agent to tag after its first exchange. Optional, so a
+# backend from before M23 still starts one.
+#
 # `$userId` is the uid the backend verified. `$conversationId` and `$organizationId` are what the
 # conversation's live queries refresh on
 mutation StartConversation(
@@ -204,6 +209,8 @@ mutation StartConversation(
   $preview: Any!
   $runId: UUID!
   $content: String!
+  $aspects: [CompanyAspect!]
+  $aspectsSetBy: ConversationActor
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -214,6 +221,10 @@ mutation StartConversation(
     @check(
       expr: "size(vars.title) <= 120 && size(vars.text) <= 20000"
       message: "A conversation's title holds at most 120 characters, and a message 20000"
+    )
+    @check(
+      expr: "(!has(vars.aspects) || vars.aspects == null) ? (!has(vars.aspectsSetBy) || vars.aspectsSetBy == null) : (has(vars.aspectsSetBy) && vars.aspectsSetBy == 'MEMBER' && vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect)))"
+      message: "A conversation starts with the aspects its member picked, each at most once, or with none"
     )
   query @redact {
     membership: userOrganizations(
@@ -256,6 +267,8 @@ mutation StartConversation(
       userId: $userId
       organizationId: $organizationId
       title: $title
+      aspects: $aspects
+      aspectsSetBy: $aspectsSetBy
       activeRunId: $runId
       preview: $preview
       previewMessageId: $messageId
@@ -1966,6 +1979,78 @@ mutation StoreConversationToolResults(
       position: $position
       role: USER
       content: $content
+    }
+  )
+}
+
+# Tags a conversation with the aspects the agent picked from its first exchange, as the agent's,
+# with the aspects note that says so, at a position claimed on the counter, only while nobody has
+# set its aspects: a member who set them, on the draft or since, keeps them, and so does a
+# conversation tagged already. Refused at 2000 entries, as the member's note is. `$usage` settles the
+# tagging request in the run's ledger, in the fenced write.
+#
+# The note belongs to no run, as the member's does: it stays out of the entries a run draws, and a
+# Retry of the exchange keeps it with the aspects it shows. It never becomes the preview and adds
+# nothing to the unread count. Fenced as `RenewConversationRunLease` is
+mutation TagConversationAspects(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $usage: Any!
+  $aspects: [CompanyAspect!]!
+  $noteId: UUID!
+  $position: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { usage: $usage, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "size(vars.aspects) >= 1 && size(vars.aspects) <= 3 && vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
+      message: "The agent tags a conversation with one to three aspects, each at most once"
+    )
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      deletedAt: { isNull: true }
+      aspectsSetBy: { isNull: true }
+      nextMessagePosition: { eq: $position }
+      messageCount: { lt: 2000 }
+    }
+    data: {
+      aspects: $aspects
+      aspectsSetBy: AGENT
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not be tagged at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      kind: ASPECTS
+      aspects: $aspects
+      aspectsSetBy: AGENT
+      position: $position
     }
   )
 }

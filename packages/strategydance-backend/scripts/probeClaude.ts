@@ -12,6 +12,10 @@ import { SECRET_ANTHROPIC_API_KEY } from '~constants'
 
 import retrieveSecret from '~utils/retrieveSecret'
 
+import buildConversationRequest from '~domain/agent/buildConversationRequest'
+import buildConversationTools from '~domain/agent/buildConversationTools'
+import connectConversationModules from '~domain/agent/connectConversationModules'
+
 /*
   Checks, against Claude's API itself, the facts the conversations agent is built on, which no test
   without the real model can confirm:
@@ -25,9 +29,11 @@ import retrieveSecret from '~utils/retrieveSecret'
   that turn from its JSON text, as the transcript stores it, and again with the tool's input
   reordered as Postgres `jsonb` would reorder it; counts the tokens of a PDF and an image from their
   bytes, uploads them through the Files API and has a message read them by id, as the upload route
-  and the agent will; and sends the first request and the replay straight to each model a refusal
-  may fall back to. It prints what passed, what failed and what it found, and exits non-zero naming
-  every check that did not pass.
+  and the agent will; sends the agent's own request, its system prompt and every tool it sends, the
+  modules' strict ones included, as a run builds it, which the API refuses whole when a strict
+  schema is one it does not take; and sends the first request and the replay straight to each model
+  a refusal may fall back to. It prints what passed, what failed and what it found, and exits
+  non-zero naming every check that did not pass.
 
   It calls the real model, so it costs money, under a dollar a run: run it after an Anthropic SDK
   bump or a change of model, never in CI. It reads the API key from Secret Manager with Application
@@ -524,6 +530,37 @@ for (const id of uploaded) {
     finding(`Deleting file ${id} failed`, describeError(error))
   }
 }
+
+/* ---
+  THE AGENT'S OWN REQUEST, ITS TOOLS AND ITS MODULES'
+--- */
+
+await check(
+  "The agent's own request is accepted, with its system prompt and every tool it sends, the modules' strict ones included",
+  async () => {
+    // The modules' tools as a run's worker lists them, for a member nobody is: listing reads nothing
+    const modules = await connectConversationModules({
+      organizationId: '00000000000000000000000000000000',
+      userId: 'probe',
+      conversationId: '00000000000000000000000000000000',
+      runId: 'probe',
+      attempts: 1,
+      membershipCreatedAt: new Date().toISOString(),
+    })
+
+    await modules.close()
+
+    const tools = buildConversationTools(modules.tools)
+    const message = await client.beta.messages
+      .stream(buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], tools))
+      .finalMessage()
+
+    finding("The agent's request's usage", message.usage)
+    assert(message.stop_reason !== 'refusal', 'the request was refused')
+
+    return `${tools.length} tools, stopped on ${message.stop_reason}`
+  },
+)
 
 /* ---
   THE REFUSAL FALLBACK, CHOSEN BY THE API

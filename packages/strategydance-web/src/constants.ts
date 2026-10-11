@@ -29,6 +29,7 @@ export const MESSAGE_TYPES = [
   'knowledge',
   'landing',
   'log',
+  'module',
   'navigation',
   'onboarding',
   'organizationProfile',

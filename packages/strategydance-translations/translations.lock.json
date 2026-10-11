@@ -2406,6 +2406,152 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "module": {
+      "module.accessLabel": {
+        "hash": "eed7784f542e3a9c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentDomain": {
+        "hash": "204d5ac88da1feaa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.allow": {
+        "hash": "61e08abb9909c947",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.consentEyebrow": {
+        "hash": "65c76837ec671669",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.consentLead": {
+        "hash": "2b484295597c4040",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.consentTitle": {
+        "hash": "c02f5548cc9482ef",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.createOrganization": {
+        "hash": "aaca1e1f1c862dfe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.decideError": {
+        "hash": "03e5083652bc70f5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.deniedDescription": {
+        "hash": "7452260d94bf90bb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.deniedTitle": {
+        "hash": "6631f4ab4d827c02",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.deny": {
+        "hash": "5c808c9e0e70de2b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.expiredDescription": {
+        "hash": "9bdb0686cbf190b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.expiredTitle": {
+        "hash": "f6ee5409d5fce4ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.knowledgeName": {
+        "hash": "11870396e2df3f8a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.knowledgeReadAccess": {
+        "hash": "fc678685da3d8bc1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.knowledgeWriteAccess": {
+        "hash": "49cb7850ea3b22e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.loopbackTitle": {
+        "hash": "f7fe14ad313477f3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.loopbackWarning": {
+        "hash": "fc17a6afccf7ce05",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.noOrganizationDescription": {
+        "hash": "adea0315985b644a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.noOrganizationTitle": {
+        "hash": "12bc2fb1d984653e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationLabel": {
+        "hash": "ed1c9abd1e50c4ba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.readAccess": {
+        "hash": "87cd6e7a037cf79a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.readError": {
+        "hash": "8c8e479591947d8a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.readWriteAccess": {
+        "hash": "1b888beaadec489e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.redirectHost": {
+        "hash": "3d01ebe28eb09ade",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.redirecting": {
+        "hash": "dd71482ddd42d004",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.refusedDescription": {
+        "hash": "7b011b42e5935eaf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.refusedTitle": {
+        "hash": "1890892761cecc66",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.tasksName": {
+        "hash": "41db5e87ffb5cfd6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.tasksReadAccess": {
+        "hash": "20e13199eec05ec2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.tasksWriteAccess": {
+        "hash": "eee1e5ec38e8f878",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.unavailableDescription": {
+        "hash": "00386a12980a12a8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.unavailableTitle": {
+        "hash": "3e2a3f5bd745e7a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.unnamedAgent": {
+        "hash": "8699ee05cda763af",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.unverified": {
+        "hash": "e47b2f666f127abe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.unverifiedHint": {
+        "hash": "75cdd1ab41e6381f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "navigation": {
       "navigation.account": {
         "hash": "9b64157b2b31d2ec",

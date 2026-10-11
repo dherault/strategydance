@@ -8,9 +8,10 @@ import UserOrganizationsBouncer from '~components/userOrganization/UserOrganizat
 
 /*
   At module scope so the reference is stable across renders. The conversations' catalogue is here
-  rather than on their pages, since the sidebar and the dock read it on every page
+  rather than on their pages, since the sidebar and the dock read it on every page, and the
+  modules' since the account page and the modules' pages read it
 */
-const APP_MESSAGE_TYPES: MessageType[] = ['navigation', 'conversation']
+const APP_MESSAGE_TYPES: MessageType[] = ['navigation', 'conversation', 'module']
 
 /*
   The app proper: every page of the authenticated area that sits beside the sidebar. Pathless, so

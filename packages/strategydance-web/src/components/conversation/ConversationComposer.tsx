@@ -20,6 +20,7 @@ import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
 
 import Spinner from '~components/common/Spinner'
+import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
 import conversationMessages from '~data/intl/messages/conversation'
@@ -52,9 +53,9 @@ type Props = {
 
 /*
   Where the reader writes to Strategy Dance, at the foot of a conversation: a field that grows
-  with what is written, and a button that sends it. Typing `@` suggests knowledge to mention, and
-  each mention picked is sent as a link to its document (`useConversationMentions`). Attachments
-  come later.
+  with what is written, and a button that sends it. Typing `@`, or "Mention knowledge" in the "+"
+  menu, suggests knowledge to mention, and each mention picked is sent as a link to its document
+  (`useConversationMentions`). Attachments come later.
 
   Nothing is sent while a run goes, nor once the conversation is full, though the reader can
   write meanwhile. A first send's run counts as going from the moment the backend answers, before
@@ -216,6 +217,7 @@ function ConversationComposer({ conversationId, conversation, run, startedRun, o
         </p>
       ) : null}
       <div className="flex items-end gap-1.5">
+        <ConversationComposerMenu onMentionKnowledge={mentions.insertTrigger} />
         <Textarea
           ref={textareaRef}
           autosize

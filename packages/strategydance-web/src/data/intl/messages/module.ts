@@ -2,9 +2,9 @@ import { defineMessages } from 'react-intl'
 
 /*
   Strategy Dance's modules as a member sees them: what each is called and what each access lets an
-  agent do, the consent page where a member allows an external agent to use one, and the account
-  page's Connected agents tab. Registered app-wide, since the account page reads it, and on the
-  consent page, which sits outside the app
+  agent do, the consent page where a member allows an external agent to use one, the account page's
+  Connected agents tab, and the dialog a module's page opens to tell how to connect one. Registered
+  app-wide, since the account page reads it, and on the consent page, which sits outside the app
 */
 const moduleMessages = defineMessages({
   knowledgeName: {
@@ -312,6 +312,107 @@ const moduleMessages = defineMessages({
     id: 'module.disconnectError',
     defaultMessage: '{agentName} could not be disconnected',
     description: "Error shown when disconnecting an external agent failed. {agentName} is the agent's name.",
+  },
+  agentsButton: {
+    id: 'module.agentsButton',
+    defaultMessage: 'Use with your agents',
+    description:
+      "Button on a module's page, such as Knowledge, that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to that module.",
+  },
+  agentsTitle: {
+    id: 'module.agentsTitle',
+    defaultMessage: 'Use {module} with your agents',
+    description:
+      'Title of the dialog explaining how to connect an AI agent of the member\'s own to a module. {module} is the module\'s name, such as "Knowledge".',
+  },
+  agentsDescription: {
+    id: 'module.agentsDescription',
+    defaultMessage:
+      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you, within what your organization lets agents do.',
+    description:
+      "Lead of the dialog explaining how to connect an AI agent of the member's own to a module. Claude, ChatGPT and Cursor are product names, kept as they are.",
+  },
+  agentsAddress: {
+    id: 'module.agentsAddress',
+    defaultMessage: 'Address',
+    description: "Label of the module's web address, which the member adds to their agent, in the agents dialog.",
+  },
+  agentsCopyAddress: {
+    id: 'module.agentsCopyAddress',
+    defaultMessage: 'Copy the address',
+    description: "Accessible name and tooltip of the button that copies the module's address in the agents dialog.",
+  },
+  agentsCopySetup: {
+    id: 'module.agentsCopySetup',
+    defaultMessage: 'Copy',
+    description:
+      'Accessible name and tooltip of the button that copies a command or a configuration to paste into an agent, in the agents dialog.',
+  },
+  agentsCopied: {
+    id: 'module.agentsCopied',
+    defaultMessage: 'Copied',
+    description: 'What a copy button in the agents dialog says for a moment once it has copied.',
+  },
+  agentsClaude: {
+    id: 'module.agentsClaude',
+    defaultMessage: 'Claude',
+    description:
+      "Heading of the steps for Claude's apps, on the web, desktop and phone. A product name, kept as it is.",
+  },
+  agentsClaudeSteps: {
+    id: 'module.agentsClaudeSteps',
+    defaultMessage: 'In Settings, open Connectors, choose Add custom connector and paste the address.',
+    description:
+      'How to connect a module in Claude\'s apps. "Settings", "Connectors" and "Add custom connector" are the names Claude shows in English.',
+  },
+  agentsChatGpt: {
+    id: 'module.agentsChatGpt',
+    defaultMessage: 'ChatGPT',
+    description: 'Heading of the steps for ChatGPT. A product name, kept as it is.',
+  },
+  agentsChatGptSteps: {
+    id: 'module.agentsChatGptSteps',
+    defaultMessage:
+      'In Settings, open Apps and Connectors, turn on developer mode in its advanced settings, then create a connector with the address.',
+    description:
+      'How to connect a module in ChatGPT, whose custom connectors need its developer mode. "Settings" and "Apps and Connectors" are the names ChatGPT shows in English.',
+  },
+  agentsClaudeCode: {
+    id: 'module.agentsClaudeCode',
+    defaultMessage: 'Claude Code',
+    description: 'Heading of the steps for Claude Code, a coding agent. A product name, kept as it is.',
+  },
+  agentsClaudeCodeSteps: {
+    id: 'module.agentsClaudeCodeSteps',
+    defaultMessage: 'Run this in a terminal, then sign in from /mcp in Claude Code.',
+    description:
+      'How to connect a module in Claude Code, followed by a command to run. "/mcp" is a command typed in Claude Code, kept as it is.',
+  },
+  agentsCursor: {
+    id: 'module.agentsCursor',
+    defaultMessage: 'Cursor',
+    description: 'Heading of the steps for Cursor, a code editor. A product name, kept as it is.',
+  },
+  agentsCursorSteps: {
+    id: 'module.agentsCursorSteps',
+    defaultMessage: 'Add this server to the mcp.json file Cursor opens from its MCP settings.',
+    description:
+      'How to connect a module in Cursor, followed by the configuration to add. "mcp.json" is a file name, kept as it is.',
+  },
+  agentsManage: {
+    id: 'module.agentsManage',
+    defaultMessage: 'You can see and disconnect your agents in Connected agents, on your account.',
+    description: "Closing line of the agents dialog, before a link to the account page's Connected agents tab.",
+  },
+  agentsOpenConnectedAgents: {
+    id: 'module.agentsOpenConnectedAgents',
+    defaultMessage: 'Open Connected agents',
+    description: "Link from the agents dialog to the account page's tab listing the agents the member connected.",
+  },
+  agentsClose: {
+    id: 'module.agentsClose',
+    defaultMessage: 'Close',
+    description: 'Accessible name of the button that closes the agents dialog.',
   },
 })
 

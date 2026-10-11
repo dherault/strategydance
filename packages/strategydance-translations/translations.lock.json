@@ -2415,6 +2415,78 @@
         "hash": "204d5ac88da1feaa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.agentsAddress": {
+        "hash": "c52dbb98674d4f25",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsButton": {
+        "hash": "5985490d66a173f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsChatGpt": {
+        "hash": "81dda9eab32b6cb9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsChatGptSteps": {
+        "hash": "78f315ad18b1f457",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsClaude": {
+        "hash": "d856901fc9718dd5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsClaudeCode": {
+        "hash": "ae54d51333d0efe8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsClaudeCodeSteps": {
+        "hash": "c9799c20f0c12f11",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsClaudeSteps": {
+        "hash": "07b26e42f774f44f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsClose": {
+        "hash": "256722e7d26bc554",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsCopied": {
+        "hash": "c4c0bc6823dc86fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsCopyAddress": {
+        "hash": "9bcf5514a52635bc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsCopySetup": {
+        "hash": "6d7131ba3274f816",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsCursor": {
+        "hash": "7077867958053aca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsCursorSteps": {
+        "hash": "381a469150cbe9e6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsDescription": {
+        "hash": "ebd0452c9d14f857",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsManage": {
+        "hash": "76a080e0f4724d44",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsOpenConnectedAgents": {
+        "hash": "9631a803dcef2213",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.agentsTitle": {
+        "hash": "7ace30ffa218a5c4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.allow": {
         "hash": "61e08abb9909c947",
         "locales": "DE,ES,FR,JA,PT,ZH"

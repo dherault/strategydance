@@ -390,8 +390,10 @@ only way the app talks to them.
   by `RemoveOrganizationMember` on the member removed, and by `DeleteOrganization` for every reader,
   never by the `lastUsedAt` write. An operation added later that makes or deletes a connection, a
   membership's included, names itself there. Allow holds a member to `MAX_AGENT_CONNECTIONS`, counted
-  under the membership's lock, and the list reads twice that, so it is never cut short and
-  Disconnect reaches every agent acting as them
+  under a lock on the member's own row, which their consents in every organization take in turn,
+  and the list reads that many, so it is never cut short and Disconnect reaches every agent acting
+  as them. The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's
+  reasoning is Postgres', and `check:oauth` guards the outcome
 - An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
   invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
   has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID

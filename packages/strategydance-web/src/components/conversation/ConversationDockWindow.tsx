@@ -9,6 +9,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { ConversationDockWindow as DockWindow, DockConversation } from '~types'
 
+import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationDock from '~hooks/conversation/useConversationDock'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
@@ -17,6 +18,7 @@ import ConversationDockWait from '~components/conversation/ConversationDockWait'
 import ConversationDockWindowBody from '~components/conversation/ConversationDockWindowBody'
 import ConversationDockWindowBouncer from '~components/conversation/ConversationDockWindowBouncer'
 
+import { EMPTY_CONVERSATION_COMPOSER_DRAFT } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
@@ -36,13 +38,15 @@ type Props = {
   Minimized, it reads nothing but what the dock reads: its thread and composer go, though what was
   written and not sent stays for when it opens again, as it does for the page "Full page" opens,
   which takes the conversation out of the dock. Closing a draft's window discards the draft, whose
-  id nothing opens again
+  id nothing opens again, and what was written in it, while a stored conversation keeps its words
+  for when it opens again
 */
 function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
   const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
+  const [, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
   const sectionRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
 
@@ -61,6 +65,12 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   function minimize() {
     setWindowMinimized(conversationId, true)
     toggleRef.current?.focus()
+  }
+
+  function close() {
+    closeWindow(conversationId)
+
+    if (isDraft && !conversation) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
   }
 
   function openPage() {
@@ -137,7 +147,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
               size="sm"
               icon={<XIcon />}
               aria-label={formatMessage(conversationMessages.dockClose)}
-              onClick={() => closeWindow(conversationId)}
+              onClick={close}
             />
           </Tooltip>
         </div>

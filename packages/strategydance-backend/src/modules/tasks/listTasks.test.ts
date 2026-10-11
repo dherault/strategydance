@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { afterEach, describe, expect, it, mock, setSystemTime } from 'bun:test'
+
+import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -21,7 +23,19 @@ type Page = {
   isIndexComplete?: boolean
 }
 
-afterEach(() => fake.reset())
+const EXTERNAL = { kind: 'external', idempotencyScope: 'connection:checked' } as const
+
+afterEach(() => {
+  fake.reset()
+  setSystemTime()
+})
+
+// Searches the member made in the last minutes, up to `count`
+function searchedBefore(count: number) {
+  for (let index = 0; index < count; index++) {
+    fake.searches.push({ userId: 'member', organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
+  }
+}
 
 // Every page of a list, following the cursor
 async function listAll(kit: Awaited<ReturnType<typeof board.connect>>, args: Record<string, unknown> = {}) {
@@ -200,5 +214,61 @@ describe('list_tasks', () => {
       isBlocked: false,
       dependsOnIds: [first!.id],
     })
+  })
+
+  it("draws an external agent's queries on the member's allowance, and refuses one past it, searching nothing", async () => {
+    const kit = await board.connect(EXTERNAL)
+
+    board.add({ name: 'Pricing page' })
+    searchedBefore(MAX_CONVERSATION_SEARCHES - 1)
+
+    expect((await kit.answer<Page>('list_tasks', { query: 'pricing' })).tasks).toHaveLength(1)
+    expect(fake.searches).toHaveLength(MAX_CONVERSATION_SEARCHES)
+
+    fake.calls.length = 0
+
+    expect(await kit.refusal('list_tasks', { query: 'pricing' })).toBe(
+      `Searches as the member are limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes, and they reached it. Search again in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes, or call list_tasks without a query meanwhile.`,
+    )
+    expect(fake.calls).toEqual(['RecordConversationSearch', 'GetConversationSearchQuota'])
+    expect((await kit.answer<Page>('list_tasks', {})).tasks).toHaveLength(1)
+
+    setSystemTime(Date.now() + CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000)
+
+    expect((await kit.answer<Page>('list_tasks', { query: 'pricing' })).tasks).toHaveLength(1)
+  })
+
+  it("counts each page of an external agent's query, and never a list without one or a cursor it did not give", async () => {
+    const kit = await board.connect(EXTERNAL)
+
+    for (let index = 0; index < 150; index++) board.add({ name: `Plan ${index}`, position: index })
+
+    expect(await listAll(kit, { status: 'TODO' })).toHaveLength(2)
+    expect(fake.searches).toEqual([])
+    expect(await kit.refusal('list_tasks', { query: 'plan', cursor: 'made-up' })).toContain('not one this tool gave')
+    expect(fake.searches).toEqual([])
+    expect(await listAll(kit, { query: 'plan' })).toHaveLength(2)
+    expect(fake.searches).toHaveLength(2)
+  })
+
+  it("refuses an external agent's query for a removed member before it counts", async () => {
+    const kit = await board.connect(EXTERNAL)
+
+    fake.removeMember('member', ORGANIZATION_ID)
+
+    expect(await kit.refusal('list_tasks', { query: 'pricing' })).toBe(
+      'The member is no longer in this organization, so its tasks are closed to you.',
+    )
+    expect(fake.searches).toEqual([])
+  })
+
+  it("never counts Strategy Dance's agent's queries, which its run bounds", async () => {
+    const kit = await board.connect()
+
+    board.add({ name: 'Pricing page' })
+    searchedBefore(MAX_CONVERSATION_SEARCHES)
+
+    expect((await kit.answer<Page>('list_tasks', { query: 'pricing' })).tasks).toHaveLength(1)
+    expect(fake.calls).not.toContain('RecordConversationSearch')
   })
 })

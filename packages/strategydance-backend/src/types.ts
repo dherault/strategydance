@@ -327,6 +327,8 @@ export type TasksRefusal =
   | { outcome: 'keyConflict' }
   /** A cursor no list gave */
   | { outcome: 'invalidCursor' }
+  /** An external agent's query past the member's search allowance, until the next one fits */
+  | { outcome: 'tooManySearches'; retryAfterMs: number }
 
 // What a write of the Tasks module answers: its result, or the one stored under its key when the call
 // was sent before, or why it was refused

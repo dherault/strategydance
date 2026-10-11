@@ -570,8 +570,8 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   # Implies an `organizationId: UUID!` column, cascade deleting
   organization: Organization!
   # One line of at most 120 characters (`MAX_CONVERSATION_TITLE_LENGTH` in strategydance-core): the
-  # first message's text, a suggestion's title, or the first file's name, cut short. Searchable,
-  # with the `simple` configuration, as `ConversationMessage.text` is: see there
+  # first message's text, or the first file's name, cut short. Searchable, with the `simple`
+  # configuration, as `ConversationMessage.text` is: see there
   title: String! @searchable(language: "simple")
   # Which aspects of the company it is about, each once, in no particular order. The pages show
   # them in `COMPANY_ASPECTS`' order
@@ -579,9 +579,6 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   # Who set `aspects` last, and null until anybody has. The agent tags a conversation after its
   # first message only while this is null, so once the member sets them they stay the member's
   aspectsSetBy: ConversationActor
-  # The catalogue key of the suggestion it started from (`CONVERSATION_SUGGESTION_IDS`), so the
-  # aspect page stops offering it. Null for one the member started themselves
-  suggestionId: String
   # The run in flight, and null while none is. A plain UUID rather than a reference: the first send
   # inserts the conversation and its run in one mutation, and a reference would have it write this
   # row a second time to point at the run, which Data Connect skips
@@ -590,10 +587,10 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   # one that consumes its turn clears it, both of which write this row anyway, so the sidebar's
   # badge reads one column rather than every question
   isAwaitingAnswer: Boolean! @default(value: false)
-  # What the list and the cards show of the last entry that is not an aspects note, as
-  # strategydance-core's `buildConversationPreview` builds it: the entry's kind and a little of its
-  # plain text, never the words around it, which the web writes in the reader's language. Null
-  # until there is one. Whoever inserts an entry writes it, so the list selects no message text
+  # What the list shows of the last entry that is not an aspects note, as strategydance-core's
+  # `buildConversationPreview` builds it: the entry's kind and a little of its plain text, never the
+  # words around it, which the web writes in the reader's language. Null until there is one.
+  # Whoever inserts an entry writes it, so the list selects no message text
   preview: Any
   # Which message `preview` was built from. A question or a tool call changes in place, so whatever
   # changes one rebuilds the preview only while this still names it

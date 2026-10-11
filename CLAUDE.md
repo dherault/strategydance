@@ -58,9 +58,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   Base UI copies of shadcn's components, which the design system's never reach, so
   `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
-  text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last (the thread
-  draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`), and never
-  loads an image: draw the agent's text through it, never through `react-markdown` directly. An
+  text, links only to web, mail, `doc:` and `task:` addresses, `renderLink` drawing the last two (the
+  thread draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`,
+  and a `task:` link from its live board, `ConversationTaskLink`), and never loads an image: draw the agent's text through it, never through `react-markdown` directly. An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
   the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, and
@@ -846,13 +846,15 @@ and why.
   process: each run's worker connects to them once it is claimed (`connectConversationModules`), as
   the run's member, every scope, through the module's own handler, by the SDK's client pinned to the
   2026-07-28 revision on a transport whose `fetch` hands each request to the handler. A module's
-  tools join the request after the agent's own as strict, streamed Claude tools
-  (`toConversationModuleTool`): the bounds a strict schema refuses are dropped, and its patterns,
-  which made the compiled grammar too complex for the API, every object is closed, and anything else
-  it refuses throws. A request takes at most 20 strict tools, 24 optional parameters and 16 union
-  ones across them all, which `buildConversationTools.test.ts` counts, so a module's input schemas
-  are written to fit. How complex the whole list may grow only the API says: run `bun run
-  probe:claude` whenever a module's tools change, since a list it refuses fails every run
+  tools join the request after the agent's own as streamed Claude tools that are not strict
+  (`toConversationModuleTool`), each schema as the module wrote it, less the dialect it names, so
+  Claude reads its bounds and patterns, and the module's own schema checks every call, answering one
+  it refuses with a sentence the model can act on, as it answers an external agent. A request takes
+  at most 20 strict tools, 24 optional parameters and 16 union ones across them all, which the
+  modules outgrew in M17: only the agent's own tools are strict, and
+  `buildConversationTools.test.ts` holds them to those limits. A module's schema still has to be one
+  the API takes: run `bun run probe:claude` whenever a module's tools change, since a list it
+  refuses fails every run
 - The agent keys each write with Claude's id for the call, under `conversation:<id>`, so a worker
   taking over or a Resume calling it again is answered from its key. Finalizing a dead run, and a send
   or a continuation answering its calls, read the key of each write it left started

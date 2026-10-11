@@ -18,7 +18,7 @@ import { RICH_TEXT_CLASSES } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type MarkdownLink = {
-  /** The link's address, `doc:` and an id */
+  /** The link's address, `doc:` or `task:` and an id */
   href: string
   /** Its words, drawn */
   children: ReactNode
@@ -29,7 +29,7 @@ type Props = {
   value: string
   /** `sm` is the dock's 14px, `md` the page's 16px */
   size?: 'sm' | 'md'
-  /** Draws a link to a knowledge document, `doc:<id>`. Without it, such a link is its words */
+  /** Draws a link to a knowledge document, `doc:<id>`, or a task, `task:<id>`. Without it, such a link is its words */
   renderLink?: (link: MarkdownLink) => ReactNode
   /** Where a cited span ends in `value`, by its offset, and the key `renderCitation` draws it by */
   citations?: MarkdownCitationMarker[]
@@ -85,7 +85,10 @@ const allowedElements = [
   CITATION_MARKER_ELEMENT,
 ]
 
-const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'doc:'])
+const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'doc:', 'task:'])
+
+// The protocols of the links `renderLink` draws, to what only the app knows of
+const APP_PROTOCOLS = ['doc:', 'task:']
 
 /*
   Draws the Markdown the agent writes, in the subset its replies keep to: paragraphs, bulleted and
@@ -93,7 +96,8 @@ const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'doc:'])
 
   The text is the agent's, and the agent reads the web, so nothing in it is trusted. HTML is drawn
   as the text it is, never as markup. A link keeps its address only when it is a web or mail one,
-  or a knowledge document's, `doc:<id>`, which `renderLink` draws, and is its words otherwise. An
+  a knowledge document's, `doc:<id>`, or a task's, `task:<id>`, the last two drawn by `renderLink`,
+  and is its words otherwise. An
   image is its alt text and is never loaded, since loading one would send its address, and
   whatever was written into it, out from the reader's browser.
 
@@ -145,7 +149,9 @@ function transformUrl(url: string) {
 function renderAnchor(href: string | undefined, children: ReactNode, renderLink: Props['renderLink']) {
   if (!href) return children
 
-  if (href.startsWith('doc:')) return renderLink ? renderLink({ href, children }) : children
+  if (APP_PROTOCOLS.some(protocol => href.startsWith(protocol))) {
+    return renderLink ? renderLink({ href, children }) : children
+  }
 
   return (
     <a

@@ -3,37 +3,25 @@ import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
-import type { KnowledgeDocumentSummary } from '~types'
-
 import useRestoreConversationDocument from '~hooks/conversation/useRestoreConversationDocument'
-
-import canRestoreConversationDocument from '~utils/conversation/canRestoreConversationDocument'
-import type { ConversationDeletedDocument } from '~utils/conversation/readConversationDeletedDocument'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
-  // The document the row's call deleted, as its output said, or null until the thread read it
-  deleted: ConversationDeletedDocument | null
-  // The organization's documents by id, or null while they are not read
-  documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
-  // The time now, which the thread reads once for all its rows
-  now: number
+  // The document the row's call deleted
+  documentId: string
 }
 
 /*
-  Restore, on the row of a document Strategy Dance deleted, while the organization no longer holds
-  it and a day has not passed since the call, so a member who sees a document go that they wanted
-  kept needs no second request. Once restored, the live list holds it again and the button goes
+  Restore, on the row of a document Strategy Dance deleted, which the thread offers while the
+  organization no longer holds it and a day has not passed since the call, so a member who sees a
+  document go that they wanted kept needs no second request. Once restored, the live list holds it
+  again and the thread takes the button away
 */
-function ConversationDocumentRestore({ deleted, documents, now }: Props) {
+function ConversationDocumentRestore({ documentId }: Props) {
   const { formatMessage } = useIntl()
   const restore = useRestoreConversationDocument()
   const [isRestoring, setIsRestoring] = useState(false)
-
-  if (!deleted || !canRestoreConversationDocument(deleted, documents, now)) return null
-
-  const { documentId } = deleted
 
   async function handleRestore() {
     setIsRestoring(true)

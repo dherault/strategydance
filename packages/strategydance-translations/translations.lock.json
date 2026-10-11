@@ -1485,6 +1485,14 @@
         "hash": "555883b091f28f04",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.restoreTask": {
+        "hash": "f8ae5b030e484c6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreTaskError": {
+        "hash": "1b1f46ba115bd7a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.retry": {
         "hash": "1f65e210a1787c7c",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1541,6 +1549,10 @@
         "hash": "d1718c83e5d1df00",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.taskGone": {
+        "hash": "73d92a185150775a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.thinking": {
         "hash": "534369c93d42cbe3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1565,12 +1577,36 @@
         "hash": "80e599362e8ee722",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.createTask.done": {
+        "hash": "cf6a18d5353a4394",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.createTask.running": {
+        "hash": "e0314eb0be35cc25",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.deleteKnowledge.done": {
         "hash": "8980437b9bf749a4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.deleteKnowledge.running": {
         "hash": "44d0f0beaf4ae88f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.deleteTask.done": {
+        "hash": "32b0dfbc3bd3e0c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.deleteTask.running": {
+        "hash": "7a19be72e4465567",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.linkTasks.done": {
+        "hash": "d24cd134aa3eecd3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.linkTasks.running": {
+        "hash": "1c0ddc7dfbf801f7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.listKnowledge.done": {
@@ -1581,6 +1617,14 @@
         "hash": "ec3949d2f18fd1b8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.listTasks.done": {
+        "hash": "bd244ddcc02ce242",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listTasks.running": {
+        "hash": "5c6b45cadb2d4e19",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.readKnowledge.done": {
         "hash": "acd91b26f15c3ba0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1589,12 +1633,28 @@
         "hash": "64c2f903f021241f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.readTask.done": {
+        "hash": "11b833889f229539",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readTask.running": {
+        "hash": "fdfccc7dd7005e16",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.restoreKnowledge.done": {
         "hash": "f6a40cf1a11ab03e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.restoreKnowledge.running": {
         "hash": "fc9f325533836356",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.restoreTask.done": {
+        "hash": "7adbccd70637fccc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.restoreTask.running": {
+        "hash": "6524a83a3bca3bdb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.searchKnowledge.done": {
@@ -1613,12 +1673,28 @@
         "hash": "fff715b6efc94d45",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.unlinkTasks.done": {
+        "hash": "d88f71860d2a262e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.unlinkTasks.running": {
+        "hash": "f4db31768ff26025",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.updateKnowledge.done": {
         "hash": "551c441649f73049",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.updateKnowledge.running": {
         "hash": "d7d1258752b01334",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateTask.done": {
+        "hash": "3ab488d1e1fcc473",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateTask.running": {
+        "hash": "207a81d35c8cef86",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.webSearch.done": {

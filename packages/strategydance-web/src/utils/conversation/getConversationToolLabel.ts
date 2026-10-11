@@ -6,7 +6,7 @@ import conversationMessages from '~data/intl/messages/conversation'
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
 // What each of the agent's tools is called while it runs, and once it is done: its own, then the
-// Knowledge module's
+// Knowledge module's and the Tasks module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],
   [
@@ -40,6 +40,32 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
   [
     'restore_document',
     { running: conversationMessages.toolRestoreKnowledgeRunning, done: conversationMessages.toolRestoreKnowledgeDone },
+  ],
+  ['list_tasks', { running: conversationMessages.toolListTasksRunning, done: conversationMessages.toolListTasksDone }],
+  ['read_task', { running: conversationMessages.toolReadTaskRunning, done: conversationMessages.toolReadTaskDone }],
+  [
+    'create_task',
+    { running: conversationMessages.toolCreateTaskRunning, done: conversationMessages.toolCreateTaskDone },
+  ],
+  [
+    'update_task',
+    { running: conversationMessages.toolUpdateTaskRunning, done: conversationMessages.toolUpdateTaskDone },
+  ],
+  [
+    'add_task_dependency',
+    { running: conversationMessages.toolLinkTasksRunning, done: conversationMessages.toolLinkTasksDone },
+  ],
+  [
+    'remove_task_dependency',
+    { running: conversationMessages.toolUnlinkTasksRunning, done: conversationMessages.toolUnlinkTasksDone },
+  ],
+  [
+    'delete_task',
+    { running: conversationMessages.toolDeleteTaskRunning, done: conversationMessages.toolDeleteTaskDone },
+  ],
+  [
+    'restore_task',
+    { running: conversationMessages.toolRestoreTaskRunning, done: conversationMessages.toolRestoreTaskDone },
   ],
 ])
 

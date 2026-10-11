@@ -372,6 +372,96 @@ const conversationMessages = defineMessages({
     description:
       "What the AI did once it brought back an item of the team's knowledge that was deleted, such as a note or a plan. Past tense.",
   },
+  toolListTasksRunning: {
+    id: 'conversation.tool.listTasks.running',
+    defaultMessage: 'Listing tasks',
+    description:
+      "What the AI is doing while it looks through the tasks on the team's board, the shared list of work to do.",
+  },
+  toolListTasksDone: {
+    id: 'conversation.tool.listTasks.done',
+    defaultMessage: 'Listed tasks',
+    description:
+      "What the AI did once it looked through the tasks on the team's board, the shared list of work to do. Past tense.",
+  },
+  toolReadTaskRunning: {
+    id: 'conversation.tool.readTask.running',
+    defaultMessage: 'Opening a task',
+    description: "What the AI is doing while it opens a task on the team's board, the shared list of work to do.",
+  },
+  toolReadTaskDone: {
+    id: 'conversation.tool.readTask.done',
+    defaultMessage: 'Opened a task',
+    description:
+      "What the AI did once it opened a task on the team's board, the shared list of work to do. Past tense.",
+  },
+  toolCreateTaskRunning: {
+    id: 'conversation.tool.createTask.running',
+    defaultMessage: 'Creating a task',
+    description: "What the AI is doing while it adds a new task to the team's board, the shared list of work to do.",
+  },
+  toolCreateTaskDone: {
+    id: 'conversation.tool.createTask.done',
+    defaultMessage: 'Created a task',
+    description:
+      "What the AI did once it added a new task to the team's board, the shared list of work to do. Past tense.",
+  },
+  toolUpdateTaskRunning: {
+    id: 'conversation.tool.updateTask.running',
+    defaultMessage: 'Updating a task',
+    description:
+      "What the AI is doing while it changes a task on the team's board, the shared list of work to do, such as its name, its column or who it is assigned to.",
+  },
+  toolUpdateTaskDone: {
+    id: 'conversation.tool.updateTask.done',
+    defaultMessage: 'Updated a task',
+    description:
+      "What the AI did once it changed a task on the team's board, the shared list of work to do, such as its name, its column or who it is assigned to. Past tense.",
+  },
+  toolLinkTasksRunning: {
+    id: 'conversation.tool.linkTasks.running',
+    defaultMessage: 'Linking tasks',
+    description: "What the AI is doing while it marks a task on the team's board as waiting on another one.",
+  },
+  toolLinkTasksDone: {
+    id: 'conversation.tool.linkTasks.done',
+    defaultMessage: 'Linked tasks',
+    description: "What the AI did once it marked a task on the team's board as waiting on another one. Past tense.",
+  },
+  toolUnlinkTasksRunning: {
+    id: 'conversation.tool.unlinkTasks.running',
+    defaultMessage: 'Unlinking tasks',
+    description: "What the AI is doing while it marks a task on the team's board as no longer waiting on another one.",
+  },
+  toolUnlinkTasksDone: {
+    id: 'conversation.tool.unlinkTasks.done',
+    defaultMessage: 'Unlinked tasks',
+    description:
+      "What the AI did once it marked a task on the team's board as no longer waiting on another one. Past tense.",
+  },
+  toolDeleteTaskRunning: {
+    id: 'conversation.tool.deleteTask.running',
+    defaultMessage: 'Deleting a task',
+    description: "What the AI is doing while it deletes a task on the team's board, the shared list of work to do.",
+  },
+  toolDeleteTaskDone: {
+    id: 'conversation.tool.deleteTask.done',
+    defaultMessage: 'Deleted a task',
+    description:
+      "What the AI did once it deleted a task on the team's board, the shared list of work to do. Past tense.",
+  },
+  toolRestoreTaskRunning: {
+    id: 'conversation.tool.restoreTask.running',
+    defaultMessage: 'Restoring a task',
+    description:
+      "What the AI is doing while it brings back a task on the team's board, the shared list of work to do that was deleted.",
+  },
+  toolRestoreTaskDone: {
+    id: 'conversation.tool.restoreTask.done',
+    defaultMessage: 'Restored a task',
+    description:
+      "What the AI did once it brought back a task on the team's board, the shared list of work to do that was deleted. Past tense.",
+  },
 
   /* ---
     PAGE: one conversation, its bar, its title and its aspects
@@ -543,6 +633,12 @@ const conversationMessages = defineMessages({
     description:
       "Read by screen readers after a link in the AI's reply to an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
   },
+  taskGone: {
+    id: 'conversation.taskGone',
+    defaultMessage: "(no longer on the team's board)",
+    description:
+      "Read by screen readers after a link in the AI's reply to a task on the team's board, the shared list of work to do, that was deleted since. Shown crossed out to sighted readers.",
+  },
   restoreDocument: {
     id: 'conversation.restoreDocument',
     defaultMessage: 'Restore',
@@ -554,6 +650,18 @@ const conversationMessages = defineMessages({
     defaultMessage: 'The knowledge could not be brought back.',
     description:
       "Notification when bringing back an item of the team's knowledge the AI deleted failed, for instance once a day has passed since the delete.",
+  },
+  restoreTask: {
+    id: 'conversation.restoreTask',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted a task on the team's board, the shared list of work to do, which brings the task back. Offered for a day after the delete.",
+  },
+  restoreTaskError: {
+    id: 'conversation.restoreTaskError',
+    defaultMessage: 'The task could not be brought back.',
+    description:
+      "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
   },
   toolCall: {
     id: 'conversation.toolCall',

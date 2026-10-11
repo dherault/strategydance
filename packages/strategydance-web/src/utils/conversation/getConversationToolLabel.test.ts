@@ -18,6 +18,14 @@ describe('getConversationToolLabel', () => {
       ['set_document_aspects', 'Tagging knowledge', 'Tagged knowledge'],
       ['delete_document', 'Deleting knowledge', 'Deleted knowledge'],
       ['restore_document', 'Restoring knowledge', 'Restored knowledge'],
+      ['list_tasks', 'Listing tasks', 'Listed tasks'],
+      ['read_task', 'Opening a task', 'Opened a task'],
+      ['create_task', 'Creating a task', 'Created a task'],
+      ['update_task', 'Updating a task', 'Updated a task'],
+      ['add_task_dependency', 'Linking tasks', 'Linked tasks'],
+      ['remove_task_dependency', 'Unlinking tasks', 'Unlinked tasks'],
+      ['delete_task', 'Deleting a task', 'Deleted a task'],
+      ['restore_task', 'Restoring a task', 'Restored a task'],
     ] as const
 
     for (const [toolName, running, done] of tools) {

@@ -74,7 +74,7 @@ afterEach(async () => {
 })
 
 describe('connectConversationModules', () => {
-  it('connects without an initialize handshake, listing the Knowledge module’s tools', async () => {
+  it('connects without an initialize handshake, listing the Knowledge module’s tools, then the Tasks module’s', async () => {
     const { tools, runners } = await connect()
 
     expect(requests.map(({ method }) => method)).not.toContain('initialize')
@@ -88,14 +88,27 @@ describe('connectConversationModules', () => {
       'set_document_aspects',
       'delete_document',
       'restore_document',
+      'list_tasks',
+      'read_task',
+      'create_task',
+      'update_task',
+      'add_task_dependency',
+      'remove_task_dependency',
+      'delete_task',
+      'restore_task',
     ])
     expect(runners.filter(({ isReadOnly }) => isReadOnly).map(({ name }) => name)).toEqual([
       'search_documents',
       'list_documents',
       'read_document',
+      'list_tasks',
+      'read_task',
     ])
 
-    for (const tool of tools) expect(tool).toMatchObject({ strict: true, eager_input_streaming: true })
+    for (const tool of tools) {
+      expect(tool).toMatchObject({ eager_input_streaming: true })
+      expect(tool).not.toHaveProperty('strict')
+    }
   })
 
   it('keys a write with Claude’s id for the call under the conversation’s scope, and a read with nothing', async () => {

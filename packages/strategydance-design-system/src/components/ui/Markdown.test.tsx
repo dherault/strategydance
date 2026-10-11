@@ -103,6 +103,24 @@ describe('Markdown', () => {
     expect(renderElements('Read the [Pricing options](doc:d4).')).toBe('<div><p>Read the Pricing options.</p></div>')
   })
 
+  it('hands a link to a task to renderLink, whatever its case, still dropping a script’s', () => {
+    const links: MarkdownLink[] = []
+    const markup = render(
+      'Do [Write the post](task:t7), then [Ship](TASK:t8), never [this](javascript:alert(1)).',
+      link => {
+        links.push(link)
+
+        return <cite>{link.children}</cite>
+      },
+    )
+
+    expect(links.map(link => link.href)).toEqual(['task:t7', 'task:t8'])
+    expect(markup.replaceAll(/ class="[^"]*"/g, '')).toBe(
+      '<div><p>Do <cite>Write the post</cite>, then <cite>Ship</cite>, never this.</p></div>',
+    )
+    expect(renderElements('Do [Write the post](task:t7).')).toBe('<div><p>Do Write the post.</p></div>')
+  })
+
   it('never loads an image, and keeps its alt text', () => {
     const markup = renderElements('![The chart](https://evil.example/pixel.png?q=secret)')
 

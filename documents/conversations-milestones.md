@@ -64,7 +64,7 @@ M27 well before their neighbours.
 | M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
 | M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
 | M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
-| M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | |
+| M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | #139 |
 | M18 | The authorization server | backend, database, core, root | M14, setup 10 | |
 | M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | |
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | |
@@ -1037,6 +1037,62 @@ The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledg
   to mark one done and hear which can start; open a task from a link in its reply; ask it to delete
   one and restore it from the thread's row; assign a task to Strategy Dance on the board, then ask
   the agent what it has been given.
+- Built with these settled, on 2026-10-11:
+  - **The modules' tools are not strict**, as David chose. A request takes at most 20 strict tools,
+    24 optional parameters and 16 union ones, and adding the Tasks module would have made 17 strict
+    tools and 28 optional parameters, Knowledge's 11 and the Tasks module's 17, `update_task` alone
+    8: the next module would break the 20 tools whatever its schemas. Strict only holds how Claude
+    writes a call, and the module's own zod checks every call anyway, as it checks an external
+    agent's, which never gets a strict grammar. So every module's tools, Knowledge's included, go
+    as the module wrote their schemas, less the `$schema` dialect, bounds, patterns and formats
+    kept, so Claude reads the real ones, and no grammar is compiled for them; `ask_user` alone stays
+    strict, and `buildConversationTools.test.ts` holds the strict tools to the limits. M17 changed
+    the list anyway, so dropping `strict` cost conversations their earlier reasoning no more than
+    once. `probe:claude` has Claude call `list_tasks` through the whole list, which it did with
+    `{ "status": "TODO" }`.
+  - **What the tools cost a cached request**, which `probe:claude` now counts with `count_tokens`:
+    the system prompt and the agent's own tools take 7201 tokens, and the modules' sixteen tools
+    7381 more, Knowledge's 3158 and the Tasks module's 4223,
+    `update_task` the largest at 1187, then `create_task` at 857, `update_document` at 814 and
+    `list_tasks` at 723. The agent's request cached 14596 tokens on its first send and read all of
+    them from the cache on its second. At Opus 5.5's prices the modules' tools cost a request read
+    from the cache $0.0015, the Tasks module's $0.0008, and a write to the 5-minute cache $0.037.
+    Claude's tool search pays once tool definitions pass some 10000 tokens, so at 7381 it would
+    cost each first use of a module tool a search step for little: whether to keep some out with
+    `defer_loading` is David's call on these figures, sooner when a third module takes the modules'
+    share past 10000.
+  - **The board's own restore, by id.** The board's Undo restores from a snapshot it took before
+    the delete, which the page never took of the agent's, so `useTaskChanges` gains
+    `restoreDeletedTask`: `RestoreTask` through `change`, which marks the day active, then the board
+    read again from the server and each link of a task waiting on the restored one that closes a
+    loop through it taken off (`restoreTaskWithoutLoops`), which the Undo's second read now goes
+    through too. Without the snapshot nothing is written to the board before the server answers, so
+    a loop can show on the board for the moment between the restore and the unlinking, as one a
+    teammate's link closes can after the Undo.
+  - **One read for both kinds of delete.** A `delete_task` call answers `{ id, restorableUntil }`,
+    as `delete_document` does, so the thread reads the outputs of both in one
+    `GetConversationToolOutputs` read (`useConversationDeletedItems`), and decides what a row offers
+    with `canRestoreConversationItem` against the live list of its kind.
+  - **A row passes its action only while Restore shows.** M16's rows passed it whenever a delete
+    succeeded, so a phone hid the "Tool" badge of a row whose Restore had gone; the thread now
+    decides, and passes nothing otherwise, a document's row included.
+  - **A task link resolves as a document link does** (`readConversationLinkTarget`): found, gone or
+    the agent's words, `ConversationDocumentLink` and `ConversationTaskLink` drawing each, the
+    latter with the board's `SquareKanbanIcon`, linking to `/$organizationSlug/tasks/$taskId` with
+    the board's id, which `TaskBouncer` compares exactly.
+  - **The system prompt** says what the agent does with the board and drops "its members" from what
+    it cannot read, since `list_tasks` lists them: it still cannot read the log, the checklist or
+    anybody's top priority.
+  - Verified with the tests; `probe:claude`, every check passing; and in the browser at 1280 and 390
+    wide, on a scratch stack of the branch's emulators, the backend's Claude client swapped for a
+    scripted one: with the board open in another tab, three tasks created, linked in order and
+    assigned, the cards arriving without a reload; a move to Done answering the task it freed; a
+    `task:` link opening the task's dialog over the board; a link to a task never there struck
+    through; a delete striking the task's links through and offering Restore; a link made while it
+    was deleted closing a loop, which Restore took off, keeping the others, recording the day and
+    taking itself away, the links drawn again with the task's name; the phone's "Tool" badge hidden
+    only while Restore showed; and a task assigned to Strategy Dance found through `list_tasks`. The
+    real model was asked through `probe:claude` alone.
 
 ### M18: The authorization server
 

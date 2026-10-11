@@ -401,3 +401,92 @@ describe('runConversation with the Knowledge module', () => {
     expect(readCalls(reference)).toEqual([expect.objectContaining({ toolStatus: 'SUCCEEDED' })])
   })
 })
+
+describe('runConversation with the Tasks module', () => {
+  test('runs consecutive reads of both modules four at a time and each write alone, in the turn’s order', async () => {
+    const reference = await start()
+    const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Launch post' })
+    const spans: { name: string; start: number; end: number }[] = []
+
+    fake.modules.beforeOperation = async name => {
+      const span = { name, start: performance.now(), end: 0 }
+
+      spans.push(span)
+      await wait(20)
+      span.end = performance.now()
+    }
+
+    // The operation each read starts with, which no other tool of the turn runs
+    const READS = new Set(['GetUnindexedTasksForAgent', 'GetTaskForAgent', 'GetUnindexedDocumentsForAgent'])
+    const client = createClient([
+      calling(
+        toolUse('r1', 'list_tasks', { query: 'launch' }),
+        toolUse('r2', 'read_task', { id: task.id }),
+        toolUse('r3', 'search_documents', { query: 'pricing' }),
+        toolUse('r4', 'list_tasks', { query: 'post' }),
+        toolUse('r5', 'read_task', { id: task.id }),
+        toolUse('w1', 'create_task', { name: 'Write the launch post', status: 'TODO' }),
+        toolUse('r6', 'search_documents', { query: 'launch' }),
+      ),
+      answer(),
+    ])
+
+    await run(reference, client)
+
+    const reads = spans.filter(({ name }) => READS.has(name)).toSorted((a, b) => a.start - b.start)
+    const create = spans.find(({ name }) => name === 'CreateTaskForAgent')
+    const overlap = (a: (typeof spans)[number], b: (typeof spans)[number]) => a.start < b.end && b.start < a.end
+
+    // The four reads of a group start in no particular order
+    expect(
+      reads
+        .slice(0, 4)
+        .map(({ name }) => name)
+        .toSorted(),
+    ).toEqual([
+      'GetTaskForAgent',
+      'GetUnindexedDocumentsForAgent',
+      'GetUnindexedTasksForAgent',
+      'GetUnindexedTasksForAgent',
+    ])
+    expect(reads.slice(4).map(({ name }) => name)).toEqual(['GetTaskForAgent', 'GetUnindexedDocumentsForAgent'])
+    expect(reads.slice(1, 4).every(span => overlap(span, reads[0]!))).toBe(true)
+    expect(overlap(reads[4]!, reads[0]!)).toBe(false)
+    expect(create && reads.slice(0, 5).every(span => span.end <= create.start)).toBe(true)
+    expect(create && create.end <= reads[5]!.start).toBe(true)
+    expect(readCalls(reference).map(({ toolStatus }) => toolStatus)).toEqual(Array(7).fill('SUCCEEDED'))
+  })
+
+  test('calls a create_task again under its key once a worker crashed before recording it: one task is made', async () => {
+    const reference = await start()
+    const create = toolUse('toolu_create', 'create_task', { name: 'Write the launch post', status: 'TODO' })
+
+    fake.beforeOperation = async name => {
+      if (name === 'FinishConversationToolCall') throw new Error('The worker crashed')
+    }
+
+    expect(await run(reference, createClient([calling(create)]))).toBe('held')
+    expect(fake.modules.tasks.size).toBe(1)
+
+    fake.beforeOperation = async () => {}
+    expireLease(reference)
+
+    const client = createClient([answer()])
+
+    expect(await run(reference, client)).toBe('finished')
+    expect([...fake.modules.tasks.values()]).toEqual([
+      expect.objectContaining({ name: 'Write the launch post', status: 'TODO' }),
+    ])
+    expect(fake.modules.calls.filter(name => name === 'CreateTaskForAgent')).toHaveLength(1)
+    expect(readCalls(reference)).toEqual([
+      expect.objectContaining({ toolName: 'create_task', toolStatus: 'SUCCEEDED' }),
+    ])
+    expect(readResults(client.readRequests()[0])).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_create',
+        content: expect.stringContaining('"name":"Write the launch post"'),
+      },
+    ])
+  })
+})

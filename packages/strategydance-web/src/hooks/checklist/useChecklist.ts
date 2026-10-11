@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { executeQuery } from 'firebase/data-connect'
+import { getPositionBetween } from 'strategydance-core'
 import {
   type GetChecklistData,
   type GetChecklistHistoryData,
@@ -17,7 +18,6 @@ import type { Checklist, ChecklistItem, DataSource } from '~types'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import recordActivity from '~utils/activity/recordActivity'
-import getPositionBetween from '~utils/common/getPositionBetween'
 import writeOptimistically from '~utils/common/writeOptimistically'
 
 import { dataConnect } from '~data/firebase'

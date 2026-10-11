@@ -5,6 +5,7 @@ import { MAX_QUESTION_PROMPT_LENGTH, MAX_TOOL_CALLS_PER_TURN } from 'strategydan
 
 import type { ConversationRunReference, ConversationToolRunner } from '~types'
 
+import connectTestModules from './testing/connectTestModules'
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 import createConversationTestKit, { ORGANIZATION_ID, REPLY, answer, wait } from './testing/createConversationTestKit'
 
@@ -70,7 +71,12 @@ function run(
   tools: ConversationToolRunner[] = [],
   options = {},
 ) {
-  return runConversation(reference, { client: client.client, retryDelayMs: 1, tools, ...options })
+  return runConversation(reference, {
+    client: client.client,
+    retryDelayMs: 1,
+    connectModules: connectTestModules(tools),
+    ...options,
+  })
 }
 
 beforeEach(() => {
@@ -189,6 +195,24 @@ describe('runConversation with Strategy Dance’s tools', () => {
     expect(readThread(reference).filter(({ kind }) => kind === 'TOOL_CALL')).toEqual([
       expect.objectContaining({ toolStatus: 'FAILED' }),
       expect.objectContaining({ toolStatus: 'FAILED' }),
+    ])
+  })
+
+  test('answers a write past its time as one that may still have run', async () => {
+    const reference = await start()
+    const slow = createRunner('update_document', { isReadOnly: false, delayMs: 80 })
+    const client = createClient([calling(toolUse('toolu_1', 'update_document')), answer()])
+
+    await run(reference, client, [slow.runner], { toolTimeoutMs: 20 })
+    await wait(100)
+
+    expect(readLastMessage(client.readRequests()[1] as { messages: BetaMessageParam[] })?.content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_1',
+        content: 'The call took longer than 0.02 seconds and may still have run. Check before you call it again.',
+        is_error: true,
+      },
     ])
   })
 

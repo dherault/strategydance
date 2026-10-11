@@ -1,3 +1,5 @@
+import type { MODULES } from './constants'
+
 /*
   The envelope every backend response is wrapped in, success and failure alike. Declared here
   because the backend writes it and the web app reads it, and a copy on each side would drift
@@ -184,4 +186,69 @@ export type ConversationSearchCoverage = 'ALL' | 'BEST_MATCHES' | 'RECENT'
 export type SearchConversationsData = {
   conversationIds: string[]
   coverage: ConversationSearchCoverage
+}
+
+/* ---
+  TASKS
+--- */
+
+/*
+  What the board's helpers read of a task: its id, whether it is done, and the ids of the tasks it
+  waits on. Plain rather than a row of the database's, so the page and the backend count the same
+  from what each of them reads
+*/
+export type TaskLinks = {
+  readonly id: string
+  readonly isDone: boolean
+  readonly dependencyIds: readonly string[]
+}
+
+/* ---
+  MODULES
+--- */
+
+// One of `MODULES`: what a module is called, where it is served, what MCP clients show for it, and
+// the scopes a consent to it grants
+export type ModuleDefinition = {
+  readonly name: string
+  readonly path: string
+  readonly title: string
+  readonly scopes: {
+    readonly read: string
+    readonly write: string
+  }
+}
+
+// The name of one of `MODULES`
+export type ModuleName = (typeof MODULES)[number]['name']
+
+// A scope one of `MODULES` grants
+export type ModuleScope = (typeof MODULES)[number]['scopes'][keyof ModuleDefinition['scopes']]
+
+/*
+  What the consent page reads of an authorization request an external agent made: who is asking,
+  where the member will be sent back, the module and the access asked for. A registered client is
+  unverified, since nothing proves who registered it; a client ID metadata document's is verified,
+  and its domain is the document's. The name is the client's own, stripped of control and
+  direction characters and cut short, and never comes with a logo, which would load an address of
+  the client's choosing
+*/
+export type OAuthAuthorizationRequestSummary = {
+  client: {
+    name: string | null
+    isVerified: boolean
+    domain: string | null
+  }
+  redirectHost: string
+  // A loopback address, which any program on the member's computer could be listening on
+  isLoopbackRedirect: boolean
+  module: ModuleName
+  scopes: ModuleScope[]
+  expiresAt: string
+}
+
+// Where the consent page sends the browser once the member allowed or denied a request: back to
+// the client, or nowhere when the client could not be verified
+export type OAuthAuthorizationDecision = {
+  redirectUrl: string | null
 }

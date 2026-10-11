@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_CONVERSATION_INPUT_TOKENS } from 'strategydance-core'
 import {
+  type CompanyAspect,
   ConversationNoteKind,
   ConversationRunStatus,
   ConversationTranscriptRole,
@@ -24,6 +25,7 @@ import buildConversationContext, {
   type ConversationProfile,
 } from '~domain/agent/buildConversationContext'
 import buildConversationRequest, { buildConversationMessages } from '~domain/agent/buildConversationRequest'
+import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import checkTranscript from '~domain/agent/checkTranscript'
 import { MAX_CONVERSATION_PAUSES } from '~domain/agent/conversationRequestSettings'
 import measureConversationRequest from '~domain/agent/measureConversationRequest'
@@ -47,6 +49,8 @@ type RequestConversationTurnInput = {
   lease: ConversationRunLease
   signal: AbortSignal
   client: ClaudeClient
+  // The tools its requests send, the agent's own and its modules'
+  tools: ConversationRequestTools
   // The run's context message as stored on it, JSON text, null until it is built
   runContext: string | null
   usage: ConversationRunUsage
@@ -84,6 +88,8 @@ export type ConversationTurnPart = {
   - `turn`: the turn's parts to store, the first with the run's context when it is not stored yet,
     from `firstPosition` on, with the ledger they settle
   - `ending`: the run ends instead, full or failed, with what its requests used
+  - `tagging`: the aspects the tagging request picked, or null when it picked none, with the ledger
+    it settles (see `requestConversationTagging`)
 */
 export type ConversationTurnOutcome =
   | {
@@ -95,6 +101,7 @@ export type ConversationTurnOutcome =
       usage: ConversationRunUsage
     }
   | { kind: 'ending'; ending: ConversationRunEnding }
+  | { kind: 'tagging'; aspects: CompanyAspect[] | null; usage: ConversationRunUsage }
 
 /*
   Asks Claude for the run's turn: reads the whole transcript, builds the run's context message once
@@ -126,6 +133,7 @@ async function requestConversationTurn({
   lease,
   signal,
   client,
+  tools,
   runContext,
   usage: initialUsage,
   pausedRequest,
@@ -192,6 +200,7 @@ async function requestConversationTurn({
     const measured = await measureConversationRequest({
       client,
       messages,
+      tools,
       entries: entries.map(({ position, runId }) => ({ position, runId })),
       runs: [{ id: fence.runId, usage }, ...otherRuns],
       pausedRequest: paused,
@@ -258,7 +267,7 @@ async function requestConversationTurn({
     })
 
     try {
-      message = await client.stream(buildConversationRequest(messages), {
+      message = await client.stream(buildConversationRequest(messages, tools), {
         signal: request.signal,
         onProgress: line => lease.setStep(line),
         onUsage: snapshot => {

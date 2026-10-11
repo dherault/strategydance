@@ -143,6 +143,30 @@ const conversationMessages = defineMessages({
     description:
       "What a screen reader says for the button in a conversation's row that deletes it. {title} is the conversation's title.",
   },
+  openInDock: {
+    id: 'conversation.openInDock',
+    defaultMessage: 'Open in dock',
+    description:
+      "Tooltip of the button in a conversation's row, and button on a conversation's page, that opens it as a small window pinned to the bottom right of the screen, beside whatever page the reader is on.",
+  },
+  openInDockLabel: {
+    id: 'conversation.openInDockLabel',
+    defaultMessage: 'Open {title} in dock',
+    description:
+      "What a screen reader says for the button in a conversation's row that opens it as a small window pinned to the bottom right of the screen. {title} is the conversation's title.",
+  },
+  showInDock: {
+    id: 'conversation.showInDock',
+    defaultMessage: 'Show in dock',
+    description:
+      "Tooltip of the button in a conversation's row when the conversation is already open as a small window pinned to the bottom right of the screen, which brings that window forward and opens it.",
+  },
+  showInDockLabel: {
+    id: 'conversation.showInDockLabel',
+    defaultMessage: 'Show {title} in dock',
+    description:
+      "What a screen reader says for the button in a conversation's row when the conversation is already open as a small window pinned to the bottom right of the screen. {title} is the conversation's title.",
+  },
   confirm: {
     id: 'conversation.confirm',
     defaultMessage: 'Confirm?',
@@ -295,6 +319,18 @@ const conversationMessages = defineMessages({
     description:
       "What the AI did once it searched the team's knowledge, the notes, plans and decisions written down about the company.",
   },
+  toolListKnowledgeRunning: {
+    id: 'conversation.tool.listKnowledge.running',
+    defaultMessage: 'Listing knowledge',
+    description:
+      "What the AI is doing while it looks through the list of the team's knowledge, the notes, plans and decisions written down about the company.",
+  },
+  toolListKnowledgeDone: {
+    id: 'conversation.tool.listKnowledge.done',
+    defaultMessage: 'Listed knowledge',
+    description:
+      "What the AI did once it looked through the list of the team's knowledge, the notes, plans and decisions written down about the company. Past tense.",
+  },
   toolReadKnowledgeRunning: {
     id: 'conversation.tool.readKnowledge.running',
     defaultMessage: 'Opening knowledge',
@@ -325,35 +361,130 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Updated knowledge',
     description: "What the AI did once it changed an item of the team's knowledge, such as a note or a plan.",
   },
-  toolGetTeamRunning: {
-    id: 'conversation.tool.getTeam.running',
-    defaultMessage: 'Reading your team',
-    description: "What the AI is doing while it reads who is in the reader's team and what each works on.",
+  toolTagKnowledgeRunning: {
+    id: 'conversation.tool.tagKnowledge.running',
+    defaultMessage: 'Tagging knowledge',
+    description:
+      "What the AI is doing while it tags an item of the team's knowledge with the aspects of the company it is about, such as strategy or sales.",
   },
-  toolGetTeamDone: {
-    id: 'conversation.tool.getTeam.done',
-    defaultMessage: 'Read your team',
-    description: "What the AI did once it read who is in the reader's team and what each works on. Past tense.",
+  toolTagKnowledgeDone: {
+    id: 'conversation.tool.tagKnowledge.done',
+    defaultMessage: 'Tagged knowledge',
+    description:
+      "What the AI did once it tagged an item of the team's knowledge with the aspects of the company it is about, such as strategy or sales. Past tense.",
   },
-  toolReadLogRunning: {
-    id: 'conversation.tool.readLog.running',
-    defaultMessage: 'Reading the log',
-    description: "What the AI is doing while it reads the team's log, the short daily updates its members write.",
+  toolDeleteKnowledgeRunning: {
+    id: 'conversation.tool.deleteKnowledge.running',
+    defaultMessage: 'Deleting knowledge',
+    description: "What the AI is doing while it deletes an item of the team's knowledge, such as a note or a plan.",
   },
-  toolReadLogDone: {
-    id: 'conversation.tool.readLog.done',
-    defaultMessage: 'Read the log',
-    description: "What the AI did once it read the team's log, the short daily updates its members write. Past tense.",
+  toolDeleteKnowledgeDone: {
+    id: 'conversation.tool.deleteKnowledge.done',
+    defaultMessage: 'Deleted knowledge',
+    description:
+      "What the AI did once it deleted an item of the team's knowledge, such as a note or a plan. Past tense.",
   },
-  toolSetTopPriorityRunning: {
-    id: 'conversation.tool.setTopPriority.running',
-    defaultMessage: 'Setting your top priority',
-    description: "What the AI is doing while it sets the reader's top priority, the one thing they focus on.",
+  toolRestoreKnowledgeRunning: {
+    id: 'conversation.tool.restoreKnowledge.running',
+    defaultMessage: 'Restoring knowledge',
+    description:
+      "What the AI is doing while it brings back an item of the team's knowledge that was deleted, such as a note or a plan.",
   },
-  toolSetTopPriorityDone: {
-    id: 'conversation.tool.setTopPriority.done',
-    defaultMessage: 'Set your top priority',
-    description: "What the AI did once it set the reader's top priority, the one thing they focus on. Past tense.",
+  toolRestoreKnowledgeDone: {
+    id: 'conversation.tool.restoreKnowledge.done',
+    defaultMessage: 'Restored knowledge',
+    description:
+      "What the AI did once it brought back an item of the team's knowledge that was deleted, such as a note or a plan. Past tense.",
+  },
+  toolListTasksRunning: {
+    id: 'conversation.tool.listTasks.running',
+    defaultMessage: 'Listing tasks',
+    description:
+      "What the AI is doing while it looks through the tasks on the team's board, the shared list of work to do.",
+  },
+  toolListTasksDone: {
+    id: 'conversation.tool.listTasks.done',
+    defaultMessage: 'Listed tasks',
+    description:
+      "What the AI did once it looked through the tasks on the team's board, the shared list of work to do. Past tense.",
+  },
+  toolReadTaskRunning: {
+    id: 'conversation.tool.readTask.running',
+    defaultMessage: 'Opening a task',
+    description: "What the AI is doing while it opens a task on the team's board, the shared list of work to do.",
+  },
+  toolReadTaskDone: {
+    id: 'conversation.tool.readTask.done',
+    defaultMessage: 'Opened a task',
+    description:
+      "What the AI did once it opened a task on the team's board, the shared list of work to do. Past tense.",
+  },
+  toolCreateTaskRunning: {
+    id: 'conversation.tool.createTask.running',
+    defaultMessage: 'Creating a task',
+    description: "What the AI is doing while it adds a new task to the team's board, the shared list of work to do.",
+  },
+  toolCreateTaskDone: {
+    id: 'conversation.tool.createTask.done',
+    defaultMessage: 'Created a task',
+    description:
+      "What the AI did once it added a new task to the team's board, the shared list of work to do. Past tense.",
+  },
+  toolUpdateTaskRunning: {
+    id: 'conversation.tool.updateTask.running',
+    defaultMessage: 'Updating a task',
+    description:
+      "What the AI is doing while it changes a task on the team's board, the shared list of work to do, such as its name, its column or who it is assigned to.",
+  },
+  toolUpdateTaskDone: {
+    id: 'conversation.tool.updateTask.done',
+    defaultMessage: 'Updated a task',
+    description:
+      "What the AI did once it changed a task on the team's board, the shared list of work to do, such as its name, its column or who it is assigned to. Past tense.",
+  },
+  toolLinkTasksRunning: {
+    id: 'conversation.tool.linkTasks.running',
+    defaultMessage: 'Linking tasks',
+    description: "What the AI is doing while it marks a task on the team's board as waiting on another one.",
+  },
+  toolLinkTasksDone: {
+    id: 'conversation.tool.linkTasks.done',
+    defaultMessage: 'Linked tasks',
+    description: "What the AI did once it marked a task on the team's board as waiting on another one. Past tense.",
+  },
+  toolUnlinkTasksRunning: {
+    id: 'conversation.tool.unlinkTasks.running',
+    defaultMessage: 'Unlinking tasks',
+    description: "What the AI is doing while it marks a task on the team's board as no longer waiting on another one.",
+  },
+  toolUnlinkTasksDone: {
+    id: 'conversation.tool.unlinkTasks.done',
+    defaultMessage: 'Unlinked tasks',
+    description:
+      "What the AI did once it marked a task on the team's board as no longer waiting on another one. Past tense.",
+  },
+  toolDeleteTaskRunning: {
+    id: 'conversation.tool.deleteTask.running',
+    defaultMessage: 'Deleting a task',
+    description: "What the AI is doing while it deletes a task on the team's board, the shared list of work to do.",
+  },
+  toolDeleteTaskDone: {
+    id: 'conversation.tool.deleteTask.done',
+    defaultMessage: 'Deleted a task',
+    description:
+      "What the AI did once it deleted a task on the team's board, the shared list of work to do. Past tense.",
+  },
+  toolRestoreTaskRunning: {
+    id: 'conversation.tool.restoreTask.running',
+    defaultMessage: 'Restoring a task',
+    description:
+      "What the AI is doing while it brings back a task on the team's board, the shared list of work to do that was deleted.",
+  },
+  toolRestoreTaskDone: {
+    id: 'conversation.tool.restoreTask.done',
+    defaultMessage: 'Restored a task',
+    description:
+      "What the AI did once it brought back a task on the team's board, the shared list of work to do that was deleted. Past tense.",
   },
 
   /* ---
@@ -411,8 +542,7 @@ const conversationMessages = defineMessages({
   },
   aspectsDescription: {
     id: 'conversation.aspectsDescription',
-    defaultMessage:
-      'It shows up on the page of each aspect it is tagged with. Strategy Dance no longer tags it once you do.',
+    defaultMessage: 'Strategy Dance tags a conversation by itself until you pick its aspects.',
     description:
       "Line under the title of the dialog that tags a conversation with aspects of the company. The AI, Strategy Dance, picks a conversation's aspects by itself until the reader picks them.",
   },
@@ -520,11 +650,47 @@ const conversationMessages = defineMessages({
     defaultMessage: 'View error',
     description: 'Button on a tool the AI used that failed, which opens what the tool was given and how it failed.',
   },
+  documentGone: {
+    id: 'conversation.documentGone',
+    defaultMessage: "(no longer in the team's knowledge)",
+    description:
+      "Read by screen readers after a link in the AI's reply to an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
+  },
+  taskGone: {
+    id: 'conversation.taskGone',
+    defaultMessage: "(no longer on the team's board)",
+    description:
+      "Read by screen readers after a link in the AI's reply to a task on the team's board, the shared list of work to do, that was deleted since. Shown crossed out to sighted readers.",
+  },
+  restoreDocument: {
+    id: 'conversation.restoreDocument',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted an item of the team's knowledge, such as a note or a plan, which brings the item back. Offered for a day after the delete.",
+  },
+  restoreDocumentError: {
+    id: 'conversation.restoreDocumentError',
+    defaultMessage: 'The knowledge could not be brought back.',
+    description:
+      "Notification when bringing back an item of the team's knowledge the AI deleted failed, for instance once a day has passed since the delete.",
+  },
+  restoreTask: {
+    id: 'conversation.restoreTask',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted a task on the team's board, the shared list of work to do, which brings the task back. Offered for a day after the delete.",
+  },
+  restoreTaskError: {
+    id: 'conversation.restoreTaskError',
+    defaultMessage: 'The task could not be brought back.',
+    description:
+      "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
+  },
   toolCall: {
     id: 'conversation.toolCall',
     defaultMessage: 'Tool call · {name}',
     description:
-      "Line under the title of the dialog showing a tool the AI used. {name} is the tool's technical name, such as search_knowledge, kept as it is.",
+      "Line under the title of the dialog showing a tool the AI used. {name} is the tool's technical name, such as search_documents, kept as it is.",
   },
   toolInput: {
     id: 'conversation.toolInput',
@@ -735,11 +901,107 @@ const conversationMessages = defineMessages({
     description:
       'Shown above the message field when the server could not take the message for now. What the reader wrote stays in the field.',
   },
+  composerAttach: {
+    id: 'conversation.composer.attach',
+    defaultMessage: 'Attach',
+    description:
+      "Accessible name and tooltip of the + button beside the message field, whose menu adds something to the message, such as a mention of the team's knowledge.",
+  },
+  composerMentionKnowledge: {
+    id: 'conversation.composer.mentionKnowledge',
+    defaultMessage: 'Mention knowledge',
+    description:
+      "Item of the + menu beside the message field. It writes @ in the message and lists the team's knowledge documents, such as a note or a plan, to mention, so the AI reads them.",
+  },
+  composerTooLong: {
+    id: 'conversation.composer.tooLong',
+    defaultMessage: 'This message is too long to send. Shorten it a little.',
+    description:
+      'Shown above the message field when what the reader wrote, with the documents it mentions, is longer than a message may be. Send is disabled until it is shorter.',
+  },
+  mentionListLabel: {
+    id: 'conversation.mention.listLabel',
+    defaultMessage: 'Knowledge',
+    description:
+      "Heading of the list that opens above the message field when the reader types @, suggesting the team's knowledge documents, such as a note or a plan, to mention in the message.",
+  },
+  mentionEmpty: {
+    id: 'conversation.mention.empty',
+    defaultMessage: 'No knowledge matches “{query}”',
+    description:
+      "Shown in the list above the message field when no knowledge document's title holds what the reader typed after @. {query} is what they typed, kept as typed.",
+  },
   tooMany: {
     id: 'conversation.tooMany',
     defaultMessage: 'You have {max, number} conversations, as many as you can keep. Delete one to start another.',
     description:
       'Shown when the reader tries to start a conversation while they keep as many as they may. {max} is a number such as 1000.',
+  },
+
+  /* ---
+    DOCK: conversations open as small windows pinned to the bottom right of the screen, beside
+    whatever page the reader is on, each open or minimized to its header
+  --- */
+
+  dockLabel: {
+    id: 'conversation.dockLabel',
+    defaultMessage: 'Docked conversations',
+    description:
+      'Accessible name of the row of small conversation windows pinned to the bottom right of the screen, beside the page.',
+  },
+  dockFullPage: {
+    id: 'conversation.dockFullPage',
+    defaultMessage: 'Full page',
+    description:
+      "Tooltip of the button in the header of a docked conversation's window that opens the conversation as a whole page instead.",
+  },
+  dockMinimize: {
+    id: 'conversation.dockMinimize',
+    defaultMessage: 'Minimize',
+    description: "Tooltip of the button in the header of a docked conversation's window that shrinks it to its header.",
+  },
+  dockClose: {
+    id: 'conversation.dockClose',
+    defaultMessage: 'Close',
+    description:
+      "Tooltip of the button in the header of a docked conversation's window that takes it out of the dock. The conversation is kept.",
+  },
+  dockWorking: {
+    id: 'conversation.dockWorking',
+    defaultMessage: 'Strategy Dance is working',
+    description:
+      "Read by screen readers beside the spinner in a minimized conversation window's header, while the AI works on an answer. Strategy Dance is the product's name, and the name of its AI.",
+  },
+  dockUnread: {
+    id: 'conversation.dockUnread',
+    defaultMessage: '{count, plural, one {# new message} other {# new messages}}',
+    description:
+      "Read by screen readers beside the count in a minimized conversation window's header: the AI's messages the reader has not seen yet.",
+  },
+  dockWaiting: {
+    id: 'conversation.dockWaiting',
+    defaultMessage: 'Waiting for your answer',
+    description:
+      "Read by screen readers beside the dot in a minimized conversation window's header, when the AI asked the reader a question there.",
+  },
+  dockMore: {
+    id: 'conversation.dockMore',
+    defaultMessage: '+{count, number}',
+    description:
+      'Button beside the docked conversation windows, for those that do not fit on the screen, which lists them. {count} is how many, such as 3.',
+  },
+  dockMoreLabel: {
+    id: 'conversation.dockMoreLabel',
+    defaultMessage: '{count, plural, one {# more docked conversation} other {# more docked conversations}}',
+    description:
+      'Accessible name of the button beside the docked conversation windows that lists those that do not fit on the screen.',
+  },
+  dockMoreAttentionLabel: {
+    id: 'conversation.dockMoreAttentionLabel',
+    defaultMessage:
+      '{count, plural, one {# more docked conversation, which needs your attention} other {# more docked conversations, some needing your attention}}',
+    description:
+      'Accessible name of the button beside the docked conversation windows that lists those that do not fit on the screen, when one of them has new messages or a question for the reader.',
   },
 })
 

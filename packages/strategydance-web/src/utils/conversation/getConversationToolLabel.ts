@@ -5,30 +5,67 @@ import conversationMessages from '~data/intl/messages/conversation'
 
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
-// What each of the agent's own tools is called while it runs, and once it is done
+// What each of the agent's tools is called while it runs, and once it is done: its own, then the
+// Knowledge module's and the Tasks module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],
   [
-    'search_knowledge',
+    'search_documents',
     { running: conversationMessages.toolSearchKnowledgeRunning, done: conversationMessages.toolSearchKnowledgeDone },
   ],
   [
-    'read_knowledge',
+    'list_documents',
+    { running: conversationMessages.toolListKnowledgeRunning, done: conversationMessages.toolListKnowledgeDone },
+  ],
+  [
+    'read_document',
     { running: conversationMessages.toolReadKnowledgeRunning, done: conversationMessages.toolReadKnowledgeDone },
   ],
   [
-    'create_knowledge',
+    'create_document',
     { running: conversationMessages.toolCreateKnowledgeRunning, done: conversationMessages.toolCreateKnowledgeDone },
   ],
   [
-    'update_knowledge',
+    'update_document',
     { running: conversationMessages.toolUpdateKnowledgeRunning, done: conversationMessages.toolUpdateKnowledgeDone },
   ],
-  ['get_team', { running: conversationMessages.toolGetTeamRunning, done: conversationMessages.toolGetTeamDone }],
-  ['read_log', { running: conversationMessages.toolReadLogRunning, done: conversationMessages.toolReadLogDone }],
   [
-    'set_top_priority',
-    { running: conversationMessages.toolSetTopPriorityRunning, done: conversationMessages.toolSetTopPriorityDone },
+    'set_document_aspects',
+    { running: conversationMessages.toolTagKnowledgeRunning, done: conversationMessages.toolTagKnowledgeDone },
+  ],
+  [
+    'delete_document',
+    { running: conversationMessages.toolDeleteKnowledgeRunning, done: conversationMessages.toolDeleteKnowledgeDone },
+  ],
+  [
+    'restore_document',
+    { running: conversationMessages.toolRestoreKnowledgeRunning, done: conversationMessages.toolRestoreKnowledgeDone },
+  ],
+  ['list_tasks', { running: conversationMessages.toolListTasksRunning, done: conversationMessages.toolListTasksDone }],
+  ['read_task', { running: conversationMessages.toolReadTaskRunning, done: conversationMessages.toolReadTaskDone }],
+  [
+    'create_task',
+    { running: conversationMessages.toolCreateTaskRunning, done: conversationMessages.toolCreateTaskDone },
+  ],
+  [
+    'update_task',
+    { running: conversationMessages.toolUpdateTaskRunning, done: conversationMessages.toolUpdateTaskDone },
+  ],
+  [
+    'add_task_dependency',
+    { running: conversationMessages.toolLinkTasksRunning, done: conversationMessages.toolLinkTasksDone },
+  ],
+  [
+    'remove_task_dependency',
+    { running: conversationMessages.toolUnlinkTasksRunning, done: conversationMessages.toolUnlinkTasksDone },
+  ],
+  [
+    'delete_task',
+    { running: conversationMessages.toolDeleteTaskRunning, done: conversationMessages.toolDeleteTaskDone },
+  ],
+  [
+    'restore_task',
+    { running: conversationMessages.toolRestoreTaskRunning, done: conversationMessages.toolRestoreTaskDone },
   ],
 ])
 

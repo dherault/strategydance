@@ -133,8 +133,10 @@ describe('searching by the full-text indexes', () => {
   })
 
   test('answers every match once every conversation somebody can keep has matched', async () => {
+    // Every title matches, so which messages the 5000 read leaves out, a tie among equal ones, never
+    // decides what is found
     for (let index = 0; index < MAX_CONVERSATIONS; index++) {
-      const conversationId = insertConversation({ title: `Conversation ${index}` })
+      const conversationId = insertConversation({ title: `Pricing ${index}` })
 
       for (let message = 0; message < 6; message++) insertMessage(conversationId, 'MEMBER_TEXT', 'pricing')
     }

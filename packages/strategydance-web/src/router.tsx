@@ -3,6 +3,7 @@ import { createRouter } from '@tanstack/react-router'
 
 import AuthenticationProvider from '~components/authentication/_AuthenticationProvider'
 import AspectChapterProvider from '~components/company/_AspectChapterProvider'
+import ConversationDockProvider from '~components/conversation/_ConversationDockProvider'
 import IntlProvider from '~components/intl/_IntlProvider'
 import CurrentOrganizationProvider from '~components/organization/_CurrentOrganizationProvider'
 import UserProvider from '~components/user/_UserProvider'
@@ -44,9 +45,14 @@ export function getRouter() {
     ),
     /*
       Inside `Wrap` and inside the router's context, for a provider that reads the router: the
-      current organization is the one the path leads with. Still above the document shell, so the
-      same holds as in `Wrap`: render children unconditionally
+      current organization is the one the path leads with, and the dock's windows are the current
+      organization's. Still above the document shell, so the same holds as in `Wrap`: render
+      children unconditionally
     */
-    InnerWrap: ({ children }) => <CurrentOrganizationProvider>{children}</CurrentOrganizationProvider>,
+    InnerWrap: ({ children }) => (
+      <CurrentOrganizationProvider>
+        <ConversationDockProvider>{children}</ConversationDockProvider>
+      </CurrentOrganizationProvider>
+    ),
   })
 }

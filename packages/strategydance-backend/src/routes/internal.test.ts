@@ -11,13 +11,16 @@ import createConversationDatabaseFake from '~domain/conversations/testing/create
 
 const fake = createConversationDatabaseFake()
 
+// The sweep prunes documents and module call results too, which the modules' fake holds
+const { modules } = fake
+
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
 mock.module('strategydance-database/backend', () => fake.sdk)
 
-// The board's prune, which the conversations' fake does not hold: its own test covers it
+// The board's prune, which its own test covers
 const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
 
 mock.module('~domain/tasks/pruneDeletedTasks', () => ({ default: pruneDeletedTasks }))
@@ -186,5 +189,68 @@ describe('POST /internal/sweep', () => {
 
     expect(response.status).toBe(200)
     expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
+  })
+
+  test('removes the documents deleted over a day ago in every organization, and keeps the rest', async () => {
+    const deletedAt = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
+    const old = modules.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(25) })
+    const elsewhere = modules.insertDocument({ organizationId: createId(), deletedAt: deletedAt(30) })
+    const recent = modules.insertDocument({ organizationId: ORGANIZATION_ID, deletedAt: deletedAt(1) })
+    const live = modules.insertDocument({ organizationId: ORGANIZATION_ID })
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect(modules.documents.has(old.id)).toBe(false)
+    expect(modules.documents.has(elsewhere.id)).toBe(false)
+    expect([...modules.documents.keys()].sort()).toEqual([recent.id, live.id].sort())
+  })
+
+  test('removes the module call results past their expiry, and keeps those that never expire', async () => {
+    const result = (key: string, expiresAt: string | null) => ({
+      idempotencyScope: 'connection:checked',
+      idempotencyKey: key,
+      userId: AUTHOR,
+      organizationId: ORGANIZATION_ID,
+      tool: 'delete_document',
+      argumentsHash: 'hash',
+      result: '{}',
+      expiresAt,
+      createdAt: new Date().toISOString(),
+    })
+
+    modules.results.set('expired', result('expired', new Date(Date.now() - 1000).toISOString()))
+    modules.results.set('pending', result('pending', new Date(Date.now() + 60 * 60 * 1000).toISOString()))
+    modules.results.set('forever', result('forever', null))
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect([...modules.results.keys()].sort()).toEqual(['forever', 'pending'])
+  })
+
+  test("prunes the authorization server's expired requests and unused registrations", async () => {
+    const ago = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+
+    modules.clients.set('unused', { id: 'unused', name: null, redirectUris: [], createdAt: ago(25), lastUsedAt: null })
+    modules.clients.set('recent', { id: 'recent', name: null, redirectUris: [], createdAt: ago(1), lastUsedAt: null })
+    modules.requests.set('expired', {
+      id: 'expired',
+      clientId: 'recent',
+      registeredClientId: 'recent',
+      redirectUri: 'http://127.0.0.1/callback',
+      codeChallenge: 'challenge',
+      resource: 'http://localhost:3003/mcp/knowledge',
+      scopes: ['knowledge:read'],
+      state: null,
+      expiresAt: ago(25),
+      decidedAt: null,
+      isApproved: null,
+      connectionId: null,
+      codeHash: null,
+      codeExpiresAt: null,
+      codeUsedAt: null,
+      createdAt: ago(25),
+    })
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect([...modules.clients.keys()]).toEqual(['recent'])
+    expect(modules.requests.size).toBe(0)
   })
 })

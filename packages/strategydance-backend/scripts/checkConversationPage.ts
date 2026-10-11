@@ -10,8 +10,8 @@ import { FIREBASE_PROJECT_ID } from '~constants'
 import { dataConnect } from '~firebase'
 
 /*
-  Checks the conversation page's operations against the emulators, where CI cannot, since what
-  they guard is in their SQL conditions:
+  Checks the operations of the conversation page and the dock against the emulators, where CI
+  cannot, since what they guard is in their SQL conditions:
 
     bun run check:conversation-page
 
@@ -362,6 +362,32 @@ async function runChecks() {
     notToolCall.conversationMessages.length === 0 && othersToolCall.conversationMessages.length === 0,
   )
 
+  // The dock's windows, read by their ids
+  type DockRead = { conversations: { id: string; unreadCount: number }[] }
+
+  const docked = { organizationId, ids: [...Object.values(conversations), createId()] }
+  const dock = await readAs<DockRead>(authorId, 'GetDockConversations', docked)
+
+  check(
+    "the dock reads the caller's conversations it asks for, but a deleted one or another member's, with their unread count",
+    dock.conversations.length === 2
+      && dock.conversations.some(({ id, unreadCount }) => id === conversations.checked && unreadCount === 3)
+      && dock.conversations.some(({ id }) => id === conversations.full),
+  )
+  const fullDock = await readAs<DockRead>(authorId, 'GetDockConversations', {
+    organizationId,
+    ids: [conversations.full],
+  })
+
+  check(
+    'the dock reads only the ids it asks for',
+    fullDock.conversations.length === 1 && fullDock.conversations[0]?.id === conversations.full,
+  )
+  check(
+    'the dock read from outside the organization reads nothing',
+    (await readAs<DockRead>(outsiderId, 'GetDockConversations', docked)).conversations.length === 0,
+  )
+
   // Marking read
   const marked = (userId: string, previewMessageId: string) => ({
     organizationId,
@@ -388,6 +414,12 @@ async function runChecks() {
     (await runAs(authorId, 'MarkConversationRead', marked(authorId, messageIds.get(latestPosition)!)))
       && (await readConversation(conversations.checked))?.unreadCount === 0
       && (await readConversation(conversations.checked))?.updatedAt === before?.updatedAt,
+  )
+  check(
+    'the dock reads the count marking read cleared',
+    (await readAs<DockRead>(authorId, 'GetDockConversations', docked)).conversations.find(
+      ({ id }) => id === conversations.checked,
+    )?.unreadCount === 0,
   )
 
   // Changing the aspects
@@ -458,9 +490,13 @@ async function runChecks() {
     conversationId: conversations.checked,
   })
 
+  const removedDock = await readAs<DockRead>(authorId, 'GetDockConversations', docked)
+
   check(
-    'a member removed from the organization reads nothing of their conversation',
-    removed.conversations.length === 0 && removedRuns.conversationRuns.length === 0,
+    'a member removed from the organization reads nothing of their conversation, in the dock either',
+    removed.conversations.length === 0
+      && removedRuns.conversationRuns.length === 0
+      && removedDock.conversations.length === 0,
   )
 }
 

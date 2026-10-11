@@ -27,6 +27,8 @@
     "grant:administrator": "cd packages/strategydance-backend && bun run grant:administrator",
     "probe:claude": "cd packages/strategydance-backend && bun run probe:claude",
     "send:conversation": "cd packages/strategydance-backend && bun run send:conversation",
+    "mcp:knowledge": "cd packages/strategydance-backend && bun run --silent mcp:knowledge",
+    "mcp:tasks": "cd packages/strategydance-backend && bun run --silent mcp:tasks",
     "generate:database": "cd packages/strategydance-database && bun run generate",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives && oxfmt --check",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix && oxfmt",
@@ -62,11 +64,11 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
-    "@types/node": "^24.13.2",
-    "firebase-tools": "^15.32.0",
+    "@types/node": "^26.6.4",
+    "firebase-tools": "^15.32.1",
     "husky": "^9.1.7",
     "npm-check-updates": "^23.1.0",
-    "oxfmt": "^0.70.0",
-    "oxlint": "^1.83.0"
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0"
   }
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 
@@ -56,8 +56,7 @@ async function start(userId: string, deletedHoursAgo: number | null) {
   return conversationId
 }
 
-// A conversation deleted two days ago, written straight into its table, since a start prunes its
-// author's on the way through
+// A conversation deleted two days ago, written straight into its table
 function insertDeleted() {
   const conversationId = createId()
 
@@ -90,6 +89,8 @@ function isLeft(conversationId: string) {
   )
 }
 
+afterEach(() => setSystemTime())
+
 beforeEach(() => {
   fake.reset()
   fake.addMember(AUTHOR, ORGANIZATION_ID)
@@ -101,16 +102,43 @@ describe('pruneDeletedConversations', () => {
     const old = await start(AUTHOR, 48)
     const othersOld = await start(OTHER, 25)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 2, deleted: 2 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 2, deleted: 2, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
     expect(isLeft(othersOld)).toBe(false)
+  })
+
+  test('removes what the agent’s module calls stored under a pruned conversation’s scope, and no other', async () => {
+    const old = await start(AUTHOR, 48)
+    const kept = await start(AUTHOR, null)
+    const keep = (conversationId: string, key: string) =>
+      fake.modules.results.set(`conversation:${conversationId}\n${key}`, {
+        idempotencyScope: `conversation:${conversationId}`,
+        idempotencyKey: key,
+        userId: AUTHOR,
+        organizationId: ORGANIZATION_ID,
+        tool: 'create_document',
+        argumentsHash: 'hash',
+        result: '{}',
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+      })
+
+    keep(old, 'toolu_1')
+    keep(old, 'toolu_2')
+    keep(kept, 'toolu_3')
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 1, deleted: 1, deletedResults: 2 })
+    expect([...fake.modules.results.keys()]).toEqual([`conversation:${kept}\ntoolu_3`])
+    expect(fake.calls.indexOf('DeleteConversationModuleCallResults')).toBeLessThan(
+      fake.calls.indexOf('DeleteClaimedConversations'),
+    )
   })
 
   test('keeps what can still be taken back, and what is not deleted', async () => {
     const recent = await start(AUTHOR, 23)
     const kept = await start(AUTHOR, null)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedResults: 0 })
     expect(fake.conversations.get(recent)?.pruneClaimedAt).toBeNull()
     expect(isLeft(recent)).toBe(true)
     expect(isLeft(kept)).toBe(true)
@@ -128,22 +156,30 @@ describe('pruneDeletedConversations', () => {
     )
   })
 
-  test('a restore is refused once the sweep has claimed the conversation, and kept when it came first', async () => {
-    // Two authors, since a start prunes its own author's conversations deleted long enough ago
-    const claimed = await start(OTHER, 48)
-    const restored = await start(AUTHOR, 48)
+  test('a restore is refused past a day, before and after the sweep claims it, and kept within it', async () => {
+    const old = await start(AUTHOR, 48)
+    const restored = await start(AUTHOR, 23)
+
+    expect(() => fake.restore(old, AUTHOR, ORGANIZATION_ID)).toThrow('The conversation is gone for good')
 
     fake.restore(restored, AUTHOR, ORGANIZATION_ID)
     await sdk.claimDeletedConversations({})
 
-    expect(fake.conversations.get(claimed)?.pruneClaimedAt).not.toBeNull()
-    expect(() => fake.restore(claimed, OTHER, ORGANIZATION_ID)).toThrow('The conversation is gone for good')
-    expect(fake.conversations.get(claimed)?.deletedAt).not.toBeNull()
+    expect(fake.conversations.get(old)?.pruneClaimedAt).not.toBeNull()
+    expect(() => fake.restore(old, AUTHOR, ORGANIZATION_ID)).toThrow('The conversation is gone for good')
 
     await pruneDeletedConversations()
 
-    expect(isLeft(claimed)).toBe(false)
+    expect(isLeft(old)).toBe(false)
     expect(fake.conversations.get(restored)).toMatchObject({ deletedAt: null, pruneClaimedAt: null })
+  })
+
+  test('a start leaves its author’s conversations deleted over a day ago to the sweep', async () => {
+    const old = await start(AUTHOR, 48)
+
+    await start(AUTHOR, null)
+
+    expect(isLeft(old)).toBe(true)
   })
 
   test('finishes, on the next sweep, a conversation an earlier one claimed and failed to delete', async () => {
@@ -158,22 +194,38 @@ describe('pruneDeletedConversations', () => {
 
     fake.beforeOperation = async () => {}
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
   })
 
   test('deletes twenty at a time', async () => {
     for (let count = 0; count < 45; count++) insertDeleted()
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45, deletedResults: 0 })
     expect(fake.calls.filter(name => name === 'DeleteClaimedConversations')).toHaveLength(3)
     expect(fake.conversations.size).toBe(0)
+  })
+
+  test('stops deleting once its time is up, leaving the rest claimed for the next sweep', async () => {
+    for (let count = 0; count < 45; count++) insertDeleted()
+
+    // Each batch takes three minutes, so the second ends past the sweep's five
+    fake.beforeOperation = async name => {
+      if (name === 'DeleteClaimedConversations') setSystemTime(new Date(Date.now() + 3 * 60 * 1000))
+    }
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 40, deletedResults: 0 })
+    expect(fake.conversations.size).toBe(5)
+
+    fake.beforeOperation = async () => {}
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 5, deletedResults: 0 })
   })
 
   test('deletes nothing, and asks for no delete, when nothing was deleted long enough ago', async () => {
     await start(AUTHOR, null)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedResults: 0 })
     expect(fake.calls).not.toContain('DeleteClaimedConversations')
   })
 })

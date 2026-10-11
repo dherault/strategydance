@@ -13,9 +13,9 @@ import { EMULATORS_REQUESTED, appCheck, authentication } from '~data/firebase'
 /*
   The local backend whenever the emulators are in use, because that is the backend talking to
   them: `bun run dev:backend` beside `bun run dev`, or `bun run preview`. Everything else, a
-  preview channel included, calls the deployed one
+  preview channel included, calls the deployed one. The modules' addresses hang off it too
 */
-const API_URL = EMULATORS_REQUESTED ? DEVELOPMENT_API_URL : PRODUCTION_API_URL
+export const API_URL = EMULATORS_REQUESTED ? DEVELOPMENT_API_URL : PRODUCTION_API_URL
 
 // A refusal from the backend, carrying its status and its code for a caller to branch on
 export class ApiError extends Error {

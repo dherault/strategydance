@@ -13,12 +13,15 @@ import {
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
+  renewConversationRunLease,
   storeConversationToolResults,
+  tagConversationAspects,
 } from 'strategydance-database/backend'
 
 import type {
   ClaudeClient,
   ConversationContentBlock,
+  ConversationModules,
   ConversationRunFence,
   ConversationRunReference,
   ConversationToolRunner,
@@ -37,8 +40,9 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
+import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
-import CONVERSATION_TOOL_RUNNERS from '~domain/agent/conversationToolRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
@@ -48,10 +52,12 @@ import {
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
 import createConversationRunLease, { type ConversationRunLease } from '~domain/conversations/createConversationRunLease'
+import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
 import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import requestConversationTagging from '~domain/conversations/requestConversationTagging'
 import requestConversationTurn, {
   type ConversationRunLimits,
   type ConversationTurnOutcome,
@@ -75,8 +81,10 @@ type Options = {
   limits?: Partial<ConversationRunLimits>
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs?: number
-  // The tools the worker runs, which a test can bring in, and how long a call may take
-  tools?: ConversationToolRunner[]
+  // The modules the run's agent uses, connected for its member once the run is claimed, whose tools
+  // its requests send and whose runners run its calls, which a test can bring in, and how long a
+  // call may take
+  connectModules?: (fence: ConversationRunFence) => Promise<ConversationModules>
   toolTimeoutMs?: number
 }
 
@@ -95,9 +103,10 @@ type ConversationRunContext = GetConversationRunContextData
 
   It first claims the run, if it is queued or its worker stopped renewing its lease, and only for
   its author as the member it was queued under, and still staff while conversations are: anybody
-  else's run ends interrupted, with its note, so nothing is left for a later delivery. Then it takes
-  one step at a time, each read afresh, so a worker taking over after a crash carries on where the
-  last one stopped:
+  else's run ends interrupted, with its note, so nothing is left for a later delivery. It connects
+  to the modules its agent uses, as that member, whose tools its requests send after the agent's
+  own. Then it takes one step at a time, each read afresh, so a worker taking over after a crash
+  carries on where the last one stopped:
 
   - the run's reply not wholly drawn yet: the next message of it. The reply is the turn after the
     member's entry the run answers, its anchor, which a resumed run shares with the run it resumes,
@@ -107,6 +116,8 @@ type ConversationRunContext = GetConversationRunContextData
     then the entry answering them all is stored and the run goes round to Claude. A reply that asked
     the member a question ends the run waiting for the answer instead
   - a reply wholly drawn that called nothing: the run is complete
+  - before either ends the run, a reply wholly drawn to the conversation's first message, by its
+    first run or one carrying it on, while nobody has set its aspects: the request that tags them
   - the member's message, or the results of the reply's calls: Claude's turn, stored part by part as
     it answered, unless the run has drawn its 100 entries, or the conversation holds its 2000, when
     the run fails with a note instead and costs nothing
@@ -128,7 +139,7 @@ async function runConversation(
     retryDelayMs = 500,
     limits,
     stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
-    tools = CONVERSATION_TOOL_RUNNERS,
+    connectModules = connectConversationModules,
     toolTimeoutMs = CONVERSATION_TOOL_CALL_TIMEOUT_MS,
   }: Options = {},
 ): Promise<'finished' | 'held'> {
@@ -172,6 +183,17 @@ async function runConversation(
     attempts: run.attempts + 1,
     membershipCreatedAt: run.membershipCreatedAt,
   }
+  let modules: ConversationModules
+
+  // Its claimed lease lapses, and the run is claimed again on its next delivery
+  try {
+    modules = await connectModules(fence)
+  } catch (error) {
+    logger.error(`Conversation run ${fence.runId}: could not connect to its modules, left to its lease`, error)
+
+    return 'held'
+  }
+
   const controller = new AbortController()
   const lease = createConversationRunLease({ fence, onLost: () => controller.abort() })
 
@@ -184,11 +206,13 @@ async function runConversation(
       retryDelayMs,
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
-      tools,
+      tools: buildConversationTools(modules.tools),
+      runners: modules.runners,
       toolTimeoutMs,
     })
   } finally {
     await lease.stop()
+    await modules.close()
   }
 }
 
@@ -200,7 +224,9 @@ type StepsInput = {
   retryDelayMs: number
   limits: ConversationRunLimits
   stopCheckIntervalMs: number
-  tools: ConversationToolRunner[]
+  // What the run's requests send, and what runs their calls
+  tools: ConversationRequestTools
+  runners: ConversationToolRunner[]
   toolTimeoutMs: number
 }
 
@@ -213,6 +239,7 @@ async function takeSteps({
   limits,
   stopCheckIntervalMs,
   tools,
+  runners,
   toolTimeoutMs,
 }: StepsInput) {
   const reference = toReference(fence)
@@ -236,6 +263,7 @@ async function takeSteps({
         limits,
         stopCheckIntervalMs,
         tools,
+        runners,
         toolTimeoutMs,
         outcome,
       })
@@ -284,6 +312,7 @@ async function takeStep({
   limits,
   stopCheckIntervalMs,
   tools,
+  runners,
   toolTimeoutMs,
   outcome,
 }: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
@@ -340,7 +369,7 @@ async function takeStep({
     const parts = sinceAnchor
       .filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
       .map(part => ({ ...part, blocks: parseTranscriptContent(part.content) }))
-    const plans = planCalls(parts, tools)
+    const plans = planCalls(parts, runners)
     const drawn = await drawConversationTurn({ fence, lease, entries: parts, plans, position })
 
     if (drawn === 'drawn') return 'next'
@@ -354,16 +383,33 @@ async function takeStep({
 
     if (!pausedRequest) {
       const calls = readConversationToolCalls(parts.at(-1)?.blocks ?? [])
+      const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
+      const isEnding = !calls.length || turnPlans.some(({ kind }) => kind === 'question')
+
+      // The first exchange is whole, and the reply ends the run, done or waiting for an answer:
+      // Claude tags the conversation first, before the calls beside a question run, so none runs
+      // twice
+      if (isEnding && shouldTag({ context, usage, startedAt, limits })) {
+        return requestConversationTagging({
+          fence,
+          lease,
+          signal,
+          client,
+          usage,
+          reply: parts.flatMap(({ blocks }) => blocks),
+          streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
+          stopCheckIntervalMs,
+        })
+      }
 
       if (!calls.length) return end({ kind: 'finished', status: ConversationRunStatus.COMPLETED, usage })
 
-      const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
       const ran = await runConversationToolCalls({
         fence,
         lease,
         signal,
         plans: turnPlans,
-        runners: tools,
+        runners,
         deadline: Date.parse(startedAt) + limits.maxDurationMs,
         timeoutMs: toolTimeoutMs,
       })
@@ -430,6 +476,7 @@ async function takeStep({
       lease,
       signal,
       client,
+      tools,
       runContext: run?.context ?? null,
       usage,
       pausedRequest,
@@ -467,6 +514,7 @@ async function takeStep({
     lease,
     signal,
     client,
+    tools,
     runContext: run?.context ?? null,
     usage,
     pausedRequest: null,
@@ -486,6 +534,12 @@ type WriteOutcomeInput = {
 
 // Writes what a request came to, and answers whether that ended the run
 async function writeOutcome({ outcome, context, fence, lease }: WriteOutcomeInput) {
+  if (outcome.kind === 'tagging') {
+    await writeTagging({ outcome, context, fence, lease })
+
+    return false
+  }
+
   if (outcome.kind === 'ending') {
     await endConversationRun({
       ending: outcome.ending,
@@ -507,9 +561,77 @@ async function writeOutcome({ outcome, context, fence, lease }: WriteOutcomeInpu
   return false
 }
 
+/*
+  Writes what the tagging request came to: the aspects it picked, with their note, while nobody has
+  set the conversation's aspects and it has room for the note, or its ledger alone otherwise, so
+  the request is settled whatever it answered. A tag refused because the member's note moved the
+  counter meanwhile is read again by the next step, which then finds the member's aspects
+*/
+async function writeTagging({
+  outcome,
+  context: { conversation },
+  fence,
+  lease,
+}: WriteOutcomeInput & { outcome: Extract<ConversationTurnOutcome, { kind: 'tagging' }> }) {
+  const { aspects, usage } = outcome
+
+  if (aspects && conversation && !conversation.aspectsSetBy && conversation.messageCount < MAX_CONVERSATION_MESSAGES) {
+    await lease.write(() =>
+      tagConversationAspects(dataConnect, {
+        ...fence,
+        usage,
+        aspects,
+        noteId: deriveConversationMessageId(fence.runId, 'aspects'),
+        position: conversation.nextMessagePosition,
+      }),
+    )
+
+    return
+  }
+
+  const { data } = await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
+
+  if (data.conversationRun_updateMany !== 1) {
+    throw new Error(
+      `Conversation run ${fence.runId}: its tagging's ledger renewed nothing, the run is not this worker's`,
+    )
+  }
+}
+
+/*
+  Whether the run tags its conversation once its reply ends it: a run answering the conversation's
+  first message, its first or one carrying it on, a resume or a retry, while nobody has set its
+  aspects and it has room for the note. Not once its member asked to stop it, nor at its limits, its
+  25 requests or its 10 minutes, and once a run, which its ledger says
+*/
+function shouldTag({
+  context: { conversation, conversationRuns },
+  usage,
+  startedAt,
+  limits,
+}: {
+  context: ConversationRunContext
+  usage: ConversationRunUsage
+  startedAt: string
+  limits: ConversationRunLimits
+}) {
+  const [run] = conversationRuns
+
+  return (
+    run?.anchorPosition === 0
+    && !run.stopRequestedAt
+    && !!conversation
+    && !conversation.aspectsSetBy
+    && conversation.messageCount < MAX_CONVERSATION_MESSAGES
+    && !usage.requests.some(({ purpose }) => purpose === 'tagging')
+    && usage.requests.length < limits.maxRequests
+    && Date.now() - Date.parse(startedAt) < limits.maxDurationMs
+  )
+}
+
 function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   if (!outcome) return null
-  if (outcome.kind === 'turn') return outcome.usage
+  if (outcome.kind === 'turn' || outcome.kind === 'tagging') return outcome.usage
 
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
 }
@@ -519,9 +641,9 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   `planConversationToolCalls` plans it, counting each reply's calls after those of the replies
   before it
 */
-function planCalls(parts: { blocks: ConversationContentBlock[] }[], tools: ConversationToolRunner[]) {
+function planCalls(parts: { blocks: ConversationContentBlock[] }[], runners: ConversationToolRunner[]) {
   const plans = new Map<string, ConversationToolCallPlan>()
-  const runnerNames = tools.map(({ name }) => name)
+  const runnerNames = runners.map(({ name }) => name)
   let callsBefore = 0
 
   for (const { blocks } of parts) {

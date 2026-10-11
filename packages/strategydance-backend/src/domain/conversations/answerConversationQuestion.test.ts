@@ -5,6 +5,7 @@ import { MAX_ANSWER_OTHER_LENGTH, MAX_CONVERSATION_MESSAGES } from 'strategydanc
 
 import type { ConversationRunReference, ConversationToolRunner } from '~types'
 
+import connectTestModules from './testing/connectTestModules'
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 import createConversationTestKit, { ORGANIZATION_ID, answer, createId } from './testing/createConversationTestKit'
 
@@ -43,7 +44,11 @@ async function startWaiting(...calls: BetaContentBlock[]) {
   const reference = await start()
   const client = createClient([answer(calls, { stopReason: 'tool_use' })])
 
-  await runConversation(reference, { client: client.client, retryDelayMs: 1, tools: [READ_LOG] })
+  await runConversation(reference, {
+    client: client.client,
+    retryDelayMs: 1,
+    connectModules: connectTestModules([READ_LOG]),
+  })
 
   if (readRun(reference)?.status !== 'WAITING') throw new Error('The run waits for no answer')
 

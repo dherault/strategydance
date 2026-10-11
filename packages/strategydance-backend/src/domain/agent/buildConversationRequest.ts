@@ -7,12 +7,12 @@ import { ConversationTranscriptRole } from 'strategydance-database/backend'
 
 import type { ConversationContentBlock } from '~types'
 
+import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import {
   CONVERSATION_BETAS,
   CONVERSATION_MAX_TOKENS,
   CONVERSATION_MODEL,
 } from '~domain/agent/conversationRequestSettings'
-import CONVERSATION_TOOLS from '~domain/agent/conversationTools'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 
@@ -62,10 +62,14 @@ export function buildConversationMessages({ entries, context, parts }: BuildConv
   A run's request to Claude, as M1's probe settled it: Opus 5.5 with adaptive thinking, its progress
   lines (`display: "updates"`) and `drop_block` for a thinking block whose history changed, medium
   effort, the API's fallback on a refusal, the frozen system prompt with its own cache breakpoint
-  and the tail cached at the top level, the frozen tools, then the messages. Every request is built
-  here, in one key order, so consecutive requests share their bytes up to where they differ
+  and the tail cached at the top level, the tools, the agent's own and its modules', then the
+  messages. Every request is built here, in one key order, so consecutive requests share their bytes
+  up to where they differ
 */
-function buildConversationRequest(messages: BetaMessageParam[]): BetaMessageStreamParams {
+function buildConversationRequest(
+  messages: BetaMessageParam[],
+  tools: ConversationRequestTools,
+): BetaMessageStreamParams {
   return {
     model: CONVERSATION_MODEL,
     max_tokens: CONVERSATION_MAX_TOKENS,
@@ -75,7 +79,7 @@ function buildConversationRequest(messages: BetaMessageParam[]): BetaMessageStre
     output_config: { effort: 'medium' },
     cache_control: { type: 'ephemeral' },
     system: [{ type: 'text', text: CONVERSATION_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-    tools: CONVERSATION_TOOLS,
+    tools,
     messages,
   }
 }

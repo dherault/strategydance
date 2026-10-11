@@ -5,6 +5,7 @@ import type { BetaContentBlock, BetaMessageParam } from '@anthropic-ai/sdk/resou
 
 import type { ConversationRunReference, ConversationToolRunner } from '~types'
 
+import connectTestModules from './testing/connectTestModules'
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 import createConversationTestKit, {
   ORGANIZATION_ID,
@@ -87,7 +88,11 @@ async function startStoppedAmongCalls(writer: ReturnType<typeof createWriter>) {
     if (name === 'FinishConversationToolCall' && run) run.stopRequestedAt = new Date().toISOString()
   }
 
-  await runConversation(reference, { client: client.client, retryDelayMs: 1, tools: [writer.runner] })
+  await runConversation(reference, {
+    client: client.client,
+    retryDelayMs: 1,
+    connectModules: connectTestModules([writer.runner]),
+  })
 
   fake.beforeOperation = async () => {}
 
@@ -111,7 +116,13 @@ async function crashAt(
     if (isCrashed && !name.startsWith('Get')) throw new Error('The worker crashed')
   }
 
-  expect(await runConversation(reference, { client: client.client, retryDelayMs: 1, tools })).toBe('held')
+  expect(
+    await runConversation(reference, {
+      client: client.client,
+      retryDelayMs: 1,
+      connectModules: connectTestModules(tools),
+    }),
+  ).toBe('held')
 
   fake.beforeOperation = async () => {}
   expireLease(reference)
@@ -141,7 +152,11 @@ describe('a turn’s calls across stop, resume, retry and send', () => {
     const resuming = await resumed(stopped)
     const client = createClient([answer()])
 
-    await runConversation(resuming, { client: client.client, retryDelayMs: 1, tools: [writer.runner] })
+    await runConversation(resuming, {
+      client: client.client,
+      retryDelayMs: 1,
+      connectModules: connectTestModules([writer.runner]),
+    })
 
     expect(writer.calls).toEqual(['w1', 'w2'])
     expect(readRun(resuming)?.status).toBe('COMPLETED')
@@ -277,7 +292,7 @@ describe('a turn’s calls across stop, resume, retry and send', () => {
     await runConversation(resuming, {
       client: createClient([answer()]).client,
       retryDelayMs: 1,
-      tools: [writer.runner],
+      connectModules: connectTestModules([writer.runner]),
     })
 
     expect(readThread(stopped).at(-1)).toMatchObject({ kind: 'AGENT_TEXT', text: REPLY })

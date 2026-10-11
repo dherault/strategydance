@@ -12,6 +12,14 @@ import { SECRET_ANTHROPIC_API_KEY } from '~constants'
 
 import retrieveSecret from '~utils/retrieveSecret'
 
+import buildConversationRequest from '~domain/agent/buildConversationRequest'
+import buildConversationTaggingRequest from '~domain/agent/buildConversationTaggingRequest'
+import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import connectConversationModules from '~domain/agent/connectConversationModules'
+import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import readConversationTagging from '~domain/agent/readConversationTagging'
+import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
+
 /*
   Checks, against Claude's API itself, the facts the conversations agent is built on, which no test
   without the real model can confirm:
@@ -25,9 +33,14 @@ import retrieveSecret from '~utils/retrieveSecret'
   that turn from its JSON text, as the transcript stores it, and again with the tool's input
   reordered as Postgres `jsonb` would reorder it; counts the tokens of a PDF and an image from their
   bytes, uploads them through the Files API and has a message read them by id, as the upload route
-  and the agent will; and sends the first request and the replay straight to each model a refusal
-  may fall back to. It prints what passed, what failed and what it found, and exits non-zero naming
-  every check that did not pass.
+  and the agent will; sends the agent's own request, its system prompt and every tool it sends, the
+  modules' included, as a run builds it, which the API refuses whole when a tool's schema is one it
+  does not take, twice, the second reading what the first cached, counts what the modules' tools
+  add to every request, and has Claude call a module's tool, which is not strict; sends the
+  request that tags a conversation with its aspects, its answer held to a schema, and reads it as the
+  worker does; and sends the first request and the replay straight to each model
+  a refusal may fall back to. It prints what passed, what failed and what it found, and exits
+  non-zero naming every check that did not pass.
 
   It calls the real model, so it costs money, under a dollar a run: run it after an Anthropic SDK
   bump or a change of model, never in CI. It reads the API key from Secret Manager with Application
@@ -524,6 +537,148 @@ for (const id of uploaded) {
     finding(`Deleting file ${id} failed`, describeError(error))
   }
 }
+
+/* ---
+  THE AGENT'S OWN REQUEST, ITS TOOLS AND ITS MODULES'
+--- */
+
+// The tools a run's requests send, which the checks after the first send too
+let agentTools: ConversationRequestTools = []
+
+await check(
+  "The agent's own request is accepted, with its system prompt and every tool it sends, the modules' included",
+  async () => {
+    // The modules' tools as a run's worker lists them, for a member nobody is: listing reads nothing
+    const modules = await connectConversationModules({
+      organizationId: '00000000000000000000000000000000',
+      userId: 'probe',
+      conversationId: '00000000000000000000000000000000',
+      runId: 'probe',
+      attempts: 1,
+      membershipCreatedAt: new Date().toISOString(),
+    })
+
+    await modules.close()
+
+    agentTools = buildConversationTools(modules.tools)
+
+    const request = buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], agentTools)
+    const message = await client.beta.messages.stream(request).finalMessage()
+
+    finding("The agent's request's usage", message.usage)
+    assert(message.stop_reason !== 'refusal', 'the request was refused')
+
+    // As a conversation's next request does, reading the system prompt and the tools from the cache
+    const again = await client.beta.messages.stream(request).finalMessage()
+
+    finding("The agent's request sent again: its usage", again.usage)
+    assert(again.usage.cache_read_input_tokens, 'the second request read nothing from the cache')
+
+    return `${agentTools.length} tools, stopped on ${message.stop_reason}`
+  },
+)
+
+await check("The modules' tools are counted, what each adds to every request", async () => {
+  assert(agentTools.length, 'no tools listed')
+
+  // What the system prompt and the tools take of a request, as the worker counts it
+  const count = async (tools: ConversationRequestTools) => {
+    const messages: BetaMessageParam[] = [{ role: 'user', content: '.' }]
+    const [withConfig, without] = await Promise.all([
+      client.beta.messages.countTokens({
+        model: CONVERSATION_MODEL,
+        system: CONVERSATION_SYSTEM_PROMPT,
+        tools,
+        messages,
+      }),
+      client.beta.messages.countTokens({ model: CONVERSATION_MODEL, messages }),
+    ])
+
+    return withConfig.input_tokens - without.input_tokens
+  }
+
+  const ownTools = buildConversationTools([])
+  const own = await count(ownTools)
+  const all = await count(agentTools)
+  const each: Record<string, number> = {}
+
+  for (const tool of agentTools.slice(ownTools.length)) {
+    if ('name' in tool) each[tool.name] = (await count([...ownTools, tool])) - own
+  }
+
+  finding('The system prompt and the agent’s own tools, in tokens', own)
+  finding('The modules’ tools, in tokens', all - own)
+  finding('What each module tool adds alone, in tokens', each)
+
+  return `${own} tokens, then ${all - own} for the modules' tools`
+})
+
+await check("A module's tool, which is not strict, is called with an input its schema names", async () => {
+  assert(agentTools.length, 'no tools listed')
+
+  const message = await client.beta.messages
+    .stream(
+      buildConversationRequest(
+        [{ role: 'user', content: 'Which tasks are in the To do column of our board?' }],
+        agentTools,
+      ),
+    )
+    .finalMessage()
+  const call = message.content.find((block): block is BetaToolUseBlock => block.type === 'tool_use')
+  const tool = agentTools.find(item => 'name' in item && item.name === 'list_tasks')
+  const properties = tool && 'input_schema' in tool ? Object.keys(tool.input_schema.properties ?? {}) : []
+  const input = (call?.input ?? {}) as Record<string, unknown>
+
+  finding('The call', call ? { name: call.name, input } : message.stop_reason)
+  assert(call?.name === 'list_tasks', `called ${call?.name ?? 'no tool'}`)
+  assert(
+    Object.keys(input).every(key => properties.includes(key)),
+    `sent ${Object.keys(input).join(', ')}, beyond what list_tasks names`,
+  )
+  assert(input.status === undefined || input.status === 'TODO', `asked for the status ${String(input.status)}`)
+
+  return JSON.stringify(input)
+})
+
+/* ---
+  THE TAGGING REQUEST
+--- */
+
+await check('The tagging request is accepted, counted, and answers one to three aspects its schema holds', async () => {
+  const request = buildConversationTaggingRequest({
+    member: [{ type: 'text', text: 'How should I price the beta of my scheduling app for small clinics?' }],
+    reply: [
+      {
+        type: 'text',
+        text: 'Start with one flat plan per clinic, 49 euros a month, with a free month to try it. Charge per seat later, once you know how many people use it at each clinic.',
+      },
+    ],
+  })
+  // As the worker counts it, its schema included
+  const counted = await client.beta.messages.countTokens({
+    model: request.model,
+    system: request.system,
+    messages: request.messages,
+    output_config: request.output_config,
+  })
+  const message = await client.beta.messages.stream(request).finalMessage()
+  const answer = message.content.map(block => (block.type === 'text' ? block.text : '')).join('')
+
+  finding("The tagging request's count, then its usage", { counted: counted.input_tokens, usage: message.usage })
+  finding("The tagging request's count is its billed input", counted.input_tokens === message.usage.input_tokens)
+  finding("The tagging request's answer", answer)
+  assert(message.stop_reason === 'end_turn', `it stopped on ${message.stop_reason}`)
+
+  const aspects = readConversationTagging(message)
+
+  assert(aspects, 'it answered no aspect its schema holds')
+  finding(
+    'The tagging of a pricing exchange holds FINANCES or SALES',
+    aspects.some(aspect => aspect === 'FINANCES' || aspect === 'SALES'),
+  )
+
+  return aspects.join(', ')
+})
 
 /* ---
   THE REFUSAL FALLBACK, CHOSEN BY THE API

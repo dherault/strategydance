@@ -11,6 +11,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { ConversationMessageBody, ConversationThreadEntry } from '~types'
 
 import useAnswerConversationQuestion from '~hooks/conversation/useAnswerConversationQuestion'
+import useConversationQuestionAnswer from '~hooks/conversation/useConversationQuestionAnswer'
 
 import getConversationAnswerFailure, {
   type ConversationAnswerFailure,
@@ -48,17 +49,17 @@ const NOTICE_MESSAGES = {
   starts once every question of the turn is answered. One the response it belongs to was stopped or
   cut off before, which a resume makes answerable again, shows its options off. Answered, the
   options chosen are ticked and the rest muted, and an answer in the reader's own words shows as one
-  more option. Skipped, everything is muted
+  more option. Skipped, everything is muted.
+
+  The answer under way outlives the question's view (`useConversationQuestionAnswer`), so moving
+  its conversation between its page and the dock, or minimizing its window, loses none of it
 */
 function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOtherWaiting, onRunStart }: Props) {
   const { formatMessage } = useIntl()
   const answerConversationQuestion = useAnswerConversationQuestion()
   const promptId = useId()
   const name = useId()
-  const [selected, setSelected] = useState<string[]>([])
-  const [isOtherChosen, setIsOtherChosen] = useState(false)
-  const [other, setOther] = useState('')
-  const [isSending, setIsSending] = useState(false)
+  const [{ selected, isOtherChosen, other, isSending }, changeAnswer] = useConversationQuestionAnswer(entry.id)
   /*
     What sending the answer came to when it did not start a run: a failure, or an answer kept that
     the conversation goes on from later, the reader having runs going elsewhere. Each is said while
@@ -82,27 +83,27 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
 
   function choose(option: string, isChecked: boolean) {
     if (!isMultipleChoice) {
-      setSelected([option])
-      setIsOtherChosen(false)
+      changeAnswer(() => ({ selected: [option], isOtherChosen: false }))
 
       return
     }
 
-    setSelected(current =>
-      isChecked
-        ? options.filter(candidate => candidate === option || current.includes(candidate))
-        : current.filter(candidate => candidate !== option),
-    )
+    changeAnswer(current => ({
+      selected: isChecked
+        ? options.filter(candidate => candidate === option || current.selected.includes(candidate))
+        : current.selected.filter(candidate => candidate !== option),
+    }))
   }
 
   function chooseOther(isChecked: boolean) {
-    setIsOtherChosen(isChecked)
-
-    if (isChecked && !isMultipleChoice) setSelected([])
+    changeAnswer(current => ({
+      isOtherChosen: isChecked,
+      selected: isChecked && !isMultipleChoice ? [] : current.selected,
+    }))
   }
 
   function write(value: string) {
-    setOther(value)
+    changeAnswer(() => ({ other: value }))
 
     if (value.trim() && !isOtherChosen) chooseOther(true)
   }
@@ -112,7 +113,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
 
     if (!canSend || !waitingRunId) return
 
-    setIsSending(true)
+    changeAnswer(() => ({ isSending: true }))
     setNotice(null)
 
     try {
@@ -125,7 +126,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
 
       setNotice({ kind: getConversationAnswerFailure(error), waitingRunId })
     } finally {
-      setIsSending(false)
+      changeAnswer(() => ({ isSending: false }))
     }
   }
 

@@ -20,3 +20,19 @@ export const CONVERSATION_BETAS = [
 
 // How many times a turn web search's server-side loop paused is sent back to carry on
 export const MAX_CONVERSATION_PAUSES = 5
+
+/* ---
+  What the request that tags a conversation with its aspects sends, beside the run's own
+--- */
+
+// Its thinking, at low effort, and its answer, a few aspects, fit well inside it
+export const CONVERSATION_TAGGING_MAX_TOKENS = 8000
+
+// The fallback model the API runs a refused request on, as the run's own requests have it
+export const CONVERSATION_TAGGING_BETAS = ['server-side-fallback-2026-07-01'] as const
+
+// How many aspects the agent tags a conversation with at most
+export const MAX_CONVERSATION_TAGGED_ASPECTS = 3
+
+// How much of the member's message, and of the reply, the request quotes, in characters
+export const MAX_CONVERSATION_TAGGING_TEXT_LENGTH = 8000

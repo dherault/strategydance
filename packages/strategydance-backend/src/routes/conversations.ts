@@ -47,6 +47,8 @@ import searchConversations from '~domain/conversations/searchConversations'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 
+import { aspectsSchema } from '~modules/moduleSchemas'
+
 /*
   A member's conversations in an organization, mounted at
   `/organizations/:organizationId/conversations`, whose `:organizationId` each route reads through
@@ -74,6 +76,9 @@ function createConversationsRouter() {
     // Made by the browser, so a send retried after its first try went through stores it once
     messageId: z.string().regex(UUID_PATTERN),
     text: z.string(),
+    // The aspects the member picked on the draft, which the message that starts the conversation
+    // carries, each at most once
+    aspects: aspectsSchema.optional(),
   })
 
   type MessagesRequest = Request<
@@ -87,7 +92,9 @@ function createConversationsRouter() {
     yet, under the id the browser made for it, and queues the run that answers it: 202 with the
     run's id, the one a send with the same message's id started the first time when it is retried.
     The text is trimmed, and refused with a 400 when it holds nothing or more than 20000 characters.
-    A conversation it would start past the thousand the caller keeps is refused with a 409.
+    A conversation it would start past the thousand the caller keeps is refused with a 409. The
+    aspects the member picked on the draft start it as the member's, and any other message leaves
+    them out.
 
     Answered with a 503 when the run is stored but could not be queued for the worker: the browser
     sends the same message again, under the same id, which queues it again, and the conversation's
@@ -118,6 +125,7 @@ function createConversationsRouter() {
         messageId: toCanonicalUuid(request.body.messageId),
         text: text.text,
         drawnText: text.drawnText,
+        aspects: request.body.aspects,
       })
 
       switch (result.outcome) {

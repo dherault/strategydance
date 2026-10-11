@@ -1,22 +1,30 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { FileTextIcon } from 'lucide-react'
+import { FileTextIcon, SquareKanbanIcon } from 'lucide-react'
 import { CitationLink } from 'strategydance-design-system/components/ui/CitationLink'
 import { Markdown, type MarkdownLink } from 'strategydance-design-system/components/ui/Markdown'
 import {
   markdownSampleDocuments,
   markdownSampleReplies,
+  markdownSampleTasks,
 } from 'strategydance-design-system/components/ui/Markdown.sample'
 
-const documentIconClassName = 'mr-[3px] inline-block size-[13px] align-[-2px]'
+const linkIconClassName = 'mr-[3px] inline-block size-[13px] align-[-2px]'
 
-// A knowledge link as the thread draws it: the document's current title, or struck through once it is deleted
-function renderDocumentLink({ href, children }: MarkdownLink) {
-  const title = markdownSampleDocuments.get(href.slice('doc:'.length))
+/*
+  A link to knowledge or a task as the thread draws it: the document's current title or the task's
+  current name, or struck through once it is deleted
+*/
+function renderAppLink({ href, children }: MarkdownLink) {
+  const isTask = href.startsWith('task:')
+  const Icon = isTask ? SquareKanbanIcon : FileTextIcon
+  const name = isTask
+    ? markdownSampleTasks.get(href.slice('task:'.length))
+    : markdownSampleDocuments.get(href.slice('doc:'.length))
 
-  if (!title) {
+  if (!name) {
     return (
       <span className="text-muted-foreground line-through">
-        <FileTextIcon className={documentIconClassName} />
+        <Icon className={linkIconClassName} />
         {children}
       </span>
     )
@@ -24,11 +32,11 @@ function renderDocumentLink({ href, children }: MarkdownLink) {
 
   return (
     <a
-      href="#knowledge"
+      href={isTask ? '#tasks' : '#knowledge'}
       className="font-medium text-primary no-underline hover:text-primary-800 hover:underline"
     >
-      <FileTextIcon className={documentIconClassName} />
-      {title}
+      <Icon className={linkIconClassName} />
+      {name}
     </a>
   )
 }
@@ -38,7 +46,7 @@ const meta = {
   component: Markdown,
   args: {
     value: markdownSampleReplies[1],
-    renderLink: renderDocumentLink,
+    renderLink: renderAppLink,
   },
 } satisfies Meta<typeof Markdown>
 

@@ -7,9 +7,8 @@ import type {
 } from '../types'
 
 /*
-  What the conversations list and the aspect page's cards show of a conversation: its last entry,
-  boiled down by whoever inserts or changes that entry and stored on the conversation, so the list
-  reads no message text. It keeps the entry's facts and leaves the words to the web, which says
+  What the conversations list shows of a conversation: its last entry, boiled down by whoever
+  inserts or changes that entry and stored on the conversation, so the list reads no message text. It keeps the entry's facts and leaves the words to the web, which says
   "You: …" or "Question: …" in the reader's language. "Thinking…" and "No messages yet" are the
   web's too, read from the conversation's run and from a preview that is not there.
 

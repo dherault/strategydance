@@ -1,14 +1,16 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Trash2Icon } from 'lucide-react'
+import { PictureInPicture2Icon, Trash2Icon } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { useIntl } from 'react-intl'
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { TableCell, TableRow } from 'strategydance-design-system/components/ui/Table'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
+import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 
 import type { ConversationSummary } from '~types'
 
+import useConversationDock from '~hooks/conversation/useConversationDock'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import formatConversationPreview from '~utils/conversation/formatConversationPreview'
@@ -26,7 +28,8 @@ type Props = {
 
 /*
   One conversation of the list: its title, with a badge when a question waits for the reader, a
-  line of its last entry under it, its aspects, when it last changed, and Delete, which asks twice.
+  line of its last entry under it, its aspects, when it last changed, "Open in dock" on a wide
+  screen, which has a dock, and Delete, which asks twice.
 
   The title links to the conversation, which is what the keyboard and a new tab use, and a click
   anywhere else on the row opens it too, as the design has it, unless it selected some text. The
@@ -38,8 +41,11 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
   const { formatMessage } = intl
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
+  const { isMobile } = useSidebar()
+  const { windows, openWindow } = useConversationDock()
 
   const preview = formatConversationPreview(intl, conversation)
+  const isDocked = windows.some(({ conversationId }) => conversationId === conversation.id)
 
   function handleClick(event: MouseEvent<HTMLTableRowElement>) {
     if (event.target instanceof Element && event.target.closest('a, button')) return
@@ -98,6 +104,22 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
       </TableCell>
       <TableCell onClick={event => event.stopPropagation()}>
         <div className="flex justify-end gap-1">
+          {isMobile ? null : (
+            <Tooltip
+              content={formatMessage(isDocked ? conversationMessages.showInDock : conversationMessages.openInDock)}
+            >
+              <Button
+                variant="transparent"
+                size="sm"
+                icon={<PictureInPicture2Icon />}
+                aria-label={formatMessage(
+                  isDocked ? conversationMessages.showInDockLabel : conversationMessages.openInDockLabel,
+                  { title: conversation.title },
+                )}
+                onClick={() => openWindow(conversation.id)}
+              />
+            </Tooltip>
+          )}
           <Tooltip content={formatMessage(conversationMessages.delete)}>
             <Button
               variant="transparent"

@@ -585,6 +585,12 @@ query GetTasks($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "CreateTaskWithText"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenameTask"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -634,6 +640,45 @@ query GetTasks($organizationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RemoveTaskDependency"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+# An agent's update pushes the board unless it carries a description alone, which changes nothing a
+# card shows, as the page's own description save does not push it. Every update names some field, so
+# one without a description always changes a card
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && (!has(mutation.variables.description) || has(mutation.variables.name) || has(mutation.variables.status) || has(mutation.variables.isAssignedToAgent) || has(mutation.variables.dueDate) || has(mutation.variables.aspects))"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AddTaskDependencyForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveTaskDependencyForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTaskForAgent"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
 )
@@ -710,6 +755,12 @@ query GetTaskDescription($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "UpdateTaskDescriptionWithText"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "DeleteTask"
     condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
   }
@@ -717,6 +768,24 @@ query GetTaskDescription($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RestoreTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id && has(mutation.variables.description)"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteTaskForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreTaskForAgent"
     condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.id == request.variables.id"
   }
 )
@@ -768,6 +837,12 @@ query GetOrganizationDocuments($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "CreateDocumentWithText"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenameDocument"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -794,6 +869,44 @@ query GetOrganizationDocuments($organizationId: UUID!)
   onMutationExecuted: {
     operation: "DiscardDocument"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDocumentAspectsForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+# An agent's fold pushes the list only when it changes a title: its text alone changes no card, and
+# an agent writing a long document would otherwise push the whole list to every reader at each edit
+@refresh(
+  onMutationExecuted: {
+    operation: "FoldDocumentForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && has(mutation.variables.title)"
   }
 )
 @refresh(
@@ -881,10 +994,22 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
   onMutationExecuted: { operation: "CompactDocument", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
+  onMutationExecuted: {
+    operation: "CompactDocumentWithText"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
   onMutationExecuted: { operation: "SeedDocumentState", condition: "mutation.variables.id == request.variables.id" }
 )
 @refresh(
   onMutationExecuted: { operation: "CreateDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentWithText"
+    condition: "mutation.variables.id == request.variables.id"
+  }
 )
 @refresh(
   onMutationExecuted: { operation: "RenameDocument", condition: "mutation.variables.id == request.variables.id" }
@@ -906,6 +1031,45 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: { operation: "DiscardDocument", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SeedDocumentStateForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: { operation: "FoldDocumentForAgent", condition: "mutation.variables.id == request.variables.id" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDocumentAspectsForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
 )
 @refresh(
   onMutationExecuted: {
@@ -1022,6 +1186,12 @@ query GetConversations($organizationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "UpdateConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "TagConversationAspects"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
@@ -1201,6 +1371,151 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
   }
 }
 
+# The caller's conversations the dock's windows hold, at most 20, with what a window's header
+# shows: the title, whether a run goes, how many replies are unread and whether a question waits. Read
+# only while the caller still belongs to the organization, and empty of a deleted conversation, as
+# every conversation read is, so the dock lets go of a window whose conversation went.
+#
+# A live query, refreshed by what changes those four fields or whether a conversation is there: a run
+# starting or ending, a reply or a question drawn, the conversation read, deleted or restored. Not by
+# a reply's later pieces, a tool call or an answer, which change none of them. Each refresh matches
+# the author and the organization rather than the ids it reads, as the lists' do: no condition reads
+# a list variable, and reading 20 rows again whenever another of the caller's conversations moves
+# costs nothing. Removing a member empties theirs, and deleting the organization empties everybody's
+query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkConversationRead"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessage"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptDeadConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWithNote"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationAgentText"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversations(
+    where: {
+      id: { in: $ids }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 20
+  ) {
+    id
+    title
+    activeRunId
+    unreadCount
+    isAwaitingAnswer
+  }
+}
+
 # One of the caller's conversations, as its page reads it: the conversation's fields and its latest
 # 150 messages, newest first, more than a run usually draws, so a run's messages and Retry's
 # deletions usually fall inside it. Read only while the caller still belongs to the organization,
@@ -1238,6 +1553,12 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
   onMutationExecuted: {
     operation: "UpdateConversationAspects"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "TagConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
 @refresh(
@@ -1333,6 +1654,12 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SettleConversationToolCall"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1575,6 +1902,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "TagConversationAspects"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "FinishConversationRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
@@ -1730,6 +2063,31 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
   }
 }
 
+# The outputs of some of a conversation's tool calls that succeeded, by id, which never change once
+# written: what the thread reads of the rows that offer something, a deleted document's Restore, in
+# one read for all of them rather than one each. Up to 50 at a time. Only the caller's own
+# conversation's calls come back, so an id from anywhere else reads nothing
+query GetConversationToolOutputs($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
+  conversationMessages(
+    where: {
+      id: { in: $messageIds }
+      conversationId: { eq: $id }
+      kind: { eq: TOOL_CALL }
+      toolStatus: { eq: SUCCEEDED }
+      conversation: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+      }
+    }
+    limit: 50
+  ) {
+    id
+    toolOutput
+  }
+}
+
 # One tool call's input and output, as its dialog shows them, read each time the dialog opens since
 # a call's output arrives after its message. Both are JSON text, exactly as the call took and gave
 # them
@@ -1755,5 +2113,61 @@ query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(l
     toolStartedAt
     toolDurationMs
     createdAt
+  }
+}
+
+# The external agents the caller connected, across every organization they are in, newest first, as
+# the account page's Connected agents tab lists them: each one's client, organization, module, access
+# and when it connected and was last used. Keyed by the uid off the token, so nobody reads another
+# member's. A connection exists only while its membership does, so the organization is always one the
+# caller is in.
+#
+# Read up to 100, as many as anybody may connect (`MAX_AGENT_CONNECTIONS` in strategydance-core), so
+# the list is never cut short: Allow counts them under a lock on the member's own row, so their
+# consents in every organization take turns.
+#
+# A live query, refreshed by what adds or removes a connection of the caller's: Allow on the consent
+# page, which the backend runs through the Admin SDK with the verified `$userId`, Disconnect, and the
+# caller's removal from an organization, whose `$userId` is the member removed. Deleting an
+# organization names only the administrator deleting it, while every member's connections there go
+# with it, so it refreshes every reader, a rare enough event. Never the write of `lastUsedAt`, which
+# an agent's call makes as often as once a minute, nor a revocation or a reused code, which the
+# backend's protocol endpoints make knowing no `$userId`: the tab reads them on its next read
+query GetAgentConnections
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "ApproveOAuthAuthorizationRequest"
+    condition: "mutation.variables.userId == request.auth.uid"
+  }
+)
+@refresh(
+  onMutationExecuted: { operation: "DeleteAgentConnection", condition: "mutation.variables.userId == request.auth.uid" }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.userId == request.auth.uid"
+  }
+)
+@refresh(onMutationExecuted: { operation: "DeleteOrganization" }) {
+  agentConnections(where: { membershipUserId: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }], limit: 100) {
+    id
+    clientId
+    clientName
+    module
+    scopes
+    createdAt
+    lastUsedAt
+    membership {
+      organization {
+        id
+        slug
+        name
+        logoUrl
+        logoThumbnailUrl
+        color
+      }
+    }
   }
 }

@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
+  CompanyAspect,
+  ConversationActor,
   ConversationNoteKind,
   ConversationRunStatus,
   answerConversationQuestion,
@@ -11,6 +13,7 @@ import {
   connectorConfig,
   continueConversationRun,
   deleteClaimedConversations,
+  deleteConversationModuleCallResults,
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
@@ -43,11 +46,13 @@ import {
   retryConversationRun,
   sendConversationMessage,
   sendConversationMessageAnsweringCalls,
+  settleConversationToolCall,
   startConversation,
   startConversationToolCall,
   stopQueuedConversationRun,
   storeConversationTurn,
   storeConversationTurnWithContext,
+  tagConversationAspects,
 } from 'strategydance-database/backend'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
@@ -66,7 +71,7 @@ import { dataConnect } from '~firebase'
   run against a fake of these operations: this is what says the fake's conditions are the SQL's.
 
   The daily sweep's operations take no organization: they reach every conversation in the emulator
-  deleted over a day ago, whoever's it is, which the next start of its author would prune anyway.
+  deleted over a day ago, whoever's it is, which the next sweep would prune anyway.
 
   Like `checkConversationPage.ts`, it refuses to run unless it points at the emulator
 */
@@ -106,6 +111,8 @@ const userIds = {
   resumer: `check-conversation-runs-${checkId}-resumer`,
   retrier: `check-conversation-runs-${checkId}-retrier`,
   asker: `check-conversation-runs-${checkId}-asker`,
+  settler: `check-conversation-runs-${checkId}-settler`,
+  tagger: `check-conversation-runs-${checkId}-tagger`,
 }
 
 const failures: string[] = []
@@ -241,8 +248,14 @@ type Started = {
   runId: string
 }
 
-// Starts a conversation as the backend does, and answers what it made
-async function start(userId: string, membershipCreatedAt: string, overrides: Partial<Started> = {}) {
+// Starts a conversation as the backend does, with the aspects its member picked on the draft when
+// there are, and answers what it made
+async function start(
+  userId: string,
+  membershipCreatedAt: string,
+  overrides: Partial<Started> = {},
+  drafted: { aspects?: CompanyAspect[]; aspectsSetBy?: ConversationActor } = {},
+) {
   const started: Started = {
     userId,
     membershipCreatedAt,
@@ -259,6 +272,7 @@ async function start(userId: string, membershipCreatedAt: string, overrides: Par
     text: 'Checked message',
     preview: { kind: 'MEMBER_TEXT', text: 'Checked message' },
     content: JSON.stringify([{ type: 'text', text: 'Checked message' }]),
+    ...drafted,
   })
 
   return started
@@ -1240,26 +1254,26 @@ async function checkPruning() {
   await start(userIds.pruner, membershipCreatedAt)
 
   check(
-    'starting removes what was deleted over a day ago, and keeps what can still be taken back',
-    (await readConversation(old)) === null && (await readConversation(recent)) !== null,
+    'starting leaves what was deleted over a day ago to the sweep, which deletes what it keeps beside its rows',
+    (await readConversation(old)) !== null && (await readConversation(recent)) !== null,
   )
 
-  const contested = await insertDeleted(2, 0)
-  const [restored] = await Promise.all([
+  const restore = (id: string) =>
     refusal(
       webConnector.executeMutation(
         'RestoreConversation',
-        { organizationId, userId: userIds.pruner, id: contested },
+        { organizationId, userId: userIds.pruner, id },
         { impersonate: { authClaims: { sub: userIds.pruner } } },
       ),
-    ),
-    refusal(start(userIds.pruner, membershipCreatedAt)),
-  ])
-  const remaining = await readConversation(contested)
+    )
 
   check(
-    'a restore and a start at once either bring a conversation back or remove it, never half',
-    restored === null ? remaining?.deletedAt === null : remaining === null,
+    'a conversation deleted over a day ago cannot be restored, before any sweep has claimed it',
+    ((await restore(old))?.includes('gone for good') ?? false) && (await readConversation(old))?.deletedAt != null,
+  )
+  check(
+    'a conversation deleted within the day is restored',
+    (await restore(recent)) === null && (await readConversation(recent))?.deletedAt === null,
   )
 }
 
@@ -1311,7 +1325,7 @@ async function checkSweeping() {
 
   const old = await insertDeleted(2, 0)
   const recent = await insertDeleted(0, 1)
-  const restoredFirst = await insertDeleted(2, 0)
+  const restoredFirst = await insertDeleted(0, 23)
 
   // What cascades from a conversation: a run, its message and its transcript entry
   await write(
@@ -1349,6 +1363,34 @@ async function checkSweeping() {
       && (claimedIds.length === 20 || claimedIds.includes(old))
       && !claimedIds.includes(recent)
       && !claimedIds.includes(restoredFirst),
+  )
+
+  // What the agent's module calls stored under a conversation's scope, which goes before it
+  const insertResult = (scope: string) =>
+    write(
+      `mutation InsertResult($scope: String!, $userId: String!, $organizationId: UUID!) {
+        moduleCallResult_insert(data: { idempotencyScope: $scope, idempotencyKey: "toolu_swept", userId: $userId, organizationId: $organizationId, tool: "create_document", argumentsHash: "hash", result: "{}" })
+      }`,
+      { scope, userId: userIds.sweeper, organizationId },
+    )
+  const countResults = async (scope: string) =>
+    (
+      await read<{ moduleCallResults: unknown[] }>(
+        `query CountResults($scope: String!) { moduleCallResults(where: { idempotencyScope: { eq: $scope } }) { tool } }`,
+        { scope },
+      )
+    ).moduleCallResults.length
+
+  await insertResult(`conversation:${old}`)
+  await insertResult(`conversation:${recent}`)
+
+  const { data: results } = await deleteConversationModuleCallResults(dataConnect, { scopes: [`conversation:${old}`] })
+
+  check(
+    "the sweep deletes the module call results of the conversations it names, by their scope, and nobody else's",
+    results.moduleCallResult_deleteMany === 1
+      && (await countResults(`conversation:${old}`)) === 0
+      && (await countResults(`conversation:${recent}`)) === 1,
   )
 
   const { data: deletion } = await deleteClaimedConversations(dataConnect, { ids: [old, recent, restoredFirst] })
@@ -1961,6 +2003,300 @@ async function checkQuestions() {
   )
 }
 
+/*
+  A call to a module's write that a run left started and unfinished, recorded as what the module
+  stored under its key once the run has let go of the conversation: never a call that finished or
+  never started, nor while a run holds the conversation, nor anybody else's
+*/
+async function checkSettling() {
+  const insertConversation = async (fields: string) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertConversation($id: UUID!, $userId: String!, $organizationId: UUID!) {
+        conversation_insert(data: { id: $id, userId: $userId, organizationId: $organizationId, title: "Settled"${fields} })
+      }`,
+      { id, userId: userIds.settler, organizationId },
+    )
+
+    return id
+  }
+  const insertCall = async (conversationId: string, position: number, fields: string) => {
+    const id = createId()
+
+    await write(
+      `mutation InsertCall($id: UUID!, $conversationId: UUID!, $position: Int!) {
+        conversationMessage_insert(data: { id: $id, conversationId: $conversationId, kind: TOOL_CALL, position: $position, toolUseId: "toolu_settled", toolName: "create_document", toolInput: "{}"${fields} })
+      }`,
+      { id, conversationId, position },
+    )
+
+    return id
+  }
+  const readCall = async (id: string) =>
+    (
+      await read<{ conversationMessage: { toolStatus: string; toolOutput: string | null } | null }>(
+        `query ReadCall($id: UUID!) { conversationMessage(id: $id) { toolStatus toolOutput } }`,
+        { id },
+      )
+    ).conversationMessage
+  const settle = (conversationId: string, messageId: string, userId = userIds.settler) =>
+    settleConversationToolCall(dataConnect, {
+      organizationId,
+      userId,
+      conversationId,
+      messageId,
+      toolOutput: '{"id":"settled"}',
+    })
+
+  const idle = await insertConversation('')
+  const busy = await insertConversation(`, activeRunId: "${createId()}"`)
+  const deleted = await insertConversation(', deletedAt_expr: "request.time"')
+  const started = ', toolStartedAt_expr: "request.time"'
+  const cancelled = await insertCall(idle, 0, `, toolStatus: CANCELLED${started}`)
+  const running = await insertCall(idle, 1, `, toolStatus: RUNNING${started}`)
+  const neverStarted = await insertCall(idle, 2, ', toolStatus: CANCELLED')
+  const finished = await insertCall(idle, 3, `, toolStatus: FAILED, toolOutput: "{}"${started}`)
+  const spare = await insertCall(idle, 4, `, toolStatus: CANCELLED${started}`)
+  const whileBusy = await insertCall(busy, 0, `, toolStatus: RUNNING${started}`)
+  const whileDeleted = await insertCall(deleted, 0, `, toolStatus: CANCELLED${started}`)
+
+  const { data: settled } = await settle(idle, cancelled)
+
+  check(
+    'a started call a run left cancelled is settled with what the module stored',
+    settled.conversationMessage_updateMany === 1
+      && (await readCall(cancelled))?.toolStatus === ConversationToolStatus.SUCCEEDED
+      && (await readCall(cancelled))?.toolOutput === '{"id":"settled"}',
+  )
+  check(
+    'a started call left running is settled once its run let go of the conversation',
+    (await settle(idle, running)).data.conversationMessage_updateMany === 1,
+  )
+  check(
+    'a call settled again changes nothing',
+    (await settle(idle, cancelled)).data.conversationMessage_updateMany === 0,
+  )
+  check(
+    'a call that never started, or that finished, is not settled',
+    (await settle(idle, neverStarted)).data.conversationMessage_updateMany === 0
+      && (await settle(idle, finished)).data.conversationMessage_updateMany === 0
+      && (await readCall(finished))?.toolStatus === ConversationToolStatus.FAILED,
+  )
+  check(
+    'nothing is settled while a run holds the conversation, or once it is deleted',
+    (await settle(busy, whileBusy)).data.conversationMessage_updateMany === 0
+      && (await settle(deleted, whileDeleted)).data.conversationMessage_updateMany === 0
+      && (await readCall(whileBusy))?.toolStatus === ConversationToolStatus.RUNNING,
+  )
+  check(
+    "another member's call, and a call named under another conversation, are not settled",
+    (await settle(idle, spare, userIds.author)).data.conversationMessage_updateMany === 0
+      && (await settle(busy, spare)).data.conversationMessage_updateMany === 0
+      && (await readCall(spare))?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+}
+
+type TaggedConversation = {
+  aspects: string[]
+  aspectsSetBy: string | null
+  nextMessagePosition: number
+  messageCount: number
+  unreadCount: number
+  previewMessageId: string | null
+}
+
+async function readTags(conversationId: string, runId: string, position: number) {
+  return read<{
+    conversation: TaggedConversation | null
+    conversationRun: { usage: unknown; leaseExpiresAt: string | null } | null
+    conversationMessages: {
+      id: string
+      kind: string
+      aspects: string[] | null
+      aspectsSetBy: string | null
+      run: { id: string } | null
+    }[]
+  }>(
+    `query ReadTags($conversationId: UUID!, $runId: UUID!, $position: Int!) {
+      conversation(id: $conversationId) { aspects aspectsSetBy nextMessagePosition messageCount unreadCount previewMessageId }
+      conversationRun(id: $runId) { usage leaseExpiresAt }
+      conversationMessages(where: { conversationId: { eq: $conversationId }, position: { eq: $position } }) {
+        id kind aspects aspectsSetBy run { id }
+      }
+    }`,
+    { conversationId, runId, position },
+  )
+}
+
+// The draft's aspects that start a conversation, and the agent's tag, only while nobody set them
+async function checkTagging() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.tagger)
+  const drafted = await start(
+    userIds.tagger,
+    membershipCreatedAt,
+    {},
+    { aspects: [CompanyAspect.SALES, CompanyAspect.FINANCES], aspectsSetBy: ConversationActor.MEMBER },
+  )
+  const draftedTags = await readTags(drafted.conversationId, drafted.runId, 0)
+
+  check(
+    "a conversation starts with the aspects its member picked on the draft, as the member's, and no note",
+    draftedTags.conversation?.aspects.join() === 'SALES,FINANCES'
+      && draftedTags.conversation.aspectsSetBy === 'MEMBER'
+      && draftedTags.conversation.messageCount === 1
+      && draftedTags.conversationMessages[0]?.kind === 'MEMBER_TEXT',
+  )
+  check(
+    "a draft's aspects named twice, given without their member, or given as the agent's are refused",
+    (await refusal(
+      start(
+        userIds.tagger,
+        membershipCreatedAt,
+        {},
+        {
+          aspects: [CompanyAspect.SALES, CompanyAspect.SALES],
+          aspectsSetBy: ConversationActor.MEMBER,
+        },
+      ),
+    )) !== null
+      && (await refusal(start(userIds.tagger, membershipCreatedAt, {}, { aspects: [CompanyAspect.SALES] }))) !== null
+      && (await refusal(
+        start(
+          userIds.tagger,
+          membershipCreatedAt,
+          {},
+          { aspects: [CompanyAspect.SALES], aspectsSetBy: ConversationActor.AGENT },
+        ),
+      )) !== null
+      && (await refusal(start(userIds.tagger, membershipCreatedAt, {}, { aspectsSetBy: ConversationActor.MEMBER })))
+        !== null,
+  )
+
+  await complete(drafted)
+
+  const untagged = await start(userIds.tagger, membershipCreatedAt)
+  const untaggedTags = await readTags(untagged.conversationId, untagged.runId, 0)
+
+  check(
+    'a conversation started without aspects has none, set by nobody',
+    untaggedTags.conversation?.aspects.length === 0 && untaggedTags.conversation.aspectsSetBy === null,
+  )
+
+  await claimQueuedConversationRun(dataConnect, fence(untagged, 0))
+
+  const usage = {
+    requests: [{ purpose: 'tagging', inputTokens: 300, outputTokens: 20, isSettled: true, inputEndPosition: 0 }],
+    byModel: {},
+  }
+  const tag = (
+    started: Started,
+    attempts: number,
+    position: number,
+    aspects: CompanyAspect[] = [CompanyAspect.PRODUCT],
+  ) =>
+    tagConversationAspects(dataConnect, {
+      ...fence(started, attempts),
+      usage,
+      aspects,
+      noteId: createId(),
+      position,
+    })
+
+  check(
+    'a tag from a worker whose attempt is no longer the run’s is refused',
+    (await refusal(tag(untagged, 0, 1))) !== null,
+  )
+  check(
+    'a tag with no aspect, four, or one twice is refused',
+    (await refusal(tag(untagged, 1, 1, []))) !== null
+      && (await refusal(
+        tag(untagged, 1, 1, [CompanyAspect.SALES, CompanyAspect.LEGAL, CompanyAspect.PRODUCT, CompanyAspect.DESIGN]),
+      )) !== null
+      && (await refusal(tag(untagged, 1, 1, [CompanyAspect.SALES, CompanyAspect.SALES]))) !== null,
+  )
+  check('a tag at a position another write took first is refused', (await refusal(tag(untagged, 1, 2))) !== null)
+
+  const tagFailure = await refusal(tag(untagged, 1, 1, [CompanyAspect.PRODUCT, CompanyAspect.STRATEGY]))
+  const tagged = await readTags(untagged.conversationId, untagged.runId, 1)
+  const [note] = tagged.conversationMessages
+
+  check(
+    "a tag at the counter sets the aspects as the agent's, with their note at that position, which belongs to no run",
+    tagFailure === null
+      && tagged.conversation?.aspects.join() === 'PRODUCT,STRATEGY'
+      && tagged.conversation.aspectsSetBy === 'AGENT'
+      && note?.kind === 'ASPECTS'
+      && note.aspects?.join() === 'PRODUCT,STRATEGY'
+      && note.aspectsSetBy === 'AGENT'
+      && note.run === null,
+  )
+  check(
+    'the tag moves the counter and the count on by one, settles the ledger and renews the lease, and leaves the preview and the unread count alone',
+    tagged.conversation?.nextMessagePosition === 2
+      && tagged.conversation.messageCount === 2
+      && tagged.conversation.unreadCount === untaggedTags.conversation?.unreadCount
+      && tagged.conversation.previewMessageId === untagged.messageId
+      && isSameJson(tagged.conversationRun?.usage, usage)
+      && Date.parse(tagged.conversationRun?.leaseExpiresAt ?? '') > Date.now(),
+  )
+  check('a conversation tagged already is not tagged again', (await refusal(tag(untagged, 1, 2))) !== null)
+
+  await finishConversationRun(dataConnect, { ...fence(untagged, 1), status: ConversationRunStatus.COMPLETED })
+
+  // A member who sets the aspects before the tag lands keeps them
+  const raced = await start(userIds.tagger, membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(raced, 0))
+  await webConnector.executeMutation(
+    'UpdateConversationAspects',
+    { organizationId, userId: userIds.tagger, id: raced.conversationId, aspects: [CompanyAspect.LEGAL], position: 1 },
+    { impersonate: { authClaims: { sub: userIds.tagger } } },
+  )
+
+  const racedFailure = await refusal(tag(raced, 1, 2))
+  const racedTags = await readTags(raced.conversationId, raced.runId, 2)
+
+  check(
+    "the member's aspects, set before the tag, are kept, and the tag is refused",
+    racedFailure !== null
+      && racedTags.conversation?.aspects.join() === 'LEGAL'
+      && racedTags.conversation.aspectsSetBy === 'MEMBER'
+      && racedTags.conversationMessages.length === 0,
+  )
+
+  await finishConversationRun(dataConnect, { ...fence(raced, 1), status: ConversationRunStatus.COMPLETED })
+
+  // The draft's aspects, the member's, are never tagged over
+  const draftedRun = await start(
+    userIds.tagger,
+    membershipCreatedAt,
+    {},
+    { aspects: [CompanyAspect.DESIGN], aspectsSetBy: ConversationActor.MEMBER },
+  )
+
+  await claimQueuedConversationRun(dataConnect, fence(draftedRun, 0))
+  check(
+    "a conversation started with its member's aspects is not tagged",
+    (await refusal(tag(draftedRun, 1, 1))) !== null,
+  )
+  await finishConversationRun(dataConnect, { ...fence(draftedRun, 1), status: ConversationRunStatus.COMPLETED })
+
+  // A conversation full, or deleted, takes no tag
+  const full = await start(userIds.tagger, membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(full, 0))
+  await write(`mutation Fill($id: UUID!) { conversation_update(id: $id, data: { messageCount: 2000 }) }`, {
+    id: full.conversationId,
+  })
+  check('a conversation holding 2000 entries takes no tag', (await refusal(tag(full, 1, 1))) !== null)
+  await write(
+    `mutation Delete($id: UUID!) { conversation_update(id: $id, data: { messageCount: 1, deletedAt_expr: "request.time" }) }`,
+    { id: full.conversationId },
+  )
+  check('a deleted conversation takes no tag', (await refusal(tag(full, 1, 1))) !== null)
+}
+
 try {
   await setUp()
 
@@ -1981,6 +2317,8 @@ try {
   await checkSweeping()
   await checkReplies()
   await checkQuestions()
+  await checkSettling()
+  await checkTagging()
 } finally {
   await tearDown()
 }

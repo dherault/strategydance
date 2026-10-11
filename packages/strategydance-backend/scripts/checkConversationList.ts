@@ -111,6 +111,9 @@ function conversation(userId: string, fields: Variables = {}) {
 
 const deletedAt = new Date().toISOString()
 
+// Past a day, so no restore takes it back, whether or not a sweep has claimed it
+const deletedLongAgo = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+
 async function setUp() {
   // Each signs up as the app has them do, since a user's row takes its id and address off the token
   for (const userId of [authorId, memberId, outsiderId]) {
@@ -150,6 +153,7 @@ async function runChecks() {
   const deletedFirst = conversation(authorId, { deletedAt })
   const deletedSecond = conversation(authorId, { deletedAt })
   const claimed = conversation(authorId, { deletedAt, pruneClaimedAt: deletedAt })
+  const deletedLong = conversation(authorId, { deletedAt: deletedLongAgo })
   const membersDeleted = conversation(memberId, { deletedAt })
   const membersLive = conversation(memberId)
 
@@ -161,6 +165,7 @@ async function runChecks() {
     deletedFirst,
     deletedSecond,
     claimed,
+    deletedLong,
     membersDeleted,
     membersLive,
   ])
@@ -235,6 +240,10 @@ async function runChecks() {
   check(
     'restoring one a prune has claimed is refused',
     !(await runAs(authorId, 'RestoreConversation', variables(authorId, claimed.id))),
+  )
+  check(
+    'restoring one deleted over a day ago that no prune has claimed is refused',
+    !(await runAs(authorId, 'RestoreConversation', variables(authorId, deletedLong.id))),
   )
   check(
     "restoring another member's conversation is refused",

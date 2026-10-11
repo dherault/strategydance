@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import {
   ConversationMessageKind,
@@ -11,33 +11,44 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
 
+import useNow from '~hooks/common/useNow'
+import useConversationDeletedItems from '~hooks/conversation/useConversationDeletedItems'
+import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
+import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 
+import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import groupConversationReplies from '~utils/conversation/groupConversationReplies'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
+import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
+import needsConversationTasks, { DELETE_TASK_TOOL_NAME } from '~utils/conversation/needsConversationTasks'
+import readConversationDeletedCallIds from '~utils/conversation/readConversationDeletedCallIds'
+import readConversationViewport from '~utils/conversation/readConversationViewport'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
+import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
 import ConversationMessagePlaceholder from '~components/conversation/ConversationMessagePlaceholder'
 import ConversationNote from '~components/conversation/ConversationNote'
 import ConversationNoteActions from '~components/conversation/ConversationNoteActions'
 import ConversationQuestion from '~components/conversation/ConversationQuestion'
 import ConversationSources from '~components/conversation/ConversationSources'
+import ConversationTaskRestore from '~components/conversation/ConversationTaskRestore'
 import ConversationThinking from '~components/conversation/ConversationThinking'
 import ConversationToolCall from '~components/conversation/ConversationToolCall'
 import ConversationToolCallDialog from '~components/conversation/ConversationToolCallDialog'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
-// How far above the window an older page starts loading, so it is there before the reader is
+// How far above what the reader sees an older page starts loading, so it is there before the reader is
 const OLDER_MARGIN_PX = 400
 
 type Props = {
@@ -47,6 +58,10 @@ type Props = {
   // The run the reader last started from the page, and what records it
   startedRun: StartedConversationRun | null
   onRunStart: (startedRun: StartedConversationRun) => void
+  // The box the thread scrolls in, in a dock's window, or none on the page, where the window scrolls
+  scrollerRef?: RefObject<HTMLElement | null>
+  // Small in a dock's window, which is narrow
+  size?: 'sm' | 'md'
 }
 
 /*
@@ -63,13 +78,18 @@ type Props = {
   the top still showing, the next one is asked for here. That reads where the top is rather than
   what the observer said last, which it says after the page has moved the top away
 */
-function ConversationThread({ conversation, run, startedRun, onRunStart }: Props) {
+function ConversationThread({ conversation, run, startedRun, onRunStart, scrollerRef, size = 'md' }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder, dropRuns } = useConversationThread(conversation)
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
+  const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
+  const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
+  const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
+  // One clock for every row that offers Restore until its day is up
+  const now = useNow()
 
   const latest = entries.find(({ id }) => id === conversation.previewMessageId)
   const isLatestShown = latest ? !hasConversationMessageBody(latest.kind) || bodies.has(latest.id) : false
@@ -80,7 +100,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   // The run the conversation waits on for the answers to its questions, while it does
   const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
 
-  useConversationThreadScroll(listRef)
+  useConversationThreadScroll(listRef, scrollerRef)
   useMarkConversationRead(conversation, isLatestShown)
   useReconcileConversationRun(conversation.id, run, !waitingQuestions.length)
 
@@ -93,13 +113,13 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
       ([observed]) => {
         if (observed?.isIntersecting) loadOlder()
       },
-      { rootMargin: `${OLDER_MARGIN_PX}px 0px 0px 0px` },
+      { root: scrollerRef?.current ?? null, rootMargin: `${OLDER_MARGIN_PX}px 0px 0px 0px` },
     )
 
     observer.observe(sentinel)
 
     return () => observer.disconnect()
-  }, [hasOlder, loadOlder])
+  }, [hasOlder, loadOlder, scrollerRef])
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -107,9 +127,10 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
     if (olderStatus !== 'idle' || !hasOlder || !sentinel) return
 
     const { top, bottom } = sentinel.getBoundingClientRect()
+    const viewport = readConversationViewport(scrollerRef?.current ?? null)
 
-    if (bottom >= -OLDER_MARGIN_PX && top <= window.innerHeight) loadOlder()
-  }, [olderStatus, hasOlder, entries, loadOlder])
+    if (bottom >= viewport.top - OLDER_MARGIN_PX && top <= viewport.bottom) loadOlder()
+  }, [olderStatus, hasOlder, entries, loadOlder, scrollerRef])
 
   const replies = groupConversationReplies(entries, bodies)
   const isWorking = isConversationRunGoing(run)
@@ -151,12 +172,41 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
     )
   }
 
+  /*
+    Restore, on a row where Strategy Dance deleted a document or a task, while the organization's
+    live list does not hold it and a day has not passed since the call. A row offers nothing else,
+    so a phone keeps its badge while Restore is not shown
+  */
+  function renderRestore(entry: ConversationThreadEntry) {
+    const deleted = entry.toolStatus === ConversationToolStatus.SUCCEEDED ? deletedItems.get(entry.id) : undefined
+
+    if (!deleted) return null
+
+    if (entry.toolName === DELETE_DOCUMENT_TOOL_NAME && canRestoreConversationItem(deleted, documents, now)) {
+      return <ConversationDocumentRestore documentId={deleted.id} />
+    }
+
+    if (entry.toolName === DELETE_TASK_TOOL_NAME && canRestoreConversationItem(deleted, tasks, now)) {
+      return <ConversationTaskRestore taskId={deleted.id} />
+    }
+
+    return null
+  }
+
   function renderEntry(entry: ConversationThreadEntry) {
     const body = bodies.get(entry.id)
 
     switch (entry.kind) {
       case ConversationMessageKind.MEMBER_TEXT:
-        return body ? <ConversationMemberMessage text={body.text ?? ''} /> : <ConversationMessagePlaceholder isMember />
+        return body ? (
+          <ConversationMemberMessage
+            text={body.text ?? ''}
+            documents={documents}
+            size={size}
+          />
+        ) : (
+          <ConversationMessagePlaceholder isMember />
+        )
       case ConversationMessageKind.AGENT_TEXT: {
         const piece = replies.get(entry.id)
 
@@ -168,6 +218,9 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
               text={body.text ?? ''}
               markers={piece?.markers}
               sources={piece?.sources}
+              documents={documents}
+              tasks={tasks}
+              size={size}
             />
             {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
           </>
@@ -179,6 +232,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}
+            action={renderRestore(entry)}
           />
         )
       case ConversationMessageKind.QUESTION:

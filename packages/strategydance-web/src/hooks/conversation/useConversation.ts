@@ -9,6 +9,7 @@ import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import keepNewerRead from '~utils/common/keepNewerRead'
+import getConversationQueryKey from '~utils/conversation/getConversationQueryKey'
 import isOlderConversation from '~utils/conversation/isOlderConversation'
 
 import { dataConnect } from '~data/firebase'
@@ -32,8 +33,7 @@ function useConversation(conversationId: string): DataSource<Conversation | null
   const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
   const isEnabled = Boolean(organizationId && viewerId)
-  // The key names whose conversation it is: the tab's cache outlives a sign-out
-  const queryKey = ['GetConversation', organizationId, conversationId, viewerId]
+  const queryKey = getConversationQueryKey(organizationId, conversationId, viewerId)
 
   function createQueryRef() {
     return getConversationRef(dataConnect, { organizationId: organizationId!, id: conversationId })

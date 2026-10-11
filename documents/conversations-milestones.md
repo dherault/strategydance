@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The twenty-eight milestones that build the conversations feature, each one pull request into `dev`
+The thirty milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
@@ -13,19 +13,19 @@ merges, write its pull request number in the table below.
 - Read the Architecture of [conversations.md](conversations.md) first. Load the `claude-api` skill
   before writing any Claude SDK code, and never guess an SDK name.
 - Strings go in the `conversation` catalogue (`integration` for the MCP pages, `module` for the
-  consent page, Connected agents and the module's dialog), registered app-wide
+  consent page, Connected agents and the modules' dialog), registered app-wide
   in `_app.tsx`'s `APP_MESSAGE_TYPES` since the dock and the sidebar need it everywhere, and
   `bun run translate` runs whenever one changes. No em dash in a message.
 - Web files: `components/conversation/`, `hooks/conversation/`, `utils/conversation/`,
   `contexts/ConversationDockContext.ts`. One concern per file, a waiter above the bouncer that reads
   its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
-- Backend files: `routes/conversations.ts` (mounted at `/organizations/:organizationId/conversations`
-  with `mergeParams`), `routes/internal.ts` (mounted by the worker service only),
-  `middleware/organizationMember.ts`, `middleware/staffOnly.ts`,
+- Backend files: `routes/conversations.ts` (mounted at
+  `/organizations/:organizationId/conversations` with `mergeParams`), `routes/internal.ts` (mounted
+  by the worker service only), `middleware/organizationMember.ts`, `middleware/staffOnly.ts`,
   `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
-  modules, `modules/` (one folder per module), `domain/knowledge/`, `routes/oauth.ts` (mounted at
-  `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/` and
-  `middleware/moduleRateLimit.ts`.
+  modules, `modules/` (one folder per module), `domain/knowledge/`, `domain/tasks/`,
+  `routes/oauth.ts` (mounted at `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/`
+  and `middleware/moduleRateLimit.ts`.
 - Data Connect: a mutation writes each row once; messages are ordered by `position`, claimed on the
   conversation's counter; live queries name every mutation that changes them; backend operations
   take `$userId` and check it against the rows. Each milestone adds the tables, fields and
@@ -43,8 +43,8 @@ merges, write its pull request number in the table below.
 ## Milestones
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
-M3 from the start, M13 as soon as M1 has merged, M16 as soon as M14 has, and M12, M22 and M25 well
-before their neighbours.
+M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, and M12, M24 and
+M27 well before their neighbours.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -61,21 +61,23 @@ before their neighbours.
 | M11 | Questions | backend, database, web | M10 | #122 |
 | M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
 | M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
-| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | |
-| M15 | Knowledge in conversations | backend, database, web | M10, M14 | |
-| M16 | The authorization server | backend, database, core, root | M14, setup 10 | |
-| M17 | The consent page and Connected agents | web, backend, database, root | M16 | |
-| M18 | The Knowledge module for external agents | backend, web, root | M17 | |
-| M19 | Mentioning knowledge in the composer | web | M7, M15 | |
-| M20 | Team, log and top priority tools | backend, database, web | M9, M13 | |
-| M21 | Aspect tagging, suggestions and the aspect page section | backend, database, core, web | M7, M9 | |
-| M22 | The dock | web | M7 | |
-| M23 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
-| M24 | Attachments in the composer and the thread | web | M19, M23 | |
-| M25 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
-| M26 | Integrations: members connect their accounts | database, backend, web | M25 | |
-| M27 | Integrations in conversations | database, backend, web | M11, M26 | |
-| M28 | Launch | all | all | |
+| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
+| M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
+| M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
+| M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | #139 |
+| M18 | The authorization server | backend, database, core, root | M14, setup 10 | #141 |
+| M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | #144 |
+| M20 | The Knowledge module for external agents | backend, web, root | M19 | #146 |
+| M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
+| M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
+| M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
+| M24 | The dock | web | M7 | #145 |
+| M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
+| M26 | Attachments in the composer and the thread | web | M22, M25 | |
+| M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
+| M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
+| M29 | Integrations in conversations | database, backend, web | M11, M28 | |
+| M30 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -127,7 +129,7 @@ The data model, with nothing yet using it.
   `ConversationTranscriptEntry`, and their enums, as The data describes, commented in
   `schema.gql`'s style: the transcript's `content`, the run's `context` and `pendingToolResults`
   as `String` columns of JSON text, never `Any` (see The data). `ConversationAttachment` waits for
-  M23, the approval fields for M27, and `@searchable` for M12: each is additive, so each release
+  M25, the approval fields for M29, and `@searchable` for M12: each is additive, so each release
   migrates by itself.
 - No operation yet: the web's arrive with the pages that read them, from M4, and the backend's with
   the routes that call them, from M6. Selections, refreshes and optional variables grow without
@@ -186,13 +188,13 @@ The data model, with nothing yet using it.
 ### M5: The conversation page and its thread, read-only
 
 - `_app/conversations.$conversationId.tsx`, under M4's layout route and so behind its release
-  bouncer: search param `isNew` validated (`aspect` in M21), and
+  bouncer: search param `isNew` validated, and
   `beforeLoad` refusing an id that is not one, as `knowledge.$documentId.tsx` does; a
   `ConversationOrganizationBouncer` copied from `KnowledgeOrganizationBouncer`, back to the list when
   the organization changes; waiters keyed on the organization's id; `useConversation` and
   `useConversationRun`.
 - The page: the bar, the title, the aspects button (on saved conversations: a draft's aspects arrive
-  in M21, sent with its first message); `KnowledgeDocumentAspectsDialog` generalized into an
+  in M23, sent with its first message); `KnowledgeDocumentAspectsDialog` generalized into an
   `AspectsDialog` taking its labels as props; `UpdateConversationAspects`.
 - The thread drawing every kind of entry, read-only: text through `Markdown`, tool calls and their
   output dialog (`GetConversationToolCall`), questions in their answered and skipped states (waiting
@@ -219,8 +221,8 @@ The send route and the whole run lifecycle, answered by a placeholder agent, in 
 process. No queue and no composer yet: a script sends, and the page from M5 shows the reply arrive.
 
 - The conversations router, with its member and staff middleware.
-- `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects,
-  suggestion and attachments), validated on the server: `text` trimmed, not empty (M23 allows that
+- `POST …/messages`, body `{ messageId, text }` for now (later milestones add a draft's aspects
+  and attachments), validated on the server: `text` trimmed, not empty (M25 allows that
   with files), at most `MAX_CONVERSATION_MESSAGE_LENGTH`, or a 400. The first message creates the
   conversation (title rule, `MAX_CONVERSATIONS` under the membership lock, pruning what the member
   deleted over a day ago) with its message, queued run and first transcript entry, in one mutation;
@@ -291,7 +293,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   removes what is still deleted past its Undo window whether or not anybody comes back:
   conversations deleted over a day ago, with their transcript, runs and messages; later milestones
   add `ConversationSearch` rows (M12), stale upload reservations, unsent files and sent ones'
-  folders (M23), and deleted integrations with their credentials (M25). The prunes done on the way
+  folders (M25), and deleted integrations with their credentials (M27). The prunes done on the way
   through stay as a fast path; every step is idempotent.
 - Tests (database mocked): an unclear and a definite queueing failure, both leaving the run queued
   for the retry to enqueue; the worker's 200 once its run is finished and 503 while another holds
@@ -320,7 +322,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   before a request whose input would pass 800000 tokens, counted as Attachments says, from the
   latest request whose input and turn the transcript still holds, its whole input, cached
   included, and its output, plus what the transcript holds after it, so a long
-  conversation shows full rather than failing every request (M23 adds the files' stored counts).
+  conversation shows full rather than failing every request (M25 adds the files' stored counts).
 - The thread: progress lines in the indicator; web search calls drawn ("Searching the web", output
   listing the results); citations drawn as numbered links after their spans, with the sources under
   the message.
@@ -381,7 +383,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   - **Client calls go to M11**, as David chose: no client tool existed yet, web search running on
     Claude's side, so M10 stops, resumes and retries text and web search, and M11, which builds the
     first client tool, takes the loop that runs one and every test of M10 above that needs one (see
-    M11). Retry for a files-only message goes to M23, and for an answer to M11.
+    M11). Retry for a files-only message goes to M25, and for an answer to M11.
   - The routes name the run the page shows: `POST …/runs/:runId/stop`, `…/resume` and `…/retry`,
     beside the reconcile route. A Resume or a Retry received again finds the run numbered right
     after the one it names, and answers with it, queueing its task again while it waits.
@@ -427,7 +429,7 @@ as `conversation-tasks`, whose token Cloud Run checks. Sends work in production 
   line of at most 500 characters (`MAX_ANSWER_OTHER_LENGTH`); an answer chooses at least one option
   or writes something; and a single-choice answer is exactly one of the two, an option or its own
   words, as the radios draw it.
-- The question's waiting state in the thread, "Needs your answer" in the list and on cards, the
+- The question's waiting state in the thread, "Needs your answer" in the list, the
   sidebar badge, and questions in previews, all read from `isAwaitingAnswer`, which ending a run
   `WAITING` sets and consuming its turn clears.
 - Tests: an `ask_user` call whose prompt or one option is a character past its bound refused before
@@ -677,17 +679,236 @@ it yet, and Claude Code reaches it locally over stdio.
   document open in a tab, have Claude Code write into it and watch the edit arrive while you type
   elsewhere in it, your caret staying put; create one, tag it, delete it and restore it; turn Write
   off on one and ask again; turn Read off on it and ask about it.
+- Built with these settled, on 2026-10-09:
+  - **The SDK is 2.2.0**, the latest release past the cooldown that day (2.3.0 passed it hours
+    later). `createMcpHandler` adds the 2026-07-28 revision to each server it builds, so a plain
+    `McpServer` serves both eras; a tool reads the call's `_meta` at `ctx.mcpReq._meta`; an input
+    that fails its schema comes back as an `isError` result naming the field; stdio is
+    `serveStdio(factory)`, which serves a 2025 client, as Claude Code is by default, and a 2026 one.
+  - **`@include(if: $isKeyed)` skips a mutation's step**, inside its transaction, so a write without
+    a key inserts no `ModuleCallResult` without a second operation. A key taken answers `violates SQL
+    unique constraint: module_call_result_pkey (aborted)` and writes nothing, and three writes at once
+    under one key land once.
+  - **A mutation takes one `query` step.** `FoldDocumentForAgent` reads the pending updates once its
+    row is locked, so the membership's and the variables' checks join that step, after the writes,
+    which a refusal there rolls back all the same. `CLAUDE.md` records both.
+  - **Data Connect builds one `tsvector` over `title` and `contentText`**, so `PLAIN` needs every
+    word in the two together, not in either alone: "marketing partnerships" finds a document titled
+    "Marketing plan" whose text holds "partnerships".
+  - **`aspects: { includesAll: [] }` matches every document, and `null` matches none**, so the
+    aspects filter is always a list. Search and list take the documents tagged with every aspect
+    named, as search takes every word: Data Connect has no "any of".
+  - **A filter on a UUID takes no `gt`**, so the list cannot read past a cursor's id. It reads the
+    documents changed at the cursor's instant apart, all of them by id, keeps those past the
+    cursor's id, then those changed before it. An instant read back matches itself to the
+    microsecond.
+  - **`has(mutation.variables.title)` gates the list's refresh on a fold**, checked with live
+    subscriptions: a fold of the text alone pushes the open document and not the list, one with a
+    title both. The backend's dashless ids match the browser's in a refresh condition.
+  - **A title alone is a rename**, `RenameDocumentForAgent`, rather than a fold that rewrites a
+    snapshot unchanged; a title beside a text edit rides in the fold's one write of the row. An
+    omitted `$title` leaves the column alone, and a null one would write null into it, so the
+    backend leaves it out.
+  - **`version` comes only with a page that holds the whole document**, a hash of every block's id
+    and Markdown, since `content` replaces a document small enough to read whole: a longer one is
+    edited by its blocks. Whatever a cursor says, a page that holds everything was read whole, so
+    the cursor needs no signature to keep an agent from a version of text it did not see. An update
+    answers a version only once it replaced the whole text, which the agent then wrote whole.
+    `content` without a version is refused before anything is read.
+  - **A page's budget counts its JSON**, each block's Markdown as escaped, so a page of quotes,
+    backslashes or line breaks stays as far short of a result's 50000 characters as one of words.
+  - **A document keeps a title or some text.** An update that would leave it with neither, a blank
+    title on a textless document or an edit emptying an untitled one, is refused, as creating one
+    with neither is, since the page deletes a document somebody empties rather than keep it. The
+    rename and the fold check it in their query step, after the write that locks the row, so two
+    such calls at once cannot pass it together.
+  - **A stored result answers only the member who made it**: the key's lookup reads the membership
+    the module read, so a member removed, or removed and invited back, is refused as the write would
+    refuse them.
+  - **The substring search takes each word from the title or the text**, as the full-text search
+    does, each pattern in the title or in the text of a recent document.
+  - **Search answers at most 10 of its at most 20 candidates**, with `hasMore` when more matched and
+    `isIndexComplete` false while documents an old page left unindexed remain.
+  - **The page's `RestoreDocument` refuses past a day too**, not only the agent's restore, so a day
+    means a day wherever a restore starts, which M16's Restore in the thread relies on.
+  - **A search and a list refuse a removed member** rather than find nothing: the reads they start
+    with return the membership beside the documents.
+  - **An answer from a key carries the address again**: the result kept under a key is the domain's,
+    small, and the tool adds an external caller's addresses to it each time it answers.
+  - **The stdio script points `console.log` at stderr**, since the backend's logger writes its info
+    lines to stdout, the protocol's channel there, and the root script runs it with
+    `bun run --silent`.
+  - Verified with `bun run check:knowledge-module` against an emulator of the branch's schema, every
+    check passing; with the SDK's stdio client driving `bun run mcp:knowledge` as Claude Code would,
+    every tool; in the browser at 1280 and 390 wide, a document the module created open in a tab
+    while the member typed at the end of its first paragraph and the module appended a block and
+    replaced text in its third, both arriving without a reload and the caret staying put, a retry
+    under its key changing nothing, Write then Read turned off and refused, delete and restore; a
+    document made on the page stored with its plain text, and a paste too long to push compacted
+    with its; and the backfill over 270 unindexed documents, run again with nothing left. Not seen
+    from Claude Code itself, which `claude mcp add strategydance-knowledge-local -- bun run
+    mcp:knowledge <email>` connects.
 
-### M15: Knowledge in conversations
+### M15: The Tasks module
+
+The team's tasks as Strategy Dance's second module, on M14's frame, as Modules § The Tasks module's
+tools describes it: nothing in the app calls it yet, and Claude Code reaches it locally over stdio.
+
+- **The frame's second module.** `MODULES` gains `tasks` (`/mcp/tasks`, "Strategy Dance Tasks",
+  `tasks:read` and `tasks:write`), and `MODULE_SERVERS` its `createTasksServer`, whose tool names
+  `moduleServers.test.ts` checks against Knowledge's. `src/modules/tasks/` holds the eight tools,
+  one file each, on `domain/tasks/`, beside the sweep's `pruneDeletedTasks`.
+- **The board's helpers move to strategydance-core**: `getPositionBetween`, and what
+  `getTaskBlockers`, `getTasksUnblockedBy` and `getTaskPrerequisites` compute, rewritten over plain
+  shapes (an id, whether it is done, the ids it waits on), so they import no database type, as M14
+  moved `toOrganizationPathSegment`. The web imports them from there, their tests moving with them,
+  and nothing visible changes.
+- **A searchable plain text for descriptions.** `Task` gains `descriptionText`, the plain text of
+  its description, null meaning not indexed yet, as Modules § The Tasks module's tools describes it.
+  The board writes it through new operations, `CreateTaskWithText` and
+  `UpdateTaskDescriptionWithText`, with `getRichTextText(parseRichText(description))`, and the old
+  `CreateTask` and `UpdateTaskDescription` now write null beside the description, their data block
+  being the server's. `bun run backfill:task-text --production`, under the backend's `scripts/`,
+  fills existing tasks once the release has deployed, paging through null rows, and can stop and
+  resume at any point, as M14's `backfill:document-text` does.
+- **The page's `RestoreTask` refuses a task deleted over a day ago**, a condition in its `where`
+  rather than a variable, so no connector change breaks and a day means a day wherever a restore
+  starts.
+- Backend-connector operations, named `…ForAgent`, each matching the membership on
+  `membershipCreatedAt` and answering it beside what it reads, so a removed member is refused rather
+  than shown an empty board:
+  - reads: the board, without descriptions, with each task's links, `createdBy` and `updatedAt`, and
+    the members' ids and names; a query's matches, the ids of the tasks whose name or
+    `descriptionText` matches its pattern, and up to 20 tasks not indexed yet, with their
+    descriptions; one task, with its description and its links both ways;
+  - writes, each an `@transaction` inserting its `ModuleCallResult` first under `@include(if:
+    $isKeyed)`: create, under the organization's lock and `MAX_TASKS`, with `CreateTask`'s checks on
+    the name, the description's length, the aspects and the assignee; update, writing the fields it
+    is given, on a condition on the `updatedAt` it read, with the same checks on what it writes; add
+    a link, under the organization's lock with `AddTaskDependency`'s checks; remove one, refused
+    when there is none; delete, refused for a task already gone and pruning the organization's tasks
+    deleted over a day ago as `DeleteTask` does; and restore, under the lock and `MAX_TASKS`, within
+    a day; and the index, writing a task's `descriptionText` only while its `updatedAt` is the one
+    read, and moving no `updatedAt` itself, since the task did not change.
+
+  Each write is named in `GetTasks`' refreshes, the update on a condition that it carries a field a
+  card shows, and the update carrying a description, the delete and the restore in
+  `GetTaskDescription`'s. None records an `ActivityDay`.
+- `bun run mcp:tasks <email> [--organization <id or slug>]`: M14's stdio script, taking the
+  module's name, so `mcp:knowledge` and `mcp:tasks` run one file. Claude Code adds it with
+  `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`.
+- `bun run check:tasks-module`, under the backend's `scripts/`, checks the operations' conditions
+  against the emulators, as `check:knowledge-module` does, beside a `createTasksDatabaseFake` the
+  tests run against; the test kit, `createKnowledgeModuleTestKit` made to take the module, drives
+  either.
+- `CLAUDE.md`: Module conventions say that tasks carry no AI permission, every agent changing any
+  task as any member can; § The database's rule on `ActivityDay` says that an agent's change to the
+  board never counts; § The database says that every write of a task's description writes
+  `descriptionText` beside it, or nulls it; Commands gain `mcp:tasks` and `check:tasks-module`, and
+  Module conventions `backfill:task-text`.
+- Tests (database mocked, through an SDK `Client` on the module's handler): a removed member's call
+  refused, and one carrying the `membershipCreatedAt` of a membership since ended; a caller without
+  the write scope refused by every write tool, nothing written; a write called twice with one key
+  applied once, the second answered with the first's result, and one key with other arguments
+  refused; two creates at once at 999 tasks making one; a created task at the end of its column, the
+  member's unless told otherwise, and a name with a line break or past 120 characters refused; a
+  description in Markdown stored as a post's blocks, a table and a code block read back as
+  paragraphs that keep every cell's and every line's text, and one past 20000 characters serialized
+  refused; a description sent with a stale `version`, or without one, refused, nothing written; a
+  task with a 20000-character description of asterisks and backslashes, 50 tasks it waits on and 999
+  waiting on it, all named in 120 characters, read within 45000 characters, its description as plain
+  text without a `version` and each list cut at 20 with its count, and a description that fits read
+  whole with its `version`; the agent's move and a member's rename landing at once both kept, the
+  update reading again and reapplying; a move between two tasks placed halfway, one into a gap too
+  narrow refused with nothing written, a `beforeId` naming the task itself leaving it where it is in
+  its own column, and refused with another `status`, and a move to Done answering the tasks it
+  frees, and on a board of 1000 tasks waiting on one, the first 50 and a count of 999, within a
+  result's 50000 characters; a `beforeId` in another column refused; an assignee who is not a member
+  refused, a member named `member:<id>` assigned, a bare id refused, and a member whose id is
+  `agent` assigned as a member, and `"agent"` taking the task off the member; a task waiting on
+  itself refused, and loops of two and of three tasks refused with their tasks named, and one
+  through all 1000 tasks refused naming the first 20 and its length; a 51st link refused; removing a
+  link that does not exist refused; a delete keeping the links, a restore bringing them back, a
+  restore past a day refused, the page's too, and one whose links would close a loop with a link
+  made while it was deleted refused; the list paged in hundreds, two tasks at one position on either
+  side of a page's end neither skipped nor repeated, `total` right, and the members on the first
+  page alone; a query found in a name and in a description whatever its case, one half in bold
+  found, a query of `type` or `text` matching no task whose name and plain text lack it, null rows
+  indexed before a query, 20 at most, with `isIndexComplete` false while more remain, and a
+  description saved between the index's read and its write left null, and one past 100 characters
+  refused; a name, a description and a query holding U+0000 refused before any operation runs, and a
+  query of `%`, `_` and `\` matching only the tasks that hold them as written; a done task waiting
+  on an unfinished one never blocked, in `list_tasks`, in `read_task` and in what
+  `remove_task_dependency` answers; `assignee: "unassigned"` and `"agent"` filtered, and aspects
+  matched on any; an external caller's results carrying addresses, by its id for an organization
+  without a slug, and the agent's none; no write recording an `ActivityDay`.
+- Verify: with `bun run mcp:tasks` added to Claude Code locally and the board open in a tab, have
+  it read the board, create three tasks for a plan, link them in order, assign one to a teammate and
+  one to Strategy Dance, and move one to Done, the cards arriving without a reload; save a
+  description in the task's dialog while Claude Code rewrites it from an older read, and see its
+  write refused; delete a task and restore it.
+- Built with these settled, on 2026-10-10:
+  - **One fake for every module.** A module's handler loads every module's server, and Bun refuses a
+    test whose mock lacks a name any of them imports (`Export named … not found`), so
+    `createModuleDatabaseFake` puts a base, the memberships, the call results and their operations,
+    together with `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`. The test kit,
+    `createModuleTestKit(name, caller)`, the write tools' check, `readModuleWriteCall`, the web
+    addresses, `createModuleAddresses`, the schema helpers and `isOperationRefusal` are the frame's,
+    shared rather than copied.
+  - **`has()` sees a variable sent as null**: `UpdateTaskForAgent` refuses `name: null`, and an
+    omitted variable leaves its column alone while a null one clears it, checked against the
+    emulator. `GetTasks` refreshes on an update unless it carries a description alone,
+    `!has(description) || has(<a card's field>)`, which holds whichever way a cleared due date reads.
+  - **A check under an empty list speaks first.** With the membership gone, the variables' checks
+    nested under it are never invoked, and Data Connect refused a removed member's write with the
+    idempotency key's message. Marked `optional: true`, they leave the refusal to the membership's
+    own check. Knowledge's writes share the shape and reach the right answer through
+    `explainKnowledgeDocumentRefusal`'s second read; `CLAUDE.md` records the rule.
+  - **The board is read whole.** Every tool reads the live board, at most 1000 tasks without their
+    descriptions, and filters, orders, pages, places and checks loops in memory, on core's helpers;
+    only a query's pattern runs in SQL, one substring on the name or the plain text, never split
+    into words, as the board's own search matches.
+  - **The board's order** compares an instant to the microsecond however many digits Data Connect
+    wrote its fraction with, and an id as Postgres orders a UUID, so a cursor holding the last task's
+    status, position, instant and id resumes exactly.
+  - **Answers read back.** An assignee is answered as `"member:<id>"`, `"agent"` or `"unassigned"`,
+    with `assigneeName`, the values the tools take; a task's links come as `dependsOn` and
+    `waitedOnBy`, each `{ tasks, count }`, and a move to Done as `canStartNow`. A replaced
+    description answers its new `version`, a hash of the description as stored.
+  - **A restore blocked by a loop names the tasks waiting on the deleted one** whose links would close
+    it, as the page's `getTaskRestoreLoops` finds them, and `remove_task_dependency` takes a link to a
+    deleted task, so the model can take one off before restoring. A link already there is written
+    again as an upsert, so its key is kept, and answered `isNew: false`.
+  - **Budgets count addresses**: a page of `list_tasks` and a `read_task` count each task's web
+    address, which an external caller's results carry, within 40000 and 45000 characters.
+  - **"50 tasks it waits on and 999 waiting on it" is 1050 tasks**, past `MAX_TASKS` and past what
+    the board read holds, so the read test has 50 and 949, the whole board; the freed tasks test has
+    the 999 of a board of 1000.
+  - **`check:tasks-module` is the backend package's**, as `check:knowledge-module` is: the Commands
+    row for `mcp:tasks` names it rather than a root command. A list variable holds at most 100 rows,
+    so the script fills a board in hundreds.
+  - Verified with `bun run check:tasks-module` and `bun run check:knowledge-module` against an
+    emulator of the branch's schema, every check passing; with the SDK's stdio client, a 2025 one as
+    Claude Code's is, driving `mcp:tasks` through every tool; in the browser at 1280 and 390 wide, the
+    board open while the module created three tasks, linked them, refused the link closing a loop,
+    assigned one to a teammate and one to Strategy Dance, moved one to Done, answering the task it
+    freed, cleared a due date, deleted one and restored it, every change arriving without a reload;
+    a description saved in the task's dialog storing its plain text, and the module's write from an
+    older read refused; a task created on the page storing its plain text; and the backfill over 250
+    unindexed tasks, run again with nothing left. Not seen from Claude Code itself, which
+    `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>` connects.
+
+### M16: Knowledge in conversations
 
 The agent's knowledge, through the module, in process (see Modules § Strategy Dance's agent).
 
-- The worker's module client: for each run, the Knowledge module's server for the run's member
-  (`kind: 'agent'`, every scope, the run's `membershipCreatedAt`, the scope `conversation:<id>`), an
-  SDK `Client` pinned to the 2026-07-28 revision and connected to the module's handler through a
-  transport whose `fetch` is `(url, init) => handler.fetch(new Request(url, init), { authInfo })`,
-  the caller as `authInfo`, and its tools converted and appended after the built-in ones. Reads run
-  four at a time, writes alone, each keyed with its `tool_use` id.
+- The worker's module client: for each run, the server of each module the agent uses, the Knowledge
+  module's alone until M17, for the run's member (`kind: 'agent'`, every scope, the run's
+  `membershipCreatedAt`, the scope `conversation:<id>`), an SDK `Client` pinned to the 2026-07-28
+  revision and connected to the module's handler through a transport whose `fetch` is `(url, init)
+  => handler.fetch(new Request(url, init), { authInfo })`, the caller as `authInfo`, and its tools
+  converted and appended after the built-in ones. Reads run four at a time, writes alone, each keyed
+  with its `tool_use` id.
 - Recovery as A run § Recovery and side effects says: a worker taking over, and Resume, call a
   module write again with its key; finalizing an interrupted run, and a send answering it, read
   each started write's key first, recording a stored result as `SUCCEEDED` and answering the rest
@@ -696,8 +917,10 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
 - The tools' labels in the `conversation` catalogue, running and done, and `bun run translate`;
   the system prompt's knowledge section.
 - In the thread, `doc:` links resolve against the organization's live document list: the current
-  title, or struck through when deleted. A `delete_document` row offers Restore, through
-  `RestoreDocument`, while the document is deleted and the day has not passed.
+  title, or, for an id the list does not hold, since it leaves deleted documents out, the title the
+  agent wrote, struck through, whether the document was deleted, pruned or never there. A
+  `delete_document` row offers Restore, through `RestoreDocument`, while the list does not hold the
+  document and a day has not passed since the call.
 - Tests (scripted client, database mocked): the client connecting with no `initialize` handshake;
   the converted tools list's bytes pinned, every name in it, built-in or a module's, unique,
   `minLength` and its kin dropped, `strict` and eager input streaming set; a module write sent with
@@ -714,11 +937,167 @@ The agent's knowledge, through the module, in process (see Modules § Strategy D
   to create one and tag it; open both in Knowledge; ask it to delete one and restore it from the
   thread's row; turn Write off on one and ask again; turn Read off on it and ask about it; kill the
   local backend during a write and resume.
+- Built with these settled, on 2026-10-11:
+  - **A strict request has limits beyond keywords.** Claude takes at most 20 strict tools, 24
+    optional parameters and 16 union ones across a request, beside refusing `minLength`,
+    `maxLength`, `minimum`, `maximum`, `multipleOf`, `maxItems` and a `minItems` past one. The
+    conversion (`toConversationModuleTool`) drops those, drops `$schema`, closes every object, which
+    zod's input schemas leave open, and throws on anything else a strict schema refuses.
+  - **And a grammar too complex.** With the patterns kept, the document's id on five tools and the
+    one-line title's, `probe:claude` found the API refusing the agent's request, "Schema is too
+    complex", within every published limit. The conversion drops `pattern` too, the module's zod
+    still refusing what breaks one, and the API then compiled the list in some 20 seconds, once,
+    and served it from its cache in under two after. `buildConversationTools.test.ts` pins the list's bytes and counts the limits: Knowledge
+    holds 11 optional parameters and no union. The Tasks module's input schemas would add about 17
+    more, past 24, which M17 settles (see Risks).
+  - **The tools are listed per run**, through the module's handler once the run is claimed, and the
+    request's list is `buildConversationTools`: the agent's own, then the modules'. The system prompt's
+    and tools' share of a request is counted once for each list. A run that cannot connect is left to
+    its lease, so Cloud Tasks redelivers it.
+  - **A worker past its lease still passes its fence**, which matches the run's status, attempt and
+    membership, never its lease, until its run is finalized. So a started write is settled from its
+    key only once the run has let go of the conversation: right after `InterruptDeadConversationRun`,
+    and by a send or a continuation, `SettleConversationToolCall` refusing while `activeRunId` is set.
+    The settle matches the stored row's tool, member and organization, never the arguments' hash,
+    since the key is Claude's id for that one call and a module's schema may normalize what it was
+    sent (the Tasks module trims a name).
+  - **The stored result is the answer**: a module stores the result its tool answers an agent caller,
+    which carries no address, so `toToolOutput` of the stored row is the bytes the live call would
+    have sent Claude.
+  - **A write past its 60 seconds may still land**, the module's mutation going on once the client
+    gives up, so it is answered "The call took longer than 60 seconds and may still have run. Check
+    before you call it again." The module client's own request timeout sits past the run's.
+  - **The sweep is the only prune**, as David chose: `StartConversation` deleted the member's
+    conversations past a day directly, which could not reach their `ModuleCallResult` rows, found by
+    their scope alone. It now leaves them to the sweep, which deletes each batch's results by their
+    scope (`DeleteConversationModuleCallResults`) before the conversations, and `RestoreConversation`
+    refuses one deleted over a day ago in its `where`, whether or not the sweep has run. Being the
+    only prune, the sweep deletes batches for up to five minutes rather than fifty batches of
+    twenty, which capped it at a thousand conversations a day.
+  - **The conversations' fake holds the modules'** as `modules`, its SDK spread under its own and a
+    member added to both with one `createdAt`, so every test of the worker loads the real module
+    servers; `connectTestModules(runners)` brings a test's own runners in.
+  - **The thread reads the documents only when it needs them**: once a reply's text holds `doc:` or a
+    `delete_document` row is drawn. A link draws the agent's words, unlinked and not struck, until
+    the list lands. A `delete_document` row reads the call's output once, which holds the id and
+    `restorableUntil`, rather than the input, since neither the tail nor the bodies carry a call's
+    input. On a phone, a row with an action of its own hides its "Tool" badge and lets its label wrap.
+  - **The labels** of the tools the plan dropped on 2026-10-10 went from the catalogue; the
+    Knowledge tools' running labels kept the ids the plan's earlier names had.
+  - **`probe:claude` sends the agent's own request** with its full tools list, which the API refuses
+    whole when a strict schema is one it does not take, or too complex. Run on 2026-10-11, every
+    check passing once the patterns were dropped.
+  - Verified with the tests; `check:conversation-runs`, `check:conversation-list` and
+    `check:knowledge-module` against an emulator of the branch's schema, every check passing; and in
+    the browser at 1280 and 390 wide, the backend's Claude client swapped for a scripted one: a
+    document created through the module, its `doc:` link drawn with its title, a dead link struck
+    through, a delete striking both through and offering Restore, which brought it back and took
+    itself away, an append arriving in the document open in another tab while the member typed in
+    it, Write then Read turned off and refused, and the backend killed while a write that had landed
+    was held, the interrupted run's call drawn `SUCCEEDED` from its key, and Resume carrying on with
+    the text appended once. The real model was asked through `probe:claude` alone, not through a
+    conversation in the browser.
 
-### M16: The authorization server
+### M17: Tasks in conversations
+
+The agent's tasks, through the Tasks module, in process, as M16 reaches Knowledge.
+
+- The worker's module client takes the Tasks module beside Knowledge: its tools converted and
+  appended after Knowledge's, in `MODULES`' order, `list_tasks` and `read_task` running four at a
+  time with the other reads and the writes alone, each keyed with its `tool_use` id. Recovery is
+  M16's, for every module.
+- The tools' labels in the `conversation` catalogue, running and done, and `bun run translate`; the
+  system prompt's tasks paragraph, with "cannot change tasks" gone from it (see The agent).
+- `task:` links: the design system's `Markdown` lets `task:` through beside `doc:`, for `renderLink`
+  to draw, and the thread resolves them against the organization's live board, `GetTasks`, read only
+  once a reply holds one or the thread draws a `delete_task` row, which reads it too: the task's
+  current name with a task icon, opening the task in its dialog over the board, or, for an id the
+  board does not hold, since `GetTasks` leaves deleted tasks out, the name the agent wrote, struck
+  through, whether the task was deleted, pruned or never there. No query is added. `CLAUDE.md`'s
+  line on `Markdown` says so.
+- A `delete_task` row offers Restore while the board does not hold the task and a day has not
+  passed since the call, through the board's own restore rather than `RestoreTask` alone: the
+  task restored, the board read again and each link closing a loop removed, as the page's Undo
+  does, and the day recorded through `recordActivity`, as every member's change to the board is.
+- The tools list then holds sixteen module tools: the pull request records what the converted list
+  costs a cached request, so whether Claude's tool search (`defer_loading`) should keep some of
+  them out is decided on that figure, which is David's call.
+- Tests (scripted client, database mocked): the converted list's bytes pinned again, every name in
+  it unique; a crash between a `create_task` and the worker recording it, the next worker calling
+  again and one task made; consecutive `list_tasks`, `read_task` and `search_documents` calls
+  running four at a time, and writes alone, in order; `Markdown` keeping a `task:` link and still
+  dropping a `javascript:` one; a `task:` link whose id the board does not hold, a deleted task's
+  and an unknown one alike, drawn struck through with the name the agent wrote, and drawn again with
+  the task's current name once it is restored; a `delete_task` row in a reply that links no task
+  reading the board itself, offering Restore while the task is off it and hiding it once the task is
+  back; a Restore from a row whose task's kept links, with one made while it was deleted, close a
+  loop, leaving no loop on the board, and recording the day.
+- Verify: with the board open in another tab, talk a launch through and ask the agent to turn the
+  plan into tasks, linked in order and assigned, and watch the cards arrive without a reload; ask it
+  to mark one done and hear which can start; open a task from a link in its reply; ask it to delete
+  one and restore it from the thread's row; assign a task to Strategy Dance on the board, then ask
+  the agent what it has been given.
+- Built with these settled, on 2026-10-11:
+  - **The modules' tools are not strict**, as David chose. A request takes at most 20 strict tools,
+    24 optional parameters and 16 union ones, and adding the Tasks module would have made 17 strict
+    tools and 28 optional parameters, Knowledge's 11 and the Tasks module's 17, `update_task` alone
+    8: the next module would break the 20 tools whatever its schemas. Strict only holds how Claude
+    writes a call, and the module's own zod checks every call anyway, as it checks an external
+    agent's, which never gets a strict grammar. So every module's tools, Knowledge's included, go
+    as the module wrote their schemas, less the `$schema` dialect, bounds, patterns and formats
+    kept, so Claude reads the real ones, and no grammar is compiled for them; `ask_user` alone stays
+    strict, and `buildConversationTools.test.ts` holds the strict tools to the limits. M17 changed
+    the list anyway, so dropping `strict` cost conversations their earlier reasoning no more than
+    once. `probe:claude` has Claude call `list_tasks` through the whole list, which it did with
+    `{ "status": "TODO" }`.
+  - **What the tools cost a cached request**, which `probe:claude` now counts with `count_tokens`:
+    the system prompt and the agent's own tools take 7201 tokens, and the modules' sixteen tools
+    7381 more, Knowledge's 3158 and the Tasks module's 4223,
+    `update_task` the largest at 1187, then `create_task` at 857, `update_document` at 814 and
+    `list_tasks` at 723. The agent's request cached 14596 tokens on its first send and read all of
+    them from the cache on its second. At Opus 5.5's prices the modules' tools cost a request read
+    from the cache $0.0015, the Tasks module's $0.0008, and a write to the 5-minute cache $0.037.
+    Claude's tool search pays once tool definitions pass some 10000 tokens, so at 7381 it would
+    cost each first use of a module tool a search step for little: whether to keep some out with
+    `defer_loading` is David's call on these figures, sooner when a third module takes the modules'
+    share past 10000.
+  - **The board's own restore, by id.** The board's Undo restores from a snapshot it took before
+    the delete, which the page never took of the agent's, so `useTaskChanges` gains
+    `restoreDeletedTask`: `RestoreTask` through `change`, which marks the day active, then the board
+    read again from the server and each link of a task waiting on the restored one that closes a
+    loop through it taken off (`restoreTaskWithoutLoops`), which the Undo's second read now goes
+    through too. Without the snapshot nothing is written to the board before the server answers, so
+    a loop can show on the board for the moment between the restore and the unlinking, as one a
+    teammate's link closes can after the Undo.
+  - **One read for both kinds of delete.** A `delete_task` call answers `{ id, restorableUntil }`,
+    as `delete_document` does, so the thread reads the outputs of both in one
+    `GetConversationToolOutputs` read (`useConversationDeletedItems`), and decides what a row offers
+    with `canRestoreConversationItem` against the live list of its kind.
+  - **A row passes its action only while Restore shows.** M16's rows passed it whenever a delete
+    succeeded, so a phone hid the "Tool" badge of a row whose Restore had gone; the thread now
+    decides, and passes nothing otherwise, a document's row included.
+  - **A task link resolves as a document link does** (`readConversationLinkTarget`): found, gone or
+    the agent's words, `ConversationDocumentLink` and `ConversationTaskLink` drawing each, the
+    latter with the board's `SquareKanbanIcon`, linking to `/$organizationSlug/tasks/$taskId` with
+    the board's id, which `TaskBouncer` compares exactly.
+  - **The system prompt** says what the agent does with the board and drops "its members" from what
+    it cannot read, since `list_tasks` lists them: it still cannot read the log, the checklist or
+    anybody's top priority.
+  - Verified with the tests; `probe:claude`, every check passing; and in the browser at 1280 and 390
+    wide, on a scratch stack of the branch's emulators, the backend's Claude client swapped for a
+    scripted one: with the board open in another tab, three tasks created, linked in order and
+    assigned, the cards arriving without a reload; a move to Done answering the task it freed; a
+    `task:` link opening the task's dialog over the board; a link to a task never there struck
+    through; a delete striking the task's links through and offering Restore; a link made while it
+    was deleted closing a loop, which Restore took off, keeping the others, recording the day and
+    taking itself away, the links drawn again with the task's name; the phone's "Tool" badge hidden
+    only while Restore showed; and a task assigned to Strategy Dance found through `list_tasks`. The
+    real model was asked through `probe:claude` alone.
+
+### M18: The authorization server
 
 Strategy Dance's OAuth server on the public backend, as Modules § External agents describes it,
-with nothing to authorize yet but a script: the consent page comes in M17 and the endpoint in M18.
+with nothing to authorize yet but a script: the consent page comes in M19 and the endpoint in M20.
 
 - The tables, as Modules § The data lists them: `OAuthClient`, `OAuthAuthorizationRequest`,
   `AgentConnection` and `AgentConnectionToken`, its hashes `@unique`. `AgentConnection`'s
@@ -737,7 +1116,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   fetched through `fetchOutbound`, and only when a signed-in member's consent page reads the
   request, which is also when such a client's redirect address is checked. Registering and
   authorizing are rate-limited per address, and registrations capped in all.
-- The token verifier M18 mounts: one read by the token's hash, of an unexpired access token alone,
+- The token verifier M20 mounts: one read by the token's hash, of an unexpired access token alone,
   with its connection, its membership and the account's staff role, compared with the endpoint's
   resource. The refresh grant likewise takes a refresh token alone, and derives its successors under
   `oauth-token-secret` (setup step 10), read by version: `retrieveSecret` gains a version argument,
@@ -791,17 +1170,93 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   token's refused, the connection left as it was.
 - Verify: `bun run check:oauth` against the local stack; `/security-review` on the branch before it
   merges, as Risks asks.
+- Built with these settled, on 2026-10-11:
+  - **The membership's columns are named.** Data Connect refuses a reference to a key made of
+    references, so `UserOrganization` names `userId` and `organizationId` beside its references,
+    as Data Connect named them anyway, and `AgentConnection.membership` references the two with
+    `@ref`, its constraint named `agent_connection_membership_fkey`, short of Postgres' 63 bytes.
+    The emulator's migration from `dev`'s schema only creates the new tables and their indexes,
+    and touches `user_organization` not at all.
+  - **Allow decides the request last.** The request references the connection Allow inserts, so
+    Allow locks the membership, deletes the earlier connection for that client and module, inserts
+    the new one, then decides the request under `@check(this == 1)`, which rolls the whole mutation
+    back when it refuses. `check:oauth` showed on the emulator, before any backend code, that
+    consenting again, two consents at once for one client, organization and module, Allow sent
+    twice and an Allow racing a Deny each leave one connection and decide once. Data Connect
+    reports the insert's foreign key before the lock's check, so a caller who is not the member is
+    refused by either message, which `isMembershipRefusal` reads as one. The update also matches
+    the request's client and resource, and `includesAll` the scopes granted, so the database
+    itself grants nothing the request did not ask for.
+  - **A registered client is marked used by an operation of its own**, `RecordOAuthClientUse`:
+    a step skipped by `@include` still refuses a null key, so it could not ride in the request's
+    insert for a client ID metadata document's request.
+  - **The protocol's endpoints answer any origin** through the app's `cors`, which takes an options
+    delegate matching `OAUTH_PROTOCOL_PATHS` exactly, as Express routes them, ignoring case and one
+    trailing slash, never by prefix, so the consent page's routes under `/oauth/requests`, a router
+    of their own mounted ahead of the protocol's, keep the app's origins. The protocol's router
+    answers its own errors in OAuth's JSON.
+  - **The metadata names `revocation_endpoint_auth_methods_supported: ["none"]`** beside the token
+    endpoint's, since a field left out means `client_secret_basic`.
+  - **Bounds before anybody signs in**: registration 20 an hour per address and 1000 a day in all,
+    authorization 60 in ten minutes per address and 1000 in ten minutes in all, each a count under
+    `@check` rather than a lock, so a few at once can pass the cap by as many; the consent routes 60
+    in ten minutes per member, as link previews, since reading a request is what fetches a client's
+    document. A client's id, its redirect address and `state` are held to 2048 characters, `state`
+    before any redirect, so an oversized one is never sent back.
+  - **A registered `client_id` is exactly what registration answered**, 32 lowercase hex digits,
+    checked before any read, so two spellings of one client never make two connections. A redirect
+    address's own query is kept byte for byte, the answer appended to it, and one already naming
+    `code`, `state`, `iss` or `error` is refused.
+  - **A code presented again revokes its connection whoever presents it**, before its client,
+    redirect or verifier are compared, as RFC 6749 asks. A refresh token's duplicate within 30
+    seconds is answered only while both successors are still stored on its connection, so it never
+    hands out one revoked since.
+  - **Revoking a refresh token ends the connection; an access token, itself alone.**
+  - **A refresh may narrow its access token.** Each token carries its scopes: a refresh naming fewer
+    than its token holds, never others, issues an access token holding those alone, its refresh
+    token keeping its own (RFC 6749, 6), and the verifier reads the access token's. The rotation
+    checks both against the spent token's in the database, and the exchange against the
+    connection's.
+  - **A registered client is marked used before its request is stored**, so the daily sweep never
+    prunes a client an authorization is naming, and one pruned since it was read stores nothing.
+  - **The consent routes are metered before the staff check**, so a caller who is not staff is
+    counted too, and **the token and revocation endpoints per address**, 600 and 300 in ten
+    minutes, generous since a hosted client, claude.ai or ChatGPT, calls them for every member from
+    a few addresses of its own: the launch revisits them. A connection's rows are bounded by their
+    expiry rather than a cap, which would stop a client that refreshes often.
+  - **A delayed duplicate follows the chain.** A spent refresh token presented again within its 30
+    seconds after the client rotated its successor in turn is answered with the pair whose refresh
+    token is unspent, up to 30 rotations, never a spent one the client's next refresh would replay.
+  - **A connection gone meanwhile is a revoked grant.** A consent replacing it, a revocation or the
+    member's removal landing between a read and an exchange or a rotation makes the new tokens'
+    reference fail, which the emulator reports, as `agent_connection_token_connection_id_fkey`,
+    before the step's check: `isConnectionGoneRefusal` answers it `invalid_grant`, never
+    `server_error`.
+  - **Addresses are refused for a space or a control character** before they are parsed, a redirect
+    address and a resource alike, since the URL parser strips them silently.
+  - **The modules' gate lifts on the development backend** (`IS_MODULES_RELEASE_GATED`), as
+    conversations' does, so `check:oauth` and a developer's client need no staff role locally.
+  - **`OAUTH_ISSUER` honours `API_URL` in development**, so a worktree's backend on another port
+    names itself, as `check:oauth` reaches it.
+  - **`retrieveSecret` reads by version** through `retrieveSecretVersion`, which says which version
+    the latest was. An instance keeps the latest it read for its life, so Setup 10 now keeps the
+    previous version enabled until a deploy has replaced every instance, and a day at least.
+  - Verified with the tests, every item of the list above among them, and `check:oauth` against a
+    scratch suite of the branch's Auth and Data Connect emulators and the branch's backend on its own
+    port: the whole flow over HTTP, the verifier taking the access token and refusing it for the
+    Tasks module and the refresh token, then every operation's condition and race.
 
-### M17: The consent page and Connected agents
+### M19: The consent page and Connected agents
 
-- The `module` message type, for the consent page, Connected agents and M18's dialog, its module
+- The `module` message type, for the consent page, Connected agents and M20's dialog, its module
   and its `MESSAGE_TYPES` entry, registered on the consent page's route and in `_app.tsx`'s
   `APP_MESSAGE_TYPES`, and `bun run translate`.
 - `/oauth/consent`, as Modules describes it: under `_authenticated` and outside `_app`'s frame, so a
   signed-out member signs in and comes back through the page `AuthenticationBouncer` keeps; read
   through `GET /oauth/requests/:requestId`; the client, the module, an organization chosen among the
   member's, the access, read and write offered only when the client asked for both, Allow and Deny,
-  the module and its access worded from the `module` catalogue by the module's name; an expired or
+  the module and its access worded from the `module` catalogue by the module's name, for every
+  module `MODULES` lists, Tasks included, since a client can ask for it from here; an expired or
   unknown request's state; an account that is not staff told the page is not available yet.
   `firebase.json` sends `frame-ancestors 'none'` for `/oauth/**`.
 - The account page's Connected agents tab, staff only: `GetAgentConnections`, live, the caller's own
@@ -814,15 +1269,67 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: `check:oauth`'s flow with the page approving in a browser instead of the script, at
   desktop and phone widths; signed out first, the page coming back after signing in; Deny; an
   expired request; a connection disconnected from the tab, and the script's next refresh refused.
+- Built with these settled, on 2026-10-11:
+  - **The consent address carries the request's id hyphenated.** TanStack parses each value of a
+    query as JSON first, so 32 hex digits that happen to be decimal, or decimal around one `e`,
+    about one request in a million, would arrive as a number that lost its digits. The backend
+    writes it with `toHyphenatedUuid`, which never parses, and the page's `validateSearch` takes a
+    string alone.
+  - **The page reads its request once**: no retry, no read on focus or reconnecting, never stale. A
+    read is what has the backend fetch a client's metadata document, metered per member, and a read
+    after deciding would answer that the request is gone while the browser leaves for the agent.
+  - **The gate is a screen, not a redirect, and comes before the read**: an account that is not
+    staff is told the page is not available yet, since an agent sent it there, and the backend
+    fetches no document for it. The web's `useCanUseModules` keys off `ARE_MODULES_STAFF_ONLY` and
+    `EMULATORS_REQUESTED`, as `useCanUseConversations` does.
+  - **Either answer replaces the page** (`window.location.replace`), so going back never lands on a
+    request decided. A request expired or gone meanwhile, and an agent that could not be verified,
+    end the page with their own words, never the backend's English; anything else is a toast and
+    another try. A Deny answered with no address, the agent unverified, says the connection was
+    denied and the page may be closed.
+  - **The organization defaults to the one the member has open**, among their own, and a member in
+    none is told so on the page with a way to the prologue, since `_app`'s bouncer is not above it.
+    Deny stays offered.
+  - **Read and write is offered checked when asked for**, and Read alone, unchecked, beside it, each
+    worded by the module: the consent never grants more than was asked, and the member reduces it.
+  - **The frame header is a case-insensitive regex**, `(?i)^/oauth(/.*)?$`, since the router matches
+    paths regardless of case and `/OAuth/consent` would otherwise render unguarded. It sends
+    `X-Frame-Options: DENY` beside `frame-ancestors 'none'`, for browsers without CSP 3.
+  - **`DeleteAgentConnection` deletes by id and `auth.uid`**, so another member's id deletes nothing,
+    and one gone already succeeds, as `DeleteConversation` does. `$userId` checked against the token
+    is what the list's refresh condition reads. A revocation or a reused code, which the protocol's
+    endpoints make knowing no `$userId`, shows on the tab's next read, as the page regains focus.
+  - **Disconnect asks twice through the button**, without a dialog: a consent from the agent undoes
+    it.
+  - **A member connects at most 100 agents** (`MAX_AGENT_CONNECTIONS`), so the tab, which reads
+    every one, is the whole list and Disconnect reaches each, as `MAX_CONVERSATIONS` bounds the
+    conversations list. Allow first writes the member's own row, a lock their consents in every
+    organization take in turn, then the membership, so the count after both is exact, and leaves out
+    the connection it replaces, so consenting again at the cap goes through. Nothing else writes a
+    user row and a membership both, so the order waits on nobody. Past the cap it answers
+    `TOO_MANY_AGENT_CONNECTIONS`, deciding nothing: the page warns, links to the tab in a new one,
+    and lets the member allow again. The list reads exactly 100. The emulator's PGlite runs one
+    transaction at a time, so `check:oauth`'s race of two organizations passes with the lock or
+    without it: it guards the outcome, and Postgres' row lock is what makes it hold.
+  - **`check:oauth` makes its tokens for the backend's own issuer**, `API_URL`, so it runs against a
+    backend on another port, and checks the list and Disconnect through the web connector as two
+    members of one organization.
+  - Verified with the tests, `check:oauth`, and a browser driving the page and the tab against a
+    scratch suite of the branch's Auth and Data Connect emulators and its backend on its own port:
+    signed out first and back after signing in, Allow for another organization with read alone, the
+    token answer saying read, Deny at phone width, an expired, an unknown and a malformed request,
+    the tab listing a connection, another appearing live, Disconnect removing it without a reload,
+    and the agent's next refresh refused. The page's not-available screen can only be seen against
+    the real project, since the emulators lift the gate.
 
-### M18: The Knowledge module for external agents
+### M20: The Knowledge module for external agents
 
 - Dependencies: `@modelcontextprotocol/node`, for `toNodeHandler`, and
   `@modelcontextprotocol/express`, for `requireBearerAuth` and `mcpAuthMetadataRouter`.
 - `routes/modules.ts`, mounted at `/mcp` on the public backend only: `POST /mcp/knowledge` through
   the module's handler from M14, mounted with `toNodeHandler` and handed the parsed body as its
   third argument, `(request, response) => nodeHandler(request, response, request.body)`, behind
-  `requireBearerAuth` with M16's verifier and the endpoint's address as `expectedResource`; the
+  `requireBearerAuth` with M18's verifier and the endpoint's address as `expectedResource`; the
   `Origin` check; a 1 MiB body; `moduleRateLimitMiddleware`, per connection; 405 on GET and DELETE.
   `/.well-known/oauth-protected-resource/mcp/knowledge` is served through `mcpAuthMetadataRouter`
   mounted at the app's root, beside the authorization server's metadata, never under `/mcp`, where
@@ -851,70 +1358,136 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   should it insist on a `cursor://` redirect, which the specification rules out, accepting it, a
   deviation PKCE mitigates, is David's call), use it from each, and disconnect one from Connected
   agents and see its next call refused.
+- Built with these settled, on 2026-10-11:
+  - **The adapters are `@modelcontextprotocol/node` 2.1.1 and `@modelcontextprotocol/express`
+    2.0.2**, the latest past the cooldown, both peers of the 2.3.0 server installed.
+  - **Any method but `POST` answers 405 before any check**, since the handler is stateless: it opens
+    no stream to `GET` and holds no session to `DELETE`. Then the `Origin` check, the bearer check,
+    the connection's rate limit and the body, in that order, so nobody unverified has a megabyte
+    parsed.
+  - **The `Origin` check is the SDK's `originValidation`, by hostname**: the app's, `strategydance.com`
+    in production and `localhost` in development. A request without one passes, as clients outside a
+    browser send none.
+  - **A connection makes 600 calls in ten minutes**, counted in the instance's memory and keyed by
+    the connection, as generous as the token endpoint, a 429 in JSON-RPC past it. The launch
+    revisits it with the others.
+  - **An address makes 600 refused calls in ten minutes**, metered before the bearer check, as the
+    first review round asked: the connection's limit runs only once a token is read, so a made-up
+    token, or a call past a connection's limit, would otherwise cost a read of the database each.
+    Only an answer of 400 or above counts, so a hosted client calling for many members from a few
+    addresses is held by each connection's limit alone.
+  - **The use recorder forgets its oldest write once it holds 10000 connections**, in one step, as
+    the first review round asked: its sweep of entries over a minute old freed nothing when all were
+    younger. A connection forgotten within its minute is only asked of the database again.
+  - **The resource metadata answers any origin**, its path joining `OAUTH_PROTOCOL_PATHS`, so a
+    client running in a page discovers the server as it discovers the authorization server; the
+    endpoint keeps to the app's origins. `mcpAuthMetadataRouter` serves the authorization server's
+    metadata too, which `routes/wellKnown.ts`, mounted before it, answers first, both from
+    `buildAuthorizationServerMetadata`.
+  - **A client of a 2025 revision is answered over SSE.** The SDK's stateless fallback streams its
+    answers whatever `responseMode` says, which those clients read; the 2026-07-28 revision's are
+    JSON. Its `initialize` and a session header it sends after are served statelessly.
+  - **`lastUsedAt` is written as a token passes the verifier**, once a minute at most: a recorder in
+    each instance remembers when it last wrote each connection, and `RecordAgentConnectionUse`'s
+    condition, which matches the member's account too, holds the minute across instances. A write
+    that fails is logged and fails no call.
+  - **The challenge makes the tool's own scope check a second guard**: `requireScopes` reads the
+    `AuthInfo`'s scopes, which are the caller's, so the tool's refusal is unreachable through the
+    handler and is tested on its own. Only the Knowledge module's writes are challenged, the Tasks
+    module's joining in M21, and the tools the agent is sent did not change by a byte.
+  - **An external search is counted before it searches**, through `recordConversationSearch`, moved
+    out of `searchConversations` for both to draw on. A removed member is refused before anything is
+    counted, and a search past the allowance is answered with the minutes left and `list_documents`
+    as what still works.
+  - **The dialog takes the module it describes**, so M21 passes `tasks`; its address hangs off the
+    web's `API_URL`, the local backend's against the emulators. It opens from its button as the
+    dialog's trigger, so the focus returns to the button, and its code wraps rather than scrolls.
+    Its link to Connected agents merges `buttonVariants` through `cn`, since the bare string keeps
+    `border-transparent` beside the outline's border and draws none: the consent page's and the
+    organization not found page's outline links show the same missing border, left for a fix of
+    `buttonVariants` itself.
+  - Verified with the tests; `check:oauth` and `check:knowledge-module` against a scratch suite of
+    Auth and Data Connect emulators and the branch's backend on its own port, the endpoint included;
+    the MCP Inspector's CLI 2.9.0 listing the tools, creating, searching and listing; the SDK's client
+    calling every tool over HTTP while the document was open in a browser tab, the append, a
+    replacement and a rename arriving without a reload, a keyed retry applied once and a stale
+    rewrite refused; and the dialog at 1280 and 390 wide. Not seen: Claude Code's own sign-in, which
+    needs an interactive session, and claude.ai, ChatGPT and Cursor, which need production.
 
-### M19: Mentioning knowledge in the composer
+### M21: The Tasks module for external agents
 
-- The "+" menu (with "Mention knowledge" only until M24), the `@` list and its keyboard handling,
+- `routes/modules.ts` mounts every module `MODULES` lists, which M20 did for Knowledge alone: the
+  Tasks module at `POST /mcp/tasks`, through its own handler, behind the same `requireBearerAuth`
+  with its address as `expectedResource`, `Origin` check, body limit and per-connection limit, and
+  `/.well-known/oauth-protected-resource/mcp/tasks` beside Knowledge's, through
+  `mcpAuthMetadataRouter` at the app's root. Its write tools register the SDK's `scopeChallenge`
+  for `tasks:write`.
+- An external `list_tasks` with a `query` draws on the member's `ConversationSearch` allowance, as
+  an external `search_documents` does.
+- The Tasks page's "Use with your agents" button and dialog, staff only: the Knowledge page's
+  dialog, made to take the module it describes, with `claude mcp add --transport http
+  strategydance-tasks https://api.strategydance.com/mcp/tasks`.
+- `CLAUDE.md`'s Modules section names the second endpoint.
+- Tests: a Knowledge token refused at `/mcp/tasks` and a Tasks token at `/mcp/knowledge`, each 401
+  naming its endpoint's resource metadata; a read-only Tasks connection's `tools/list` holding every
+  tool, and its `create_task` answered 403 with `insufficient_scope` naming `tasks:write`, nothing
+  written; an external result carrying the tasks' addresses; a query past the allowance answered
+  with a result saying so, and a `list_tasks` without a query never counted.
+- Verify: locally, add `http://localhost:3003/mcp/tasks` to Claude Code beside Knowledge's, consent
+  to each, and have it turn a document's plan into tasks on a board open in a tab; in production, as
+  staff, add both to claude.ai and use them in one chat; disconnect Tasks from Connected agents and
+  see its next call refused while Knowledge's still works.
+
+### M22: Mentioning knowledge in the composer
+
+- The "+" menu (with "Mention knowledge" only until M26), the `@` list and its keyboard handling,
   mentions sent as `[Title](doc:<id>)`, all as The composer describes.
 - Verify: mention two documents, send, see the links in the bubble and the agent read them; mention
   one with Read off and see the agent say it cannot read it.
 
-### M20: Team, log and top priority tools
-
-- Backend-connector operations reading the team (as `GetOrganizationTeam` does, without emails) and
-  the log for a range, both checking membership; `get_team` and `read_log`, priorities and entries
-  converted with `richTextToMarkdown`, both paged with a cursor as Tools describes.
-- Tests: a team of 60 read in three pages with `total` right; a single 50000-character log entry
-  read across pages that join back whole, and one made of a single 50000-character paragraph too;
-  a page continuing an entry saying so.
-- The three tools' labels in the `conversation` catalogue, running and done ("Reading your team",
-  "Reading the log", "Setting your top priority"), and `bun run translate`.
-- `set_top_priority`, through one backend mutation `SetTopPriorityForAgent($organizationId,
-  $userId, $topPriority, $date)`: it checks membership, writes the member's own `topPriority`
-  (through `markdownToRichText`, held to the Today page's two limits, `MAX_TOP_PRIORITY_TEXT_LENGTH`
-  of text and `MAX_TOP_PRIORITY_LENGTH` serialized) and `topPriorityUpdatedAt`, and upserts their
-  `activityDay` row, as `CLAUDE.md` asks of every change to Today data, with `RecordActivity`'s check
-  that `$date`, computed from the member's time zone, is their today, all beside the fenced run
-  write and the call's result, so a crash leaves the priority set once or not at all. Its
-  `$organizationId` matches `GetOrganizationTeam`'s refresh, so an open Today page updates at once.
-- Verify: "What is everybody working on?", "What did I log this week?", and "Make shipping the
-  pricing page my priority": the Today page updates without a reload, and the build in public streak
-  counts the day once the page is reloaded (`GetActivityDays` is not live).
-
-### M21: Aspect tagging, suggestions and the aspect page section
+### M23: Aspect tagging
 
 - The tagging side request and its note, as The agent describes.
-- The suggestion catalogue: `CONVERSATION_SUGGESTION_IDS` in core (keys like
-  `STRATEGY_ONE_METRIC`), the 36 titles and openers in the `conversation` catalogue.
-- The conversation route's `aspect` and `suggestion` search params, validated; the aspects button on
-  a draft, held in the draft until it is sent; the first message's draft fields (`aspects`,
-  `suggestionId`, `title`, `opener`); the opener inserted in the first send's one mutation, at
-  position 0 before the member's message, so the first send stays atomic and a retry finds it whole;
-  in the transcript, the suggestion carried in the first user entry, never as an assistant entry
-  (see The agent).
-- The aspect page's Conversations section above Knowledge, as designed, through
-  `useAspectConversations` (`GetAspectConversations`), and "New conversation"
-  tagged with the aspect.
-- Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not;
-  start a suggestion and see it leave the cards.
+- The aspects button on a draft, held in the draft until it is sent, and the first message's
+  `aspects`, optional in `POST …/messages`'s body, written with `aspectsSetBy` `MEMBER` in the first
+  send's one mutation, so the agent leaves them alone.
+- No suggestions and no section on the aspect page, whose design will likely change, as David chose
+  on 2026-10-11 (see The aspect page).
+- Verify: a new conversation about pricing gets tagged; set aspects before sending and it does not.
+- Built with these settled, on 2026-10-11, as The agent § Tagging aspects says:
+  - The runs on the first anchor tag, the first or a resume or retry carrying it on, as David chose,
+    once the reply is whole and ends the run, before the calls beside a question run. A run tries
+    once, as its ledger says, the request marked `purpose: "tagging"`, and nothing about it fails a
+    run.
+  - The note belongs to no run, so a Retry keeps it, and it counts toward none of a run's entries.
+  - A draft's empty pick sends no aspects, so the agent still tags, as David chose.
+  - The dialog's line no longer names the aspect page: "Strategy Dance tags a conversation by itself
+    until you pick its aspects."
+  - The tagging request is counted with its schema, which the API bills as input.
+  - Verified: `check:conversation-runs`, `check:conversation-page` and `check:conversation-list`
+    against the emulators; `probe:claude`, every check passing; in the browser at 1280 and 390 wide,
+    with the placeholder, a draft's picked aspects kept through the send with no note, an untagged
+    conversation and an empty pick tagged after the reply, and the list's column; with the real
+    model, a pricing question tagged FINANCES and PRODUCT after a knowledge search and its reply,
+    and a draft sent with Legal left as the member's, no tagging request sent.
 
-### M22: The dock
+### M24: The dock
 
-- `_ConversationDockProvider` in `router.tsx`'s `Wrap` after `CurrentOrganizationProvider`, with its
-  context and `useConversationDock`. Windows are persisted with `usePersistedState` under one literal
-  key, holding a map keyed by `${userId}:${organizationId}`, since neither is known when `Wrap`
-  mounts.
+- `_ConversationDockProvider` in `router.tsx`'s `InnerWrap`, inside `CurrentOrganizationProvider`,
+  whose organization it reads, with its context and `useConversationDock`. Windows are persisted with
+  `usePersistedState` under one literal key, holding a map keyed by `${userId}:${organizationId}`,
+  since neither is known when it mounts.
 - The dock in `AppLayout`, inside `SidebarProvider` after `SidebarInset`, `z-40`, hidden on mobile
   and on the conversation page: windows, read through `useDockConversations`
   (`GetDockConversations`, only the conversations its windows hold), the "+N" menu, focus, Escape,
-  unread counts and `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list,
-  the page and the cards.
-- Toasts move out of the dock's corner app-wide (Sonner's `position`), checked on a screenshot.
+  unread counts and `MarkConversationRead` while a window is open, drafts in windows, and "Open in dock" on the list
+  and the page.
+- Toasts stay in the dock's corner, as David chose on 2026-10-11, checked on a screenshot.
 - Utilities with tests: how many windows fit.
 - Verify: open four conversations at several widths; minimize, close, full page; replies arriving in
   minimized windows count up; a phone width has no dock.
 
-### M23: Attachments: storing them and sending them to Claude
+### M25: Attachments: storing them and sending them to Claude
 
 - The `ConversationAttachment` table, as The data describes it, additive.
 - In strategydance-core, `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the types the upload's sniffing
@@ -969,7 +1542,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   alone going back to its anchor, which M10 left here.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
-### M24: Attachments in the composer and the thread
+### M26: Attachments in the composer and the thread
 
 - The "+" menu's "Files and images", paste, the tray with upload progress and a remove button
   calling `DELETE …/attachments/:attachmentId`, image shrinking, the budget's message; the thread's thumbnails fetched from `GET …/attachments/:attachmentId` with the
@@ -977,7 +1550,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: attach each type from the composer and ask about it; add and remove thirty files and
   attach again; reach the conversation's budget.
 
-### M25: Integrations: the organization's servers
+### M27: Integrations: the organization's servers
 
 - `OrganizationIntegration`: name, `https` URL, catalogue slug, authentication (`OAUTH`, `API_KEY`
   or `NONE`), `isEnabled`, `configRevision` (see below), the key encrypted with Cloud KMS and its
@@ -998,7 +1571,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   ones (the key, the registered client, members' connections, pending authorizations, and every
   auto-approval, since a different server could advertise identical definitions), and members
   reconnect, so no credential or approval reaches a server it was not given for. The same mutation
-  bumps the integration's `configRevision`, a counter M27's pending approvals are bound to.
+  bumps the integration's `configRevision`, a counter M29's pending approvals are bound to.
 - The server dialog lists its tools with a switch each for running without approval. A tool's
   `readOnlyHint` is shown beside it as the server's own claim, which may suggest a choice, never make
   one: the MCP specification calls annotations untrusted.
@@ -1006,7 +1579,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   M14 installed, over Streamable HTTP and lists the tools), edit, delete, turn on and off, retry.
   An OAuth server answers 401 before any member has connected, so adding one runs only its
   discovery here, the protected resource metadata and the issuer it names, and its tools wait for
-  the first connection in M26: until then the dialog says to connect an account to list them, and
+  the first connection in M28: until then the dialog says to connect an account to list them, and
   its auto-approval switches wait with them. Deleting sets `deletedAt`, keeping
   the secrets for Undo; the daily sweeper (M8) removes it a day later, with its connections, pending
   authorizations and encrypted credentials, if it is still deleted.
@@ -1019,7 +1592,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   connection goes to the address checked, and the check repeats on every redirect; timeouts and a
   response size cap. A request carrying a credential (an API key, a token, a client secret) never
   follows a cross-origin redirect; only unauthenticated discovery follows redirects, each hop
-  guarded. OAuth discovery and token requests (M26) use the same guard.
+  guarded. OAuth discovery and token requests (M28) use the same guard.
 - The guard ships with deterministic tests, a fake resolver and transport standing in for the
   network: representative IPv4 and IPv6 addresses of each special-use range (private, loopback,
   link-local, unique local, carrier-grade NAT, multicast, documentation, `0.0.0.0` and `::`),
@@ -1032,7 +1605,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: add a key-based server and see its tools; add an OAuth one and see its discovery pass and
   its tools wait for a connection; turn one off, delete and undo.
 
-### M26: Integrations: members connect their accounts
+### M28: Integrations: members connect their accounts
 
 - `IntegrationConnection`, one per member and server: the account's label, tokens encrypted, expiry,
   status, and `generation`, bumped on every connect and kept by a refresh. Pending authorizations: references to the initiating member and integration (all the
@@ -1063,7 +1636,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
   first's tokens; a lapsed refresh lease taken over; the first connection listing the tools.
 - Verify: connect two members to the same server as different accounts; disconnect one.
 
-### M27: Integrations in conversations
+### M29: Integrations in conversations
 
 - The three integration tools; calls with the member's own connection or the organization's key,
   30 seconds each; `lastUsedAt`; a 401 marks the connection as needing authentication.
@@ -1115,7 +1688,7 @@ with nothing to authorize yet but a script: the consent page comes in M17 and th
 - Verify: ask something that needs a connected server, then allow the call and deny another; let an
   administrator allow one tool and see it run straight away; turn the server off and ask again.
 
-### M28: Launch
+### M30: Launch
 
 - Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`, the backend's
   `IS_CONVERSATIONS_RELEASE_GATED` and `ARE_MODULES_STAFF_ONLY`.

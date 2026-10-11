@@ -31,10 +31,10 @@ describe('formatConversationPreview', () => {
   })
 
   it('names a tool by what it does, then by what it did', () => {
-    expect(format({ kind: 'TOOL_CALL', toolName: 'search_knowledge', toolStatus: 'RUNNING' })).toBe(
+    expect(format({ kind: 'TOOL_CALL', toolName: 'search_documents', toolStatus: 'RUNNING' })).toBe(
       'Searching knowledge',
     )
-    expect(format({ kind: 'TOOL_CALL', toolName: 'search_knowledge', toolStatus: 'SUCCEEDED' })).toBe(
+    expect(format({ kind: 'TOOL_CALL', toolName: 'search_documents', toolStatus: 'SUCCEEDED' })).toBe(
       'Searched knowledge',
     )
   })

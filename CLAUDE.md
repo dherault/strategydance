@@ -43,7 +43,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them, storing the pictures of documents' text, reading what a
-  web page says of itself for a link preview, and sending and searching conversations. Its image runs
+  web page says of itself for a link preview, sending and searching conversations, and serving the
+  modules to the agents members connect, through its own authorization server. Its image runs
   a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
   and sweeps what was deleted once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
@@ -58,8 +59,11 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   Base UI copies of shadcn's components, which the design system's never reach, so
   `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
-  text, links only to web, mail and `doc:` addresses, `renderLink` drawing the last, and never
-  loads an image: draw the agent's text through it, never through `react-markdown` directly. An
+  text, links only to web, mail, `doc:` and `task:` addresses, `renderLink` drawing the last two (the
+  thread draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`,
+  and a `task:` link from its live board, `ConversationTaskLink`), and never loads an image: draw the agent's text through it, never through `react-markdown` directly.
+  A member's message is not Markdown: the thread draws it as typed, its knowledge mentions,
+  `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
   the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, and
@@ -99,7 +103,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump or a change of model, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
+| `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
+| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -212,7 +218,7 @@ waits on.
 Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not. A provider
 that reads the router goes in `InnerWrap` beside it, which is inside the router's context and
 still above the document shell: `_CurrentOrganizationProvider`, which reads the organization off
-the path.
+the path, and `_ConversationDockProvider` inside it, which reads the current organization.
 
 `Wrap` sits above the document shell, so anything mounted there that withholds its children
 replaces the whole document, `<Scripts />` included. The page then has no client bundle to boot
@@ -225,6 +231,12 @@ The frontend has no shadcn setup of its own. Buttons, inputs, selects, alerts, t
 rest come from `strategydance-design-system`, and a primitive it lacks is added there, with a
 story, rather than to `src/components/ui/`. That folder holds only the frontend's glue around
 them: `FormField` for react-hook-form, `TextDivider`.
+
+Text a page writes into a field itself, as a mention's pick does, goes through
+`replaceTextareaRange` in `~utils/common`, which writes it as typing would: a controlled field's
+`onChange` reads it, the caret lands after it, and the browser's undo takes it back, which setting
+its value from state does not. A list a field drives while it keeps the focus, as the mentions' list, is the
+design system's `SuggestionList`.
 
 A field's text is 16px on a touch screen, whatever it is elsewhere. iOS zooms the page into a
 focused input, textarea or editable element whose text is smaller, and leaves it zoomed.
@@ -340,13 +352,49 @@ only way the app talks to them.
 - A `query` step of a mutation does not see what the same mutation wrote, though it sees what
   another transaction committed before it once a lock is taken. Count around the rows the mutation
   writes, by their ids, as `AnswerConversationQuestion` leaves out the question it answers
+- A mutation takes one `query` step: a second is refused ("selecting `query` again is not yet
+  supported"). A check that has to follow a write, once its row is locked, goes in that one step,
+  after the write, with the membership's and the variables' checks beside it, as
+  `FoldDocumentForAgent` does: a refusal there rolls back the writes before it all the same
+- A `@check` on a field under a list a step reads is never invoked when the list is empty, and Data
+  Connect then refuses with that check's message rather than the list's own. A variable's check
+  nested under the membership a write reads takes `optional: true`, as the Tasks module's writes'
+  do, so a removed member is refused with the membership's message, which the module matches
+- A step runs or not on a variable through `@include(if: $flag)`, as a module's write inserts its
+  `ModuleCallResult` only when its call carries a key. The step's variables are still required,
+  so a call that skips it sends them empty, and a key it names is refused null even when it is
+  skipped: a step whose key a call may lack is an operation of its own, as `RecordOAuthClientUse` is
+- A foreign key a later step violates is reported before an earlier step's `@check`, as
+  `ApproveOAuthAuthorizationRequest`'s insert refuses a caller who is not the member before its
+  lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`), as it
+  reads a token's reference to a connection gone meanwhile as a revoked grant
+  (`isConnectionGoneRefusal`)
 - A mutation writes each row once. Data Connect runs the first write to a row and silently skips
   any later one in the same mutation, aliased or not: an `organization_update` row lock followed
   by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
   mutation locks is the row it writes, the write itself is the lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
-  lookup, and its comment says what that costs
+  lookup, and its comment says what that costs. The other exception is the authorization server's:
+  its backend operations find a registered client, an authorization request, a code or a token by
+  its id or its hash before any `$userId` is verified, since whoever holds a random UUID or a
+  256-bit token is whom the OAuth flow trusts, and only hashes are stored
+- A table references the account and the organization apart, so removing a member, which deletes
+  the membership and nothing else, keeps what they wrote. `AgentConnection` alone references the
+  membership, since a connection is the membership's and goes with it, its tokens with it. Data
+  Connect cannot reference a key made of references, so `UserOrganization` names its columns,
+  `userId` and `organizationId`, and the reference names them with `@ref`, its constraint named
+  short of Postgres' 63 bytes
+- A member reads and disconnects their own connections through the web connector:
+  `GetAgentConnections`, live, and `DeleteAgentConnection`, keyed by `auth.uid`. The list is
+  refreshed by Allow (`ApproveOAuthAuthorizationRequest`) and Disconnect on the caller's `$userId`,
+  by `RemoveOrganizationMember` on the member removed, and by `DeleteOrganization` for every reader,
+  never by the `lastUsedAt` write. An operation added later that makes or deletes a connection, a
+  membership's included, names itself there. Allow holds a member to `MAX_AGENT_CONNECTIONS`, counted
+  under a lock on the member's own row, which their consents in every organization take in turn,
+  and the list reads that many, so it is never cut short and Disconnect reaches every agent acting
+  as them. The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's
+  reasoning is Postgres', and `check:oauth` guards the outcome
 - An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
   invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
   has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
@@ -405,12 +453,20 @@ write it at once and their edits merge as they type. `Document.state` holds it a
 base64, the source of truth for the text, and each `DocumentUpdate` row an edit pushed since;
 `content` is a copy of the text each compaction writes, for what reads it without an editor. The
 page's sync, `createKnowledgeDocumentSync`, pushes the reader's edits as updates, merges those
-`GetLiveDocument` pushes, and folds the pending ones into the snapshot through `CompactDocument`,
-guarded by `revision`, and a tab that sees `revision` move reads the snapshot again through
-`GetDocument`. `GetLiveDocument` leaves the snapshot out, so a keystroke pushes a few small rows
-rather than the whole text to every tab. `DocumentPresence` rows, one per open tab, say where each
-caret is, and `GetDocumentPresences` keeps them live for the carets and the faces.
+`GetLiveDocument` pushes, and folds the pending ones into the snapshot through
+`CompactDocumentWithText`, guarded by `revision`, and a tab that sees `revision` move reads the
+snapshot again through `GetDocument`. `GetLiveDocument` leaves the snapshot out, so a keystroke
+pushes a few small rows rather than the whole text to every tab. `DocumentPresence` rows, one per
+open tab, say where each caret is, and `GetDocumentPresences` keeps them live for the carets and the
+faces.
 
+- Every write of `content` writes its plain text beside it, `contentText`, which the Knowledge
+  module's search reads through the full-text index on it and `title`: the page through
+  `CreateDocumentWithText` and `CompactDocumentWithText`, which take it as required, and the
+  backend's folds and creates. `CreateDocument`, `CompactDocument` and `UpdateDocumentContent`
+  stay for pages from before, and write null instead, which means not indexed yet, never stale: the
+  search indexes such a document from its `content` before it reads the index, under the revision
+  it read. A new way to write `content` writes `contentText` too, or nulls it
 - Anything that writes a document's text, an agent included, writes it through Yjs. Once a
   document has a snapshot, a write to `content` alone is refused, and the next compaction would
   write over it anyway. The backend reads and writes it through `domain/knowledge/` alone, on the
@@ -450,6 +506,12 @@ A conversation is kept twice, once for Claude and once for the page, and
   with the model, why it stopped and where its part was stored. A worker taking a run over charges
   an unsettled request at its estimate. What a request came to, the turn to store or the run's
   end, is kept until it is written, so a refused write is tried again and never paid for twice
+- A run's side request, today the one that tags a conversation's aspects
+  (`requestConversationTagging`), goes through the same ledger, marked with its `purpose`: it stores
+  no part, so its `turnPosition` stays null, which the readers of a turn's requests skip, and a
+  takeover charges it at its own allowance. It never fails a run, and a run tries it once, as its
+  ledger says. An aspects note belongs to no run, the agent's as the member's, so it counts toward
+  no run's entries and a Retry keeps it
 - A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
   entries, one write each, the first with the run's context message. A crash between two leaves
   the turn paused at its last stored part, which the ledger says, and the next worker sends its
@@ -527,7 +589,28 @@ A conversation is kept twice, once for Claude and once for the page, and
   against the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep it. A gate added for conversations, as the integrations' will be, keys off the
-  same two
+  same two. The modules reach external agents under a gate of their own until they launch,
+  `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
+  (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
+  token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
+  two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
+  tab or a module's "Use with your agents" button
+- The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
+  under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
+  state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
+  conversations the windows hold, at most 20, which refreshes on every mutation that changes a
+  conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
+  a new one joins its refreshes, or a minimized window's count stands still. An open window draws
+  the page's own thread and composer, which mark replies read as the page does. A composer's message,
+  its mentions, where its send stands and the run the reader last started are kept by account,
+  organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
+  drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
+  anything new a message holds, as attachments will, goes there too, never in a view's own state.
+  A question's answer under way is kept the same way (`~data/conversationQuestionAnswers`), and
+  anything else a reader has under way in a conversation joins them on `createTabStore`
+- A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
+  `scrollerRef`: whatever scrolls the thread, or measures what the reader sees of it, takes that
+  box, through `readConversationViewport` and `scrollConversationToEnd`, never `window` directly
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, their
@@ -536,8 +619,10 @@ on, never the day it was about, and `RecordActivity` holds it to the caller's to
 mutations that make those changes do not write the row themselves, since each would need a
 `$date` it has no other use for, a breaking connector change: the web app calls `recordActivity`
 once one goes through, from the `change` helpers of `useChecklist` and `useTaskChanges` and from
-the components that set a priority or write the log. A new way to change Today data or the board
-calls it too, or the days it is used on go uncounted.
+the components that set a priority or write the log. A new way for a member to change Today data
+or the board calls it too, or the days it is used on go uncounted. An agent's change to the board
+never counts: no write of the Tasks module records an `ActivityDay`, for Strategy Dance's agent or a
+member's own, so a streak counts what members do themselves.
 
 The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
 organization changes, as its knowledge. Each field is written by a mutation of its own, so two
@@ -550,6 +635,15 @@ on focus; a task's dialog keeps its own live through `GetTaskDescription`, and o
 writing only once that read lands, since the search's copy can be older than a teammate's save. A
 query that held every description live would push them all to every open board at each save, and a
 drag would too. Removing a member takes them off the tasks they were doing.
+
+Every write of a task's description writes its plain text beside it, `descriptionText`, which the
+Tasks module's `list_tasks` matches a query against, never the serialized blocks: the page through
+`CreateTaskWithText` and `UpdateTaskDescriptionWithText`, which take it as required, and the module's
+own writes. `CreateTask` and `UpdateTaskDescription` stay for pages from before, and write null
+instead, which means not indexed yet, never stale: a query indexes such a task from its description
+first, while its `updatedAt` is the one it read. A new way to write a description writes
+`descriptionText` too, or nulls it. `RestoreTask` refuses a task deleted over a day ago, whether or
+not a prune has run, so a day means a day wherever a restore starts.
 
 ### Routing
 
@@ -575,6 +669,21 @@ other one (`useSwitchOrganization`), a document or a conversation back to its li
 naming an organization the reader is not in is the organization not found page, inside the app's
 frame, and one whose organization goes while its page is open, deleted or the reader removed,
 moves the reader on instead: `CurrentOrganizationBouncer` decides both.
+
+The consent page, `/oauth/consent?request=<id>`, where an external agent's authorization sends the
+member, sits under `_authenticated` outside `_app`, as the invitation page does: the whole screen,
+its own way to log out, and never sent to the prologue, so it says itself when the reader is in no
+organization. `firebase.json` sends `frame-ancestors 'none'` and `X-Frame-Options: DENY` for every
+path under `/oauth`, matched by a case-insensitive regex, since the router ignores case, so a page
+there is never framed by another site dressing Allow up as something else. It reads its request
+once, never again on focus, reconnecting or retry: a read is what has the backend fetch the client's
+metadata document, and a read after the member decided would find the request gone while the
+browser leaves.
+
+TanStack parses each value of a query as JSON before `validateSearch` sees it, so 32 hex digits
+that happen to be decimal, or decimal around one `e`, arrive as a number that lost its digits. An
+id the backend writes into an address the app reads is hyphenated (`toHyphenatedUuid`), which never
+parses, and `validateSearch` takes a string alone.
 
 No path prefix marks a page as authenticated, so code that needs to know asks the question it
 means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
@@ -707,7 +816,8 @@ in `utils/`, one concern per file.
   receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
   from Secret Manager through `retrieveSecret` in `utils/`, which caches it for the life of the
   process: the service's account needs Secret Manager's accessor role on it, and a rotated key
-  takes effect with the next revision
+  takes effect with the next revision. A secret read by version, as `oauth-token-secret` is, goes
+  through `retrieveSecretVersion`, which says which version the latest was and keeps each apart
 - Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
   logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
   is how an invitation gets accepted locally
@@ -722,11 +832,52 @@ in `utils/`, one concern per file.
   and a run that could not be queued stays queued while the send answers 503
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
-  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, and
-  the conversation searches over a day old, which no count reads any more, and the board's tasks
-  deleted over a day ago, with their links (`PruneDeletedTasks`). A milestone that keeps something
-  deleted, or counted, for a while adds its prune there, idempotent like the rest, so a sweep that
-  failed is finished by the next
+  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, each
+  with what its agent's module calls kept under its scope, `conversation:<id>`
+  (`DeleteConversationModuleCallResults`), since nothing references the conversation from them. It
+  is a conversation's only prune: starting one leaves its author's to it, and `RestoreConversation`
+  refuses one deleted over a day ago whether or not the sweep has run. Then the
+  board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
+  organization's documents deleted over a day ago, the conversation searches over a day old, which
+  no count reads any more, the module call results past their expiry, and the authorization
+  server's requests expired over a day ago, its tokens past their expiry and the registrations
+  nobody uses (`domain/oauth/prune…`). A milestone that keeps
+  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
+  sweep that failed is finished by the next
+- Strategy Dance's OAuth authorization server, which external agents go through to reach a module
+  as a member, is the public backend's: the protocol's own endpoints in `routes/oauth.ts`
+  (`register`, `authorize`, `token`, `revoke`), the consent page's in `routes/oauthRequests.ts`,
+  the metadata in `routes/wellKnown.ts`, and what they do in `domain/oauth/`. The protocol's
+  endpoints answer OAuth's own JSON (`respondOAuthError`), a page or a redirect, never
+  `ApiResponse`, carry no App Check, which no client could, answer any origin without credentials
+  (`OAUTH_PROTOCOL_PATHS`, which the app's `cors` reads, matched exactly), never log a body, and
+  find tokens by their hash. Each is metered per address, registration and authorization capped in
+  all too, the token and revocation endpoints generously, since a hosted client calls them for
+  every member from a few addresses of its own. The consent page's routes keep the app's middleware, App Check, the ID token and
+  `modulesStaffOnlyMiddleware`, and are the only place a client ID metadata document is fetched,
+  once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
+  checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
+  fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
+  against the local backend at `API_URL`, the Knowledge module's endpoint included, and checks the
+  operations against the emulators: an operation changed is changed in both
+- The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
+  backend alone, serve each module `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
+  through the SDK's `toNodeHandler` around the module's handler. They answer MCP's JSON-RPC, never
+  `ApiResponse` (`respondJsonRpcError` for what they refuse before the handler), and carry no App
+  Check, which no external agent can carry: the bearer token is the guard. In order: any other
+  method 405; an `Origin` other than the app's 403 (the SDK's `originValidation`, against DNS
+  rebinding), one without passing; `moduleAddressRateLimitMiddleware`, per address, counting
+  refused calls alone, so made-up tokens cost a bounded number of reads; `requireBearerAuth` with
+  the token verifier and the endpoint's address as `expectedResource`, a 401 naming the module's
+  protected resource metadata; `moduleRateLimitMiddleware`, per connection; then the body, 1 MiB at
+  most, parsed only once the token is verified and handed to the handler whole, `(request,
+  response) => nodeHandler(request, response, request.body)`, since the parser consumed the stream.
+  They answer the app's origins
+  alone, no browser client being served yet. Each served module's protected resource metadata (RFC
+  9728) is `routes/moduleMetadata.ts`, the SDK's `mcpAuthMetadataRouter` mounted at the app's root,
+  since its path ends with the module's, never under `/mcp`, and answers any origin, its path in
+  `OAUTH_PROTOCOL_PATHS`. A client of a 2025 revision is served statelessly, over SSE, as the SDK's
+  fallback answers it
 - A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
   `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
   limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across
@@ -741,14 +892,17 @@ in `utils/`, one concern per file.
   development, and the tests' scripted one, which records each request's bytes. Every request is
   built by `buildConversationRequest`, in one key order, so the next request starts with the last
   one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
-  hash, and the tools are frozen: a change to either costs every conversation its earlier
-  reasoning once, as `drop_block` lets a replay do, so it ships with a release that means to. Load
-  the `claude-api` skill before writing code that calls Claude
-- A tool the agent calls, beside Claude's own web search, is declared in `CONVERSATION_TOOLS` and run
-  by a `ConversationToolRunner` in `CONVERSATION_TOOL_RUNNERS`: its name, whether it only reads,
-  which lets it run four at a time beside the reads next to it, and a `run` that checks its own
-  input, since Claude's streams in unchecked, and answers JSON or throws a sentence Claude can act
-  on. What becomes of each call is planned from the transcript alone (`planConversationToolCalls`),
+  hash, and so are the tools a request sends (`buildConversationTools`): a change to either costs
+  every conversation its earlier reasoning once, as `drop_block` lets a replay do, so it ships with a
+  release that means to. Load the `claude-api` skill before writing code that calls Claude
+- A tool the agent calls is its own, declared in `CONVERSATION_TOOLS` beside Claude's web search,
+  or a module's (see [Module conventions](#module-conventions)). Each is run by a
+  `ConversationToolRunner`, the modules' from the connection a run opens once it is claimed
+  (`connectConversationModules`): its name, whether it only reads, which lets it run four at a time
+  beside the reads next to it, and a `run` that checks its input, since Claude's streams in
+  unchecked, and answers JSON or throws a sentence Claude can act on. A write the worker stops
+  waiting for is answered as one that may still have run. What becomes of each call is planned from
+  the transcript alone (`planConversationToolCalls`),
   so a worker taking over plans the same; each call starts and finishes in fenced writes, its result
   kept on the run in `pendingToolResults` until the entry answering the turn is stored; and that
   entry, for the worker, an answer's continuation and a send alike, comes from
@@ -757,9 +911,122 @@ in `utils/`, one concern per file.
   what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. `bun run check:conversation-runs` and `bun run check:conversation-search`,
+  conditions and refusals. It holds the modules' fake as `modules`, its operations in the same SDK,
+  since a run's worker loads every module's server, and adds or removes a member in both with one
+  `createdAt`; a test bringing its own runners in passes `connectTestModules(runners)`. `bun run check:conversation-runs` and `bun run check:conversation-search`,
   in the backend's package, check those conditions against the emulators, the second also what
   Postgres' full-text search and LIKE match. An operation changed is changed in both
+
+## Module conventions
+
+A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
+agent uses in its own process and which a member can add to an agent of their own: Knowledge and the
+team's tasks first, the rest later. `MODULES` in strategydance-core lists each one's name, path,
+title and scopes, and [conversations.md](documents/conversations.md) § Modules says what each does
+and why.
+
+- A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)` for one
+  caller, one file per tool registering it, which only validates, calls `domain/<name>/` and shapes
+  the result. `src/modules/` holds the frame: `MODULE_SERVERS`, by the module's name, and
+  `createModuleHandler`, the SDK's `createMcpHandler` around it, which builds a fresh server for
+  each request, answering JSON, statelessly. Strategy Dance's agent and the public endpoint both go
+  through that one handler, so they get the same tools and checks. What every module's tools share
+  sits beside it, `readModuleWriteCall`, `createModuleAddresses` and `moduleSchemas`, and in
+  `domain/modules/` the call results and `isOperationRefusal`: a module adds its own to them rather
+  than copy them
+- A module is worded for members in the web's `module` catalogue, by its name, through
+  `getModuleMessages`, typed over every `ModuleName`: a module added to `MODULES` fails the
+  typecheck until its name and what its read and write access let an agent do are worded there, for
+  the consent page, the Connected agents tab and the dialog its page's "Use with your agents" opens. `MODULES`' `title` is the server's own,
+  in English, for what MCP clients show
+- The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
+  the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
+  request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
+  matches the membership on the `membershipCreatedAt` the caller carries, so a member removed, or
+  removed and invited back, stops every agent acting as them at its next call
+- A tool's name is snake_case, as Claude takes a tool name (`^[a-zA-Z0-9_-]{1,128}$`, no dot,
+  though MCP allows one), and unique across the modules and the agent's own tools, since the agent
+  puts them all in one list: `moduleServers.test.ts` fails on a clash between modules. The order a
+  module registers its tools in is the order the agent lists them in, frozen as the agent's tools are
+- A tool takes a zod input schema and an `outputSchema`, answers `structuredContent` with the same
+  JSON as text (`toToolResult`), carries annotations, `readOnlyHint` on reads, `destructiveHint` on a
+  delete, `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
+  model can act on (`toToolRefusal`), never a protocol error. The SDK answers an input that fails its
+  schema the same way
+- Every write takes an idempotency key in the call's `_meta`, under
+  `com.strategydance/idempotencyKey`, and its mutation inserts its `ModuleCallResult` first, under
+  `@include(if: $isKeyed)`, in the transaction that writes: a key taken refuses the write, and the
+  module reads the row back, the same tool with the same arguments, hashed as canonical JSON,
+  answered with the stored result and anything else refused. The scope is the caller's,
+  `conversation:<id>` or `connection:<id>`, never the client's. A write also checks the caller's
+  write scope before anything is read
+- Strategy Dance's agent reaches the modules `CONVERSATION_MODULES` lists, in `MODULES`' order, in
+  process: each run's worker connects to them once it is claimed (`connectConversationModules`), as
+  the run's member, every scope, through the module's own handler, by the SDK's client pinned to the
+  2026-07-28 revision on a transport whose `fetch` hands each request to the handler. A module's
+  tools join the request after the agent's own as streamed Claude tools that are not strict
+  (`toConversationModuleTool`), each schema as the module wrote it, less the dialect it names, so
+  Claude reads its bounds and patterns, and the module's own schema checks every call, answering one
+  it refuses with a sentence the model can act on, as it answers an external agent. A request takes
+  at most 20 strict tools, 24 optional parameters and 16 union ones across them all, which the
+  modules outgrew in M17: only the agent's own tools are strict, and
+  `buildConversationTools.test.ts` holds them to those limits. A module's schema still has to be one
+  the API takes: run `bun run probe:claude` whenever a module's tools change, since a list it
+  refuses fails every run
+- The agent keys each write with Claude's id for the call, under `conversation:<id>`, so a worker
+  taking over or a Resume calling it again is answered from its key. Finalizing a dead run, and a send
+  or a continuation answering its calls, read the key of each write it left started
+  (`settleConversationModuleWrites`): a stored result is the call's, recorded `SUCCEEDED` through
+  `SettleConversationToolCall`, which refuses while a run holds the conversation, and anything else
+  is answered as a call that may have run
+- What a module reads and writes goes through backend-connector operations named `…ForAgent`, which
+  take `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller, Strategy
+  Dance's agent and a member's own alike: a document whose `isAiReadable` is off is never loaded,
+  whatever the call, and one whose `isAiWritable` is off is never changed. Tasks carry no AI
+  permission: the board is the team's, and any agent changes any task as any member can. Each write
+  is named in the refreshes of the live queries whose rows it changes, in a web query too, since a
+  mutation the backend runs fires them
+- The tests drive a module through the SDK's `Client`, pinned to the 2026-07-28 revision, on a
+  transport whose `fetch` hands each request to the module's handler with the caller as `authInfo`
+  (`createModuleTestKit`, which takes the module's name), never the SDK's in-memory transport, which
+  speaks only the 2025 revisions. They run against `createModuleDatabaseFake`, the operations over
+  tables in memory: one base holding the memberships and the call results, to which each module's
+  fake, `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`, adds its own, since a module's
+  handler loads every module's server and Bun refuses an import the mock does not hold. A new
+  module's fake joins it. `bun run check:knowledge-module` and `bun run check:tasks-module`, in the
+  backend's package, check those conditions against the emulators: an operation changed is changed
+  in both
+- An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
+  once a member allowed it on the consent page, through the modules' endpoints (see [Backend
+  conventions](#backend-conventions)). Its caller comes from the access token,
+  `createAgentConnectionTokenVerifier` reading it on every call: `kind: 'external'`, the token's
+  scopes within its connection's, the scope `connection:<id>`, and the membership's `createdAt`, so a
+  member removed, an agent disconnected or an account no longer staff is stopped at its next call. A
+  verified token marks its connection used, `lastUsedAt`, at most once a minute
+  (`createAgentConnectionUseRecorder` in memory, `RecordAgentConnectionUse` across instances), which
+  no live query refreshes on
+- A served module's write tools each register `scopeChallenge: requireModuleWriteScope(module)`, so a
+  connection granted read alone still lists every write, and a call to one answers 403
+  `insufficient_scope`, naming the write scope and the resource metadata, as MCP's step-up asks: the
+  client asks the member again, and their new consent replaces the connection. `readModuleWriteCall`'s
+  check stays behind it, a second guard. An external agent's search draws on the member's search
+  allowance (`recordConversationSearch`), which their conversation searches use too, since no run
+  bounds it, and one past it is answered with a result saying when to search again
+- A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
+  its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
+  tool; its searches on the member's allowance; the "Use with your agents" button on its page,
+  `ModuleAgentsButton`, which takes its name and opens the dialog worded from the `module` catalogue;
+  and its endpoint in `check:oauth`. The Tasks module joins in M21
+- `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
+  client on this machine, against the emulators only, through one script, `serveModule.ts`, which
+  takes the module's name. stdout is the protocol's there, so the script points the logger's info
+  lines at stderr. The local backend serves a served module over HTTP too, as its own issuer, with
+  the consent page on the local web app: `claude mcp add --transport http
+  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, then `/mcp` in Claude
+  Code to sign in
+- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
+  backend's package, fill the plain text of documents stored before `contentText` existed and of
+  tasks stored before `descriptionText` did, each run by hand once, after the release that added it
 
 ## Email conventions
 

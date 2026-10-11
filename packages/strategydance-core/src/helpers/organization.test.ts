@@ -7,6 +7,7 @@ import {
   isOrganizationSlug,
   isOrganizationSlugTakenError,
   slugifyOrganizationName,
+  toOrganizationPathSegment,
 } from './organization'
 
 describe('slugifyOrganizationName', () => {
@@ -113,5 +114,22 @@ describe('isOrganizationSlugTakenError', () => {
     expect(isOrganizationSlugTakenError(new Error('A name is 1 to 80 characters'))).toBe(false)
     expect(isOrganizationSlugTakenError('organization_slug_uidx')).toBe(false)
     expect(isOrganizationSlugTakenError(null)).toBe(false)
+  })
+})
+
+describe('toOrganizationPathSegment', () => {
+  it('leads with the slug', () => {
+    expect(toOrganizationPathSegment({ id: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', slug: 'strategy-dance-ad34' })).toBe(
+      'strategy-dance-ad34',
+    )
+  })
+
+  it('falls back to the id of an organization from before slugs', () => {
+    expect(toOrganizationPathSegment({ id: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', slug: null })).toBe(
+      '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
+    )
+    expect(toOrganizationPathSegment({ id: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f' })).toBe(
+      '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
+    )
   })
 })

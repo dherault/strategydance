@@ -1,5 +1,5 @@
 import { Locale } from './enums'
-import type { OrganizationImageKind } from './types'
+import type { ModuleDefinition, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -86,6 +86,17 @@ export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
 // A 409 for a member who keeps as many conversations in an organization as they may
 // (`MAX_CONVERSATIONS`): starting another takes deleting one first
 export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
+
+/*
+  A 400 set apart for the consent page: the app asking for access could not be verified, its client
+  ID metadata document unreachable, malformed or not naming the address it is sent back to, so the
+  member can do nothing with the request but leave it
+*/
+export const ERROR_CODE_OAUTH_CLIENT_REFUSED = 'OAUTH_CLIENT_REFUSED' // 400
+
+// A 409 for a member who connected as many external agents as they may (`MAX_AGENT_CONNECTIONS`):
+// allowing another takes disconnecting one first
+export const ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS = 'TOO_MANY_AGENT_CONNECTIONS' // 409
 
 // A file that is not one of the pictures a route accepts, whatever its request called it
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
@@ -437,3 +448,49 @@ export const CONVERSATION_SEARCH_WINDOW_MINUTES = 10
 */
 export const MAX_SUBSTRING_SEARCH_MESSAGES = 20000
 export const MAX_SUBSTRING_SEARCH_DOCUMENTS = 100
+
+/* ---
+  MODULES
+--- */
+
+/*
+  Strategy Dance's capabilities served as MCP servers, one per module, which its own agent uses and
+  which a member can add to an agent of their own. Each is a server of its own at its own address
+  on the backend, and an OAuth resource of its own, so a member connects modules one by one.
+
+  A module's name is what the backend's `src/modules/` and the app's `module` catalogue key on. Its
+  title is the server's own, in English, for what MCP clients show; the app words a module from the
+  catalogue instead. Its scopes are what a consent grants, read alone or read and write, never
+  write without read
+*/
+export const MODULES = [
+  {
+    name: 'knowledge',
+    path: '/mcp/knowledge',
+    title: 'Strategy Dance Knowledge',
+    scopes: { read: 'knowledge:read', write: 'knowledge:write' },
+  },
+  {
+    name: 'tasks',
+    path: '/mcp/tasks',
+    title: 'Strategy Dance Tasks',
+    scopes: { read: 'tasks:read', write: 'tasks:write' },
+  },
+] as const satisfies readonly ModuleDefinition[]
+
+/*
+  The modules reach external agents for Strategy Dance's own administrators (`User.isAdministrator`)
+  alone while they are built: the consent page's Allow refuses anybody else, and the token verifier
+  checks the role on every call, so a connection outlives no lost role. It hides an unfinished
+  feature, as conversations' gate does, and is lifted on the development backend the same way.
+  Strategy Dance's own agent reaches a module behind conversations' gate instead
+*/
+export const ARE_MODULES_STAFF_ONLY: boolean = true
+
+/*
+  How many external agents a member connects across their organizations, a connection being one per
+  client, organization and module. Allow refuses another past it, so the account page's Connected
+  agents tab, which reads every one, lists each agent acting as them, and Disconnect reaches it.
+  Consenting again with an agent already connected replaces its connection, and counts once
+*/
+export const MAX_AGENT_CONNECTIONS = 100

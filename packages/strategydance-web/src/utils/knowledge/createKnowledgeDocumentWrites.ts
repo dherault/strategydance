@@ -1,6 +1,6 @@
 import { QueryFetchPolicy } from 'firebase/data-connect'
 import {
-  createDocument,
+  createDocumentWithText,
   discardDocument,
   getDocument,
   renameDocument,
@@ -8,13 +8,15 @@ import {
   setDocumentAiWritable,
   updateDocumentAspects,
 } from 'strategydance-database/web'
+import { getRichTextText } from 'strategydance-design-system/lib/getRichTextText'
+import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 
 import type { KnowledgeDocumentWrites } from '~utils/knowledge/createKnowledgeDocumentSaver'
 
 import { dataConnect } from '~data/firebase'
 
-// Part of the message `CreateDocument`'s check gives when the organization keeps as many documents
-// as it may: change the two together
+// Part of the message `CreateDocumentWithText`'s check gives when the organization keeps as many
+// documents as it may: change the two together
 const CAPACITY_REFUSAL = 'An organization keeps at most'
 
 // The operations a document's saver sends, bound to the document, its organization, and the page's
@@ -27,9 +29,12 @@ function createKnowledgeDocumentWrites(
   const key = { organizationId, id: documentId }
 
   return {
+    // With the plain text of its content, which agents search
     create: async (fields, state) => {
       try {
-        await createDocument(dataConnect, { ...key, ...fields, state })
+        const contentText = getRichTextText(parseRichText(fields.content))
+
+        await createDocumentWithText(dataConnect, { ...key, ...fields, contentText, state })
 
         return 'created'
       } catch (error) {

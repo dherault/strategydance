@@ -1447,9 +1447,11 @@ authorization server from M18 and a consent page from M19:
     dynamic registration at all, `revocation_endpoint`, `scopes_supported`,
     `response_types_supported: ["code"]`, `grant_types_supported: ["authorization_code",
     "refresh_token"]`, `code_challenge_methods_supported: ["S256"]`,
-    `token_endpoint_auth_methods_supported: ["none"]`, `client_id_metadata_document_supported: true`
-    and `authorization_response_iss_parameter_supported: true`. claude.ai and ChatGPT use a client
-    ID metadata document when the metadata offers it; Cursor registers dynamically.
+    `token_endpoint_auth_methods_supported: ["none"]`, `revocation_endpoint_auth_methods_supported:
+    ["none"]`, since a field left out would mean `client_secret_basic` (M18),
+    `client_id_metadata_document_supported: true` and `authorization_response_iss_parameter_supported:
+    true`. claude.ai and ChatGPT use a client ID metadata document when the metadata offers it;
+    Cursor registers dynamically.
   - Every client is public: PKCE, S256 only, proves that whoever exchanges a code is whoever asked
     for it. A client ID metadata document (CIMD) makes the `client_id` an `https` address with a
     path, serving the client's metadata, fetched through `fetchOutbound` with no redirect and at
@@ -1494,9 +1496,11 @@ authorization server from M18 and a consent page from M19:
     asked for both. Never the client's logo, which would load an address of its choosing. Allow and
     Deny call `POST /oauth/requests/:requestId/approve` and `…/deny`, with the member's ID token and
     App Check, as every route the app calls.
-  - Allow and Deny each consume the request first, under `@check(this == 1)` on a request still
-    undecided and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the
-    loser is refused, and a denied request is never approved after. Allow then makes an
+  - Allow and Deny each decide the request under `@check(this == 1)` on a request still undecided
+    and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the loser is
+    refused, and a denied request is never approved after. Deny decides it alone; Allow decides it
+    last in its transaction, since the request references the connection Allow inserts, and a
+    refusal rolls the whole mutation back (M18). Allow then makes an
     `AgentConnection` and a code: valid for a minute, once, bound to the client, the redirect
     address, the PKCE challenge, the resource and the scopes, and consumed under `@check(this ==
     1)`; a code presented again revokes the whole connection with every token it holds, since the
@@ -1552,7 +1556,9 @@ authorization server from M18 and a consent page from M19:
   `expiresAt`, `usedAt`, `successorKeyVersion`). `issuedFrom` names what a token was issued from,
   the authorization request whose code was exchanged or the refresh token rotated, so a replayed
   refresh token is traced to its connection, as a reused code is to the request it was issued for.
-  `AgentConnection` references the member's `UserOrganization` row, unlike every other table, which
+  `AgentConnection` references the member's `UserOrganization` row, by the two columns
+  `UserOrganization` names for it, since Data Connect cannot reference a key made of references (M18),
+  unlike every other table, which
   references the account and the organization apart: a connection belongs to the membership, so
   removing the member or deleting the organization deletes it with its tokens, and a member invited
   back connects again. The verifier still checks the membership and the staff gate on every request.
@@ -1720,7 +1726,8 @@ worker's claim checks the role again, so a queued run stops too:
   the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep the gate.
-- Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, also removed in M30, since an
+- Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, lifted on the development backend as
+  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M30, since an
   external agent reaches them without any conversation: the consent page's Allow refuses anybody
   else, the token verifier checks the role on every call, so a connection outlives no lost role,
   and the Connected agents tab and the Use with your agents button show for staff only. The
@@ -1790,8 +1797,9 @@ account, and until both exist every send in production answers 503.
     Secret Manager as `oauth-token-secret` (`openssl rand -base64 32 | gcloud secrets create
     oauth-token-secret --data-file=- --project strategydance`), with Secret Manager's accessor role
     on it for the runtime service account. Development uses a fixed local value. Rotating it adds a
-    version: keep the previous one enabled for a day at least, since a duplicate refresh derives
-    with the version its first use recorded.
+    version: keep the previous one enabled until a deploy has replaced every instance, and for a day
+    at least, since an instance keeps the latest version it read for its life, and a duplicate
+    refresh derives with the version its first use recorded.
 
 ### Cost
 

@@ -59,8 +59,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
   const answerConversationQuestion = useAnswerConversationQuestion()
   const promptId = useId()
   const name = useId()
-  const [{ selected, isOtherChosen, other }, changeAnswer] = useConversationQuestionAnswer(entry.id)
-  const [isSending, setIsSending] = useState(false)
+  const [{ selected, isOtherChosen, other, isSending }, changeAnswer] = useConversationQuestionAnswer(entry.id)
   /*
     What sending the answer came to when it did not start a run: a failure, or an answer kept that
     the conversation goes on from later, the reader having runs going elsewhere. Each is said while
@@ -114,7 +113,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
 
     if (!canSend || !waitingRunId) return
 
-    setIsSending(true)
+    changeAnswer(() => ({ isSending: true }))
     setNotice(null)
 
     try {
@@ -127,7 +126,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
 
       setNotice({ kind: getConversationAnswerFailure(error), waitingRunId })
     } finally {
-      setIsSending(false)
+      changeAnswer(() => ({ isSending: false }))
     }
   }
 

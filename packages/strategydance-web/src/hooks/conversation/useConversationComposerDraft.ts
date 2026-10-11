@@ -1,16 +1,21 @@
 import { useSyncExternalStore } from 'react'
 
-import { readConversationComposerDraft, subscribeToConversationComposerDrafts } from '~data/conversationComposerDrafts'
+import {
+  EMPTY_CONVERSATION_COMPOSER_DRAFT,
+  readConversationComposerDraft,
+  subscribeToConversationComposerDrafts,
+} from '~data/conversationComposerDrafts'
 
 /*
-  What the reader wrote to a conversation and has not sent, as every composer drawing it shares it,
-  or null. Nothing is held while the document shell is prerendered
+  The message the reader is writing to a conversation, and where its sending stands, as every
+  composer drawing the conversation shares it. Nothing is held while the document shell is
+  prerendered
 */
 function useConversationComposerDraft(conversationId: string) {
   return useSyncExternalStore(
     subscribeToConversationComposerDrafts,
     () => readConversationComposerDraft(conversationId),
-    () => null,
+    () => EMPTY_CONVERSATION_COMPOSER_DRAFT,
   )
 }
 

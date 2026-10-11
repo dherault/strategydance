@@ -1,36 +1,60 @@
-// What the reader wrote in a conversation's composer and has not sent: the words, and the
-// documents its mentions name by their titles
+import type { ConversationSendFailure } from '~utils/conversation/getConversationSendFailure'
+
+/*
+  The message the reader is writing to a conversation, and where its sending stands: what a
+  composer holds that outlives the composer
+*/
 export type ConversationComposerDraft = {
   text: string
+  // The documents its mentions name, by their titles
   mentions: ReadonlyMap<string, string>
+  // The id of the message a send is taking, while it goes, which no other send may race
+  sendingMessageId: string | null
+  // The send that failed, kept so that sending the same message again is the same send: its id,
+  // and the message as it was sent, its mentions links to their documents
+  failedSend: { messageId: string; text: string } | null
+  // Why the last send failed, until the reader writes again
+  failure: ConversationSendFailure | null
+}
+
+export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
+  text: '',
+  mentions: new Map(),
+  sendingMessageId: null,
+  failedSend: null,
+  failure: null,
 }
 
 const drafts = new Map<string, ConversationComposerDraft>()
 const listeners = new Set<() => void>()
 
-/*
-  The words written to each conversation and not sent, kept for the life of the tab and shared by
-  every composer that draws the conversation: its page and its dock's window, a window minimized
-  and opened again, or one the "+N" menu held, all start with them. A send that lands after its
-  composer has gone, the conversation drawn elsewhere meanwhile, still clears them there. Never
-  stored: a reload starts afresh, as the page always has
-*/
-export function readConversationComposerDraft(conversationId: string) {
-  return drafts.get(conversationId) ?? null
+function isEmpty(draft: ConversationComposerDraft) {
+  return !draft.text && !draft.mentions.size && !draft.sendingMessageId && !draft.failedSend && !draft.failure
 }
 
-// Changes what a conversation's composers hold, or forgets it once there is nothing left to send
+/*
+  Each conversation's message being written, kept for the life of the tab and shared by every
+  composer that draws the conversation: its page and its dock's window, a window minimized and
+  opened again, or one the "+N" menu held, all show the same words and the same send. A send that
+  lands after its composer has gone, the conversation drawn elsewhere meanwhile, settles there, and
+  a send going in one is going in all. Never stored: a reload starts afresh, as the page always has
+*/
+export function readConversationComposerDraft(conversationId: string) {
+  return drafts.get(conversationId) ?? EMPTY_CONVERSATION_COMPOSER_DRAFT
+}
+
+// Changes what a conversation's composers hold, and forgets it once there is nothing left
 export function updateConversationComposerDraft(
   conversationId: string,
-  update: (current: ConversationComposerDraft | null) => ConversationComposerDraft | null,
+  update: (current: ConversationComposerDraft) => ConversationComposerDraft,
 ) {
-  const current = drafts.get(conversationId) ?? null
+  const current = readConversationComposerDraft(conversationId)
   const next = update(current)
 
   if (next === current) return
 
-  if (next?.text) drafts.set(conversationId, next)
-  else if (current) drafts.delete(conversationId)
+  if (!isEmpty(next)) drafts.set(conversationId, next)
+  else if (drafts.has(conversationId)) drafts.delete(conversationId)
   else return
 
   for (const listener of listeners) listener()

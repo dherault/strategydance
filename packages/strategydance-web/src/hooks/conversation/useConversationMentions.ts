@@ -27,7 +27,8 @@ import serializeConversationMentions from '~utils/conversation/serializeConversa
   each `@Title` as `[Title](doc:<id>)`. Moving the caret off the mention, or leaving the field,
   closes the list.
 
-  A composer drawn again starts with the mentions it tracked, beside the words that hold them.
+  The mentions tracked are the composer's to hold, beside the words that hold them, so a
+  conversation drawn again elsewhere keeps both.
 
   The documents are read from the field's first focus, so the list is ready by the time an `@` is
   typed, and the read is the thread's own, which costs nothing more. While they land the list
@@ -39,11 +40,11 @@ import serializeConversationMentions from '~utils/conversation/serializeConversa
 */
 function useConversationMentions(
   textareaRef: RefObject<HTMLTextAreaElement | null>,
-  // The documents the field's text mentions as it starts, by their titles
-  initialMentions?: ReadonlyMap<string, string>,
+  // The documents the field's text mentions, by their titles, and what changes them
+  mentions: ReadonlyMap<string, string>,
+  onMentionsChange: (change: (current: ReadonlyMap<string, string>) => ReadonlyMap<string, string>) => void,
 ) {
   const listId = useId()
-  const [mentions, setMentions] = useState<ReadonlyMap<string, string>>(() => initialMentions ?? new Map())
   const [mentionQuery, setMentionQuery] = useState<ConversationMentionQuery | null>(null)
   // The mention whose list Escape closed, by where its `@` is and the text up to it
   const [dismissed, setDismissed] = useState<{ at: number; before: string } | null>(null)
@@ -99,7 +100,7 @@ function useConversationMentions(
     const title = document.title.trim()
 
     replaceTextareaRange(textarea, buildConversationMentionEdit(textarea.value, mentionQuery, title))
-    setMentions(current => new Map(current).set(title, document.id))
+    onMentionsChange(current => new Map(current).set(title, document.id))
     close()
   }
 
@@ -165,13 +166,11 @@ function useConversationMentions(
     pick,
     insertTrigger,
     handleKeyDown,
-    // The documents picked, by the titles the text mentions them with
-    tracked: mentions,
     // The message as it is sent, each mention a link to its document
     serialize: (text: string) => serializeConversationMentions(text, mentions),
     // Forgets every mention, once the message holding them is sent
     clear: () => {
-      setMentions(new Map())
+      onMentionsChange(() => new Map())
       setDismissed(null)
       close()
     },

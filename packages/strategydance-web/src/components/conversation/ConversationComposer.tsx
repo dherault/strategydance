@@ -1,13 +1,5 @@
 import { ArrowUpIcon, SquareIcon } from 'lucide-react'
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type KeyboardEvent,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject, useRef, useState } from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
 import { MAX_CONVERSATION_MESSAGE_LENGTH, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
@@ -35,7 +27,7 @@ import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
-import { readConversationComposerDraft, updateConversationComposerDraft } from '~data/conversationComposerDrafts'
+import { type ConversationComposerDraft, updateConversationComposerDraft } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 const FAILURE_MESSAGES = {
@@ -45,13 +37,6 @@ const FAILURE_MESSAGES = {
   unavailable: conversationMessages.composerUnavailable,
   error: conversationMessages.composerError,
 } satisfies Record<ConversationSendFailure, MessageDescriptor>
-
-// The send that failed, kept so that sending the same message again is the same send
-type FailedSend = {
-  messageId: string
-  // As it was sent, its mentions links to their documents
-  text: string
-}
 
 type Props = {
   conversationId: string
@@ -98,9 +83,11 @@ type Props = {
   in it, when its first message stores it. That message carries the aspects the reader picked on the
   draft, and no later one does.
 
-  What is written and not sent, its mentions with it, outlives the composer for the life of the tab
-  (`conversationComposerDrafts`), so moving a conversation between its page and the dock, or
-  minimizing its window, loses none of it
+  The message, its mentions and where its send stands live in `conversationComposerDrafts` rather
+  than in the composer, shared for the life of the tab by every composer that draws the
+  conversation: moving it between its page and the dock, or minimizing its window, loses none of it,
+  a send going in one is going in all, and a send that failed is sent again under its id from
+  wherever the reader sends it
 */
 function ConversationComposer({
   conversationId,
@@ -117,18 +104,23 @@ function ConversationComposer({
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  // What was written to the conversation and not sent, shared by every composer that draws it
+  // The message being written and its send, shared by every composer that draws the conversation
   const draft = useConversationComposerDraft(conversationId)
-  // The mentions it tracked as this composer appeared, which it tracks from then on
-  const [initialMentions] = useState(() => readConversationComposerDraft(conversationId)?.mentions)
-  const mentions = useConversationMentions(textareaRef, initialMentions)
-  const [isSending, setIsSending] = useState(false)
-  const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
-  const [failedSend, setFailedSend] = useState<FailedSend | null>(null)
+
+  // Changes the message, here and in whatever else draws the conversation, should this composer
+  // have gone meanwhile
+  function changeDraft(change: (current: ConversationComposerDraft) => Partial<ConversationComposerDraft>) {
+    updateConversationComposerDraft(conversationId, current => ({ ...current, ...change(current) }))
+  }
+
+  const mentions = useConversationMentions(textareaRef, draft.mentions, change =>
+    changeDraft(current => ({ mentions: change(current.mentions) })),
+  )
   const [stoppingRunId, setStoppingRunId] = useState<string | null>(null)
   const [failedStopRunId, setFailedStopRunId] = useState<string | null>(null)
 
-  const text = draft?.text ?? ''
+  const { text, failedSend, failure } = draft
+  const isSending = draft.sendingMessageId !== null
   const trimmedText = text.trim()
   const sentText = mentions.serialize(trimmedText)
   const isTooLong = sentText.length > MAX_CONVERSATION_MESSAGE_LENGTH
@@ -142,21 +134,6 @@ function ConversationComposer({
     goingRunId !== null && (stoppingRunId === goingRunId || (run?.id === goingRunId && !!run.stopRequestedAt))
   const shownFailure = isFull ? 'full' : failure
 
-  // Keeps the mentions picked beside the words that hold them, for the conversation drawn again
-  // elsewhere: its page or its dock's window, one minimized and opened again, or one the "+N" menu held
-  useEffect(() => {
-    updateConversationComposerDraft(conversationId, current =>
-      current && current.mentions !== mentions.tracked ? { ...current, mentions: mentions.tracked } : current,
-    )
-  }, [conversationId, mentions.tracked])
-
-  function setText(value: string) {
-    updateConversationComposerDraft(conversationId, current => ({
-      text: value,
-      mentions: current?.mentions ?? mentions.tracked,
-    }))
-  }
-
   async function send() {
     if (!canSend) return
 
@@ -165,8 +142,7 @@ function ConversationComposer({
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
 
-    setIsSending(true)
-    setFailure(null)
+    changeDraft(() => ({ sendingMessageId: messageId, failure: null }))
 
     try {
       const { runId } = await sendConversationMessage({
@@ -183,9 +159,11 @@ function ConversationComposer({
       // What was written while it went is the reader's next message, its mentions with it
       if (textareaRef.current?.value === sentValue) mentions.clear()
 
-      // Here or wherever the conversation is drawn now, should this composer have gone meanwhile
-      updateConversationComposerDraft(conversationId, current => (current?.text === sentValue ? null : current))
-      setFailedSend(null)
+      changeDraft(current => ({
+        sendingMessageId: null,
+        failedSend: null,
+        ...(current.text === sentValue ? { text: '', mentions: new Map() } : {}),
+      }))
       onRunStart(isRetry ? null : { runId, previousRunId })
 
       // Unless the reader has left the page while it went, for one this must not move
@@ -199,10 +177,11 @@ function ConversationComposer({
     } catch (error) {
       console.error('The message could not be sent', error)
 
-      setFailedSend({ messageId, text: sentText })
-      setFailure(getConversationSendFailure(error))
-    } finally {
-      setIsSending(false)
+      changeDraft(() => ({
+        sendingMessageId: null,
+        failedSend: { messageId, text: sentText },
+        failure: getConversationSendFailure(error),
+      }))
     }
   }
 
@@ -228,8 +207,9 @@ function ConversationComposer({
   }
 
   function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
-    setText(event.target.value)
-    setFailure(null)
+    const { value } = event.target
+
+    changeDraft(() => ({ text: value, failure: null }))
     mentions.detect()
   }
 

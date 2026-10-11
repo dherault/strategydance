@@ -97,6 +97,7 @@
   "conversation.search.tooManyWords": "Mit maximal {max, number} Wörtern suchen.",
   "conversation.sources": "Quellen",
   "conversation.stopping": "Wird angehalten",
+  "conversation.taskGone": "(nicht mehr auf dem Team-Board)",
   "conversation.thinking": "Nachdenken",
   "conversation.threadEmpty": "Frage nach deinem Unternehmen, einer Entscheidung oder nächsten Schritten. Gib @ ein, um Wissen zu erwähnen.",
   "conversation.threadLabel": "Nachrichten",

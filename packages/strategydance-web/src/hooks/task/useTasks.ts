@@ -21,12 +21,15 @@ const EMPTY_TASKS: Task[] = []
   are read apart, by `useTaskDescriptions`.
 
   A first read that fails is not an empty board: `hasFailed` says so, and it does not retry on
-  mount, for the reason `useOrganizationTeam` gives
+  mount, for the reason `useOrganizationTeam` gives.
+
+  A conversation's thread reads it only once it draws something it decides, `isEnabled` false
+  until then, which neither reads nor subscribes
 */
-function useTasks(): DataSource<Task[]> & { hasFailed: boolean } {
+function useTasks({ isEnabled = true }: { isEnabled?: boolean } = {}): DataSource<Task[]> & { hasFailed: boolean } {
   const { organization } = useCurrentOrganization()
 
-  const organizationId = organization?.id ?? null
+  const organizationId = isEnabled ? (organization?.id ?? null) : null
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetTasks', organizationId],

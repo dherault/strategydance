@@ -14,6 +14,7 @@ import type { Conversation, ConversationRun, ConversationThreadEntry } from '~ty
 import useNow from '~hooks/common/useNow'
 import useConversationDeletedDocuments from '~hooks/conversation/useConversationDeletedDocuments'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
+import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
@@ -25,6 +26,7 @@ import hasConversationMessageBody from '~utils/conversation/hasConversationMessa
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
+import needsConversationTasks from '~utils/conversation/needsConversationTasks'
 import readConversationDeletedDocumentIds from '~utils/conversation/readConversationDeletedDocumentIds'
 
 import Spinner from '~components/common/Spinner'
@@ -77,6 +79,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
   const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
+  const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const deletedDocuments = useConversationDeletedDocuments(conversation.id, readConversationDeletedDocumentIds(entries))
   // One clock for every row that offers Restore until its day is up
   const now = useNow()
@@ -179,6 +182,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
               markers={piece?.markers}
               sources={piece?.sources}
               documents={documents}
+              tasks={tasks}
             />
             {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
           </>

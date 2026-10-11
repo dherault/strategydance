@@ -7,7 +7,7 @@ import type { KnowledgeDocumentSummary } from '~types'
 
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
-import readConversationDocumentId from '~utils/conversation/readConversationDocumentId'
+import readConversationLinkTarget from '~utils/conversation/readConversationLinkTarget'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -31,9 +31,9 @@ type Props = {
 function ConversationDocumentLink({ href, children, documents }: Props) {
   const { formatMessage } = useIntl()
   const organizationSlug = useCurrentOrganizationSlug()
-  const documentId = readConversationDocumentId(href)
+  const target = readConversationLinkTarget(href, 'doc', documents)
 
-  if (!documentId || !documents) {
+  if (target.kind === 'words') {
     return (
       <span>
         <FileTextIcon className={ICON_CLASS_NAME} />
@@ -42,9 +42,7 @@ function ConversationDocumentLink({ href, children, documents }: Props) {
     )
   }
 
-  const document = documents.get(documentId)
-
-  if (!document) {
+  if (target.kind === 'gone') {
     return (
       <span className="text-muted-foreground line-through">
         <FileTextIcon className={ICON_CLASS_NAME} />
@@ -57,11 +55,11 @@ function ConversationDocumentLink({ href, children, documents }: Props) {
   return (
     <Link
       to="/$organizationSlug/knowledge/$documentId"
-      params={{ organizationSlug, documentId: document.id }}
+      params={{ organizationSlug, documentId: target.item.id }}
       className="font-medium text-primary no-underline hover:text-primary-800 hover:underline"
     >
       <FileTextIcon className={ICON_CLASS_NAME} />
-      {document.title.trim() || children}
+      {target.item.title.trim() || children}
     </Link>
   )
 }

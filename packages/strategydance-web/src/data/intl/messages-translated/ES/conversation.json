@@ -97,6 +97,7 @@
   "conversation.search.tooManyWords": "Busca con un máximo de {max, number} palabras.",
   "conversation.sources": "Fuentes",
   "conversation.stopping": "Deteniendo",
+  "conversation.taskGone": "(ya no está en el tablero del equipo)",
   "conversation.thinking": "Pensando",
   "conversation.threadEmpty": "Pregunta sobre tu empresa, una decisión o qué hacer a continuación. Escribe @ para mencionar conocimiento.",
   "conversation.threadLabel": "Mensajes",

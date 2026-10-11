@@ -633,6 +633,12 @@ const conversationMessages = defineMessages({
     description:
       "Read by screen readers after a link in the AI's reply to an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
   },
+  taskGone: {
+    id: 'conversation.taskGone',
+    defaultMessage: "(no longer on the team's board)",
+    description:
+      "Read by screen readers after a link in the AI's reply to a task on the team's board, the shared list of work to do, that was deleted since. Shown crossed out to sighted readers.",
+  },
   restoreDocument: {
     id: 'conversation.restoreDocument',
     defaultMessage: 'Restore',

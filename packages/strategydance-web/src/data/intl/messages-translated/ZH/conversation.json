@@ -97,6 +97,7 @@
   "conversation.search.tooManyWords": "最多可使用 {max, number} 个词进行搜索。",
   "conversation.sources": "来源",
   "conversation.stopping": "正在停止",
+  "conversation.taskGone": "（已不在团队看板上）",
   "conversation.thinking": "思考中",
   "conversation.threadEmpty": "询问关于公司、决策或下一步行动的问题。输入 @ 可提及知识。",
   "conversation.threadLabel": "消息",

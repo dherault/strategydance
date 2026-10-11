@@ -19,10 +19,13 @@ import serializeConversationMentions from '~utils/conversation/serializeConversa
   typed.
 
   Typing `@` opens the list on the organization's documents, the latest changed first, and what
-  follows narrows it. The arrows move through it, Enter or Tab picks, Escape closes it until
-  another mention is typed. A pick writes `@Title` in the field and tracks the document by its
-  title, the last pick winning when two share one, so the message is sent with each `@Title` as
-  `[Title](doc:<id>)`. Moving the caret off the mention, or leaving the field, closes the list.
+  follows narrows it. The arrows move through it, Enter or Tab picks, and Escape closes it for
+  that mention for good, the caret coming back to it included, so an Enter meant to send never
+  picks what the reader turned down. That holds while the text up to its `@` stays as it was: an
+  `@` deleted and typed again is another mention. A pick writes `@Title` in the field and tracks
+  the document by its title, the last pick winning when two share one, so the message is sent with
+  each `@Title` as `[Title](doc:<id>)`. Moving the caret off the mention, or leaving the field,
+  closes the list.
 
   The documents are read from the field's first focus, so the list is ready by the time an `@` is
   typed, and the read is the thread's own, which costs nothing more. While they land the list
@@ -36,14 +39,14 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
   const listId = useId()
   const [mentions, setMentions] = useState<ReadonlyMap<string, string>>(() => new Map())
   const [mentionQuery, setMentionQuery] = useState<ConversationMentionQuery | null>(null)
-  // The `@` whose list Escape closed, which stays closed while that mention is typed
-  const [dismissedAt, setDismissedAt] = useState<number | null>(null)
+  // The mention whose list Escape closed, by where its `@` is and the text up to it
+  const [dismissed, setDismissed] = useState<{ at: number; before: string } | null>(null)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const [isEnabled, setIsEnabled] = useState(false)
   const { data: documents, initialLoading, hasFailed } = useOrganizationKnowledgeDocuments({ isEnabled })
 
   const openQuery =
-    mentionQuery && mentionQuery.at !== dismissedAt && !initialLoading && !hasFailed ? mentionQuery : null
+    mentionQuery && mentionQuery.at !== dismissed?.at && !initialLoading && !hasFailed ? mentionQuery : null
   const matches = openQuery ? filterConversationMentionDocuments(documents, openQuery.query) : []
   // Nothing matching is said once something is typed, unless the words have moved on past a space,
   // or never started as a title would
@@ -61,10 +64,10 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
 
   function close() {
     setMentionQuery(null)
-    setDismissedAt(null)
   }
 
-  // Reads the mention at the caret, when nothing is selected
+  // Reads the mention at the caret, when nothing is selected, and forgets what Escape closed once
+  // the text up to its `@` has changed
   function detect() {
     const textarea = textareaRef.current
 
@@ -73,12 +76,8 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
     const { value, selectionStart, selectionEnd } = textarea
     const next = selectionStart === selectionEnd ? findConversationMentionQuery(value, selectionStart, mentions) : null
 
+    if (dismissed && value.slice(0, dismissed.at + 1) !== dismissed.before) setDismissed(null)
     if (next?.at === mentionQuery?.at && next?.query === mentionQuery?.query) return
-    if (!next) {
-      close()
-
-      return
-    }
 
     setMentionQuery(next)
     setHighlightedIndex(0)
@@ -118,7 +117,7 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
       event.preventDefault()
       // The list is what Escape closes, not whatever holds the field
       event.stopPropagation()
-      setDismissedAt(openQuery.at)
+      setDismissed({ at: openQuery.at, before: event.currentTarget.value.slice(0, openQuery.at + 1) })
 
       return true
     }
@@ -165,6 +164,7 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
     // Forgets every mention, once the message holding them is sent
     clear: () => {
       setMentions(new Map())
+      setDismissed(null)
       close()
     },
   }

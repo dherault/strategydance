@@ -55,6 +55,15 @@ describe('createApp', () => {
     ).toBe(401)
   })
 
+  test('the backend answers the authorization server', async () => {
+    const metadata = await fetch(`${origins.backend}/.well-known/oauth-authorization-server`)
+
+    expect(metadata.status).toBe(200)
+    expect(((await metadata.json()) as { issuer: string }).issuer).toBe('http://localhost:3003')
+    // A registration naming no redirect address is refused by the route itself, which is there
+    expect((await post(origins.backend, '/oauth/register')).status).toBe(400)
+  })
+
   test('the backend answers 404 on the internal routes', async () => {
     expect((await post(origins.backend, '/internal/conversation-runs')).status).toBe(404)
     expect((await post(origins.backend, '/internal/sweep')).status).toBe(404)
@@ -69,6 +78,9 @@ describe('createApp', () => {
     expect((await fetch(`${origins.worker}/health`)).status).toBe(404)
     expect((await post(origins.worker, '/users/welcome-email')).status).toBe(404)
     expect((await post(origins.worker, '/link-previews')).status).toBe(404)
+    expect((await fetch(`${origins.worker}/.well-known/oauth-authorization-server`)).status).toBe(404)
+    expect((await post(origins.worker, '/oauth/register')).status).toBe(404)
+    expect((await fetch(`${origins.worker}/oauth/authorize`)).status).toBe(404)
     expect(
       (await post(origins.worker, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,

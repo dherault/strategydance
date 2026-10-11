@@ -5,6 +5,8 @@ import type { ApiResponse } from '~types'
 
 import { ALLOWED_ORIGINS } from '~constants'
 
+import isOAuthProtocolPath from '~utils/isOAuthProtocolPath'
+
 import errorMiddleware from '~middleware/error'
 import loggerMiddleware from '~middleware/logger'
 import notFoundMiddleware from '~middleware/notFound'
@@ -13,8 +15,10 @@ import securityMiddleware from '~middleware/security'
 import createConversationsRouter from '~routes/conversations'
 import createInternalRouter from '~routes/internal'
 import createLinkPreviewsRouter from '~routes/linkPreviews'
+import createOAuthRouter from '~routes/oauth'
 import createOrganizationsRouter from '~routes/organizations'
 import createUsersRouter from '~routes/users'
+import createWellKnownRouter from '~routes/wellKnown'
 
 type Options = {
   // The worker's app rather than the backend's, as `SERVICE=worker` asks for (`IS_WORKER`)
@@ -44,7 +48,13 @@ function createApp({ isWorker }: Options) {
   app.set('trust proxy', 1)
   app.disable('x-powered-by')
 
-  app.use(cors({ origin: ALLOWED_ORIGINS }))
+  // The OAuth protocol's own endpoints answer any origin, without credentials, since no cookie is
+  // involved; every other route answers the app's origins alone
+  app.use(
+    cors((request, callback) => {
+      callback(null, { origin: isOAuthProtocolPath(request.path) ? '*' : ALLOWED_ORIGINS })
+    }),
+  )
   app.use(securityMiddleware)
   app.use(loggerMiddleware)
 
@@ -55,7 +65,9 @@ function createApp({ isWorker }: Options) {
       response.json({ status: 'success' })
     })
 
+    app.use('/.well-known', createWellKnownRouter())
     app.use('/link-previews', createLinkPreviewsRouter())
+    app.use('/oauth', createOAuthRouter())
     // Ahead of the organizations' router, so its paths are matched first
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())
     app.use('/organizations', createOrganizationsRouter())

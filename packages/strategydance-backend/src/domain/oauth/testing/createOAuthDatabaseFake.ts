@@ -320,7 +320,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       return { oAuthAuthorizationRequest_insert: { id: request.id } }
     },
 
-    UseOAuthClient: variables => {
+    RecordOAuthClientUse: variables => {
       const client = clients.get(id(variables.id))
 
       if (client) client.lastUsedAt = at(now())

@@ -4,8 +4,6 @@ import { MAX_OAUTH_PARAMETER_LENGTH, OAUTH_CONSENT_URL, OAUTH_ISSUER } from '~co
 
 import { dataConnect } from '~firebase'
 
-import logger from '~utils/logger'
-
 import buildAuthorizationResponseUrl from '~domain/oauth/buildAuthorizationResponseUrl'
 import checkClientIdUrl from '~domain/oauth/checkClientIdUrl'
 import checkPkceChallenge from '~domain/oauth/checkPkceChallenge'
@@ -120,6 +118,14 @@ async function startOAuthAuthorization(query: string): Promise<Authorization> {
     )
   }
 
+  // Marked used before its request is stored, so the daily sweep never prunes a client an
+  // authorization is naming: a registration pruned since it was read is a client nobody knows
+  if (isRegistered) {
+    const { data } = await recordOAuthClientUse(dataConnect, { id: clientId })
+
+    if (!data.oAuthClient_update) return { outcome: 'page', message: 'The request names no client this server knows.' }
+  }
+
   let requestId: string
 
   try {
@@ -143,13 +149,6 @@ async function startOAuthAuthorization(query: string): Promise<Authorization> {
     }
 
     throw error
-  }
-
-  if (isRegistered) {
-    // Only what keeps a client in use from being pruned, so a failure costs the authorization nothing
-    await recordOAuthClientUse(dataConnect, { id: clientId }).catch((error: unknown) => {
-      logger.warn('OAuth: a registered client could not be marked used', error)
-    })
   }
 
   return { outcome: 'redirect', url: `${OAUTH_CONSENT_URL}?request=${requestId}` }

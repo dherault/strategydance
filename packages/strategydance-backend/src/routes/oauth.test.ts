@@ -214,6 +214,22 @@ describe('GET /oauth/authorize', () => {
     expect(fake.clients.get(clientId)?.lastUsedAt).not.toBeNull()
   })
 
+  test('marks a registered client used before storing its request, and stores none for a client pruned meanwhile', async () => {
+    const clientId = await registerLoopbackClient()
+
+    fake.beforeOperation = async name => {
+      if (name === 'RecordOAuthClientUse') fake.clients.delete(clientId)
+    }
+
+    const response = await authorize({ client_id: clientId, redirect_uri: 'http://127.0.0.1/callback' })
+
+    expect(response.status).toBe(400)
+    expect(response.headers.get('location')).toBeNull()
+    expect(fake.requests.size).toBe(0)
+    expect(fake.calls.indexOf('RecordOAuthClientUse')).toBeGreaterThan(-1)
+    expect(fake.calls).not.toContain('CreateOAuthAuthorizationRequest')
+  })
+
   test('renders an error before the client and its redirect are checked, and never redirects', async () => {
     const clientId = await registerLoopbackClient()
 

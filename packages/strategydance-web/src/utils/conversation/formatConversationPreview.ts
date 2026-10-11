@@ -12,10 +12,10 @@ type Conversation = {
 }
 
 /*
-  The line the list and the aspect page's cards show under a conversation's title: "Thinking…"
-  while a run goes, then what its last entry is, worded from the facts its preview keeps. A
-  conversation with no preview holds nothing yet. One whose preview this page cannot read, of a
-  kind a later release added, shows no line rather than a wrong one
+  The line the list shows under a conversation's title: "Thinking…" while a run goes, then what
+  its last entry is, worded from the facts its preview keeps. A conversation with no preview holds
+  nothing yet. One whose preview this page cannot read, of a kind a later release added, shows no
+  line rather than a wrong one
 */
 function formatConversationPreview(intl: IntlShape, { activeRunId, preview }: Conversation) {
   const { formatMessage } = intl

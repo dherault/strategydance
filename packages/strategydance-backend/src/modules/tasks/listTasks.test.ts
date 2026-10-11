@@ -238,7 +238,7 @@ describe('list_tasks', () => {
     expect((await kit.answer<Page>('list_tasks', { query: 'pricing' })).tasks).toHaveLength(1)
   })
 
-  it("counts each page of an external agent's query, and never a list without one or a cursor it did not give", async () => {
+  it("counts each page of an external agent's query, and never a list without one or a cursor that does not decode", async () => {
     const kit = await board.connect(EXTERNAL)
 
     for (let index = 0; index < 150; index++) board.add({ name: `Plan ${index}`, position: index })

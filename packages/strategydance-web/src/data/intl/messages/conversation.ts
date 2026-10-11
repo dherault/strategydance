@@ -143,6 +143,30 @@ const conversationMessages = defineMessages({
     description:
       "What a screen reader says for the button in a conversation's row that deletes it. {title} is the conversation's title.",
   },
+  openInDock: {
+    id: 'conversation.openInDock',
+    defaultMessage: 'Open in dock',
+    description:
+      "Tooltip of the button in a conversation's row, and button on a conversation's page, that opens it as a small window pinned to the bottom right of the screen, beside whatever page the reader is on.",
+  },
+  openInDockLabel: {
+    id: 'conversation.openInDockLabel',
+    defaultMessage: 'Open {title} in dock',
+    description:
+      "What a screen reader says for the button in a conversation's row that opens it as a small window pinned to the bottom right of the screen. {title} is the conversation's title.",
+  },
+  showInDock: {
+    id: 'conversation.showInDock',
+    defaultMessage: 'Show in dock',
+    description:
+      "Tooltip of the button in a conversation's row when the conversation is already open as a small window pinned to the bottom right of the screen, which brings that window forward and opens it.",
+  },
+  showInDockLabel: {
+    id: 'conversation.showInDockLabel',
+    defaultMessage: 'Show {title} in dock',
+    description:
+      "What a screen reader says for the button in a conversation's row when the conversation is already open as a small window pinned to the bottom right of the screen. {title} is the conversation's title.",
+  },
   confirm: {
     id: 'conversation.confirm',
     defaultMessage: 'Confirm?',
@@ -912,6 +936,72 @@ const conversationMessages = defineMessages({
     defaultMessage: 'You have {max, number} conversations, as many as you can keep. Delete one to start another.',
     description:
       'Shown when the reader tries to start a conversation while they keep as many as they may. {max} is a number such as 1000.',
+  },
+
+  /* ---
+    DOCK: conversations open as small windows pinned to the bottom right of the screen, beside
+    whatever page the reader is on, each open or minimized to its header
+  --- */
+
+  dockLabel: {
+    id: 'conversation.dockLabel',
+    defaultMessage: 'Docked conversations',
+    description:
+      'Accessible name of the row of small conversation windows pinned to the bottom right of the screen, beside the page.',
+  },
+  dockFullPage: {
+    id: 'conversation.dockFullPage',
+    defaultMessage: 'Full page',
+    description:
+      "Tooltip of the button in the header of a docked conversation's window that opens the conversation as a whole page instead.",
+  },
+  dockMinimize: {
+    id: 'conversation.dockMinimize',
+    defaultMessage: 'Minimize',
+    description: "Tooltip of the button in the header of a docked conversation's window that shrinks it to its header.",
+  },
+  dockClose: {
+    id: 'conversation.dockClose',
+    defaultMessage: 'Close',
+    description:
+      "Tooltip of the button in the header of a docked conversation's window that takes it out of the dock. The conversation is kept.",
+  },
+  dockWorking: {
+    id: 'conversation.dockWorking',
+    defaultMessage: 'Strategy Dance is working',
+    description:
+      "Read by screen readers beside the spinner in a minimized conversation window's header, while the AI works on an answer. Strategy Dance is the product's name, and the name of its AI.",
+  },
+  dockUnread: {
+    id: 'conversation.dockUnread',
+    defaultMessage: '{count, plural, one {# new message} other {# new messages}}',
+    description:
+      "Read by screen readers beside the count in a minimized conversation window's header: the AI's messages the reader has not seen yet.",
+  },
+  dockWaiting: {
+    id: 'conversation.dockWaiting',
+    defaultMessage: 'Waiting for your answer',
+    description:
+      "Read by screen readers beside the dot in a minimized conversation window's header, when the AI asked the reader a question there.",
+  },
+  dockMore: {
+    id: 'conversation.dockMore',
+    defaultMessage: '+{count, number}',
+    description:
+      'Button beside the docked conversation windows, for those that do not fit on the screen, which lists them. {count} is how many, such as 3.',
+  },
+  dockMoreLabel: {
+    id: 'conversation.dockMoreLabel',
+    defaultMessage: '{count, plural, one {# more docked conversation} other {# more docked conversations}}',
+    description:
+      'Accessible name of the button beside the docked conversation windows that lists those that do not fit on the screen.',
+  },
+  dockMoreAttentionLabel: {
+    id: 'conversation.dockMoreAttentionLabel',
+    defaultMessage:
+      '{count, plural, one {# more docked conversation, which needs your attention} other {# more docked conversations, some needing your attention}}',
+    description:
+      'Accessible name of the button beside the docked conversation windows that lists those that do not fit on the screen, when one of them has new messages or a question for the reader.',
   },
 })
 

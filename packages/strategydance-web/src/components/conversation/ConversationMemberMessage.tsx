@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { KnowledgeDocumentSummary } from '~types'
 
@@ -10,6 +11,8 @@ type Props = {
   text: string
   // The organization's documents by id, or null while they are not read
   documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
+  // Small in a dock's window, as Strategy Dance's replies are there
+  size?: 'sm' | 'md'
 }
 
 /*
@@ -17,10 +20,15 @@ type Props = {
   the knowledge it mentions, drawn as Strategy Dance's replies draw a link to a document. Nothing
   else is read as Markdown, so what the reader typed stays as typed
 */
-function ConversationMemberMessage({ text, documents }: Props) {
+function ConversationMemberMessage({ text, documents, size = 'md' }: Props) {
   return (
     <div className="flex max-w-[85%] min-w-0 flex-col items-end gap-1.5 self-end">
-      <div className="box-border max-w-full rounded-sm bg-neutral-100 px-3 py-2 text-base leading-normal whitespace-pre-wrap text-foreground wrap-anywhere">
+      <div
+        className={cn(
+          'box-border max-w-full rounded-sm bg-neutral-100 px-3 py-2 leading-normal whitespace-pre-wrap text-foreground wrap-anywhere',
+          size === 'sm' ? 'text-sm' : 'text-base',
+        )}
+      >
         {parseConversationMemberText(text).map((segment, index) => (
           <Fragment key={index}>
             {segment.kind === 'text' ? (

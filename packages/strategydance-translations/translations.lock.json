@@ -1297,6 +1297,46 @@
         "hash": "0485437548c5178d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.dockClose": {
+        "hash": "bffc507a23c3bf76",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockFullPage": {
+        "hash": "aafc8306c866b304",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockLabel": {
+        "hash": "a24e4586caec8469",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockMinimize": {
+        "hash": "91454ac602f0647b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockMore": {
+        "hash": "022eaa33354a5056",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockMoreAttentionLabel": {
+        "hash": "c65e116739a1566c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockMoreLabel": {
+        "hash": "ed4a35d2049557ca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockUnread": {
+        "hash": "f0e70db885f629d5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockWaiting": {
+        "hash": "0bdb9b63bf2cd2f3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.dockWorking": {
+        "hash": "a76b123242458aa1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.documentGone": {
         "hash": "87c6424c781dd84f",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1399,6 +1439,14 @@
       },
       "conversation.olderError": {
         "hash": "410b2e2f9b9d16e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.openInDock": {
+        "hash": "308002124689e8c9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.openInDockLabel": {
+        "hash": "8e30a80c83aa034b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.preview.answered": {
@@ -1559,6 +1607,14 @@
       },
       "conversation.search.tooManyWords": {
         "hash": "97c2e1ea77a7eb65",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.showInDock": {
+        "hash": "f356365e595b4853",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.showInDockLabel": {
+        "hash": "7ffc6ae367f34bfa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.sources": {

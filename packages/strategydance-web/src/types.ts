@@ -14,6 +14,7 @@ import type {
   GetConversationToolCallData,
   GetConversationsData,
   GetCurrentUserOrganizationsData,
+  GetDockConversationsData,
   GetDocumentData,
   GetOrganizationDocumentsData,
   GetOrganizationInvitationData,
@@ -294,6 +295,21 @@ export type ConversationRun = GetConversationRunData['conversationRuns'][number]
 
 // A tool call's input and output, as its dialog shows them
 export type ConversationToolCall = GetConversationToolCallData['conversationMessages'][number]
+
+// One of the reader's conversations as a dock's window shows it in its header: its title, whether a
+// run goes, how many replies are unread and whether a question waits
+export type DockConversation = GetDockConversationsData['conversations'][number]
+
+// A window of the dock, which holds a conversation, open or minimized to its header
+export type ConversationDockWindow = {
+  conversationId: string
+  isMinimized: boolean
+  // Whether it holds a draft, which nothing but its window keeps until its first message stores it
+  isDraft: boolean
+}
+
+// Every member's windows in every organization, keyed `${userId}:${organizationId}`, rightmost first
+export type ConversationDockWindows = Record<string, ConversationDockWindow[]>
 
 /*
   What a conversation's page holds of its thread, merged from the live tail and the history pages

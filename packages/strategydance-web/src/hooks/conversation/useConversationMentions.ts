@@ -27,6 +27,9 @@ import serializeConversationMentions from '~utils/conversation/serializeConversa
   each `@Title` as `[Title](doc:<id>)`. Moving the caret off the mention, or leaving the field,
   closes the list.
 
+  The mentions tracked are the composer's to hold, beside the words that hold them, so a
+  conversation drawn again elsewhere keeps both.
+
   The documents are read from the field's first focus, so the list is ready by the time an `@` is
   typed, and the read is the thread's own, which costs nothing more. While they land the list
   waits rather than says nothing matches, and if they cannot be read an `@` stays plain text.
@@ -35,9 +38,13 @@ import serializeConversationMentions from '~utils/conversation/serializeConversa
   moved by the arrows, the mouse or the field's own change reads the same. The list's rows never
   take the focus: the field names the highlighted one as its active descendant
 */
-function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | null>) {
+function useConversationMentions(
+  textareaRef: RefObject<HTMLTextAreaElement | null>,
+  // The documents the field's text mentions, by their titles, and what changes them
+  mentions: ReadonlyMap<string, string>,
+  onMentionsChange: (change: (current: ReadonlyMap<string, string>) => ReadonlyMap<string, string>) => void,
+) {
   const listId = useId()
-  const [mentions, setMentions] = useState<ReadonlyMap<string, string>>(() => new Map())
   const [mentionQuery, setMentionQuery] = useState<ConversationMentionQuery | null>(null)
   // The mention whose list Escape closed, by where its `@` is and the text up to it
   const [dismissed, setDismissed] = useState<{ at: number; before: string } | null>(null)
@@ -93,7 +100,7 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
     const title = document.title.trim()
 
     replaceTextareaRange(textarea, buildConversationMentionEdit(textarea.value, mentionQuery, title))
-    setMentions(current => new Map(current).set(title, document.id))
+    onMentionsChange(current => new Map(current).set(title, document.id))
     close()
   }
 
@@ -161,9 +168,9 @@ function useConversationMentions(textareaRef: RefObject<HTMLTextAreaElement | nu
     handleKeyDown,
     // The message as it is sent, each mention a link to its document
     serialize: (text: string) => serializeConversationMentions(text, mentions),
-    // Forgets every mention, once the message holding them is sent
-    clear: () => {
-      setMentions(new Map())
+    // Forgets what Escape turned down and closes the list, once the message is sent, whose
+    // mentions the composer forgets with its words
+    reset: () => {
       setDismissed(null)
       close()
     },

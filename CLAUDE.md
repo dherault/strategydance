@@ -218,7 +218,7 @@ waits on.
 Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not. A provider
 that reads the router goes in `InnerWrap` beside it, which is inside the router's context and
 still above the document shell: `_CurrentOrganizationProvider`, which reads the organization off
-the path.
+the path, and `_ConversationDockProvider` inside it, which reads the current organization.
 
 `Wrap` sits above the document shell, so anything mounted there that withholds its children
 replaces the whole document, `<Scripts />` included. The page then has no client bundle to boot
@@ -595,6 +595,22 @@ A conversation is kept twice, once for Claude and once for the page, and
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
   two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
   tab or a module's "Use with your agents" button
+- The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
+  under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
+  state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
+  conversations the windows hold, at most 20, which refreshes on every mutation that changes a
+  conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
+  a new one joins its refreshes, or a minimized window's count stands still. An open window draws
+  the page's own thread and composer, which mark replies read as the page does. A composer's message,
+  its mentions, where its send stands and the run the reader last started are kept by account,
+  organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
+  drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
+  anything new a message holds, as attachments will, goes there too, never in a view's own state.
+  A question's answer under way is kept the same way (`~data/conversationQuestionAnswers`), and
+  anything else a reader has under way in a conversation joins them on `createTabStore`
+- A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
+  `scrollerRef`: whatever scrolls the thread, or measures what the reader sees of it, takes that
+  box, through `readConversationViewport` and `scrollConversationToEnd`, never `window` directly
 
 The build in public page counts a member's streak from `ActivityDay` rows: one per member,
 organization and day on which they changed their own Today data, their top priority, their

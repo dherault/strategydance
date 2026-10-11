@@ -31,8 +31,9 @@ mentions, and keeps the rest as typed. Revised on 2026-10-11, as David chose: no
 Conversations section on the aspect page, since their design will likely change, and the
 `suggestionId` column M2 added is dropped; the agent still tags a conversation's aspects. Revised
 on 2026-10-11, in M23, as David chose: the runs answering a conversation's first message tag it, the
-first or one carrying it on, and a draft's aspects picked as none leave it to the agent. When a
-decision changes, change it here first.
+first or one carrying it on, and a draft's aspects picked as none leave it to the agent. Revised on
+2026-10-11, in M24, as David chose: the toasts stay in the bottom right corner, over the dock. When
+a decision changes, change it here first.
 
 ## The design
 
@@ -206,6 +207,12 @@ Desktop only (768px and up): chat windows pinned to the bottom right, the last o
 - "Open in dock" (the list, the page) opens or expands a window and moves it rightmost.
   Opening a conversation as a page takes it out of the dock, and the dock hides on the conversation
   page. Closing a draft's window discards the draft.
+- "New conversation" opens a draft in a window, as the design's `cvOpen` does. Minimizing a window
+  lets go of its thread and composer: a minimized window reads only what its header shows. What was
+  written and not sent stays, for the life of the tab, though the design loses it, and so does what
+  a conversation moving between its page and the dock, or behind the "+N" button, held (M24).
+- The toasts stay in the bottom right corner, where Sonner puts them, over the dock's windows, as
+  David chose on 2026-10-11 (M24).
 - On small screens there is no dock: every "open" goes to the page.
 
 ### The aspect page
@@ -418,14 +425,18 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
     long run would each resend up to a thousand rows, about 400 KB, to a list that draws the same
     thing. The run's last write sets the preview it then shows.
   - The app-wide reads stay small, so a message insert never sends a thousand rows to every tab:
-    `GetConversationsAwaitingAnswer($organizationId)`, live, for the sidebar's badge and the dock's
-    "+N" dot, the ids of the member's conversations with `isAwaitingAnswer` (`limit: 1000`, as many
+    `GetConversationsAwaitingAnswer($organizationId)`, live, for the sidebar's badge, the ids of the
+    member's conversations with `isAwaitingAnswer` (`limit: 1000`, as many
     as a member can have, so the count is exact; ids alone, at most 36 KB),
     refreshed only by what sets or clears it (a run ending, a waiting turn consumed) and by delete
     and restore; and `GetDockConversations($organizationId, $ids)`, live, for the dock, the
     conversations its windows hold (at most 20) with their title, `activeRunId`, `unreadCount` and
-    `isAwaitingAnswer`, refreshed by message inserts and read too, since a minimized window counts
-    unread replies and clears them.
+    `isAwaitingAnswer`, which the "+N" dot reads too, refreshed by what changes those (a run starting
+    or ending, a reply or a question drawn, a waiting turn consumed) and by read, delete and restore,
+    since a minimized window counts unread replies and clears them. Not by a reply's later pieces, a
+    tool call or an answer, which change none of them. Its refreshes match the author and the
+    organization, as the list's do, rather than the ids it reads: no condition reads a list
+    variable, and reading 20 rows again costs nothing (M24).
   - Every live conversation query, the list and the app-wide reads, `GetConversation` and
     `GetConversationRun` alike, also
     refreshes on `RemoveOrganizationMember` and `DeleteOrganization`, on their `organizationId`, as
@@ -1877,8 +1888,8 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
-  refreshes the open thread's tail of 150 entries and the dock's few rows; the list of 1000 reruns
-  only when a run starts or ends, and the badge only when a run starts or stops waiting.
+  refreshes the open thread's tail of 150 entries, and each reply the dock's few rows; the list of
+  1000 reruns only when a run starts or ends, and the badge only when a run starts or stops waiting.
   The tail carries no bodies, about 45 KB at most, and each body is read once by id, so a run of
   100 entries sends an open reader a few megabytes of refreshes at most, not hundreds.
 - **Editing the shared text from the backend**: settled by M1. `updateRichTextYDoc` writes an edit

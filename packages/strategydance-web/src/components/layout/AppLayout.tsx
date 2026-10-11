@@ -4,6 +4,8 @@ import { SidebarInset, SidebarProvider } from 'strategydance-design-system/compo
 import useAspectChapter from '~hooks/company/useAspectChapter'
 
 import AspectChapter from '~components/company/AspectChapter'
+import ConversationDock from '~components/conversation/ConversationDock'
+import ConversationDockBouncer from '~components/conversation/ConversationDockBouncer'
 import AppSidebar from '~components/layout/AppSidebar'
 import SidebarToggleBar from '~components/layout/SidebarToggleBar'
 
@@ -14,6 +16,9 @@ import SidebarToggleBar from '~components/layout/SidebarToggleBar'
   On a wide screen the sidebar is always there, so it is held open and nothing collapses it: the
   keyboard shortcut is left to the browser. Below `md` it is a panel over the page, opened from
   the toggle bar or the shortcut.
+
+  The dock of conversations sits over the page's bottom right, inside the sidebar's provider, whose
+  width it keeps clear of and whose `inert` it shares.
 
   An aspect's chapter plays over all of it, here rather than on the explore page that starts it,
   because the aspect's page replaces that one beneath it. Everything under the chapter is inert
@@ -34,6 +39,9 @@ function AppLayout({ children }: PropsWithChildren) {
           <SidebarToggleBar />
           {children}
         </SidebarInset>
+        <ConversationDockBouncer>
+          <ConversationDock />
+        </ConversationDockBouncer>
       </SidebarProvider>
       {chapter ? (
         <AspectChapter

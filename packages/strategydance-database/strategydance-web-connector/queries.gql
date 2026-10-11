@@ -1371,6 +1371,151 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
   }
 }
 
+# The caller's conversations the dock's windows hold, at most 20, with what a window's header
+# shows: the title, whether a run goes, how many replies are unread and whether a question waits. Read
+# only while the caller still belongs to the organization, and empty of a deleted conversation, as
+# every conversation read is, so the dock lets go of a window whose conversation went.
+#
+# A live query, refreshed by what changes those four fields or whether a conversation is there: a run
+# starting or ending, a reply or a question drawn, the conversation read, deleted or restored. Not by
+# a reply's later pieces, a tool call or an answer, which change none of them. Each refresh matches
+# the author and the organization rather than the ids it reads, as the lists' do: no condition reads
+# a list variable, and reading 20 rows again whenever another of the caller's conversations moves
+# costs nothing. Removing a member empties theirs, and deleting the organization empties everybody's
+query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkConversationRead"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessage"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ResumeConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptDeadConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWaiting"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunWithNote"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationAgentText"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawConversationQuestion"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversations(
+    where: {
+      id: { in: $ids }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 20
+  ) {
+    id
+    title
+    activeRunId
+    unreadCount
+    isAwaitingAnswer
+  }
+}
+
 # One of the caller's conversations, as its page reads it: the conversation's fields and its latest
 # 150 messages, newest first, more than a run usually draws, so a run's messages and Retry's
 # deletions usually fall inside it. Read only while the caller still belongs to the organization,

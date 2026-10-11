@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import {
   ConversationMessageKind,
@@ -29,6 +29,7 @@ import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
 import needsConversationTasks, { DELETE_TASK_TOOL_NAME } from '~utils/conversation/needsConversationTasks'
 import readConversationDeletedCallIds from '~utils/conversation/readConversationDeletedCallIds'
+import readConversationViewport from '~utils/conversation/readConversationViewport'
 
 import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
@@ -47,7 +48,7 @@ import ConversationToolCallDialog from '~components/conversation/ConversationToo
 
 import conversationMessages from '~data/intl/messages/conversation'
 
-// How far above the window an older page starts loading, so it is there before the reader is
+// How far above what the reader sees an older page starts loading, so it is there before the reader is
 const OLDER_MARGIN_PX = 400
 
 type Props = {
@@ -57,6 +58,10 @@ type Props = {
   // The run the reader last started from the page, and what records it
   startedRun: StartedConversationRun | null
   onRunStart: (startedRun: StartedConversationRun) => void
+  // The box the thread scrolls in, in a dock's window, or none on the page, where the window scrolls
+  scrollerRef?: RefObject<HTMLElement | null>
+  // Small in a dock's window, which is narrow
+  size?: 'sm' | 'md'
 }
 
 /*
@@ -73,7 +78,7 @@ type Props = {
   the top still showing, the next one is asked for here. That reads where the top is rather than
   what the observer said last, which it says after the page has moved the top away
 */
-function ConversationThread({ conversation, run, startedRun, onRunStart }: Props) {
+function ConversationThread({ conversation, run, startedRun, onRunStart, scrollerRef, size = 'md' }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder, dropRuns } = useConversationThread(conversation)
@@ -95,7 +100,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
   // The run the conversation waits on for the answers to its questions, while it does
   const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
 
-  useConversationThreadScroll(listRef)
+  useConversationThreadScroll(listRef, scrollerRef)
   useMarkConversationRead(conversation, isLatestShown)
   useReconcileConversationRun(conversation.id, run, !waitingQuestions.length)
 
@@ -108,13 +113,13 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
       ([observed]) => {
         if (observed?.isIntersecting) loadOlder()
       },
-      { rootMargin: `${OLDER_MARGIN_PX}px 0px 0px 0px` },
+      { root: scrollerRef?.current ?? null, rootMargin: `${OLDER_MARGIN_PX}px 0px 0px 0px` },
     )
 
     observer.observe(sentinel)
 
     return () => observer.disconnect()
-  }, [hasOlder, loadOlder])
+  }, [hasOlder, loadOlder, scrollerRef])
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -122,9 +127,10 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
     if (olderStatus !== 'idle' || !hasOlder || !sentinel) return
 
     const { top, bottom } = sentinel.getBoundingClientRect()
+    const viewport = readConversationViewport(scrollerRef?.current ?? null)
 
-    if (bottom >= -OLDER_MARGIN_PX && top <= window.innerHeight) loadOlder()
-  }, [olderStatus, hasOlder, entries, loadOlder])
+    if (bottom >= viewport.top - OLDER_MARGIN_PX && top <= viewport.bottom) loadOlder()
+  }, [olderStatus, hasOlder, entries, loadOlder, scrollerRef])
 
   const replies = groupConversationReplies(entries, bodies)
   const isWorking = isConversationRunGoing(run)
@@ -196,6 +202,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
           <ConversationMemberMessage
             text={body.text ?? ''}
             documents={documents}
+            size={size}
           />
         ) : (
           <ConversationMessagePlaceholder isMember />
@@ -213,6 +220,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart }: Props
               sources={piece?.sources}
               documents={documents}
               tasks={tasks}
+              size={size}
             />
             {piece?.isLast ? <ConversationSources sources={piece.sources} /> : null}
           </>

@@ -13,9 +13,10 @@ import type { ConversationDockWindow } from '~types'
 export type ConversationDockContextType = {
   // The rightmost first, which is the last opened
   windows: ConversationDockWindow[]
-  // The window whose composer takes the focus as it appears, the one the reader last opened or
-  // expanded, or null. Never kept across a reload, so a reload steals no focus
-  focusRequestId: string | null
+  // The window whose composer the reader last asked for, by opening, expanding or showing it, or
+  // null. Each ask counts one more, so showing a window already open asks again. Never kept across a
+  // reload, so a reload steals no focus
+  focusRequest: { conversationId: string; count: number } | null
   // Opens a conversation's window, or expands it, and moves it rightmost. A window opened past the
   // most the dock keeps lets go of the one opened longest ago. `isDraft` only says what a new window
   // holds: one already open keeps what it says
@@ -30,7 +31,7 @@ export type ConversationDockContextType = {
 
 export default createContext<ConversationDockContextType>({
   windows: [],
-  focusRequestId: null,
+  focusRequest: null,
   openWindow: () => {},
   setWindowMinimized: () => {},
   closeWindow: () => {},

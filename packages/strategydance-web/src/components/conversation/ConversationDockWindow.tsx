@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Maximize2Icon, MinusIcon, XIcon } from 'lucide-react'
-import { type KeyboardEvent, useRef } from 'react'
+import { type KeyboardEvent, useEffect, useRef } from 'react'
 import { useIntl } from 'react-intl'
 import { Logo } from 'strategydance-design-system/components/brand/Logo'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -28,8 +28,9 @@ type Props = {
 /*
   One window of the dock. Its header names the conversation and opens or minimizes it, and,
   minimized, says whether Strategy Dance works on it, how many replies are unread or that a question
-  waits. Open, it holds the conversation's thread and composer, whose field takes the focus when the
-  reader opened or expanded it, and whose replies are marked read as the page marks them. Escape
+  waits. Open, it holds the conversation's thread and composer, whose field takes the focus whenever
+  the reader opens, expands or shows it, as it appears or, already open, at once, and whose replies
+  are marked read as the page marks them. Escape
   minimizes it, and its header then takes the focus.
 
   Minimized, it reads nothing but what the dock reads: its thread and composer go, and what was
@@ -40,11 +41,21 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
-  const { focusRequestId, setWindowMinimized, closeWindow } = useConversationDock()
+  const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
+  const sectionRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
 
   const { conversationId, isMinimized, isDraft } = dockWindow
   const title = conversation?.title ?? formatMessage(conversationMessages.newTitle)
+  // Which ask for this window's composer is the latest, or null when the latest was another's
+  const focusRequestCount = focusRequest?.conversationId === conversationId ? focusRequest.count : null
+
+  // A composer already there takes the focus at once. One still to appear takes it as it does
+  useEffect(() => {
+    if (focusRequestCount === null) return
+
+    sectionRef.current?.querySelector('textarea')?.focus()
+  }, [focusRequestCount])
 
   function minimize() {
     setWindowMinimized(conversationId, true)
@@ -71,6 +82,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
 
   return (
     <section
+      ref={sectionRef}
       aria-label={title}
       className={cn(
         'pointer-events-auto flex w-[352px] flex-none flex-col overflow-hidden rounded-t-sm border border-b-0 border-border bg-background shadow-md',
@@ -137,7 +149,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
           >
             <ConversationDockWindowBody
               conversationId={conversationId}
-              isAutoFocused={focusRequestId === conversationId}
+              isAutoFocused={focusRequestCount !== null}
             />
           </ConversationDockWindowBouncer>
         </ConversationDockWait>

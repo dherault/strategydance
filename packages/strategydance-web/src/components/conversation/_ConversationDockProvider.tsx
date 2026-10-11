@@ -34,10 +34,14 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     {},
     { parser: parseConversationDock },
   )
-  const [focusRequestId, setFocusRequestId] = useState<string | null>(null)
+  const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
 
   const key = viewer && organization ? `${viewer.uid}:${organization.id}` : null
   const windows = (key ? dock[key] : null) ?? NO_WINDOWS
+
+  function requestFocus(conversationId: string) {
+    setFocusRequest(current => ({ conversationId, count: (current?.count ?? 0) + 1 }))
+  }
 
   // Changes the current set, and drops it once it is empty rather than keep a key for nothing
   function changeWindows(change: (current: ConversationDockWindow[]) => ConversationDockWindow[]) {
@@ -67,7 +71,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
         ...current.filter(dockWindow => dockWindow.conversationId !== conversationId),
       ].slice(0, MAX_DOCK_WINDOWS)
     })
-    setFocusRequestId(conversationId)
+    requestFocus(conversationId)
   }
 
   function setWindowMinimized(conversationId: string, isMinimized: boolean) {
@@ -77,7 +81,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
       ),
     )
 
-    if (!isMinimized) setFocusRequestId(conversationId)
+    if (!isMinimized) requestFocus(conversationId)
   }
 
   function closeWindow(conversationId: string) {
@@ -104,7 +108,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
 
   const contextValue: ConversationDockContextType = {
     windows,
-    focusRequestId,
+    focusRequest,
     openWindow,
     setWindowMinimized,
     closeWindow,

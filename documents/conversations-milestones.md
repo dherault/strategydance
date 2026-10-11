@@ -68,7 +68,7 @@ M27 well before their neighbours.
 | M18 | The authorization server | backend, database, core, root | M14, setup 10 | #141 |
 | M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | #144 |
 | M20 | The Knowledge module for external agents | backend, web, root | M19 | #146 |
-| M21 | The Tasks module for external agents | backend, web, root | M15, M20 | |
+| M21 | The Tasks module for external agents | backend, web, root | M15, M20 | #148 |
 | M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
 | M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
 | M24 | The dock | web | M7 | #145 |

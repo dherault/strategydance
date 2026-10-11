@@ -31,6 +31,11 @@ import createModuleDatabaseFake from '~domain/modules/testing/createModuleDataba
   Ids are kept as Data Connect keeps them, dashless
 */
 
+export const ConversationActor = {
+  MEMBER: 'MEMBER',
+  AGENT: 'AGENT',
+} as const
+
 export const ConversationMessageKind = {
   MEMBER_TEXT: 'MEMBER_TEXT',
   AGENT_TEXT: 'AGENT_TEXT',
@@ -96,8 +101,10 @@ export type FakeConversation = {
   deletedAt: string | null
   pruneClaimedAt: string | null
   updatedAt: string
-  // Which aspects of the company it is about, none unless a test says
+  // Which aspects of the company it is about, none unless a test says, and who set them, nobody
+  // until somebody does
   aspects?: string[]
+  aspectsSetBy?: string | null
   // How many times a retry cut its history, 0 until one does
   historyRevision?: number
   // Whether a question waits for the member, false until a run ends on one
@@ -150,6 +157,9 @@ export type FakeMessage = {
   answerOther?: string | null
   isAnswerSkipped?: boolean
   answeredAt?: string | null
+  // An aspects note's aspects, and who set them
+  aspects?: string[] | null
+  aspectsSetBy?: string | null
 }
 
 export type FakeEntry = {
@@ -1140,6 +1150,15 @@ function createConversationDatabaseFake() {
 
       checkStart(variables)
 
+      const aspects: string[] | null = variables.aspects ?? null
+      const aspectsSetBy: string | null = variables.aspectsSetBy ?? null
+
+      if (
+        aspects === null ? aspectsSetBy !== null : aspectsSetBy !== 'MEMBER' || new Set(aspects).size !== aspects.length
+      ) {
+        refuse('A conversation starts with the aspects its member picked, each at most once, or with none')
+      }
+
       if (conversations.has(conversationId)) refuse('The conversation exists already')
 
       if (keptConversations(variables).length >= MAX_CONVERSATIONS)
@@ -1151,6 +1170,8 @@ function createConversationDatabaseFake() {
         userId: variables.userId,
         organizationId: id(variables.organizationId),
         title: variables.title,
+        aspects: aspects ?? [],
+        aspectsSetBy,
         activeRunId: runId,
         preview: variables.preview,
         previewMessageId: id(variables.messageId),
@@ -2252,6 +2273,7 @@ function createConversationDatabaseFake() {
   // The generated SDK's names: `startConversation(dataConnect, variables)` for `StartConversation`
   const sdk: Record<string, unknown> = {
     ...modules.sdk,
+    ConversationActor,
     ConversationMessageKind,
     ConversationNoteKind,
     ConversationRunStatus,

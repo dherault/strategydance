@@ -8,6 +8,8 @@ import {
   buildConversationTitle,
 } from 'strategydance-core'
 import {
+  type CompanyAspect,
+  ConversationActor,
   ConversationMessageKind,
   ConversationRunStatus,
   getConversationSendContext,
@@ -38,6 +40,9 @@ type SendConversationMessageInput = {
   // `parseConversationMessageText`
   text: string
   drawnText: string
+  // The aspects the member picked on the draft, which only the message that starts the conversation
+  // carries, as the member's; none leaves them to the agent
+  aspects?: CompanyAspect[]
 }
 
 type SendConversationMessageResult =
@@ -76,6 +81,9 @@ type SendConversationMessageResult =
   kept from running, the message's entry answers them first, as The transcript says: a question by
   its answer, or skipped, and a call by its result, or as stopped or interrupted. A run waiting on
   its questions is consumed, so an answer's continuation and the send never both carry it on.
+
+  A message that starts the conversation starts it with the aspects the member picked on the draft,
+  as the member's, so the agent never tags it, and a later one leaves them as they are.
 
   A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
@@ -189,7 +197,11 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
           await sendConversationMessageMutation(dataConnect, sent)
         }
       } else {
-        await startConversation(dataConnect, { ...message, title: buildConversationTitle(input.drawnText) })
+        await startConversation(dataConnect, {
+          ...message,
+          title: buildConversationTitle(input.drawnText),
+          ...(input.aspects?.length ? { aspects: input.aspects, aspectsSetBy: ConversationActor.MEMBER } : {}),
+        })
       }
     } catch (error) {
       if (round === MAX_ROUNDS) throw error

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import type { CompanyAspect } from 'strategydance-database/backend'
+
 import type { ConversationRunReference } from '~types'
 
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
@@ -27,7 +29,10 @@ function createId() {
   return crypto.randomUUID().replaceAll('-', '')
 }
 
-function send(conversationId: string, overrides: { messageId?: string; text?: string; userId?: string } = {}) {
+function send(
+  conversationId: string,
+  overrides: { messageId?: string; text?: string; userId?: string; aspects?: CompanyAspect[] } = {},
+) {
   const text = overrides.text ?? 'Help me price the beta, then plan the launch for next month with the team'
 
   return sendConversationMessage({
@@ -37,6 +42,7 @@ function send(conversationId: string, overrides: { messageId?: string; text?: st
     messageId: overrides.messageId ?? createId(),
     text,
     drawnText: text.replaceAll('\u0000', ''),
+    aspects: overrides.aspects,
   })
 }
 
@@ -96,6 +102,30 @@ describe('sendConversationMessage', () => {
       JSON.stringify([{ type: 'text', text: 'Help me price the beta,\u0000 then plan the launch for next month' }]),
     )
     expect(enqueueRun).toHaveBeenCalledWith({ organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId })
+  })
+
+  test('starts a conversation with the aspects its member picked on the draft, as the member’s', async () => {
+    const conversationId = createId()
+
+    await sent(conversationId, { aspects: ['FINANCES', 'SALES'] as CompanyAspect[] })
+
+    expect(fake.conversations.get(conversationId)).toMatchObject({
+      aspects: ['FINANCES', 'SALES'],
+      aspectsSetBy: 'MEMBER',
+    })
+    expect(readThread(conversationId)).toEqual([{ kind: 'MEMBER_TEXT', noteKind: null, position: 0 }])
+  })
+
+  test('starts a conversation without aspects for the agent to tag, and leaves a later message’s out', async () => {
+    const conversationId = createId()
+
+    await complete(conversationId, await sent(conversationId))
+
+    expect(fake.conversations.get(conversationId)).toMatchObject({ aspects: [], aspectsSetBy: null })
+
+    await sent(conversationId, { aspects: ['LEGAL'] as CompanyAspect[] })
+
+    expect(fake.conversations.get(conversationId)).toMatchObject({ aspects: [], aspectsSetBy: null })
   })
 
   test('sends to an idle conversation, after its last message and transcript entry', async () => {

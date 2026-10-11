@@ -66,7 +66,7 @@ import { dataConnect } from '~firebase'
   run against a fake of these operations: this is what says the fake's conditions are the SQL's.
 
   The daily sweep's operations take no organization: they reach every conversation in the emulator
-  deleted over a day ago, whoever's it is, which the next start of its author would prune anyway.
+  deleted over a day ago, whoever's it is, which the next sweep would prune anyway.
 
   Like `checkConversationPage.ts`, it refuses to run unless it points at the emulator
 */
@@ -1240,26 +1240,26 @@ async function checkPruning() {
   await start(userIds.pruner, membershipCreatedAt)
 
   check(
-    'starting removes what was deleted over a day ago, and keeps what can still be taken back',
-    (await readConversation(old)) === null && (await readConversation(recent)) !== null,
+    'starting leaves what was deleted over a day ago to the sweep, which deletes what it keeps beside its rows',
+    (await readConversation(old)) !== null && (await readConversation(recent)) !== null,
   )
 
-  const contested = await insertDeleted(2, 0)
-  const [restored] = await Promise.all([
+  const restore = (id: string) =>
     refusal(
       webConnector.executeMutation(
         'RestoreConversation',
-        { organizationId, userId: userIds.pruner, id: contested },
+        { organizationId, userId: userIds.pruner, id },
         { impersonate: { authClaims: { sub: userIds.pruner } } },
       ),
-    ),
-    refusal(start(userIds.pruner, membershipCreatedAt)),
-  ])
-  const remaining = await readConversation(contested)
+    )
 
   check(
-    'a restore and a start at once either bring a conversation back or remove it, never half',
-    restored === null ? remaining?.deletedAt === null : remaining === null,
+    'a conversation deleted over a day ago cannot be restored, before any sweep has claimed it',
+    ((await restore(old))?.includes('gone for good') ?? false) && (await readConversation(old))?.deletedAt != null,
+  )
+  check(
+    'a conversation deleted within the day is restored',
+    (await restore(recent)) === null && (await readConversation(recent))?.deletedAt === null,
   )
 }
 
@@ -1311,7 +1311,7 @@ async function checkSweeping() {
 
   const old = await insertDeleted(2, 0)
   const recent = await insertDeleted(0, 1)
-  const restoredFirst = await insertDeleted(2, 0)
+  const restoredFirst = await insertDeleted(0, 23)
 
   // What cascades from a conversation: a run, its message and its transcript entry
   await write(

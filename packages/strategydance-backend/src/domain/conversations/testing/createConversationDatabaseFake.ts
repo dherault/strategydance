@@ -292,8 +292,9 @@ function createConversationDatabaseFake() {
 
   /*
     The web connector's `RestoreConversation`, as far as a sweep meets it: a deleted conversation of
-    the caller's comes back only while no sweep has claimed it, and is refused as the connector
-    refuses it otherwise. The membership's lock and the count of 1000 are left to its own checks
+    the caller's comes back only within a day of its delete and while no sweep has claimed it, and is
+    refused as the connector refuses it otherwise. The membership's lock and the count of 1000 are
+    left to its own checks
   */
   function restore(conversationId: string, userId: string, organizationId: string) {
     const conversation = conversations.get(id(conversationId))
@@ -303,6 +304,7 @@ function createConversationDatabaseFake() {
       || conversation.userId !== userId
       || conversation.organizationId !== id(organizationId)
       || conversation.deletedAt === null
+      || isPastUndo(conversation)
       || conversation.pruneClaimedAt !== null
     ) {
       refuse('The conversation is gone for good')
@@ -1132,17 +1134,6 @@ function createConversationDatabaseFake() {
       if (keptConversations(variables).length >= MAX_CONVERSATIONS)
         refuse('Somebody keeps at most 1000 conversations in an organization')
       if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
-
-      // Deleting from a map while iterating it visits every entry left once
-      for (const conversation of conversations.values()) {
-        if (
-          conversation.userId === variables.userId
-          && conversation.organizationId === id(variables.organizationId)
-          && isPastUndo(conversation)
-        ) {
-          deleteConversation(conversation.id)
-        }
-      }
 
       conversations.set(conversationId, {
         id: conversationId,

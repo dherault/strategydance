@@ -188,9 +188,8 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
 # ones included, which the backend finalizes before it sends. The membership has to be the one the
 # backend read, whose `createdAt` the run records.
 #
-# It also removes the caller's conversations deleted over a day ago, past their Undo, with their
-# messages, runs and transcript. A restore takes the same lock, so the two never both win. Directly,
-# while a conversation holds nothing but rows: once it keeps files, a prune claims it first.
+# Conversations deleted over a day ago are left to the daily sweep, which claims them first and
+# deletes what they keep beside their rows, their module call results among them.
 #
 # `$userId` is the uid the backend verified. `$conversationId` and `$organizationId` are what the
 # conversation's live queries refresh on
@@ -251,13 +250,6 @@ mutation StartConversation(
       id
     }
   }
-  conversation_deleteMany(
-    where: {
-      userId: { eq: $userId }
-      organizationId: { eq: $organizationId }
-      deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
-    }
-  )
   conversation_insert(
     data: {
       id: $conversationId

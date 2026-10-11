@@ -56,8 +56,7 @@ async function start(userId: string, deletedHoursAgo: number | null) {
   return conversationId
 }
 
-// A conversation deleted two days ago, written straight into its table, since a start prunes its
-// author's on the way through
+// A conversation deleted two days ago, written straight into its table
 function insertDeleted() {
   const conversationId = createId()
 
@@ -128,22 +127,30 @@ describe('pruneDeletedConversations', () => {
     )
   })
 
-  test('a restore is refused once the sweep has claimed the conversation, and kept when it came first', async () => {
-    // Two authors, since a start prunes its own author's conversations deleted long enough ago
-    const claimed = await start(OTHER, 48)
-    const restored = await start(AUTHOR, 48)
+  test('a restore is refused past a day, before and after the sweep claims it, and kept within it', async () => {
+    const old = await start(AUTHOR, 48)
+    const restored = await start(AUTHOR, 23)
+
+    expect(() => fake.restore(old, AUTHOR, ORGANIZATION_ID)).toThrow('The conversation is gone for good')
 
     fake.restore(restored, AUTHOR, ORGANIZATION_ID)
     await sdk.claimDeletedConversations({})
 
-    expect(fake.conversations.get(claimed)?.pruneClaimedAt).not.toBeNull()
-    expect(() => fake.restore(claimed, OTHER, ORGANIZATION_ID)).toThrow('The conversation is gone for good')
-    expect(fake.conversations.get(claimed)?.deletedAt).not.toBeNull()
+    expect(fake.conversations.get(old)?.pruneClaimedAt).not.toBeNull()
+    expect(() => fake.restore(old, AUTHOR, ORGANIZATION_ID)).toThrow('The conversation is gone for good')
 
     await pruneDeletedConversations()
 
-    expect(isLeft(claimed)).toBe(false)
+    expect(isLeft(old)).toBe(false)
     expect(fake.conversations.get(restored)).toMatchObject({ deletedAt: null, pruneClaimedAt: null })
+  })
+
+  test('a start leaves its author’s conversations deleted over a day ago to the sweep', async () => {
+    const old = await start(AUTHOR, 48)
+
+    await start(AUTHOR, null)
+
+    expect(isLeft(old)).toBe(true)
   })
 
   test('finishes, on the next sweep, a conversation an earlier one claimed and failed to delete', async () => {

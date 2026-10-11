@@ -17,8 +17,8 @@ const MAX_BATCHES = 50
 
 /*
   Removes every conversation deleted over a day ago, past its Undo, whoever's it is, with its
-  messages, runs and transcript, which the daily sweep does whether or not its author comes back.
-  Starting a conversation prunes its author's on the way through too, which stays as the fast path.
+  messages, runs and transcript, which the daily sweep does whether or not its author comes back. It
+  is the only prune: starting a conversation leaves its author's to it.
 
   It first claims them all, which a restore then refuses, so an Undo and the sweep never both win,
   then deletes what is claimed, a batch at a time. Every claimed conversation is deleted, whichever

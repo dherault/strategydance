@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import { DEVELOPMENT_API_URL, MAX_AGENT_CONNECTIONS } from 'strategydance-core'
@@ -14,11 +15,12 @@ import {
   pruneAgentConnectionTokens,
   pruneOAuthAuthorizationRequests,
   pruneOAuthClients,
+  recordAgentConnectionUse,
   revokeAgentConnection,
   rotateAgentConnectionRefreshToken,
 } from 'strategydance-database/backend'
 
-import { FIREBASE_PROJECT_ID } from '~constants'
+import { FIREBASE_PROJECT_ID, MODULE_PROTOCOL_VERSION } from '~constants'
 
 import { authentication, dataConnect } from '~firebase'
 
@@ -36,8 +38,9 @@ import readModuleCaller from '~modules/readModuleCaller'
   First the whole flow, as an external agent and a member would go through it, against the backend
   at `API_URL`, `bun run dev:backend` unless it says otherwise: it registers a loopback client,
   authorizes, approves as an account signed in to the Auth emulator, exchanges the code, has the
-  token verifier take the access token, refreshes, presents the spent refresh token again, and
-  revokes.
+  token verifier take the access token, calls the Knowledge module's endpoint with it, refreshes,
+  presents the spent refresh token again, has the endpoint challenge a token narrowed to read when
+  it writes, and revokes.
 
   Then what guards it in its operations' SQL conditions: a request decided once, a code used once, a
   refresh token rotated once, one connection per member, client and module, and the cascades that
@@ -47,7 +50,7 @@ import readModuleCaller from '~modules/readModuleCaller'
 
   And what the account page's Connected agents tab runs through the browser's connector: its list
   holds the member's connections alone, and Disconnect deletes one of theirs alone, with its tokens,
-  so the agent's next refresh is refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
+  so the agent's next refresh and its next call to the module are refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
   tab lists every one.
 
   It makes a throwaway organization with a member, removes everything it made, then exits non-zero
@@ -219,6 +222,111 @@ async function readMetadata() {
   }
 }
 
+// An external agent on a module's endpoint, as the SDK's client calls it with its bearer token
+async function openModule(endpoint: string, token: string) {
+  const client = new Client(
+    { name: `check-oauth-${checkId}`, version: '1.0.0' },
+    { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
+  )
+
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(endpoint), {
+      requestInit: { headers: { Authorization: `Bearer ${token}` } },
+    }),
+  )
+
+  return client
+}
+
+// One request to a module's endpoint in a 2025 revision, as raw HTTP, for what its status and its
+// challenge say
+function postModule(endpoint: string, token: string | null, message: Record<string, unknown>) {
+  return fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream',
+      'MCP-Protocol-Version': '2025-11-25',
+      ...(token !== null && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, ...message }),
+  })
+}
+
+async function readLastUsedAt(connectionId: string) {
+  const data = await read<{ agentConnection: { lastUsedAt: string | null } | null }>(
+    `query ReadLastUsedAt($id: UUID!) { agentConnection(id: $id) { lastUsedAt } }`,
+    { id: connectionId },
+  )
+
+  return data.agentConnection?.lastUsedAt ?? null
+}
+
+// What the module's endpoint answers an external agent: nothing without a token, its tools with
+// one, as the member, and a connection marked used at most once a minute
+async function checkEndpoint(issuer: string, clientId: string, tokens: Tokens) {
+  const unauthorized = await postModule(resource, null, { method: 'tools/list' })
+  const resourceMetadataUrl = `${issuer}/.well-known/oauth-protected-resource/mcp/knowledge`
+
+  check(
+    "the module's endpoint answers a call without a token 401, naming its protected resource metadata",
+    unauthorized.status === 401
+      && (unauthorized.headers.get('www-authenticate') ?? '').includes(`resource_metadata="${resourceMetadataUrl}"`),
+  )
+
+  const resourceMetadata = (await (await fetch(resourceMetadataUrl)).json()) as {
+    resource?: string
+    authorization_servers?: string[]
+  }
+
+  check(
+    'the protected resource metadata names the module and the authorization server',
+    resourceMetadata.resource === resource && resourceMetadata.authorization_servers?.[0] === issuer,
+  )
+
+  const client = await openModule(resource, tokens.access_token)
+  const { tools } = await client.listTools()
+  const created = await client.callTool({
+    name: 'create_document',
+    arguments: { title: `Checked ${checkId}`, aspects: [], content: 'Written by an external agent.' },
+  })
+  const { id: documentId } = created.structuredContent as { id: string }
+  const found = await client.callTool({ name: 'read_document', arguments: { id: documentId } })
+
+  check("the endpoint lists the module's eight tools to the access token", tools.length === 8)
+  check(
+    'the endpoint writes a document as the member and reads it back',
+    !created.isError && !found.isError && (found.structuredContent as { title: string }).title === `Checked ${checkId}`,
+  )
+
+  await client.close()
+
+  const [connection] = await readConnections(clientId)
+  const connectionId = connection?.id ?? ''
+
+  check('the endpoint marks the connection used', (await readLastUsedAt(connectionId)) !== null)
+
+  const recordUse = async (account: string) =>
+    (await recordAgentConnectionUse(dataConnect, { id: connectionId, userId: account })).data.agentConnection_updateMany
+
+  check('marking the connection used again within the minute writes nothing', (await recordUse(userId)) === 0)
+
+  await write(
+    `mutation AgeLastUse($id: UUID!) {
+      agentConnection_update(id: $id, data: { lastUsedAt_time: { now: true, sub: { minutes: 2 } } })
+    }`,
+    { id: connectionId },
+  )
+
+  const aged = await readLastUsedAt(connectionId)
+
+  check("another member's account marks the connection used never", (await recordUse(otherUserId)) === 0)
+  check(
+    'marking the connection used over a minute later writes it',
+    (await recordUse(userId)) === 1 && (await readLastUsedAt(connectionId)) !== aged,
+  )
+}
+
 async function checkFlow() {
   const metadata = await readMetadata()
   const resource = `${metadata.issuer}/mcp/knowledge`
@@ -349,6 +457,8 @@ async function checkFlow() {
     (await refusal(knowledgeVerifier.verifyAccessToken(tokens.refresh_token))) !== null,
   )
 
+  await checkEndpoint(metadata.issuer, clientId, tokens)
+
   // The client refreshes, and its spent token comes back
   const refresh = (refreshToken: string, scope?: string) =>
     token({
@@ -379,6 +489,19 @@ async function checkFlow() {
     narrowed.scope === 'knowledge:read' && narrowedInfo?.scopes.join(' ') === 'knowledge:read',
   )
 
+  const challenged = await postModule(resource, narrowed.access_token, {
+    method: 'tools/call',
+    params: { name: 'create_document', arguments: { title: 'Refused', aspects: [], content: 'Never written.' } },
+  })
+  const challenge = challenged.headers.get('www-authenticate') ?? ''
+
+  check(
+    "the endpoint challenges a read-only token's write, naming the write scope",
+    challenged.status === 403
+      && challenge.includes('error="insufficient_scope"')
+      && challenge.includes('scope="knowledge:write"'),
+  )
+
   // The client revokes
   const revocation = await fetch(metadata.revocation_endpoint, {
     method: 'POST',
@@ -391,6 +514,10 @@ async function checkFlow() {
   check(
     "the revoked connection's access token is refused",
     (await refusal(knowledgeVerifier.verifyAccessToken(narrowed.access_token))) !== null,
+  )
+  check(
+    "the module's endpoint refuses the revoked connection's access token",
+    (await postModule(resource, narrowed.access_token, { method: 'tools/list' })).status === 401,
   )
 }
 
@@ -660,6 +787,10 @@ async function checkConnectedAgents() {
   const rotated = (await rotation.json()) as Tokens
 
   check('the agent refreshes before Disconnect', rotation.status === 200 && Boolean(rotated.refresh_token))
+  check(
+    "the agent calls the module's endpoint before Disconnect",
+    (await postModule(resource, rotated.access_token, { method: 'tools/list' })).status === 200,
+  )
   check('Disconnect goes through', (await refusal(disconnect(connection.connectionId))) === null)
   check(
     'Disconnect takes the connection off the list',
@@ -671,6 +802,10 @@ async function checkConnectedAgents() {
   const { error } = (await refused.json()) as { error?: string }
 
   check("the agent's next refresh is refused after Disconnect", refused.status === 400 && error === 'invalid_grant')
+  check(
+    "the agent's next call to the module's endpoint is refused after Disconnect",
+    (await postModule(resource, rotated.access_token, { method: 'tools/list' })).status === 401,
+  )
   check(
     'Disconnecting again changes nothing and goes through',
     (await refusal(disconnect(connection.connectionId))) === null,

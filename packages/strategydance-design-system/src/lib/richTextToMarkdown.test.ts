@@ -62,6 +62,26 @@ describe('richTextToMarkdown', () => {
     )
   })
 
+  it('writes mentions that read back as the same mentions', () => {
+    const blocks: RichTextBlock[] = [
+      paragraph(
+        {
+          type: 'documentMention',
+          props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Plan [v2] *final* \\ <u>x</u>' },
+        },
+        ' and ',
+        { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+      ),
+      {
+        type: 'checkListItem',
+        props: { checked: true },
+        content: [{ type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9', name: 'Ship' } }],
+      },
+    ]
+
+    expect(roundTrip(blocks)).toEqual(blocks)
+  })
+
   it('writes a table without a header row under an empty one', () => {
     expect(
       richTextToMarkdown([

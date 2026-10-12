@@ -393,7 +393,7 @@ function normalizeInline(content: unknown, rules: Rules): RichTextInline[] {
 function normalizeMention(item: UnknownRecord, rules: Rules): RichTextInline[] {
   const props = isRecord(item.props) ? item.props : {}
   const isDocument = item.type === 'documentMention'
-  const id = normalizeId(isDocument ? props.documentId : props.taskId)
+  const id = normalizeRichTextMentionId(isDocument ? props.documentId : props.taskId)
   const words = readMentionWords(item)
 
   if (!id || !rules.inlineTypes.has(item.type as string)) return words ? [{ type: 'text', text: words }] : []
@@ -405,8 +405,8 @@ function normalizeMention(item: UnknownRecord, rules: Rules): RichTextInline[] {
   return [mention]
 }
 
-// An id as Data Connect writes one, 32 lowercase hex digits, from one written with or without hyphens in any case
-function normalizeId(value: unknown) {
+/** An id as Data Connect writes one, 32 lowercase hex digits, from one written with or without hyphens in any case, or null */
+function normalizeRichTextMentionId(value: unknown) {
   if (typeof value !== 'string' || value.length > 36) return null
 
   const id = value.replaceAll('-', '').toLowerCase()
@@ -414,12 +414,16 @@ function normalizeId(value: unknown) {
   return ID_PATTERN.test(id) ? id : null
 }
 
-// A mention's words, its document's title or its task's name, on one line, as one is written, within a length
+// A mention's words, its document's title or its task's name
 function readMentionWords(item: UnknownRecord) {
   const props = isRecord(item.props) ? item.props : {}
-  const words = item.type === 'documentMention' ? props.title : props.name
 
-  return typeof words === 'string' ? words.replace(/\s+/g, ' ').trim().slice(0, MAX_MENTION_WORDS_LENGTH).trimEnd() : ''
+  return normalizeRichTextMentionWords(item.type === 'documentMention' ? props.title : props.name)
+}
+
+/** A mention's words on one line, as a title or a name is written, within a length, or an empty string */
+function normalizeRichTextMentionWords(value: unknown) {
+  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, MAX_MENTION_WORDS_LENGTH).trimEnd() : ''
 }
 
 /*
@@ -485,4 +489,4 @@ function isEmptyParagraph(block: RichTextBlock) {
   return block.type === 'paragraph' && !block.content && !block.children
 }
 
-export { normalizeRichText }
+export { normalizeRichText, normalizeRichTextMentionId, normalizeRichTextMentionWords }

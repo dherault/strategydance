@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 
+import {
+  RICH_TEXT_EDITOR_BLOCKS,
+  RICH_TEXT_POST_BLOCKS,
+  RICH_TEXT_TASK_BLOCKS,
+} from 'strategydance-design-system/lib/richText'
 import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 
 // The schema's blocks by name, which its type, built from the blocks asked for, leaves loose
@@ -17,6 +22,25 @@ describe('createRichTextSchema', () => {
     expect(Object.keys(blockSchema.paragraph.propSchema)).toEqual([])
     expect(Object.keys(styleSchema).sort()).toEqual(['bold', 'italic', 'strike', 'underline'])
     expect(Object.keys(inlineContentSchema).sort()).toEqual(['link', 'text'])
+  })
+
+  it("holds mentions of documents and tasks in a document's text and a task's description, never a post's", () => {
+    const inlineContent = (blocks: Parameters<typeof createRichTextSchema>[0]) =>
+      createRichTextSchema(blocks).inlineContentSchema as unknown as Record<
+        string,
+        { propSchema: Record<string, unknown> }
+      >
+
+    expect(Object.keys(inlineContent(RICH_TEXT_POST_BLOCKS)).sort()).toEqual(['link', 'text'])
+
+    for (const blocks of [RICH_TEXT_TASK_BLOCKS, RICH_TEXT_EDITOR_BLOCKS]) {
+      const schema = inlineContent(blocks)
+
+      expect(Object.keys(schema).sort()).toEqual(['documentMention', 'link', 'taskMention', 'text'])
+      // Stored under these names for good, since a shared text holding a prop its schema lacks cannot be read
+      expect(Object.keys(schema.documentMention.propSchema)).toEqual(['documentId', 'title'])
+      expect(Object.keys(schema.taskMention.propSchema)).toEqual(['taskId', 'name'])
+    }
   })
 
   it('writes three heading levels, the second by default', () => {

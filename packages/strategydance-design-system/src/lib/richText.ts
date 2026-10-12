@@ -127,6 +127,16 @@ export type RichTextEditorBlock =
 export const RICH_TEXT_POST_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
 
 /**
+ * The blocks a task's description is written in: a post's, and mentions of documents and tasks,
+ * which a post never holds, since a feed and a public page draw posts
+ */
+export const RICH_TEXT_TASK_BLOCKS: readonly RichTextEditorBlock[] = [
+  ...RICH_TEXT_POST_BLOCKS,
+  'documentMention',
+  'taskMention',
+]
+
+/**
  * Every block an editor can write besides paragraphs, which it writes unless told fewer: a
  * document's. The Yjs helpers default to it too, and a shared text has to be read with the
  * schema its editor writes, since a read deletes whatever block the schema lacks
@@ -141,6 +151,8 @@ export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
   'image',
   'video',
   'linkPreview',
+  'documentMention',
+  'taskMention',
 ]
 
 /**

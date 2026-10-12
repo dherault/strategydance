@@ -1,7 +1,24 @@
 import { ArrowUpIcon, SquareIcon } from 'lucide-react'
-import { type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject, useRef, useState } from 'react'
+import {
+  type ChangeEvent,
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+  useRef,
+  useState,
+} from 'react'
 import { type MessageDescriptor, useIntl } from 'react-intl'
-import { MAX_CONVERSATION_MESSAGE_LENGTH, MAX_CONVERSATION_MESSAGES, MAX_CONVERSATIONS } from 'strategydance-core'
+import {
+  MAX_CONVERSATION_ATTACHMENT_SIZE,
+  MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
+  MAX_CONVERSATION_MESSAGE_LENGTH,
+  MAX_CONVERSATION_MESSAGES,
+  MAX_CONVERSATION_PDF_PAGES,
+  MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH,
+  MAX_CONVERSATIONS,
+  MAX_PENDING_CONVERSATION_ATTACHMENTS,
+} from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
@@ -9,6 +26,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun } from '~types'
 
+import useConversationComposerAttachments from '~hooks/conversation/useConversationComposerAttachments'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationMentions from '~hooks/conversation/useConversationMentions'
 import useSendConversationMessage from '~hooks/conversation/useSendConversationMessage'
@@ -21,21 +39,41 @@ import getConversationSendFailure, {
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
+import readConversationPastedFiles from '~utils/conversation/readConversationPastedFiles'
 import scrollConversationToEnd from '~utils/conversation/scrollConversationToEnd'
 
 import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
+import ConversationComposerTray from '~components/conversation/ConversationComposerTray'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 
+import type { ConversationAttachmentRefusal } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 const FAILURE_MESSAGES = {
   busy: conversationMessages.composerBusy,
   full: conversationMessages.noteFull,
   tooMany: conversationMessages.tooMany,
+  overBudget: conversationMessages.composerOverBudget,
+  filesGone: conversationMessages.composerFilesGone,
   unavailable: conversationMessages.composerUnavailable,
   error: conversationMessages.composerError,
 } satisfies Record<ConversationSendFailure, MessageDescriptor>
+
+const REFUSAL_MESSAGES = {
+  unsupported: conversationMessages.composerAttachmentUnsupported,
+  tooLarge: conversationMessages.composerAttachmentTooLarge,
+  empty: conversationMessages.composerAttachmentEmpty,
+  pending: conversationMessages.composerAttachmentsPending,
+  perMessage: conversationMessages.composerAttachmentsPerMessage,
+} satisfies Record<ConversationAttachmentRefusal['kind'], MessageDescriptor>
+
+// The numbers the refusals name, each reading those it needs
+const REFUSAL_VALUES = {
+  megabytes: MAX_CONVERSATION_ATTACHMENT_SIZE / (1024 * 1024),
+  pages: MAX_CONVERSATION_PDF_PAGES,
+  characters: MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH,
+}
 
 type Props = {
   conversationId: string
@@ -61,7 +99,10 @@ type Props = {
   Where the reader writes to Strategy Dance, at the foot of a conversation: a field that grows
   with what is written, and a button that sends it. Typing `@`, or "Mention knowledge" in the "+"
   menu, suggests knowledge to mention, and each mention picked is sent as a link to its document
-  (`useConversationMentions`). Attachments come later.
+  (`useConversationMentions`). "Files and images" in the same menu, or a paste of files without
+  text, attaches files, which go up at once and wait in the tray above the field
+  (`useConversationComposerAttachments`): a message may hold files and no words, and is sent once
+  every file it holds is up.
 
   Nothing is sent while a run goes, nor once the conversation is full, though the reader can
   write meanwhile. A first send's run counts as going from the moment the backend answers, before
@@ -69,10 +110,12 @@ type Props = {
   the place of Send, and once the reader asked, in this tab or another, it waits for the run to
   end.
 
-  A send that fails keeps its words in the field, and says why. Sending the same message again
-  sends it under the same message's id, so a send that did reach the backend, and only lost its
-  answer, is stored once. A message changed since, its words or the documents it mentions, is a new
-  message, with an id of its own, rather than a retry the backend would answer with the first one.
+  A send that fails keeps its words in the field, and its files in the tray, and says why. Sending
+  the same message again sends it under the same message's id, so a send that did reach the
+  backend, and only lost its answer, is stored once. A message changed since, its words, the
+  documents it mentions or its files, is a new message, with an id of its own, rather than a retry
+  the backend would answer with the first one. Files the backend no longer holds ready, as after
+  they waited two days, go up again by themselves, under new ids, for the reader to send again.
   A message whose mentions take it past what a message may hold, though its words fit the field,
   is not sent, and says so. A retry's answer is not waited on: it can name the
   run the first send started, older than one another tab has started since, which the read would
@@ -82,7 +125,7 @@ type Props = {
   in it, when its first message stores it. That message carries the aspects the reader picked on the
   draft, and no later one does.
 
-  The message, its mentions and where its send stands live in `conversationComposerDrafts` rather
+  The message, its mentions, its files and where its send stands live in `conversationComposerDrafts` rather
   than in the composer, shared for the life of the tab by every composer that draws the
   conversation: moving it between its page and the dock, or minimizing its window, loses none of it,
   a send going in one is going in all, and a send that failed is sent again under its id from
@@ -106,6 +149,7 @@ function ConversationComposer({
   // The message being written and its send, shared by every composer that draws the conversation,
   // and what changes it there, should this composer have gone meanwhile
   const [draft, changeDraft] = useConversationComposerDraft(conversationId)
+  const attachments = useConversationComposerAttachments(conversationId)
 
   const mentions = useConversationMentions(textareaRef, draft.mentions, change =>
     changeDraft(current => ({ mentions: change(current.mentions) })),
@@ -118,10 +162,13 @@ function ConversationComposer({
   const trimmedText = text.trim()
   const sentText = mentions.serialize(trimmedText)
   const isTooLong = sentText.length > MAX_CONVERSATION_MESSAGE_LENGTH
+  const hasFiles = attachments.attachments.length > 0
+  const areFilesReady = attachments.attachments.every(({ status }) => status === 'ready')
+  const hasFailedFiles = attachments.attachments.some(({ status }) => status === 'failed')
   const isFull = conversation ? conversation.isFull || conversation.messageCount >= MAX_CONVERSATION_MESSAGES : false
   const isAwaiting = isAwaitingConversationRun(startedRun, run)
   const isRunGoing = isConversationRunGoing(run) || isAwaiting
-  const canSend = !!trimmedText && !isSending && !isRunGoing && !isFull && !isTooLong
+  const canSend = (!!trimmedText || hasFiles) && areFilesReady && !isSending && !isRunGoing && !isFull && !isTooLong
   // The run Stop stops: the one going, or the one the reader just started, before the read shows it
   const goingRunId = isAwaiting ? (startedRun?.runId ?? null) : isConversationRunGoing(run) ? (run?.id ?? null) : null
   const isStopping =
@@ -133,7 +180,8 @@ function ConversationComposer({
 
     const sentValue = text
     const sentMentions = draft.mentions
-    const isRetry = failedSend?.text === sentText
+    const sentAttachmentIds = attachments.attachments.map(({ id }) => id)
+    const isRetry = failedSend?.text === sentText && failedSend.attachmentIds.join() === sentAttachmentIds.join()
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
 
@@ -149,6 +197,7 @@ function ConversationComposer({
         // whose head then shows the aspects stored. Resending the first pick would drop the latest
         // in the first case, and a new message's id would store the same words twice in the second
         aspects: conversation ? [] : draftAspects,
+        attachmentIds: sentAttachmentIds,
       })
 
       // The run is recorded before the send stops going, so no composer drawing the conversation
@@ -156,7 +205,8 @@ function ConversationComposer({
       onRunStart(isRetry ? null : { runId, previousRunId })
 
       // What was written while it went, its words or a mention picked over words left as they were,
-      // is the reader's next message, which stays: only the message as it was sent is cleared
+      // is the reader's next message, which stays, as do files added meanwhile: only the message as
+      // it was sent is cleared
       let isSentAsWritten = false
 
       changeDraft(current => {
@@ -165,6 +215,8 @@ function ConversationComposer({
         return {
           sendingMessageId: null,
           failedSend: null,
+          attachments: current.attachments.filter(({ id }) => !sentAttachmentIds.includes(id)),
+          attachmentRefusal: null,
           ...(isSentAsWritten ? { text: '', mentions: new Map() } : {}),
         }
       })
@@ -182,11 +234,15 @@ function ConversationComposer({
     } catch (error) {
       console.error('The message could not be sent', error)
 
+      const failure = getConversationSendFailure(error, sentAttachmentIds.length > 0)
+
       changeDraft(() => ({
         sendingMessageId: null,
-        failedSend: { messageId, text: sentText },
-        failure: getConversationSendFailure(error),
+        failedSend: { messageId, text: sentText, attachmentIds: sentAttachmentIds },
+        failure,
       }))
+
+      if (failure === 'filesGone') attachments.retry(sentAttachmentIds)
     }
   }
 
@@ -216,6 +272,21 @@ function ConversationComposer({
 
     changeDraft(() => ({ text: value, failure: null }))
     mentions.detect()
+  }
+
+  // Files pasted without text are attached, rather than pasted as nothing
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = readConversationPastedFiles(event.clipboardData)
+
+    if (!files.length) return
+
+    event.preventDefault()
+    attachFiles(files)
+  }
+
+  function attachFiles(files: File[]) {
+    attachments.add(files)
+    changeDraft(() => ({ failure: null }))
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -254,6 +325,29 @@ function ConversationComposer({
           {formatMessage(FAILURE_MESSAGES[shownFailure], { max: MAX_CONVERSATIONS })}
         </p>
       ) : null}
+      {attachments.refusal ? (
+        <p
+          role="alert"
+          className="m-0 text-sm text-danger"
+        >
+          {formatMessage(REFUSAL_MESSAGES[attachments.refusal.kind], {
+            name: attachments.refusal.name,
+            max:
+              attachments.refusal.kind === 'pending'
+                ? MAX_PENDING_CONVERSATION_ATTACHMENTS
+                : MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
+            ...REFUSAL_VALUES,
+          })}
+        </p>
+      ) : null}
+      {hasFailedFiles ? (
+        <p
+          role="alert"
+          className="m-0 text-sm text-danger"
+        >
+          {formatMessage(conversationMessages.composerAttachmentsFailed)}
+        </p>
+      ) : null}
       {isTooLong ? (
         <p
           role="alert"
@@ -270,8 +364,27 @@ function ConversationComposer({
           {formatMessage(conversationMessages.composerStopError)}
         </p>
       ) : null}
+      {hasFiles ? (
+        <ConversationComposerTray
+          attachments={attachments.attachments}
+          canRemove={!isSending}
+          onRemove={id => {
+            attachments.remove(id)
+            changeDraft(() => ({ failure: null }))
+          }}
+          onRetry={id => attachments.retry([id])}
+        />
+      ) : null}
       <div className="flex items-end gap-1.5">
-        <ConversationComposerMenu onMentionKnowledge={mentions.insertTrigger} />
+        <ConversationComposerMenu
+          onMentionKnowledge={mentions.insertTrigger}
+          // The field again once the picker closes, but on a touch screen, which would raise its
+          // keyboard over the files just picked
+          onFilesOpen={() => {
+            if (!window.matchMedia('(pointer: coarse)').matches) textareaRef.current?.focus()
+          }}
+          onFilesPick={attachFiles}
+        />
         <Textarea
           ref={textareaRef}
           autosize
@@ -290,6 +403,7 @@ function ConversationComposer({
           onChange={handleChange}
           onSelect={mentions.detect}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           onBlur={mentions.close}
         />
         {isRunGoing ? (

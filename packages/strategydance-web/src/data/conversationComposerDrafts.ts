@@ -1,6 +1,33 @@
 import createTabStore from '~utils/common/createTabStore'
+import type { ConversationAttachmentUploadRefusal } from '~utils/conversation/getConversationAttachmentUploadFailure'
 import type { ConversationSendFailure } from '~utils/conversation/getConversationSendFailure'
 import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
+
+/*
+  A file the reader added to the message, from the moment it is picked: in the tray, going up,
+  then stored and ready to send with the message
+*/
+export type ConversationComposerAttachment = {
+  // Made by the browser, and its id on the backend
+  id: string
+  // As it goes up, a name the backend takes
+  name: string
+  // One of `CONVERSATION_ATTACHMENT_CONTENT_TYPES`
+  contentType: string
+  // Its bytes, an image's once shrunk, kept to draw it in the tray and to upload it again
+  file: Blob
+  // Waiting its turn or going up, stored, or stopped by a failure that trying again may get past
+  status: 'uploading' | 'ready' | 'failed'
+  // How much of it has gone up, in whole percents
+  progress: number
+}
+
+// Why a file the reader added was not attached, named in the composer until they add or remove one
+export type ConversationAttachmentRefusal = {
+  // Refused by the backend, or before it went up: an empty file, or one more than a message holds
+  kind: ConversationAttachmentUploadRefusal | 'empty' | 'perMessage'
+  name: string
+}
 
 /*
   The message the reader is writing to a conversation, and where its sending stands: what a
@@ -10,11 +37,15 @@ export type ConversationComposerDraft = {
   text: string
   // The documents its mentions name, by their titles
   mentions: ReadonlyMap<string, string>
+  // The files it sends, in the order they were added
+  attachments: readonly ConversationComposerAttachment[]
+  // The last file the reader added that was not attached, and why
+  attachmentRefusal: ConversationAttachmentRefusal | null
   // The id of the message a send is taking, while it goes, which no other send may race
   sendingMessageId: string | null
   // The send that failed, kept so that sending the same message again is the same send: its id,
-  // and the message as it was sent, its mentions links to their documents
-  failedSend: { messageId: string; text: string } | null
+  // the message as it was sent, its mentions links to their documents, and the files it sent
+  failedSend: { messageId: string; text: string; attachmentIds: readonly string[] } | null
   // Why the last send failed, until the reader writes again
   failure: ConversationSendFailure | null
   // The run the reader last started, by a send, a resume, a retry or an answer, which counts as
@@ -25,6 +56,8 @@ export type ConversationComposerDraft = {
 export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
   text: '',
   mentions: new Map(),
+  attachments: [],
+  attachmentRefusal: null,
   sendingMessageId: null,
   failedSend: null,
   failure: null,
@@ -47,6 +80,8 @@ const drafts = createTabStore(
   draft =>
     !draft.text
     && !draft.mentions.size
+    && !draft.attachments.length
+    && !draft.attachmentRefusal
     && !draft.sendingMessageId
     && !draft.failedSend
     && !draft.failure

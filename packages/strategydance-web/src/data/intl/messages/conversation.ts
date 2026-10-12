@@ -925,6 +925,95 @@ const conversationMessages = defineMessages({
     description:
       'Shown above the message field when what the reader wrote, with the documents it mentions, is longer than a message may be. Send is disabled until it is shorter.',
   },
+  composerFiles: {
+    id: 'conversation.composer.files',
+    defaultMessage: 'Files and images',
+    description:
+      "Item of the + menu beside the message field. It opens the device's file picker to attach images, PDFs or text files to the message, which the AI then reads.",
+  },
+  composerAttachmentsLabel: {
+    id: 'conversation.composer.attachmentsLabel',
+    defaultMessage: 'Attached files',
+    description: 'Accessible name of the row of files attached to the message being written, above the message field.',
+  },
+  composerAttachmentRemove: {
+    id: 'conversation.composer.attachmentRemove',
+    defaultMessage: 'Remove {name}',
+    description:
+      "Accessible name of the small cross on a file attached to the message being written, which takes it out of the message. {name} is the file's name, such as plan.pdf.",
+  },
+  composerAttachmentRetry: {
+    id: 'conversation.composer.attachmentRetry',
+    defaultMessage: 'Upload {name} again',
+    description:
+      "Accessible name of the button on a file attached to the message whose upload failed, which uploads it again. {name} is the file's name, such as plan.pdf.",
+  },
+  composerAttachmentUploading: {
+    id: 'conversation.composer.attachmentUploading',
+    defaultMessage: 'Uploading {name}',
+    description:
+      "Accessible name of the progress bar on a file attached to the message while it uploads. {name} is the file's name, such as plan.pdf.",
+  },
+  composerAttachmentsFailed: {
+    id: 'conversation.composer.attachmentsFailed',
+    defaultMessage: 'A file could not be uploaded. Check your connection, then upload it again or remove it.',
+    description:
+      'Shown above the message field while a file attached to the message failed to upload, for a reason trying again may fix. The file stays, marked, with a button to upload it again.',
+  },
+  composerAttachmentUnsupported: {
+    id: 'conversation.composer.attachmentUnsupported',
+    defaultMessage: '“{name}” cannot be attached. Strategy Dance reads images, PDFs and text files.',
+    description:
+      "Shown above the message field when the reader tried to attach a file of a kind the AI cannot read, such as a video or a Word document, or one that is damaged. {name} is the file's name. Strategy Dance is the product's name, and the name of its AI.",
+  },
+  composerAttachmentTooLarge: {
+    id: 'conversation.composer.attachmentTooLarge',
+    defaultMessage:
+      '“{name}” is too large to attach. A file can hold up to {megabytes, number} MB, a PDF {pages, number} pages and a text file {characters, number} characters.',
+    description:
+      "Shown above the message field when the reader tried to attach a file larger than the AI takes. {name} is the file's name. {megabytes} is 10, {pages} is 100 and {characters} is 200000.",
+  },
+  composerAttachmentEmpty: {
+    id: 'conversation.composer.attachmentEmpty',
+    defaultMessage: '“{name}” is empty, so there is nothing to attach.',
+    description:
+      "Shown above the message field when the reader tried to attach an empty file. {name} is the file's name.",
+  },
+  composerAttachmentsPerMessage: {
+    id: 'conversation.composer.attachmentsPerMessage',
+    defaultMessage: 'A message can hold up to {max, number} files. Send these first, then attach the rest.',
+    description:
+      'Shown above the message field when the reader tried to attach more files than one message holds. {max} is a number such as 10.',
+  },
+  composerAttachmentsPending: {
+    id: 'conversation.composer.attachmentsPending',
+    defaultMessage: 'You have {max, number} files waiting to be sent. Send or remove some to attach more.',
+    description:
+      'Shown above the message field when the reader has attached as many files not sent yet, across all their conversations, as they may. {max} is a number such as 30.',
+  },
+  composerOverBudget: {
+    id: 'conversation.composer.overBudget',
+    defaultMessage:
+      'This conversation has no room for these files. Remove them to send your message, or start a new conversation for them.',
+    description:
+      'Shown above the message field when sending failed because the conversation already holds as many files, images or pages as it can. What the reader wrote and attached stays.',
+  },
+  composerFilesGone: {
+    id: 'conversation.composer.filesGone',
+    defaultMessage: 'Some files waited too long to be sent, and are being uploaded again. Send once they are ready.',
+    description:
+      'Shown above the message field when sending failed because files attached to the message were kept unsent for too long. They upload again by themselves, and the reader sends the message once they have.',
+  },
+  composerPastedImage: {
+    id: 'conversation.composer.pastedImage',
+    defaultMessage: 'Pasted image',
+    description: 'The name given to an image pasted into the message field that came without a name of its own.',
+  },
+  composerPastedFile: {
+    id: 'conversation.composer.pastedFile',
+    defaultMessage: 'Pasted file',
+    description: 'The name given to a file pasted into the message field that came without a name of its own.',
+  },
   mentionListLabel: {
     id: 'conversation.mention.listLabel',
     defaultMessage: 'Knowledge',

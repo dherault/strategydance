@@ -3,6 +3,7 @@ import { describe, expect, mock, test } from 'bun:test'
 import {
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
+  ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET,
   ERROR_CODE_CONVERSATION_BUSY,
   ERROR_CODE_CONVERSATION_FULL,
   ERROR_CODE_NOT_FOUND,
@@ -25,6 +26,22 @@ describe('getConversationSendFailure', () => {
     expect(getConversationSendFailure(new ApiError(503, ERROR_CODE_SERVICE_UNAVAILABLE, 'Unavailable'))).toBe(
       'unavailable',
     )
+  })
+
+  test('reads files the conversation has no room for, whether the message sends files or not', () => {
+    const overBudget = new ApiError(409, ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET, 'Over budget')
+
+    expect(getConversationSendFailure(overBudget, true)).toBe('overBudget')
+    expect(getConversationSendFailure(overBudget)).toBe('overBudget')
+  })
+
+  test('reads a message sending files refused as malformed or in conflict as files to upload again', () => {
+    expect(getConversationSendFailure(new ApiError(400, ERROR_CODE_BAD_REQUEST, 'Not ready'), true)).toBe('filesGone')
+    expect(getConversationSendFailure(new ApiError(409, ERROR_CODE_CONFLICT, 'Waited too long'), true)).toBe(
+      'filesGone',
+    )
+    expect(getConversationSendFailure(new ApiError(409, ERROR_CODE_CONVERSATION_BUSY, 'Busy'), true)).toBe('busy')
+    expect(getConversationSendFailure(new TypeError('Failed to fetch'), true)).toBe('error')
   })
 
   test('reads a 503 that is not an envelope, as a proxy answers, as the server being unavailable', () => {

@@ -12,6 +12,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { ConversationDockWindow as DockWindow, DockConversation } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
+import useConversationComposerAttachments from '~hooks/conversation/useConversationComposerAttachments'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationDock from '~hooks/conversation/useConversationDock'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
@@ -56,6 +57,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const organizationSlug = useCurrentOrganizationSlug()
   const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
   const [draft, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
+  const attachments = useConversationComposerAttachments(dockWindow.conversationId)
   const sectionRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
 
@@ -79,7 +81,8 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   /*
     A draft is stored once a send has started its first run, or once the window's own read of it,
     cached while it was open, found it: the dock's read can lag both, and fail, and a reload forgets
-    the first. Only a draft nothing says is stored is discarded with what was written in it
+    the first. Only a draft nothing says is stored is discarded with what was written in it, its
+    files removed, so they hold no place among the reader's unsent files
   */
   function close() {
     closeWindow(conversationId)
@@ -89,7 +92,10 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
     )
     const isStored = !!conversation || !!draft.startedRun || !!read?.conversations.length
 
-    if (isDraft && !isStored) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
+    if (!isDraft || isStored) return
+
+    attachments.removeAll()
+    changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
   }
 
   function openPage() {

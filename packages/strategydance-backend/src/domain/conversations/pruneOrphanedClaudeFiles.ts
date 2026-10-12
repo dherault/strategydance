@@ -18,7 +18,12 @@ const MIN_AGE_MS = 24 * 60 * 60 * 1000
   a retry wins, between sending its file and its row's write: only this environment's, named after
   it, since development and production share one workspace, and only those over a day old. The
   listing goes newest first, through every file, until the deadline, and answers how many it
-  deleted and whether it read them all
+  deleted and whether it read them all.
+
+  Newest first is the order an orphan needs: one is made by an upload, so each daily sweep meets it
+  among the files one to two days old, right after the day's own uploads, however many older files
+  lie past its deadline. Only a day's uploads outlasting the deadline, or sweeps missed for days,
+  would leave one deeper, where a sweep that reads everything reaches it
 */
 async function pruneOrphanedClaudeFiles(deadline: number) {
   let deleted = 0

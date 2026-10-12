@@ -12,8 +12,11 @@ import pruneOrphanedClaudeFiles from '~domain/conversations/pruneOrphanedClaudeF
 // How many claimed files `GetPruningConversationAttachments` reads at a time, its `limit`
 const BATCH_SIZE = 100
 
-// How long one sweep prunes files for at most, so it ends in bounded time inside its request
+// How long one sweep prunes unsent files for at most, and then looks for orphaned files in the Files
+// API, each in a window of its own, so the sweep ends in bounded time inside its request and a long
+// prune never takes the orphans' time
 const MAX_DURATION_MS = 3 * 60 * 1000
+const ORPHANS_MAX_DURATION_MS = 3 * 60 * 1000
 
 /*
   The daily sweep's prune of conversations' files, for whoever never uploads again, whose own uploads
@@ -44,7 +47,7 @@ async function pruneConversationAttachments() {
     if (data.conversationAttachments.length < BATCH_SIZE) break
   }
 
-  const orphans = IS_PRODUCTION ? await pruneOrphanedClaudeFiles(deadline) : null
+  const orphans = IS_PRODUCTION ? await pruneOrphanedClaudeFiles(Date.now() + ORPHANS_MAX_DURATION_MS) : null
 
   logger.info(
     `Swept conversation files: ${claim.conversationAttachment_updateMany} claimed, ${deleted} deleted, ${failed.size} kept${orphans ? `, ${orphans.deleted} orphaned files deleted${orphans.isComplete ? '' : ' before the deadline'}` : ''}`,

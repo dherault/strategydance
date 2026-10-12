@@ -1838,6 +1838,7 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A stop of an ended subagent changing nothing.
   - A launch on a deleted parent, or from a run asked to stop, refused.
   - Each tool refusing a caller without a launcher, whose tools list still holds the four.
+  - `read_subagent` paging a subagent's writes past 50, with their `total`.
 - `bun run check:subagents-module`, in the backend's package, checks its operations against the
   emulators.
 - No endpoint is served: `check:oauth` only checks that `/mcp/subagents` is refused, as the bullet
@@ -1876,6 +1877,9 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A launch after the parent's Stop or delete refused, and one before reached by it.
   - A deleted parent never reacting, whatever its subagents report, and reacting once restored, at
     its next reconcile.
+  - A full parent's subagents' reports marked delivered with no run, and its page no longer
+    reconciling for them.
+  - A reaction's entry holding a subagent's first 20 writes with their total.
   - The sweep pruning subagents before their parent.
   - A reaction finding the member's three runs taken, started by the next reconcile.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its
@@ -1895,8 +1899,8 @@ Not in the design: built from the design system's components, as Connected agent
   live and each working row's step through `GetConversationRun`.
 - "View work" opens the dialog: the subagent's thread, read only and live, with its Stop.
 - The strip above the composer, "3 subagents working", with Stop all.
-- The page reconciles its subagents every two minutes while any is live or a report waits
-  undelivered.
+- The page reconciles its subagents every two minutes while any is live, or a report waits
+  undelivered while the parent could react to it (see Subagents § Recovery).
 - `BRIEF` drawn at the top of a subagent's thread, its files as chips read through its
   `attachmentIds`, as M26 draws a message's.
 - Strings in the `conversation` catalogue, the tools' labels among them, and `bun run translate`.

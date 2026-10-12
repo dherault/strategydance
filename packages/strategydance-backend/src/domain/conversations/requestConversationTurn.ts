@@ -8,7 +8,6 @@ import {
   ConversationNoteKind,
   ConversationRunStatus,
   ConversationTranscriptRole,
-  type GetConversationRequestContextData,
   getConversationRequestContext,
   getConversationRunStop,
   renewConversationRunLease,
@@ -20,16 +19,14 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
-import buildConversationContext, {
-  type ConversationContext,
-  type ConversationProfile,
-} from '~domain/agent/buildConversationContext'
+import buildConversationContext, { type ConversationContext } from '~domain/agent/buildConversationContext'
 import buildConversationRequest, { buildConversationMessages } from '~domain/agent/buildConversationRequest'
 import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import checkTranscript from '~domain/agent/checkTranscript'
 import { MAX_CONVERSATION_PAUSES } from '~domain/agent/conversationRequestSettings'
 import measureConversationRequest from '~domain/agent/measureConversationRequest'
 import stripBeforeFallback from '~domain/agent/stripBeforeFallback'
+import toConversationProfile from '~domain/agent/toConversationProfile'
 import {
   type ConversationRequestUsage,
   type ConversationRunUsage,
@@ -162,7 +159,7 @@ async function requestConversationTurn({
       ? null
       : (parseRunContext(runContext)
         ?? buildConversationContext({
-          profile: toProfile(requestContext),
+          profile: toConversationProfile(requestContext),
           now: new Date(),
           lastContextHash:
             entries.findLast(({ role }) => role === ConversationTranscriptRole.SYSTEM)?.contextHash ?? null,
@@ -400,21 +397,6 @@ function parseRunContext(runContext: string | null): ConversationContext | null 
   return typeof context.hash === 'string' && Array.isArray(context.content)
     ? { hash: context.hash, content: context.content }
     : null
-}
-
-function toProfile(data: GetConversationRequestContextData): ConversationProfile {
-  return {
-    memberName: data.user?.displayName ?? null,
-    jobTitle: data.userOrganization?.jobTitle ?? null,
-    role: data.userOrganization?.role === 'ADMINISTRATOR' ? 'ADMINISTRATOR' : 'MEMBER',
-    bio: data.user?.bio ?? null,
-    locale: data.user?.locale ?? 'EN',
-    timezone: data.user?.timezone ?? null,
-    organizationName: data.organization?.name ?? '',
-    brief: data.organization?.brief ?? null,
-    exploredAspects: data.organization?.exploredAspects ?? [],
-    aspects: data.conversations[0]?.aspects ?? [],
-  }
 }
 
 // What a request used, and what the API changed of its input, which should be nothing

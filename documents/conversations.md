@@ -39,8 +39,9 @@ of more than 20; and with what building the attachments settled, each where it a
 2026-10-12, as David chose: Strategy Dance's agent hands work off to subagents through a third
 module, the Subagents module, in process only (see Subagents), built in M30 to M33, with M34 written
 for integrations and built after M29, which moved Launch to M35; and the daily orchestrator that will
-launch them is written down, without milestones (see The orchestrator). When a decision changes,
-change it here first.
+launch them is written down, without milestones (see The orchestrator). Revised on 2026-10-12, in
+M26, with what bringing the attachments to the composer and the thread settled, in Attachments. When
+a decision changes, change it here first.
 
 ## The design
 
@@ -1124,6 +1125,47 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   - The Storage emulator ignores generation preconditions, so a write and a copy read what is there
     first. The web connector's selections of a message's files move to M26, with the code that reads
     them.
+
+- **As M26 built it**, on 2026-10-12:
+  - **The tray** is the composer's draft's (`attachments` in `~data/conversationComposerDrafts`), so
+    a conversation's page and its dock window share one, and its uploads are the tab's
+    (`~data/conversationAttachmentUploads`), three at a time, each writing its progress into the
+    draft in whole percents: an upload goes on while its conversation moves between the page and
+    the dock, and removing its file anywhere stops it. A thin bar along a file's foot says how far
+    it has gone; an image going up is dimmed.
+  - **Before a file goes up** the browser reads its type from the browser's own, or from its
+    extension when the browser gives none or another (a Markdown file has none, and Windows calls a
+    CSV file a spreadsheet), puts its name on one line, cut to 200 code points before its extension,
+    and names a nameless paste "Pasted image" or "Pasted file". A JPEG, PNG or WebP longer than 1568
+    pixels, or over 5 MB, is drawn again in its own type, a JPEG at 0.9, and as a JPEG when still
+    over 5 MB; a GIF goes as it is, since drawing it keeps one frame. A type a conversation does not
+    take, a file over 10 MiB or empty, and an eleventh file in a message are named above the field
+    and never go up.
+  - **A refusal of the backend's** that no new try gets past, 415, 413 or the 30 unsent files, takes
+    the file out of the tray and names it above the field. Any other failure keeps it, outlined in
+    red, with a button that uploads it again under a new id, the old one removed, so a reservation
+    the failed try left never holds a place.
+  - **Removing a file** stops its upload and calls `DELETE`, which takes an `UPLOADING` row as well
+    as a `READY` one, so its place frees at once; a reservation the removal races is pruned with the
+    stale ones. Closing a draft's dock window removes its files before it discards the draft. A file
+    cannot be removed while the message sending it goes.
+  - **Sending** waits for every file to be up, and a message may hold files and no words. A retry
+    keeps the message's id only when its words and its files are the ones that failed. A refusal
+    for the conversation's budget says the conversation has no room for these files: removing them
+    sends the words alone. A send holding files refused as malformed or in conflict names files the
+    backend no longer holds ready, as after the two days an unsent file is kept: they go up again
+    under new ids from the bytes the tab still holds, and the reader sends once they are ready.
+  - **A paste** attaches the files it carries only when it carries no text, as a screenshot or an
+    image copied from a page do, so a spreadsheet's cells, which come with a picture of themselves,
+    still paste as text.
+  - **The thread** draws a message's files in the order Claude reads them, which can differ from
+    the tray's, since an image is shrunk before its upload reserves its place. Images are thumbnails
+    up to 200 by 160 pixels, opening whole in a dialog under their name and size; any other file is
+    a chip with its icon, name and size, which reads nothing, as the design has it. An image's bytes
+    are read through `requestApiFile` and kept for the tab, never stale, a 4xx not tried again by itself;
+    the images the reader just sent are drawn from the bytes that went up, never read back. Their
+    addresses are held while something draws them (`useObjectUrl`) and given back after.
+  - **The list** words a message of files alone "You: plan.pdf", or "You: 3 files".
 
 ### The agent
 

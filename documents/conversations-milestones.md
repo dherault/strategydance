@@ -78,7 +78,7 @@ once M29 has merged.
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |
-| M30 | Subagent runs on the worker | database, core, backend, root | M17, M25, setup 11 | |
+| M30 | Subagent runs on the worker | database, core, backend, web, root | M17, M25, setup 11 | |
 | M31 | The Subagents module | core, backend, database, web | M30 | |
 | M32 | Subagents in conversations | backend, database, root | M11, M31 | |
 | M33 | Subagents in the thread | web, database | M24, M26, M32 | |
@@ -1760,6 +1760,9 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - `ConversationRunTrigger` gains `LAUNCH`, `CONTINUE` and `REPORTS`, `ConversationRunStatus`
     `PENDING` and `CHAINED`, and `ConversationMessageKind` `BRIEF`, each appended.
   - The limits go in strategydance-core (see The data).
+  - The web's exhaustive maps over those enums take the new values in the same milestone, or the
+    typecheck fails: `isOlderConversationRun`'s ranks of `ConversationRunStatus`, `PENDING` before
+    `QUEUED` and `CHAINED` beside the other endings, with its tests.
   - Every web read that lists conversations, the list, the badge's and the dock's, filters on
     `parent` being null. So do the backend's searches and the counts that `MAX_CONVERSATIONS` and
     `MAX_ACTIVE_RUNS_PER_MEMBER` hold: a subagent is in none of them, and nothing a member sees
@@ -1890,7 +1893,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A deleted parent never reacting, whatever its subagents report, and reacting once restored, at
     its next reconcile.
   - A full parent's subagents' reports marked delivered with no run, and its page no longer
-    reconciling for them.
+    reconciling for them; a report that came while the parent's run went, before that run ended
+    full, marked delivered by that ending.
   - A reaction's entry holding a subagent's first 20 writes with their total.
   - The sweep pruning subagents before their parent.
   - A reaction finding the member's three runs taken, started by the next reconcile.

@@ -1918,11 +1918,15 @@ way (see The orchestrator).
     `COMPLETED` or with a note, and a reaction follows the first.
   - A send while subagents work starts a run as any send does. Nothing waits on them, so nothing is
     skipped, and they go on.
-  - **A full parent takes no report.** A parent marked `isFull`, or at `MAX_CONVERSATION_MESSAGES`,
-    can neither react, since its runs end with the full note at once, nor be sent to, so its
-    subagents' reports are marked delivered as they come, with no run, by the mutation that ends each
-    subagent's last run, and stay readable on their rows and through `read_subagent`. Nothing then
-    waits, and the page stops reconciling for them.
+  - **A full parent takes no report.** A parent whose last run ended with the full note can neither
+    react, its last run not `COMPLETED`, nor be sent to, so nothing would ever deliver its reports.
+    The mutation that ends a parent's run with the full note marks every report then undelivered
+    delivered, those that came while the run went included, and a subagent ending while its parent
+    is so marks its own, with no run. They stay readable on their rows and through `read_subagent`.
+    Nothing then waits, and the page stops reconciling for them. A parent that reached
+    `MAX_CONVERSATION_MESSAGES` with a run that completed still reacts: the reaction marks its reports
+    delivered as it starts, and ends at once with the full note, costing nothing, as any run starting
+    at the cap does (see Size).
 - **Bounds**, as David chose: at most ten subagents launched on one anchor (`MAX_SUBAGENTS_PER_ACTION`),
   which is the member's action and the runs carrying it on, and at most 100 per conversation until
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.

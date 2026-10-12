@@ -115,7 +115,7 @@ describe('buildConversationTools', () => {
       'restore_task',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '5d7f067f15167bc1ae371e72f618a368570b2fedab2e06e6b8c70835dfe007a8',
+      '6ad947b82795b5945e48afa906cf02576d308d10607bccb8d44727753b71320f',
     )
   })
 

@@ -74,7 +74,7 @@ once M29 has merged.
 | M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
 | M24 | The dock | web | M7 | #145 |
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
-| M26 | Attachments in the composer and the thread | web, database | M22, M25 | |
+| M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |

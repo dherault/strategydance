@@ -1809,7 +1809,11 @@ What a subagent is, and why each rule below holds, is in Subagents.
 ### M31: The Subagents module
 
 - `MODULES` gains `subagents` (see Modules § The Subagents module's tools), kept out of
-  `SERVED_MODULE_NAMES`, and `MODULE_SERVERS` gains its server. The `module` catalogue words it, as
+  `SERVED_MODULE_NAMES`, and `MODULE_SERVERS` gains its server.
+- **The authorization server keeps to the served modules**: `SERVED_MODULE_NAMES` moves to
+  strategydance-core beside `MODULES`, and `parseModuleResource`, the metadata's `scopes_supported`
+  and the consent page read it rather than `MODULES`, so a client asking for `/mcp/subagents` is
+  refused as for an address no module has. A test asks for it, and `check:oauth` does too. The `module` catalogue words it, as
   `getModuleMessages`' type asks, with `bun run translate`. Its results carry no web address, so
   `createModuleAddresses` stays as it is.
 - `src/modules/subagents/`, one tool per file, in the order the table lists them, over
@@ -1849,7 +1853,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
 - Both pinned byte tests move. Count the tools list's tokens, and run `bun run probe:claude`, which
   sends the list and a launch to the real model.
 - **The reaction**:
-  - The `REPORTS` run and its entry, exempt from the member's runs.
+  - The `REPORTS` run and its entry, counted toward the member's three runs on `conversation-runs`;
+    one that finds them taken waits for the page's reconcile or the member's next send.
   - It starts at a subagent's end, at a parent run's `COMPLETED` end, and from the reconcile route.
   - The send and the answer carry undelivered reports, through an optional variable, counted as
     `$attachmentIds` is (`CLAUDE.md` § The database).
@@ -1867,6 +1872,9 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A launch after the parent's Stop or delete refused, and one before reached by it.
   - A parent restored after its subagents reported reacting at its next reconcile.
   - The sweep pruning subagents before their parent.
+  - A reaction finding the member's three runs taken, started by the next reconcile.
+  - Retries deleting several subagents of one parent, pruned while it stays, lowering its
+    `subagentCount` by as many, and a parent that reached the hundred launching again after.
 - `check:conversation-runs` gains the reaction's lock, two ends at once, and a launch against the
   parent's Stop and delete, each in both orders.
 - **Verify** with the real model:

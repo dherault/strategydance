@@ -5,6 +5,7 @@ import type { ConversationAttachmentData } from 'strategydance-core'
 import {
   ConversationAttachmentStatus,
   completeConversationAttachmentUpload,
+  getConversationAttachment,
   getConversationAttachmentUploadContext,
   releaseConversationAttachment,
   reserveConversationAttachment,
@@ -126,16 +127,19 @@ async function uploadConversationAttachment(
         size: input.size,
       })
     } catch (error) {
-      if (isOperationRefusal(error, 'Somebody has at most 30 files')) return { outcome: 'tooMany' }
-      if (isOperationRefusal(error, "The conversation is somebody else's")) return { outcome: 'missing' }
-      if (isOperationRefusal(error, 'Only a member of an organization')) return { outcome: 'forbidden' }
-
-      // The same upload got there first: carry on as its retry
+      // The same upload got there first, its row taking the key or the 30th place: carry on as its
+      // retry, before reading the refusal as anything else
       const { data: again } = await getConversationAttachmentUploadContext(dataConnect, reference)
 
-      if (!again.conversationAttachment) throw error
-
       attachment = again.conversationAttachment
+
+      if (!attachment) {
+        if (isOperationRefusal(error, 'Somebody has at most 30 files')) return { outcome: 'tooMany' }
+        if (isOperationRefusal(error, "The conversation is somebody else's")) return { outcome: 'missing' }
+        if (isOperationRefusal(error, 'Only a member of an organization')) return { outcome: 'forbidden' }
+
+        throw error
+      }
     }
   }
 
@@ -267,18 +271,27 @@ async function finish(input: UploadConversationAttachmentInput): Promise<UploadC
       claudeFileId,
     })
   } catch (error) {
-    await deleteOwnClaudeFile(claudeFileId)
-
-    const { data } = await getConversationAttachmentUploadContext(dataConnect, {
+    // Read again before deleting anything: a write whose answer was lost may have gone through, and
+    // its row then names this very file, which the transcript will reference
+    const { data } = await getConversationAttachment(dataConnect, {
       organizationId,
       userId,
       conversationId,
       attachmentId,
     })
-    const attachment = data.conversationAttachment
+    const [attachment] = data.conversationAttachments
 
-    if (attachment?.status === ConversationAttachmentStatus.READY)
-      return readExisting(attachment, input) ?? { outcome: 'conflict' }
+    if (attachment?.status === ConversationAttachmentStatus.READY && attachment.claudeFileId === claudeFileId) {
+      return { outcome: 'stored', attachment: toAttachmentData(attachmentId, { ...input, pageCount: check.pageCount }) }
+    }
+
+    await deleteOwnClaudeFile(claudeFileId)
+
+    // A retry of the same upload finished first, with the same bytes and so the same pages
+    if (attachment?.status === ConversationAttachmentStatus.READY) {
+      return { outcome: 'stored', attachment: toAttachmentData(attachmentId, { ...input, pageCount: check.pageCount }) }
+    }
+
     if (!attachment || attachment.status === ConversationAttachmentStatus.PRUNING) return { outcome: 'conflict' }
 
     throw error
@@ -323,7 +336,10 @@ async function deleteOwnClaudeFile(claudeFileId: string) {
   }
 }
 
-function toAttachmentData(id: string, attachment: UploadContextAttachment): ConversationAttachmentData {
+function toAttachmentData(
+  id: string,
+  attachment: Pick<UploadContextAttachment, 'name' | 'contentType' | 'size' | 'pageCount'>,
+): ConversationAttachmentData {
   return {
     id,
     name: attachment.name,

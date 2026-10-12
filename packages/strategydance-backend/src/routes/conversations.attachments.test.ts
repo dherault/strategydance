@@ -356,6 +356,44 @@ describe('PUT /:conversationId/attachments/:attachmentId', () => {
     expect(files.files.size).toBe(1)
   })
 
+  test('keeps its file when finishing went through but its answer was lost', async () => {
+    const attachmentId = newId()
+    let isLost = false
+
+    fake.beforeOperation = async (name, variables) => {
+      if (name !== 'CompleteConversationAttachmentUpload' || isLost) return
+
+      isLost = true
+      await (
+        fake.sdk as Record<string, (dataConnect: unknown, variables: unknown) => Promise<unknown>>
+      ).completeConversationAttachmentUpload?.({}, variables)
+
+      throw new Error('The connection was reset')
+    }
+
+    expect((await upload({ attachmentId, bytes: png(), contentType: 'image/png' })).status).toBe(201)
+
+    const claudeFileId = fake.attachments.get(attachmentId)?.claudeFileId ?? ''
+
+    expect(fake.attachments.get(attachmentId)?.status).toBe('READY')
+    expect(files.files.has(claudeFileId)).toBe(true)
+    expect(files.calls.filter(call => call.startsWith('delete'))).toEqual([])
+  })
+
+  test('answers two tries of one upload racing for the 30th place both as stored', async () => {
+    for (let index = 0; index < MAX_PENDING_CONVERSATION_ATTACHMENTS - 1; index++) insertAttachment({ id: newId() })
+
+    const attachmentId = newId()
+    const bytes = png()
+    const responses = await Promise.all([
+      upload({ attachmentId, bytes, contentType: 'image/png' }),
+      upload({ attachmentId, bytes, contentType: 'image/png' }),
+    ])
+
+    expect(responses.map(({ status }) => status)).toEqual([201, 201])
+    expect(fake.attachments.get(attachmentId)?.status).toBe('READY')
+  })
+
   test('refuses an upload under somebody else’s conversation', async () => {
     const conversationId = newId()
 

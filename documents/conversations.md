@@ -357,7 +357,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
     inserts in the same write that updates `preview` and `unreadCount`. A writer that loses the race
     (the worker against an aspects note from the browser) reads the counter again and retries. The
     counter only grows, so a retry's deleted messages leave gaps, never reuse.
-- **`ConversationRun`**: one go of the agent, from a member's action to its end. `conversation`,
+- **`ConversationRun`**: one go of the agent, from what started it to its end: a member's action,
+  and from M30 a launch, a chain or a parent's reaction to its subagents. `conversation`,
   `trigger` (`MESSAGE`, `ANSWER`, `RESUME`, `RETRY`, and from M30 `LAUNCH`, `CONTINUE` and `REPORTS`,
   see Subagents), `status` (`QUEUED`, `RUNNING`, `WAITING`,
   `COMPLETED`, `STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`, `CONTINUED`: a waiting run whose turn
@@ -1800,7 +1801,10 @@ way (see The orchestrator).
   subagent as they read any conversation of the member's, which is what its viewer draws: they are
   keyed on the member as every web read is, so an id names only the reader's own, and nothing of a
   parent or another member's is reached through a subagent's. It is reached from its row in the
-  parent's thread, read only.
+  parent's thread, read only. Its address is no page: the conversation page, given a subagent's id,
+  sends the reader to its parent's page with the subagent's viewer open (`?subagent=<id>`), a
+  bouncer under the page's waiter deciding it, so the composer and the head's actions never show for
+  one. A subagent is never docked, since the dock's read leaves subagents out.
 - **Read only means refused, not only hidden.** Its id reaches the page through its parent, so every
   way a member acts on a conversation refuses a subagent, `parent` null in its filter: the send, the
   answer, Resume, Retry, Stop and the reconcile routes, an upload under its id, and the web's

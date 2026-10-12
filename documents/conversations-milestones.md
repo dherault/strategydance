@@ -1794,9 +1794,10 @@ What a subagent is, and why each rule below holds, is in Subagents.
 - **Recovery**: the reconcile route for a parent's subagents, `POST …/subagents/reconcile`, and the
   sweep's backstop, finalizing dead subagent runs and `PENDING` ones whose membership is gone,
   queueing again and promoting.
-- `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` launches
-  one through `dev:backend`, as `send:conversation` sends a message, until the module and the thread
-  exist.
+- `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` calls
+  `launchSubagent` in its own process, as that account of the emulators, refusing to run anywhere
+  else, as `mcp:knowledge` does, since no route launches one until M31's module. Its runs then go
+  in that process, as every run does in development, and the script stays until they report.
 - `CLAUDE.md`: what a subagent is, its queue, and that every read or count of a member's
   conversations leaves subagents out.
 - **Tests** on `createConversationDatabaseFake` with the scripted client:
@@ -1814,7 +1815,7 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A subagent left out of the list, the counts and search.
 - `bun run check:subagent-runs`, in the backend's package, checks the launch, the promotion and the
   chain's mutations against the emulators.
-- **Verify**: launch three subagents from the script against the local backend, under
+- **Verify**: launch three subagents from the script against the emulators, under
   `CONVERSATION_AGENT=placeholder` and then the real model, and read their transcripts and reports.
 
 ### M31: The Subagents module
@@ -1913,7 +1914,10 @@ Not in the design: built from the design system's components, as Connected agent
 
 - The `launch_subagent` row drawn as its subagent's (see Subagents), with `GetConversationSubagents`
   live and each working row's step through `GetConversationRun`.
-- "View work" opens the dialog: the subagent's thread, read only and live, with its Stop.
+- "View work" opens the dialog: the subagent's thread, read only and live, with its Stop. The
+  conversation page sends a subagent's id to its parent's page with the viewer open
+  (`?subagent=<id>`, validated as a string, as `CLAUDE.md` § Routing asks), through a bouncer under
+  its waiter.
 - The strip above the composer, "3 subagents working", with Stop all.
 - The page reconciles its subagents every two minutes while any is live, or a report waits
   undelivered while the parent could react to it (see Subagents § Recovery).

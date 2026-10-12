@@ -324,6 +324,47 @@ const taskMessages = defineMessages({
     description:
       "Item of the description editor's block menu that turns a paragraph into a heading, a list or a quote.",
   },
+  editorMentionKnowledge: {
+    id: 'task.editorMentionKnowledge',
+    defaultMessage: 'Knowledge',
+    description:
+      "Heading of the group of the team's knowledge, its notes and plans, in the menu that typing @ opens in the text editor, to mention one in the text.",
+  },
+  editorMentionTasks: {
+    id: 'task.editorMentionTasks',
+    defaultMessage: 'Tasks',
+    description:
+      "Heading of the group of the team's tasks, the cards on its board, in the menu that typing @ opens in the text editor, to mention one in the text.",
+  },
+  editorMentionItem: {
+    id: 'task.editorMentionItem',
+    defaultMessage: 'Mention',
+    description:
+      "Item of the text editor's menu of blocks, opened by typing a slash, that opens the menu of the team's knowledge and tasks to mention one in the text.",
+  },
+  editorMentionItemSubtext: {
+    id: 'task.editorMentionItemSubtext',
+    defaultMessage: 'A document or a task',
+    description:
+      'Line under "Mention" in the text editor\'s menu of blocks, saying what can be mentioned: an item of the team\'s knowledge, or a task on its board.',
+  },
+  editorMentionUntitled: {
+    id: 'task.editorMentionUntitled',
+    defaultMessage: 'Untitled',
+    description: "What a mention of an item of the team's knowledge reads in the text when the item has no title.",
+  },
+  editorMentionDocumentGone: {
+    id: 'task.editorMentionDocumentGone',
+    defaultMessage: "(no longer in the team's knowledge)",
+    description:
+      "Read by screen readers after a mention, in the text, of an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
+  },
+  editorMentionTaskGone: {
+    id: 'task.editorMentionTaskGone',
+    defaultMessage: "(no longer on the team's board)",
+    description:
+      "Read by screen readers after a mention, in the text, of a task on the team's board, the shared list of work to do, that was deleted since. Shown crossed out to sighted readers.",
+  },
   loadingEditor: {
     id: 'task.loadingEditor',
     defaultMessage: 'Loading the editor…',

@@ -10,6 +10,7 @@ import { TASK_STATUSES } from '~constants'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLocalDate from '~hooks/common/useLocalDate'
+import useRichTextMentionSource from '~hooks/common/useRichTextMentionSource'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useDeleteTask from '~hooks/task/useDeleteTask'
 import useMoveTask from '~hooks/task/useMoveTask'
@@ -79,7 +80,19 @@ function TaskDialog({ taskId }: Props) {
   const changes = useTaskChanges()
   const move = useMoveTask()
   const remove = useDeleteTask()
+
+  // A linked task, or one its description mentions, opens in this one's place
+  function open(otherId: string) {
+    navigate({
+      to: '/$organizationSlug/tasks/$taskId',
+      params: { organizationSlug, taskId: otherId },
+      replace: true,
+      state: { isFromTaskBoard },
+      resetScroll: false,
+    })
+  }
   const report = useReportTaskError()
+  const mentions = useRichTextMentionSource({ self: { kind: 'task', id: taskId }, openTask: open })
 
   const task = tasks.find(({ id }) => id === taskId)
 
@@ -101,16 +114,6 @@ function TaskDialog({ taskId }: Props) {
   function close() {
     if (isFromTaskBoard) router.history.back()
     else navigate({ to: '/$organizationSlug/tasks', params: { organizationSlug }, replace: true, resetScroll: false })
-  }
-
-  function open(otherId: string) {
-    navigate({
-      to: '/$organizationSlug/tasks/$taskId',
-      params: { organizationSlug, taskId: otherId },
-      replace: true,
-      state: { isFromTaskBoard },
-      resetScroll: false,
-    })
   }
 
   function handleDelete() {
@@ -145,6 +148,7 @@ function TaskDialog({ taskId }: Props) {
             onRetry={hasDescriptionFailed ? refetchDescription : undefined}
             isRetrying={isFetchingDescription}
             onSave={description => report(changes.updateTaskDescription(taskId, description))}
+            mentions={mentions}
           />
           <TaskDependencyField
             title={formatMessage(taskMessages.dependsOn)}

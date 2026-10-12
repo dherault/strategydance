@@ -1485,10 +1485,14 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 | `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten of the conversation's own files. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), and for a file that is not the conversation's | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
-- **The caller carries its launcher.** An agent caller gains `conversationId` and `runId`, which the
-  worker fills from the run as it fills the rest, never from a tool's arguments. The module reads
-  the launching run on the terms of its fence: still `RUNNING`, not asked to stop, not a reaction,
-  and its conversation no subagent. The later orchestrator's runs carry theirs the same way.
+- **The caller carries its launcher**, apart from its access. An agent caller may carry a
+  `launcher`, `{ conversationId, runId }`, which only a worker that has claimed a run fills, from the
+  run as it fills the rest, never from a tool's arguments. Everything else that connects the modules
+  carries none: `measureConversationMessage` connects them before any run exists, to count the
+  tools list, and lists the Subagents module's tools like any others. Every Subagents tool refuses a
+  caller without a launcher, so listing is all such a caller can do. The module reads the launching
+  run on the terms of its fence: still `RUNNING`, not asked to stop, not a reaction, and its
+  conversation no subagent. The later orchestrator's runs carry theirs the same way.
 - **A launch is one mutation**, keyed as every write is, under the parent's row and then the member's
   membership lock (see Subagents): its `ModuleCallResult`, the subagent's conversation, its `BRIEF` message, its first transcript entry
   and its first run, `QUEUED` or `PENDING` by the slots it counts (see Subagents), which also counts
@@ -1872,7 +1876,8 @@ way (see The orchestrator).
   unwaited subagents; the reaction alone does what the wait would, without a second state with its
   own rules for a send and a stop, so there is no `wait_for_subagents` (2026-10-12). The subagents a
   parent's runs launch on one anchor are a batch. Once every subagent of a batch has reported and the
-  parent is idle, its last run `COMPLETED`, no run going and no question waiting, a run starts in the
+  parent is idle, not deleted, its last run `COMPLETED`, no run going and no question waiting, a run
+  starts in the
   parent, triggered `REPORTS`. Its `USER` entry holds one text block per report not delivered yet: the
   subagent's id, title, ending, report and what it wrote. The mutation that stores the entry and
   starts the run marks those reports delivered (`reportDeliveredAt`), under the conversation's lock

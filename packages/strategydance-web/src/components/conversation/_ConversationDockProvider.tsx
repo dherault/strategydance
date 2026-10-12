@@ -9,6 +9,7 @@ import ConversationDockContext from '~contexts/ConversationDockContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import usePersistedState from '~hooks/common/usePersistedState'
+import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversationDraft'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import parseConversationDock from '~utils/conversation/parseConversationDock'
@@ -35,6 +36,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     { parser: parseConversationDock },
   )
   const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
+  const discardConversationDraft = useDiscardConversationDraft()
 
   const key = viewer && organization ? `${viewer.uid}:${organization.id}` : null
   const windows = (key ? dock[key] : null) ?? NO_WINDOWS
@@ -62,7 +64,16 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     })
   }
 
+  /*
+    Opens a window rightmost, letting go of the one opened longest ago past the dock's limit: a
+    draft it lets go of is discarded as closing its window would, so its files hold no place among
+    the reader's unsent files with nothing left to remove them from
+  */
   function openWindow(conversationId: string, { isDraft = false }: { isDraft?: boolean } = {}) {
+    const pushedOut = windows
+      .filter(dockWindow => dockWindow.conversationId !== conversationId)
+      .slice(MAX_DOCK_WINDOWS - 1)
+
     changeWindows(current => {
       const open = current.find(dockWindow => dockWindow.conversationId === conversationId)
 
@@ -72,6 +83,10 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
       ].slice(0, MAX_DOCK_WINDOWS)
     })
     requestFocus(conversationId)
+
+    for (const dockWindow of pushedOut) {
+      if (dockWindow.isDraft) discardConversationDraft(dockWindow.conversationId)
+    }
   }
 
   function setWindowMinimized(conversationId: string, isMinimized: boolean) {

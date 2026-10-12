@@ -166,16 +166,6 @@ function useConversationComposerAttachments(conversationId: string) {
     discard([id])
   }
 
-  // Takes every file out of the message, as discarding a draft does
-  function removeAll() {
-    const ids = draft.attachments.map(({ id }) => id)
-
-    for (const id of ids) abortConversationAttachmentUpload(id)
-
-    changeDraft(() => ({ attachments: [], attachmentRefusal: null }))
-    discard(ids)
-  }
-
   // Uploads some files again, each under a new id, in their places in the tray, once the backend
   // has let go of the old one
   function retry(ids: readonly string[]) {
@@ -214,7 +204,6 @@ function useConversationComposerAttachments(conversationId: string) {
     refusal: draft.attachmentRefusal,
     add,
     remove,
-    removeAll,
     retry,
   }
 }

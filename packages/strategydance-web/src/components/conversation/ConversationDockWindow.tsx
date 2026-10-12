@@ -12,9 +12,9 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { ConversationDockWindow as DockWindow, DockConversation } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
-import useConversationComposerAttachments from '~hooks/conversation/useConversationComposerAttachments'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationDock from '~hooks/conversation/useConversationDock'
+import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversationDraft'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
@@ -25,7 +25,6 @@ import ConversationDockWait from '~components/conversation/ConversationDockWait'
 import ConversationDockWindowBody from '~components/conversation/ConversationDockWindowBody'
 import ConversationDockWindowBouncer from '~components/conversation/ConversationDockWindowBouncer'
 
-import { EMPTY_CONVERSATION_COMPOSER_DRAFT } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
@@ -56,8 +55,8 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const { organization } = useCurrentOrganization()
   const organizationSlug = useCurrentOrganizationSlug()
   const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
-  const [draft, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
-  const attachments = useConversationComposerAttachments(dockWindow.conversationId)
+  const [draft] = useConversationComposerDraft(dockWindow.conversationId)
+  const discardConversationDraft = useDiscardConversationDraft()
   const sectionRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
 
@@ -100,10 +99,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
     )
     const isStored = !!conversation || !!draft.startedRun || !!read?.conversations.length
 
-    if (!isDraft || isStored) return
-
-    attachments.removeAll()
-    changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
+    if (isDraft && !isStored) discardConversationDraft(conversationId)
   }
 
   function openPage() {

@@ -89,6 +89,16 @@ const drafts = createTabStore(
     && !draft.startedRun,
 )
 
+// The key a draft is kept under: the account's, the organization's and the conversation's, as
+// `useConversationComposerDraft` reads it
+export function getConversationComposerDraftKey(
+  userId: string | null | undefined,
+  organizationId: string | null | undefined,
+  conversationId: string,
+) {
+  return `${userId ?? ''}:${organizationId ?? ''}:${conversationId}`
+}
+
 export const readConversationComposerDraft = drafts.read
 
 // Changes what a conversation's composers hold, and forgets it once there is nothing left

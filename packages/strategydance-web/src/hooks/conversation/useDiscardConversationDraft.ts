@@ -5,6 +5,7 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import { abortConversationAttachmentUpload } from '~data/conversationAttachmentUploads'
 import {
   EMPTY_CONVERSATION_COMPOSER_DRAFT,
+  getConversationComposerDraftKey,
   readConversationComposerDraft,
   updateConversationComposerDraft,
 } from '~data/conversationComposerDrafts'
@@ -21,8 +22,7 @@ function useDiscardConversationDraft() {
   const removeConversationAttachment = useRemoveConversationAttachment()
 
   return function discardConversationDraft(conversationId: string) {
-    // The draft's key, as `useConversationComposerDraft` makes it
-    const key = `${viewer?.uid ?? ''}:${organization?.id ?? ''}:${conversationId}`
+    const key = getConversationComposerDraftKey(viewer?.uid, organization?.id, conversationId)
     const { attachments, sendingMessageId, startedRun } = readConversationComposerDraft(key)
 
     if (sendingMessageId || startedRun) return

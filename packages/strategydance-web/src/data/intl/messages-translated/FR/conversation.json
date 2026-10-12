@@ -9,6 +9,8 @@
   "conversation.aspectsNote.tagged": "Strategy Dance a étiqueté cette conversation",
   "conversation.aspectsSelected": "{count} sélectionnés",
   "conversation.aspectsTitle": "Aspects",
+  "conversation.attachmentImageFailed": "{name} n'a pas pu être chargé",
+  "conversation.attachmentOpen": "Ouvrir {name}",
   "conversation.cancel": "Annuler",
   "conversation.citationLabel": "Source {number} : {title}",
   "conversation.close": "Fermer",

@@ -200,7 +200,9 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
       case ConversationMessageKind.MEMBER_TEXT:
         return body ? (
           <ConversationMemberMessage
+            conversationId={conversation.id}
             text={body.text ?? ''}
+            attachments={body.conversationAttachments_on_message}
             documents={documents}
             size={size}
           />

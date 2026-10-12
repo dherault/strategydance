@@ -9,6 +9,8 @@
   "conversation.aspectsNote.tagged": "Strategy Dance hat diese Unterhaltung getaggt",
   "conversation.aspectsSelected": "{count} ausgewählt",
   "conversation.aspectsTitle": "Aspekte",
+  "conversation.attachmentImageFailed": "{name} konnte nicht geladen werden",
+  "conversation.attachmentOpen": "{name} öffnen",
   "conversation.cancel": "Abbrechen",
   "conversation.citationLabel": "Quelle {number}: {title}",
   "conversation.close": "Schließen",

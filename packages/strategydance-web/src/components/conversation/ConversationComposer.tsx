@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { ArrowUpIcon, SquareIcon } from 'lucide-react'
 import {
   type ChangeEvent,
@@ -26,13 +27,16 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Conversation, ConversationRun } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useConversationComposerAttachments from '~hooks/conversation/useConversationComposerAttachments'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationMentions from '~hooks/conversation/useConversationMentions'
 import useSendConversationMessage from '~hooks/conversation/useSendConversationMessage'
 import useStopConversationRun from '~hooks/conversation/useStopConversationRun'
+import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import createId from '~utils/common/createId'
+import getConversationAttachmentQueryKey from '~utils/conversation/getConversationAttachmentQueryKey'
 import getConversationSendFailure, {
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
@@ -143,6 +147,9 @@ function ConversationComposer({
   isAutoFocused = !conversation,
 }: Props) {
   const { formatMessage } = useIntl()
+  const queryClient = useQueryClient()
+  const { data: viewer } = useAuthentication()
+  const { organization } = useCurrentOrganization()
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -180,7 +187,8 @@ function ConversationComposer({
 
     const sentValue = text
     const sentMentions = draft.mentions
-    const sentAttachmentIds = attachments.attachments.map(({ id }) => id)
+    const sentAttachments = attachments.attachments
+    const sentAttachmentIds = sentAttachments.map(({ id }) => id)
     const isRetry = failedSend?.text === sentText && failedSend.attachmentIds.join() === sentAttachmentIds.join()
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
@@ -199,6 +207,16 @@ function ConversationComposer({
         aspects: conversation ? [] : draftAspects,
         attachmentIds: sentAttachmentIds,
       })
+
+      // The images sent are drawn in the thread from the bytes that went up, rather than read back
+      for (const { id, contentType, file } of sentAttachments) {
+        if (!contentType.startsWith('image/')) continue
+
+        queryClient.setQueryData(
+          getConversationAttachmentQueryKey(organization?.id ?? null, conversationId, id, viewer?.uid ?? null),
+          file,
+        )
+      }
 
       // The run is recorded before the send stops going, so no composer drawing the conversation
       // ever sees neither going, and lets a second send race it

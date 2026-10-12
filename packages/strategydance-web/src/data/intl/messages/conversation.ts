@@ -608,6 +608,18 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Messages',
     description: "Accessible name of the list of a conversation's messages.",
   },
+  attachmentOpen: {
+    id: 'conversation.attachmentOpen',
+    defaultMessage: 'Open {name}',
+    description:
+      "Accessible name of the thumbnail of an image the reader sent in a message, which opens it whole. {name} is the image's file name, such as screenshot.png.",
+  },
+  attachmentImageFailed: {
+    id: 'conversation.attachmentImageFailed',
+    defaultMessage: '{name} could not be loaded',
+    description:
+      "Accessible name of the placeholder shown instead of an image the reader sent in a message, when the image could not be read. {name} is the image's file name, such as screenshot.png.",
+  },
   threadEmpty: {
     id: 'conversation.threadEmpty',
     defaultMessage: 'Ask about your company, a decision, or what to do next. Type @ to mention knowledge.',

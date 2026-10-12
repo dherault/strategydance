@@ -1189,6 +1189,14 @@
         "hash": "fd1b6e0f58e02454",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.attachmentImageFailed": {
+        "hash": "2525c05de3142631",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.attachmentOpen": {
+        "hash": "227129cb8ee14e4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.cancel": {
         "hash": "07ff79083e4440c8",
         "locales": "DE,ES,FR,JA,PT,ZH"

@@ -9,6 +9,8 @@
   "conversation.aspectsNote.tagged": "Strategy Dance 标记了此对话",
   "conversation.aspectsSelected": "已选择 {count} 项",
   "conversation.aspectsTitle": "领域",
+  "conversation.attachmentImageFailed": "无法加载 {name}",
+  "conversation.attachmentOpen": "打开 {name}",
   "conversation.cancel": "取消",
   "conversation.citationLabel": "来源 {number}：{title}",
   "conversation.close": "关闭",

@@ -9,6 +9,8 @@
   "conversation.aspectsNote.tagged": "Strategy Danceがこの会話にタグを付けました",
   "conversation.aspectsSelected": "{count}件選択中",
   "conversation.aspectsTitle": "アスペクト",
+  "conversation.attachmentImageFailed": "{name}を読み込めませんでした",
+  "conversation.attachmentOpen": "{name}を開く",
   "conversation.cancel": "キャンセル",
   "conversation.citationLabel": "情報源 {number}: {title}",
   "conversation.close": "閉じる",

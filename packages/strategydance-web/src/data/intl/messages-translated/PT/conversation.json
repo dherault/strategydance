@@ -9,6 +9,8 @@
   "conversation.aspectsNote.tagged": "O Strategy Dance marcou esta conversa",
   "conversation.aspectsSelected": "{count} selecionados",
   "conversation.aspectsTitle": "Aspectos",
+  "conversation.attachmentImageFailed": "Não foi possível carregar {name}",
+  "conversation.attachmentOpen": "Abrir {name}",
   "conversation.cancel": "Cancelar",
   "conversation.citationLabel": "Fonte {number}: {title}",
   "conversation.close": "Fechar",

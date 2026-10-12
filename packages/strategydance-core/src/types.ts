@@ -88,6 +88,8 @@ export type ConversationPreviewSource = {
   answerOther?: string | null
   isAnswerSkipped?: boolean | null
   noteKind?: 'STOPPED' | 'FAILED' | 'REFUSED' | 'INTERRUPTED' | 'FULL' | null
+  // The files a member's message sends, in the order it sends them, as the reverse relation reads them
+  conversationAttachments_on_message?: { name: string }[] | null
 }
 
 /*
@@ -99,6 +101,10 @@ export type ConversationPreview =
   | {
       kind: 'MEMBER_TEXT' | 'AGENT_TEXT'
       text: string
+      // A member's message that sends files: how many, and the first one's name, which the list
+      // shows when the message holds no text
+      attachmentCount?: number
+      attachmentName?: string
     }
   | {
       kind: 'TOOL_CALL'
@@ -154,6 +160,16 @@ export type AnswerConversationQuestionData = {
 // message's id started the first time
 export type SendConversationMessageData = {
   runId: string
+}
+
+// What uploading a file to a conversation answers with, the first time and every time the same
+// upload is sent again: the file as it was stored, its pages counted when it is a PDF
+export type ConversationAttachmentData = {
+  id: string
+  name: string
+  contentType: string
+  size: number
+  pageCount: number | null
 }
 
 // What resuming a stopped or interrupted run answers with: the run that carries it on, or the one a

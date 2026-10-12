@@ -197,7 +197,10 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
 # backend from before M23 still starts one.
 #
 # `$userId` is the uid the backend verified. `$conversationId` and `$organizationId` are what the
-# conversation's live queries refresh on
+# conversation's live queries refresh on#
+# `$attachmentIds` are the files the message sends, at most 10 (`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
+# in strategydance-core), which the backend always passes, empty for a message without files.
+# Optional, so a backend from before M25 still sends.
 mutation StartConversation(
   $organizationId: UUID!
   $userId: String!
@@ -211,6 +214,7 @@ mutation StartConversation(
   $content: String!
   $aspects: [CompanyAspect!]
   $aspectsSetBy: ConversationActor
+  $attachmentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -225,6 +229,10 @@ mutation StartConversation(
     @check(
       expr: "(!has(vars.aspects) || vars.aspects == null) ? (!has(vars.aspectsSetBy) || vars.aspectsSetBy == null) : (has(vars.aspectsSetBy) && vars.aspectsSetBy == 'MEMBER' && vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect)))"
       message: "A conversation starts with the aspects its member picked, each at most once, or with none"
+    )
+    @check(
+      expr: "!has(vars.attachmentIds) || vars.attachmentIds == null || size(vars.attachmentIds) <= 10"
+      message: "A message sends at most 10 files"
     )
   query @redact {
     membership: userOrganizations(
@@ -303,6 +311,25 @@ mutation StartConversation(
   conversationTranscriptEntry_insert(
     data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
   )
+  # The files the message sends, the caller's in this conversation, stored and not sent yet, each set
+  # to this message once. Exactly those named, so a file a prune claimed or another send took since
+  # the backend read them refuses the send. A backend from before M25 names none, and a message of
+  # its sends none
+  conversationAttachment_updateMany(
+    where: {
+      id: { in: $attachmentIds }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      status: { eq: READY }
+      messageId: { isNull: true }
+    }
+    data: { messageId: $messageId }
+  )
+    @check(
+      expr: "(!has(vars.attachmentIds) || vars.attachmentIds == null) ? this == 0 : this == size(vars.attachmentIds)"
+      message: "The message's files changed since the send read them"
+    )
 }
 
 # Sends a message to one of the caller's conversations and queues the run that answers it: the
@@ -312,7 +339,10 @@ mutation StartConversation(
 # once, is the guard: it takes the message only while it is not deleted, has no run in flight, is
 # not full, holds fewer than 2000 messages (`MAX_CONVERSATION_MESSAGES` in strategydance-core), and
 # still has the counters the backend read, which it moves on, the message's position and the run's
-# number. A run or an aspects note that got there first moved them, and the backend reads again
+# number. A run or an aspects note that got there first moved them, and the backend reads again#
+# `$attachmentIds` are the files the message sends, at most 10 (`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
+# in strategydance-core), which the backend always passes, empty for a message without files.
+# Optional, so a backend from before M25 still sends.
 mutation SendConversationMessage(
   $organizationId: UUID!
   $userId: String!
@@ -326,6 +356,7 @@ mutation SendConversationMessage(
   $runNumber: Int!
   $content: String!
   $transcriptPosition: Int!
+  $attachmentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -334,6 +365,10 @@ mutation SendConversationMessage(
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
     @check(expr: "size(vars.text) <= 20000", message: "A message holds at most 20000 characters")
+    @check(
+      expr: "!has(vars.attachmentIds) || vars.attachmentIds == null || size(vars.attachmentIds) <= 10"
+      message: "A message sends at most 10 files"
+    )
   query @redact {
     membership: userOrganizations(
       where: {
@@ -412,6 +447,25 @@ mutation SendConversationMessage(
       content: $content
     }
   )
+  # The files the message sends, the caller's in this conversation, stored and not sent yet, each set
+  # to this message once. Exactly those named, so a file a prune claimed or another send took since
+  # the backend read them refuses the send. A backend from before M25 names none, and a message of
+  # its sends none
+  conversationAttachment_updateMany(
+    where: {
+      id: { in: $attachmentIds }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      status: { eq: READY }
+      messageId: { isNull: true }
+    }
+    data: { messageId: $messageId }
+  )
+    @check(
+      expr: "(!has(vars.attachmentIds) || vars.attachmentIds == null) ? this == 0 : this == size(vars.attachmentIds)"
+      message: "The message's files changed since the send read them"
+    )
 }
 
 # Sends a message to one of the caller's conversations whose last turn left calls open, a question
@@ -426,6 +480,8 @@ mutation SendConversationMessage(
 #   (`$skippedQuestionIds`), so an answer recorded since it read them refuses the send, which reads
 #   again rather than tell Claude a question answered was skipped
 # - the conversation waits for no answer any more
+#
+# Its files are associated as `SendConversationMessage`'s are
 mutation SendConversationMessageAnsweringCalls(
   $organizationId: UUID!
   $userId: String!
@@ -442,6 +498,7 @@ mutation SendConversationMessageAnsweringCalls(
   $lastRunId: UUID!
   $isLastRunWaiting: Boolean!
   $skippedQuestionIds: [UUID!]!
+  $attachmentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -450,6 +507,10 @@ mutation SendConversationMessageAnsweringCalls(
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
     @check(expr: "size(vars.text) <= 20000", message: "A message holds at most 20000 characters")
+    @check(
+      expr: "!has(vars.attachmentIds) || vars.attachmentIds == null || size(vars.attachmentIds) <= 10"
+      message: "A message sends at most 10 files"
+    )
   query @redact {
     membership: userOrganizations(
       where: {
@@ -546,6 +607,25 @@ mutation SendConversationMessageAnsweringCalls(
       content: $content
     }
   )
+  # The files the message sends, the caller's in this conversation, stored and not sent yet, each set
+  # to this message once. Exactly those named, so a file a prune claimed or another send took since
+  # the backend read them refuses the send. A backend from before M25 names none, and a message of
+  # its sends none
+  conversationAttachment_updateMany(
+    where: {
+      id: { in: $attachmentIds }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      status: { eq: READY }
+      messageId: { isNull: true }
+    }
+    data: { messageId: $messageId }
+  )
+    @check(
+      expr: "(!has(vars.attachmentIds) || vars.attachmentIds == null) ? this == 0 : this == size(vars.attachmentIds)"
+      message: "The message's files changed since the send read them"
+    )
 }
 
 # Records the member's answer to a question of the turn their conversation waits on, and answers
@@ -2370,6 +2450,232 @@ mutation RecordConversationSearch($organizationId: UUID!, $userId: String!) @aut
 # reads any more. Deleting them twice deletes nothing, so a sweep that failed is finished by the next
 mutation DeleteExpiredConversationSearches @auth(level: NO_ACCESS) {
   conversationSearch_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# Reserves the place of a file the caller uploads to a conversation, before any of its bytes is
+# accepted: its row, `UPLOADING`, under the id the browser made for it, so an upload retried finds
+# it. The conversation may not exist yet, a draft's, but one that does has to be the caller's and not
+# deleted.
+#
+# The first step writes the caller's membership, the lock a conversation's start takes too, so the
+# count after it sees every file the caller reserved there that committed before it: two uploads at
+# once at 29 let exactly one through. Somebody has at most 30 files uploaded and not sent in an
+# organization (`MAX_PENDING_CONVERSATION_ATTACHMENTS` in strategydance-core: change the two
+# together), counting only those younger than two days, which is when a prune takes them. Read to
+# 30, since past that the upload is refused whatever the rest are. The name, type and size are
+# checked as the backend checked them, `CONVERSATION_ATTACHMENT_CONTENT_TYPES`,
+# `MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH` and `MAX_CONVERSATION_ATTACHMENT_SIZE`. `$userId` is the
+# uid the backend verified
+mutation ReserveConversationAttachment(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+  $name: String!
+  $contentType: String!
+  $size: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can send files in it")
+    @check(
+      expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 10485760 && vars.contentType in ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain', 'text/markdown', 'text/csv']"
+      message: "A file has a name on one line of at most 200 characters, a type a conversation takes, and at most 10 MiB"
+    )
+  query @redact {
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    others: conversations(
+      where: {
+        _and: [
+          { id: { eq: $conversationId } }
+          {
+            _or: [
+              { userId: { ne: $userId } }
+              { organizationId: { ne: $organizationId } }
+              { deletedAt: { isNull: false } }
+            ]
+          }
+        ]
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "The conversation is somebody else's, or deleted") {
+      id
+    }
+    pending: conversationAttachments(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        messageId: { isNull: true }
+        createdAt: { gt_time: { now: true, sub: { days: 2 } } }
+      }
+      limit: 30
+    ) @check(expr: "size(this) < 30", message: "Somebody has at most 30 files waiting to be sent in an organization") {
+      id
+    }
+  }
+  conversationAttachment_insert(
+    data: {
+      id: $attachmentId
+      userId: $userId
+      organizationId: $organizationId
+      conversationId: $conversationId
+      status: UPLOADING
+      name: $name
+      contentType: $contentType
+      size: $size
+    }
+  )
+}
+
+# Finishes the upload of a file whose place was reserved: stored, read back, counted and uploaded to
+# the Files API, it turns `READY` with what was counted, only while it is still `UPLOADING`. A prune
+# that claimed it meanwhile, or a retry of the same upload that finished first, refuses it, and the
+# backend reads the row again to tell which
+mutation CompleteConversationAttachmentUpload(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+  $pageCount: Int
+  $tokenCount: Int!
+  $claudeFileId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationAttachment_updateMany(
+    where: {
+      id: { eq: $attachmentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      status: { eq: UPLOADING }
+    }
+    data: { status: READY, pageCount: $pageCount, tokenCount: $tokenCount, claudeFileId: $claudeFileId }
+  ) @check(expr: "this == 1", message: "The file is no longer being uploaded")
+}
+
+# Claims the caller's unsent files that expired for pruning: a reservation still `UPLOADING` ten
+# minutes on, whose upload failed, and any file uploaded over two days ago, whose pending object the
+# bucket's lifecycle rule deletes. An upload runs it for its caller before it counts their files, so
+# an abandoned draft never keeps their places for good. What a claim took, `PRUNING`, no upload
+# finishes and no send takes, so only the prune deletes its files and then its row
+mutation ClaimExpiredMemberConversationAttachments($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  # One `_and`, because a filter cannot put `_or` beside plain fields
+  conversationAttachment_updateMany(
+    where: {
+      _and: [
+        { userId: { eq: $userId } }
+        { organizationId: { eq: $organizationId } }
+        { messageId: { isNull: true } }
+        {
+          _or: [
+            { status: { eq: UPLOADING }, createdAt: { lt_time: { now: true, sub: { minutes: 10 } } } }
+            { status: { eq: READY }, createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+          ]
+        }
+      ]
+    }
+    data: { status: PRUNING }
+  )
+}
+
+# The daily sweep's: claims everybody's unsent files that expired, as
+# `ClaimExpiredMemberConversationAttachments` claims one member's, for a member who never uploads
+# again
+mutation ClaimExpiredConversationAttachments @auth(level: NO_ACCESS) {
+  # One `_and`, because a filter cannot put `_or` beside plain fields
+  conversationAttachment_updateMany(
+    where: {
+      _and: [
+        { messageId: { isNull: true } }
+        {
+          _or: [
+            { status: { eq: UPLOADING }, createdAt: { lt_time: { now: true, sub: { minutes: 10 } } } }
+            { status: { eq: READY }, createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+          ]
+        }
+      ]
+    }
+    data: { status: PRUNING }
+  )
+}
+
+# Gives back the place of a file whose upload was refused, its bytes not what they claimed or past
+# what Claude takes: its row, only while it is still `UPLOADING`, is claimed for pruning, so a retry
+# of the same upload that finished first keeps its file. Answers how many it claimed
+mutation ReleaseConversationAttachment(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+) @auth(level: NO_ACCESS) {
+  conversationAttachment_updateMany(
+    where: {
+      id: { eq: $attachmentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      status: { eq: UPLOADING }
+      messageId: { isNull: true }
+    }
+    data: { status: PRUNING }
+  )
+}
+
+# Claims a file the caller removes from a draft for pruning, at once, so its place frees straight
+# away: their own, in that conversation, uploading or stored, and not sent, since a sent file goes
+# only with its conversation. Answers how many it claimed
+mutation ClaimConversationAttachment(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+) @auth(level: NO_ACCESS) {
+  conversationAttachment_updateMany(
+    where: {
+      id: { eq: $attachmentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      status: { in: [UPLOADING, READY] }
+      messageId: { isNull: true }
+    }
+    data: { status: PRUNING }
+  )
+}
+
+# Deletes the rows of unsent files a prune claimed, once their files are gone. Only those still
+# claimed and unsent, so a row is never deleted on its id alone. Deleting one twice deletes nothing
+mutation DeletePrunedConversationAttachments($ids: [UUID!]!) @auth(level: NO_ACCESS) {
+  conversationAttachment_deleteMany(where: { id: { in: $ids }, status: { eq: PRUNING }, messageId: { isNull: true } })
+}
+
+# The daily sweep's: deletes the rows of a claimed conversation's files, sent and unsent, once their
+# files are gone, before the conversation's own rows go, which would set their `message` to null.
+# Only the files of that conversation's author in its organization, since another member who learned
+# a draft's id could have uploaded under it, and only while the conversation is claimed and deleted
+# over a day ago, so no live conversation ever loses its files
+mutation DeleteConversationAttachments($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS)
+@transaction {
+  query @redact {
+    claimed: conversations(
+      where: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        pruneClaimedAt: { isNull: false }
+        deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "Only a conversation a prune claimed loses its files") {
+      id
+    }
+  }
+  conversationAttachment_deleteMany(
+    where: { conversationId: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+  )
 }
 
 # The Knowledge module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.

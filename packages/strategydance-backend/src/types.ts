@@ -55,6 +55,16 @@ export type ConversationRunReference = {
   runId: string
 }
 
+// A file sent in a conversation, by what finds everything it left: its id, its conversation, author
+// and organization, and its id in the Files API once it has one
+export type ConversationAttachmentReference = {
+  id: string
+  userId: string
+  organizationId: string
+  conversationId: string
+  claudeFileId?: string | null
+}
+
 // What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
 // membership the run was started under
 export type ConversationRunFence = ConversationRunReference & {
@@ -106,6 +116,26 @@ export type ClaudeClient = {
     },
   ): Promise<BetaMessage>
   countTokens(body: MessageCountTokensParams): Promise<number>
+}
+
+// A file Claude's Files API holds, as its listing says: its id, the name it was uploaded under and
+// when, in RFC 3339
+export type ClaudeFile = {
+  id: string
+  name: string
+  createdAt: string
+}
+
+/*
+  Where the files sent in conversations go so Claude reads them by reference: Anthropic's Files API,
+  which keeps a file until it is deleted. An upload answers the file's id; deleting a file that is
+  gone already counts as deleting it; the listing goes through every file of the workspace, newest
+  first. The real one calls the API; a placeholder and the tests' fake stand in for it
+*/
+export type ClaudeFiles = {
+  upload(file: { name: string; contentType: string; bytes: Uint8Array }): Promise<string>
+  delete(id: string): Promise<void>
+  list(): AsyncIterable<ClaudeFile>
 }
 
 /* ---

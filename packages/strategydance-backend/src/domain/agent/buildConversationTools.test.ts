@@ -40,8 +40,6 @@ async function readTools() {
     organizationId,
     userId: 'member',
     conversationId: '1a2b3c4d5e6f40718293a4b5c6d7e8f9',
-    runId: 'run',
-    attempts: 1,
     membershipCreatedAt: fake.addMember('member', organizationId),
   })
 

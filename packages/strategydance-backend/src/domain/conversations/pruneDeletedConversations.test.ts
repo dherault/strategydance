@@ -1,10 +1,19 @@
 import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
-import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
+import createClaudeFilesFake from '~domain/agent/testing/createClaudeFilesFake'
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
+
+import createConversationDatabaseFake, { type FakeAttachment } from './testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
+const storage = createAttachmentStorageFake()
+const files = createClaudeFilesFake()
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+
+mock.module('~domain/conversations/conversationAttachmentStorage', () => ({ default: storage.storage }))
+
+mock.module('~domain/agent/conversationClaudeFiles', () => ({ default: files.claudeFiles }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
@@ -91,18 +100,92 @@ function isLeft(conversationId: string) {
 
 afterEach(() => setSystemTime())
 
+// A file uploaded under a conversation's id, sent or not, with its objects and its file in the Files API
+function attach(conversationId: string, attachment: Partial<FakeAttachment> = {}) {
+  const id = createId()
+  const row: FakeAttachment = {
+    id,
+    userId: AUTHOR,
+    organizationId: ORGANIZATION_ID,
+    conversationId,
+    messageId: null,
+    status: 'READY',
+    name: 'Board.png',
+    contentType: 'image/png',
+    size: 10,
+    pageCount: null,
+    tokenCount: 371,
+    claudeFileId: `file_${id}`,
+    createdAt: new Date().toISOString(),
+    ...attachment,
+  }
+  const object = { bytes: new Uint8Array(10), contentType: 'image/png' }
+
+  fake.attachments.set(id, row)
+  storage.objects.set(`pending/${ORGANIZATION_ID}/${row.userId}/${id}`, object)
+  files.files.set(`file_${id}`, {
+    id: `file_${id}`,
+    name: id,
+    contentType: 'image/png',
+    bytes: object.bytes,
+    createdAt: '',
+  })
+
+  if (row.messageId) {
+    storage.objects.set(
+      `organizations/${ORGANIZATION_ID}/users/${row.userId}/conversations/${conversationId}/${id}`,
+      object,
+    )
+  }
+
+  return row
+}
+
 beforeEach(() => {
   fake.reset()
+  storage.objects.clear()
+  files.files.clear()
   fake.addMember(AUTHOR, ORGANIZATION_ID)
   fake.addMember(OTHER, ORGANIZATION_ID)
 })
 
 describe('pruneDeletedConversations', () => {
+  test('deletes a pruned conversation’s files, sent and unsent, and keeps another member’s uploaded under its id', async () => {
+    const conversationId = await start(AUTHOR, 48)
+    const sent = attach(conversationId, { messageId: createId() })
+    const unsent = attach(conversationId)
+    const others = attach(conversationId, { userId: OTHER })
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 1, deleted: 1, deletedFiles: 2, deletedResults: 0 })
+    expect(fake.attachments.has(sent.id)).toBe(false)
+    expect(fake.attachments.has(unsent.id)).toBe(false)
+    expect(files.files.has(`file_${sent.id}`)).toBe(false)
+    expect(files.files.has(`file_${unsent.id}`)).toBe(false)
+    expect([...storage.objects.keys()]).toEqual([`pending/${ORGANIZATION_ID}/${OTHER}/${others.id}`])
+    expect(fake.attachments.get(others.id)?.status).toBe('READY')
+  })
+
+  test('keeps a conversation whose files could not be deleted, claimed, and finishes it the next sweep', async () => {
+    const kept = await start(AUTHOR, 48)
+    const pruned = await start(AUTHOR, 48)
+
+    attach(kept, { messageId: createId() })
+    storage.failures.deleteFolder = [new Error('Storage is down')]
+
+    expect(await pruneDeletedConversations()).toMatchObject({ claimed: 2, deleted: 1 })
+    expect(isLeft(kept)).toBe(true)
+    expect(isLeft(pruned)).toBe(false)
+    expect(fake.conversations.get(kept)?.pruneClaimedAt).not.toBeNull()
+
+    expect(await pruneDeletedConversations()).toMatchObject({ claimed: 0, deleted: 1, deletedFiles: 1 })
+    expect(isLeft(kept)).toBe(false)
+  })
+
   test('removes what was deleted over a day ago, whoever’s it is, with its runs, messages and transcript', async () => {
     const old = await start(AUTHOR, 48)
     const othersOld = await start(OTHER, 25)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 2, deleted: 2, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 2, deleted: 2, deletedFiles: 0, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
     expect(isLeft(othersOld)).toBe(false)
   })
@@ -127,7 +210,7 @@ describe('pruneDeletedConversations', () => {
     keep(old, 'toolu_2')
     keep(kept, 'toolu_3')
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 1, deleted: 1, deletedResults: 2 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 1, deleted: 1, deletedFiles: 0, deletedResults: 2 })
     expect([...fake.modules.results.keys()]).toEqual([`conversation:${kept}\ntoolu_3`])
     expect(fake.calls.indexOf('DeleteConversationModuleCallResults')).toBeLessThan(
       fake.calls.indexOf('DeleteClaimedConversations'),
@@ -138,7 +221,7 @@ describe('pruneDeletedConversations', () => {
     const recent = await start(AUTHOR, 23)
     const kept = await start(AUTHOR, null)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedFiles: 0, deletedResults: 0 })
     expect(fake.conversations.get(recent)?.pruneClaimedAt).toBeNull()
     expect(isLeft(recent)).toBe(true)
     expect(isLeft(kept)).toBe(true)
@@ -194,14 +277,14 @@ describe('pruneDeletedConversations', () => {
 
     fake.beforeOperation = async () => {}
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1, deletedFiles: 0, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
   })
 
   test('deletes twenty at a time', async () => {
     for (let count = 0; count < 45; count++) insertDeleted()
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 45, deletedFiles: 0, deletedResults: 0 })
     expect(fake.calls.filter(name => name === 'DeleteClaimedConversations')).toHaveLength(3)
     expect(fake.conversations.size).toBe(0)
   })
@@ -214,18 +297,18 @@ describe('pruneDeletedConversations', () => {
       if (name === 'DeleteClaimedConversations') setSystemTime(new Date(Date.now() + 3 * 60 * 1000))
     }
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 40, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 45, deleted: 40, deletedFiles: 0, deletedResults: 0 })
     expect(fake.conversations.size).toBe(5)
 
     fake.beforeOperation = async () => {}
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 5, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 5, deletedFiles: 0, deletedResults: 0 })
   })
 
   test('deletes nothing, and asks for no delete, when nothing was deleted long enough ago', async () => {
     await start(AUTHOR, null)
 
-    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedResults: 0 })
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 0, deletedFiles: 0, deletedResults: 0 })
     expect(fake.calls).not.toContain('DeleteClaimedConversations')
   })
 })

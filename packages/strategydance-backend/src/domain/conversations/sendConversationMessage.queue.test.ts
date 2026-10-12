@@ -4,6 +4,8 @@ import type { ConversationRunReference } from '~types'
 
 import * as constants from '~constants'
 
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
+
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
@@ -19,6 +21,10 @@ const queueConversationRun = mock(async (_reference: ConversationRunReference): 
 mock.module('~constants', () => ({ ...constants, ARE_CONVERSATION_RUNS_IN_PROCESS: false }))
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+
+mock.module('~domain/conversations/conversationAttachmentStorage', () => ({
+  default: createAttachmentStorageFake().storage,
+}))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 

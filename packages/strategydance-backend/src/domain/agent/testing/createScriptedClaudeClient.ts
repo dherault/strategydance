@@ -86,6 +86,19 @@ function createScriptedClaudeClient({ answers = [], count = () => 0, meanwhile =
         ) {
           throw new Error(`messages.${index}: a tool_result has no corresponding tool_use in the previous message`)
         }
+
+        // Nor does it take a file the Files API holds, so the measurement counts files by their
+        // stored counts instead
+        if (
+          Array.isArray(message.content)
+          && message.content.some(
+            block =>
+              (block.type === 'image' || block.type === 'document')
+              && (block.source as { type?: string }).type === 'file',
+          )
+        ) {
+          throw new Error(`messages.${index}: count_tokens takes no Files API source`)
+        }
       }
 
       return count(body)

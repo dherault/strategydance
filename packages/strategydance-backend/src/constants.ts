@@ -147,6 +147,14 @@ export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
 */
 export const IS_CONVERSATION_AGENT_PLACEHOLDER = !IS_PRODUCTION && process.env.CONVERSATION_AGENT === 'placeholder'
 
+/*
+  What every file the backend uploads to Claude's Files API is named after, before the attachment's
+  id: never the member's own name for it. Development and production read the same API key, so they
+  share one workspace, and its listing holds both: production's sweep deletes the files no row names
+  only under its own prefix, so it never touches a developer's
+*/
+export const CLAUDE_FILE_NAME_PREFIX = `strategydance-${IS_PRODUCTION ? 'production' : 'development'}-`
+
 // How long a task's delivery may take, the run it delivers going the whole time: as long as the
 // worker's own timeout, which `deploy:backend` sets
 export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60

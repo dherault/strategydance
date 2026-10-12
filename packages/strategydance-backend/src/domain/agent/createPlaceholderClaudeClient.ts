@@ -9,6 +9,10 @@ import createClaudeMessage from '~domain/agent/createClaudeMessage'
 // The progress lines it goes through, one after the other
 const PLACEHOLDER_STEPS = ['Reading your message', 'Thinking it over', 'Weighing what to say', 'Writing a reply']
 
+// What a count gives an image and a PDF in a request, in tokens, whatever their size
+const PLACEHOLDER_IMAGE_TOKENS = 1500
+const PLACEHOLDER_PDF_TOKENS = 3000
+
 type Options = {
   // How long each step takes
   stepDurationMs?: number
@@ -21,7 +25,8 @@ type Options = {
   run's request, its claim, lease and steps, the transcript, the thread and the run's end all work
   with it as they do with the model. A request that asks for an answer held to a schema, as the one
   that tags a conversation does, is answered at once with the strategy aspect. A count is the
-  request's JSON length over four, which is all the full-conversation measurement needs of it
+  request's JSON length over four, which is all the full-conversation measurement needs of it, an
+  image and a PDF counted at a fixed allowance instead
 */
 function createPlaceholderClaudeClient({ stepDurationMs = 2000 }: Options = {}): ClaudeClient {
   return {
@@ -56,7 +61,26 @@ function createPlaceholderClaudeClient({ stepDurationMs = 2000 }: Options = {}):
     },
 
     async countTokens(body) {
-      return Math.ceil(JSON.stringify(body).length / 4)
+      let files = 0
+
+      // An image or a PDF counted at a fixed allowance, about what Claude counts for one, rather than
+      // its base64 over four, which would fill a conversation with one PDF
+      const messages = body.messages.map(message => {
+        if (typeof message.content === 'string') return message
+
+        return {
+          ...message,
+          content: message.content.filter(block => {
+            if (block.type === 'image') files += PLACEHOLDER_IMAGE_TOKENS
+            else if (block.type === 'document' && block.source.type === 'base64') files += PLACEHOLDER_PDF_TOKENS
+            else return true
+
+            return false
+          }),
+        }
+      })
+
+      return Math.ceil(JSON.stringify({ ...body, messages }).length / 4) + files
     },
   }
 }

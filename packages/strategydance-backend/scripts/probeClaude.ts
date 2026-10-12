@@ -496,15 +496,31 @@ try {
 
 const uploaded: string[] = []
 
-await check('The Files API takes a PDF and an image, and a message reads both by their ids', async () => {
+await check('The Files API takes a PDF, an image and a text file, and a message reads them by their ids', async () => {
   for (const file of [
     await toFile(pdf, 'probe.pdf', { type: 'application/pdf' }),
     await toFile(image, 'logo.png', { type: 'image/png' }),
+    // A Markdown file, as a conversation sends one: as plain text, titled with its name in its block
+    await toFile(Buffer.from('# Probe notes\n\nThe launch is on a Tuesday.'), 'probe.md', { type: 'text/plain' }),
   ]) {
     uploaded.push((await client.files.upload({ file })).id)
   }
 
-  const [pdfId, imageId] = uploaded
+  const [pdfId, imageId, textId] = uploaded
+
+  // The measurement counts each file by what its upload counted, on the word that the count endpoint
+  // takes no Files API source: what it answers says whether that still holds
+  try {
+    const { input_tokens } = await client.messages.countTokens({
+      model: MODEL,
+      messages: [{ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: pdfId ?? '' } }] }],
+    })
+
+    finding('count_tokens with a Files API source', `accepted: ${input_tokens} tokens`)
+  } catch (error) {
+    finding('count_tokens with a Files API source', `refused: ${describeError(error)}`)
+  }
+
   const message = await client.messages.create({
     model: MODEL,
     max_tokens: 4000,
@@ -515,7 +531,11 @@ await check('The Files API takes a PDF and an image, and a message reads both by
         content: [
           { type: 'document', source: { type: 'file', file_id: pdfId } },
           { type: 'image', source: { type: 'file', file_id: imageId } },
-          { type: 'text', text: 'In one short sentence: what does the document say, and what does the image show?' },
+          { type: 'document', source: { type: 'file', file_id: textId }, title: 'probe.md' },
+          {
+            type: 'text',
+            text: 'In one short sentence each: what does the PDF say, what does the image show, and what day does probe.md name?',
+          },
         ],
       },
     ],
@@ -553,8 +573,6 @@ await check(
       organizationId: '00000000000000000000000000000000',
       userId: 'probe',
       conversationId: '00000000000000000000000000000000',
-      runId: 'probe',
-      attempts: 1,
       membershipCreatedAt: new Date().toISOString(),
     })
 

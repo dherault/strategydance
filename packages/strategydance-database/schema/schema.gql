@@ -552,6 +552,16 @@ enum ConversationTranscriptRole {
   SYSTEM
 }
 
+# Where a file sent in a conversation stands. Append a value; never reorder
+enum ConversationAttachmentStatus {
+  # Its place among the member's unsent files is reserved, and its bytes are on their way
+  UPLOADING
+  # Stored, read back, counted and uploaded to the Files API
+  READY
+  # Claimed by a prune, which deletes its files and then the row. An upload never finishes one
+  PRUNING
+}
+
 # A member's chat with Strategy Dance in an organization. Private: only its author reads it,
 # administrators included, and only through operations keyed by the uid off the token and by their
 # current membership.
@@ -772,6 +782,56 @@ type ConversationTranscriptEntry @table @unique(fields: ["conversation", "positi
   # Within a text drawn in pieces, past 20000 characters, how many of its pieces are drawn: the
   # cursor's piece, 0 between texts
   drawnPieces: Int! @default(value: 0)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# A file a member sends in a conversation: an image, a PDF or a text file. Only the backend reads or
+# writes it, and nothing reaches its files but the backend's routes: `storage.rules` grants clients
+# nothing under `pending/` or `organizations/`.
+#
+# Uploaded before it is sent, into a draft's conversation as often as a saved one's, under
+# `pending/{organizationId}/{userId}/{id}`, where a bucket lifecycle rule deletes what is two days
+# old. Sending copies it to `organizations/{organizationId}/users/{userId}/conversations/
+# {conversationId}/{id}`, every id there written canonical, lowercase without hyphens, and sets its
+# `message` once. Claude reads it by `claudeFileId`, its id in Anthropic's Files API, where the
+# upload put it once.
+#
+# A draft's id is reserved by nothing, so another member who learned it could upload under it:
+# every lookup, count and prune matches `conversationId` with `userId` and `organizationId`
+type ConversationAttachment
+  @table
+  @index(fields: ["conversationId", "userId", "organizationId"])
+  @index(fields: ["userId", "organizationId", "createdAt"])
+  @index(fields: ["claudeFileId"])
+  @index(fields: ["status", "createdAt"]) {
+  # Made by the browser, so an upload retried stores it once, and the object's name in Storage
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # A plain UUID rather than a reference, since a draft's files are uploaded before its
+  # conversation exists
+  conversationId: UUID!
+  # The member's message that sent it, set once, from null. Implies a `messageId: UUID` column, set
+  # to null on delete, so a conversation's prune deletes its files' rows first
+  message: ConversationMessage
+  status: ConversationAttachmentStatus!
+  # Its name as the member's device gave it, on one line of at most 200 characters
+  # (`MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH`). Never sent to the Files API
+  name: String!
+  # One of `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, which its first bytes confirm
+  contentType: String!
+  # In bytes, as its upload declared and its stored object confirms
+  size: Int!
+  # A PDF's pages, counted once when it is stored, so a conversation's total is summed without
+  # reading a file again. Null for any other file
+  pageCount: Int
+  # Its input tokens alone, counted once from its bytes when it is stored, since the count endpoint
+  # takes no Files API source. Null until it is ready
+  tokenCount: Int
+  # Its id in the Files API, written with `READY`. Null until then
+  claudeFileId: String
   createdAt: Timestamp! @default(expr: "request.time")
 }
 

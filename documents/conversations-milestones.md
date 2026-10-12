@@ -72,8 +72,8 @@ M27 well before their neighbours.
 | M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
 | M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
 | M24 | The dock | web | M7 | #145 |
-| M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | |
-| M26 | Attachments in the composer and the thread | web | M22, M25 | |
+| M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
+| M26 | Attachments in the composer and the thread | web, database | M22, M25 | |
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |
@@ -1575,8 +1575,30 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   alone going back to its anchor, which M10 left here.
 - Verify: with a script, upload an image, a PDF and a text file, send them, read the reply.
 
+- Built with these settled, on 2026-10-12, as Attachments § As M25 built it says:
+  - A conversation holds at most 100 files and 20 images, as David chose, since Claude refuses an
+    image over 2000 pixels a side in a request of more than 20 and takes 600 at most.
+  - Files are read back one at a time per instance, the heap collected after each, which the load
+    test asked for: two at a time took twenty 10 MiB uploads past 512 MiB.
+  - The upload requires `Content-Length`; a retry differing from its row is refused, and one losing
+    the race answers as the winner did.
+  - Files API names carry the environment, and only production's sweep deletes orphans.
+  - The send's measurement counts the config change and the run's context message; `isFull` stays
+    the worker's.
+  - An organization's Files API files go after its row, within a minute.
+  - The web connector's attachment selections move to M26.
+  - Verified: the four checks; `check:conversation-attachments`, `check:conversation-runs`,
+    `check:conversation-page`, `check:conversation-list` and `check:conversation-search` against the
+    emulators; with the placeholder, `send:conversation` with an image, a PDF and a Markdown file,
+    each read back byte for byte, a sent one refused removal and an unsent one removed twice; the load
+    test peaking at 433 MiB from 220. Not yet: the real model reading the files and `probe:claude`,
+    which wait for gcloud credentials on this machine.
+
 ### M26: Attachments in the composer and the thread
 
+- In the database package, the web connector's `GetConversationMessageBodies` and
+  `GetConversationMessagesBefore` select each message's files (id, name, type, size), ordered by when
+  they were uploaded, then by id, which M25 left here with the code that reads them.
 - The "+" menu's "Files and images", paste, the tray with upload progress and a remove button
   calling `DELETE …/attachments/:attachmentId`, image shrinking, the budget's message; the thread's thumbnails fetched from `GET …/attachments/:attachmentId` with the
   caller's tokens and shown as object URLs, file chips, the image dialog.

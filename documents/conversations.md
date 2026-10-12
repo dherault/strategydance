@@ -32,8 +32,11 @@ Conversations section on the aspect page, since their design will likely change,
 `suggestionId` column M2 added is dropped; the agent still tags a conversation's aspects. Revised
 on 2026-10-11, in M23, as David chose: the runs answering a conversation's first message tag it, the
 first or one carrying it on, and a draft's aspects picked as none leave it to the agent. Revised on
-2026-10-11, in M24, as David chose: the toasts stay in the bottom right corner, over the dock. When
-a decision changes, change it here first.
+2026-10-11, in M24, as David chose: the toasts stay in the bottom right corner, over the dock.
+Revised on 2026-10-12, in M25, as David chose: a conversation holds at most 100 files and 20 images,
+since every request replays them all and Claude refuses an image over 2000 pixels a side in a request
+of more than 20; and with what building the attachments settled, each where it applies. When a
+decision changes, change it here first.
 
 ## The design
 
@@ -403,7 +406,14 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
 `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the release gate
 `ARE_CONVERSATIONS_STAFF_ONLY`, and the error codes `ERROR_CODE_CONVERSATION_BUSY` and
-`ERROR_CODE_CONVERSATION_FULL`.
+`ERROR_CODE_CONVERSATION_FULL`. M25 added, per conversation, `MAX_CONVERSATION_ATTACHMENTS` (100)
+and `MAX_CONVERSATION_IMAGES` (20); per file, `MAX_CONVERSATION_IMAGE_DIMENSION` (8000),
+`MAX_CONVERSATION_IMAGE_SIZE` (5 MB) and `MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH` (200); per send,
+`MAX_CONVERSATION_SEND_INPUT_TOKENS` (700000); and the error codes
+`ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS`, `ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET` and
+`ERROR_CODE_ATTACHMENT_TOO_LARGE`, beside `ERROR_CODE_UNSUPPORTED_MEDIA_TYPE`. The content types are
+the four raster images Claude reads, `application/pdf`, `text/plain`, `text/markdown` and
+`text/csv`.
 
 ### Who writes what
 
@@ -1011,8 +1021,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   rule could check only the uid, which stays true after a member is removed, so `storage.rules` keeps
   granting clients nothing under `organizations/`, as it does today.
 - Claude receives each file through the Files API, never as bytes in a request. Once the upload
-  route has stored a file, it streams the stored object to the Files API, reading objects back at
-  most two at once per instance so the backend's memory stays bounded however many arrive, and
+  route has stored a file, it streams the stored object to the Files API, reading objects back one
+  at a time per instance so the backend's memory stays bounded however many arrive (M25 first read
+  two at once, which its load test took past 512 MiB), and
   keeps the returned id in `claudeFileId`, in the write that turns the row `READY`. Images go in as
   `image` blocks, and PDFs and text files as `document` blocks, each with `source: { type: "file",
   file_id }`, so a request carries ids rather than bytes, and neither service holds a file while a
@@ -1022,7 +1033,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   organization's files and deletes those no row names after a day. Pruning a conversation or an
   unsent file deletes its file there too, idempotently, and deleting an organization deletes its
   files there from their rows before the rows go. The Files API keeps files until they are deleted,
-  up to 500 MB each and 100 GB for the whole Anthropic organization.
+  up to 500 MB each and 1 TB for the whole Anthropic organization (100 GB when this was written).
 - A conversation's files stay capped at 15 MiB, a storage bound now that no request carries them, a
   text file at 200000 characters (`MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH`), and a message with
   files is sent only while the next request stays under 700000 input tokens. Each file is counted
@@ -1049,6 +1060,46 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   new messages with `ERROR_CODE_CONVERSATION_FULL`. Retry clears the flag as it cuts the tail, and
   the worker measures again before the retried request, setting it back only if the shortened
   request is still too large, so a retry that brings it under the limit frees the conversation.
+
+- **As M25 built it**, on 2026-10-12:
+  - **Many images.** A request holding more than 20 images refuses any image over 2000 pixels a
+    side, and takes 600 images at most; every request replays every file of its conversation. So a
+    conversation holds at most 20 images, which keeps 8000 pixels safe, and 100 files, as David
+    chose, which also bounds every read of a conversation's files. The send counts both with the
+    15 MiB and the 300 pages.
+  - **The upload** requires `Content-Length`, which browsers always send: the size is known before
+    anything is reserved, and bytes that differ from it are refused. A retry whose name, type or size
+    differ from its row is refused, since the row's never change. A retry that loses the race to
+    finish answers as the winner did, its own Files API file deleted, and gives back no place: only a
+    row still `UPLOADING` is released. Its signature is sniffed off the first 4 KiB as they stream.
+  - **Reading back** goes one file at a time per instance, with the heap collected whole after each
+    (`Bun.gc(true)`): Bun collects the buffers a read-back leaves late, so they piled up across files,
+    and twenty files of 10 MiB at once took a fresh backend from 220 to 716 MiB two at a time. One at
+    a time, the real client's requests simulated, it peaked at 434 MiB
+    (`load:conversation-attachments`).
+  - **Its count** is the block as the transcript will send it, inline, on one user message, and an
+    API 400 refuses the file as one Claude cannot read. A text file goes to the Files API as
+    `text/plain`, and a PDF or a text file's `document` block is titled with its name. A message's
+    files come before its text, ordered by when they were uploaded, then by id, which the thread
+    follows too; a message of files alone holds no text block, and titles a conversation it starts
+    after its first file.
+  - **The Files API is the workspace's**, and development and production read the same key: a file
+    is named `strategydance-<environment>-<attachment id>`, never the member's name, and only
+    production's sweep deletes files no row names, under its own prefix.
+  - **The send's measurement** lists the modules' tools as the run does, so it counts the change in
+    the system prompt's and tools' tokens, and counts the context message the run will send. With no
+    stored reply among the 20 latest runs, the whole conversation is counted. `isFull` stays the
+    worker's: a send past 700000 is refused with `ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET`, and
+    the conversation still takes text.
+  - **Deleting an organization** reads its files' ids before its rows go, but deletes them in the
+    Files API once its row is gone, within a minute: a deletion the database refuses then keeps them,
+    and what is left over the sweep deletes a day later.
+  - **The older backend.** A send from a backend before M25 leaves `$attachmentIds` out, which Data
+    Connect reads as no filter: the step matches the conversation's waiting files, and its count
+    refuses the send rather than take them, which `check:conversation-attachments` checks.
+  - The Storage emulator ignores generation preconditions, so a write and a copy read what is there
+    first. The web connector's selections of a message's files move to M26, with the code that reads
+    them.
 
 ### The agent
 
@@ -1846,8 +1897,9 @@ account, and until both exist every send in production answers 503.
      --oidc-token-audience https://strategydance-worker-995028545701.us-central1.run.app \
      --attempt-deadline 15m
    ```
-7. For M25: the bucket's lifecycle rule deleting objects under `pending/` older than two days
-   (`gcloud storage buckets update gs://strategydance.firebasestorage.app --lifecycle-file=…`).
+7. For M25: the bucket's lifecycle rule deleting objects under `pending/` older than two days,
+   `storage.lifecycle.json` (`gcloud storage buckets update gs://strategydance.firebasestorage.app
+   --lifecycle-file=storage.lifecycle.json`), before M25's release reaches production.
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
    development run cost money from the first request: the workspace's spend limit (step 1), and a
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting

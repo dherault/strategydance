@@ -1,19 +1,14 @@
-import Anthropic from '@anthropic-ai/sdk'
-
 import type { ClaudeClient } from '~types'
 
-import { SECRET_ANTHROPIC_API_KEY } from '~constants'
-
-import retrieveSecret from '~utils/retrieveSecret'
+import getAnthropicClient from '~domain/agent/getAnthropicClient'
 
 // How long a count may take before it fails, and the step that asked for it is tried again: a run
 // measures its requests against its own deadline, which a count that hung would carry it past
 const COUNT_TIMEOUT_MS = 30 * 1000
 
 /*
-  The client that calls Claude through Anthropic's API. Its key is `ANTHROPIC_API_KEY` when set, as
-  on a machine whose credentials cannot read the secret, and the `anthropic-api-key` secret
-  otherwise, read once per process and again only after a read that failed.
+  The client that calls Claude through Anthropic's API, on the process's client
+  (`getAnthropicClient`), which the Files API shares.
 
   A request is streamed, as the API asks of one that may run long, and answered with its final
   message. A thinking block with text, which `display: "updates"` turns into a short progress line,
@@ -22,24 +17,9 @@ const COUNT_TIMEOUT_MS = 30 * 1000
   starts, twice; what fails after is the caller's
 */
 function createAnthropicClaudeClient(): ClaudeClient {
-  let client: Promise<Anthropic> | null = null
-
-  function getClient() {
-    if (!client) {
-      client = (async () =>
-        new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || (await retrieveSecret(SECRET_ANTHROPIC_API_KEY)) }))()
-
-      client.catch(() => {
-        client = null
-      })
-    }
-
-    return client
-  }
-
   return {
     async stream(body, { signal, onProgress, onUsage }) {
-      const stream = (await getClient()).beta.messages.stream(body, { signal })
+      const stream = (await getAnthropicClient()).beta.messages.stream(body, { signal })
 
       stream.on('contentBlock', block => {
         if (block.type === 'thinking' && block.thinking.trim()) onProgress(block.thinking.trim())
@@ -53,7 +33,7 @@ function createAnthropicClaudeClient(): ClaudeClient {
 
     async countTokens(body) {
       const { input_tokens } = await (
-        await getClient()
+        await getAnthropicClient()
       ).beta.messages.countTokens(body, {
         timeout: COUNT_TIMEOUT_MS,
       })

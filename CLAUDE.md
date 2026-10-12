@@ -102,7 +102,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators. It answers conversations with Claude, which costs money, unless started with `CONVERSATION_AGENT=placeholder`, which answers with a stand-in reply |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
-| `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
@@ -329,6 +329,18 @@ gs://strategydance.firebasestorage.app --cors-file=storage.cors.json` as an acco
 change the bucket. A preview channel's origin is not listed, so an export there draws initials
 where the pictures were. The Storage emulator applies no rule, so development never needs it.
 
+**Storage deletes what waits under `pending/` for two days, as `storage.lifecycle.json` says.** A
+conversation's files wait there between their upload and their send, and the rule is what makes a
+draft never sent cost nothing for long. It is a setting on the bucket too, which no deploy sends:
+after changing the file, run `gcloud storage buckets update gs://strategydance.firebasestorage.app
+--lifecycle-file=storage.lifecycle.json` as an account that may change the bucket. The emulator
+applies no lifecycle rule.
+
+**The Storage emulator ignores generation preconditions.** An object written or copied with
+`preconditionOpts: { ifGenerationMatch: 0 }` is create-only in production and overwritten in the
+emulator, so code that relies on one, as a conversation's files do, reads what is there first and
+treats an object found as the precondition would, and its tests simulate the 412 on a fake.
+
 ### The database
 
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the
@@ -414,6 +426,11 @@ only way the app talks to them.
   a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
   vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses
   every call from that older page
+- A filter on an optional list variable left out is dropped, so `id: { in: $ids }` without `$ids`
+  matches every row the rest of the filter does. A write filtered so counts its rows against the
+  list, as the sends' `$attachmentIds` step checks `this == size(vars.attachmentIds)`, and this
+  without it, so a caller from before the variable is refused rather than writing rows it never
+  named. `check:conversation-attachments` checks it
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
@@ -491,6 +508,15 @@ faces.
 
 A conversation is kept twice, once for Claude and once for the page, and
 `documents/conversations.md` says how each is written:
+
+- A file a member sends is a `ConversationAttachment`, uploaded before its message, into a draft's
+  conversation as often as a saved one's, so its `conversationId` is a plain UUID nothing reserves.
+  Every lookup, count and prune matches it with `userId` and `organizationId`, since another member
+  who learned a draft's id could upload under it. Its row goes `UPLOADING`, reserved under the
+  membership's lock before any byte is read, then `READY`, or `PRUNING` once a prune claims it, which
+  no upload finishes and no send takes; its `message` is set once, by the mutation that sends it.
+  The transcript holds it by its id in Claude's Files API, never its bytes, and a conversation's
+  prune deletes its files' rows before its own, since `message` is nulled on delete
 
 - The transcript, `ConversationTranscriptEntry`, is what Claude is sent: the exact content blocks
   of every turn, thinking blocks and their signatures included. Only the backend reads or writes
@@ -806,6 +832,28 @@ in `utils/`, one concern per file.
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back
+- So are the files sent in conversations, which the backend serves itself (`GET
+  …/attachments/:attachmentId`), checking the reader is still a member, so none has a download
+  token. An upload streams its body into Storage under `pending/{organizationId}/{userId}/{id}`,
+  create-only, through a check of its signature and its declared `Content-Length`; a send copies it
+  to `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{id}`. Every id
+  in an object's name is canonical (`toCanonicalUuid`), never the route's spelling, so a retry
+  finds the same object. `conversationAttachmentStorage` is the one module that touches the bucket
+  for them, and a test that mocks `~firebase` without `bucket` mocks it instead, with
+  `createAttachmentStorageFake`
+- An upload reads its file back from Storage one at a time in the instance, then collects the heap
+  whole (`Bun.gc(true)`): Bun collects the buffers a read-back leaves late, and twenty files of 10
+  MiB at once took a backend past Cloud Run's 512 MiB otherwise. `bun run
+  load:conversation-attachments <email>`, in the backend's package, is the check, against a local
+  backend: run it after changing what an upload reads, holds or sends
+- Claude reads a conversation's files through Anthropic's Files API (`ClaudeFiles`, the placeholder
+  standing in under `CONVERSATION_AGENT=placeholder`), where the upload sends each once. Its files
+  are the workspace's, and development and production read the same key: every file is named
+  `CLAUDE_FILE_NAME_PREFIX` and its attachment's id, never the member's name for it, and only
+  production's sweep deletes the files no row names, under its own prefix. The count endpoint takes
+  no Files API source, so a file is counted once from its bytes when it is stored, into
+  `tokenCount`, and every measurement takes file blocks out and adds those counts
+  (`replaceConversationFiles`)
 - A request to an address somebody else gave, a link preview's page today, goes through
   `fetchOutbound` in `utils/`, never `fetch`: http or https on its own port, every address the
   hostname resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address
@@ -836,7 +884,12 @@ in `utils/`, one concern per file.
   with what its agent's module calls kept under its scope, `conversation:<id>`
   (`DeleteConversationModuleCallResults`), since nothing references the conversation from them. It
   is a conversation's only prune: starting one leaves its author's to it, and `RestoreConversation`
-  refuses one deleted over a day ago whether or not the sweep has run. Then the
+  refuses one deleted over a day ago whether or not the sweep has run. Each goes with its files,
+  in the Files API and Storage, and their rows, found by the conversation, its author and its
+  organization; one whose files could not all go stays claimed for the next sweep. Then the files
+  uploaded to conversations and never sent, a reservation ten minutes old or a file two days old,
+  and in production the files the Files API holds that no row names, a day old
+  (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
   organization's documents deleted over a day ago, the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
@@ -889,7 +942,8 @@ in `utils/`, one concern per file.
   same path as carrying on
 - What a run asks Claude lives in `domain/agent/`. Claude is reached through a `ClaudeClient`: the
   real one on Anthropic's API, the placeholder `CONVERSATION_AGENT=placeholder` picks in
-  development, and the tests' scripted one, which records each request's bytes. Every request is
+  development, and the tests' scripted one, which records each request's bytes and refuses to count
+  a Files API source, as the endpoint does. Every request is
   built by `buildConversationRequest`, in one key order, so the next request starts with the last
   one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
   hash, and so are the tools a request sends (`buildConversationTools`): a change to either costs

@@ -49,7 +49,7 @@ function buildMemberTextPreview(source: ConversationPreviewSource): Conversation
     kind: 'MEMBER_TEXT',
     text,
     attachmentCount: others.length + 1,
-    attachmentName: attachment.name.slice(0, MAX_CONVERSATION_PREVIEW_LENGTH),
+    attachmentName: takeGraphemes(attachment.name, MAX_CONVERSATION_PREVIEW_LENGTH),
   }
 }
 

@@ -12,9 +12,11 @@ import logger from '~utils/logger'
 import conversationClaudeFiles from '~domain/agent/conversationClaudeFiles'
 import isAdministratorRefusal from '~domain/organizations/isAdministratorRefusal'
 
-// How long deleting an organization spends on its files in the Files API, after its row, so the
-// request ends well inside its time: what is left is a file no row names, which the daily sweep
+// How long deleting an organization spends reading its files' ids in the Files API, before its row
+// goes, and deleting them, after, so the request ends well inside its time however many files it
+// has: a file it never reached is one no row names once the row is gone, which the daily sweep
 // deletes a day later
+const CLAUDE_FILE_IDS_DURATION_MS = 20 * 1000
 const CLAUDE_FILES_DURATION_MS = 60 * 1000
 
 type DeleteOrganizationInput = {
@@ -82,11 +84,21 @@ async function deleteOrganization({
   return { outcome: 'deleted' }
 }
 
-// Every id in the Files API an organization's conversation files hold, a page at a time
+// The ids in the Files API an organization's conversation files hold, a page at a time, as many as
+// its time allows
 async function readClaudeFileIds(organizationId: string) {
   const ids: string[] = []
+  const deadline = Date.now() + CLAUDE_FILE_IDS_DURATION_MS
 
   for (;;) {
+    if (Date.now() >= deadline) {
+      logger.warn(
+        `Organization deletion: the files of ${organizationId} past the first ${ids.length} are left to the sweep`,
+      )
+
+      return ids
+    }
+
     const { data } = await getOrganizationConversationAttachmentFiles(dataConnect, {
       organizationId,
       afterClaudeFileId: ids.at(-1) ?? '',

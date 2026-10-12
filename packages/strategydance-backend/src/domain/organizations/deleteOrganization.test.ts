@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 const ORGANIZATION_ID = '0f9c2b8e-4b1a-4d2c-9e7f-6a5b4c3d2e1f'
 
@@ -10,6 +10,9 @@ const PENDING = 'pending/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f/'
 let claudeFileIds: string[]
 
 let claudeFileFailures: (Error | undefined)[]
+
+// How long each page of the files' ids takes to read, in milliseconds
+let readTakes: number
 
 // What ran, in order, so a test can tell the sweep before the row from the one after
 let steps: string[]
@@ -47,6 +50,8 @@ mock.module('strategydance-database/backend', () => ({
   ) => {
     steps.push('read files')
 
+    if (readTakes) setSystemTime(new Date(Date.now() + readTakes))
+
     return {
       data: {
         conversationAttachments: claudeFileIds
@@ -72,8 +77,11 @@ mock.module('~domain/agent/conversationClaudeFiles', () => ({
 
 const { default: deleteOrganization } = await import('./deleteOrganization')
 
+afterEach(() => setSystemTime())
+
 beforeEach(() => {
   steps = []
+  readTakes = 0
   claudeFileIds = []
   claudeFileFailures = []
   sweepFailures = []
@@ -108,6 +116,17 @@ describe('deleteOrganization', () => {
     expect(steps.indexOf('delete file_000')).toBeGreaterThan(steps.indexOf('row'))
     expect(steps.filter(step => step.startsWith('delete'))).toHaveLength(150)
     expect(logError).toHaveBeenCalledTimes(1)
+  })
+
+  test('reads its files’ ids no longer than its time allows, leaving the rest to the sweep', async () => {
+    claudeFileIds = Array.from({ length: 250 }, (_, index) => `file_${String(index).padStart(3, '0')}`)
+    readTakes = 21 * 1000
+
+    expect(await deleteOrganization({ organizationId: ORGANIZATION_ID, userId: 'admin' })).toEqual({
+      outcome: 'deleted',
+    })
+    expect(steps.filter(step => step === 'read files')).toHaveLength(1)
+    expect(steps.filter(step => step.startsWith('delete'))).toHaveLength(100)
   })
 
   test('keeps the row when the first sweep fails, so the delete can be asked for again', async () => {

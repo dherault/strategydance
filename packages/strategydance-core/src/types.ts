@@ -88,6 +88,8 @@ export type ConversationPreviewSource = {
   answerOther?: string | null
   isAnswerSkipped?: boolean | null
   noteKind?: 'STOPPED' | 'FAILED' | 'REFUSED' | 'INTERRUPTED' | 'FULL' | null
+  // The files a member's message sends, in the order it sends them, as the reverse relation reads them
+  conversationAttachments_on_message?: { name: string }[] | null
 }
 
 /*
@@ -99,6 +101,10 @@ export type ConversationPreview =
   | {
       kind: 'MEMBER_TEXT' | 'AGENT_TEXT'
       text: string
+      // A member's message that sends files: how many, and the first one's name, which the list
+      // shows when the message holds no text
+      attachmentCount?: number
+      attachmentName?: string
     }
   | {
       kind: 'TOOL_CALL'

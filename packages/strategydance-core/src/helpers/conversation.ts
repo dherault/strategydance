@@ -17,6 +17,7 @@ import type {
 export function buildConversationPreview(source: ConversationPreviewSource): ConversationPreview | null {
   switch (source.kind) {
     case 'MEMBER_TEXT':
+      return buildMemberTextPreview(source)
     case 'AGENT_TEXT':
       return { kind: source.kind, text: getMarkdownPreviewText(source.text ?? '') }
     case 'TOOL_CALL':
@@ -31,6 +32,24 @@ export function buildConversationPreview(source: ConversationPreviewSource): Con
       return { kind: source.kind, noteKind: source.noteKind }
     case 'ASPECTS':
       return null
+  }
+}
+
+/*
+  A member's message: its text, and when it sends files, how many and the first one's name, so a
+  message of files alone still says something. The web words it: "You: report.pdf", or "You: 3 files"
+*/
+function buildMemberTextPreview(source: ConversationPreviewSource): ConversationPreview {
+  const text = getMarkdownPreviewText(source.text ?? '')
+  const [attachment, ...others] = source.conversationAttachments_on_message ?? []
+
+  if (!attachment) return { kind: 'MEMBER_TEXT', text }
+
+  return {
+    kind: 'MEMBER_TEXT',
+    text,
+    attachmentCount: others.length + 1,
+    attachmentName: attachment.name.slice(0, MAX_CONVERSATION_PREVIEW_LENGTH),
   }
 }
 

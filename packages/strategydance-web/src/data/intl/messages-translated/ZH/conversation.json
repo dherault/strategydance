@@ -76,6 +76,7 @@
   "conversation.openInDockLabel": "在停靠栏中打开 {title}",
   "conversation.preview.answered": "已回答：{text}",
   "conversation.preview.empty": "暂无消息",
+  "conversation.preview.files": "{count, plural, other {# 个文件}}",
   "conversation.preview.member": "您：{text}",
   "conversation.preview.question": "问题：{text}",
   "conversation.preview.skipped": "已跳过：{text}",

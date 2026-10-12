@@ -213,6 +213,12 @@ const conversationMessages = defineMessages({
     description:
       "A conversation's preview line when its last entry is the reader's own message. {text} is the start of that message.",
   },
+  previewFiles: {
+    id: 'conversation.preview.files',
+    defaultMessage: '{count, plural, one {# file} other {# files}}',
+    description:
+      "How many files the reader's own message sent, shown in a conversation's preview line after 'You:' when the message holds files and no words. {count} is 2 or more.",
+  },
   previewQuestion: {
     id: 'conversation.preview.question',
     defaultMessage: 'Question: {text}',

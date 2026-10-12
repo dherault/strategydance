@@ -13,7 +13,8 @@ type Conversation = {
 
 /*
   The line the list shows under a conversation's title: "Thinking…" while a run goes, then what
-  its last entry is, worded from the facts its preview keeps. A conversation with no preview holds
+  its last entry is, worded from the facts its preview keeps: a message of files alone by its
+  file's name, or how many it sent. A conversation with no preview holds
   nothing yet. One whose preview this page cannot read, of a kind a later release added, shows no
   line rather than a wrong one
 */
@@ -29,8 +30,19 @@ function formatConversationPreview(intl: IntlShape, { activeRunId, preview }: Co
   if (!parsed) return ''
 
   switch (parsed.kind) {
-    case 'MEMBER_TEXT':
-      return formatMessage(conversationMessages.previewMember, { text: parsed.text })
+    case 'MEMBER_TEXT': {
+      const { text, attachmentCount = 0, attachmentName = '' } = parsed
+
+      if (text || !attachmentCount) return formatMessage(conversationMessages.previewMember, { text })
+
+      // A message of files alone: its file's name, or how many it sent
+      return formatMessage(conversationMessages.previewMember, {
+        text:
+          attachmentCount === 1
+            ? attachmentName
+            : formatMessage(conversationMessages.previewFiles, { count: attachmentCount }),
+      })
+    }
     case 'AGENT_TEXT':
       return parsed.text
     case 'TOOL_CALL': {

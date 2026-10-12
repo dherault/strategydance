@@ -76,6 +76,7 @@
   "conversation.openInDockLabel": "Ouvrir {title} dans le dock",
   "conversation.preview.answered": "Réponse : {text}",
   "conversation.preview.empty": "Aucun message pour l'instant",
+  "conversation.preview.files": "{count, plural, one {# fichier} other {# fichiers}}",
   "conversation.preview.member": "Vous : {text}",
   "conversation.preview.question": "Question : {text}",
   "conversation.preview.skipped": "Ignorée : {text}",

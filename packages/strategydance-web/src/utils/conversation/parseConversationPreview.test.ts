@@ -8,6 +8,7 @@ describe('parseConversationPreview', () => {
   it('reads each kind back as it was written', () => {
     const previews: ConversationPreview[] = [
       { kind: 'MEMBER_TEXT', text: 'Hi' },
+      { kind: 'MEMBER_TEXT', text: '', attachmentCount: 2, attachmentName: 'plan.pdf' },
       { kind: 'AGENT_TEXT', text: 'Hello' },
       { kind: 'TOOL_CALL', toolName: 'read_log', toolStatus: 'FAILED' },
       { kind: 'QUESTION', questionState: 'ANSWERED', text: 'X, Y' },
@@ -21,6 +22,19 @@ describe('parseConversationPreview', () => {
     expect(parseConversationPreview({ kind: 'NOTE', noteKind: 'STOPPED', text: 'Extra' })).toEqual({
       kind: 'NOTE',
       noteKind: 'STOPPED',
+    })
+  })
+
+  it("reads a member's message without the files it cannot read", () => {
+    expect(
+      parseConversationPreview({ kind: 'MEMBER_TEXT', text: 'Hi', attachmentCount: 0, attachmentName: 'a' }),
+    ).toEqual({ kind: 'MEMBER_TEXT', text: 'Hi' })
+    expect(
+      parseConversationPreview({ kind: 'MEMBER_TEXT', text: '', attachmentCount: '2', attachmentName: 'a' }),
+    ).toEqual({ kind: 'MEMBER_TEXT', text: '' })
+    expect(parseConversationPreview({ kind: 'MEMBER_TEXT', text: '', attachmentCount: 1 })).toEqual({
+      kind: 'MEMBER_TEXT',
+      text: '',
     })
   })
 

@@ -1457,6 +1457,10 @@
         "hash": "1dadc3e7856a8584",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.preview.files": {
+        "hash": "6b66cd796bcda94c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.preview.member": {
         "hash": "4daa3c66a3c765d7",
         "locales": "DE,ES,FR,JA,PT,ZH"

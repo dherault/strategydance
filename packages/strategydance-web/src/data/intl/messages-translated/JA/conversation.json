@@ -76,6 +76,7 @@
   "conversation.openInDockLabel": "{title}をドックで開く",
   "conversation.preview.answered": "回答済み: {text}",
   "conversation.preview.empty": "メッセージはまだありません",
+  "conversation.preview.files": "{count, plural, other {#件のファイル}}",
   "conversation.preview.member": "あなた: {text}",
   "conversation.preview.question": "質問: {text}",
   "conversation.preview.skipped": "スキップ: {text}",

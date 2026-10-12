@@ -714,13 +714,21 @@ function createConversationsRouter() {
         )
         response.setHeader('Content-Length', result.size)
         response.setHeader('Cache-Control', 'private, max-age=31536000, immutable')
-        response.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(result.name)}`)
+        response.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeHeaderValue(result.name)}`)
         stream.pipe(response)
       })
     },
   )
 
   return router
+}
+
+// A file's name as an RFC 5987 value, which takes none of the characters `encodeURIComponent` leaves
+function encodeHeaderValue(value: string) {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  )
 }
 
 // The refusal of a file for what it is: a 415 for its type, a 413 for its size, a 400 otherwise

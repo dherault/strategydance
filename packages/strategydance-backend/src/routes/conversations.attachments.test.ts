@@ -506,7 +506,7 @@ describe('DELETE /:conversationId/attachments/:attachmentId', () => {
 describe('GET /:conversationId/attachments/:attachmentId', () => {
   test('serves an unsent file from where it waits, with private cache headers', async () => {
     const bytes = png()
-    const attachment = insertAttachment({ id: newId(), name: 'Board été.png', size: bytes.length })
+    const attachment = insertAttachment({ id: newId(), name: "Board d'été (v2).png", size: bytes.length })
 
     storage.objects.set(pendingName(attachment.id), { bytes, contentType: 'image/png' })
 
@@ -516,7 +516,7 @@ describe('GET /:conversationId/attachments/:attachmentId', () => {
     expect(response.headers.get('content-type')).toBe('image/png')
     expect(response.headers.get('cache-control')).toBe('private, max-age=31536000, immutable')
     expect(response.headers.get('content-disposition')).toBe(
-      `inline; filename*=UTF-8''${encodeURIComponent('Board été.png')}`,
+      "inline; filename*=UTF-8''Board%20d%27%C3%A9t%C3%A9%20%28v2%29.png",
     )
     expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes)
   })

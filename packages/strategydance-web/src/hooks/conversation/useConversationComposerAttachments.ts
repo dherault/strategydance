@@ -1,15 +1,12 @@
 import { useIntl } from 'react-intl'
-import {
-  CONVERSATION_ATTACHMENT_CONTENT_TYPES,
-  MAX_CONVERSATION_ATTACHMENT_SIZE,
-  MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
-} from 'strategydance-core'
+import { CONVERSATION_ATTACHMENT_CONTENT_TYPES, MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE } from 'strategydance-core'
 
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useRemoveConversationAttachment from '~hooks/conversation/useRemoveConversationAttachment'
 import useUploadConversationAttachment from '~hooks/conversation/useUploadConversationAttachment'
 
 import createId from '~utils/common/createId'
+import getConversationAttachmentRefusal from '~utils/conversation/getConversationAttachmentRefusal'
 import getConversationAttachmentUploadFailure from '~utils/conversation/getConversationAttachmentUploadFailure'
 import readConversationAttachmentType from '~utils/conversation/readConversationAttachmentType'
 import shrinkConversationImage from '~utils/conversation/shrinkConversationImage'
@@ -109,7 +106,11 @@ function useConversationComposerAttachments(conversationId: string) {
 
         changeDraft(current => ({
           attachments: current.attachments.filter(attachment => attachment.id !== id),
-          attachmentRefusal: { kind: failure, name },
+          // An image past what Claude takes says what that is, rather than what any other file may hold
+          attachmentRefusal: {
+            kind: failure === 'tooLarge' && contentType.startsWith('image/') ? 'imageTooLarge' : failure,
+            name,
+          },
         }))
       }
     })
@@ -133,9 +134,9 @@ function useConversationComposerAttachments(conversationId: string) {
           ),
         )
 
-        if (!contentType) refusal = { kind: 'unsupported', name }
-        else if (file.size > MAX_CONVERSATION_ATTACHMENT_SIZE) refusal = { kind: 'tooLarge', name }
-        else if (!file.size) refusal = { kind: 'empty', name }
+        const kind = getConversationAttachmentRefusal(file, contentType)
+
+        if (kind || !contentType) refusal = { kind: kind ?? 'unsupported', name }
         else if (current.attachments.length + added.length >= MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE) {
           refusal = { kind: 'perMessage', name }
         } else added.push({ id: createId(), name, contentType, file, status: 'uploading', progress: 0 })

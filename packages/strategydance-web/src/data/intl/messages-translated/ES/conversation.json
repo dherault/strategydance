@@ -33,6 +33,7 @@
   "conversation.composer.error": "No se pudo enviar tu mensaje. Comprueba tu conexión e inténtalo de nuevo.",
   "conversation.composer.files": "Archivos e imágenes",
   "conversation.composer.filesGone": "Algunos archivos tardaron demasiado en enviarse y se están subiendo de nuevo. Envía el mensaje en cuanto estén listos.",
+  "conversation.composer.imageTooLarge": "“{name}” es demasiado grande para adjuntarlo. Una imagen puede tener hasta {imageMegabytes, number} MB y {pixels, number} píxeles por lado.",
   "conversation.composer.label": "Mensaje",
   "conversation.composer.mentionKnowledge": "Mencionar conocimiento",
   "conversation.composer.overBudget": "Esta conversación no tiene espacio para estos archivos. Elimínalos para enviar tu mensaje o inicia una nueva conversación para ellos.",

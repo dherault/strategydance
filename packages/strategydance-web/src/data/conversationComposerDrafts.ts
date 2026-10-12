@@ -24,8 +24,9 @@ export type ConversationComposerAttachment = {
 
 // Why a file the reader added was not attached, named in the composer until they add or remove one
 export type ConversationAttachmentRefusal = {
-  // Refused by the backend, or before it went up: an empty file, or one more than a message holds
-  kind: ConversationAttachmentUploadRefusal | 'empty' | 'perMessage'
+  // Refused by the backend, or before it went up: an image past what Claude takes, an empty file, or
+  // one more than a message holds
+  kind: ConversationAttachmentUploadRefusal | 'imageTooLarge' | 'empty' | 'perMessage'
   name: string
 }
 

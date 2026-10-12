@@ -7,6 +7,11 @@ import drawImageInside from '~utils/common/drawImageInside'
 // The images the browser draws again: a GIF is left as it is, since drawing it keeps one frame
 const SHRUNK_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+// Whether the browser shrinks a file of this type before it goes up, so its size before says nothing
+export function isShrunkConversationImage(contentType: string) {
+  return SHRUNK_TYPES.includes(contentType)
+}
+
 /*
   An image as it goes to a conversation: no longer than `CONVERSATION_IMAGE_LONG_SIDE` on its long
   side, which Claude reads it at anyway, and in its own type, so a screenshot stays sharp. One that
@@ -17,7 +22,7 @@ const SHRUNK_TYPES = ['image/jpeg', 'image/png', 'image/webp']
   backend checks what Claude takes whatever the browser did, so the shrinking is a convenience
 */
 async function shrinkConversationImage(file: Blob, contentType: string): Promise<Blob> {
-  if (!SHRUNK_TYPES.includes(contentType)) return file
+  if (!isShrunkConversationImage(contentType)) return file
 
   let bitmap: ImageBitmap | null = null
 

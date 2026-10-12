@@ -33,6 +33,7 @@
   "conversation.composer.error": "Votre message n'a pas pu être envoyé. Vérifiez votre connexion et réessayez.",
   "conversation.composer.files": "Fichiers et images",
   "conversation.composer.filesGone": "Certains fichiers sont restés trop longtemps en attente et sont téléversés à nouveau. Envoyez votre message dès qu'ils sont prêts.",
+  "conversation.composer.imageTooLarge": "“{name}” est trop volumineux pour être joint. Une image peut faire jusqu'à {imageMegabytes, number} Mo et {pixels, number} pixels de côté.",
   "conversation.composer.label": "Message",
   "conversation.composer.mentionKnowledge": "Mentionner des connaissances",
   "conversation.composer.overBudget": "Cette conversation n'a plus de place pour ces fichiers. Supprimez-les pour envoyer votre message, ou démarrez une nouvelle conversation pour les inclure.",

@@ -13,6 +13,8 @@ import { type MessageDescriptor, useIntl } from 'react-intl'
 import {
   MAX_CONVERSATION_ATTACHMENT_SIZE,
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
+  MAX_CONVERSATION_IMAGE_DIMENSION,
+  MAX_CONVERSATION_IMAGE_SIZE,
   MAX_CONVERSATION_MESSAGE_LENGTH,
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_PDF_PAGES,
@@ -67,6 +69,7 @@ const FAILURE_MESSAGES = {
 const REFUSAL_MESSAGES = {
   unsupported: conversationMessages.composerAttachmentUnsupported,
   tooLarge: conversationMessages.composerAttachmentTooLarge,
+  imageTooLarge: conversationMessages.composerImageTooLarge,
   empty: conversationMessages.composerAttachmentEmpty,
   pending: conversationMessages.composerAttachmentsPending,
   perMessage: conversationMessages.composerAttachmentsPerMessage,
@@ -75,6 +78,8 @@ const REFUSAL_MESSAGES = {
 // The numbers the refusals name, each reading those it needs
 const REFUSAL_VALUES = {
   megabytes: MAX_CONVERSATION_ATTACHMENT_SIZE / (1024 * 1024),
+  imageMegabytes: MAX_CONVERSATION_IMAGE_SIZE / (1024 * 1024),
+  pixels: MAX_CONVERSATION_IMAGE_DIMENSION,
   pages: MAX_CONVERSATION_PDF_PAGES,
   characters: MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH,
 }

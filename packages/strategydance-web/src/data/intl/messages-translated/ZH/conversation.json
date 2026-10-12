@@ -33,6 +33,7 @@
   "conversation.composer.error": "无法发送你的消息。请检查网络连接后重试。",
   "conversation.composer.files": "文件和图片",
   "conversation.composer.filesGone": "部分文件因等待发送时间过长正在重新上传。上传完成后即可发送。",
+  "conversation.composer.imageTooLarge": "“{name}”过大，无法添加。图片大小上限为 {imageMegabytes, number} MB，单边尺寸上限为 {pixels, number} 像素。",
   "conversation.composer.label": "消息",
   "conversation.composer.mentionKnowledge": "提及知识",
   "conversation.composer.overBudget": "当前对话已无法容纳这些文件。请将其移除后再发送消息，或开启新对话发送。",

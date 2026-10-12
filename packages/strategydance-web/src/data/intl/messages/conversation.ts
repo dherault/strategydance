@@ -985,6 +985,13 @@ const conversationMessages = defineMessages({
     description:
       "Shown above the message field when the reader tried to attach a file larger than the AI takes. {name} is the file's name. {megabytes} is 10, {pages} is 100 and {characters} is 200000.",
   },
+  composerImageTooLarge: {
+    id: 'conversation.composer.imageTooLarge',
+    defaultMessage:
+      '“{name}” is too large to attach. An image can hold up to {imageMegabytes, number} MB and {pixels, number} pixels a side.',
+    description:
+      "Shown above the message field when the reader tried to attach an image larger than the AI takes, such as a large animated GIF. {name} is the file's name. {imageMegabytes} is 5 and {pixels} is 8000.",
+  },
   composerAttachmentEmpty: {
     id: 'conversation.composer.attachmentEmpty',
     defaultMessage: '“{name}” is empty, so there is nothing to attach.',

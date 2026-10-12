@@ -1285,6 +1285,10 @@
         "hash": "a83bc1cb7c228ceb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.imageTooLarge": {
+        "hash": "bdeac9ab9a56241b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.composer.label": {
         "hash": "16ac60d21b24a121",
         "locales": "DE,ES,FR,JA,PT,ZH"

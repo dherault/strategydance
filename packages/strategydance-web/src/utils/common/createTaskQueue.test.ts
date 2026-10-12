@@ -49,7 +49,7 @@ describe('createTaskQueue', () => {
     expect(log).toEqual(['first', 'second', 'third', 'fourth'])
   })
 
-  it('takes a waiting task out of the line, and aborts one under way, making room at once', async () => {
+  it('takes a waiting task out of the line, and aborts one under way, which keeps its place until it settles', async () => {
     const log: string[] = []
     const queue = createTaskQueue(1)
     const [first, second, third] = ['first', 'second', 'third'].map(name => createTask(log, name))
@@ -62,8 +62,14 @@ describe('createTaskQueue', () => {
     expect(log).toEqual(['first'])
 
     queue.abort('a')
+    await settle()
 
     expect(first!.isAborted).toBe(true)
+    expect(log).toEqual(['first'])
+
+    first!.end()
+    await settle()
+
     expect(log).toEqual(['first', 'third'])
   })
 
@@ -83,21 +89,22 @@ describe('createTaskQueue', () => {
     expect(log).toEqual(['first', 'second'])
   })
 
-  it('aborts the task a key ran when it runs another', async () => {
+  it('aborts the task a key ran when it runs another, and runs the other once there is room', async () => {
     const log: string[] = []
-    const queue = createTaskQueue(2)
+    const queue = createTaskQueue(1)
     const [first, again] = ['first', 'again'].map(name => createTask(log, name))
 
     queue.run('a', first!.task)
     queue.run('a', again!.task)
 
     expect(first!.isAborted).toBe(true)
-    expect(log).toEqual(['first', 'again'])
+    expect(log).toEqual(['first'])
 
-    // The first ending late takes no room from the second
+    // The first ending late lets the second run, and aborts nothing of it
     first!.end()
     await settle()
 
+    expect(log).toEqual(['first', 'again'])
     expect(again!.isAborted).toBe(false)
   })
 })

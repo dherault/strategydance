@@ -4,8 +4,8 @@ import { isRichTextEmpty } from 'strategydance-design-system/lib/isRichTextEmpty
 import { markdownToRichText } from 'strategydance-design-system/lib/markdownToRichText'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
 import {
-  getRichTextBlockTypes,
-  RICH_TEXT_POST_BLOCKS,
+  getRichTextContentTypes,
+  RICH_TEXT_TASK_BLOCKS,
   type RichTextBlock,
   type RichTextInline,
 } from 'strategydance-design-system/lib/richText'
@@ -19,8 +19,9 @@ type MarkdownToTaskDescriptionResult =
 const CELL_SEPARATOR = ' | '
 
 /*
-  A description an agent wrote in Markdown, as a task stores it: a post's blocks, as the task's editor
-  holds them, serialized, and an empty string when it says nothing, with its plain text beside it.
+  A description an agent wrote in Markdown, as a task stores it: a post's blocks and mentions, as the
+  task's editor holds them, serialized, and an empty string when it says nothing, with its plain text
+  beside it. A link to a document or a task, `[title](doc:<id>)` or `[name](task:<id>)`, mentions it.
   Whatever a post cannot hold becomes paragraphs: a code block a paragraph of its text, and a table a
   paragraph per row, its cells' text joined by ` | `, turned so before the blocks are normalized,
   which would drop a table with its text, since it keeps no block without text of its own. Pictures
@@ -28,7 +29,7 @@ const CELL_SEPARATOR = ' | '
 */
 function markdownToTaskDescription(markdown: string): MarkdownToTaskDescriptionResult {
   const blocks = normalizeRichText(writeTablesAsParagraphs(markdownToRichText(markdown)), {
-    blockTypes: getRichTextBlockTypes(RICH_TEXT_POST_BLOCKS),
+    ...getRichTextContentTypes(RICH_TEXT_TASK_BLOCKS),
     media: false,
   })
 

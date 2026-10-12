@@ -93,6 +93,19 @@ describe('update_task', () => {
     expect(fake.tasks.get(task.id)).toMatchObject({ description: '', descriptionText: '' })
   })
 
+  it("keeps a description's mentions through the agent's replacement of it", async () => {
+    const kit = await board.connect()
+    const task = board.add(board.describe('After [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)'))
+    const read = await kit.answer<{ description: string; version: string }>('read_task', { id: task.id })
+
+    await kit.answer('update_task', { id: task.id, description: `${read.description}, today`, version: read.version })
+
+    expect((await kit.answer<{ description: string }>('read_task', { id: task.id })).description).toBe(
+      'After [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9), today',
+    )
+    expect(fake.tasks.get(task.id)!.descriptionText).toBe('After Launch, today')
+  })
+
   it('refuses a description a member saves between the read and the write, rather than write over it', async () => {
     const kit = await board.connect()
     const task = board.add(board.describe('Before'))

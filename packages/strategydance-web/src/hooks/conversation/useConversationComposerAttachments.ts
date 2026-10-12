@@ -31,12 +31,13 @@ import conversationMessages from '~data/intl/messages/conversation'
   One that failed otherwise, its connection lost say, stays, to be uploaded again or removed.
 
   Removing a file stops its upload and tells the backend, so its place among the reader's unsent
-  files frees at once. Uploading one again does it under a new id, and removes the old one, so a
-  reservation the failed try left behind never holds a place
+  files frees at once. Uploading one again does it under a new id once the old one is removed, so a
+  reservation the failed try left behind never holds a place, nor takes the new one's at the cap;
+  should the removal fail, the file stays failed, to be tried again
 */
 function useConversationComposerAttachments(conversationId: string) {
   const { formatMessage } = useIntl()
-  const [draft, changeDraft] = useConversationComposerDraft(conversationId)
+  const [draft, changeDraft, readDraft] = useConversationComposerDraft(conversationId)
   const uploadConversationAttachment = useUploadConversationAttachment()
   const removeConversationAttachment = useRemoveConversationAttachment()
 
@@ -166,7 +167,8 @@ function useConversationComposerAttachments(conversationId: string) {
     discard(ids)
   }
 
-  // Uploads some files again, each under a new id, in their places in the tray
+  // Uploads some files again, each under a new id, in their places in the tray, once the backend
+  // has let go of the old one
   function retry(ids: readonly string[]) {
     const again = new Map<string, ConversationComposerAttachment>()
 
@@ -182,10 +184,19 @@ function useConversationComposerAttachments(conversationId: string) {
       }),
     }))
 
-    for (const id of again.keys()) abortConversationAttachmentUpload(id)
-    for (const attachment of again.values()) upload(attachment)
-
-    discard([...again.keys()])
+    for (const [id, attachment] of again) {
+      abortConversationAttachmentUpload(id)
+      removeConversationAttachment({ conversationId, attachmentId: id }).then(
+        () => {
+          // Unless the reader took it out meanwhile
+          if (readDraft().attachments.some(({ id: attachedId }) => attachedId === attachment.id)) upload(attachment)
+        },
+        (error: unknown) => {
+          console.error('A file could not be removed before it went up again', error)
+          changeAttachment(attachment.id, { status: 'failed' })
+        },
+      )
+    }
   }
 
   return {

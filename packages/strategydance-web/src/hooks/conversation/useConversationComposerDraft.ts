@@ -37,7 +37,12 @@ function useConversationComposerDraft(conversationId: string) {
     updateConversationComposerDraft(key, current => ({ ...current, ...change(current) }))
   }
 
-  return [draft, changeDraft] as const
+  // The draft as it stands now, for what reads it after awaiting something
+  function readDraft() {
+    return readConversationComposerDraft(key)
+  }
+
+  return [draft, changeDraft, readDraft] as const
 }
 
 export default useConversationComposerDraft

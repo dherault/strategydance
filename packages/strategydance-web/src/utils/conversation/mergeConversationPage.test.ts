@@ -16,6 +16,7 @@ function message(position: number): ConversationPageMessage {
     createdAt: '2026-10-04T12:00:00Z',
     isAnswerSkipped: false,
     text: `Message ${position}`,
+    conversationAttachments_on_message: [],
   }
 }
 

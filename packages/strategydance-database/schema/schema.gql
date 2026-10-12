@@ -785,9 +785,10 @@ type ConversationTranscriptEntry @table @unique(fields: ["conversation", "positi
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
-# A file a member sends in a conversation: an image, a PDF or a text file. Only the backend reads or
-# writes it, and nothing reaches its files but the backend's routes: `storage.rules` grants clients
-# nothing under `pending/` or `organizations/`.
+# A file a member sends in a conversation: an image, a PDF or a text file. Only the backend writes it,
+# and the browser reads only a sent file's name, type and size, through the message that sent it, as
+# the thread draws it. Nothing reaches its files but the backend's routes: `storage.rules` grants
+# clients nothing under `pending/` or `organizations/`.
 #
 # Uploaded before it is sent, into a draft's conversation as often as a saved one's, under
 # `pending/{organizationId}/{userId}/{id}`, where a bucket lifecycle rule deletes what is two days

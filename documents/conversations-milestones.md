@@ -1768,9 +1768,9 @@ What a subagent is, and why each rule below holds, is in Subagents.
     Resume, Retry, Stop and reconcile routes, an upload under its id, and the web's delete, restore,
     read and aspects mutations, `parent` null in each filter.
 - `launchSubagent` in `domain/subagents/`, called directly here, since the module comes in M31. It is
-  the one mutation Modules § The Subagents module's tools describes, taking the parent's row, which
-  counts the hundred, then the membership lock, which counts the slots and the ten, then the
-  queueing. The call's key joins it in M31.
+  the one mutation Modules § The Subagents module's tools describes, taking the membership lock,
+  which counts the slots and the ten, then the parent's row, which counts the hundred, the order
+  every run start keeps, then the queueing. The call's key joins it in M31.
 - **The subagent's run**, in `runConversation`:
   - Its system prompt, `subagentSystemPrompt.ts`, and its tools list, both pinned by their bytes.
   - The brief as its anchor, its files sent by their Files API ids.
@@ -1868,6 +1868,10 @@ What a subagent is, and why each rule below holds, is in Subagents.
 - **Tests**:
   - A batch of three reacted to once, after the last report.
   - Two ends at once starting one reaction.
+  - Two overlapping batches: the first's completion delivering its reports alone, never a finished
+    report of the second; a send carrying both, and the second's completion its remainder.
+  - A reaction held back by the member's runs in other conversations, started when one of them ends,
+    and by the sweep with no page open.
   - A question waiting not consumed, its answer carrying the reports.
   - A send carrying them, after its tool results.
   - A reaction's launch refused.
@@ -1885,7 +1889,7 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its
     `subagentCount` by as many, and a parent that reached the hundred launching again after.
 - `check:conversation-runs` gains the reaction's lock, two ends at once, and a launch against the
-  parent's Stop and delete, each in both orders.
+  parent's Stop and delete and against a send, an answer, Resume and Retry, each in both orders.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, and read the board and the
     reaction.

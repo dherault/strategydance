@@ -30,7 +30,7 @@ import conversationMessages from '~data/intl/messages/conversation'
   Removing a file stops its upload and tells the backend, so its place among the reader's unsent
   files frees at once. Uploading one again does it under a new id once the old one is removed, so a
   reservation the failed try left behind never holds a place, nor takes the new one's at the cap;
-  should the removal fail, the file stays failed, to be tried again
+  should the removal fail, the file stays failed under its old id, to be tried again
 */
 function useConversationComposerAttachments(conversationId: string) {
   const { formatMessage } = useIntl()
@@ -194,7 +194,8 @@ function useConversationComposerAttachments(conversationId: string) {
         },
         (error: unknown) => {
           console.error('A file could not be removed before it went up again', error)
-          changeAttachment(attachment.id, { status: 'failed' })
+          // Under its old id again, so trying again or removing it reaches the reservation still held
+          changeAttachment(attachment.id, { id, status: 'failed' })
         },
       )
     }

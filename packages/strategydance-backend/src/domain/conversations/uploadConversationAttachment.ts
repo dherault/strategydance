@@ -29,9 +29,16 @@ import deletePrunedConversationAttachments from '~domain/conversations/deletePru
 import pruneMemberConversationAttachments from '~domain/conversations/pruneMemberConversationAttachments'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 
-// The files each instance reads back from Storage at once, to check, count and send to the Files
-// API, so its memory stays bounded however many uploads arrive together
-const readBackLimit = createConcurrencyLimit(2)
+/*
+  The files each instance reads back from Storage at once, to check, count and send to the Files
+  API, so its memory stays bounded however many uploads arrive together: one, and the heap collected
+  whole after each. Bun collects the buffers a read-back leaves late, so they pile up across files
+  rather than files at once: twenty files of 10 MiB uploaded together took one backend past Cloud
+  Run's 512 MiB two at a time without collecting, and to 434 MiB one at a time with
+  (`load:conversation-attachments`, with the requests the real client sends simulated). A full
+  collection takes milliseconds, which an upload of megabytes does not notice
+*/
+const readBackLimit = createConcurrencyLimit(1)
 
 type UploadConversationAttachmentInput = {
   // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it
@@ -79,7 +86,7 @@ type UploadContextAttachment = {
     expired files are pruned, so a member at the 30 is refused at once
   - its bytes stream into Storage under `pending/`, create-only, through a check of their signature
     and their size, so Storage holds no file that is not what it claims
-  - it is read back, two at once in the instance, checked against what Claude takes, its tokens
+  - it is read back, one at a time in the instance, checked against what Claude takes, its tokens
     counted from its bytes, since the count endpoint takes no Files API source, and uploaded to the
     Files API
   - its row turns `READY` with its pages, tokens and Files API id
@@ -150,7 +157,13 @@ async function uploadConversationAttachment(
     return stored
   }
 
-  return readBackLimit(() => finish(input))
+  return readBackLimit(async () => {
+    try {
+      return await finish(input)
+    } finally {
+      Bun.gc(true)
+    }
+  })
 }
 
 // What an upload sent again answers from the row it found, or null to carry on uploading it

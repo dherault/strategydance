@@ -38,7 +38,7 @@ function createAttachmentUploadCheck({ contentType, size }: AttachmentUploadChec
     const bytes = Buffer.concat(head)
 
     if (!sniffConversationAttachment(bytes, contentType)) {
-      return new AttachmentUploadRefusal('unsupported', `The file is not a ${contentType} file`)
+      return new AttachmentUploadRefusal('unsupported', `The file's bytes are not ${contentType}`)
     }
 
     isSniffed = true

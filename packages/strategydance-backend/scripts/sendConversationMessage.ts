@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { basename, extname, isAbsolute, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
 import { DEVELOPMENT_API_URL, DEVELOPMENT_APP_URL } from 'strategydance-core'
@@ -9,13 +11,16 @@ import { authentication, dataConnect } from '~firebase'
   Sends a message to a conversation through the backend, as the page's composer does, in
   development:
 
-    bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] <text>
+    bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] [--file <path>]… <text>
 
   It signs in to the Auth emulator as the account with that address, which has to have signed in
   to the app once and be staff (`bun run grant:administrator <email>`), and sends the text to the
   conversation named, or to a new one, in the organization named, or in the only one the account
-  belongs to. It prints what the backend answered and the conversation's address, where the page
-  shows the reply arrive. `bun run dev:backend` has to be running, or the backend `API_URL` names.
+  belongs to. Each `--file`, an image, a PDF or a text file typed by its extension, a relative path
+  read from the repository's root, where `bun run send:conversation` is run, is uploaded through the
+  backend first, as the composer uploads one, and sent with the text, which may then be
+  empty. It prints what the backend answered and the conversation's address, where the page shows
+  the reply arrive. `bun run dev:backend` has to be running, or the backend `API_URL` names.
 
   Like `grantAdministrator.ts`, it refuses to run unless it points at the emulators, which the
   package's `send:conversation` script does
@@ -27,13 +32,28 @@ if (!process.env.FIREBASE_AUTH_EMULATOR_HOST || !process.env.DATA_CONNECT_EMULAT
   process.exit(1)
 }
 
-const USAGE = 'Usage: bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] <text>'
+const USAGE =
+  'Usage: bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] [--file <path>]… <text>'
+
+// The type a file is uploaded as, by its extension
+const CONTENT_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.pdf': 'application/pdf',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.csv': 'text/csv',
+}
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
   options: {
     organization: { type: 'string' },
     conversation: { type: 'string' },
+    file: { type: 'string', multiple: true },
   },
   allowPositionals: true,
 })
@@ -41,8 +61,14 @@ const { values, positionals } = parseArgs({
 // Firebase lowercases the addresses it stores
 const email = positionals[0]?.trim().toLowerCase()
 const text = positionals.slice(1).join(' ')
+// The repository's root, which the root script's relative paths are written from, though it runs
+// this from the package's own directory
+const ROOT = resolve(import.meta.dir, '../../..')
+const paths = (values.file ?? []).map(path =>
+  isAbsolute(path) || existsSync(path) || !existsSync(resolve(ROOT, path)) ? path : resolve(ROOT, path),
+)
 
-if (!email || !text) {
+if (!email || (!text && !paths.length)) {
   console.error(USAGE)
   process.exit(1)
 }
@@ -129,10 +155,41 @@ const idToken = await signIn(userId)
 let response: Response
 
 try {
+  const attachmentIds: string[] = []
+
+  for (const path of paths) {
+    const contentType = CONTENT_TYPES[extname(path).toLowerCase()]
+
+    if (!contentType) {
+      console.error(`${path} is no image, PDF or text file a conversation takes`)
+      process.exit(1)
+    }
+
+    const attachmentId = createId()
+    const upload = await fetch(
+      `${apiUrl}/organizations/${organizationId}/conversations/${conversationId}/attachments/${attachmentId}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'Content-Type': contentType,
+          'X-File-Name': encodeURIComponent(basename(path)),
+        },
+        body: await Bun.file(path).arrayBuffer(),
+      },
+    )
+
+    console.log(`${basename(path)}: ${upload.status} ${JSON.stringify(await upload.json())}`)
+
+    if (!upload.ok) process.exit(1)
+
+    attachmentIds.push(attachmentId)
+  }
+
   response = await fetch(`${apiUrl}/organizations/${organizationId}/conversations/${conversationId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messageId: createId(), text }),
+    body: JSON.stringify({ messageId: createId(), text, attachmentIds }),
   })
 } catch {
   console.error(`The backend does not answer on ${apiUrl}: start it with \`bun run dev:backend\``)

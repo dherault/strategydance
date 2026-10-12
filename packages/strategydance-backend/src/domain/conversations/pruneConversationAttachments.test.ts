@@ -7,7 +7,9 @@ import createConversationDatabaseFake, { type FakeAttachment } from './testing/c
 
 const fake = createConversationDatabaseFake()
 const storage = createAttachmentStorageFake()
-const files = createClaudeFilesFake()
+// What the Files API's next deletes fail with, which a test fills
+const deleteFailures: Error[] = []
+const files = createClaudeFilesFake({ deleteFailures })
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
@@ -130,5 +132,24 @@ describe('pruneOrphanedClaudeFiles', () => {
     expect([...files.files.keys()].sort()).toEqual(
       [named.claudeFileId ?? '', 'file_probe', 'file_production', 'file_young'].sort(),
     )
+  })
+
+  test('carries on past a file it cannot delete, leaving it for the next sweep', async () => {
+    const day = new Date(Date.now() - 25 * HOUR).toISOString()
+
+    for (const id of ['file_first', 'file_second']) {
+      files.files.set(id, {
+        id,
+        name: `strategydance-development-${id}`,
+        contentType: 'application/pdf',
+        bytes: new Uint8Array(1),
+        createdAt: day,
+      })
+    }
+
+    deleteFailures.push(new Error('Overloaded'))
+
+    expect(await pruneOrphanedClaudeFiles(Date.now() + 60_000)).toEqual({ deleted: 1, isComplete: true })
+    expect(files.files.size).toBe(1)
   })
 })

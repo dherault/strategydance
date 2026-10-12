@@ -6,7 +6,7 @@ import { ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS, ERROR_CODE_UNKNOWN_ERROR } fro
 mock.module('~data/firebase', () => ({
   EMULATORS_REQUESTED: true,
   appCheck: null,
-  authentication: { currentUser: { getIdToken: async () => 'id-token' } },
+  authentication: { currentUser: { uid: 'reader', getIdToken: async () => 'id-token' } },
 }))
 
 const { API_URL, ApiError, requestApiFile, uploadApiFile } = await import('~data/api')
@@ -133,6 +133,18 @@ describe('uploadApiFile', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 502, code: ERROR_CODE_UNKNOWN_ERROR })
+  })
+
+  test('refuses a file of another account than the one signed in, before anything is sent', async () => {
+    const upload = uploadApiFile({ method: 'PUT', path: '/files/1', file: new Blob(['a']), userId: 'somebody-else' })
+
+    await expect(upload).rejects.toMatchObject({ status: 401 })
+    expect(FakeXMLHttpRequest.latest).toBeNull()
+
+    const own = uploadApiFile({ method: 'PUT', path: '/files/1', file: new Blob(['a']), userId: 'reader' })
+
+    ;(await sent()).answer(201, { status: 'success' })
+    await own
   })
 
   test('rejects with a TypeError when the connection is lost, and with the reason when aborted', async () => {

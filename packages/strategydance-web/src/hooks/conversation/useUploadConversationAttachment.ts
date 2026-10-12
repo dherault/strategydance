@@ -1,5 +1,6 @@
 import type { ConversationAttachmentData } from 'strategydance-core'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import { uploadApiFile } from '~data/api'
@@ -21,11 +22,17 @@ type ConversationAttachmentUpload = {
   Uploads a file the reader adds to a message, to one of their conversations in the current
   organization, or to a draft, before the message that sends it. The backend reserves its place
   among the reader's unsent files before it reads a byte, checks what Claude takes, and answers
-  once it is stored. Its name travels URL-encoded in a header, so any character does
+  once it is stored. Its name travels URL-encoded in a header, so any character does.
+
+  It goes up as the account that added it, the one signed in when this was drawn: a file whose
+  turn comes after a sign-out, another account signed in since, is refused rather than uploaded,
+  and counted, as theirs
 */
 function useUploadConversationAttachment() {
+  const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
+  const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
 
   return async function uploadConversationAttachment({
@@ -37,7 +44,7 @@ function useUploadConversationAttachment() {
     onProgress,
     signal,
   }: ConversationAttachmentUpload) {
-    if (!organizationId) throw new Error('No organization is current')
+    if (!organizationId || !viewerId) throw new Error('Nobody is signed in, or no organization is current')
 
     return uploadApiFile<ConversationAttachmentData>({
       method: 'PUT',
@@ -46,6 +53,7 @@ function useUploadConversationAttachment() {
       file: file.slice(0, file.size, contentType),
       headers: { 'X-File-Name': encodeURIComponent(name) },
       onProgress,
+      userId: viewerId,
       signal,
     })
   }

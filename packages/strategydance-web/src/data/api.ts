@@ -51,6 +51,9 @@ type UploadApiFileOptions = {
   headers?: Record<string, string>
   // Told the share of the file sent so far, from 0 to 1, as it goes
   onProgress?: (share: number) => void
+  // The account the file is that of, when it is sent later than it was picked: refused while any
+  // other is signed in, so it never goes up as somebody else
+  userId?: string
   // Aborts the upload
   signal?: AbortSignal
 }
@@ -72,12 +75,17 @@ function encodeBody(body: unknown) {
 
   The ID token comes from the SDK, which refreshes it when it is about to expire, so a fresh one
   goes with every call. The App Check token goes along outside the emulators only: the local
-  backend skips the check, and the debug token a development browser holds would only be refused
+  backend skips the check, and the debug token a development browser holds would only be refused.
+  A call made for one account is refused while another is signed in
 */
-async function createApiHeaders() {
+async function createApiHeaders(userId?: string) {
   const user = authentication.currentUser
 
   if (!user) throw new ApiError(401, ERROR_CODE_UNAUTHORIZED_AUTHENTICATION, 'Nobody is signed in')
+
+  if (userId !== undefined && user.uid !== userId) {
+    throw new ApiError(401, ERROR_CODE_UNAUTHORIZED_AUTHENTICATION, 'Another account is signed in')
+  }
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${await user.getIdToken()}`,
@@ -184,10 +192,11 @@ export async function uploadApiFile<T = void>({
   file,
   headers,
   onProgress,
+  userId,
   signal,
 }: UploadApiFileOptions) {
   const requestHeaders = {
-    ...(await createApiHeaders()),
+    ...(await createApiHeaders(userId)),
     'Content-Type': file.type || 'application/octet-stream',
     ...headers,
   }

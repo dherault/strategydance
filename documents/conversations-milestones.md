@@ -81,7 +81,7 @@ once M29 has merged.
 | M30 | Subagent runs on the worker | database, core, backend, root | M17, M25, setup 11 | |
 | M31 | The Subagents module | core, backend, web | M30 | |
 | M32 | Subagents in conversations | backend, database, root | M11, M31 | |
-| M33 | Subagents in the thread | web, database | M24, M32 | |
+| M33 | Subagents in the thread | web, database | M24, M26, M32 | |
 | M34 | Integrations in subagents (written, not to build yet) | backend | M29, M32 | |
 | M35 | Launch | all | all | |
 
@@ -1755,7 +1755,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
 
 - **The schema change**, additive:
   - `Conversation` gains `parent`, `launchRunId`, `launchToolUseId`, `launchAnchorPosition`,
-    `report`, `reportedAt` and `reportDeliveredAt`, indexed on `parentId`.
+    `report`, `reportedAt`, `reportDeliveredAt` and `subagentCount`, indexed on `parentId`, and
+    `ConversationMessage` gains `attachmentIds`, a `BRIEF`'s files.
   - `ConversationRunTrigger` gains `LAUNCH`, `CONTINUE` and `REPORTS`, `ConversationRunStatus`
     `PENDING` and `CHAINED`, and `ConversationMessageKind` `BRIEF`, each appended.
   - The limits go in strategydance-core (see The data).
@@ -1763,9 +1764,13 @@ What a subagent is, and why each rule below holds, is in Subagents.
     null. So do the backend's searches and the counts that `MAX_CONVERSATIONS` and
     `MAX_ACTIVE_RUNS_PER_MEMBER` hold: a subagent is in none of them, and nothing a member sees
     changes in this milestone.
+  - Every way a member acts on a conversation refuses a subagent (see Subagents): the send, answer,
+    Resume, Retry, Stop and reconcile routes, an upload under its id, and the web's delete, restore,
+    read and aspects mutations, `parent` null in each filter.
 - `launchSubagent` in `domain/subagents/`, called directly here, since the module comes in M31. It is
-  the one mutation Modules § The Subagents module's tools describes, under the membership lock that
-  counts the slots, the ten and the hundred, then the queueing. The call's key joins it in M31.
+  the one mutation Modules § The Subagents module's tools describes, taking the parent's row, which
+  counts the hundred, then the membership lock, which counts the slots and the ten, then the
+  queueing. The call's key joins it in M31.
 - **The subagent's run**, in `runConversation`:
   - Its system prompt, `subagentSystemPrompt.ts`, and its tools list, both pinned by their bytes.
   - The brief as its anchor, its files sent by their Files API ids.
@@ -1773,11 +1778,14 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - The chain: `CHAINED`, the `CONTINUE` run carrying on as Resume does, and the tool calls' budget
     read from the run's number.
   - The report, written by the mutation that ends its last run.
-  - The promotion of the member's oldest `PENDING` run, in the mutation that ends each subagent run.
+  - The promotion of the member's oldest `PENDING` run, in the mutation that ends a subagent for
+    good, never in one that chains, and skipping a run whose membership is gone, which the reconcile
+    and the sweep finalize.
 - **The `subagent-runs` queue**: `enqueueRun` takes the queue, with `SUBAGENT_RUN_QUEUE_PATH` beside
   `CONVERSATION_RUN_QUEUE_PATH` (setup step 11). The worker's route stays the same.
 - **Recovery**: the reconcile route for a parent's subagents, `POST …/subagents/reconcile`, and the
-  sweep's backstop, finalizing dead subagent runs, queueing again and promoting.
+  sweep's backstop, finalizing dead subagent runs and `PENDING` ones whose membership is gone,
+  queueing again and promoting.
 - `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` launches
   one through `dev:backend`, as `send:conversation` sends a message, until the module and the thread
   exist.
@@ -1786,7 +1794,10 @@ What a subagent is, and why each rule below holds, is in Subagents.
 - **Tests** on `createConversationDatabaseFake` with the scripted client:
   - A chain of four runs, the fourth failing at its limits with its report.
   - A sixth launch waiting `PENDING`, and promoted by another's end.
+  - A chain while all five slots are taken, promoting nothing and staying at five.
   - Two ends at once promoting one run once.
+  - A `PENDING` run of a member removed, skipped by the promotion and finalized by the sweep.
+  - Each route and web mutation refusing a subagent's id, called directly.
   - A dead subagent run finalized by the reconcile, and reporting so.
   - The brief's files sent by id.
   - A subagent left out of the list, the counts and search.
@@ -1819,6 +1830,7 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - Another tool with that key refused.
   - Each refusal.
   - A stop of an ended subagent changing nothing.
+  - A launch on a deleted parent, or from a run asked to stop, refused.
 - `bun run check:subagents-module`, in the backend's package, checks its operations against the
   emulators.
 - No endpoint is served, so nothing joins `check:oauth`: the module reaches external agents in a later
@@ -1852,8 +1864,11 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A Retry stopping and deleting the cut runs' subagents, and the parent's restore not bringing them
     back.
   - Stop reaching a `PENDING` subagent.
+  - A launch after the parent's Stop or delete refused, and one before reached by it.
+  - A parent restored after its subagents reported reacting at its next reconcile.
   - The sweep pruning subagents before their parent.
-- `check:conversation-runs` gains the reaction's lock, two ends at once.
+- `check:conversation-runs` gains the reaction's lock, two ends at once, and a launch against the
+  parent's Stop and delete, each in both orders.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, and read the board and the
     reaction.
@@ -1867,8 +1882,10 @@ Not in the design: built from the design system's components, as Connected agent
   live and each working row's step through `GetConversationRun`.
 - "View work" opens the dialog: the subagent's thread, read only and live, with its Stop.
 - The strip above the composer, "3 subagents working", with Stop all.
-- The page reconciles its subagents every two minutes while any is live.
-- `BRIEF` drawn at the top of a subagent's thread, its files as chips.
+- The page reconciles its subagents every two minutes while any is live or a report waits
+  undelivered.
+- `BRIEF` drawn at the top of a subagent's thread, its files as chips read through its
+  `attachmentIds`, as M26 draws a message's.
 - Strings in the `conversation` catalogue, the tools' labels among them, and `bun run translate`.
 - **Verify** in a browser, on the conversation page and in a docked window, at desktop and phone
   widths: a fan-out of three, one stopped from its row, the others reported, and the reaction drawn.

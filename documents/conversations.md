@@ -1481,7 +1481,7 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 | Tool | What it does | Scope |
 | --- | --- | --- |
 | `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and whether its report was delivered | read |
-| `read_subagent` | `{ id }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, at most 50, each with its tool. Refused for a subagent of another conversation, as for one that does not exist | read |
+| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, as for one that does not exist | read |
 | `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten of the conversation's own files. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), and for a file that is not the conversation's | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
@@ -1863,7 +1863,8 @@ way (see The orchestrator).
   every member's reply waits on. `enqueueRun` takes the queue. In development they run in the
   backend's process, as every run does.
 - **Recovery.** No page polls a subagent's run, so the parent's page reconciles its subagents: while
-  any is live or a report waits undelivered, it calls
+  any is live, or a report waits undelivered while the parent could react to it (not deleted, not
+  full, its last run `COMPLETED` and nothing waiting), it calls
   `POST …/conversations/:conversationId/subagents/reconcile` every two minutes,
   which finalizes their dead runs, queues again a run whose task is gone while it is under twenty
   minutes old, as the run reconcile does, promotes `PENDING` runs into free slots, and starts the
@@ -1879,7 +1880,8 @@ way (see The orchestrator).
   parent is idle, not deleted, its last run `COMPLETED`, no run going and no question waiting, a run
   starts in the
   parent, triggered `REPORTS`. Its `USER` entry holds one text block per report not delivered yet: the
-  subagent's id, title, ending, report and what it wrote. The mutation that stores the entry and
+  subagent's id, title, ending and report, and the first 20 of what it wrote with their `total`,
+  `read_subagent` paging the rest. The mutation that stores the entry and
   starts the run marks those reports delivered (`reportDeliveredAt`), under the conversation's lock
   (`activeRunId` null, `@check(this == 1)`), so two subagents ending at once start one reaction and
   the second finds the parent busy. A subagent's end checks after its own write, a parent run ending
@@ -1901,6 +1903,11 @@ way (see The orchestrator).
     `COMPLETED` or with a note, and a reaction follows the first.
   - A send while subagents work starts a run as any send does. Nothing waits on them, so nothing is
     skipped, and they go on.
+  - **A full parent takes no report.** A parent marked `isFull`, or at `MAX_CONVERSATION_MESSAGES`,
+    can neither react, since its runs end with the full note at once, nor be sent to, so its
+    subagents' reports are marked delivered as they come, with no run, by the mutation that ends each
+    subagent's last run, and stay readable on their rows and through `read_subagent`. Nothing then
+    waits, and the page stops reconciling for them.
 - **Bounds**, as David chose: at most ten subagents launched on one anchor (`MAX_SUBAGENTS_PER_ACTION`),
   which is the member's action and the runs carrying it on, and at most 100 per conversation until
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.
@@ -1985,14 +1992,18 @@ no milestones yet: its own plan comes later.
   which is what the orchestrator takes up.
 - **Its run** is a conversation of the agent membership, one a day, which no member's list shows,
   with the modules and the Subagents module, its subagents acting as the agent membership too. The
-  AI permissions hold for it as for every agent, and its deletes can be restored for a day.
+  AI permissions hold for it as for every agent, and its deletes can be restored for a day. Its
+  conversations count toward no cap a member's do, `MAX_CONVERSATIONS` among them, which a day a
+  conversation would reach in under three years: they are kept for a while, 30 days in this sketch,
+  then deleted and swept with their subagents, the log outliving them.
 - **The log** is a table of its own, `OrchestratorLogEntry`: the organization, the day, the run, and
   each entry's kind (what it found, decided or changed), the document or task it concerns, and why.
   It is written through a tool of the orchestrator's own, beside the module writes its run's tool
   calls record anyway.
-- **Open for its plan**: who reads the log and the runs (administrators, or every member), whether an
-  organization adds an instruction of its own, a budget per day, the hour it runs in each
-  organization's time zone, and whether anything starts it between two days.
+- **Open for its plan**: who reads the log and the runs (administrators, or every member), how long
+  its conversations and its log are kept, whether an organization adds an instruction of its own, a
+  budget per day, the hour it runs in each organization's time zone, and whether anything starts it
+  between two days.
 
 ### Rich text and Markdown
 

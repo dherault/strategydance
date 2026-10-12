@@ -1144,7 +1144,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 - **The system prompt** (`domain/agent/systemPrompt.ts`, with a test pinning its bytes): who
   Strategy Dance is and that it challenges the team; that a conversation is private to one member;
   short, plain answers in the member's language, without em dashes, in the Markdown the thread draws;
-  links to knowledge as `[title](doc:<id>)` and to tasks as `[name](task:<id>)` (from M17); reading
+  links to knowledge as `[title](doc:<id>)` and to tasks as `[name](task:<id>)` (from M17), in a
+  reply and in what it writes into a document or a task's description, where such a link mentions
+  it, the same links in what the tools return being the team's mentions; reading
   before relying, writing decisions into knowledge when the member agrees and saying what changed,
   flagging a document's aspects when they are missing or wrong, deleting one only when the member
   asks, never touching a document the team keeps AI from changing, and saying it cannot read one
@@ -1286,8 +1288,9 @@ member.
   error, so the model can correct itself.
 - **The server's instructions**, each module's own, tell an external agent what Strategy Dance is
   and how to use the module: for Knowledge, what the aspects are, which Markdown documents are
-  written in, and that the team shares each document, which members may be editing while the agent
-  does.
+  written in, a link to `doc:<id>` or `task:<id>` being a mention of the document or the task that
+  `read_document` or `read_task` opens, and that the team shares each document, which members may
+  be editing while the agent does.
 
 **The Knowledge module's tools**, built in M14, reaching Strategy Dance's agent in M16 and external
 agents in M20:
@@ -1296,9 +1299,9 @@ agents in M20:
 | --- | --- | --- |
 | `search_documents` | `{ query, aspects?, limit? }`: up to 10 documents AI may read (`isAiReadable` on), with id, title, aspects, `updatedAt`, `isAiWritable` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts. An external agent's search draws on the member's search allowance (see Who writes what) | read |
 | `list_documents` | `{ aspects?, cursor? }`: the documents AI may read, 50 at a time, latest updated first and then by id, since two can share an instant, with id, title, aspects, `updatedAt` and `isAiWritable`, and a `cursor`, holding the last one's `updatedAt` and id, while more remain, for an agent that would rather look round than search | read |
-| `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
-| `create_document` | `{ title, aspects, content }`: a new document, content in Markdown, stored as its first Yjs snapshot with `content` and `contentText` beside it, under the knowledge cap, as `CreateDocument` holds it. It starts with `isAiReadable` and `isAiWritable` on, as a document made on the page does, so the agent that made it can read and edit it, and the team can turn either off | write |
-| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | write |
+| `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, a mention written as `[title](doc:<id>)` or `[name](task:<id>)`, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
+| `create_document` | `{ title, aspects, content }`: a new document, content in Markdown, mentions included, stored as its first Yjs snapshot with `content` and `contentText` beside it, under the knowledge cap, as `CreateDocument` holds it. It starts with `isAiReadable` and `isAiWritable` on, as a document made on the page does, so the agent that made it can read and edit it, and the team can turn either off | write |
+| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, never a mention, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | write |
 | `set_document_aspects` | `{ id, aspects }`: flags the document with its aspects, replacing them all, each at most once, as the aspects dialog does. Refused as `update_document` is | write |
 | `delete_document` | `{ id }`: deletes the document as its page's Delete does, setting `deletedAt`, so it can be restored for a day, which the result says. Refused unless AI may both read and change it | write |
 | `restore_document` | `{ id }`: restores a document deleted less than a day ago, under the knowledge cap, as `RestoreDocument` does. Refused unless AI may both read and change it | write |
@@ -1337,7 +1340,7 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
 | --- | --- | --- |
 | `list_tasks` | `{ query?, status?, assignee?, aspects?, cursor? }`: the board's live tasks, filtered as the board's own filters are: `query`, at most 100 characters (`MAX_SEARCH_QUERY_LENGTH`), a piece of text the name or the description's plain text holds, whatever its case, as the board's search matches it; `status`, one column; `assignee`, `"me"`, `"agent"` for Strategy Dance, `"unassigned"`, or `"member:<id>"` for a member, the board's own encodings: `member:<id>` as its filter and its assignment select write a member, so no member's id can be read as one of the words, and `"unassigned"` as the select writes nobody, which the board's filter lacks and the module's adds; and `aspects`, the tasks tagged with any of them, as the board's filter takes them. Ordered as the board shows them, column by column, then by `position`, then by when they were created and by id, so two tasks at one position keep one order. Each with id, name, status, assignee (a member's id and name, or Strategy Dance), due date, aspects, the ids of the live tasks it waits on, `isBlocked` (it is not done and waits on one that is not, as the board marks a card with its lock: a done task is never blocked) and `updatedAt`, but nothing of its description, which `read_task` gives: whether a task has one is not known from `descriptionText` while it is not indexed. A page holds up to 100 tasks and 40000 characters, with `total` and a `cursor`, holding the last task's place, while more remain. The first page also lists `members`, the id and name of every member, at most 100 (`MAX_TEAM_SIZE`), so an agent can assign a task. A query matches a pattern on the name or on `descriptionText`, the description's plain text kept beside it (see the rules below), and answers the matching tasks' ids alone, never a description. No index serves a pattern, so the database scans the board, which is its bound, as `SearchConversationsBySubstring`'s 20000 messages are its: at most 1000 tasks (`MAX_TASKS`), each description at most 20000 characters stored, which the board's own search reads into every browser that opens it anyway, and an external agent's queries draw on the member's search allowance. It answers `isIndexComplete: false` while some descriptions are not indexed yet | read |
 | `read_task` | `{ id }`: a live task: its fields, who created it and when, its description as Markdown with its `version`, a hash of the description as stored, the tasks it waits on and those waiting on it, each with id, name and status, each list cut at 20 with its count (`list_tasks` gives every link), and `isBlocked`. The whole answer stays within 45000 characters as JSON writes it, short of a result's 50000. A description holds at most 20000 characters as stored, but every character Markdown has to escape grows each time it is written out, an asterisk becoming `\*` in the Markdown and `\\*` in the JSON, so a description that would take the answer past its budget comes as its plain text, cut to fit, with `isDescriptionComplete: false` and no `version`: the model reads it but cannot replace it whole, which the result says | read |
-| `create_task` | `{ name, status, description?, assignee?, dueDate?, aspects? }`: a new task at the end of its column, as a column's + adds one. `status` is required, so the model chooses Backlog for an idea and To do for agreed work rather than inherit a default; the task is the member's unless `assignee`, which takes `list_tasks`' values, says otherwise, as the page drafts a new task. The name is one line of at most 120 characters (`MAX_TASK_NAME_LENGTH`), trimmed, and the description Markdown, held to a post's blocks and to `MAX_TASK_DESCRIPTION_LENGTH` serialized. Under the board's cap, `MAX_TASKS`, as `CreateTask` holds it | write |
+| `create_task` | `{ name, status, description?, assignee?, dueDate?, aspects? }`: a new task at the end of its column, as a column's + adds one. `status` is required, so the model chooses Backlog for an idea and To do for agreed work rather than inherit a default; the task is the member's unless `assignee`, which takes `list_tasks`' values, says otherwise, as the page drafts a new task. The name is one line of at most 120 characters (`MAX_TASK_NAME_LENGTH`), trimmed, and the description Markdown, held to a post's blocks and mentions and to `MAX_TASK_DESCRIPTION_LENGTH` serialized. Under the board's cap, `MAX_TASKS`, as `CreateTask` holds it | write |
 | `update_task` | `{ id, name?, description?, version?, status?, beforeId?, assignee?, dueDate?, aspects? }`: changes the fields it names and no other, in one write, so a member changing another field meanwhile keeps their change, as the page's one mutation per field means them to. `status` moves the task to that column, before `beforeId` when it names a task there, at the column's end otherwise, and leaves it where it is when `beforeId` names the task itself and `status` its own column, as the page leaves a card dropped on itself, while a `beforeId` that is not in the column `status` names, the task itself moving elsewhere included, is refused; a move into a gap too narrow for a float is refused (see Places), and a move to Done answers which tasks can start now, as the page's toast says, the first 50 by the board's order with their count, since one task can free the whole board. `description` replaces the whole description, as the page's Save does, so it is refused unless `version`, from `read_task`, is still the description's ("The description changed since you read it. Read it again first."), and `""` clears it. `assignee` takes `list_tasks`' values, `"unassigned"` taking the task off whoever had it, `dueDate` takes `null` to clear it, and `aspects` replaces them all, each at most once. Refused, before anything is read, when it names no field, or `beforeId` or `version` without what they go with | write |
 | `add_task_dependency` | `{ id, dependsOnId }`: the task waits on another live task of the board. Refused when it is the task itself, when the link would close a loop of any length, whose tasks the refusal names, the first 20 along the loop and its length, since one can run through the whole board, and past 50 links (`MAX_TASK_DEPENDENCIES`). A link that exists already changes nothing, and the result says so. Answers whether the task is now blocked | write |
 | `remove_task_dependency` | `{ id, dependsOnId }`: the task stops waiting on the other. Refused when it does not wait on it. Answers whether the task can start now: it is not done and waits on nothing unfinished | write |
@@ -1349,17 +1352,18 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   task is a short brief the whole team shares and nothing on the board is private. What an external
   agent reads of it reaches that agent's provider, which the legal review before M30 names with the
   rest.
-- **A description is a post's.** It is stored as a post's blocks, serialized
-  (`RICH_TEXT_POST_BLOCKS`: paragraphs, headings, quotes, lists and check lists), and saved whole,
-  never shared as a document's text is. `read_task` reads it through `richTextToMarkdown`, and a
-  write goes through `markdownToRichText`, whatever falls outside a post's blocks becoming
-  paragraphs, as the task's editor holds it: a code block a paragraph of its text, and a table,
-  which `normalizeRichText` would drop with its text, since it keeps no block without text of its
-  own, a paragraph per row, its cells' text joined by ` | `, turned so by the module before the
-  blocks are normalized, and is refused past `MAX_TASK_DESCRIPTION_LENGTH` once serialized. A write
-  replaces what a member saved, so it names the `version` the model read, and the write is guarded
-  on the task as it was read, below, so a member's save landing in between refuses it rather than
-  being lost.
+- **A description is a post's, with mentions.** It is stored as a post's blocks and mentions,
+  serialized (`RICH_TEXT_TASK_BLOCKS`: paragraphs, headings, quotes, lists and check lists, and
+  mentions of documents and tasks, see Rich text and Markdown), and saved whole, never shared as a
+  document's text is. `read_task` reads it through `richTextToMarkdown`, and a write goes through
+  `markdownToRichText`, a `doc:` or `task:` link becoming a mention and whatever else falls outside
+  a post's blocks becoming paragraphs, as the task's editor holds it: a code block a paragraph of
+  its text, and a table, which `normalizeRichText` would drop with its text, since it keeps no block
+  without text of its own, a paragraph per row, its cells' text joined by ` | `, turned so by the
+  module before the blocks are normalized, and is refused past `MAX_TASK_DESCRIPTION_LENGTH` once
+  serialized. A write replaces what a member saved, so it names the `version` the model read, and
+  the write is guarded on the task as it was read, below, so a member's save landing in between
+  refuses it rather than being lost.
 - **A description's plain text.** `Task.descriptionText` holds the description's plain text
   (`getRichTextText`), as `Document.contentText` holds a document's, and a query reads it rather
   than the stored JSON, whose structural words, `type`, `content`, `text`, every description holds,
@@ -1430,9 +1434,10 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   `https://strategydance.com/<organization>/tasks/<id>`, which opens it in its dialog over the
   board. Strategy Dance's agent's carry none, since it links with `task:` (see The agent).
 - **The server's instructions** tell an external agent what Strategy Dance is, what the board's
-  columns and the aspects mean, that a description is a short brief in Markdown, that the team moves
-  tasks while the agent does, and that a task assigned to Strategy Dance is one the team expects
-  Strategy Dance's own agent to take up.
+  columns and the aspects mean, that a description is a short brief in Markdown, whose links to
+  `doc:<id>` and `task:<id>` mention a document or a task, that the team moves tasks while the agent
+  does, and that a task assigned to Strategy Dance is one the team expects Strategy Dance's own
+  agent to take up.
 
 **Idempotent writes.** MCP has no idempotency key (the specification's issue #3394 asks for one),
 so a write retried by a client that lost its answer would land twice. Every write tool takes one in
@@ -1708,14 +1713,14 @@ David's call at M30.
 
 ### Rich text and Markdown
 
-Documents and task descriptions are stored as BlockNote blocks (paragraphs, headings 1 to 3,
-quotes, bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and
-mail links), and documents also as code, tables, pictures, YouTube, Vimeo and Loom videos and link
-preview cards; the agent reads and writes Markdown. The stored model lives in the design system's
-`lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`, `getRichTextText`), beside the
-conversions between blocks and a document's shared text (`createRichTextYUpdate`,
-`readRichTextYDoc`), which go through a headless BlockNote editor and so need `@blocknote/core` and
-`yjs`. strategydance-core has no runtime dependency and keeps none, so
+Documents and task descriptions are stored as BlockNote blocks (paragraphs, headings 1 to 3, quotes,
+bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and mail links,
+and mentions of a document or a task), and documents also as code, tables, pictures, YouTube, Vimeo
+and Loom videos and link preview cards; the agent reads and writes Markdown. The stored model lives
+in the design system's `lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`,
+`getRichTextText`), beside the conversions between blocks and a document's shared text
+(`createRichTextYUpdate`, `readRichTextYDoc`), which go through a headless BlockNote editor and so
+need `@blocknote/core` and `yjs`. strategydance-core has no runtime dependency and keeps none, so
 the model does not move there: the backend imports those `lib/` modules from the design system
 instead, which import neither React nor the DOM, and whose tests already run them under Bun. M13
 adds a pure `richTextToMarkdown` and `markdownToRichText` there for exactly that subset: anything
@@ -1743,12 +1748,51 @@ model a page told to add a picture could make every reader's browser send the do
 of the page's choosing. A `replaceBlocks` over a range holding one of them has to keep it, by
 leaving it out of the range.
 
-A task's description is a post's blocks, `RICH_TEXT_POST_BLOCKS`, as a log entry's are, stored as
-one serialized string and saved whole rather than shared: the Tasks module reads it through
-`richTextToMarkdown` and writes it through `markdownToRichText`, whatever a post cannot hold written
-as paragraphs, a table's rows turned into paragraphs of their cells' text first, since normalizing
-would drop a table with its text, and replaces it only while it is still the `version` the model
-read (see Modules).
+**Mentions** of a document or a task are two of BlockNote's inline content types,
+`documentMention` and `taskMention`, which a member types with `@` in a document or a task's
+description and which the agent reads and writes as the links it already writes in a reply,
+`[title](doc:<id>)` and `[name](task:<id>)`, as David chose on 2026-10-12. A post, a log entry's or a
+priority's, never holds one (`RICH_TEXT_POST_BLOCKS`), so the public pages draw none. A
+description's blocks are a post's and both mentions (`RICH_TEXT_TASK_BLOCKS`), and a document's
+(`RICH_TEXT_EDITOR_BLOCKS`) hold both too.
+
+- **What one holds**: the id, as Data Connect writes it, 32 lowercase hex digits, and the words it
+  was made with, the document's title or the task's name at the time, on one line and at most 300
+  characters. The editor and `RichText` draw the live title from the organization's lists, which a
+  page reads once a mention needs them, as the thread reads them for its links: a mention whose id
+  the list lacks is struck through and muted, as a gone link is, and the stored words show while
+  the list is unread. Nothing rewrites the words after a rename. They are what the Markdown link,
+  the plain text and a page that reads no list show. A mention takes no style: y-prosemirror stores
+  no mark on an element, so a bold run across one leaves it plain. Its props are append-only:
+  y-prosemirror writes every attribute, defaults included, and one renamed or removed would make
+  `readRichTextYDocCopy` refuse every document holding a mention.
+- **Markdown**: `richTextToMarkdown` writes a mention as a link to `doc:<id>` or `task:<id>`, its
+  words the link's. `markdownToRichText` reads such a link, its scheme in any case and its id with
+  or without hyphens, as a mention whose words are the link's text without its styles, and a
+  picture whose address is one the same way, since a picture reads as a link. Any other `doc:` or
+  `task:` address, `doc:123` say, stays its words, as before. `normalizeRichText` keeps a mention
+  whose id is valid in an editor whose list holds it, and makes any other its words, as it makes a
+  link to an unsafe address.
+- **Plain text**: `getRichTextText` reads a mention as its words, so `contentText` and
+  `descriptionText` index them, and a search for a document's title also finds what mentions it. A
+  mention is content, so a description holding one alone is not empty.
+- **The agent's edits**: `media: false` keeps mentions, which load nothing. `replaceText` reads a
+  block's text with every leaf but a hard break as U+FFFC, and finds no `find` holding that
+  character, so it never matches or replaces a mention: changing one is a `replaceBlocks`.
+- **Nothing checks the id.** A mention of an id the organization does not hold, written by an agent
+  or a member's own client, draws as gone. Its words reach the agent with the text around it even
+  when it names a document the team keeps from AI, as the title typed out would.
+- **The release.** A tab still on the bundle from before deletes the mentions of a document's
+  shared text, which its schema lacks, and drops those of a description it saves, which its
+  `normalizeRichText` reads as nothing, until it reloads. David chose to ship them in one release,
+  as videos and link previews shipped.
+
+A task's description is a post's blocks and mentions, `RICH_TEXT_TASK_BLOCKS`, where a log entry's
+are a post's alone, stored as one serialized string and saved whole rather than shared: the Tasks
+module reads it through `richTextToMarkdown` and writes it through `markdownToRichText`, whatever a
+description cannot hold written as paragraphs, a table's rows turned into paragraphs of their
+cells' content first, since normalizing would drop a table with its text, and replaces it only
+while it is still the `version` the model read (see Modules).
 
 **A document's text is shared**, so the Knowledge module reads and writes it as an editor does,
 for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The database):
@@ -1997,5 +2041,9 @@ the lifetime is chosen from what members' pauses turn out to be.
   answers it with a sentence the model can act on, and `probe:claude` has Claude call a module's
   tool through the whole list. The API still refuses a tool list whose schemas it does not take,
   which no test can see: `bun run probe:claude` is the check, run whenever a module's tools change.
+- **A mention's words go stale**: a mention keeps the title it was made with, which the agent reads
+  in its Markdown after a rename, while the page draws the live one. The id is what the agent acts
+  on, and `read_document` or `read_task` gives the current title; rewriting the words at each rename
+  would write to every document mentioning it.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.

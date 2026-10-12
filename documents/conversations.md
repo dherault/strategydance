@@ -1151,9 +1151,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     upload goes up as the account that added it, and is refused while any other is signed in.
   - **Removing a file** stops its upload and calls `DELETE`, which takes an `UPLOADING` row as well
     as a `READY` one, so its place frees at once; a reservation the removal races is pruned with the
-    stale ones. Closing a draft's dock window removes its files before it discards the draft, and a
-    draft's window cannot be closed while its first send goes, which stores it with them, though it
-    can be minimized. A file cannot be removed while the message sending it goes.
+    stale ones. Closing a draft's dock window removes its files before it discards the draft, and so
+    does the dock's limit letting go of it (`useDiscardConversationDraft`); a draft's window cannot be
+    closed while its first send goes, which stores it with them, though it can be minimized. A file cannot be removed while the message sending it goes.
   - **Sending** waits for every file to be up, and a message may hold files and no words. A retry
     keeps the message's id only when its words and its files are the ones that failed. A refusal
     for the conversation's budget says the conversation has no room for these files: removing them

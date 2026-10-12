@@ -55,6 +55,16 @@ export type ConversationRunReference = {
   runId: string
 }
 
+// A file sent in a conversation, by what finds everything it left: its id, its conversation, author
+// and organization, and its id in the Files API once it has one
+export type ConversationAttachmentReference = {
+  id: string
+  userId: string
+  organizationId: string
+  conversationId: string
+  claudeFileId?: string | null
+}
+
 // What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
 // membership the run was started under
 export type ConversationRunFence = ConversationRunReference & {

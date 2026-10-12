@@ -2,6 +2,8 @@ import express, { type Request, type Response, Router } from 'express'
 import {
   type AnswerConversationQuestionData,
   type ApiResponse,
+  type ConversationAttachmentData,
+  ERROR_CODE_ATTACHMENT_TOO_LARGE,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_CONVERSATION_BUSY,
@@ -10,9 +12,12 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
+  ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS,
   ERROR_CODE_TOO_MANY_REQUESTS,
+  ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
   MAX_ANSWER_OTHER_LENGTH,
   MAX_CONVERSATIONS,
+  MAX_PENDING_CONVERSATION_ATTACHMENTS,
   MAX_QUESTION_OPTIONS,
   MAX_QUESTION_OPTION_LENGTH,
   MAX_SEARCH_QUERY_LENGTH,
@@ -27,25 +32,33 @@ import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
+import parseConversationAttachmentHeaders from '~utils/parseConversationAttachmentHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
+import conversationAttachmentReadRateLimitMiddleware from '~middleware/conversationAttachmentReadRateLimit'
+import conversationAttachmentRemovalRateLimitMiddleware from '~middleware/conversationAttachmentRemovalRateLimit'
+import conversationAttachmentUploadRateLimitMiddleware from '~middleware/conversationAttachmentUploadRateLimit'
 import createConversationSearchRateLimitMiddleware from '~middleware/conversationSearchRateLimit'
 import organizationMemberMiddleware from '~middleware/organizationMember'
 import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 
 import answerConversationQuestion from '~domain/conversations/answerConversationQuestion'
+import conversationAttachmentStorage from '~domain/conversations/conversationAttachmentStorage'
 import parseConversationMessageText from '~domain/conversations/parseConversationMessageText'
+import readConversationAttachment from '~domain/conversations/readConversationAttachment'
 import reconcileConversationRun from '~domain/conversations/reconcileConversationRun'
+import removeConversationAttachment from '~domain/conversations/removeConversationAttachment'
 import resumeConversationRun from '~domain/conversations/resumeConversationRun'
 import retryConversationRun from '~domain/conversations/retryConversationRun'
 import searchConversations from '~domain/conversations/searchConversations'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
+import uploadConversationAttachment from '~domain/conversations/uploadConversationAttachment'
 
 import { aspectsSchema } from '~modules/moduleSchemas'
 
@@ -516,7 +529,184 @@ function createConversationsRouter() {
     },
   )
 
+  /* ---
+    ATTACHMENTS
+  --- */
+
+  const attachmentParamsSchema = z.object({
+    organizationId: z.string().regex(UUID_PATTERN),
+    // A draft's, made by the browser, before the conversation exists, as often as a saved one's
+    conversationId: z.string().regex(UUID_PATTERN),
+    // Made by the browser, so an upload sent again stores the file once
+    attachmentId: z.string().regex(UUID_PATTERN),
+  })
+
+  type AttachmentRequest<Data = unknown> = Request<z.infer<typeof attachmentParamsSchema>, ApiResponse<Data>>
+
+  // Where a file is, by the route's parameters, canonical, and the caller as the backend verified them
+  function readAttachmentLocation<Data>(request: AttachmentRequest<Data>) {
+    return {
+      organizationId: toCanonicalUuid(request.params.organizationId),
+      userId: readViewer(request).id,
+      conversationId: toCanonicalUuid(request.params.conversationId),
+      attachmentId: toCanonicalUuid(request.params.attachmentId),
+    }
+  }
+
+  /*
+    Uploads a file to one of the caller's conversations, or to a draft not saved yet, under the id
+    the browser made for it: 201 with the file as stored, the same answer when the same upload is
+    sent again. The body is the file's bytes, typed by its `Content-Type`, sized by its
+    `Content-Length`, and named in `X-File-Name`, URL-encoded, all checked before anything is
+    reserved, and the bytes streamed into Storage rather than held. Parsed last, after everything
+    that says the caller may send it, so nobody else gets megabytes read.
+
+    Refused with a 415 for a type a conversation does not take or bytes that are not it, a 413 past
+    what Claude or the route takes, a 409 at the caller's 30 unsent files, before any byte is
+    stored, and a 409 for an id another file holds
+  */
+  router.put(
+    '/:conversationId/attachments/:attachmentId',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    conversationAttachmentUploadRateLimitMiddleware,
+    validateMiddleware({ params: attachmentParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: AttachmentRequest<ConversationAttachmentData>,
+      response: Response<ApiResponse<ConversationAttachmentData>>,
+    ) => {
+      const headers = parseConversationAttachmentHeaders({
+        contentType: request.header('content-type'),
+        contentLength: request.header('content-length'),
+        fileName: request.header('x-file-name'),
+      })
+
+      if (headers.outcome !== 'valid') {
+        respondAttachmentRefusal(response, headers)
+
+        return
+      }
+
+      const result = await uploadConversationAttachment({
+        ...readAttachmentLocation(request),
+        name: headers.name,
+        contentType: headers.contentType,
+        size: headers.size,
+        body: request,
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation no longer exists')
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'A file with this id was uploaded otherwise')
+
+          return
+        case 'tooMany':
+          respondError(
+            response,
+            409,
+            ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS,
+            `Somebody has at most ${MAX_PENDING_CONVERSATION_ATTACHMENTS} files waiting to be sent in an organization`,
+          )
+
+          return
+        case 'unsupported':
+        case 'tooLarge':
+          respondAttachmentRefusal(response, result)
+
+          return
+        case 'stored':
+          response.status(201).json({ status: 'success', data: result.attachment })
+      }
+    },
+  )
+
+  /*
+    Removes a file the caller uploaded to a conversation and has not sent, as the composer's tray
+    does, so its place among their 30 frees at once: 200, the same when it is gone already. A sent
+    file is refused with a 409, since only its conversation's deletion removes it
+  */
+  router.delete(
+    '/:conversationId/attachments/:attachmentId',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    conversationAttachmentRemovalRateLimitMiddleware,
+    validateMiddleware({ params: attachmentParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: AttachmentRequest, response: Response<ApiResponse>) => {
+      const result = await removeConversationAttachment(readAttachmentLocation(request))
+
+      if (result.outcome === 'sent') {
+        respondError(response, 409, ERROR_CODE_CONFLICT, 'A sent file goes only with its conversation')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Serves the bytes of a file of the caller's, as the thread draws an image or offers a file: only
+    to its author while they are a member, which the route checks on every read, and for a sent file
+    only while its conversation is theirs and not deleted. Streamed from Storage with private cache
+    headers, since its bytes never change; the thread fetches it with the caller's token and shows it
+    as an object URL
+  */
+  router.get(
+    '/:conversationId/attachments/:attachmentId',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    conversationAttachmentReadRateLimitMiddleware,
+    validateMiddleware({ params: attachmentParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: AttachmentRequest, response: Response) => {
+      const result = await readConversationAttachment(readAttachmentLocation(request))
+
+      if (result.outcome === 'missing') {
+        respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This file no longer exists')
+
+        return
+      }
+
+      const stream = conversationAttachmentStorage.openRead(result.objectName)
+
+      stream.once('error', () => {
+        if (response.headersSent) response.destroy()
+        else respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This file no longer exists')
+      })
+      stream.once('readable', () => {
+        response.setHeader(
+          'Content-Type',
+          result.contentType.startsWith('text/') ? `${result.contentType}; charset=utf-8` : result.contentType,
+        )
+        response.setHeader('Content-Length', result.size)
+        response.setHeader('Cache-Control', 'private, max-age=31536000, immutable')
+        response.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(result.name)}`)
+        stream.pipe(response)
+      })
+    },
+  )
+
   return router
+}
+
+// The refusal of a file for what it is: a 415 for its type, a 413 for its size, a 400 otherwise
+function respondAttachmentRefusal(response: Response, refusal: { outcome: string; reason: string }) {
+  if (refusal.outcome === 'unsupported') respondError(response, 415, ERROR_CODE_UNSUPPORTED_MEDIA_TYPE, refusal.reason)
+  else if (refusal.outcome === 'tooLarge') respondError(response, 413, ERROR_CODE_ATTACHMENT_TOO_LARGE, refusal.reason)
+  else respondError(response, 400, ERROR_CODE_BAD_REQUEST, refusal.reason)
 }
 
 export default createConversationsRouter

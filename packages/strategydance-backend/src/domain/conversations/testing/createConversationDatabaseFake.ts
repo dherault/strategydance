@@ -1,9 +1,14 @@
 import {
+  CONVERSATION_ATTACHMENT_CONTENT_TYPES,
   CONVERSATION_SEARCH_WINDOW_MINUTES,
   MAX_ACTIVE_RUNS_PER_MEMBER,
+  MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+  MAX_CONVERSATION_ATTACHMENT_SIZE,
+  MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_SEARCHES,
   MAX_CONVERSATIONS,
+  MAX_PENDING_CONVERSATION_ATTACHMENTS,
 } from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -30,6 +35,12 @@ import createModuleDatabaseFake from '~domain/modules/testing/createModuleDataba
   meanwhile, a member removed say. Times are the clock's, which a test moves with `setSystemTime`.
   Ids are kept as Data Connect keeps them, dashless
 */
+
+export const ConversationAttachmentStatus = {
+  UPLOADING: 'UPLOADING',
+  READY: 'READY',
+  PRUNING: 'PRUNING',
+} as const
 
 export const ConversationActor = {
   MEMBER: 'MEMBER',
@@ -198,6 +209,23 @@ export type FakeSearch = {
   createdAt: string
 }
 
+// A file a member sent or uploaded to send, with where it stands and what its upload counted
+export type FakeAttachment = {
+  id: string
+  userId: string
+  organizationId: string
+  conversationId: string
+  messageId: string | null
+  status: string
+  name: string
+  contentType: string
+  size: number
+  pageCount: number | null
+  tokenCount: number | null
+  claudeFileId: string | null
+  createdAt: string
+}
+
 export type FakeOrganization = {
   name: string
   brief: string | null
@@ -223,6 +251,7 @@ function createConversationDatabaseFake() {
   const messages = new Map<string, FakeMessage>()
   const entries = new Map<string, FakeEntry>()
   const searches = new Map<string, FakeSearch>()
+  const attachments = new Map<string, FakeAttachment>()
   // Every operation called, by name, in order
   const calls: string[] = []
   const modules = createModuleDatabaseFake()
@@ -238,6 +267,7 @@ function createConversationDatabaseFake() {
     messages,
     entries,
     searches,
+    attachments,
     calls,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
   }
@@ -303,6 +333,13 @@ function createConversationDatabaseFake() {
   // Deletes a conversation with what cascades from it: its runs, messages and transcript
   function deleteConversation(conversationId: string) {
     conversations.delete(conversationId)
+
+    // A file's message is an optional reference, set to null on delete
+    for (const attachment of attachments.values()) {
+      if (attachment.messageId && messages.get(attachment.messageId)?.conversationId === conversationId) {
+        attachment.messageId = null
+      }
+    }
 
     for (const table of [runs, messages, entries]) {
       for (const row of table.values()) {
@@ -762,6 +799,77 @@ function createConversationDatabaseFake() {
     })
   }
 
+  // Whether a file belongs to a conversation's author in its organization, as every lookup matches it
+  function isAttachmentOf(attachment: FakeAttachment, variables: AnyVariables) {
+    return (
+      attachment.userId === variables.userId
+      && attachment.organizationId === id(variables.organizationId)
+      && attachment.conversationId === id(variables.conversationId)
+    )
+  }
+
+  // A member's files uploaded and not sent, younger than two days, which their quota counts
+  function pendingAttachments(userId: unknown, organizationId: unknown) {
+    const since = Date.now() - 2 * 24 * 60 * 60 * 1000
+
+    return [...attachments.values()].filter(
+      attachment =>
+        attachment.userId === userId
+        && attachment.organizationId === id(organizationId)
+        && attachment.messageId === null
+        && Date.parse(attachment.createdAt) > since,
+    )
+  }
+
+  // An unsent file a prune may claim: a reservation ten minutes old, or a file two days old
+  function isExpiredAttachment(attachment: FakeAttachment) {
+    const age = Date.now() - Date.parse(attachment.createdAt)
+
+    return (
+      attachment.messageId === null
+      && ((attachment.status === 'UPLOADING' && age > 10 * 60 * 1000)
+        || (attachment.status === 'READY' && age > 2 * 24 * 60 * 60 * 1000))
+    )
+  }
+
+  // The first step's bound on the files a send names, at most 10
+  function checkAttachmentCount(variables: AnyVariables) {
+    if ((variables.attachmentIds?.length ?? 0) > MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE) {
+      refuse('A message sends at most 10 files')
+    }
+  }
+
+  // The files a send sets to its message, checked before it writes: exactly those it names, the
+  // caller's in the conversation, stored and unsent, counted as the connector counts rows against
+  // the list it was given
+  function matchSentAttachments(variables: AnyVariables) {
+    const ids: string[] = (variables.attachmentIds ?? []).map(id)
+    const matched = [...attachments.values()].filter(
+      attachment =>
+        ids.includes(attachment.id)
+        && isAttachmentOf(attachment, variables)
+        && attachment.status === 'READY'
+        && attachment.messageId === null,
+    )
+
+    if (matched.length !== ids.length) refuse("The message's files changed since the send read them")
+
+    return matched
+  }
+
+  // A message's files in the order it sends them, by their names
+  function messageAttachmentNames(messageId: string) {
+    return [...attachments.values()]
+      .filter(attachment => attachment.messageId === messageId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+      .slice(0, 10)
+      .map(({ name }) => ({ name }))
+  }
+
+  function pickAttachment(attachment: FakeAttachment) {
+    return { ...attachment }
+  }
+
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
     GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
 
@@ -929,6 +1037,7 @@ function createConversationDatabaseFake() {
             answerOther: message.answerOther ?? null,
             isAnswerSkipped: message.isAnswerSkipped ?? false,
             run: message.runId ? { id: message.runId } : null,
+            conversationAttachments_on_message: messageAttachmentNames(message.id),
           })),
         newestMessages: conversationMessages.slice(0, 1).map(message => ({ id: message.id })),
       }
@@ -1086,6 +1195,7 @@ function createConversationDatabaseFake() {
           answerSelected: message.answerSelected ?? null,
           answerOther: message.answerOther ?? null,
           isAnswerSkipped: message.isAnswerSkipped ?? false,
+          conversationAttachments_on_message: messageAttachmentNames(message.id),
         })),
       }
     },
@@ -1141,6 +1251,10 @@ function createConversationDatabaseFake() {
               .slice(0, 20)
               .map(run => ({ id: run.id, usage: run.usage ?? null }))
           : [],
+        conversationAttachments: [...attachments.values()]
+          .filter(attachment => isAttachmentOf(attachment, variables) && attachment.messageId !== null)
+          .slice(0, 100)
+          .map(({ claudeFileId, tokenCount }) => ({ claudeFileId, tokenCount })),
       }
     },
 
@@ -1148,6 +1262,7 @@ function createConversationDatabaseFake() {
       const conversationId = id(variables.conversationId)
       const runId = id(variables.runId)
 
+      checkAttachmentCount(variables)
       checkStart(variables)
 
       const aspects: string[] | null = variables.aspects ?? null
@@ -1164,6 +1279,8 @@ function createConversationDatabaseFake() {
       if (keptConversations(variables).length >= MAX_CONVERSATIONS)
         refuse('Somebody keeps at most 1000 conversations in an organization')
       if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      const sent = matchSentAttachments(variables)
 
       conversations.set(conversationId, {
         id: conversationId,
@@ -1221,19 +1338,30 @@ function createConversationDatabaseFake() {
         drawnBlocks: 0,
       })
 
+      for (const attachment of sent) attachment.messageId = id(variables.messageId)
+
       return { conversation_insert: { id: conversationId } }
     },
 
     SendConversationMessage: variables => {
+      checkAttachmentCount(variables)
+
       const conversation = requireSendConversation(variables)
 
       checkSend(conversation, variables)
+
+      const sent = matchSentAttachments(variables)
+
       writeSend(conversation, variables)
+
+      for (const attachment of sent) attachment.messageId = id(variables.messageId)
 
       return { conversation_updateMany: 1 }
     },
 
     SendConversationMessageAnsweringCalls: variables => {
+      checkAttachmentCount(variables)
+
       const conversation = requireSendConversation(variables)
       const lastRun = runs.get(id(variables.lastRunId))
       const isLastRunWaiting =
@@ -1250,12 +1378,16 @@ function createConversationDatabaseFake() {
 
       checkSend(conversation, variables)
 
+      const sent = matchSentAttachments(variables)
+
       if (lastRun && isLastRunWaiting) lastRun.status = 'CONTINUED'
 
       for (const message of skipped) Object.assign(message, { isAnswerSkipped: true, answeredAt: now() })
 
       conversation.isAwaitingAnswer = false
       writeSend(conversation, variables)
+
+      for (const attachment of sent) attachment.messageId = id(variables.messageId)
 
       return { conversation_updateMany: 1 }
     },
@@ -2178,7 +2310,7 @@ function createConversationDatabaseFake() {
       conversations: [...conversations.values()]
         .filter(conversation => conversation.pruneClaimedAt !== null && isPastUndo(conversation))
         .slice(0, 20)
-        .map(conversation => ({ id: conversation.id })),
+        .map(({ id: conversationId, userId, organizationId }) => ({ id: conversationId, userId, organizationId })),
     }),
 
     DeleteClaimedConversations: ({ ids }) => {
@@ -2316,12 +2448,292 @@ function createConversationDatabaseFake() {
 
       return { conversationSearch_deleteMany: deleted }
     },
+
+    GetConversationAttachmentUploadContext: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+      const conversation = conversations.get(id(variables.conversationId))
+      const attachment = attachments.get(id(variables.attachmentId))
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        conversation: conversation
+          ? {
+              userId: conversation.userId,
+              organizationId: conversation.organizationId,
+              deletedAt: conversation.deletedAt,
+            }
+          : null,
+        conversationAttachment: attachment ? pickAttachment(attachment) : null,
+      }
+    },
+
+    ReserveConversationAttachment: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can send files in it')
+      }
+
+      const name = String(variables.name)
+
+      if (
+        [...name].length < 1
+        || [...name].length > MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH
+        || /[\r\n]/.test(name)
+        || variables.size < 1
+        || variables.size > MAX_CONVERSATION_ATTACHMENT_SIZE
+        || !CONVERSATION_ATTACHMENT_CONTENT_TYPES.includes(variables.contentType)
+      ) {
+        refuse(
+          'A file has a name on one line of at most 200 characters, a type a conversation takes, and at most 10 MiB',
+        )
+      }
+
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (
+        conversation
+        && (conversation.userId !== variables.userId
+          || conversation.organizationId !== id(variables.organizationId)
+          || conversation.deletedAt !== null)
+      ) {
+        refuse("The conversation is somebody else's, or deleted")
+      }
+
+      if (
+        pendingAttachments(variables.userId, variables.organizationId).length >= MAX_PENDING_CONVERSATION_ATTACHMENTS
+      ) {
+        refuse('Somebody has at most 30 files waiting to be sent in an organization')
+      }
+
+      const attachmentId = id(variables.attachmentId)
+
+      if (attachments.has(attachmentId)) refuse('violates SQL unique constraint: conversation_attachment_pkey')
+
+      attachments.set(attachmentId, {
+        id: attachmentId,
+        userId: variables.userId,
+        organizationId: id(variables.organizationId),
+        conversationId: id(variables.conversationId),
+        messageId: null,
+        status: 'UPLOADING',
+        name,
+        contentType: variables.contentType,
+        size: variables.size,
+        pageCount: null,
+        tokenCount: null,
+        claudeFileId: null,
+        createdAt: stamp(),
+      })
+
+      return { conversationAttachment_insert: { id: attachmentId } }
+    },
+
+    CompleteConversationAttachmentUpload: variables => {
+      const attachment = attachments.get(id(variables.attachmentId))
+
+      if (!attachment || !isAttachmentOf(attachment, variables) || attachment.status !== 'UPLOADING') {
+        refuse('The file is no longer being uploaded')
+      }
+
+      Object.assign(attachment, {
+        status: 'READY',
+        pageCount: variables.pageCount ?? null,
+        tokenCount: variables.tokenCount,
+        claudeFileId: variables.claudeFileId,
+      })
+
+      return { conversationAttachment_updateMany: 1 }
+    },
+
+    ClaimExpiredMemberConversationAttachments: variables => {
+      let claimed = 0
+
+      for (const attachment of attachments.values()) {
+        if (
+          attachment.userId === variables.userId
+          && attachment.organizationId === id(variables.organizationId)
+          && isExpiredAttachment(attachment)
+        ) {
+          attachment.status = 'PRUNING'
+          claimed++
+        }
+      }
+
+      return { conversationAttachment_updateMany: claimed }
+    },
+
+    ClaimExpiredConversationAttachments: () => {
+      let claimed = 0
+
+      for (const attachment of attachments.values()) {
+        if (isExpiredAttachment(attachment)) {
+          attachment.status = 'PRUNING'
+          claimed++
+        }
+      }
+
+      return { conversationAttachment_updateMany: claimed }
+    },
+
+    ReleaseConversationAttachment: variables => {
+      const attachment = attachments.get(id(variables.attachmentId))
+
+      if (
+        !attachment
+        || !isAttachmentOf(attachment, variables)
+        || attachment.status !== 'UPLOADING'
+        || attachment.messageId !== null
+      ) {
+        return { conversationAttachment_updateMany: 0 }
+      }
+
+      attachment.status = 'PRUNING'
+
+      return { conversationAttachment_updateMany: 1 }
+    },
+
+    ClaimConversationAttachment: variables => {
+      const attachment = attachments.get(id(variables.attachmentId))
+
+      if (
+        !attachment
+        || !isAttachmentOf(attachment, variables)
+        || !['UPLOADING', 'READY'].includes(attachment.status)
+        || attachment.messageId !== null
+      ) {
+        return { conversationAttachment_updateMany: 0 }
+      }
+
+      attachment.status = 'PRUNING'
+
+      return { conversationAttachment_updateMany: 1 }
+    },
+
+    DeletePrunedConversationAttachments: ({ ids }) => {
+      let deleted = 0
+
+      for (const attachmentId of (ids as string[]).map(id)) {
+        const attachment = attachments.get(attachmentId)
+
+        if (attachment && attachment.status === 'PRUNING' && attachment.messageId === null) {
+          attachments.delete(attachmentId)
+          deleted++
+        }
+      }
+
+      return { conversationAttachment_deleteMany: deleted }
+    },
+
+    DeleteConversationAttachments: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (
+        !conversation
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.pruneClaimedAt === null
+        || !isPastUndo(conversation)
+      ) {
+        refuse('Only a conversation a prune claimed loses its files')
+      }
+
+      let deleted = 0
+
+      for (const attachment of attachments.values()) {
+        if (isAttachmentOf(attachment, variables)) {
+          attachments.delete(attachment.id)
+          deleted++
+        }
+      }
+
+      return { conversationAttachment_deleteMany: deleted }
+    },
+
+    GetConversationAttachment: variables => {
+      const attachment = attachments.get(id(variables.attachmentId))
+      const conversation = conversations.get(id(variables.conversationId))
+
+      return {
+        conversationAttachments:
+          attachment && isAttachmentOf(attachment, variables) ? [pickAttachment(attachment)] : [],
+        conversation: conversation
+          ? {
+              userId: conversation.userId,
+              organizationId: conversation.organizationId,
+              deletedAt: conversation.deletedAt,
+            }
+          : null,
+      }
+    },
+
+    GetConversationSendAttachments: variables => {
+      const ids: string[] = (variables.attachmentIds as string[]).map(id)
+      const theirs = [...attachments.values()].filter(attachment => isAttachmentOf(attachment, variables))
+
+      return {
+        named: theirs
+          .filter(attachment => ids.includes(attachment.id))
+          .slice(0, 10)
+          .map(pickAttachment),
+        sent: theirs
+          .filter(attachment => attachment.messageId !== null)
+          .slice(0, 100)
+          .map(({ contentType, size, pageCount }) => ({ contentType, size, pageCount })),
+      }
+    },
+
+    GetPruningMemberConversationAttachments: variables => ({
+      conversationAttachments: [...attachments.values()]
+        .filter(
+          attachment =>
+            attachment.userId === variables.userId
+            && attachment.organizationId === id(variables.organizationId)
+            && attachment.status === 'PRUNING'
+            && attachment.messageId === null,
+        )
+        .slice(0, 100)
+        .map(pickAttachment),
+    }),
+
+    GetPruningConversationAttachments: () => ({
+      conversationAttachments: [...attachments.values()]
+        .filter(attachment => attachment.status === 'PRUNING' && attachment.messageId === null)
+        .slice(0, 100)
+        .map(pickAttachment),
+    }),
+
+    GetConversationPruneAttachments: variables => ({
+      conversationAttachments: [...attachments.values()]
+        .filter(attachment => isAttachmentOf(attachment, variables))
+        .slice(0, 200)
+        .map(pickAttachment),
+    }),
+
+    GetOrganizationConversationAttachmentFiles: variables => ({
+      conversationAttachments: [...attachments.values()]
+        .filter(
+          attachment =>
+            attachment.organizationId === id(variables.organizationId)
+            && attachment.claudeFileId !== null
+            && attachment.claudeFileId > variables.afterClaudeFileId,
+        )
+        .sort((a, b) => String(a.claudeFileId).localeCompare(String(b.claudeFileId)))
+        .slice(0, 100)
+        .map(({ claudeFileId }) => ({ claudeFileId })),
+    }),
+
+    GetConversationAttachmentsByClaudeFileIds: variables => ({
+      conversationAttachments: [...attachments.values()]
+        .filter(attachment => (variables.claudeFileIds as string[]).includes(attachment.claudeFileId ?? ''))
+        .slice(0, 100)
+        .map(({ claudeFileId }) => ({ claudeFileId })),
+    }),
   }
 
   // The generated SDK's names: `startConversation(dataConnect, variables)` for `StartConversation`
   const sdk: Record<string, unknown> = {
     ...modules.sdk,
     ConversationActor,
+    ConversationAttachmentStatus,
     ConversationMessageKind,
     ConversationNoteKind,
     ConversationRunStatus,
@@ -2342,7 +2754,9 @@ function createConversationDatabaseFake() {
 
   // Empties every table, for the next test
   function reset() {
-    for (const table of [users, memberships, conversations, runs, messages, entries, searches]) table.clear()
+    for (const table of [users, memberships, conversations, runs, messages, entries, searches, attachments]) {
+      table.clear()
+    }
 
     calls.length = 0
     fake.beforeOperation = async () => {}

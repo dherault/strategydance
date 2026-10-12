@@ -23,8 +23,9 @@ export type AttachmentObjectCopy = { outcome: 'copied' } | { outcome: 'exists'; 
   precondition would, which the precondition still guards against in production
 */
 export type AttachmentStorage = {
-  // Writes an object from a stream, unless one is there; a stream that fails leaves none
-  write(name: string, contentType: string, body: Readable): Promise<AttachmentObjectWrite>
+  // Writes an object from a stream, made only once no object is found there; a stream that fails
+  // leaves none
+  write(name: string, contentType: string, createBody: () => Readable): Promise<AttachmentObjectWrite>
   // An object's size, or null when there is none
   readSize(name: string): Promise<number | null>
   read(name: string): Promise<Uint8Array>
@@ -54,14 +55,14 @@ async function readSize(name: string) {
 }
 
 const conversationAttachmentStorage: AttachmentStorage = {
-  async write(name, contentType, body) {
+  async write(name, contentType, createBody) {
     const existing = await readSize(name)
 
     if (existing !== null) return { outcome: 'exists', size: existing }
 
     try {
       await pipeline(
-        body,
+        createBody(),
         bucket.file(name).createWriteStream({
           resumable: false,
           contentType,

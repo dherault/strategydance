@@ -25,7 +25,7 @@ function createAttachmentStorageFake() {
   }
 
   const storage: AttachmentStorage = {
-    async write(name, contentType, body) {
+    async write(name, contentType, createBody) {
       calls.push(`write ${name}`)
       fail('write')
 
@@ -35,7 +35,7 @@ function createAttachmentStorageFake() {
 
       const chunks: Buffer[] = []
 
-      for await (const chunk of body) chunks.push(Buffer.from(chunk))
+      for await (const chunk of createBody()) chunks.push(Buffer.from(chunk))
 
       const raced = objects.get(name)
 

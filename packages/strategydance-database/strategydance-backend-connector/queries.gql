@@ -252,6 +252,10 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     run {
       id
     }
+    # A message of files alone is previewed by their names, in the order it sends them
+    conversationAttachments_on_message(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 10) {
+      name
+    }
   }
   # Whether a message follows the newest that is not an aspects note, which a resume refuses
   newestMessages: conversationMessages(
@@ -348,6 +352,10 @@ query GetConversationRetryContext(
     answerSelected
     answerOther
     isAnswerSkipped
+    # A message of files alone is previewed by their names, in the order it sends them
+    conversationAttachments_on_message(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 10) {
+      name
+    }
   }
 }
 
@@ -609,13 +617,16 @@ query GetConversationRunStop($organizationId: UUID!, $userId: String!, $conversa
 
 # A batch of the conversations the daily sweep has claimed and not deleted yet, whoever's they are,
 # which it deletes next. Only those still deleted over a day ago, as the delete takes them. Twenty
-# at a time, since each holds up to 2000 messages, which go with it
+# at a time, since each holds up to 2000 messages, which go with it. Its author and organization say
+# which of the files uploaded under its id are its own
 query GetClaimedConversations @auth(level: NO_ACCESS) {
   conversations(
     where: { pruneClaimedAt: { isNull: false }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
     limit: 20
   ) {
     id
+    userId
+    organizationId
   }
 }
 
@@ -657,6 +668,9 @@ query GetConversationTranscript($organizationId: UUID!, $userId: String!, $conve
 # - the conversation's aspects
 # - its 20 latest runs' usage, whose latest request with its reply still in the transcript the
 #   measurement starts from, so a conversation about to pass Claude's context is marked full
+# - its sent files' ids in the Files API with their tokens, counted once when each was stored, which
+#   the measurement adds in place of the file blocks the count endpoint refuses. At most 100
+#   (`MAX_CONVERSATION_ATTACHMENTS` in strategydance-core)
 #
 # `$userId` is the uid the backend verified, never one a client sent
 query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
@@ -691,6 +705,18 @@ query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $c
   ) {
     id
     usage
+  }
+  conversationAttachments(
+    where: {
+      conversationId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      messageId: { isNull: false }
+    }
+    limit: 100
+  ) {
+    claudeFileId
+    tokenCount
   }
 }
 
@@ -859,6 +885,180 @@ query SearchConversationsBySubstring(
     limit: 1000
   ) {
     id
+  }
+}
+
+# What an upload of a file to a conversation reads first: the caller's membership, the conversation
+# when it exists, a draft's not yet, and the file's row when an upload with its id got there before,
+# whoever's it is, so an id somebody else holds is refused. `$userId` is the uid the backend verified
+query GetConversationAttachmentUploadContext(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+  }
+  # The status is selected at the top level of the operation, which is what has the generated SDK
+  # declare its enum
+  conversationAttachment(id: $attachmentId) {
+    userId
+    organizationId
+    conversationId
+    messageId
+    status
+    name
+    contentType
+    size
+    pageCount
+  }
+}
+
+# A file of the caller's in a conversation, as the route that reads its bytes and the one that
+# removes it read it, with the conversation, which a sent file's reader has to own still. Only the
+# caller's in that conversation and organization. `$userId` is the uid the backend verified
+query GetConversationAttachment($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $attachmentId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationAttachments(
+    where: {
+      id: { eq: $attachmentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+    }
+    limit: 1
+  ) {
+    status
+    messageId
+    name
+    contentType
+    size
+    claudeFileId
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+  }
+}
+
+# What a message with files reads of them before it is sent: the files it names, the caller's in that
+# conversation and organization, and the files the conversation already holds, which its budget
+# counts. At most 10 named (`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`) and 100 held
+# (`MAX_CONVERSATION_ATTACHMENTS`). `$userId` is the uid the backend verified
+query GetConversationSendAttachments(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $attachmentIds: [UUID!]!
+) @auth(level: NO_ACCESS) {
+  named: conversationAttachments(
+    where: {
+      id: { in: $attachmentIds }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+    }
+    limit: 10
+  ) {
+    id
+    status
+    messageId
+    name
+    contentType
+    size
+    pageCount
+    tokenCount
+    claudeFileId
+    createdAt
+  }
+  sent: conversationAttachments(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      messageId: { isNull: false }
+    }
+    limit: 100
+  ) {
+    contentType
+    size
+    pageCount
+  }
+}
+
+# The unsent files of the caller's that a prune claimed and has not deleted yet, a hundred at a
+# time, with where their bytes lie, which their prune deletes before their rows. `$userId` is the uid
+# the backend verified
+query GetPruningMemberConversationAttachments($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  conversationAttachments(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      status: { eq: PRUNING }
+      messageId: { isNull: true }
+    }
+    limit: 100
+  ) {
+    id
+    userId
+    organizationId
+    conversationId
+    claudeFileId
+  }
+}
+
+# The daily sweep's: a hundred of everybody's unsent files that a prune claimed and has not deleted
+# yet, as `GetPruningMemberConversationAttachments` reads one member's
+query GetPruningConversationAttachments @auth(level: NO_ACCESS) {
+  conversationAttachments(where: { status: { eq: PRUNING }, messageId: { isNull: true } }, limit: 100) {
+    id
+    userId
+    organizationId
+    conversationId
+    claudeFileId
+  }
+}
+
+# The daily sweep's: every file of a claimed conversation, sent or not, its author's in its
+# organization, which the conversation's prune deletes before its rows. At most 100 sent and 30
+# unsent, so 200 reads them all
+query GetConversationPruneAttachments($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationAttachments(
+    where: { conversationId: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    limit: 200
+  ) {
+    id
+    messageId
+    claudeFileId
+  }
+}
+
+# A page of an organization's files' ids in the Files API, in their order, after one, which deleting
+# the organization reads before its rows go, to delete the files once they are gone
+query GetOrganizationConversationAttachmentFiles($organizationId: UUID!, $afterClaudeFileId: String!)
+@auth(level: NO_ACCESS) {
+  conversationAttachments(
+    where: { organizationId: { eq: $organizationId }, claudeFileId: { gt: $afterClaudeFileId } }
+    orderBy: [{ claudeFileId: ASC }]
+    limit: 100
+  ) {
+    claudeFileId
+  }
+}
+
+# The daily sweep's: which of some ids in the Files API a file's row still names, so the files no row
+# names, left by an upload that failed after it sent them, are deleted
+query GetConversationAttachmentsByClaudeFileIds($claudeFileIds: [String!]!) @auth(level: NO_ACCESS) {
+  conversationAttachments(where: { claudeFileId: { in: $claudeFileIds } }, limit: 100) {
+    claudeFileId
   }
 }
 

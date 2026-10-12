@@ -1138,17 +1138,21 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     CSV file a spreadsheet), puts its name on one line, cut to 200 code points before its extension,
     and names a nameless paste "Pasted image" or "Pasted file". A JPEG, PNG or WebP longer than 1568
     pixels, or over 5 MB, is drawn again in its own type, a JPEG at 0.9, and as a JPEG when still
-    over 5 MB; a GIF goes as it is, since drawing it keeps one frame. A type a conversation does not
-    take, a file over 10 MiB or empty, and an eleventh file in a message are named above the field
-    and never go up.
+    over 5 MB; a GIF goes as it is, since drawing it keeps one frame. Such an image is shrunk whatever
+    its size, so a camera's photo over 10 MiB still goes up. A type a conversation does not take, an
+    empty file, a GIF over 5 MB, any other file over 10 MiB and an eleventh file in a message are
+    named above the field and never go up; an image too large is told an image's limits, 5 MB and
+    8000 pixels a side, rather than a file's.
   - **A refusal of the backend's** that no new try gets past, 415, 413 or the 30 unsent files, takes
     the file out of the tray and names it above the field. Any other failure keeps it, outlined in
-    red, with a button that uploads it again under a new id, the old one removed, so a reservation
-    the failed try left never holds a place.
+    red, with a button that uploads it again under a new id once the old one is removed, so a
+    reservation the failed try left never holds a place, nor takes the new one's at the cap. An
+    upload goes up as the account that added it, and is refused while any other is signed in.
   - **Removing a file** stops its upload and calls `DELETE`, which takes an `UPLOADING` row as well
     as a `READY` one, so its place frees at once; a reservation the removal races is pruned with the
-    stale ones. Closing a draft's dock window removes its files before it discards the draft. A file
-    cannot be removed while the message sending it goes.
+    stale ones. Closing a draft's dock window removes its files before it discards the draft, unless
+    its first send is going, which stores it with them. A file cannot be removed while the message
+    sending it goes.
   - **Sending** waits for every file to be up, and a message may hold files and no words. A retry
     keeps the message's id only when its words and its files are the ones that failed. A refusal
     for the conversation's budget says the conversation has no room for these files: removing them
@@ -1162,9 +1166,13 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     the tray's, since an image is shrunk before its upload reserves its place. Images are thumbnails
     up to 200 by 160 pixels, opening whole in a dialog under their name and size; any other file is
     a chip with its icon, name and size, which reads nothing, as the design has it. An image's bytes
-    are read through `requestApiFile` and kept for the tab, never stale, a 4xx not tried again by itself;
-    the images the reader just sent are drawn from the bytes that went up, never read back. Their
-    addresses are held while something draws them (`useObjectUrl`) and given back after.
+    are read through `requestApiFile`, past the browser's HTTP cache, which keys them by address
+    alone, and kept for the tab by reader, never stale, a 4xx not tried again by itself; the images
+    the reader just sent are drawn from the bytes that went up, never read back. A thumbnail, in the
+    thread as in the tray, is a small copy drawn from them one at a time (`useImageThumbnail`), since
+    an `<img>` decodes its picture whole whatever size it is drawn at; only the dialog draws the
+    image whole. Addresses are held while something draws them (`useObjectUrl`) and given back
+    after.
   - **The list** words a message of files alone "You: plan.pdf", or "You: 3 files".
 
 ### The agent

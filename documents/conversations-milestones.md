@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The thirty milestones that build the conversations feature, each one pull request into `dev`
+The thirty-five milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
@@ -77,7 +77,7 @@ M27 well before their neighbours.
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |
-| M30 | Launch | all | all | |
+| M35 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -1743,7 +1743,7 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - Verify: ask something that needs a connected server, then allow the call and deny another; let an
   administrator allow one tool and see it run straight away; turn the server off and ask again.
 
-### M30: Launch
+### M35: Launch
 
 - Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`, the backend's
   `IS_CONVERSATIONS_RELEASE_GATED` and `ARE_MODULES_STAFF_ONLY`.

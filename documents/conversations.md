@@ -1,7 +1,7 @@
 # Conversations
 
 How Strategy Dance's conversation agents get built: what the design asks for, the decisions taken,
-and the architecture. The thirty milestones that take the feature from nothing to launch, each
+and the architecture. The thirty-five milestones that take the feature from nothing to launch, each
 one pull request into `dev` that a Claude Code session can implement, are in
 [conversations-milestones.md](conversations-milestones.md), with the conventions every one of them
 follows.
@@ -1307,7 +1307,7 @@ agents in M20:
   document the team keeps from AI is neither found, listed nor read by any agent, and one the team
   keeps from AI's changes is changed by none. A member who connects an external agent lets what AI
   may read reach that agent's provider. Members decide which agents they connect, as David chose on
-  2026-10-07, and no organization setting governs it; the legal review before M30 names it.
+  2026-10-07, and no organization setting governs it; the legal review before M35 names it.
 - **Addresses.** An external agent's results carry each document's web address,
   `https://strategydance.com/<organization>/knowledge/<id>`, where `<organization>` is the segment
   the app's paths lead with: the organization's slug, or its id while it has none, as
@@ -1347,7 +1347,7 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
 - **The board is the team's.** Any member reads and changes any task, and so does any agent acting
   as one: tasks carry no AI permission, unlike documents, as David chose on 2026-10-09, since a
   task is a short brief the whole team shares and nothing on the board is private. What an external
-  agent reads of it reaches that agent's provider, which the legal review before M30 names with the
+  agent reads of it reaches that agent's provider, which the legal review before M35 names with the
   rest.
 - **A description is a post's.** It is stored as a post's blocks, serialized
   (`RICH_TEXT_POST_BLOCKS`: paragraphs, headings, quotes, lists and check lists), and saved whole,
@@ -1704,7 +1704,7 @@ cost of a search step before a deferred tool's first use; Knowledge's and the Ta
 thinking is checked against, so a module joining that way would cost no conversation its earlier
 reasoning.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
-David's call at M30.
+David's call at M35.
 
 ### Rich text and Markdown
 
@@ -1814,7 +1814,7 @@ address, and whatever an injected instruction wrote into it, out from the reader
 
 ### Release gate
 
-Until M30, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M35, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -1829,17 +1829,17 @@ worker's claim checks the role again, so a queued run stops too:
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
   M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M30.
+  caller being staff until M35.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M30 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M35 removes.
   Locally it is lifted, so every member of every organization has conversations: the web against
   the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep the gate.
 - Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, lifted on the development backend as
-  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M30, since an
+  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M35, since an
   external agent reaches them without any conversation: the consent page's Allow refuses anybody
   else, the token verifier checks the role on every call, so a connection outlives no lost role,
   and the Connected agents tab and the Use with your agents button show for staff only. The
@@ -1858,8 +1858,8 @@ account, and until both exist every send in production answers 503.
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
-   file or a chat). The workspace's default inference region is the legal review's call before M30.
-   Check the organization's rate limit tier before staff use, and raise it before M30.
+   file or a chat). The workspace's default inference region is the legal review's call before M35.
+   Check the organization's rate limit tier before staff use, and raise it before M35.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -1920,7 +1920,7 @@ At first-party list prices ($4 per million input tokens, $20 per million output,
 cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M30
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M35
 adds a section on it to `operations-costs.md`.
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
@@ -1936,7 +1936,7 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Spend**: nothing caps usage until credits exist; the budget alert is the guard.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
-  checked before staff use and raised before M30.
+  checked before staff use and raised before M35.
 - **Deploys during a run**: Cloud Run should let a running request finish when a revision replaces
   its instance; if not, the lease and Cloud Tasks' retry resume the run.
 - **Live query traffic**: progress lines and leases refresh only `GetConversationRun`; each message
@@ -1959,7 +1959,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   Claude's, bounded by its output, so neither is reachable without injected text making the model
   write such a shape; moving both to markdown-it, or bounding what they parse, closes it.
 - **Processing location**: the API runs inference in the workspace's default region unless a
-  request names one (`inference_geo`). The legal review before M30 picks it, and names Anthropic as
+  request names one (`inference_geo`). The legal review before M35 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
   they are deleted.
 - **Prompt injection**: knowledge, tasks, the web, files and integrations carry text others wrote,
@@ -1979,7 +1979,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   carries no AI permission, on that member's word alone: no setting lets an organization refuse
   external agents, and no administrator sees the connections, by David's decision on 2026-10-07.
   What AI may read then reaches the agent's provider, OpenAI or Cursor say, which the legal review
-  before M30 names; injected text reaching that agent can do what its access allows. The AI
+  before M35 names; injected text reaching that agent can do what its access allows. The AI
   permissions bound it, a connection can be read only, and the member disconnects it from Connected
   agents. If teams ask for more, an organization switch and an administrators' view of connections
   fit the data as it is.

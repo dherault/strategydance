@@ -101,8 +101,10 @@ export const RICH_TEXT_HEADING_LEVELS = [1, 2, 3] as const
 export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
 
 /**
- * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike.
- * Each is one or more of the stored block types, as `getRichTextBlockTypes` names them
+ * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike, or
+ * an element inside its text besides runs and links: a mention of a document or a task. A block is
+ * one or more of the stored block types, as `getRichTextBlockTypes` names them, and an element one
+ * of the stored inline types, as `getRichTextInlineTypes` names them
  */
 export type RichTextEditorBlock =
   | 'heading'
@@ -114,6 +116,8 @@ export type RichTextEditorBlock =
   | 'image'
   | 'video'
   | 'linkPreview'
+  | 'documentMention'
+  | 'taskMention'
 
 /**
  * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
@@ -231,6 +235,24 @@ export function getRichTextBlockTypes(blocks: readonly RichTextEditorBlock[]): R
   ]
 }
 
+/** The stored inline types an editor writing `blocks` keeps, which `normalizeRichText` holds a value to */
+export function getRichTextInlineTypes(blocks: readonly RichTextEditorBlock[]): RichTextInlineType[] {
+  return [
+    'text',
+    'link',
+    ...(blocks.includes('documentMention') ? (['documentMention'] as const) : []),
+    ...(blocks.includes('taskMention') ? (['taskMention'] as const) : []),
+  ]
+}
+
+/**
+ * The stored block and inline types an editor writing `blocks` keeps, as `normalizeRichText` and
+ * `parseRichText` take them, so that a value read for an editor holds nothing its schema lacks
+ */
+export function getRichTextContentTypes(blocks: readonly RichTextEditorBlock[]) {
+  return { blockTypes: getRichTextBlockTypes(blocks), inlineTypes: getRichTextInlineTypes(blocks) }
+}
+
 /** The four styles a run of text may carry, each present only when it is on */
 export type RichTextStyles = {
   bold?: true
@@ -252,7 +274,29 @@ export type RichTextLink = {
   content: RichTextRun[]
 }
 
-export type RichTextInline = RichTextRun | RichTextLink
+/**
+ * A mention of a knowledge document, by its id as Data Connect writes one, 32 lowercase hex digits,
+ * with its title when the mention was made, which nothing rewrites after a rename: it is what the
+ * mention reads as wherever the live title is not drawn. Its props are stored as they are named
+ * here, for good, since a shared text holding one with a prop its schema lacks cannot be read
+ */
+export type RichTextDocumentMention = {
+  type: 'documentMention'
+  props: { documentId: string; title?: string }
+}
+
+/** A mention of a task, by its id, with its name when the mention was made, as a document's has its title */
+export type RichTextTaskMention = {
+  type: 'taskMention'
+  props: { taskId: string; name?: string }
+}
+
+export type RichTextMention = RichTextDocumentMention | RichTextTaskMention
+
+export type RichTextInline = RichTextRun | RichTextLink | RichTextMention
+
+/** The elements text is written in, by BlockNote's names */
+export type RichTextInlineType = RichTextInline['type']
 
 /** A block of text: a paragraph, a heading, a quote, or an item of a list */
 export type RichTextTextBlock = {
@@ -355,3 +399,43 @@ export type RichTextBlock =
 
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType = RichTextBlock['type']
+
+/** What a mention names: a document or a task */
+export type RichTextMentionKind = 'document' | 'task'
+
+/** A document or a task a mention names, by its id as Data Connect writes one */
+export type RichTextMentionTarget = { kind: RichTextMentionKind; id: string }
+
+/**
+ * Where a page's mentions draw their documents and tasks from, and what they open: the
+ * organization's live lists, which the page reads once a mention needs them, and its addresses
+ */
+export type RichTextMentionSource = {
+  /** Each document's title by its id, in the order to suggest them, or null while unread, or when it could not be read */
+  documents: ReadonlyMap<string, string> | null
+  /** Each task's name by its id, in the order to suggest them, or null while unread, or when it could not be read */
+  tasks: ReadonlyMap<string, string> | null
+  /** Asks for a kind's list, which is read from then on: a mention of it is drawn, or the menu opens. Called again and again */
+  request: (kind: RichTextMentionKind) => void
+  /** The address of the page a mention opens */
+  getHref: (target: RichTextMentionTarget) => string
+  /**
+   * Opens it inside the app. Left out where leaving the page would lose what is written and not
+   * saved, where a click on a mention opens it in a new tab instead
+   */
+  open?: (target: RichTextMentionTarget) => void
+  /** The document or the task being written, which is never suggested */
+  self?: RichTextMentionTarget
+}
+
+/** What a mention names */
+export function getRichTextMentionTarget(mention: RichTextMention): RichTextMentionTarget {
+  return mention.type === 'documentMention'
+    ? { kind: 'document', id: mention.props.documentId }
+    : { kind: 'task', id: mention.props.taskId }
+}
+
+/** The words a mention was made with, its document's title or its task's name then, or an empty string */
+export function getRichTextMentionWords(mention: RichTextMention): string {
+  return (mention.type === 'documentMention' ? mention.props.title : mention.props.name) ?? ''
+}

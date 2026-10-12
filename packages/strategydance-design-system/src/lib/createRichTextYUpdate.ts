@@ -6,7 +6,7 @@ import {
   RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import * as Y from 'yjs'
 
@@ -26,7 +26,7 @@ type Options = {
   `parseRichText` has it
 */
 function createRichTextYUpdate(value: string | null | undefined, { blocks = RICH_TEXT_EDITOR_BLOCKS }: Options = {}) {
-  const parsed = parseRichText(value, { blockTypes: getRichTextBlockTypes(blocks) })
+  const parsed = parseRichText(value, getRichTextContentTypes(blocks))
   const doc = blocksToYDoc(
     getHeadlessRichTextEditor(blocks),
     (parsed.length ? parsed : [{ type: 'paragraph' }]) as PartialBlock[],

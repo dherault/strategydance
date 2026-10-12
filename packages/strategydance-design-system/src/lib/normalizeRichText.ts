@@ -6,7 +6,9 @@ import {
   type RichTextCodeBlock,
   type RichTextImageBlock,
   type RichTextInline,
+  type RichTextInlineType,
   type RichTextLinkPreviewBlock,
+  type RichTextMention,
   type RichTextRun,
   type RichTextStyles,
   type RichTextTableBlock,
@@ -33,6 +35,17 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'videoEmbed',
   'linkPreview',
 ]
+
+const ALL_INLINE_TYPES: readonly RichTextInlineType[] = ['text', 'link', 'documentMention', 'taskMention']
+
+// The inline elements that mention a document or a task
+const MENTION_TYPES = new Set(['documentMention', 'taskMention'])
+
+// An id as Data Connect writes one
+const ID_PATTERN = /^[0-9a-f]{32}$/
+
+// Longer than a document's title or a task's name may be
+const MAX_MENTION_WORDS_LENGTH = 300
 
 // More than a table written by hand ever has, and few enough that a hostile one stays small
 const MAX_TABLE_ROWS = 200
@@ -65,6 +78,8 @@ const MAX_LINK_PREVIEW_LENGTHS = { title: 300, description: 1000, siteName: 100 
 type Options = {
   /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
   blockTypes?: readonly RichTextBlockType[]
+  /** The elements of text to keep, every one unless it says fewer. A mention left out reads as its words */
+  inlineTypes?: readonly RichTextInlineType[]
   /**
    * Whether to keep what loads from elsewhere: pictures, videos and a link preview's picture,
    * kept unless it says not. Without, a picture and a video give way to their children, and a link
@@ -74,7 +89,7 @@ type Options = {
 }
 
 // What a value is held to as it is read, block by block
-type Rules = { blockTypes: ReadonlySet<string>; media: boolean }
+type Rules = { blockTypes: ReadonlySet<string>; inlineTypes: ReadonlySet<string>; media: boolean }
 
 // What loads from elsewhere, which `media: false` drops
 const MEDIA_BLOCK_TYPES = new Set(['image', 'videoEmbed'])
@@ -107,8 +122,10 @@ type UnknownRecord = Record<string, unknown>
   split, and the widths of its columns, and whether its first row and column are headers. A
   picture keeps its web address, its alternative text, its caption and the width it was resized
   to, a video the address of its page on YouTube, Vimeo or Loom, written one way, and a link
-  preview its web address, what the page said of itself, and its picture's https address. A link keeps its address when it is a web or mail one, written as the URL
-  parser writes it, and is its text otherwise.
+  preview its web address, what the page said of itself, and its picture's https address. A link
+  keeps its address when it is a web or mail one, written as the URL parser writes it, and is its
+  text otherwise. A mention of a document or a task keeps its id, written as Data Connect writes
+  one, and its words on one line, and is its words when its id is none or the options leave it out.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
   are dropped, so the same document always serializes to the same string. Anything that is not an
@@ -116,12 +133,12 @@ type UnknownRecord = Record<string, unknown>
 */
 function normalizeRichText(
   value: unknown,
-  { blockTypes = ALL_BLOCK_TYPES, media = true }: Options = {},
+  { blockTypes = ALL_BLOCK_TYPES, inlineTypes = ALL_INLINE_TYPES, media = true }: Options = {},
 ): RichTextBlock[] {
   if (!Array.isArray(value)) return []
 
   const allowed = blockTypes.filter(type => media || !MEDIA_BLOCK_TYPES.has(type))
-  const blocks = normalizeBlocks(value, { blockTypes: new Set(allowed), media }, 0)
+  const blocks = normalizeBlocks(value, { blockTypes: new Set(allowed), inlineTypes: new Set(inlineTypes), media }, 0)
   const end = blocks.findLastIndex(block => !isEmptyParagraph(block))
 
   return blocks.slice(0, end + 1)
@@ -149,33 +166,33 @@ function normalizeBlock(value: UnknownRecord, rules: Rules, depth: number): Rich
   const type = isKnown ? (value.type as RichTextBlockType) : 'paragraph'
   const block =
     type === 'codeBlock'
-      ? normalizeCodeBlock(value)
+      ? normalizeCodeBlock(value, rules)
       : type === 'table'
-        ? normalizeTable(value)
+        ? normalizeTable(value, rules)
         : type === 'image'
           ? normalizeImage(value)
           : type === 'videoEmbed'
             ? normalizeVideoEmbed(value)
             : type === 'linkPreview'
               ? normalizeLinkPreview(value, rules.media)
-              : normalizeTextBlock(type, value)
+              : normalizeTextBlock(type, value, rules)
 
   if (!block) return children
 
   return [{ ...block, ...(children.length ? { children } : {}) }]
 }
 
-function normalizeTextBlock(type: RichTextTextBlock['type'], value: UnknownRecord): RichTextTextBlock {
+function normalizeTextBlock(type: RichTextTextBlock['type'], value: UnknownRecord, rules: Rules): RichTextTextBlock {
   const props = normalizeTextProps(type, value.props)
-  const content = normalizeInline(value.content)
+  const content = normalizeInline(value.content, rules)
 
   return { type, ...(props ? { props } : {}), ...(content.length ? { content } : {}) }
 }
 
 // Its text in one run without styles, whatever it was written in, and its language unless that is plain text
-function normalizeCodeBlock(value: UnknownRecord): RichTextCodeBlock {
+function normalizeCodeBlock(value: UnknownRecord, rules: Rules): RichTextCodeBlock {
   const language = getRichTextCodeLanguage(isRecord(value.props) ? value.props.language : undefined)
-  const text = getRichTextInlineText(normalizeInline(value.content))
+  const text = getRichTextInlineText(normalizeInline(value.content, rules))
 
   return {
     type: 'codeBlock',
@@ -192,9 +209,9 @@ function normalizeCodeBlock(value: UnknownRecord): RichTextCodeBlock {
   counts the columns of a table of one header row as header columns too, so those are not. A table
   without a cell is nothing
 */
-function normalizeTable(value: UnknownRecord): RichTextTableBlock | null {
+function normalizeTable(value: UnknownRecord, rules: Rules): RichTextTableBlock | null {
   const content = isRecord(value.content) ? value.content : {}
-  const rows = readRows(Array.isArray(content.rows) ? content.rows.slice(0, MAX_TABLE_ROWS) : [])
+  const rows = readRows(Array.isArray(content.rows) ? content.rows.slice(0, MAX_TABLE_ROWS) : [], rules)
   const width = Math.min(Math.max(0, ...rows.map(cells => cells.length)), MAX_TABLE_COLUMNS)
 
   if (!width) return null
@@ -217,7 +234,7 @@ function normalizeTable(value: UnknownRecord): RichTextTableBlock | null {
 }
 
 // Each row's cells on the table's grid, a cell spanning several columns or rows leaving empty cells in them
-function readRows(rows: unknown[]) {
+function readRows(rows: unknown[], rules: Rules) {
   // How many rows below each column is still covered by a cell spanning rows
   const covered: number[] = []
 
@@ -233,7 +250,7 @@ function readRows(rows: unknown[]) {
     for (const cell of isRecord(row) && Array.isArray(row.cells) ? row.cells : []) {
       skipCovered()
 
-      const { content, colspan, rowspan } = readCell(cell)
+      const { content, colspan, rowspan } = readCell(cell, rules)
 
       for (let index = 0; index < colspan && cells.length < MAX_TABLE_COLUMNS; index++) {
         covered[cells.length] = rowspan - 1
@@ -248,13 +265,13 @@ function readRows(rows: unknown[]) {
 }
 
 // A cell's text and how many columns and rows it spans, from a cell with props, its content or its text
-function readCell(cell: unknown) {
-  if (!isRecord(cell)) return { content: normalizeInline(cell), colspan: 1, rowspan: 1 }
+function readCell(cell: unknown, rules: Rules) {
+  if (!isRecord(cell)) return { content: normalizeInline(cell, rules), colspan: 1, rowspan: 1 }
 
   const props = isRecord(cell.props) ? cell.props : {}
 
   return {
-    content: normalizeInline(cell.content),
+    content: normalizeInline(cell.content, rules),
     colspan: readSpan(props.colspan, MAX_TABLE_COLUMNS),
     rowspan: readSpan(props.rowspan, MAX_TABLE_ROWS),
   }
@@ -353,10 +370,11 @@ function normalizeTextProps(type: RichTextTextBlock['type'], props: unknown): Ri
   return undefined
 }
 
-function normalizeInline(content: unknown): RichTextInline[] {
+function normalizeInline(content: unknown, rules: Rules): RichTextInline[] {
   if (!Array.isArray(content)) return normalizeRuns(content)
 
   return content.flatMap((item): RichTextInline[] => {
+    if (isRecord(item) && MENTION_TYPES.has(item.type as string)) return normalizeMention(item, rules)
     if (!isRecord(item) || item.type !== 'link') return normalizeRuns([item])
 
     const runs = normalizeRuns(item.content)
@@ -369,8 +387,44 @@ function normalizeInline(content: unknown): RichTextInline[] {
 }
 
 /*
-  Text, a plain string being text without styles. An inline element of another kind, or a link
-  where a link cannot be, reads as its text
+  A mention by its id, as Data Connect writes one, whatever the case or the hyphens it came in, with
+  its words. One the rules leave out, or without an id, is its words alone
+*/
+function normalizeMention(item: UnknownRecord, rules: Rules): RichTextInline[] {
+  const props = isRecord(item.props) ? item.props : {}
+  const isDocument = item.type === 'documentMention'
+  const id = normalizeId(isDocument ? props.documentId : props.taskId)
+  const words = readMentionWords(item)
+
+  if (!id || !rules.inlineTypes.has(item.type as string)) return words ? [{ type: 'text', text: words }] : []
+
+  const mention: RichTextMention = isDocument
+    ? { type: 'documentMention', props: { documentId: id, ...(words ? { title: words } : {}) } }
+    : { type: 'taskMention', props: { taskId: id, ...(words ? { name: words } : {}) } }
+
+  return [mention]
+}
+
+// An id as Data Connect writes one, 32 lowercase hex digits, from one written with or without hyphens in any case
+function normalizeId(value: unknown) {
+  if (typeof value !== 'string' || value.length > 36) return null
+
+  const id = value.replaceAll('-', '').toLowerCase()
+
+  return ID_PATTERN.test(id) ? id : null
+}
+
+// A mention's words, its document's title or its task's name, on one line, as one is written, within a length
+function readMentionWords(item: UnknownRecord) {
+  const props = isRecord(item.props) ? item.props : {}
+  const words = item.type === 'documentMention' ? props.title : props.name
+
+  return typeof words === 'string' ? words.replace(/\s+/g, ' ').trim().slice(0, MAX_MENTION_WORDS_LENGTH).trimEnd() : ''
+}
+
+/*
+  Text, a plain string being text without styles. A mention where a mention cannot be reads as its
+  words, and an inline element of another kind, or a link where a link cannot be, as its text
 */
 function normalizeRuns(content: unknown, depth = 0): RichTextRun[] {
   if (typeof content === 'string') return content ? [{ type: 'text', text: content }] : []
@@ -379,6 +433,11 @@ function normalizeRuns(content: unknown, depth = 0): RichTextRun[] {
   return content.flatMap((item): RichTextRun[] => {
     if (typeof item === 'string') return normalizeRuns(item)
     if (!isRecord(item)) return []
+    if (MENTION_TYPES.has(item.type as string)) {
+      const words = readMentionWords(item)
+
+      return words ? [{ type: 'text', text: words }] : []
+    }
     if (item.type !== 'text') return normalizeRuns(item.content, depth + 1)
     if (typeof item.text !== 'string' || !item.text) return []
 

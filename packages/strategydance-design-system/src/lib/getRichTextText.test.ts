@@ -45,6 +45,22 @@ describe('getRichTextText', () => {
     ).toBe('a\nb\nOne\t\nTwo\tThree')
   })
 
+  it('reads a mention as the words it was made with', () => {
+    expect(
+      getRichTextText([
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'See ' },
+            { type: 'documentMention', props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Pricing' } },
+            { type: 'text', text: ' and ' },
+            { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+          ],
+        },
+      ]),
+    ).toBe('See Pricing and ')
+  })
+
   it('reads no blocks as nothing', () => {
     expect(getRichTextText([])).toBe('')
   })

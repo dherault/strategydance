@@ -8,7 +8,7 @@ import {
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextBlock,
   type RichTextEditorBlock,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import { initProseMirrorDoc, updateYFragment } from 'y-prosemirror'
 import type * as Y from 'yjs'
@@ -155,7 +155,7 @@ function planEdit(
   */
   const added = createNodes(
     editor,
-    normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks), media: false }),
+    normalizeRichText(edit.blocks, { ...getRichTextContentTypes(blocks), media: false }),
   )
 
   // A document with no text yet is one empty paragraph, which the first block appended to it takes

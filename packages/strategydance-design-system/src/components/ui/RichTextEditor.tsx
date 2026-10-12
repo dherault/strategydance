@@ -26,7 +26,7 @@ import {
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
   type RichTextLinkPreview,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
@@ -225,12 +225,12 @@ function RichTextEditor({
     return () => window.removeEventListener('keydown', claimEscape, { capture: true })
   }, [editor])
 
-  const blockTypes = getRichTextBlockTypes(blocks)
+  const types = getRichTextContentTypes(blocks)
 
   function handleChange() {
     if (!onChange) return
 
-    const document = normalizeRichText(editor.document, { blockTypes })
+    const document = normalizeRichText(editor.document, types)
     const text = getRichTextText(document)
 
     onChange({ value: JSON.stringify(document), isEmpty: isRichTextEmpty(document), textLength: text.length })
@@ -353,7 +353,7 @@ function createEditor({
   }
 
   // BlockNote throws on an empty document, which it makes itself when given none
-  const initialContent = parseRichText(initialValue, { blockTypes: getRichTextBlockTypes(blocks) })
+  const initialContent = parseRichText(initialValue, getRichTextContentTypes(blocks))
   const editor = BlockNoteEditor.create({
     ...options,
     initialContent: initialContent.length ? (initialContent as PartialBlock[]) : undefined,

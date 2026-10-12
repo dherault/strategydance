@@ -2,13 +2,15 @@ import type { BlockContent, List, ListItem, Paragraph, PhrasingContent, Table, T
 import { gfmToMarkdown } from 'mdast-util-gfm'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
-import type {
-  RichTextBlock,
-  RichTextInline,
-  RichTextRun,
-  RichTextStyles,
-  RichTextTableBlock,
-  RichTextTextBlock,
+import {
+  type RichTextBlock,
+  type RichTextInline,
+  type RichTextMention,
+  type RichTextRun,
+  type RichTextStyles,
+  type RichTextTableBlock,
+  type RichTextTextBlock,
+  getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 
 type Style = keyof RichTextStyles
@@ -39,8 +41,10 @@ type Piece = { styles: Style[]; nodes: PhrasingContent[] }
   with its language, and a table is a GFM table, its first row its header when it has one, and
   under an empty header row when it does not, which reads back as none. A table's columns lose
   their widths and its header column, and a line break in a cell is a space. A picture, a video
-  and a link preview are a link, with the picture's caption or the page's title. Underline is
-  `<u>…</u>`, and a line break inside a block a hard one
+  and a link preview are a link, with the picture's caption or the page's title. A mention is the
+  link Strategy Dance's agent writes, `[title](doc:<id>)` for a document and `[name](task:<id>)` for
+  a task, with the words it was made with. Underline is `<u>…</u>`, and a line break inside a block
+  a hard one
 */
 function richTextToMarkdown(blocks: readonly RichTextBlock[]): string {
   const children = writeBlocks(normalizeRichText(blocks))
@@ -165,7 +169,11 @@ function createTable(block: RichTextTableBlock): Table {
 function withoutLineBreaks(content: RichTextInline[]): RichTextInline[] {
   const flatten = (run: RichTextRun): RichTextRun => ({ ...run, text: run.text.replace(/\n/g, ' ') })
 
-  return content.map(item => (item.type === 'link' ? { ...item, content: item.content.map(flatten) } : flatten(item)))
+  return content.map(item => {
+    if (item.type === 'text') return flatten(item)
+
+    return item.type === 'link' ? { ...item, content: item.content.map(flatten) } : item
+  })
 }
 
 // Text, its line breaks hard ones
@@ -184,12 +192,23 @@ function readStyles(run: RichTextRun): Style[] {
 
 function writeInline(content: RichTextInline[]): PhrasingContent[] {
   return wrapPieces(
-    content.map(item =>
-      item.type === 'link'
-        ? { styles: [], nodes: [{ type: 'link', url: item.href, children: writeInline(item.content) }] }
-        : { styles: readStyles(item), nodes: writeText(item.text) },
-    ),
+    content.map((item): Piece => {
+      if (item.type === 'text') return { styles: readStyles(item), nodes: writeText(item.text) }
+      if (item.type === 'link') {
+        return { styles: [], nodes: [{ type: 'link', url: item.href, children: writeInline(item.content) }] }
+      }
+
+      return { styles: [], nodes: [writeMention(item)] }
+    }),
   )
+}
+
+// A mention as the link the agent writes for it, its words on one line already
+function writeMention(mention: RichTextMention): PhrasingContent {
+  const words = getRichTextMentionWords(mention)
+  const url = mention.type === 'documentMention' ? `doc:${mention.props.documentId}` : `task:${mention.props.taskId}`
+
+  return { type: 'link', url, children: words ? [{ type: 'text', value: words }] : [] }
 }
 
 function wrap(style: Style, children: PhrasingContent[]): PhrasingContent[] {

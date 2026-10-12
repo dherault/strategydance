@@ -5,6 +5,9 @@ import {
   RICH_TEXT_CODE_LANGUAGES,
   getRichTextBlockTypes,
   getRichTextCodeLanguage,
+  getRichTextContentTypes,
+  getRichTextMentionTarget,
+  getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 
 describe('getRichTextBlockTypes', () => {
@@ -17,6 +20,29 @@ describe('getRichTextBlockTypes', () => {
     ])
     expect(getRichTextBlockTypes(['code'])).toEqual(['paragraph', 'codeBlock'])
     expect(getRichTextBlockTypes([])).toEqual(['paragraph'])
+  })
+})
+
+describe('getRichTextContentTypes', () => {
+  it('names the stored blocks and elements of text an editor writing some blocks keeps', () => {
+    expect(getRichTextContentTypes(['list', 'taskMention'])).toEqual({
+      blockTypes: ['paragraph', 'bulletListItem', 'numberedListItem'],
+      inlineTypes: ['text', 'link', 'taskMention'],
+    })
+    expect(getRichTextContentTypes(['documentMention']).inlineTypes).toEqual(['text', 'link', 'documentMention'])
+    expect(getRichTextContentTypes([]).inlineTypes).toEqual(['text', 'link'])
+  })
+})
+
+describe('getRichTextMentionTarget', () => {
+  it('says what a mention names, and the words it was made with', () => {
+    const document = { type: 'documentMention', props: { documentId: 'd', title: 'Plan' } } as const
+    const task = { type: 'taskMention', props: { taskId: 't' } } as const
+
+    expect(getRichTextMentionTarget(document)).toEqual({ kind: 'document', id: 'd' })
+    expect(getRichTextMentionTarget(task)).toEqual({ kind: 'task', id: 't' })
+    expect(getRichTextMentionWords(document)).toBe('Plan')
+    expect(getRichTextMentionWords(task)).toBe('')
   })
 })
 

@@ -6,7 +6,7 @@ import {
   RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import type * as Y from 'yjs'
 
@@ -23,9 +23,7 @@ type Options = {
 */
 function readRichTextYDoc(doc: Y.Doc, { blocks = RICH_TEXT_EDITOR_BLOCKS }: Options = {}) {
   const editor = getHeadlessRichTextEditor(blocks)
-  const document = normalizeRichText(yDocToBlocks(editor, doc, RICH_TEXT_YJS_FRAGMENT), {
-    blockTypes: getRichTextBlockTypes(blocks),
-  })
+  const document = normalizeRichText(yDocToBlocks(editor, doc, RICH_TEXT_YJS_FRAGMENT), getRichTextContentTypes(blocks))
 
   return { value: JSON.stringify(document), isEmpty: isRichTextEmpty(document) }
 }

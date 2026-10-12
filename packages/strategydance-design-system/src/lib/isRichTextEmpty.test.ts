@@ -28,4 +28,20 @@ describe('isRichTextEmpty', () => {
     expect(isRichTextEmpty([{ type: 'linkPreview', props: { url: 'https://example.com/' } }])).toBe(false)
     expect(isRichTextEmpty([{ type: 'linkPreview' }])).toBe(true)
   })
+
+  it('says a mention says something, even one made with no words', () => {
+    expect(
+      isRichTextEmpty([
+        {
+          type: 'paragraph',
+          children: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } }],
+            },
+          ],
+        },
+      ]),
+    ).toBe(false)
+  })
 })

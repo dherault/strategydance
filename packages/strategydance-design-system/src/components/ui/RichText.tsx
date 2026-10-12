@@ -16,7 +16,8 @@ import {
   type RichTextTableContent,
   type RichTextTextBlock,
   type RichTextVideoEmbedBlock,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
+  getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -49,7 +50,7 @@ type Props = {
   an old Lexical one included, draws nothing
 */
 function RichText({ value, blocks: blockTypes = RICH_TEXT_POST_BLOCKS, className }: Props) {
-  const blocks = parseRichText(value, { blockTypes: getRichTextBlockTypes(blockTypes) })
+  const blocks = parseRichText(value, getRichTextContentTypes(blockTypes))
 
   if (!blocks.length) return null
 
@@ -379,6 +380,7 @@ function renderContent(
 
 function renderInline(item: RichTextInline, key: number): ReactNode {
   if (item.type === 'text') return renderRun(item, key)
+  if (item.type !== 'link') return <Fragment key={key}>{getRichTextMentionWords(item)}</Fragment>
 
   return (
     <a

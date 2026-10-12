@@ -44,6 +44,24 @@ describe('richTextToMarkdown', () => {
     )
   })
 
+  it("writes a mention as the agent's link to a document or a task, its words escaped", () => {
+    expect(
+      richTextToMarkdown([
+        paragraph(
+          run('See', { bold: true }),
+          ' ',
+          { type: 'documentMention', props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Plan [v2]' } },
+          ' then ',
+          { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9', name: 'Ship *it*' } },
+          ' or ',
+          { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+        ),
+      ]),
+    ).toBe(
+      '**See** [Plan \\[v2\\]](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) then [Ship \\*it\\*](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9) or [](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)',
+    )
+  })
+
   it('writes a table without a header row under an empty one', () => {
     expect(
       richTextToMarkdown([

@@ -1883,7 +1883,11 @@ way (see The orchestrator).
   minutes old, as the run reconcile does, promotes `PENDING` runs into free slots, and starts the
   parent's reaction when one is due. A worker's crash is delivered again by Cloud Tasks, as for any
   run. With no page open, the daily sweep is the backstop: it finalizes subagent runs past their
-  lease and promotes as the route does. A subagent finalized as interrupted reports so, and its
+  lease and promotes as the route does, and it reconciles every queued run past its lease that no
+  page will, a reaction's above all: a reaction whose task could not be created has its lease
+  brought in to now, as `enqueueRun` does, but its reports are already marked delivered, so nothing
+  of its parent's page polls for it. The sweep asks Cloud Tasks for its task and queues it again, or
+  finalizes it as interrupted once it is twenty minutes old, as the run reconcile does. A subagent finalized as interrupted reports so, and its
   parent reacts.
 - **The parent reacts.** `launch_subagent` answers at once with the subagent's id, and the parent's
   turn goes on or ends: nothing waits on subagents. David chose both a wait tool and a reaction to
@@ -1965,9 +1969,12 @@ way (see The orchestrator).
   Stop or a delete finds its run asked to stop or its parent deleted and is refused, and a Stop or a
   delete after a launch reaches the subagent it made. A launch takes the membership's lock before
   the parent's row, the order every run start already keeps (`SendConversationMessage` locks the
-  membership, then writes the conversation), and so do a reaction's start and the promotion; Stop,
-  Stop all and a delete take the conversation's row alone. One order everywhere, so no two of them
-  wait on each other's lock. The emulator's PGlite runs one transaction at a time, so the race is
+  membership, then writes the conversation), and so do a reaction's start and the promotion. Stop,
+  Stop all and a delete keep it too, membership then parent, and promote in that same mutation as
+  many `PENDING` runs as the slot-holding runs they end at once free, so a launch that counted five
+  and left its run pending while a Stop ended one finds it promoted once the Stop takes the lock
+  after it. One order everywhere, so no two of them wait on each other's lock and no freed slot is
+  left unused. The emulator's PGlite runs one transaction at a time, so the race is
   Postgres' to reason about: the fake's tests and the emulator check hold the outcome, a launch
   after a Stop or a delete refused and one before reached by it, and a launch against a send, an
   answer, Resume and Retry, in both orders.

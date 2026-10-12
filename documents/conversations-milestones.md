@@ -1884,6 +1884,9 @@ What a subagent is, and why each rule below holds, is in Subagents.
     report of the second; a send carrying both, and the second's completion its remainder.
   - A reaction held back by the member's runs in other conversations, started when one of them ends,
     and by the sweep with no page open.
+  - A reaction whose task could not be created, with no page open, queued again by the sweep.
+  - A launch that counted five and left its run pending while a Stop ended one, its run promoted by
+    the Stop.
   - A question waiting not consumed, its answer carrying the reports.
   - A send carrying them, after its tool results.
   - A reaction's launch refused.
@@ -1902,7 +1905,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its
     `subagentCount` by as many, and a parent that reached the hundred launching again after.
 - `check:conversation-runs` gains the reaction's lock, two ends at once, and a launch against the
-  parent's Stop and delete and against a send, an answer, Resume and Retry, each in both orders.
+  parent's Stop, Stop all and delete, each taking the membership then the parent's row, and against a
+  send, an answer, Resume and Retry, each in both orders.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, and read the board and the
     reaction.

@@ -81,8 +81,10 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   /*
     A draft is stored once a send has started its first run, or once the window's own read of it,
     cached while it was open, found it: the dock's read can lag both, and fail, and a reload forgets
-    the first. Only a draft nothing says is stored is discarded with what was written in it, its
-    files removed, so they hold no place among the reader's unsent files
+    the first. A draft whose first send is going counts as stored too, since that send stores it
+    with the files it carries, which removing them would make it refuse. Only a draft nothing says
+    is stored is discarded with what was written in it, its files removed, so they hold no place
+    among the reader's unsent files
   */
   function close() {
     closeWindow(conversationId)
@@ -90,7 +92,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
     const read = queryClient.getQueryData<GetConversationData>(
       getConversationQueryKey(organization?.id ?? null, conversationId, viewer?.uid ?? null),
     )
-    const isStored = !!conversation || !!draft.startedRun || !!read?.conversations.length
+    const isStored = !!conversation || !!draft.startedRun || !!draft.sendingMessageId || !!read?.conversations.length
 
     if (!isDraft || isStored) return
 

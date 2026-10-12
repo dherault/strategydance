@@ -341,7 +341,7 @@ New tables in `schema.gql`, each commented as the existing ones are:
   (`ConversationMessageKind`: `MEMBER_TEXT`, `AGENT_TEXT`, `TOOL_CALL`, `QUESTION`, `ASPECTS`, `NOTE`,
   and from M30 `BRIEF`, a subagent's brief, whose `attachmentIds` list names the parent's files it
   hands over),
-  `text` (Markdown, for the two text kinds), `citations` (`Any`, on agent text, see Drawing a turn),
+  `text` (Markdown, for the two text kinds and a `BRIEF`, which the agent wrote), `citations` (`Any`, on agent text, see Drawing a turn),
   the tool call's `toolUseId`, `toolName`, `toolStatus`
   (`RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), `toolInput` and `toolOutput` (JSON text),
   `toolStartedAt`, `toolDurationMs`, the question's `questionPrompt`, `questionOptions`, `isMultipleChoice`,
@@ -758,7 +758,7 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   again or the reconcile route, as after a crash (see The transcript); before counting, the route finalizes every dead run the member has in that
   organization, so crashes elsewhere never lock them out. Subagents' runs count toward an allowance
   of their own, five per member in each organization, on a queue of their own, and a parent's
-  reaction to its subagents toward neither (see Subagents).
+  reaction to its subagents toward the member's three, as any run of theirs (see Subagents).
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
   flag; build the request from the transcript and check it (see The transcript); stream it, writing
@@ -1468,7 +1468,13 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
 chose on 2026-10-12. `MODULES` gains `subagents`, at `/mcp/subagents`, titled "Strategy Dance
 Subagents", with the scopes `subagents:read` and `subagents:write`, but it stays out of
 `SERVED_MODULE_NAMES`. No external agent reaches it until a later plan serves it with what Module
-conventions asks of a served module, its address reserved meanwhile. The `module` catalogue words
+conventions asks of a served module, its address reserved meanwhile. Leaving its endpoint unmounted
+is not enough, since the authorization server reads `MODULES` whole: `parseModuleResource` resolves
+any module's address, the metadata's `scopes_supported` lists every module's scopes, and the consent
+page words whichever it is asked for. From M31 all three read the served modules alone, the list
+moving to strategydance-core beside `MODULES` so the web reads it too, and a client asking for
+`/mcp/subagents` is refused as for an address no module has, so no consent makes a connection that
+no endpoint serves. The `module` catalogue words
 it anyway, as `getModuleMessages`' type asks, though no page shows it yet. What a subagent is, and
 everything its runs do, is in Subagents. Its tools, in the order it registers them:
 
@@ -1873,8 +1879,12 @@ way (see The orchestrator).
   (`activeRunId` null, `@check(this == 1)`), so two subagents ending at once start one reaction and
   the second finds the parent busy. A subagent's end checks after its own write, a parent run ending
   `COMPLETED` checks, and so does the reconcile route, so no reaction is left due.
-  - **A reaction is the first run no member started.** It counts toward neither the member's three
-    runs nor their five, being bounded by the batches. It launches nothing: the module refuses
+  - **A reaction is the first run no member started.** It counts toward the member's three runs, on
+    the `conversation-runs` queue, as any of their runs does: batches can finish across many parents
+    faster than reactions end, so exempting them would let one member hold the dispatches every reply
+    waits on. One that finds the three taken is not started: its reports wait undelivered, the
+    parent's page starts it at its next reconcile, which runs while a report waits, and the member's
+    next send there carries them anyway. It launches nothing: the module refuses
     `launch_subagent` from a `REPORTS` run, so every fan-out starts from the member's word, and
     subagents, a reaction and more subagents never loop with nobody watching. It reads, writes and
     replies as any run does, and its reply adds to `unreadCount`, which brings the member back. Its
@@ -1906,7 +1916,10 @@ way (see The orchestrator).
   never delivered; what they wrote stays written, as with every tool. The sweep prunes a parent's
   subagents before the parent, each with its module call results under `conversation:<subagentId>`,
   since `parent` is nulled on delete and a subagent left behind would surface as a conversation of
-  its own. A subagent's files are its parent's, and go with them. A restored parent whose subagents
+  its own. A subagent's files are its parent's, and go with them. A prune of subagents whose parent
+  stays, those a Retry deleted, lowers the parent's `subagentCount` by as many in the mutation that
+  deletes them, so the hundred counts what is still there and a parent that reached it can launch
+  again once they are gone. A restored parent whose subagents
   reported while it was deleted reacts once its page reconciles, which it does while a report waits
   undelivered, since Restore is the web's and starts no run.
 - **A launch and a cascade take one lock**, the parent's row. A launch's mutation first moves the

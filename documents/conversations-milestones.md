@@ -79,7 +79,7 @@ once M29 has merged.
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |
 | M30 | Subagent runs on the worker | database, core, backend, root | M17, M25, setup 11 | |
-| M31 | The Subagents module | core, backend, web | M30 | |
+| M31 | The Subagents module | core, backend, database, web | M30 | |
 | M32 | Subagents in conversations | backend, database, root | M11, M31 | |
 | M33 | Subagents in the thread | web, database | M24, M26, M32 | |
 | M34 | Integrations in subagents (written, not to build yet) | backend | M29, M32 | |
@@ -1760,10 +1760,11 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - `ConversationRunTrigger` gains `LAUNCH`, `CONTINUE` and `REPORTS`, `ConversationRunStatus`
     `PENDING` and `CHAINED`, and `ConversationMessageKind` `BRIEF`, each appended.
   - The limits go in strategydance-core (see The data).
-  - Every web read of conversations, the list, the badge's and the dock's, filters on `parent` being
-    null. So do the backend's searches and the counts that `MAX_CONVERSATIONS` and
+  - Every web read that lists conversations, the list, the badge's and the dock's, filters on
+    `parent` being null. So do the backend's searches and the counts that `MAX_CONVERSATIONS` and
     `MAX_ACTIVE_RUNS_PER_MEMBER` hold: a subagent is in none of them, and nothing a member sees
-    changes in this milestone.
+    changes in this milestone. The reads of one conversation by its id stay as they are, keyed on
+    the member, and read a subagent, which M33's viewer needs.
   - Every way a member acts on a conversation refuses a subagent (see Subagents): the send, answer,
     Resume, Retry, Stop and reconcile routes, an upload under its id, and the web's delete, restore,
     read and aspects mutations, `parent` null in each filter.
@@ -1779,8 +1780,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
     read from the run's number.
   - The report, written by the mutation that ends its last run.
   - The promotion of the member's oldest `PENDING` run, in the mutation that ends a subagent for
-    good, never in one that chains, and skipping a run whose membership is gone, which the reconcile
-    and the sweep finalize.
+    good from a run that held a slot, never in one that chains or one that ends a `PENDING` run, and
+    skipping a run whose membership is gone, which the reconcile and the sweep finalize.
 - **The `subagent-runs` queue**: `enqueueRun` takes the queue, with `SUBAGENT_RUN_QUEUE_PATH` beside
   `CONVERSATION_RUN_QUEUE_PATH` (setup step 11). The worker's route stays the same.
 - **Recovery**: the reconcile route for a parent's subagents, `POST …/subagents/reconcile`, and the
@@ -1795,6 +1796,9 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - A chain of four runs, the fourth failing at its limits with its report.
   - A sixth launch waiting `PENDING`, and promoted by another's end.
   - A chain while all five slots are taken, promoting nothing and staying at five.
+  - A `PENDING` run stopped while five run, promoting nothing.
+  - A subagent's thread read by its id through the tail, bodies, history and run queries, and another
+    member's subagent id reading nothing.
   - Two ends at once promoting one run once.
   - A `PENDING` run of a member removed, skipped by the promotion and finalized by the sweep.
   - Each route and web mutation refusing a subagent's id, called directly.

@@ -78,7 +78,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M34) |
 | Usage limits | None yet: a credit system comes later. Until then the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue) and no daily cap, as David chose on 2026-10-12, until Launch decides one or credits exist (M35) |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
-| Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M33). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user`, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
+| Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M33). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user` and the Subagents module's own, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
 | The aspect page | Unchanged: no Conversations section and no suggestions in this plan, as David chose on 2026-10-11, since their design will likely change. The agent still tags each conversation's aspects (M23) |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone, modules' connections from external agents included |
@@ -1493,8 +1493,8 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
   caller without a launcher, so listing is all such a caller can do. The module reads the launching
   run on the terms of its fence: still `RUNNING`, not asked to stop, not a reaction, and its
   conversation no subagent. The later orchestrator's runs carry theirs the same way.
-- **A launch is one mutation**, keyed as every write is, under the parent's row and then the member's
-  membership lock (see Subagents): its `ModuleCallResult`, the subagent's conversation, its `BRIEF` message, its first transcript entry
+- **A launch is one mutation**, keyed as every write is, under the member's membership lock and then
+  the parent's row (see Subagents): its `ModuleCallResult`, the subagent's conversation, its `BRIEF` message, its first transcript entry
   and its first run, `QUEUED` or `PENDING` by the slots it counts (see Subagents), which also counts
   the ten and the hundred. The subagent's id derives from the parent's and the call's key, so a
   launch called again finds the same subagent. The run is queued after the mutation, and one that
@@ -1879,25 +1879,31 @@ way (see The orchestrator).
   parent's runs launch on one anchor are a batch. Once every subagent of a batch has reported and the
   parent is idle, not deleted, its last run `COMPLETED`, no run going and no question waiting, a run
   starts in the
-  parent, triggered `REPORTS`. Its `USER` entry holds one text block per report not delivered yet: the
+  parent, triggered `REPORTS`. Its `USER` entry holds one text block per undelivered report of every
+  batch that is complete, never one of a batch still working, so each batch is reacted to whole: the
   subagent's id, title, ending and report, and the first 20 of what it wrote with their `total`,
   `read_subagent` paging the rest. The mutation that stores the entry and
   starts the run marks those reports delivered (`reportDeliveredAt`), under the conversation's lock
   (`activeRunId` null, `@check(this == 1)`), so two subagents ending at once start one reaction and
   the second finds the parent busy. A subagent's end checks after its own write, a parent run ending
-  `COMPLETED` checks, and so does the reconcile route, so no reaction is left due.
+  `COMPLETED` checks, any run of the member's ending checks for their oldest reaction due in that
+  organization, since it frees one of their three runs, the reconcile route checks, and so does the
+  daily sweep, which looks for every reaction due rather than only those of the runs it finalizes,
+  so a reaction held back by the member's runs elsewhere is started with no page open.
   - **A reaction is the first run no member started.** It counts toward the member's three runs, on
     the `conversation-runs` queue, as any of their runs does: batches can finish across many parents
     faster than reactions end, so exempting them would let one member hold the dispatches every reply
-    waits on. One that finds the three taken is not started: its reports wait undelivered, the
-    parent's page starts it at its next reconcile, which runs while a report waits, and the member's
-    next send there carries them anyway. It launches nothing: the module refuses
+    waits on. One that finds the three taken is not started: its reports wait undelivered, and the
+    next of the member's runs to end, the parent's page at its next reconcile, or the sweep starts
+    it, while the member's next send there carries them anyway. It launches nothing: the module refuses
     `launch_subagent` from a `REPORTS` run, so every fan-out starts from the member's word, and
     subagents, a reaction and more subagents never loop with nobody watching. It reads, writes and
     replies as any run does, and its reply adds to `unreadCount`, which brings the member back. Its
     `USER` entry is drawn as nothing, since the subagents' rows show their reports.
   - **The member's next send or answer** carries every finished report not delivered yet, after the
-    entry's tool results and before the member's text or answers, and marks them delivered. That is
+    entry's tool results and before the member's text or answers, and marks them delivered, those of a
+    batch still working included: a member's message is where they hear of everything so far, and
+    the reaction that batch's completion starts carries its remaining reports alone. That is
     how a parent that was busy, waiting on a question or ended with a note hears of them. A report
     never consumes a waiting question. Resume and Retry carry none: the run they start ends
     `COMPLETED` or with a note, and a reaction follows the first.
@@ -1940,10 +1946,14 @@ way (see The orchestrator).
   parent's row first too, before they reach its subagents, and Stop sets the launching run's
   `stopRequestedAt` in that transaction. Whichever commits second sees the first: a launch after a
   Stop or a delete finds its run asked to stop or its parent deleted and is refused, and a Stop or a
-  delete after a launch reaches the subagent it made. A launch takes the parent's row before the
-  membership's, the one order every mutation taking both keeps. The emulator's PGlite runs one
-  transaction at a time, so the race is Postgres' to reason about: the fake's tests and the emulator
-  check hold the outcome, a launch after a Stop or a delete refused and one before reached by it.
+  delete after a launch reaches the subagent it made. A launch takes the membership's lock before
+  the parent's row, the order every run start already keeps (`SendConversationMessage` locks the
+  membership, then writes the conversation), and so do a reaction's start and the promotion; Stop,
+  Stop all and a delete take the conversation's row alone. One order everywhere, so no two of them
+  wait on each other's lock. The emulator's PGlite runs one transaction at a time, so the race is
+  Postgres' to reason about: the fake's tests and the emulator check hold the outcome, a launch
+  after a Stop or a delete refused and one before reached by it, and a launch against a send, an
+  answer, Resume and Retry, in both orders.
 - **In the parent's thread** (M33), a `launch_subagent` call is drawn as the subagent's row: its title,
   its status, live (queued, waiting for a slot, working with its step, reported, stopped, failed or
   interrupted), Stop while it works, and "View work". That opens its thread in a dialog, live and

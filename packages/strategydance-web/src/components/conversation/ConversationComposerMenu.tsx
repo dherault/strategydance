@@ -27,6 +27,8 @@ type Props = {
   onFilesOpen: () => void
   // Attaches the files the reader picked
   onFilesPick: (files: File[]) => void
+  // Whether files can be attached: not to a conversation that is full
+  canAttachFiles: boolean
 }
 
 /*
@@ -40,7 +42,7 @@ type Props = {
   otherwise cover. The picker opens within the press too, which is the only time a browser lets a
   page open it
 */
-function ConversationComposerMenu({ onMentionKnowledge, onFilesOpen, onFilesPick }: Props) {
+function ConversationComposerMenu({ onMentionKnowledge, onFilesOpen, onFilesPick, canAttachFiles }: Props) {
   const { formatMessage } = useIntl()
   const [isOpen, setIsOpen] = useState(false)
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
@@ -101,6 +103,7 @@ function ConversationComposerMenu({ onMentionKnowledge, onFilesOpen, onFilesPick
           }}
         >
           <DropdownMenuItem
+            disabled={!canAttachFiles}
             onSelect={() => {
               isPickedRef.current = true
               onFilesOpen()

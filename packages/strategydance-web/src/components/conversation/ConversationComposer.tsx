@@ -301,13 +301,17 @@ function ConversationComposer({
   function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     const files = readConversationPastedFiles(event.clipboardData)
 
-    if (!files.length) return
+    if (!files.length || isFull) return
 
     event.preventDefault()
     attachFiles(files)
   }
 
+  // Unless the conversation is full, which would never send them, though they took places among the
+  // reader's unsent files
   function attachFiles(files: File[]) {
+    if (isFull) return
+
     attachments.add(files)
     changeDraft(() => ({ failure: null }))
   }
@@ -407,6 +411,7 @@ function ConversationComposer({
             if (!window.matchMedia('(pointer: coarse)').matches) textareaRef.current?.focus()
           }}
           onFilesPick={attachFiles}
+          canAttachFiles={!isFull}
         />
         <Textarea
           ref={textareaRef}

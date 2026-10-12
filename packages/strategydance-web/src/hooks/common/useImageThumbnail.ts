@@ -8,12 +8,18 @@ import runInOrder from '~utils/common/runInOrder'
   an `<img>` decodes its picture whole whatever size it is drawn at, so twenty large images drawn
   as thumbnails from their own bytes could take a tab's memory. Drawn one at a time across the tab,
   since each drawing decodes the image whole for a moment, and kept under `key`, which names the
-  image. Undefined while it is drawn, and null when the browser could not draw it
+  image. One whose reader has gone by its turn, its query cancelled, is never drawn. Undefined while
+  it is drawn, and null when the browser could not draw it
 */
 function useImageThumbnail(key: readonly unknown[], image: Blob | null, size: number) {
   const { data } = useQuery({
     queryKey: ['ImageThumbnail', size, ...key],
-    queryFn: () => runInOrder('imageThumbnails', () => createImageThumbnail(image!, size)),
+    queryFn: ({ signal }) =>
+      runInOrder('imageThumbnails', async () => {
+        signal.throwIfAborted()
+
+        return createImageThumbnail(image!, size)
+      }),
     enabled: image !== null,
     staleTime: Infinity,
   })

@@ -1819,8 +1819,10 @@ What a subagent is, and why each rule below holds, is in Subagents.
 - `src/modules/subagents/`, one tool per file, in the order the table lists them, over
   `domain/subagents/`: `list_subagents` and `read_subagent` read, `launch_subagent` and
   `stop_subagent` write under a key, as `readModuleWriteCall` reads it.
-- `ModuleCaller` gains the launcher, `conversationId` and `runId`, for an agent caller, which
-  `toModuleAuthInfo` and `readModuleCaller` carry, and which nothing outside the worker can fill.
+- `ModuleCaller` gains an optional `launcher`, `{ conversationId, runId }`, for an agent caller,
+  which `toModuleAuthInfo` and `readModuleCaller` carry and which only a worker that has claimed a
+  run fills. `measureConversationMessage` keeps connecting without one, before any run exists, and
+  every Subagents tool refuses a caller without it.
 - The refusals, each a sentence the model can act on:
   - from a subagent;
   - from a `REPORTS` run;
@@ -1835,10 +1837,12 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - Each refusal.
   - A stop of an ended subagent changing nothing.
   - A launch on a deleted parent, or from a run asked to stop, refused.
+  - Each tool refusing a caller without a launcher, whose tools list still holds the four.
 - `bun run check:subagents-module`, in the backend's package, checks its operations against the
   emulators.
-- No endpoint is served, so nothing joins `check:oauth`: the module reaches external agents in a later
-  plan, with everything Module conventions asks of a served one.
+- No endpoint is served: `check:oauth` only checks that `/mcp/subagents` is refused, as the bullet
+  above says, and the module reaches external agents in a later plan, with everything Module
+  conventions asks of a served one.
 
 ### M32: Subagents in conversations
 
@@ -1870,7 +1874,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
     back.
   - Stop reaching a `PENDING` subagent.
   - A launch after the parent's Stop or delete refused, and one before reached by it.
-  - A parent restored after its subagents reported reacting at its next reconcile.
+  - A deleted parent never reacting, whatever its subagents report, and reacting once restored, at
+    its next reconcile.
   - The sweep pruning subagents before their parent.
   - A reaction finding the member's three runs taken, started by the next reconcile.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its

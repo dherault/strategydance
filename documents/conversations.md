@@ -1794,8 +1794,13 @@ way (see The orchestrator).
   their conversations are, and acts as them: its runs are fenced on their membership, and its module
   calls carry them as the caller, under a scope of its own, `conversation:<subagentId>`. It is hidden
   from the list, the dock, the badge and search, and counts toward neither `MAX_CONVERSATIONS` nor
-  `MAX_ACTIVE_RUNS_PER_MEMBER`: every web read of conversations filters on `parent` being null, and so
-  do the backend's searches and counts. It is reached from its row in the parent's thread, read only.
+  `MAX_ACTIVE_RUNS_PER_MEMBER`: every web read that lists conversations, the list, the badge's and
+  the dock's, filters on `parent` being null, and so do the backend's searches and counts. The reads
+  of one conversation by its id, its tail, its bodies, its history, its run and a tool call, read a
+  subagent as they read any conversation of the member's, which is what its viewer draws: they are
+  keyed on the member as every web read is, so an id names only the reader's own, and nothing of a
+  parent or another member's is reached through a subagent's. It is reached from its row in the
+  parent's thread, read only.
 - **Read only means refused, not only hidden.** Its id reaches the page through its parent, so every
   way a member acts on a conversation refuses a subagent, `parent` null in its filter: the send, the
   answer, Resume, Retry, Stop and the reconcile routes, an upload under its id, and the web's
@@ -1847,8 +1852,10 @@ way (see The orchestrator).
   which a fan-out never blocks. A launch counts the member's subagent runs holding a dispatch, under
   the membership lock as a run start counts, and inserts its first run `QUEUED`, queued at once, or,
   past five, `PENDING`: launched, holding no dispatch and no lease, its subagent busy since
-  `activeRunId` names it. The mutation that ends a subagent for good, under the same lock, promotes
-  the member's oldest `PENDING` run to `QUEUED` with a lease, and the worker queues it. A run that
+  `activeRunId` names it. The mutation that ends a subagent for good from a run that held a slot,
+  `QUEUED` or `RUNNING`, under the same lock, promotes the member's oldest `PENDING` run to `QUEUED`
+  with a lease, and the worker queues it. A `PENDING` run stopped or finalized held no slot, so its
+  end promotes nothing. A run that
   chains promotes nothing: its `CONTINUE` run takes its slot at once, `QUEUED` in the same mutation,
   so a chain never frees a slot it still holds, and a chain with all five slots taken stays at five.
   Five a member, not five a parent, as David's "five at once" is read here: three conversations

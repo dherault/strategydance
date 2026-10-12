@@ -6,6 +6,7 @@ import useRemoveConversationAttachment from '~hooks/conversation/useRemoveConver
 import useUploadConversationAttachment from '~hooks/conversation/useUploadConversationAttachment'
 
 import createId from '~utils/common/createId'
+import runImageDrawing from '~utils/common/runImageDrawing'
 import getConversationAttachmentRefusal from '~utils/conversation/getConversationAttachmentRefusal'
 import getConversationAttachmentUploadFailure from '~utils/conversation/getConversationAttachmentUploadFailure'
 import readConversationAttachmentType from '~utils/conversation/readConversationAttachmentType'
@@ -21,11 +22,12 @@ import conversationMessages from '~data/intl/messages/conversation'
   shares them, and what adds, removes and uploads them again.
 
   A file added goes into the tray at once and up as soon as its turn comes, an image shrunk first,
-  a few at a time across the tab, writing how far it has gone into the draft: the upload is the
-  tab's, not the composer's, so it goes on wherever the conversation is drawn meanwhile, and lands
-  in the draft it was added to. A file the conversation does not take, or one too large, never goes
-  into the tray, and one the backend refuses for good leaves it: either is named above the field.
-  One that failed otherwise, its connection lost say, stays, to be uploaded again or removed.
+  one drawing at a time and a few uploads at a time across the tab, writing how far it has gone
+  into the draft: the upload is the tab's, not the composer's, so it goes on wherever the
+  conversation is drawn meanwhile, and lands in the draft it was added to. A file the conversation
+  does not take, or one too large, never goes into the tray, and one the backend refuses for good
+  leaves it: either is named above the field. One that failed otherwise, its connection lost say,
+  stays, to be uploaded again or removed.
 
   Removing a file stops its upload and tells the backend, so its place among the reader's unsent
   files frees at once. Uploading one again does it under a new id once the old one is removed, so a
@@ -63,7 +65,13 @@ function useConversationComposerAttachments(conversationId: string) {
   function upload({ id, name, contentType, file }: ConversationComposerAttachment) {
     runConversationAttachmentUpload(id, async signal => {
       try {
-        const shrunk = await shrinkConversationImage(file, contentType)
+        // One drawing at a time across the tab, while three files go up: a file removed while it
+        // waits its turn is never drawn
+        const shrunk = await runImageDrawing(async () => {
+          signal.throwIfAborted()
+
+          return shrinkConversationImage(file, contentType)
+        })
 
         signal.throwIfAborted()
 

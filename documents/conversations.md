@@ -1131,7 +1131,8 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     a conversation's page and its dock window share one, and its uploads are the tab's
     (`~data/conversationAttachmentUploads`), three at a time, each writing its progress into the
     draft in whole percents: an upload goes on while its conversation moves between the page and
-    the dock, and removing its file anywhere stops it. A thin bar along a file's foot says how far
+    the dock, and removing its file anywhere stops it. Images are drawn one at a time across the
+    tab, a shrinking or a thumbnail alike (`runImageDrawing`), since each decodes its image whole. A thin bar along a file's foot says how far
     it has gone; an image going up is dimmed.
   - **Before a file goes up** the browser reads its type from the browser's own, or from its
     extension when the browser gives none or another (a Markdown file has none, and Windows calls a

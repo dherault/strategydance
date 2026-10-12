@@ -4,6 +4,7 @@ import type { ClaudeClient } from '~types'
 
 import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import replaceConversationFiles, { type ConversationFileTokens } from '~domain/agent/replaceConversationFiles'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import type { ConversationRequestUsage, ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 
@@ -21,6 +22,8 @@ type MeasureConversationRequestInput = {
   // The request a `pause_turn` continuation carries on from, which resends exactly its input and
   // its output; null for any other request
   pausedRequest: ConversationRequestUsage | null
+  // What each file the conversation sent takes, by its id in the Files API, counted when it was stored
+  fileTokens?: ConversationFileTokens
 }
 
 // Each client's system prompt and tools, counted once per process for each list of tools, by its JSON
@@ -40,7 +43,8 @@ const configTokens = new WeakMap<ClaudeClient, Map<string, Promise<number>>>()
   - with no such request, or when what follows does not open with the member's entry, the request
     is counted whole
 
-  What is counted is the request's input alone, never its settings, which the count endpoint refuses
+  What is counted is the request's input alone, never its settings, which the count endpoint refuses,
+  and never a file, which it refuses by its Files API id: each counts what its upload counted
 */
 async function measureConversationRequest({
   client,
@@ -49,6 +53,7 @@ async function measureConversationRequest({
   entries,
   runs,
   pausedRequest,
+  fileTokens = new Map(),
 }: MeasureConversationRequestInput) {
   const config = await countConfigTokens(client, tools)
 
@@ -60,26 +65,28 @@ async function measureConversationRequest({
   // What follows a turn that called tools opens with their results, which the count endpoint
   // refuses without the calls they answer, so such a request is counted whole
   if (!start || following[0]?.role !== 'user' || opensWithResults(following[0])) {
+    const counted = replaceConversationFiles(messages, fileTokens)
     const inputTokens = await client.countTokens({
       model: CONVERSATION_MODEL,
       system: CONVERSATION_SYSTEM_PROMPT,
       tools,
-      messages,
+      messages: counted.messages,
     })
 
-    return { inputTokens, configTokens: config }
+    return { inputTokens: inputTokens + counted.fileTokens, configTokens: config }
   }
 
-  const followingTokens = await client.countTokens({ model: CONVERSATION_MODEL, messages: following })
+  const counted = replaceConversationFiles(following, fileTokens)
+  const followingTokens = await client.countTokens({ model: CONVERSATION_MODEL, messages: counted.messages })
 
   return {
-    inputTokens: sumRequest(start.request) + followingTokens + config - start.request.configTokens,
+    inputTokens: sumRequest(start.request) + followingTokens + counted.fileTokens + config - start.request.configTokens,
     configTokens: config,
   }
 }
 
 // The latest settled request whose part is still in the transcript, at the index of its entry
-function findStartingRequest(
+export function findStartingRequest(
   entries: MeasureConversationRequestInput['entries'],
   runs: MeasureConversationRequestInput['runs'],
 ) {
@@ -100,12 +107,13 @@ function opensWithResults(message: BetaMessageParam) {
   return Array.isArray(message.content) && message.content.some(block => block.type === 'tool_result')
 }
 
-function sumRequest(request: ConversationRequestUsage) {
+// A request's whole input, cached or not, which fills the context alike, and its output
+export function sumRequest(request: ConversationRequestUsage) {
   return request.inputTokens + request.cacheReadInputTokens + request.cacheCreationInputTokens + request.outputTokens
 }
 
 // The system prompt's and tools' share of a request: a request holding them, less one without
-function countConfigTokens(client: ClaudeClient, tools: ConversationRequestTools) {
+export function countConfigTokens(client: ClaudeClient, tools: ConversationRequestTools) {
   const key = JSON.stringify(tools)
   let counts = configTokens.get(client)
 

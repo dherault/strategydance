@@ -105,6 +105,54 @@ async function start(text = 'Help me price the beta'): Promise<ConversationRunRe
   return reference
 }
 
+/*
+  A conversation started with a PDF, as a send with a file starts one: its entry references the file
+  by its id in the Files API, and the file's row, sent with the message, keeps what its upload
+  counted
+*/
+async function startWithFile(tokenCount: number): Promise<ConversationRunReference> {
+  const reference = { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId: createId(), runId: createId() }
+  const messageId = createId()
+  const attachmentId = createId()
+
+  fake.attachments.set(attachmentId, {
+    id: attachmentId,
+    userId: AUTHOR,
+    organizationId: ORGANIZATION_ID,
+    conversationId: reference.conversationId,
+    messageId: null,
+    status: 'READY',
+    name: 'Plan.pdf',
+    contentType: 'application/pdf',
+    size: 1000,
+    pageCount: 1,
+    tokenCount,
+    claudeFileId: 'file_plan',
+    createdAt: new Date().toISOString(),
+  })
+
+  await sdk.startConversation(
+    {},
+    {
+      ...reference,
+      membershipCreatedAt: readMembershipCreatedAt(),
+      title: 'Plan.pdf',
+      messageId,
+      text: 'What does it say?',
+      preview: { kind: 'MEMBER_TEXT', text: 'What does it say?' },
+      content: serializeTranscriptContent([
+        { type: 'document', source: { type: 'file', file_id: 'file_plan' }, title: 'Plan.pdf' },
+        { type: 'text', text: 'What does it say?' },
+      ]),
+      aspects: ['FINANCES'],
+      aspectsSetBy: 'MEMBER',
+      attachmentIds: [attachmentId],
+    },
+  )
+
+  return reference
+}
+
 // Sends the next message of a conversation whose run ended, as a send does
 async function send(reference: ConversationRunReference, text = 'And the launch?') {
   const conversation = fake.conversations.get(reference.conversationId)
@@ -801,6 +849,27 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('FAILED')
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FULL' })
     expect(readConversation(reference)?.isFull).toBe(true)
+  })
+
+  test('counts a file the conversation sent by its stored count, never sending it to the count endpoint', async () => {
+    const reference = await startWithFile(900000)
+    const scripted = createClient([answer()])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FULL' })
+    expect(readConversation(reference)?.isFull).toBe(true)
+  })
+
+  test('sends a file the conversation sent by its id in the Files API', async () => {
+    const reference = await startWithFile(1594)
+    const scripted = createClient([answer()])
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests[0]).toContain(
+      '{"type":"document","source":{"type":"file","file_id":"file_plan"},"title":"Plan.pdf"}',
+    )
+    expect(JSON.stringify(scripted.counts)).not.toContain('file_plan')
   })
 
   test('stops a turn whose paused parts would take its continuation past the limit', async () => {

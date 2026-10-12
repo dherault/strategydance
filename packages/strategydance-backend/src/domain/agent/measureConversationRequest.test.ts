@@ -136,6 +136,38 @@ describe('measureConversationRequest', () => {
     expect(scripted.counts.at(-1)?.messages).toEqual([member, context])
   })
 
+  test('counts a file after the stored reply by what its upload counted, never by the endpoint', async () => {
+    const scripted = createScriptedClaudeClient({ count: createCounter() })
+    const withFile: BetaMessageParam = {
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'file', file_id: 'file_plan' }, title: 'Plan.pdf' },
+        { type: 'text', text: 'And this?' },
+      ],
+    }
+    const measured = await measureConversationRequest({
+      client: scripted.client,
+      tools: CONVERSATION_TOOLS,
+      messages: [member, context, reply, withFile, context],
+      entries: [
+        { position: 0, runId: 'earlier' },
+        { position: 1, runId: 'earlier' },
+        { position: 2, runId: 'earlier' },
+        { position: 3, runId: RUN_ID },
+      ],
+      runs: [
+        { id: RUN_ID, usage: parseConversationRunUsage(null) },
+        { id: 'earlier', usage: settledUsage(2, 1000) },
+      ],
+      pausedRequest: null,
+      fileTokens: new Map([['file_plan', 1594]]),
+    })
+
+    // 25700 for the earlier request, 200 for the member's entry and the context, 1594 for the file
+    expect(measured.inputTokens).toBe(27494)
+    expect(JSON.stringify(scripted.counts)).not.toContain('file_plan')
+  })
+
   test('counts a release’s growth of the system prompt and tools', async () => {
     const scripted = createScriptedClaudeClient({ count: createCounter(3000) })
     const measured = await measureConversationRequest({

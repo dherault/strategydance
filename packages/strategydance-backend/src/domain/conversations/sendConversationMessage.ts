@@ -4,6 +4,7 @@ import {
   MAX_ACTIVE_RUNS_PER_MEMBER,
   MAX_CONVERSATIONS,
   MAX_CONVERSATION_MESSAGES,
+  MAX_CONVERSATION_SEND_INPUT_TOKENS,
   buildConversationPreview,
   buildConversationTitle,
 } from 'strategydance-core'
@@ -18,13 +19,19 @@ import {
   startConversation,
 } from 'strategydance-database/backend'
 
+import type { ConversationContentBlock } from '~types'
+
 import { dataConnect } from '~firebase'
 
+import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
+import copyConversationAttachments from '~domain/conversations/copyConversationAttachments'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import measureConversationMessage from '~domain/conversations/measureConversationMessage'
 import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
+import readConversationSendAttachments from '~domain/conversations/readConversationSendAttachments'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 
 // How many times a send reads where the conversation stands and tries, before it gives up
@@ -37,9 +44,11 @@ type SendConversationMessageInput = {
   conversationId: string
   messageId: string
   // The message as the transcript keeps it, and as the thread draws it, from
-  // `parseConversationMessageText`
+  // `parseConversationMessageText`, both empty for a message of files alone
   text: string
   drawnText: string
+  // The files it sends, canonical and each once, at most 10
+  attachmentIds?: string[]
   // The aspects the member picked on the draft, which only the message that starts the conversation
   // carries, as the member's; none leaves them to the agent
   aspects?: CompanyAspect[]
@@ -58,6 +67,12 @@ type SendConversationMessageResult =
   | { outcome: 'full' }
   // The message would start a conversation, and the caller keeps 1000 already
   | { outcome: 'tooMany' }
+  // A file it sends is not the caller's in this conversation, not stored yet, or sent already
+  | { outcome: 'attachmentsInvalid' }
+  // The conversation has no room for its files, or for what its next request would take with them
+  | { outcome: 'overBudget'; reason: string }
+  // A file it sends waited so long that the bucket deleted it, and has to be uploaded again
+  | { outcome: 'attachmentExpired' }
   // The message and its run are stored, but the run could not be queued: it stays queued, and the
   // same send retried queues it again, as its page's reconcile does meanwhile
   | { outcome: 'unavailable' }
@@ -84,6 +99,13 @@ type SendConversationMessageResult =
 
   A message that starts the conversation starts it with the aspects the member picked on the draft,
   as the member's, so the agent never tags it, and a later one leaves them as they are.
+
+  A message with files, only once nothing above refuses it: the files have to be the caller's in this
+  conversation, stored and not sent, and the conversation to have room for them, its files, images,
+  bytes and PDF pages counted, then the request they lead to measured under 700000 input tokens. Its
+  entry holds the files before its text, each referencing its file in the Files API, and they are
+  copied into the conversation's folder before the message is stored, which sets each one's message.
+  A message of files alone holds no text, and a conversation it starts is titled after its first file.
 
   A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
@@ -153,6 +175,25 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     if (!conversation && (data.keptConversations[0]?._count ?? 0) >= MAX_CONVERSATIONS) return { outcome: 'tooMany' }
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
 
+    const files = input.attachmentIds?.length
+      ? await readConversationSendAttachments({
+          organizationId,
+          userId,
+          conversationId,
+          attachmentIds: input.attachmentIds,
+        })
+      : { outcome: 'read' as const, attachments: [] }
+
+    if (files.outcome === 'invalid') return { outcome: 'attachmentsInvalid' }
+    if (files.outcome === 'overBudget') return files
+
+    const { attachments } = files
+    const follows: ConversationContentBlock[] = [
+      ...attachments.map(attachment =>
+        buildConversationAttachmentBlock(attachment, { fileId: attachment.claudeFileId }),
+      ),
+      ...(input.text ? [{ type: 'text', text: input.text }] : []),
+    ]
     const runId = randomUUID().replaceAll('-', '')
     const message = {
       organizationId,
@@ -161,19 +202,52 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       membershipCreatedAt: membership.createdAt,
       messageId,
       text: input.drawnText,
-      preview: buildConversationPreview({ kind: 'MEMBER_TEXT', text: input.drawnText }),
+      preview: buildConversationPreview({
+        kind: 'MEMBER_TEXT',
+        text: input.drawnText,
+        conversationAttachments_on_message: attachments,
+      }),
       runId,
-      content: serializeTranscriptContent([{ type: 'text', text: input.text }]),
+      content: serializeTranscriptContent(follows),
+      attachmentIds: attachments.map(({ id }) => id),
     }
 
     try {
-      if (conversation) {
-        const [lastEntry] = data.conversationTranscriptEntries
-        const answering = await readConversationOpenCalls(input, lastEntry, {
+      const [lastEntry] = data.conversationTranscriptEntries
+      const answering = conversation
+        ? await readConversationOpenCalls(input, lastEntry, {
+            membershipCreatedAt: membership.createdAt,
+            skipsQuestions: true,
+            follows,
+          })
+        : null
+
+      if (attachments.length) {
+        const inputTokens = await measureConversationMessage({
+          organizationId,
+          userId,
+          conversationId,
           membershipCreatedAt: membership.createdAt,
-          skipsQuestions: true,
-          follows: [{ type: 'text', text: input.text }],
+          aspects: input.aspects,
+          content: answering?.content ?? message.content,
+          attachments,
         })
+
+        if (inputTokens > MAX_CONVERSATION_SEND_INPUT_TOKENS) {
+          return {
+            outcome: 'overBudget',
+            reason: `The conversation's next request would take ${inputTokens} input tokens with these files, past ${MAX_CONVERSATION_SEND_INPUT_TOKENS}`,
+          }
+        }
+
+        if (
+          (await copyConversationAttachments({ organizationId, userId, conversationId }, attachments)) === 'expired'
+        ) {
+          return { outcome: 'attachmentExpired' }
+        }
+      }
+
+      if (conversation) {
         const sent = {
           ...message,
           position: conversation.nextMessagePosition,
@@ -199,7 +273,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       } else {
         await startConversation(dataConnect, {
           ...message,
-          title: buildConversationTitle(input.drawnText),
+          title: buildConversationTitle(input.drawnText || attachments[0]?.name || ''),
           ...(input.aspects?.length ? { aspects: input.aspects, aspectsSetBy: ConversationActor.MEMBER } : {}),
         })
       }

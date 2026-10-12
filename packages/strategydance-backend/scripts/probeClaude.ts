@@ -553,8 +553,6 @@ await check(
       organizationId: '00000000000000000000000000000000',
       userId: 'probe',
       conversationId: '00000000000000000000000000000000',
-      runId: 'probe',
-      attempts: 1,
       membershipCreatedAt: new Date().toISOString(),
     })
 

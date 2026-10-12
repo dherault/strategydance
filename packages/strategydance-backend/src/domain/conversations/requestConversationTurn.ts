@@ -164,6 +164,13 @@ async function requestConversationTurn({
           lastContextHash:
             entries.findLast(({ role }) => role === ConversationTranscriptRole.SYSTEM)?.contextHash ?? null,
         }))
+  // What each file the conversation sent takes, as its upload counted it, which the measurement adds
+  // in place of the file blocks the count endpoint refuses
+  const fileTokens = new Map(
+    requestContext.conversationAttachments.flatMap(({ claudeFileId, tokenCount }) =>
+      claudeFileId && typeof tokenCount === 'number' ? [[claudeFileId, tokenCount] as const] : [],
+    ),
+  )
   const otherRuns = requestContext.conversationRuns
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))
@@ -201,6 +208,7 @@ async function requestConversationTurn({
       entries: entries.map(({ position, runId }) => ({ position, runId })),
       runs: [{ id: fence.runId, usage }, ...otherRuns],
       pausedRequest: paused,
+      fileTokens,
     })
 
     if (measured.inputTokens > MAX_CONVERSATION_INPUT_TOKENS) {

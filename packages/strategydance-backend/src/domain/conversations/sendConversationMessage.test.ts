@@ -4,6 +4,8 @@ import type { CompanyAspect } from 'strategydance-database/backend'
 
 import type { ConversationRunReference } from '~types'
 
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
+
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
@@ -12,6 +14,10 @@ const fake = createConversationDatabaseFake()
 const enqueueRun = mock(async (_reference: ConversationRunReference) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+
+mock.module('~domain/conversations/conversationAttachmentStorage', () => ({
+  default: createAttachmentStorageFake().storage,
+}))
 
 mock.module('strategydance-database/backend', () => fake.sdk)
 

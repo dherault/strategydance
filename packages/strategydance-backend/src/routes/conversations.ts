@@ -6,6 +6,7 @@ import {
   ERROR_CODE_ATTACHMENT_TOO_LARGE,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
+  ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET,
   ERROR_CODE_CONVERSATION_BUSY,
   ERROR_CODE_CONVERSATION_FULL,
   ERROR_CODE_FORBIDDEN,
@@ -16,6 +17,7 @@ import {
   ERROR_CODE_TOO_MANY_REQUESTS,
   ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
   MAX_ANSWER_OTHER_LENGTH,
+  MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATIONS,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
   MAX_QUESTION_OPTIONS,
@@ -92,6 +94,8 @@ function createConversationsRouter() {
     // The aspects the member picked on the draft, which the message that starts the conversation
     // carries, each at most once
     aspects: aspectsSchema.optional(),
+    // The files it sends, uploaded first, by the ids the browser made for them
+    attachmentIds: z.array(z.string().regex(UUID_PATTERN)).max(MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE).optional(),
   })
 
   type MessagesRequest = Request<
@@ -104,7 +108,10 @@ function createConversationsRouter() {
     Sends a message to one of the caller's conversations, which starts it when it does not exist
     yet, under the id the browser made for it, and queues the run that answers it: 202 with the
     run's id, the one a send with the same message's id started the first time when it is retried.
-    The text is trimmed, and refused with a 400 when it holds nothing or more than 20000 characters.
+    The text is trimmed, and refused with a 400 when it holds nothing or more than 20000 characters,
+    unless the message sends files, up to 10, uploaded first: then it may hold nothing. Files that are
+    not the caller's ready to send are refused with a 400, and files the conversation has no room
+    for, or whose next request would pass 700000 input tokens, with a 409.
     A conversation it would start past the thousand the caller keeps is refused with a 409. The
     aspects the member picked on the draft start it as the member's, and any other message leaves
     them out.
@@ -123,7 +130,8 @@ function createConversationsRouter() {
     organizationMemberMiddleware,
     staffOnlyMiddleware,
     async (request: MessagesRequest, response: Response<ApiResponse<SendConversationMessageData>>) => {
-      const text = parseConversationMessageText(request.body.text)
+      const attachmentIds = [...new Set(request.body.attachmentIds?.map(toCanonicalUuid))]
+      const text = parseConversationMessageText(request.body.text, { allowsEmpty: attachmentIds.length > 0 })
 
       if (text.outcome === 'invalid') {
         respondError(response, 400, ERROR_CODE_BAD_REQUEST, text.reason)
@@ -139,6 +147,7 @@ function createConversationsRouter() {
         text: text.text,
         drawnText: text.drawnText,
         aspects: request.body.aspects,
+        attachmentIds,
       })
 
       switch (result.outcome) {
@@ -169,6 +178,18 @@ function createConversationsRouter() {
             ERROR_CODE_TOO_MANY_CONVERSATIONS,
             `Somebody keeps at most ${MAX_CONVERSATIONS} conversations in an organization`,
           )
+
+          return
+        case 'attachmentsInvalid':
+          respondError(response, 400, ERROR_CODE_BAD_REQUEST, 'A file is not one of this conversation’s ready to send')
+
+          return
+        case 'overBudget':
+          respondError(response, 409, ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET, result.reason)
+
+          return
+        case 'attachmentExpired':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'A file waited too long to be sent, and is uploaded again')
 
           return
         case 'unavailable':

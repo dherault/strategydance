@@ -132,6 +132,69 @@ describe('retryConversationRun', () => {
     expect(readRun(retrying)?.status).toBe('COMPLETED')
   })
 
+  test('goes back to a message of files alone, previewed by its file, and sends the file again by its id', async () => {
+    const first = await start()
+
+    await runConversation(first, { client: createClient().client })
+
+    const conversation = fake.conversations.get(first.conversationId)
+    const attachmentId = createId()
+    const messageId = createId()
+    const runId = createId()
+    const content = serializeTranscriptContent([{ type: 'image', source: { type: 'file', file_id: 'file_board' } }])
+
+    fake.attachments.set(attachmentId, {
+      id: attachmentId,
+      userId: 'author',
+      organizationId: ORGANIZATION_ID,
+      conversationId: first.conversationId,
+      messageId: null,
+      status: 'READY',
+      name: 'Board.png',
+      contentType: 'image/png',
+      size: 1000,
+      pageCount: null,
+      tokenCount: 371,
+      claudeFileId: 'file_board',
+      createdAt: new Date().toISOString(),
+    })
+    await call('sendConversationMessage', {
+      ...first,
+      runId,
+      membershipCreatedAt: fake.memberships.get(`author:${ORGANIZATION_ID}`)?.createdAt,
+      messageId,
+      text: '',
+      preview: { kind: 'MEMBER_TEXT', text: '', attachmentCount: 1, attachmentName: 'Board.png' },
+      position: conversation?.nextMessagePosition,
+      runNumber: conversation?.nextRunNumber,
+      content,
+      transcriptPosition: 3,
+      attachmentIds: [attachmentId],
+    })
+
+    const second = { ...first, runId }
+
+    await fail(second)
+
+    const { reference: retrying } = await retried(second)
+
+    expect(readEntries(first).at(-1)).toMatchObject({ position: 3, role: 'USER', content })
+    expect(readThread(first).at(-1)).toMatchObject({ kind: 'MEMBER_TEXT', text: '' })
+    expect(fake.messages.get(messageId)?.runId).toBe(runId)
+    expect(readConversation(first)?.preview).toEqual({
+      kind: 'MEMBER_TEXT',
+      text: '',
+      attachmentCount: 1,
+      attachmentName: 'Board.png',
+    })
+    expectTranscriptKept(first)
+
+    const scripted = createClient()
+
+    expect(await runConversation(retrying, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests[0]).toContain('{"type":"image","source":{"type":"file","file_id":"file_board"}}')
+  })
+
   test('goes back from a resumed run to the anchor it shares with the run it resumed, deleting what both drew', async () => {
     const reference = await start()
     const fence = await claim(reference)

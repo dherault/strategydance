@@ -421,6 +421,60 @@ describe('PUT /:conversationId/attachments/:attachmentId', () => {
   })
 })
 
+describe('POST /:conversationId/messages with files', () => {
+  function hyphenate(id: string) {
+    return id.replace(/^(.{8})(.{4})(.{4})(.{4})/, '$1-$2-$3-$4-')
+  }
+
+  function sendMessage(body: Record<string, unknown>) {
+    return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Viewer': MEMBER },
+      body: JSON.stringify(body),
+    })
+  }
+
+  test('sends a file uploaded and sent twice, its ids spelled with and without hyphens, as one object and one copy', async () => {
+    const attachmentId = newId()
+    const messageId = newId()
+    const bytes = png()
+
+    expect((await upload({ attachmentId: hyphenate(attachmentId), bytes, contentType: 'image/png' })).status).toBe(201)
+    expect((await upload({ attachmentId, bytes, contentType: 'image/png' })).status).toBe(201)
+    expect((await sendMessage({ messageId, text: 'And this?', attachmentIds: [hyphenate(attachmentId)] })).status).toBe(
+      202,
+    )
+    expect(
+      (await sendMessage({ messageId: hyphenate(messageId), text: 'And this?', attachmentIds: [attachmentId] })).status,
+    ).toBe(202)
+    expect([...storage.objects.keys()].sort()).toEqual([
+      `organizations/${ORGANIZATION_ID}/users/${MEMBER}/conversations/${CONVERSATION_ID}/${attachmentId}`,
+      pendingName(attachmentId),
+    ])
+    expect(fake.attachments.get(attachmentId)?.messageId).toBe(messageId)
+  })
+
+  test('stores a message of files whose text shows nothing without a text block', async () => {
+    const attachmentId = newId()
+
+    expect((await upload({ attachmentId, bytes: png(), contentType: 'image/png' })).status).toBe(201)
+    expect((await sendMessage({ messageId: newId(), text: ' \u200b ', attachmentIds: [attachmentId] })).status).toBe(
+      202,
+    )
+
+    const [entry] = fake.entries.values()
+
+    expect(JSON.parse(entry?.content ?? '[]').map(({ type }: { type: string }) => type)).toEqual(['image'])
+  })
+
+  test('refuses a message of more than 10 files, and one holding no text and no file', async () => {
+    const attachmentIds = Array.from({ length: 11 }, newId)
+
+    expect((await sendMessage({ messageId: newId(), text: 'Hi', attachmentIds })).status).toBe(400)
+    expect((await sendMessage({ messageId: newId(), text: ' ', attachmentIds: [] })).status).toBe(400)
+  })
+})
+
 describe('DELETE /:conversationId/attachments/:attachmentId', () => {
   test('frees an unsent file’s place at once, answers the same when it is gone, and refuses a sent one', async () => {
     const ids = Array.from({ length: MAX_PENDING_CONVERSATION_ATTACHMENTS }, () => insertAttachment({ id: newId() }).id)

@@ -142,10 +142,14 @@ export async function requestApi<T = void>({ method, path, body, signal }: Reque
 /*
   Reads a file's bytes from the backend as the signed-in reader, which an `<img>` pointed at the
   backend could not do, since it would carry no token. A refusal throws its `ApiError`, and an
-  aborted read rejects with the signal's reason
+  aborted read rejects with the signal's reason.
+
+  Never through the browser's HTTP cache, which keys an answer by its address alone: another
+  account signed in on the browser, or the reader once removed from the organization, would read
+  the bytes back without the route checking who asks. Whatever keeps them does so by reader
 */
 export async function requestApiFile({ path, signal }: { path: string; signal?: AbortSignal }) {
-  const response = await fetch(`${API_URL}${path}`, { headers: await createApiHeaders(), signal })
+  const response = await fetch(`${API_URL}${path}`, { headers: await createApiHeaders(), cache: 'no-store', signal })
 
   if (response.ok) return response.blob()
 

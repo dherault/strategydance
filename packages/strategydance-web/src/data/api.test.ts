@@ -155,11 +155,13 @@ describe('uploadApiFile', () => {
 })
 
 describe('requestApiFile', () => {
-  test("answers the file's bytes, with the token", async () => {
+  test("answers the file's bytes, with the token, and never from the browser's HTTP cache", async () => {
     let headers: HeadersInit | undefined
+    let cache: RequestCache | undefined
 
     stubFetch(async (_url, init) => {
       headers = init?.headers
+      cache = init?.cache
 
       return new Response('bytes', { headers: { 'Content-Type': 'image/png' } })
     })
@@ -169,6 +171,7 @@ describe('requestApiFile', () => {
     expect(await blob.text()).toBe('bytes')
     expect(blob.type).toBe('image/png')
     expect(headers).toEqual({ Authorization: 'Bearer id-token' })
+    expect(cache).toBe('no-store')
   })
 
   test('throws a refusal as an ApiError, and an answer that is not JSON as an unknown one', async () => {

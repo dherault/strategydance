@@ -162,6 +162,16 @@ export type SendConversationMessageData = {
   runId: string
 }
 
+// What uploading a file to a conversation answers with, the first time and every time the same
+// upload is sent again: the file as it was stored, its pages counted when it is a PDF
+export type ConversationAttachmentData = {
+  id: string
+  name: string
+  contentType: string
+  size: number
+  pageCount: number | null
+}
+
 // What resuming a stopped or interrupted run answers with: the run that carries it on, or the one a
 // resume sent again started the first time
 export type ResumeConversationRunData = {

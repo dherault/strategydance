@@ -7,6 +7,8 @@ import express from 'express'
 import type { ConversationRunReference } from '~types'
 
 import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
+import createClaudeFilesFake from '~domain/agent/testing/createClaudeFilesFake'
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
@@ -15,6 +17,12 @@ const fake = createConversationDatabaseFake()
 const { modules } = fake
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+
+mock.module('~domain/conversations/conversationAttachmentStorage', () => ({
+  default: createAttachmentStorageFake().storage,
+}))
+
+mock.module('~domain/agent/conversationClaudeFiles', () => ({ default: createClaudeFilesFake().claudeFiles }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 

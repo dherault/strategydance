@@ -1782,8 +1782,12 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - The promotion of the member's oldest `PENDING` run, in the mutation that ends a subagent for
     good from a run that held a slot, never in one that chains or one that ends a `PENDING` run, and
     skipping a run whose membership is gone, which the reconcile and the sweep finalize.
-- **The `subagent-runs` queue**: `enqueueRun` takes the queue, with `SUBAGENT_RUN_QUEUE_PATH` beside
-  `CONVERSATION_RUN_QUEUE_PATH` (setup step 11). The worker's route stays the same.
+- **The `subagent-runs` queue**, with `SUBAGENT_RUN_QUEUE_PATH` beside `CONVERSATION_RUN_QUEUE_PATH`
+  (setup step 11). A run's queue follows from it, a subagent's or not, and is carried through
+  everything that touches its task: `enqueueRun`, `queueConversationRun`,
+  `buildConversationRunTaskName`, since Cloud Tasks takes a task's name only under the queue it is
+  created in, `findConversationRunTask`, which recovery asks, and the requeueing of a dead run. Tests
+  create, look up and requeue a run on each queue. The worker's route stays the same.
 - **Recovery**: the reconcile route for a parent's subagents, `POST …/subagents/reconcile`, and the
   sweep's backstop, finalizing dead subagent runs and `PENDING` ones whose membership is gone,
   queueing again and promoting.

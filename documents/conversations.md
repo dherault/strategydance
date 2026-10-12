@@ -1867,7 +1867,9 @@ way (see The orchestrator).
 - **A queue of their own.** Subagent runs go through a Cloud Tasks queue of their own,
   `subagent-runs`, twenty dispatches at once (Setup, step 11), to the worker's same
   `/internal/conversation-runs`, so a few fan-outs of forty minutes never hold the fifty dispatches
-  every member's reply waits on. `enqueueRun` takes the queue. In development they run in the
+  every member's reply waits on. A run's queue follows from whether it is a subagent's, and goes
+  wherever its task is named, created, looked up or created again, since Cloud Tasks takes a task's
+  name only under its own queue. In development they run in the
   backend's process, as every run does.
 - **Recovery.** No page polls a subagent's run, so the parent's page reconciles its subagents: while
   any is live, or a report waits undelivered while the parent could react to it (not deleted, not

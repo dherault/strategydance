@@ -477,6 +477,10 @@
   text-decoration: line-through;
 }
 
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-lead {
+  white-space: nowrap;
+}
+
 .rich-text-editor.bn-root .bn-editor .rich-text-mention-icon {
   display: inline-block;
   width: 13px;

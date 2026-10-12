@@ -13,6 +13,7 @@ import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
 import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
 import { createRichTextEditorFilePanel } from 'strategydance-design-system/components/ui/RichTextEditorFilePanel'
+import { RichTextEditorMentionMenuController } from 'strategydance-design-system/components/ui/RichTextEditorMentionMenu'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
 import { RichTextEditorSlashMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSlashMenu'
 import { RichTextEditorToolbar } from 'strategydance-design-system/components/ui/RichTextEditorToolbar'
@@ -26,10 +27,12 @@ import {
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
   type RichTextLinkPreview,
+  type RichTextMentionSource,
   getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
+import { RichTextMentionsExtension } from 'strategydance-design-system/lib/richTextMentionsExtension'
 import { cn } from 'strategydance-design-system/lib/utils'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
@@ -96,6 +99,13 @@ type Props = {
    * the browser cannot read another site's page. Left out, a card is its address alone. Read once
    */
   previewLink?: (url: string) => Promise<RichTextLinkPreview>
+  /**
+   * Where mentions of documents and tasks draw what they name from, and what they open: the page's
+   * lists, which change as they are read and as the team changes them, and are followed as they do.
+   * Left out, or with `blocks` naming no mention, no mention is offered, and those the text holds
+   * are their words. Whether one is given at all is read once
+   */
+  mentions?: RichTextMentionSource
   /** Called on ⌘Enter, or Ctrl+Enter, the shortcut to post */
   onSubmit?: () => void
   autoFocus?: boolean
@@ -116,7 +126,15 @@ type Props = {
 
 type EditorOptions = Pick<
   Props,
-  'initialValue' | 'collaboration' | 'placeholder' | 'autoFocus' | 'locale' | 'labels' | 'uploadImage' | 'aria-label'
+  | 'initialValue'
+  | 'collaboration'
+  | 'placeholder'
+  | 'autoFocus'
+  | 'locale'
+  | 'labels'
+  | 'uploadImage'
+  | 'mentions'
+  | 'aria-label'
 > & {
   blocks: readonly RichTextEditorBlock[]
   appearance: RichTextEditorAppearance
@@ -137,8 +155,9 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline and strikethrough, links, code, colored in the
   language picked over it, tables, grown and headed from the handles on their edges, pictures,
-  YouTube, Vimeo and Loom videos, and cards linking to web pages, which is everything `RichText`
-  draws back.
+  YouTube, Vimeo and Loom videos, cards linking to web pages, and mentions of documents and tasks,
+  which "@" opens a menu of, which is everything `RichText` draws back. A mention draws what it
+  names from `mentions`, live, and a click on it opens it.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
   `normalizeRichText` keeps, serialized, whether they say anything and how much text, and a parent that
@@ -176,6 +195,7 @@ function RichTextEditor({
   appearance = 'field',
   uploadImage,
   previewLink,
+  mentions,
   className,
   'aria-label': ariaLabel,
   ref,
@@ -191,13 +211,21 @@ function RichTextEditor({
       blocks,
       appearance,
       uploadImage,
+      mentions,
       'aria-label': ariaLabel,
     }),
   )
-  const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor))
+  // BlockNote keeps a menu's trigger once it is registered, so whether the editor offers mentions is decided once
+  const [hasMentions] = useState(() => !!mentions && !!editor.getExtension(RichTextMentionsExtension))
+  const [getSlashMenuItems] = useState(() => getRichTextSlashMenuItems(editor, { hasMentions }))
   const [filePanel] = useState(() => createRichTextEditorFilePanel(previewLink))
 
   useImperativeHandle(ref, () => ({ focus: () => editor.focus() }), [editor])
+
+  // The mentions drawn follow the page's lists as they are read and change
+  useEffect(() => {
+    editor.getExtension(RichTextMentionsExtension)?.store.setState(mentions ?? null)
+  }, [editor, mentions])
 
   /*
     A Radix dialog dismisses on an Escape that reaches the document, which it hears before
@@ -271,6 +299,7 @@ function RichTextEditor({
         onChange={handleChange}
       >
         <RichTextEditorSlashMenuController getItems={getSlashMenuItems} />
+        {hasMentions ? <RichTextEditorMentionMenuController /> : null}
         <RichTextEditorSideMenuController />
         <DesktopFormattingToolbarController formattingToolbar={RichTextEditorToolbar} />
         {/* Only an editor writing tables has the extension, which the handles throw without */}
@@ -294,6 +323,7 @@ function createEditor({
   blocks,
   appearance,
   uploadImage,
+  mentions,
   'aria-label': ariaLabel,
 }: EditorOptions) {
   // The editor once made, for an upload that fails to take its block away
@@ -326,8 +356,14 @@ function createEditor({
     },
     autofocus: autoFocus ? ('end' as const) : false,
     trailingBlock: false,
-    // Colors code as shiki does, each language's grammar loaded the first time a block is in it
-    extensions: blocks.includes('code') ? [syntaxHighlighter] : [],
+    extensions: [
+      // Colors code as shiki does, each language's grammar loaded the first time a block is in it
+      ...(blocks.includes('code') ? [syntaxHighlighter] : []),
+      // What the mentions draw from, seeded so they draw what they name from the start
+      ...(blocks.includes('documentMention') || blocks.includes('taskMention')
+        ? [RichTextMentionsExtension({ source: mentions ?? null })]
+        : []),
+    ],
     // A table's first row or column made a header from its handles, and no colors nor merged cells
     tables: { headers: true },
     uploadFile: uploadImage ? (file: File, blockId?: string) => uploadFile(uploadImage, file, blockId) : undefined,

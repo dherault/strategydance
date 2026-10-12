@@ -70,6 +70,16 @@ const richTextClasses = {
   // What is nested under a block that is not a list item, and under a check item, under its text
   nested: 'pl-6 [&>:last-child]:mb-0',
   link: 'text-primary underline underline-offset-2 hover:text-primary-700',
+  // A mention of a document or a task, as the editor's stylesheet draws one and the thread draws its
+  // links to them: what it names in the primary color, struck through and muted once it is gone
+  mention: {
+    words: 'font-medium',
+    link: 'font-medium text-primary no-underline hover:text-primary-800 hover:underline',
+    gone: 'font-medium text-muted-foreground line-through',
+    // The icon and the first word, which stay on one line
+    lead: 'whitespace-nowrap',
+    icon: 'mr-[3px] inline-block size-[13px] align-[-2px]',
+  },
   text: {
     bold: 'font-semibold',
     italic: 'italic',

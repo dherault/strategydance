@@ -30,12 +30,12 @@ describe('getRichTextBlockTypeSelectItems', () => {
 
 describe('getRichTextSlashMenuItems', () => {
   // The menu's items for an editor writing `blocks`, by title and group, all of them as nothing is typed
-  async function readItems(blocks: Parameters<typeof createRichTextSchema>[0]) {
+  async function readItems(blocks: Parameters<typeof createRichTextSchema>[0], hasMentions?: boolean) {
     const editor = BlockNoteEditor.create({
       schema: createRichTextSchema(blocks),
       dictionary: getRichTextDictionary('EN', { placeholder: 'Write' }),
     })
-    const items = await getRichTextSlashMenuItems(editor)('')
+    const items = await getRichTextSlashMenuItems(editor, { hasMentions })('')
 
     return items.map(item => `${item.group}: ${item.title}`)
   }
@@ -56,6 +56,11 @@ describe('getRichTextSlashMenuItems', () => {
       'Media: Video',
       'Media: Link preview',
     ])
+  })
+
+  it('offers to mention a document or a task last, to an editor that has mentions', async () => {
+    expect((await readItems(RICH_TEXT_EDITOR_BLOCKS, true)).at(-1)).toBe('Others: Mention')
+    expect(await readItems(RICH_TEXT_EDITOR_BLOCKS)).not.toContain('Others: Mention')
   })
 
   it('offers no video nor link preview to an editor that writes none', async () => {

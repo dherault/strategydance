@@ -7,6 +7,7 @@ import {
 import { readRichTextMentionState } from 'strategydance-design-system/lib/readRichTextMentionState'
 import type { RichTextMentionKind, RichTextMentionSource } from 'strategydance-design-system/lib/richText'
 import { RichTextMentionsExtension } from 'strategydance-design-system/lib/richTextMentionsExtension'
+import { splitRichTextMentionWords } from 'strategydance-design-system/lib/splitRichTextMentionWords'
 
 // Lucide's file-text and square-kanban, which the thread's links to documents and tasks draw
 const ICONS: Record<RichTextMentionKind, string> = {
@@ -53,16 +54,19 @@ function createRichTextMentionChip(
   chip.className = 'rich-text-mention'
   chip.dataset.kind = kind
 
+  // Its icon and its words, the icon kept on the line with the first word
   function createLabel(text: string) {
+    const lead = document.createElement('span')
     const icon = document.createElement('span')
-    const label = document.createElement('span')
+    const [first, rest] = splitRichTextMentionWords(text || labels.mention_untitled)
 
+    lead.className = 'rich-text-mention-lead'
     icon.className = 'rich-text-mention-icon'
     icon.setAttribute('aria-hidden', 'true')
     icon.innerHTML = ICONS[kind]
-    label.textContent = text || labels.mention_untitled
+    lead.append(icon, first)
 
-    return [icon, label]
+    return [lead, rest]
   }
 
   function draw(source: RichTextMentionSource | null) {

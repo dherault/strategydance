@@ -1,5 +1,8 @@
 import { CheckIcon } from 'lucide-react'
 import { type CSSProperties, Fragment, type ReactNode } from 'react'
+import { RichTextMention } from 'strategydance-design-system/components/ui/RichTextMention'
+import RichTextMentionsContext from 'strategydance-design-system/contexts/RichTextMentionsContext'
+import { RICH_TEXT_ENGLISH_LABELS, type RichTextLabels } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 import { parseVideoEmbedUrl } from 'strategydance-design-system/lib/parseVideoEmbedUrl'
 import {
@@ -12,12 +15,12 @@ import {
   type RichTextImageBlock,
   type RichTextInline,
   type RichTextLinkPreviewBlock,
+  type RichTextMentionSource,
   type RichTextRun,
   type RichTextTableContent,
   type RichTextTextBlock,
   type RichTextVideoEmbedBlock,
   getRichTextContentTypes,
-  getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
@@ -29,6 +32,13 @@ type Props = {
    * wrote the value. Any other block holding text reads as a paragraph
    */
   blocks?: readonly RichTextEditorBlock[]
+  /**
+   * Where its mentions of documents and tasks draw what they name from, and what they open, as the
+   * editor's do. Left out, a mention is its icon and its words
+   */
+  mentions?: RichTextMentionSource
+  /** What a mention says without a list, in English unless the caller's catalogue says otherwise */
+  labels?: Partial<Pick<RichTextLabels, 'mentionUntitled' | 'mentionDocumentGone' | 'mentionTaskGone'>>
   className?: string
 }
 
@@ -44,17 +54,22 @@ type Props = {
 
   BlockNote stores a list as its items, one block each, so the items of one kind that follow each
   other are drawn as one list, and what is nested under an item is drawn inside it. A link opens
-  in a new tab and passes on nothing of the page.
+  in a new tab and passes on nothing of the page. A mention draws what it names from `mentions`, as
+  the editor draws one.
 
   It never instantiates an editor, which keeps a feed of many posts cheap. A value it cannot read,
   an old Lexical one included, draws nothing
 */
-function RichText({ value, blocks: blockTypes = RICH_TEXT_POST_BLOCKS, className }: Props) {
+function RichText({ value, blocks: blockTypes = RICH_TEXT_POST_BLOCKS, mentions, labels, className }: Props) {
   const blocks = parseRichText(value, getRichTextContentTypes(blockTypes))
 
   if (!blocks.length) return null
 
-  return <div className={cn(RICH_TEXT_CLASS_NAME, className)}>{renderBlocks(blocks, 0)}</div>
+  return (
+    <RichTextMentionsContext value={{ source: mentions ?? null, labels: { ...RICH_TEXT_ENGLISH_LABELS, ...labels } }}>
+      <div className={cn(RICH_TEXT_CLASS_NAME, className)}>{renderBlocks(blocks, 0)}</div>
+    </RichTextMentionsContext>
+  )
 }
 
 function isListItem(block: RichTextBlock): block is RichTextTextBlock {
@@ -380,7 +395,14 @@ function renderContent(
 
 function renderInline(item: RichTextInline, key: number): ReactNode {
   if (item.type === 'text') return renderRun(item, key)
-  if (item.type !== 'link') return <Fragment key={key}>{getRichTextMentionWords(item)}</Fragment>
+  if (item.type !== 'link') {
+    return (
+      <RichTextMention
+        key={key}
+        mention={item}
+      />
+    )
+  }
 
   return (
     <a

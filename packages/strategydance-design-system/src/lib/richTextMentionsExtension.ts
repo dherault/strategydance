@@ -1,4 +1,4 @@
-import { createExtension, createStore } from '@blocknote/core'
+import { type ExtensionOptions, createExtension, createStore } from '@blocknote/core'
 import type { RichTextMentionSource } from 'strategydance-design-system/lib/richText'
 
 /*
@@ -10,7 +10,7 @@ import type { RichTextMentionSource } from 'strategydance-design-system/lib/rich
   editor, but its value and its shared text keep none
 */
 const RichTextMentionsExtension = createExtension(
-  ({ options }: { options: { source: RichTextMentionSource | null } }) => ({
+  ({ options }: ExtensionOptions<{ source: RichTextMentionSource | null }>) => ({
     key: 'richTextMentions',
     store: createStore<RichTextMentionSource | null>(options.source),
   }),

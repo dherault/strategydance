@@ -567,8 +567,10 @@ A conversation is kept twice, once for Claude and once for the page, and
   place belongs in the tail, one that never changes once written in the bodies, and the history
   page carries both: a member's message's files, their id, name, type and size, are its body's,
   since the send that inserts it sets them. Their bytes come from `GET …/attachments/:attachmentId`
-  alone, read with the reader's token (`useConversationAttachmentFile`) and drawn from an address
-  `useObjectUrl` holds while something draws them
+  alone, read with the reader's token past the browser's HTTP cache (`useConversationAttachmentFile`)
+  and drawn from an address `useObjectUrl` holds while something draws them. An image drawn small
+  is drawn from a small copy (`useImageThumbnail`), never its own bytes, which an `<img>` decodes
+  whole whatever size it is drawn at
 - A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
   auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's

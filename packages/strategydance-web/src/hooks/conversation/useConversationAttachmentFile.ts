@@ -21,8 +21,10 @@ function useConversationAttachmentFile(conversationId: string, attachmentId: str
   const organizationId = organization?.id ?? null
   const isEnabled = Boolean(organizationId && viewerId)
 
+  const key = getConversationAttachmentQueryKey(organizationId, conversationId, attachmentId, viewerId)
+
   const { data, isError } = useQuery({
-    queryKey: getConversationAttachmentQueryKey(organizationId, conversationId, attachmentId, viewerId),
+    queryKey: key,
     queryFn: ({ signal }) =>
       requestApiFile({
         path: `/organizations/${organizationId}/conversations/${conversationId}/attachments/${attachmentId}`,
@@ -35,6 +37,8 @@ function useConversationAttachmentFile(conversationId: string, attachmentId: str
 
   return {
     file: data ?? null,
+    // What names the file, for what is kept of it, as its thumbnail
+    key,
     hasFailed: isEnabled && isError && data === undefined,
   }
 }

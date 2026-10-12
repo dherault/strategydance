@@ -1,8 +1,10 @@
 import { FileTextIcon, RotateCwIcon, XIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
+import { THUMBNAIL_SIZE } from 'strategydance-core'
 import { Progress } from 'strategydance-design-system/components/ui/Progress'
 import { cn } from 'strategydance-design-system/lib/utils'
 
+import useImageThumbnail from '~hooks/common/useImageThumbnail'
 import useObjectUrl from '~hooks/common/useObjectUrl'
 
 import type { ConversationComposerAttachment } from '~data/conversationComposerDrafts'
@@ -29,7 +31,13 @@ function ConversationComposerTrayItem({ attachment, canRemove, onRemove, onRetry
   const { formatMessage } = useIntl()
   const { name, contentType, file, status, progress } = attachment
   const isImage = contentType.startsWith('image/')
-  const imageUrl = useObjectUrl(isImage ? file : null)
+  // A small copy, never the image whole, which ten large images would hold decoded
+  const thumbnail = useImageThumbnail(
+    ['ConversationComposerAttachment', attachment.id],
+    isImage ? file : null,
+    THUMBNAIL_SIZE,
+  )
+  const imageUrl = useObjectUrl(thumbnail ?? null)
   const isFailed = status === 'failed'
 
   const retry = isFailed ? (

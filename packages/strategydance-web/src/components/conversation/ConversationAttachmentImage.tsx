@@ -5,6 +5,7 @@ import { Skeleton } from 'strategydance-design-system/components/ui/Skeleton'
 
 import type { ConversationMessageAttachment } from '~types'
 
+import useImageThumbnail from '~hooks/common/useImageThumbnail'
 import useObjectUrl from '~hooks/common/useObjectUrl'
 import useConversationAttachmentFile from '~hooks/conversation/useConversationAttachmentFile'
 
@@ -15,6 +16,10 @@ import conversationMessages from '~data/intl/messages/conversation'
 // The box an image stands in while its bytes are read, or once they could not be
 const PLACEHOLDER_CLASS_NAME = 'h-30 w-40 rounded-sm'
 
+// The longest side of the copy a thumbnail draws, twice the 200 pixels it is drawn at at most, for
+// a screen of two pixels a point
+const THUMBNAIL_SIZE = 400
+
 type Props = {
   conversationId: string
   attachment: ConversationMessageAttachment
@@ -23,16 +28,19 @@ type Props = {
 /*
   An image a message sent, as a thumbnail above its words, which opens it whole in a dialog. Its
   bytes come from the backend with the reader's token, a placeholder standing in meanwhile, and a
-  muted picture once they could not be read
+  muted picture once they could not be read. The thumbnail is a small copy drawn from them, so a
+  thread of large images never holds them all decoded; only the dialog draws the image whole
 */
 function ConversationAttachmentImage({ conversationId, attachment }: Props) {
   const { formatMessage } = useIntl()
-  const { file, hasFailed } = useConversationAttachmentFile(conversationId, attachment.id)
-  const url = useObjectUrl(file)
+  const { file, key, hasFailed } = useConversationAttachmentFile(conversationId, attachment.id)
+  const thumbnail = useImageThumbnail(key, file, THUMBNAIL_SIZE)
+  const thumbnailUrl = useObjectUrl(thumbnail ?? null)
   const [isOpen, setIsOpen] = useState(false)
+  const url = useObjectUrl(isOpen ? file : null)
   const { name, size } = attachment
 
-  if (hasFailed) {
+  if (hasFailed || thumbnail === null) {
     return (
       <span
         role="img"
@@ -45,7 +53,7 @@ function ConversationAttachmentImage({ conversationId, attachment }: Props) {
     )
   }
 
-  if (!url) return <Skeleton className={PLACEHOLDER_CLASS_NAME} />
+  if (!thumbnailUrl) return <Skeleton className={PLACEHOLDER_CLASS_NAME} />
 
   return (
     <>
@@ -56,12 +64,12 @@ function ConversationAttachmentImage({ conversationId, attachment }: Props) {
         onClick={() => setIsOpen(true)}
       >
         <img
-          src={url}
+          src={thumbnailUrl}
           alt=""
           className="block max-h-40 max-w-[200px] object-cover"
         />
       </button>
-      {isOpen ? (
+      {isOpen && url ? (
         <ConversationAttachmentDialog
           name={name}
           size={size}

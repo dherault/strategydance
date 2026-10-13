@@ -134,6 +134,8 @@ function createIntegrationDatabaseFake() {
   const calls: { name: string; variables: AnyVariables }[] = []
   // What a test does once, right before the operation named runs, as another caller would meanwhile
   const before = new Map<string, () => void>()
+  // What a test does once, right after the operation named ran, as a connection lost before its answer
+  const after = new Map<string, () => void>()
 
   function id(value: unknown) {
     return toCanonicalUuid(String(value))
@@ -857,7 +859,13 @@ function createIntegrationDatabaseFake() {
       meanwhile?.()
       calls.push({ name, variables })
 
-      return { data: operation(variables) }
+      const data = operation(variables)
+      const then = after.get(name)
+
+      after.delete(name)
+      then?.()
+
+      return { data }
     }
   }
 
@@ -870,6 +878,7 @@ function createIntegrationDatabaseFake() {
     connections,
     calls,
     before,
+    after,
     addMember(userId: string, organizationId: string, role: string = OrganizationRole.MEMBER) {
       roles.set(membershipKey(userId, organizationId), role)
     },
@@ -895,6 +904,7 @@ function createIntegrationDatabaseFake() {
       connections.clear()
       calls.length = 0
       before.clear()
+      after.clear()
     },
   }
 }

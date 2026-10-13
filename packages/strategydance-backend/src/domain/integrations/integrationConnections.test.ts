@@ -755,6 +755,40 @@ describe("reading a member's access token", () => {
     expect(provider.recorded.revocations[0].token).not.toBe('access_from_the_successor')
   })
 
+  test('revokes the tokens a refresh got when its write fails, and lets its lease go', async () => {
+    await connect()
+    expireSoon(ADA)
+
+    const stored = connection(ADA)!.encryptedRefreshToken
+
+    fake.before.set('RecordIntegrationConnectionTokens', () => {
+      throw new Error('The database is down')
+    })
+
+    await expect(readIntegrationAccessToken(caller(ADA))).rejects.toThrow('The database is down')
+    expect(provider.recorded.revocations).toHaveLength(1)
+    expect(provider.recorded.revocations[0]).toMatchObject({ token_type_hint: 'refresh_token' })
+    expect(connection(ADA)).toMatchObject({
+      encryptedRefreshToken: stored,
+      refreshingUntil: null,
+      refreshLeaseId: null,
+    })
+  })
+
+  test('keeps the tokens a refresh wrote when only the answer to its write was lost', async () => {
+    await connect()
+    expireSoon(ADA)
+    fake.after.set('RecordIntegrationConnectionTokens', () => {
+      throw new Error('The connection was reset')
+    })
+
+    const read = await readIntegrationAccessToken(caller(ADA))
+
+    expect(read).toMatchObject({ outcome: 'ready', accessToken: await openAccessToken(ADA) })
+    expect(provider.recorded.revocations).toHaveLength(0)
+    expect(provider.isLiveAccessToken(await openAccessToken(ADA))).toBe(true)
+  })
+
   test('claims nothing for a reader whose refresh token another refresh has spent', async () => {
     await connect()
 

@@ -71,7 +71,8 @@ type StoredConnection = NonNullable<Awaited<ReturnType<typeof readConnection>>>
   under its lease and while it still holds the access token it read, so tokens written meanwhile are
   never dropped. A client the server no longer takes is forgotten for the next Connect to register
   again. Any other failure lets the lease go for the next caller. A refresh whose lease was taken over
-  writes nothing, revokes the tokens it got, and reads again
+  writes nothing, revokes the tokens it got, and reads again; one whose write fails otherwise reads
+  back whether it landed, and revokes the tokens it got when it did not
 */
 async function readIntegrationAccessToken(
   caller: IntegrationCaller,
@@ -304,6 +305,14 @@ async function refresh(
     return { outcome: 'needsAuthentication' }
   }
 
+  const ready: IntegrationAccess = {
+    outcome: 'ready',
+    url: integration.url,
+    accessToken: tokens.accessToken,
+    encryptedAccessToken,
+    generation: connection.generation,
+  }
+
   try {
     await recordIntegrationConnectionTokens(dataConnect, {
       ...lease,
@@ -313,21 +322,33 @@ async function refresh(
       scope: tokens.scope,
     })
   } catch (error) {
-    if (readIntegrationRefusal(error) !== 'leaseLost') throw error
+    if (readIntegrationRefusal(error) === 'leaseLost') {
+      // Another refresh took the lease over once it lapsed, and whatever it stored stands: the tokens
+      // this one got are nobody's, and the caller reads the connection again
+      await revokeUnkept()
 
-    // Another refresh took the lease over once it lapsed, and whatever it stored stands: the tokens
-    // this one got are nobody's, and the caller reads the connection again
+      return 'leaseLost'
+    }
+
+    // A write that failed otherwise may have landed before its answer was lost: tokens it stored are
+    // the connection's, and any it did not are revoked, as a read that fails too takes them to be
+    if (await isStored(caller, encryptedAccessToken)) return ready
+
     await revokeUnkept()
+    await release().catch(() => {})
 
-    return 'leaseLost'
+    throw error
   }
 
-  return {
-    outcome: 'ready',
-    url: integration.url,
-    accessToken: tokens.accessToken,
-    encryptedAccessToken,
-    generation: connection.generation,
+  return ready
+}
+
+// Whether the member's connection holds the access token a refresh wrote, read back after its write failed
+async function isStored(caller: IntegrationCaller, encryptedAccessToken: string) {
+  try {
+    return (await readConnection(caller))?.encryptedAccessToken === encryptedAccessToken
+  } catch {
+    return false
   }
 }
 

@@ -67,7 +67,16 @@ async function editIntegration({ organizationId, userId, integrationId, settings
 
   if (isServerChanged && isKeyed && settings.apiKey === null) return { outcome: 'keyRequired' } as const
 
-  const key = isKeyed ? (settings.apiKey ?? (await decryptIntegrationKey(stored.encryptedApiKey ?? '', owner))) : null
+  let key: string | null = null
+
+  try {
+    key = isKeyed ? (settings.apiKey ?? (await decryptIntegrationKey(stored.encryptedApiKey ?? '', owner))) : null
+  } catch (error) {
+    logger.error('Integrations: a key could not be decrypted', error)
+
+    return { outcome: 'keyUnavailable' } as const
+  }
+
   let reach
 
   try {

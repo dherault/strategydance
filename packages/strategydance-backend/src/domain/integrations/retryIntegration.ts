@@ -36,10 +36,19 @@ async function retryIntegration({ organizationId, userId, integrationId }: Retry
 
   const caller = { organizationId, userId, integrationId }
   const matched = { configRevision: stored.configRevision, keyGeneration: stored.keyGeneration }
-  const key =
-    stored.authentication === IntegrationAuthentication.API_KEY
-      ? await decryptIntegrationKey(stored.encryptedApiKey ?? '', { organizationId, integrationId })
-      : null
+  let key: string | null = null
+
+  try {
+    key =
+      stored.authentication === IntegrationAuthentication.API_KEY
+        ? await decryptIntegrationKey(stored.encryptedApiKey ?? '', { organizationId, integrationId })
+        : null
+  } catch (error) {
+    logger.error('Integrations: a key could not be decrypted', error)
+
+    return { outcome: 'keyUnavailable' } as const
+  }
+
   let reach
 
   try {

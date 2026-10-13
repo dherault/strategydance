@@ -10,6 +10,7 @@ import {
   ERROR_CODE_INTEGRATION_KEY_REFUSED,
   ERROR_CODE_INTEGRATION_NAME_TAKEN,
   ERROR_CODE_NOT_FOUND,
+  ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_INTEGRATIONS,
   ERROR_CODE_UNAUTHORIZED_AUTHENTICATION,
   MAX_INTEGRATIONS,
@@ -313,6 +314,23 @@ describe('changing a server', () => {
     })
 
     expect(stored.catalogueSlug).toBeNull()
+  })
+
+  test('answers a key it cannot read as a service that cannot take it now', async () => {
+    const stored = await add()
+
+    stored.encryptedApiKey = 'v1:local:unreadable'
+
+    const edited = await call('PATCH', `/${stored.id}`, {
+      ...KEYED,
+      apiKey: null,
+      apiKeyScheme: 'HEADER',
+      apiKeyHeader: 'X-API-Key',
+    })
+
+    expect(edited.status).toBe(503)
+    expect(edited.body.code).toBe(ERROR_CODE_SERVICE_UNAVAILABLE)
+    expect((await call('POST', `/${stored.id}/retry`)).body.code).toBe(ERROR_CODE_SERVICE_UNAVAILABLE)
   })
 
   test('clears the key when a server stops taking one', async () => {

@@ -5,6 +5,11 @@ import {
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_FORBIDDEN,
+  ERROR_CODE_INTEGRATION_AUTHORIZATION_EXPIRED,
+  ERROR_CODE_INTEGRATION_AUTHORIZATION_NOT_YOURS,
+  ERROR_CODE_INTEGRATION_CONNECTION_EXPIRED,
+  ERROR_CODE_INTEGRATION_CONNECTION_REFUSED,
+  ERROR_CODE_INTEGRATION_ISSUER_CHANGED,
   ERROR_CODE_INTEGRATION_NAME_TAKEN,
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_SERVICE_UNAVAILABLE,
@@ -14,6 +19,7 @@ import {
   isValidIntegrationApiKeyHeader,
   isValidIntegrationName,
   parseIntegrationUrl,
+  type StartIntegrationConnectionData,
 } from 'strategydance-core'
 import {
   IntegrationApiKeyScheme,
@@ -31,26 +37,46 @@ import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
 import integrationRateLimitMiddleware from '~middleware/integrationRateLimit'
 import organizationAdministratorMiddleware from '~middleware/organizationAdministrator'
+import organizationMemberMiddleware from '~middleware/organizationMember'
 import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 
 import addIntegration from '~domain/integrations/addIntegration'
+import cancelIntegrationConnection from '~domain/integrations/cancelIntegrationConnection'
 import deleteIntegration from '~domain/integrations/deleteIntegration'
+import disconnectIntegration from '~domain/integrations/disconnectIntegration'
 import editIntegration from '~domain/integrations/editIntegration'
+import finishIntegrationConnection from '~domain/integrations/finishIntegrationConnection'
 import restoreIntegration from '~domain/integrations/restoreIntegration'
 import retryIntegration from '~domain/integrations/retryIntegration'
 import setIntegrationEnabled from '~domain/integrations/setIntegrationEnabled'
 import setIntegrationToolApproval from '~domain/integrations/setIntegrationToolApproval'
+import startIntegrationConnection from '~domain/integrations/startIntegrationConnection'
 
 // Every code `INTEGRATION_FAILURE_ERROR_CODES` pairs, typed over the database's enum, so a kind added
 // there fails this typecheck until strategydance-core pairs it
 const FAILURE_ERROR_CODES: Record<IntegrationError, string> = INTEGRATION_FAILURE_ERROR_CODES
 
 type IntegrationOutcome =
-  | { outcome: 'saved' | 'added' | 'reached' }
+  | { outcome: 'saved' | 'added' | 'reached' | 'started' | 'connected' | 'disconnected' | 'canceled' }
   | { outcome: 'failed'; kind: IntegrationError }
   | {
-      outcome: 'forbidden' | 'full' | 'nameTaken' | 'conflict' | 'toolGone' | 'gone' | 'keyRequired' | 'keyUnavailable'
+      outcome:
+        | 'forbidden'
+        | 'full'
+        | 'nameTaken'
+        | 'conflict'
+        | 'toolGone'
+        | 'gone'
+        | 'keyRequired'
+        | 'keyUnavailable'
+        | 'expired'
+        | 'leaseLost'
+        | 'notOAuth'
+        | 'issuerChanged'
+        | 'notYours'
+        | 'connectionRefused'
+        | 'connectionExpired'
     }
 
 /*
@@ -62,12 +88,16 @@ function respondRefusal(response: Response, result: IntegrationOutcome) {
     case 'saved':
     case 'added':
     case 'reached':
+    case 'started':
+    case 'connected':
+    case 'disconnected':
+    case 'canceled':
       return false
     case 'failed':
       respondError(response, 422, FAILURE_ERROR_CODES[result.kind], 'The server could not be reached as it should')
       break
     case 'forbidden':
-      respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only an administrator of the organization can do this')
+      respondError(response, 403, ERROR_CODE_FORBIDDEN, 'The caller may not do this in the organization')
       break
     case 'full':
       respondError(response, 409, ERROR_CODE_TOO_MANY_INTEGRATIONS, 'The organization has as many servers as it may')
@@ -77,7 +107,46 @@ function respondRefusal(response: Response, result: IntegrationOutcome) {
       break
     case 'conflict':
     case 'toolGone':
+    case 'leaseLost':
       respondError(response, 409, ERROR_CODE_CONFLICT, 'The server was changed meanwhile')
+      break
+    case 'notOAuth':
+      respondError(response, 409, ERROR_CODE_CONFLICT, 'Only an OAuth server takes an account')
+      break
+    case 'issuerChanged':
+      respondError(
+        response,
+        409,
+        ERROR_CODE_INTEGRATION_ISSUER_CHANGED,
+        'The server names another authorization server',
+      )
+      break
+    case 'expired':
+      respondError(response, 410, ERROR_CODE_INTEGRATION_AUTHORIZATION_EXPIRED, 'The sign-in expired or was finished')
+      break
+    case 'notYours':
+      respondError(
+        response,
+        403,
+        ERROR_CODE_INTEGRATION_AUTHORIZATION_NOT_YOURS,
+        'Another account started this sign-in',
+      )
+      break
+    case 'connectionRefused':
+      respondError(
+        response,
+        422,
+        ERROR_CODE_INTEGRATION_CONNECTION_REFUSED,
+        'The authorization server refused the sign-in',
+      )
+      break
+    case 'connectionExpired':
+      respondError(
+        response,
+        409,
+        ERROR_CODE_INTEGRATION_CONNECTION_EXPIRED,
+        'Your account at the server needs connecting again',
+      )
       break
     case 'gone':
       respondError(response, 404, ERROR_CODE_NOT_FOUND, 'No such server')
@@ -155,6 +224,9 @@ const editBodySchema = settingsSchema.and(z.object({ expected: expectedSchema })
 
 const enabledBodySchema = z.object({ isEnabled: z.boolean() })
 
+// The Connect a member's page finishes, from the address the callback sent it to
+const finishBodySchema = z.object({ authorizationId: z.string().regex(UUID_PATTERN) })
+
 const approvalBodySchema = z.object({
   definitionHash: z.string().regex(/^[0-9a-f]{64}$/),
   isAutoApproved: z.boolean(),
@@ -172,20 +244,22 @@ type IntegrationRequest<Body = unknown> = Request<z.infer<typeof integrationPara
 
 /*
   An organization's MCP servers, which its administrators add, change, turn on and off, retry and
-  delete, mounted at `/organizations/:organizationId/integrations`, whose `:organizationId` each
-  route reads through `mergeParams`. Every member reads them through the web connector's live list;
-  only administrators reach these routes, and only Strategy Dance's administrators while
-  conversations are open to them alone, which is what calls the servers.
+  delete, and to which any member connects and disconnects their own account when it takes OAuth,
+  mounted at `/organizations/:organizationId/integrations`, whose `:organizationId` each route reads
+  through `mergeParams`. Every member reads them through the web connector's live list; only
+  Strategy Dance's administrators reach these routes while conversations are open to them alone,
+  which is what calls the servers.
 
   Each route runs its middleware in one order: the body parsed, App Check, the caller's token, the
   routes that reach a server metered, the parameters and the body checked, then whether the caller
-  administers the organization and is staff, which read and write nothing before them. Every
-  operation behind a route checks the administrator again in its own transaction
+  administers the organization, or is its member, and is staff, which read and write nothing before
+  them. Every operation behind a route checks the caller again in its own transaction
 */
 function createIntegrationsRouter() {
   const router = Router({ mergeParams: true })
   const json = express.json({ limit: '16kb' })
   const administrator = [organizationAdministratorMiddleware, staffOnlyMiddleware]
+  const member = [organizationMemberMiddleware, staffOnlyMiddleware]
 
   // Adds a server, once reaching it found its tools or its issuer: 200 with its id
   router.post(
@@ -314,6 +388,82 @@ function createIntegrationsRouter() {
     ...administrator,
     async (request: IntegrationRequest, response: Response) => {
       const result = await restoreIntegration(toCaller(request))
+
+      if (respondRefusal(response, result)) return
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /* ---
+    A MEMBER'S OWN ACCOUNT
+  --- */
+
+  // Starts a Connect to an OAuth server: 200 with the address of its sign-in, for the window the
+  // member's page opened
+  router.post(
+    '/:integrationId/connection',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    integrationRateLimitMiddleware,
+    validateMiddleware({ params: integrationParamsSchema }),
+    ...member,
+    async (request: IntegrationRequest, response: Response<ApiResponse<StartIntegrationConnectionData>>) => {
+      const result = await startIntegrationConnection(toCaller(request))
+
+      if (respondRefusal(response, result) || result.outcome !== 'started') return
+
+      response.json({ status: 'success', data: { authorizationUrl: result.authorizationUrl } })
+    },
+  )
+
+  // Finishes the Connect the member's page came back with, exchanging its code, for that member alone
+  router.post(
+    '/:integrationId/connection/finish',
+    json,
+    appCheckMiddleware,
+    authenticationMiddleware,
+    integrationRateLimitMiddleware,
+    validateMiddleware({ params: integrationParamsSchema, body: finishBodySchema }),
+    ...member,
+    async (request: IntegrationRequest<z.infer<typeof finishBodySchema>>, response: Response) => {
+      const result = await finishIntegrationConnection({
+        ...toCaller(request),
+        authorizationId: request.body.authorizationId,
+      })
+
+      if (respondRefusal(response, result)) return
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  // Cancels the member's Connect under way, so its sign-in connects nothing once finished
+  router.delete(
+    '/:integrationId/connection/authorization',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: integrationParamsSchema }),
+    ...member,
+    async (request: IntegrationRequest, response: Response) => {
+      const result = await cancelIntegrationConnection(toCaller(request))
+
+      if (respondRefusal(response, result)) return
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  // Disconnects the member's account, revoking its tokens at the authorization server
+  router.delete(
+    '/:integrationId/connection',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    integrationRateLimitMiddleware,
+    validateMiddleware({ params: integrationParamsSchema }),
+    ...member,
+    async (request: IntegrationRequest, response: Response) => {
+      const result = await disconnectIntegration(toCaller(request))
 
       if (respondRefusal(response, result)) return
 

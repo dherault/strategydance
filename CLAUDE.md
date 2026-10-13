@@ -36,6 +36,11 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-core` — types, enums and constants every package agrees on. Zero
   runtime dependencies, so it is importable from the browser bundle and from a Node script
   alike. Keep it that way
+- `packages/strategydance-directories` — the places a startup can be submitted to, websites and
+  Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its root and
+  submission addresses and its business model, `DirectoryBusinessModel`, whose comment says how
+  one is chosen when a directory has several catches. Data and types with no runtime dependency,
+  as the core is. The list was read from the README of where-to-submit-your-startup
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
@@ -1288,8 +1293,8 @@ tree at unpredictable moments, and an unexpected path belongs in `.gitignore`, n
 
 Write subjects in the imperative mood, saying what the change does rather than which files it
 touches. A husky `commit-msg` hook (`scripts/prefixCommit.ts`) prepends a scope derived from the
-staged paths: `[web]`, `[backend]`, `[core]`, `[database]`, `[design-system]`, `[translations]`,
-`[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
+staged paths: `[web]`, `[backend]`, `[core]`, `[directories]`, `[database]`, `[design-system]`,
+`[translations]`, `[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
 without a prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong
 one sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
 within one package where it is natural.

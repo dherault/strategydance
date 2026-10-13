@@ -1788,9 +1788,11 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     its connections and Connects after, which a Connect's own write locks against, so under read
     committed none outlives them.
   - A client the authorization server answers as unknown is forgotten, so the next Connect registers
-    again; a client secret an authorization server gives is encrypted for the server alone. In
-    development, whose callback is http, the client is registered as a native one, and no metadata
-    document is offered.
+    again, and each connection issued to it is marked as needing its member at its own next refresh,
+    which the server refuses as it did. A registration asks for a public client unless the server
+    lists only methods with a secret, then for `client_secret_basic`, else `client_secret_post`; the
+    secret it gives is encrypted for the server alone. In development, whose callback is http, the
+    client is registered as a native one, and no metadata document is offered.
   - The integration routes hand their operations canonical ids, since the page a sign-in ends on names
     them hyphenated, and a live query's refresh compares its variables as text.
   - The waiting dialog ends on the member's live connection appearing anew, the proof, or on the

@@ -1809,6 +1809,8 @@ query GetIntegrationAuthorizationByState($stateHash: String!) @auth(level: NO_AC
     integrationId
     membershipUserId
     membershipOrganizationId
+    issuer
+    isIssuerParameterSupported
   }
 }
 

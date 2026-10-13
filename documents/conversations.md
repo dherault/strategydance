@@ -1559,7 +1559,7 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 | --- | --- | --- |
 | `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and whether its report was delivered | read |
 | `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, as for one that does not exist | read |
-| `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten files the conversation has sent, as the member's entries name them. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), those a Retry deleted left out, past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), for a file the conversation has not sent, and for files past a send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS` | write |
+| `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten files the conversation has sent, as the member's entries name them. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), those a Retry deleted left out, past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), for a file the conversation has not sent, and for a first request, measured whole when it carries files, past a send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS` | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
 - **The caller carries its launcher**, apart from its access. An agent caller may carry a
@@ -1916,9 +1916,11 @@ way (see The orchestrator).
   can hand it to none, and puts what the subagent needs of it in the brief instead. Nothing is
   uploaded again, and each subagent pays only for the files it was given, measured by their `tokenCount` as the parent's are.
   A launch names only files the conversation has sent, `READY` with their `message` set, never one
-  waiting in a draft, whose prune would delete it under a running subagent, and holds them to a
-  send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS`, by their `tokenCount`, so no subagent is full
-  at its first request. It is drawn as a `BRIEF` message at the top of the subagent's thread, its files as chips the
+  waiting in a draft, whose prune would delete it under a running subagent. A launch with files
+  measures the subagent's first request whole, its system prompt, tools, context message, brief and
+  files, as `measureConversationMessage` measures a send with files, and refuses one past a send's
+  budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS`, so no subagent is full at its first request; a brief
+  alone, at most 20000 characters, never comes near it. It is drawn as a `BRIEF` message at the top of the subagent's thread, its files as chips the
   parent's attachment route serves. Which files those are is kept on the message, since a file's
   `ConversationAttachment.message` names the parent's message that sent it and the transcript is the
   backend's alone: `ConversationMessage.attachmentIds`, a list on a `BRIEF` alone, which the bodies
@@ -2453,8 +2455,8 @@ one's allowance, and an account-wide cap would take a lock on the account's row 
   unbounded. A hundred runs come to some $15 at the typical $0.15 a run (see Cost), and to some $150
   if every one used its 25 requests.
 - **Counted on a ledger of their own**, `CappedStart`, as the search allowance counts
-  `ConversationSearch` rows: the member, the organization, the `kind` (`CONVERSATION`, `RUN` or
-  `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the kind and `createdAt`, on
+  `ConversationSearch` rows: an `id` made by `uuidV4()`, the member, the organization, the `kind`
+  (`CONVERSATION`, `RUN` or `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the kind and `createdAt`, on
   the organization, the kind and `createdAt` for the organization's counts, and on `createdAt` alone
   for the sweep, which deletes the rows over a day old. The conversations and runs a cap counts
   hold their member on the conversation alone, so counting them would join every conversation of a

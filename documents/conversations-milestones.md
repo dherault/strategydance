@@ -45,7 +45,9 @@ merges, write its pull request number in the table below.
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
 M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, M30 as soon as M17
 and M25 have, M35 as soon as M33 has, and M12, M24 and M27 well before their neighbours. M36 is
-written now and built only once M29 has merged.
+written now and built only once M29 has merged. M33 and M34 reach production in one release: M33
+lets the agent launch, and only M34 has the page reconcile a parent's subagents and Retry ask before
+it discards them, so a release cut between the two would leave the daily sweep their only recovery.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -1801,8 +1803,9 @@ own.
   runs the one mutation Modules § The Subagents module's tools describes, taking the membership
   lock, which counts the ten, those a Retry deleted left out, then the parent's row, which counts
   the hundred, the order every run start keeps, then the queueing. Its first run is `QUEUED`, since
-  the slots come in M31. It takes only files the conversation has sent, within a send's budget by
-  their `tokenCount`. The call's key joins it in M32, and so do the checks of the launching run,
+  the slots come in M31. It takes only files the conversation has sent, and with files it measures
+  the subagent's first request whole, system prompt, tools, context, brief and files, as
+  `measureConversationMessage` measures a send, refusing one past a send's budget. The call's key joins it in M32, and so do the checks of the launching run,
   inside the mutation: M30's script launches from no run, `launchRunId` and `launchToolUseId` null,
   on the parent's latest anchor.
 - **The subagent's run**, in `runConversation`:
@@ -1827,7 +1830,8 @@ own.
     member's subagent id reading nothing.
   - Each route and web mutation refusing a subagent's id, called directly.
   - The brief's files sent by id.
-  - A file a draft holds, and files past a send's budget, refused.
+  - A file a draft holds refused, and files that fit the budget alone refused once the first
+    request's prompt, tools, context and brief take it past.
   - The ten not counting subagents a Retry deleted, and the hundred refused.
   - The report written at each way a run ends, cut to 8000 characters, and a run at its limits
     failing with its report.
@@ -1913,7 +1917,7 @@ own.
   - from a subagent;
   - from a run that has ended or was asked to stop;
   - past ten launches on the anchor, those a Retry deleted left out, or 100 in the conversation;
-  - a file the conversation has not sent, or files past a send's budget;
+  - a file the conversation has not sent, or a first request past a send's budget, measured whole;
   - a subagent of another conversation.
 
   A launch from a reaction is refused from M33, which adds `REPORTS`.
@@ -2038,7 +2042,8 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
 - `MAX_DAILY_CONVERSATIONS_PER_MEMBER` (20), `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION` (100),
   `MAX_DAILY_RUNS_PER_MEMBER` (100), `MAX_DAILY_RUNS_PER_ORGANIZATION` (500) and
   `MAX_DAILY_SUBAGENTS_PER_MEMBER` (30) in strategydance-core, with the four error codes.
-- **The schema change**, additive: `CappedStart`, the member, the organization, its `kind`
+- **The schema change**, additive: `CappedStart`, its `id`, a UUID made by `uuidV4()` as
+  `ConversationSearch`'s is, since no other field is unique, the member, the organization, its `kind`
   (`CONVERSATION`, `RUN`, `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the
   kind and `createdAt`, on the organization, the kind and `createdAt`, and on `createdAt` for the
   sweep, which deletes the rows over a day old beside the conversation searches.

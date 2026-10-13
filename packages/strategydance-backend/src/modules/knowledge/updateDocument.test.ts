@@ -211,7 +211,9 @@ describe('update_document', () => {
     ).toBe('That text occurs 2 times in the document. Include more of the text around it, so it occurs once.')
     expect(
       await kit.refusal('update_document', { id: document.id, replaceText: { find: 'absent', replace: 'x' } }),
-    ).toBe('That text does not occur in the document. Read it again and copy the text exactly.')
+    ).toBe(
+      'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc: or task: link, is no text to find: replace its block to change it.',
+    )
   })
 
   it('refuses two edits at once, or none, before anything is read', async () => {
@@ -366,6 +368,31 @@ describe('update_document', () => {
     expect(await kit.answer('update_document', args, 'the-key')).toEqual(stored)
     expect(fake.calls.filter(name => name === 'FoldDocumentForAgent')).toHaveLength(1)
     expect(markdownOf(document.id)).toEqual(['Intro', 'Mine'])
+  })
+
+  it("writes the agent's links to documents and tasks as mentions, which no replaced text reaches", async () => {
+    const kit = await connect()
+    const document = documents.store('Intro')
+    const mentions =
+      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) before [Launch](task:7a1b2c3d-4e5f-4071-8293-a4b5c6d7e8f9)'
+
+    await kit.answer('update_document', { id: document.id, append: mentions })
+
+    expect(markdownOf(document.id)).toEqual([
+      'Intro',
+      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) before [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)',
+    ])
+    expect(
+      await kit.refusal('update_document', { id: document.id, replaceText: { find: 'See Pricing', replace: 'x' } }),
+    ).toBe(
+      'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc: or task: link, is no text to find: replace its block to change it.',
+    )
+
+    await kit.answer('update_document', { id: document.id, replaceText: { find: ' before ', replace: ' then ' } })
+
+    expect(markdownOf(document.id)[1]).toBe(
+      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) then [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)',
+    )
   })
 
   it('writes Markdown that reads back as written, a picture as a link to it', async () => {

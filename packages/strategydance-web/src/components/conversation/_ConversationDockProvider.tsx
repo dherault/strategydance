@@ -9,9 +9,13 @@ import ConversationDockContext from '~contexts/ConversationDockContext'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import usePersistedState from '~hooks/common/usePersistedState'
+import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversationDraft'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import parseConversationDock from '~utils/conversation/parseConversationDock'
+import pushOutDockWindows from '~utils/conversation/pushOutDockWindows'
+
+import { getConversationComposerDraftKey, readConversationComposerDraft } from '~data/conversationComposerDrafts'
 
 const NO_WINDOWS: ConversationDockWindow[] = []
 
@@ -35,6 +39,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     { parser: parseConversationDock },
   )
   const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
+  const discardConversationDraft = useDiscardConversationDraft()
 
   const key = viewer && organization ? `${viewer.uid}:${organization.id}` : null
   const windows = (key ? dock[key] : null) ?? NO_WINDOWS
@@ -62,16 +67,46 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     })
   }
 
-  function openWindow(conversationId: string, { isDraft = false }: { isDraft?: boolean } = {}) {
-    changeWindows(current => {
-      const open = current.find(dockWindow => dockWindow.conversationId === conversationId)
+  // A draft whose first message is on its way, whose window stays whatever the dock's limit, since
+  // nothing else would let the reader see that send fail
+  function isHeld({ conversationId, isDraft }: ConversationDockWindow) {
+    if (!isDraft) return false
 
-      return [
-        { conversationId, isMinimized: false, isDraft: open ? open.isDraft : isDraft },
-        ...current.filter(dockWindow => dockWindow.conversationId !== conversationId),
-      ].slice(0, MAX_DOCK_WINDOWS)
+    const draftKey = getConversationComposerDraftKey(viewer?.uid, organization?.id, conversationId)
+
+    return readConversationComposerDraft(draftKey).sendingMessageId !== null
+  }
+
+  // The windows with one opened rightmost
+  function withWindowOpened(current: ConversationDockWindow[], conversationId: string, isDraft: boolean) {
+    const open = current.find(dockWindow => dockWindow.conversationId === conversationId)
+
+    return [
+      { conversationId, isMinimized: false, isDraft: open ? open.isDraft : isDraft },
+      ...current.filter(dockWindow => dockWindow.conversationId !== conversationId),
+    ]
+  }
+
+  /*
+    Opens a window rightmost, letting go of the ones opened longest ago past the dock's limit, but a
+    draft whose first message is on its way: a draft it lets go of is discarded as closing its window
+    would, so its files hold no place among the reader's unsent files with nothing left to remove
+    them from
+  */
+  function openWindow(conversationId: string, { isDraft = false }: { isDraft?: boolean } = {}) {
+    const pushedOut = pushOutDockWindows(withWindowOpened(windows, conversationId, isDraft), MAX_DOCK_WINDOWS, isHeld)
+
+    changeWindows(current => {
+      const next = withWindowOpened(current, conversationId, isDraft)
+      const out = new Set(pushOutDockWindows(next, MAX_DOCK_WINDOWS, isHeld).map(({ conversationId: id }) => id))
+
+      return next.filter(dockWindow => !out.has(dockWindow.conversationId))
     })
     requestFocus(conversationId)
+
+    for (const dockWindow of pushedOut) {
+      if (dockWindow.isDraft) discardConversationDraft(dockWindow.conversationId)
+    }
   }
 
   function setWindowMinimized(conversationId: string, isMinimized: boolean) {

@@ -9,9 +9,14 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import validateMiddleware from '~middleware/validate'
 
+import createAnthropicClaudeClient from '~domain/agent/createAnthropicClaudeClient'
+import pruneConversationAttachments from '~domain/conversations/pruneConversationAttachments'
 import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
 import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
 import runConversation from '~domain/conversations/runConversation'
+import publishDirectoryCheck from '~domain/directories/publishDirectoryCheck'
+import createGitHubAppToken from '~domain/github/createGitHubAppToken'
+import createGitHubClient from '~domain/github/createGitHubClient'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
@@ -82,8 +87,8 @@ function createInternalRouter() {
 
   /*
     Removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
-    Scheduler asks once a day: the conversations, the board's tasks and the documents deleted over a
-    day ago. A milestone that keeps something else deleted for a while adds its prune here. So does
+    Scheduler asks once a day: the conversations, with their files, the board's tasks and the
+    documents deleted over a day ago, and the files uploaded to conversations and never sent. A milestone that keeps something else deleted for a while adds its prune here. So does
     one that keeps a count or a record for a while, as the conversation searches over a day old go,
     the module call results past their expiry, and the authorization server's requests expired over
     a day ago, its tokens past their expiry and the registrations nobody uses. Every step is
@@ -91,6 +96,7 @@ function createInternalRouter() {
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     await pruneDeletedConversations()
+    await pruneConversationAttachments()
     await pruneConversationSearches()
     await pruneDeletedTasks()
     await pruneDeletedDocuments()
@@ -98,6 +104,22 @@ function createInternalRouter() {
     await pruneOAuthAuthorizationRequests()
     await pruneAgentConnectionTokens()
     await pruneOAuthClients()
+
+    response.json({ status: 'success' })
+  })
+
+  /*
+    Checks a day's directories, as Cloud Scheduler asks once a day, and commits what it found to the
+    rolling pull request into `dev`, opening one when none is open (`publishDirectoryCheck`): a run
+    takes a few minutes, inside the worker's fifteen. A run that fails leaves the lists as they were,
+    and the next day picks the same directories. Takes no body
+  */
+  router.post('/directories-check', async (_request: Request, response: Response<ApiResponse>) => {
+    await publishDirectoryCheck({
+      github: createGitHubClient(await createGitHubAppToken()),
+      claude: createAnthropicClaudeClient(),
+      today: new Date().toISOString().slice(0, 10),
+    })
 
     response.json({ status: 'success' })
   })

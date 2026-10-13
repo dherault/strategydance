@@ -6,6 +6,7 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import {
   type ConversationComposerDraft,
   EMPTY_CONVERSATION_COMPOSER_DRAFT,
+  getConversationComposerDraftKey,
   readConversationComposerDraft,
   subscribeToConversationComposerDrafts,
   updateConversationComposerDraft,
@@ -25,7 +26,7 @@ import {
 function useConversationComposerDraft(conversationId: string) {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
-  const key = `${viewer?.uid ?? ''}:${organization?.id ?? ''}:${conversationId}`
+  const key = getConversationComposerDraftKey(viewer?.uid, organization?.id, conversationId)
 
   const draft = useSyncExternalStore(
     subscribeToConversationComposerDrafts,
@@ -37,7 +38,12 @@ function useConversationComposerDraft(conversationId: string) {
     updateConversationComposerDraft(key, current => ({ ...current, ...change(current) }))
   }
 
-  return [draft, changeDraft] as const
+  // The draft as it stands now, for what reads it after awaiting something
+  function readDraft() {
+    return readConversationComposerDraft(key)
+  }
+
+  return [draft, changeDraft, readDraft] as const
 }
 
 export default useConversationComposerDraft

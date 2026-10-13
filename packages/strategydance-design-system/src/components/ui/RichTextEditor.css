@@ -449,6 +449,71 @@
   text-underline-offset: 2px;
 }
 
+/*
+  A mention of a document or a task, as `RICH_TEXT_CLASSES.mention` draws one outside the editor
+  and the thread draws its links to them: what it names in the primary color, its icon before its
+  title, underlined only under the pointer, and struck through and muted once it is gone. Selected,
+  as a click beside it or the arrow keys select it, it is ringed
+*/
+.rich-text-editor.bn-root .bn-editor .rich-text-mention {
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-link:hover {
+  color: var(--color-primary-800);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention[data-state='gone'] {
+  color: var(--color-muted-foreground);
+  text-decoration: line-through;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-lead {
+  white-space: nowrap;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-icon {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 3px;
+  vertical-align: -2px;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rich-text-editor.bn-root .bn-editor .rich-text-mention.ProseMirror-selectednode {
+  border-radius: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Heard by a screen reader and seen by nobody, as Tailwind's `sr-only` */
+.rich-text-editor.bn-root .bn-editor .rich-text-mention-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .rich-text-editor.bn-root .bn-editor .bn-block-content[data-content-type='checkListItem'] > div > input {
   accent-color: var(--color-primary);
 }

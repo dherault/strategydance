@@ -36,6 +36,18 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-core` — types, enums and constants every package agrees on. Zero
   runtime dependencies, so it is importable from the browser bundle and from a Node script
   alike. Keep it that way
+- `packages/strategydance-directories` — the places a startup can be submitted to, websites and
+  Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its root and
+  submission addresses, its description and its business model, `DirectoryBusinessModel`, which
+  `DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS` and `DIRECTORY_BUSINESS_MODEL_PRECEDENCE` describe and
+  order. Those nothing can be submitted to today are `INACTIVE_DIRECTORIES`, from
+  `src/inactiveDirectories.json`, each with its `DirectoryInactiveReason`, and a directory is in one
+  list or the other, never both. Data and types with no runtime dependency, as the core is. Both
+  lists were read from the README of where-to-submit-your-startup, and a daily check, the
+  backend's, keeps them true through a pull request a human merges
+  ([directories.md](documents/directories.md)). Both files are written as `JSON.stringify(list,
+  null, 2)` writes them, sorted by name, which the tests hold them to, so a script's edit passes the
+  lint
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
@@ -45,17 +57,23 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   inviting people, which emails them, storing the pictures of documents' text, reading what a
   web page says of itself for a link preview, sending and searching conversations, and serving the
   modules to the agents members connect, through its own authorization server. Its image runs
-  a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
-  and sweeps what was deleted once a day. See below
+  a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them,
+  sweeps what was deleted once a day, and checks the directories once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
   drawn by `RichText` without it. A post's editor writes text and lists (`RICH_TEXT_POST_BLOCKS`),
-  and a knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos and link
-  preview cards (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks unless
-  told a document's, since a feed and a public page draw posts. The editor's own blocks, the video
-  and the card, are the core's `createBlockSpec` with plain DOM, never React's, so the headless
-  editor the Yjs helpers convert through loads no React. BlockNote's menus are built from its own
+  a task's description's also mentions of documents and tasks (`RICH_TEXT_TASK_BLOCKS`), and a
+  knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos, link preview
+  cards and mentions (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks
+  unless told more, since a feed and a public page draw posts. The editor's own blocks, the video
+  and the card, are the core's `createBlockSpec`, and its mentions the core's
+  `createInlineContentSpec`, with plain DOM, never React's, so the headless editor the Yjs helpers
+  convert through loads no React. A mention's chip is a span whatever it draws, since BlockNote
+  reads a pasted outer link as a link before the mention. `RichTextEditor` and `RichText` draw
+  mentions from the page's `mentions`, a `RichTextMentionSource`, which the web builds with
+  `useRichTextMentionSource`: the organization's live documents and board, each read once a mention
+  or the `@` menu asks for it, and their addresses. BlockNote's menus are built from its own
   Base UI copies of shadcn's components, which the design system's never reach, so
   `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
@@ -66,8 +84,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
-  the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, and
-  a table without a header row under an empty one. `markdownToRichText` parses with markdown-it,
+  the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, a
+  table without a header row under an empty one, and a mention as the agent's own link to what it
+  names, `[title](doc:<id>)` or `[name](task:<id>)`, which reads back as the mention. `markdownToRichText` parses with markdown-it,
   never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by
   the thousand, text an agent could be told to write, and its tests hold markdown-it to the
   length of a document. It
@@ -102,9 +121,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators. It answers conversations with Claude, which costs money, unless started with `CONVERSATION_AGENT=placeholder`, which answers with a stand-in reply |
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
-| `bun run send:conversation <email> [--conversation <id>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
+| `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -329,6 +349,18 @@ gs://strategydance.firebasestorage.app --cors-file=storage.cors.json` as an acco
 change the bucket. A preview channel's origin is not listed, so an export there draws initials
 where the pictures were. The Storage emulator applies no rule, so development never needs it.
 
+**Storage deletes what waits under `pending/` for two days, as `storage.lifecycle.json` says.** A
+conversation's files wait there between their upload and their send, and the rule is what makes a
+draft never sent cost nothing for long. It is a setting on the bucket too, which no deploy sends:
+after changing the file, run `gcloud storage buckets update gs://strategydance.firebasestorage.app
+--lifecycle-file=storage.lifecycle.json` as an account that may change the bucket. The emulator
+applies no lifecycle rule.
+
+**The Storage emulator ignores generation preconditions.** An object written or copied with
+`preconditionOpts: { ifGenerationMatch: 0 }` is create-only in production and overwritten in the
+emulator, so code that relies on one, as a conversation's files do, reads what is there first and
+treats an object found as the precondition would, and its tests simulate the 412 on a fake.
+
 ### The database
 
 Schema and operations live in `packages/strategydance-database`, and the generated SDK is the
@@ -414,6 +446,11 @@ only way the app talks to them.
   a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
   vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses
   every call from that older page
+- A filter on an optional list variable left out is dropped, so `id: { in: $ids }` without `$ids`
+  matches every row the rest of the filter does. A write filtered so counts its rows against the
+  list, as the sends' `$attachmentIds` step checks `this == size(vars.attachmentIds)`, and this
+  without it, so a caller from before the variable is refused rather than writing rows it never
+  named. `check:conversation-attachments` checks it
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
@@ -480,7 +517,10 @@ faces.
   and delete it, with whatever somebody typed in it
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
-  text. A new block type reaches every tab before anybody can write one. The Yjs helpers read with
+  text. A new block type reaches every tab before anybody can write one, and so does a new inline
+  type, unless David chooses to ship it with the release that writes it, as mentions shipped. A
+  node's props are append-only: y-prosemirror writes every attribute, and a shared text holding
+  one its schema does not declare can no longer be read by the backend. The Yjs helpers read with
   a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another, and their read deletes a block it
   lacks as surely: a document's editor and its helpers keep to one list
 - A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's
@@ -491,6 +531,15 @@ faces.
 
 A conversation is kept twice, once for Claude and once for the page, and
 `documents/conversations.md` says how each is written:
+
+- A file a member sends is a `ConversationAttachment`, uploaded before its message, into a draft's
+  conversation as often as a saved one's, so its `conversationId` is a plain UUID nothing reserves.
+  Every lookup, count and prune matches it with `userId` and `organizationId`, since another member
+  who learned a draft's id could upload under it. Its row goes `UPLOADING`, reserved under the
+  membership's lock before any byte is read, then `READY`, or `PRUNING` once a prune claims it, which
+  no upload finishes and no send takes; its `message` is set once, by the mutation that sends it.
+  The transcript holds it by its id in Claude's Files API, never its bytes, and a conversation's
+  prune deletes its files' rows before its own, since `message` is nulled on delete
 
 - The transcript, `ConversationTranscriptEntry`, is what Claude is sent: the exact content blocks
   of every turn, thinking blocks and their signatures included. Only the backend reads or writes
@@ -529,7 +578,12 @@ A conversation is kept twice, once for Claude and once for the page, and
   messages in pages through `GetConversationMessagesBefore`. `createConversationThread` merges
   them, and reads every page it holds again when `historyRevision` moves. A field that changes in
   place belongs in the tail, one that never changes once written in the bodies, and the history
-  page carries both
+  page carries both: a member's message's files, their id, name, type and size, are its body's,
+  since the send that inserts it sets them. Their bytes come from `GET …/attachments/:attachmentId`
+  alone, read with the reader's token past the browser's HTTP cache (`useConversationAttachmentFile`)
+  and drawn from an address `useObjectUrl` holds while something draws them. An image drawn small
+  is drawn from a small copy (`useImageThumbnail`), never its own bytes, which an `<img>` decodes
+  whole whatever size it is drawn at
 - A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
   auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
@@ -602,10 +656,13 @@ A conversation is kept twice, once for Claude and once for the page, and
   conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
   a new one joins its refreshes, or a minimized window's count stands still. An open window draws
   the page's own thread and composer, which mark replies read as the page does. A composer's message,
-  its mentions, where its send stands and the run the reader last started are kept by account,
+  its mentions, its files, where its send stands and the run the reader last started are kept by account,
   organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
   drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
-  anything new a message holds, as attachments will, goes there too, never in a view's own state.
+  anything new a message holds goes there too, never in a view's own state. A file's upload is the
+  tab's, not a composer's: it runs in `~data/conversationAttachmentUploads`, three at a time, and
+  writes how far it has gone into the draft it was added to, so it goes on wherever the
+  conversation is drawn, and removing the file anywhere stops it.
   A question's answer under way is kept the same way (`~data/conversationQuestionAnswers`), and
   anything else a reader has under way in a conversation joins them on `createTabStore`
 - A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
@@ -748,7 +805,10 @@ in `utils/`, one concern per file.
   emails' with it, so the two still agree
 - Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
   through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
-  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`
+  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`. A file goes up
+  through `uploadApiFile`, on `XMLHttpRequest`, since `fetch` tells nothing of a body on its way,
+  and its bytes come back through `requestApiFile`: never an `<img>` pointed at the backend, which
+  carries no token
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
   A route taking a file parses last instead, after `organizationAdministratorMiddleware` or
@@ -806,6 +866,28 @@ in `utils/`, one concern per file.
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back
+- So are the files sent in conversations, which the backend serves itself (`GET
+  …/attachments/:attachmentId`), checking the reader is still a member, so none has a download
+  token. An upload streams its body into Storage under `pending/{organizationId}/{userId}/{id}`,
+  create-only, through a check of its signature and its declared `Content-Length`; a send copies it
+  to `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{id}`. Every id
+  in an object's name is canonical (`toCanonicalUuid`), never the route's spelling, so a retry
+  finds the same object. `conversationAttachmentStorage` is the one module that touches the bucket
+  for them, and a test that mocks `~firebase` without `bucket` mocks it instead, with
+  `createAttachmentStorageFake`
+- An upload reads its file back from Storage one at a time in the instance, then collects the heap
+  whole (`Bun.gc(true)`): Bun collects the buffers a read-back leaves late, and twenty files of 10
+  MiB at once took a backend past Cloud Run's 512 MiB otherwise. `bun run
+  load:conversation-attachments <email>`, in the backend's package, is the check, against a local
+  backend: run it after changing what an upload reads, holds or sends
+- Claude reads a conversation's files through Anthropic's Files API (`ClaudeFiles`, the placeholder
+  standing in under `CONVERSATION_AGENT=placeholder`), where the upload sends each once. Its files
+  are the workspace's, and development and production read the same key: every file is named
+  `CLAUDE_FILE_NAME_PREFIX` and its attachment's id, never the member's name for it, and only
+  production's sweep deletes the files no row names, under its own prefix. The count endpoint takes
+  no Files API source, so a file is counted once from its bytes when it is stored, into
+  `tokenCount`, and every measurement takes file blocks out and adds those counts
+  (`replaceConversationFiles`)
 - A request to an address somebody else gave, a link preview's page today, goes through
   `fetchOutbound` in `utils/`, never `fetch`: http or https on its own port, every address the
   hostname resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address
@@ -836,7 +918,12 @@ in `utils/`, one concern per file.
   with what its agent's module calls kept under its scope, `conversation:<id>`
   (`DeleteConversationModuleCallResults`), since nothing references the conversation from them. It
   is a conversation's only prune: starting one leaves its author's to it, and `RestoreConversation`
-  refuses one deleted over a day ago whether or not the sweep has run. Then the
+  refuses one deleted over a day ago whether or not the sweep has run. Each goes with its files,
+  in the Files API and Storage, and their rows, found by the conversation, its author and its
+  organization; one whose files could not all go stays claimed for the next sweep. Then the files
+  uploaded to conversations and never sent, a reservation ten minutes old or a file two days old,
+  and in production the files the Files API holds that no row names, a day old
+  (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
   organization's documents deleted over a day ago, the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
@@ -844,6 +931,16 @@ in `utils/`, one concern per file.
   nobody uses (`domain/oauth/prune…`). A milestone that keeps
   something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
   sweep that failed is finished by the next
+- The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks
+  a day's directories and commits what it found to one rolling pull request into `dev`, from the
+  branch `directories-check`, which only it writes (`publishDirectoryCheck` in
+  `domain/directories/`): it reads the lists at that branch's head, or `dev`'s when no pull request
+  is open, and commits both files at once against the head it read. It reaches GitHub as a GitHub
+  App, its id and private key the `github-app-id` and `github-app-private-key` secrets, minted into
+  an installation token by `domain/github/`, since a pull request opened with Actions' own token
+  runs no CI. It runs the last release's code on `dev`'s lists, so `readDirectoryLists` refuses a
+  field or a value it does not know rather than write the lists back without it. What a run picks,
+  proves and writes, and its setup, are [directories.md](documents/directories.md)'s
 - Strategy Dance's OAuth authorization server, which external agents go through to reach a module
   as a member, is the public backend's: the protocol's own endpoints in `routes/oauth.ts`
   (`register`, `authorize`, `token`, `revoke`), the consent page's in `routes/oauthRequests.ts`,
@@ -858,7 +955,7 @@ in `utils/`, one concern per file.
   once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
   checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
   fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
-  against the local backend at `API_URL`, the Knowledge module's endpoint included, and checks the
+  against the local backend at `API_URL`, both modules' endpoints included, and checks the
   operations against the emulators: an operation changed is changed in both
 - The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
   backend alone, serve each module `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
@@ -889,7 +986,8 @@ in `utils/`, one concern per file.
   same path as carrying on
 - What a run asks Claude lives in `domain/agent/`. Claude is reached through a `ClaudeClient`: the
   real one on Anthropic's API, the placeholder `CONVERSATION_AGENT=placeholder` picks in
-  development, and the tests' scripted one, which records each request's bytes. Every request is
+  development, and the tests' scripted one, which records each request's bytes and refuses to count
+  a Files API source, as the endpoint does. Every request is
   built by `buildConversationRequest`, in one key order, so the next request starts with the last
   one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
   hash, and so are the tools a request sends (`buildConversationTools`): a change to either costs
@@ -997,7 +1095,8 @@ and why.
   backend's package, check those conditions against the emulators: an operation changed is changed
   in both
 - An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
-  once a member allowed it on the consent page, through the modules' endpoints (see [Backend
+  `/mcp/knowledge` and `/mcp/tasks` today, each its own OAuth resource, so one module's token never
+  opens the other, once a member allowed it on the consent page, through the modules' endpoints (see [Backend
   conventions](#backend-conventions)). Its caller comes from the access token,
   `createAgentConnectionTokenVerifier` reading it on every call: `kind: 'external'`, the token's
   scopes within its connection's, the scope `connection:<id>`, and the membership's `createdAt`, so a
@@ -1009,21 +1108,24 @@ and why.
   connection granted read alone still lists every write, and a call to one answers 403
   `insufficient_scope`, naming the write scope and the resource metadata, as MCP's step-up asks: the
   client asks the member again, and their new consent replaces the connection. `readModuleWriteCall`'s
-  check stays behind it, a second guard. An external agent's search draws on the member's search
-  allowance (`recordConversationSearch`), which their conversation searches use too, since no run
-  bounds it, and one past it is answered with a result saying when to search again
+  check stays behind it, a second guard. An external agent's search, a Knowledge `search_documents`
+  or a `list_tasks` with a query, each page of it, draws on the member's search allowance
+  (`recordModuleSearch`, in `domain/modules/`), which their conversation searches use too, since no
+  run bounds it, and one past it is answered with a result saying when to search again
+  (`toTooManySearchesSentence`) and which read still works
 - A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
   its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
   tool; its searches on the member's allowance; the "Use with your agents" button on its page,
   `ModuleAgentsButton`, which takes its name and opens the dialog worded from the `module` catalogue;
-  and its endpoint in `check:oauth`. The Tasks module joins in M21
+  and its endpoint in `check:oauth`. Knowledge joined in M20 and Tasks in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which
   takes the module's name. stdout is the protocol's there, so the script points the logger's info
   lines at stderr. The local backend serves a served module over HTTP too, as its own issuer, with
   the consent page on the local web app: `claude mcp add --transport http
-  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, then `/mcp` in Claude
-  Code to sign in
+  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge` and `claude mcp add
+  --transport http strategydance-tasks-http-local http://localhost:3003/mcp/tasks`, then `/mcp` in
+  Claude Code to sign in to each
 - `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
   backend's package, fill the plain text of documents stored before `contentText` existed and of
   tasks stored before `descriptionText` did, each run by hand once, after the release that added it
@@ -1230,8 +1332,8 @@ tree at unpredictable moments, and an unexpected path belongs in `.gitignore`, n
 
 Write subjects in the imperative mood, saying what the change does rather than which files it
 touches. A husky `commit-msg` hook (`scripts/prefixCommit.ts`) prepends a scope derived from the
-staged paths: `[web]`, `[backend]`, `[core]`, `[database]`, `[design-system]`, `[translations]`,
-`[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
+staged paths: `[web]`, `[backend]`, `[core]`, `[directories]`, `[database]`, `[design-system]`,
+`[translations]`, `[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
 without a prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong
 one sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits
 within one package where it is natural.

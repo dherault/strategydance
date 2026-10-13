@@ -1,7 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
-import richTextSample, { richTextDocumentSample } from 'strategydance-design-system/components/ui/RichText.sample'
-import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richText'
+import richTextSample, {
+  richTextDocumentSample,
+  richTextMentionSample,
+  richTextMentionSampleSource,
+} from 'strategydance-design-system/components/ui/RichText.sample'
+import { RICH_TEXT_EDITOR_BLOCKS, RICH_TEXT_TASK_BLOCKS } from 'strategydance-design-system/lib/richText'
 
 const meta = {
   title: 'Components/RichText',
@@ -23,6 +27,19 @@ export const Document: Story = {
   args: {
     value: richTextDocumentSample,
     blocks: RICH_TEXT_EDITOR_BLOCKS,
+  },
+}
+
+/*
+  A task's description mentioning a document renamed since, drawn with its current title, one
+  deleted since, struck through, and a task. Without its source a mention is its icon and the words
+  it was made with
+*/
+export const Mentions: Story = {
+  args: {
+    value: richTextMentionSample,
+    blocks: RICH_TEXT_TASK_BLOCKS,
+    mentions: richTextMentionSampleSource,
   },
 }
 

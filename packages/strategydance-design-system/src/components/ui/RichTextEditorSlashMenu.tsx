@@ -91,7 +91,10 @@ function RichTextEditorSlashMenuController({ getItems }: Props) {
 const isOutsideTable: NonNullable<ComponentProps<typeof SuggestionMenuController>['shouldOpen']> = state =>
   !state.selection.$from.parent.type.isInGroup('tableContent')
 
-// BlockNote's menu, its groups' names, its loader and its empty row, with the rows below
+/*
+  BlockNote's menu, its groups' names, its loader and its empty row, with the rows below. The rows
+  are keyed by their place, since two of the mentions menu's can share a title
+*/
 function RichTextEditorSlashMenu({
   items,
   loadingState,
@@ -104,7 +107,7 @@ function RichTextEditorSlashMenu({
   const rows = items.flatMap((item, index) => {
     const row = (
       <SlashMenuRow
-        key={item.title}
+        key={index}
         index={index}
         item={item}
         isSelected={index === selectedIndex}
@@ -201,4 +204,8 @@ function SlashMenuRow({ index, item, isSelected, onClick }: SlashMenuRowProps) {
   )
 }
 
-export { RichTextEditorSlashMenuController }
+export {
+  FLOATING_OPTIONS as RICH_TEXT_EDITOR_MENU_FLOATING_OPTIONS,
+  RichTextEditorSlashMenu,
+  RichTextEditorSlashMenuController,
+}

@@ -19,6 +19,10 @@ function editorBlock(
   }
 }
 
+const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
+const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+const HYPHENATED_TASK_ID = '7a1b2c3d-4e5f-4071-8293-a4b5c6d7e8f9'
+
 function text(value: string, styles: Record<string, unknown> = {}) {
   return { type: 'text', text: value, styles }
 }
@@ -395,6 +399,73 @@ describe('normalizeRichText', () => {
     ).toEqual([
       { type: 'paragraph', content: [{ type: 'text', text: 'Under' }] },
       { type: 'linkPreview', props: { url: 'https://example.com/', title: 'Example' } },
+    ])
+  })
+
+  it('keeps a mention by its id as Data Connect writes one, and its words on one line', () => {
+    const [block] = normalizeRichText([
+      editorBlock('paragraph', [
+        text('See '),
+        { type: 'documentMention', props: { documentId: DOCUMENT_ID.toUpperCase(), title: '  Pricing\n plan ' } },
+        { type: 'taskMention', props: { taskId: HYPHENATED_TASK_ID, name: 'Ship it' }, content: [], styles: {} },
+        { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: '' } },
+      ]),
+    ])
+
+    expect((block as RichTextTextBlock | undefined)?.content).toEqual([
+      { type: 'text', text: 'See ' },
+      { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing plan' } },
+      { type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship it' } },
+      { type: 'documentMention', props: { documentId: DOCUMENT_ID } },
+    ])
+  })
+
+  it('reads a mention as its words when its id is none, or where mentions are not kept', () => {
+    const value = [
+      editorBlock('paragraph', [
+        { type: 'documentMention', props: { documentId: '123', title: 'Bad id' } },
+        { type: 'taskMention', props: { taskId: { id: TASK_ID }, name: 'Not a string' } },
+        { type: 'documentMention', props: { documentId: DOCUMENT_ID } },
+        { type: 'taskMention', props: { taskId: TASK_ID, name: 'Kept' } },
+      ]),
+    ]
+
+    expect((normalizeRichText(value)[0] as RichTextTextBlock).content).toEqual([
+      { type: 'text', text: 'Bad id' },
+      { type: 'text', text: 'Not a string' },
+      { type: 'documentMention', props: { documentId: DOCUMENT_ID } },
+      { type: 'taskMention', props: { taskId: TASK_ID, name: 'Kept' } },
+    ])
+    expect((normalizeRichText(value, { inlineTypes: ['text', 'link'] })[0] as RichTextTextBlock).content).toEqual([
+      { type: 'text', text: 'Bad id' },
+      { type: 'text', text: 'Not a string' },
+      { type: 'text', text: 'Kept' },
+    ])
+  })
+
+  it("holds a mention's words to a length, and keeps mentions in a table's cells but not in a link", () => {
+    const [table, paragraph] = normalizeRichText([
+      {
+        type: 'table',
+        content: {
+          type: 'tableContent',
+          rows: [{ cells: [[{ type: 'taskMention', props: { taskId: TASK_ID, name: 'x'.repeat(400) } }]] }],
+        },
+      },
+      editorBlock('paragraph', [
+        {
+          type: 'link',
+          href: 'https://example.com/',
+          content: [{ type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Inside' } }],
+        },
+      ]),
+    ])
+
+    expect((table as RichTextTableBlock).content.rows[0].cells[0]).toEqual([
+      { type: 'taskMention', props: { taskId: TASK_ID, name: 'x'.repeat(300) } },
+    ])
+    expect((paragraph as RichTextTextBlock).content).toEqual([
+      { type: 'link', href: 'https://example.com/', content: [{ type: 'text', text: 'Inside' }] },
     ])
   })
 

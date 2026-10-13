@@ -11,6 +11,7 @@ import {
 } from 'strategydance-core'
 
 import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaudeClient'
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
 import createConversationDatabaseFake, {
   type FakeConversation,
 } from '~domain/conversations/testing/createConversationDatabaseFake'
@@ -25,6 +26,10 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 
 mock.module('~domain/agent/conversationClaudeClient', () => ({
   default: createPlaceholderClaudeClient({ stepDurationMs: 0 }),
+}))
+
+mock.module('~domain/conversations/conversationAttachmentStorage', () => ({
+  default: createAttachmentStorageFake().storage,
 }))
 
 // The checks this test is not about let the caller through, as the one the request names

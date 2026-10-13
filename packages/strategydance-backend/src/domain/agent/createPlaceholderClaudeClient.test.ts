@@ -35,6 +35,27 @@ describe('createPlaceholderClaudeClient', () => {
     expect(JSON.stringify(message.content[0])).toContain('**22**')
   })
 
+  test('counts an image and a PDF at a fixed allowance rather than by their bytes', async () => {
+    const client = createPlaceholderClaudeClient({ stepDurationMs: 0 })
+    const data = 'A'.repeat(4_000_000)
+    const counted = await client.countTokens({
+      model: 'claude-opus-5-5',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } },
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data } },
+            { type: 'text', text: 'What do they say?' },
+          ],
+        },
+      ],
+    })
+
+    expect(counted).toBeGreaterThan(4500)
+    expect(counted).toBeLessThan(5000)
+  })
+
   test('counts an emoji, however many code units it takes, as one character', async () => {
     const message = await ask('Ship it 👍🏽').answer
 

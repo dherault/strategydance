@@ -9,6 +9,7 @@ import {
 import {
   FilePanelExtension,
   FormattingToolbarExtension,
+  SuggestionMenu,
   filterSuggestionItems,
   insertOrUpdateBlockForSlashMenu,
 } from '@blocknote/core/extensions'
@@ -18,7 +19,7 @@ import {
   blockTypeSelectItems,
   getDefaultReactSlashMenuItems,
 } from '@blocknote/react'
-import { LinkIcon, SquareCodeIcon, SquarePlayIcon } from 'lucide-react'
+import { AtSignIcon, LinkIcon, SquareCodeIcon, SquarePlayIcon } from 'lucide-react'
 import { createElement } from 'react'
 import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { RICH_TEXT_HEADING_LEVELS, type RichTextHeadingLevel } from 'strategydance-design-system/lib/richText'
@@ -38,13 +39,20 @@ const SLASH_MENU_KEYS = new Set([
   'image',
 ])
 
+type Options = {
+  /** Whether the editor writes mentions and has a source to draw them from, which offers the item that opens their menu */
+  hasMentions?: boolean
+}
+
 /*
   The slash menu's items for `editor`, matched against what is typed after the slash. BlockNote's
   own, those the schema holds, since its defaults always add an emoji picker, then the blocks of
-  the editor's own after BlockNote's last media one, in its group
+  the editor's own after BlockNote's last media one, in its group, and last the item that opens
+  the mentions menu, when the editor has one
 */
 function getRichTextSlashMenuItems<B extends BlockSchema, I extends InlineContentSchema, S extends StyleSchema>(
   editor: BlockNoteEditor<B, I, S>,
+  { hasMentions = false }: Options = {},
 ) {
   // Each item keeps the key of the core item it is made from, which its type leaves out
   const items = getDefaultReactSlashMenuItems(editor).filter(
@@ -52,7 +60,12 @@ function getRichTextSlashMenuItems<B extends BlockSchema, I extends InlineConten
   )
   const media = getMediaItems(editor)
   const index = items.findLastIndex(item => item.group === editor.dictionary.slash_menu.image.group) + 1 || items.length
-  const all = [...items.slice(0, index), ...media, ...items.slice(index)]
+  const all = [
+    ...items.slice(0, index),
+    ...media,
+    ...items.slice(index),
+    ...(hasMentions ? [getMentionItem(editor)] : []),
+  ]
 
   return async (query: string) => filterSuggestionItems(all, query)
 }
@@ -101,6 +114,29 @@ function getMediaItems<B extends BlockSchema, I extends InlineContentSchema, S e
         ]
       : []),
   ]
+}
+
+/*
+  The item that opens the mentions menu, as BlockNote's own opens its emoji picker: in BlockNote's
+  last group, an "@" put in for the menu to take away once a mention is picked
+*/
+function getMentionItem<B extends BlockSchema, I extends InlineContentSchema, S extends StyleSchema>(
+  editor: BlockNoteEditor<B, I, S>,
+): DefaultReactSuggestionItem {
+  const dictionary = editor.dictionary as RichTextDictionary
+
+  return {
+    title: dictionary.rich_text.mention_item,
+    subtext: dictionary.rich_text.mention_item_subtext,
+    aliases: ['mention', 'document', 'knowledge', 'task', 'link', '@'],
+    group: dictionary.slash_menu.emoji.group,
+    icon: createElement(AtSignIcon, { size: 18 }),
+    onItemClick: () => {
+      editor
+        .getExtension(SuggestionMenu)
+        ?.openSuggestionMenu('@', { deleteTriggerCharacter: true, ignoreQueryLength: true })
+    },
+  }
 }
 
 /*

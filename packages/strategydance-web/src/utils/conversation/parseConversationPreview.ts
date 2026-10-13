@@ -20,6 +20,19 @@ function parseConversationPreview(value: unknown): ConversationPreview | null {
 
   switch (preview.kind) {
     case 'MEMBER_TEXT':
+      if (typeof preview.text !== 'string') return null
+
+      // The files it sent, which say something of a message holding none of its own words
+      return Number.isSafeInteger(preview.attachmentCount)
+        && (preview.attachmentCount as number) > 0
+        && typeof preview.attachmentName === 'string'
+        ? {
+            kind: preview.kind,
+            text: preview.text,
+            attachmentCount: preview.attachmentCount as number,
+            attachmentName: preview.attachmentName,
+          }
+        : { kind: preview.kind, text: preview.text }
     case 'AGENT_TEXT':
       return typeof preview.text === 'string' ? { kind: preview.kind, text: preview.text } : null
     case 'TOOL_CALL':

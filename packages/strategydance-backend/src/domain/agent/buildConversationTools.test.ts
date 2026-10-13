@@ -40,8 +40,6 @@ async function readTools() {
     organizationId,
     userId: 'member',
     conversationId: '1a2b3c4d5e6f40718293a4b5c6d7e8f9',
-    runId: 'run',
-    attempts: 1,
     membershipCreatedAt: fake.addMember('member', organizationId),
   })
 
@@ -117,7 +115,7 @@ describe('buildConversationTools', () => {
       'restore_task',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '5d7f067f15167bc1ae371e72f618a368570b2fedab2e06e6b8c70835dfe007a8',
+      '6ad947b82795b5945e48afa906cf02576d308d10607bccb8d44727753b71320f',
     )
   })
 

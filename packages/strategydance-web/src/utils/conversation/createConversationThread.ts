@@ -52,8 +52,9 @@ function toBody({
   questionPrompt,
   questionOptions,
   isMultipleChoice,
+  conversationAttachments_on_message,
 }: ConversationPageMessage): ConversationMessageBody {
-  return { id, text, citations, questionPrompt, questionOptions, isMultipleChoice }
+  return { id, text, citations, questionPrompt, questionOptions, isMultipleChoice, conversationAttachments_on_message }
 }
 
 /*

@@ -46,6 +46,17 @@ describe('read_task', () => {
     expect(read.version).toMatch(/^[0-9a-f]{24}$/)
   })
 
+  it("reads a description's mentions as the agent's links to the document and the task they name", async () => {
+    const kit = await board.connect()
+    const task = board.add()
+    const description =
+      'As [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) says, after [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)'
+
+    Object.assign(fake.tasks.get(task.id)!, board.describe(description))
+
+    expect(await kit.answer('read_task', { id: task.id })).toMatchObject({ description, isDescriptionComplete: true })
+  })
+
   it('never blocks a done task waiting on an unfinished one', async () => {
     const kit = await board.connect()
     const [, task] = board.chain(2)

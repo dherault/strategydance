@@ -13,6 +13,8 @@ type ConversationMessageSend = {
   // The aspects the reader picked on a draft, which its first message sends; none leaves them for
   // Strategy Dance to tag
   aspects?: CompanyAspect[]
+  // The files it sends, uploaded first, by their ids
+  attachmentIds?: readonly string[]
 }
 
 /*
@@ -20,20 +22,32 @@ type ConversationMessageSend = {
   draft, which the first message stores. The backend answers once the message and its run are
   stored, with the run's id: the page's live reads then bring both in. A retry with the same
   message's id answers with the same run, so a send whose answer was lost can be sent again. A
-  draft's first message carries the aspects its reader picked, which the conversation starts with
+  draft's first message carries the aspects its reader picked, which the conversation starts with.
+  A message sending files, uploaded first, may hold no words
 */
 function useSendConversationMessage() {
   const { organization } = useCurrentOrganization()
 
   const organizationId = organization?.id ?? null
 
-  return async function sendConversationMessage({ conversationId, messageId, text, aspects }: ConversationMessageSend) {
+  return async function sendConversationMessage({
+    conversationId,
+    messageId,
+    text,
+    aspects,
+    attachmentIds,
+  }: ConversationMessageSend) {
     if (!organizationId) throw new Error('No organization is current')
 
     return requestApi<SendConversationMessageData>({
       method: 'POST',
       path: `/organizations/${organizationId}/conversations/${conversationId}/messages`,
-      body: { messageId, text, ...(aspects?.length ? { aspects } : {}) },
+      body: {
+        messageId,
+        text,
+        ...(aspects?.length ? { aspects } : {}),
+        ...(attachmentIds?.length ? { attachmentIds } : {}),
+      },
     })
   }
 }

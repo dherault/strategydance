@@ -64,19 +64,21 @@ describe('createApp', () => {
     expect((await post(origins.backend, '/oauth/register')).status).toBe(400)
   })
 
-  test("the backend answers the Knowledge module's endpoint and its protected resource metadata", async () => {
-    const metadata = await fetch(`${origins.backend}/.well-known/oauth-protected-resource/mcp/knowledge`)
+  test("the backend answers each module's endpoint and its protected resource metadata", async () => {
+    for (const path of ['/mcp/knowledge', '/mcp/tasks']) {
+      const metadata = await fetch(`${origins.backend}/.well-known/oauth-protected-resource${path}`)
 
-    expect(metadata.status).toBe(200)
-    expect(((await metadata.json()) as { resource: string }).resource).toBe('http://localhost:3003/mcp/knowledge')
-    // A call without a token is refused by the bearer check, which is there
-    expect((await post(origins.backend, '/mcp/knowledge')).status).toBe(401)
-    expect((await post(origins.backend, '/mcp/tasks')).status).toBe(404)
+      expect(metadata.status).toBe(200)
+      expect(((await metadata.json()) as { resource: string }).resource).toBe(`http://localhost:3003${path}`)
+      // A call without a token is refused by the bearer check, which is there
+      expect((await post(origins.backend, path)).status).toBe(401)
+    }
   })
 
   test('the backend answers 404 on the internal routes', async () => {
     expect((await post(origins.backend, '/internal/conversation-runs')).status).toBe(404)
     expect((await post(origins.backend, '/internal/sweep')).status).toBe(404)
+    expect((await post(origins.backend, '/internal/directories-check')).status).toBe(404)
   })
 
   test('the worker answers its internal routes', async () => {
@@ -92,7 +94,9 @@ describe('createApp', () => {
     expect((await post(origins.worker, '/oauth/register')).status).toBe(404)
     expect((await fetch(`${origins.worker}/oauth/authorize`)).status).toBe(404)
     expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/knowledge`)).status).toBe(404)
+    expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/tasks`)).status).toBe(404)
     expect((await post(origins.worker, '/mcp/knowledge')).status).toBe(404)
+    expect((await post(origins.worker, '/mcp/tasks')).status).toBe(404)
     expect(
       (await post(origins.worker, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,

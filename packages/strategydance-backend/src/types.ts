@@ -6,6 +6,12 @@ import type {
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ModuleScope } from 'strategydance-core'
 import type { CompanyAspect, TaskStatus } from 'strategydance-database/backend'
+import type {
+  Directory,
+  DirectoryBusinessModel,
+  DirectoryInactiveReason,
+  InactiveDirectory,
+} from 'strategydance-directories'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
@@ -53,6 +59,16 @@ export type ConversationRunReference = {
   userId: string
   conversationId: string
   runId: string
+}
+
+// A file sent in a conversation, by what finds everything it left: its id, its conversation, author
+// and organization, and its id in the Files API once it has one
+export type ConversationAttachmentReference = {
+  id: string
+  userId: string
+  organizationId: string
+  conversationId: string
+  claudeFileId?: string | null
 }
 
 // What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
@@ -106,6 +122,26 @@ export type ClaudeClient = {
     },
   ): Promise<BetaMessage>
   countTokens(body: MessageCountTokensParams): Promise<number>
+}
+
+// A file Claude's Files API holds, as its listing says: its id, the name it was uploaded under and
+// when, in RFC 3339
+export type ClaudeFile = {
+  id: string
+  name: string
+  createdAt: string
+}
+
+/*
+  Where the files sent in conversations go so Claude reads them by reference: Anthropic's Files API,
+  which keeps a file until it is deleted. An upload answers the file's id; deleting a file that is
+  gone already counts as deleting it; the listing goes through every file of the workspace, newest
+  first. The real one calls the API; a placeholder and the tests' fake stand in for it
+*/
+export type ClaudeFiles = {
+  upload(file: { name: string; contentType: string; bytes: Uint8Array }): Promise<string>
+  delete(id: string): Promise<void>
+  list(): AsyncIterable<ClaudeFile>
 }
 
 /* ---
@@ -327,6 +363,8 @@ export type TasksRefusal =
   | { outcome: 'keyConflict' }
   /** A cursor no list gave */
   | { outcome: 'invalidCursor' }
+  /** An external agent's query past the member's search allowance, until the next one fits */
+  | { outcome: 'tooManySearches'; retryAfterMs: number }
 
 // What a write of the Tasks module answers: its result, or the one stored under its key when the call
 // was sent before, or why it was refused
@@ -340,4 +378,148 @@ export type TasksWriteResult<Result> =
 export type TasksToolContext = {
   caller: ModuleCaller
   toAddress: (taskId: string) => Promise<string | undefined>
+}
+
+/* ---
+  DIRECTORIES
+
+  The daily check of the directories package's lists, `domain/directories/`
+--- */
+
+// Both lists of the directories package, as a check reads and writes them
+export type DirectoryLists = {
+  directories: Directory[]
+  inactiveDirectories: InactiveDirectory[]
+}
+
+/*
+  What a page answered a probe with: a page (`reachable`), a page that is not there (`missing`, a
+  404 or a 410), a wall put up for bots (`blocked`: a 401, a 403, a 429, a challenge, a redirect
+  loop a visitor without cookies meets), no site (`unreachable`: no such name, a name resolving to a
+  private address, a refused or dropped connection, a failed TLS handshake, the deadline, a server
+  error), or something nobody can tell apart from a passing fault (`unknown`)
+*/
+export type DirectoryPageOutcome = 'reachable' | 'missing' | 'blocked' | 'unreachable' | 'unknown'
+
+// One page a probe fetched, and the text a reader of it would see
+export type DirectoryPageProbe = {
+  url: string
+  // Where its redirects led, null when nothing answered
+  finalUrl: string | null
+  status: number | null
+  outcome: DirectoryPageOutcome
+  // Why it is not `reachable`, for the logs and the report
+  failure: string | null
+  title: string
+  description: string
+  text: string
+  // The pages of the same site it links to
+  links: string[]
+  // Whether it holds too little text to be read without running its scripts, as a page a browser
+  // draws does: what it says it lacks proves nothing
+  isClientRendered: boolean
+}
+
+export type DirectoryProbe = {
+  root: DirectoryPageProbe
+  // The submission page's, null when it is the root itself
+  submission: DirectoryPageProbe | null
+}
+
+// A page a check read, by this server's probe or Claude's web fetch, at its address
+export type DirectoryPage = {
+  url: string
+  text: string
+}
+
+// The quote, and the page it was read on, that a business model or a verdict of inactive rests on
+export type DirectoryEvidence = {
+  quote: string
+  url: string
+}
+
+// Claude's answer, as the review's schema has it and its reader checked it
+export type DirectoryReviewAnswer = {
+  verdict: 'ACTIVE' | 'INACTIVE' | 'INCONCLUSIVE'
+  inactiveReason: DirectoryInactiveReason | null
+  description: string | null
+  isCurrentDescriptionAccurate: boolean
+  businessModel: DirectoryBusinessModel | null
+  evidence: DirectoryEvidence | null
+  submissionUrl: string | null
+  notes: string
+}
+
+// What a check's requests used, summed over a review's paused parts
+export type DirectoryCheckUsage = {
+  inputTokens: number
+  cacheCreationInputTokens: number
+  cacheReadInputTokens: number
+  outputTokens: number
+}
+
+/*
+  What became of a review: an answer, with the pages Claude's fetches brought back, which its quotes
+  are checked against; no answer worth reading, a refusal, an answer past its schema or the
+  deadline, which counts as a check that told nothing; or a failure of the API itself, which counts
+  as no check at all
+*/
+export type DirectoryReview =
+  | { outcome: 'answered'; answer: DirectoryReviewAnswer; fetchedPages: DirectoryPage[]; usage: DirectoryCheckUsage }
+  | { outcome: 'unanswered'; failure: string; usage: DirectoryCheckUsage }
+  | { outcome: 'failed'; failure: string; usage: DirectoryCheckUsage }
+
+// One directory's check, before it is applied to the lists
+export type DirectoryCheck = {
+  name: string
+  // The entry as it was checked, so a check is applied to that entry alone, never to one somebody
+  // changed meanwhile
+  directory: Directory | InactiveDirectory
+  probe: DirectoryProbe
+  // Null when the probe alone decided, a site it could not reach
+  review: DirectoryReview | null
+  // The moved submission page the review named, as a probe of it answered, or null
+  submissionProbe: DirectoryPageProbe | null
+}
+
+/*
+  What a check did to a directory: kept it active, moved it to the other list, kept it inactive,
+  counted it unreachable without moving it yet, learned nothing (`inconclusive`), or left it as it
+  was, for an API failure or a run out of time (`notChecked`)
+*/
+export type DirectoryCheckResult =
+  | 'active'
+  | 'movedToInactive'
+  | 'movedToActive'
+  | 'inactive'
+  | 'unreachable'
+  | 'inconclusive'
+  | 'notChecked'
+
+export type DirectoryCheckOutcome = {
+  name: string
+  rootUrl: string
+  result: DirectoryCheckResult
+  // What changed in its entry, a line each, for the report
+  changes: string[]
+  evidence: DirectoryEvidence | null
+  notes: string
+}
+
+/* ---
+  GITHUB
+--- */
+
+/*
+  GitHub's API as one token: a REST call answered with its status and its body, JSON or text as
+  GitHub sends it, a status outside 2xx thrown but those the caller handles, and a GraphQL query
+  answered with its data. The real one calls GitHub; the tests' fake keeps a repository in memory
+*/
+export type GitHubClient = {
+  request(
+    method: 'GET' | 'POST' | 'PATCH',
+    path: string,
+    options?: { body?: unknown; accept?: string; allowedStatuses?: number[] },
+  ): Promise<{ status: number; data: unknown }>
+  graphql<Data>(query: string, variables: Record<string, unknown>): Promise<Data>
 }

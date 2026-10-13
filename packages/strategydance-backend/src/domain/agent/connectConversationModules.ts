@@ -20,7 +20,8 @@ type CallResult = Awaited<ReturnType<Client['callTool']>>
 
 /*
   Connects a run's worker to the modules its agent uses, as the run's member: the member the run was
-  queued under, with every scope, its calls kept under the conversation's idempotency scope.
+  queued under, with every scope, its calls kept under the conversation's idempotency scope. A send
+  with files connects the same way, before its run exists, for the tools its measurement counts.
 
   Each module is reached through its own handler, the one the public endpoint mounts, by the SDK's
   client pinned to the 2026-07-28 revision, which is stateless, on a transport whose `fetch` hands
@@ -34,7 +35,9 @@ type CallResult = Awaited<ReturnType<Client['callTool']>>
   the first time. A call answers its structured result, and a refusal throws its sentence, which
   goes back to Claude as an error
 */
-async function connectConversationModules(fence: ConversationRunFence): Promise<ConversationModules> {
+async function connectConversationModules(
+  fence: Pick<ConversationRunFence, 'organizationId' | 'userId' | 'conversationId' | 'membershipCreatedAt'>,
+): Promise<ConversationModules> {
   const caller: ModuleCaller = {
     kind: 'agent',
     userId: fence.userId,

@@ -29,6 +29,39 @@ describe('buildConversationPreview', () => {
     })
   })
 
+  it("says how many files a member's message sends, and the first one's name", () => {
+    expect(
+      buildConversationPreview({
+        kind: 'MEMBER_TEXT',
+        text: '',
+        conversationAttachments_on_message: [{ name: 'Pricing.pdf' }, { name: 'Board.png' }],
+      }),
+    ).toEqual({ kind: 'MEMBER_TEXT', text: '', attachmentCount: 2, attachmentName: 'Pricing.pdf' })
+    expect(
+      buildConversationPreview({
+        kind: 'MEMBER_TEXT',
+        text: 'What does it say?',
+        conversationAttachments_on_message: [{ name: 'Pricing.pdf' }],
+      }),
+    ).toEqual({ kind: 'MEMBER_TEXT', text: 'What does it say?', attachmentCount: 1, attachmentName: 'Pricing.pdf' })
+  })
+
+  it('cuts a long file name between graphemes, never inside an emoji', () => {
+    const preview = buildConversationPreview({
+      kind: 'MEMBER_TEXT',
+      text: '',
+      conversationAttachments_on_message: [{ name: `${'a'.repeat(199)}👩🏽‍💻.png` }],
+    })
+
+    expect(preview).toMatchObject({ attachmentName: 'a'.repeat(199) })
+  })
+
+  it('leaves the files out of a message that sends none', () => {
+    expect(
+      buildConversationPreview({ kind: 'MEMBER_TEXT', text: 'Hi', conversationAttachments_on_message: [] }),
+    ).toEqual({ kind: 'MEMBER_TEXT', text: 'Hi' })
+  })
+
   it('reads a reply as the design does, its list joined by commas after the colon that opens it', () => {
     expect(
       previewText(

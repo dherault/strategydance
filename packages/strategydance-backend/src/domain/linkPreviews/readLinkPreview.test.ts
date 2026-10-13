@@ -48,7 +48,7 @@ describe('readLinkPreview', () => {
 
   test('answers the address alone for what is not a page, an error status, or a refused address', async () => {
     const refused: Fetch = mock(async () => {
-      throw new OutboundRefusal('Not a public address: internal.example')
+      throw new OutboundRefusal('Not a public address: internal.example', 'privateAddress')
     })
 
     for (const fetch of [

@@ -41,6 +41,32 @@ describe('markdownToTaskDescription', () => {
     expect(written.description).toContain('"bold":true')
   })
 
+  it("stores the agent's links to documents and tasks as mentions, in a table's rows too, read back as written", () => {
+    const markdown =
+      'Price it as [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) says, before [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)'
+    const written = write(`${markdown}\n\n| Next |\n| --- |\n| [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9) |`)
+    const [paragraph, header, row] = parseRichText(written.description)
+
+    expect(paragraph).toEqual({
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Price it as ' },
+        { type: 'documentMention', props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Pricing' } },
+        { type: 'text', text: ' says, before ' },
+        { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9', name: 'Launch' } },
+      ],
+    })
+    expect(header).toEqual({ type: 'paragraph', content: [{ type: 'text', text: 'Next' }] })
+    expect(row).toEqual({
+      type: 'paragraph',
+      content: [{ type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9', name: 'Launch' } }],
+    })
+    expect(written.descriptionText).toBe('Price it as Pricing says, before Launch\nNext\nLaunch')
+    expect(taskDescriptionToMarkdown(written.description)).toBe(
+      `${markdown}\n\nNext\n\n[Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)`,
+    )
+  })
+
   it('stores nothing for Markdown that says nothing', () => {
     expect(write('')).toEqual({ outcome: 'written', description: '', descriptionText: '' })
     expect(write('   \n\n')).toEqual({ outcome: 'written', description: '', descriptionText: '' })

@@ -30,6 +30,38 @@ describe('formatConversationPreview', () => {
     expect(format(buildConversationPreview({ kind: 'AGENT_TEXT', text: '- One\n- Two' }))).toBe('One, Two')
   })
 
+  it("names the files of a member's message holding no words, and keeps the words of one that does", () => {
+    const files = (...names: string[]) => names.map(name => ({ name }))
+
+    expect(
+      format(
+        buildConversationPreview({
+          kind: 'MEMBER_TEXT',
+          text: '',
+          conversationAttachments_on_message: files('plan.pdf'),
+        }),
+      ),
+    ).toBe('You: plan.pdf')
+    expect(
+      format(
+        buildConversationPreview({
+          kind: 'MEMBER_TEXT',
+          text: '',
+          conversationAttachments_on_message: files('plan.pdf', 'notes.md', 'deck.pdf'),
+        }),
+      ),
+    ).toBe('You: 3 files')
+    expect(
+      format(
+        buildConversationPreview({
+          kind: 'MEMBER_TEXT',
+          text: 'What do you make of these?',
+          conversationAttachments_on_message: files('plan.pdf', 'notes.md'),
+        }),
+      ),
+    ).toBe('You: What do you make of these?')
+  })
+
   it('names a tool by what it does, then by what it did', () => {
     expect(format({ kind: 'TOOL_CALL', toolName: 'search_documents', toolStatus: 'RUNNING' })).toBe(
       'Searching knowledge',

@@ -31,6 +31,7 @@ import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
 import toTaskLinks from '~utils/task/toTaskLinks'
 
 import PageHeader from '~components/layout/PageHeader'
+import ModuleAgentsButton from '~components/module/ModuleAgentsButton'
 import NewTaskDialog from '~components/task/NewTaskDialog'
 import TaskBoardColumn from '~components/task/TaskBoardColumn'
 import TaskBoardFilters from '~components/task/TaskBoardFilters'
@@ -176,12 +177,15 @@ function TaskBoard() {
         lead={formatMessage(taskMessages.lead)}
         actions={
           hasFailed ? undefined : (
-            <Button
-              icon={<PlusIcon />}
-              onClick={() => setDraftStatus(TaskStatus.TODO)}
-            >
-              {formatMessage(taskMessages.newTask)}
-            </Button>
+            <>
+              <ModuleAgentsButton module="tasks" />
+              <Button
+                icon={<PlusIcon />}
+                onClick={() => setDraftStatus(TaskStatus.TODO)}
+              >
+                {formatMessage(taskMessages.newTask)}
+              </Button>
+            </>
           )
         }
       />

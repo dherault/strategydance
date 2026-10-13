@@ -5,6 +5,8 @@ import { MODULES } from 'strategydance-core'
 
 import type { ConversationRunReference } from '~types'
 
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
+
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 import createConversationTestKit, { ORGANIZATION_ID, answer, createId, wait } from './testing/createConversationTestKit'
 
@@ -14,6 +16,10 @@ const fake = createConversationDatabaseFake()
 const enqueueRun = mock(async (_reference: ConversationRunReference) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+
+mock.module('~domain/conversations/conversationAttachmentStorage', () => ({
+  default: createAttachmentStorageFake().storage,
+}))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 

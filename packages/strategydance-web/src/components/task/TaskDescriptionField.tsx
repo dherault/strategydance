@@ -6,7 +6,7 @@ import { Button } from 'strategydance-design-system/components/ui/Button'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import type { RichTextEditorChange } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
-import { RICH_TEXT_POST_BLOCKS } from 'strategydance-design-system/lib/richText'
+import { RICH_TEXT_TASK_BLOCKS, type RichTextMentionSource } from 'strategydance-design-system/lib/richText'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import useClaimEscape from '~hooks/common/useClaimEscape'
@@ -30,12 +30,16 @@ type Props = {
   // Offered while the latest could not be read, to read it again
   onRetry?: () => void
   isRetrying?: boolean
+  // Where its mentions of documents and tasks draw what they name from, and what a click on one in
+  // the text opens. The editor's open in a new tab, since leaving would lose what is not saved yet
+  mentions?: RichTextMentionSource
 }
 
 /*
   A task's description, drawn as its text until clicked, when the design system's editor takes its
-  place, writing a post's blocks: headings, quotes, lists and checklists. A click on a link in the
-  text follows it rather than opening the editor. The text stays ordinary content, its links links,
+  place, writing a post's blocks, headings, quotes, lists and checklists, and mentions of documents
+  and tasks, which "@" opens a menu of. A click on a link or a mention in the text follows it rather
+  than opening the editor, and one in the editor opens it in a new tab, keeping what is written. The text stays ordinary content, its links links,
   rather than the inside of a button, and the pencil beside the title is the way in from the
   keyboard.
 
@@ -46,7 +50,15 @@ type Props = {
   Until its latest value is read, the text shows and nothing opens the editor, and a read that
   failed says so, with a way to try again
 */
-function TaskDescriptionField({ value, onSave, onDraftChange, isLatest = true, onRetry, isRetrying = false }: Props) {
+function TaskDescriptionField({
+  value,
+  onSave,
+  onDraftChange,
+  isLatest = true,
+  onRetry,
+  isRetrying = false,
+  mentions,
+}: Props) {
   const { formatMessage, locale } = useIntl()
   const { RichTextEditor, hasFailed } = useRichTextEditor()
   // What the editor holds, or null while the description is only shown
@@ -118,6 +130,13 @@ function TaskDescriptionField({ value, onSave, onDraftChange, isLatest = true, o
             {hasRichText(value) ? (
               <RichText
                 value={value}
+                blocks={RICH_TEXT_TASK_BLOCKS}
+                mentions={mentions}
+                labels={{
+                  mentionUntitled: formatMessage(taskMessages.editorMentionUntitled),
+                  mentionDocumentGone: formatMessage(taskMessages.editorMentionDocumentGone),
+                  mentionTaskGone: formatMessage(taskMessages.editorMentionTaskGone),
+                }}
                 className="text-sm"
               />
             ) : (
@@ -145,13 +164,23 @@ function TaskDescriptionField({ value, onSave, onDraftChange, isLatest = true, o
             <RichTextEditor
               initialValue={value || undefined}
               placeholder={formatMessage(taskMessages.descriptionPlaceholder)}
-              blocks={RICH_TEXT_POST_BLOCKS}
+              blocks={RICH_TEXT_TASK_BLOCKS}
+              mentions={mentions ? { ...mentions, open: undefined } : undefined}
               locale={locale}
               autoFocus
               aria-label={formatMessage(taskMessages.description)}
               onChange={handleChange}
               onSubmit={save}
-              labels={{ turnInto: formatMessage(taskMessages.editorTurnInto) }}
+              labels={{
+                turnInto: formatMessage(taskMessages.editorTurnInto),
+                mentionKnowledge: formatMessage(taskMessages.editorMentionKnowledge),
+                mentionTasks: formatMessage(taskMessages.editorMentionTasks),
+                mentionItem: formatMessage(taskMessages.editorMentionItem),
+                mentionItemSubtext: formatMessage(taskMessages.editorMentionItemSubtext),
+                mentionUntitled: formatMessage(taskMessages.editorMentionUntitled),
+                mentionDocumentGone: formatMessage(taskMessages.editorMentionDocumentGone),
+                mentionTaskGone: formatMessage(taskMessages.editorMentionTaskGone),
+              }}
             />
           ) : (
             <div className="flex min-h-34 items-center gap-2 rounded-xs border border-border bg-white p-3 text-sm text-muted-foreground">

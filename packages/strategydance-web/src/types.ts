@@ -290,6 +290,9 @@ export type ConversationPageMessage = GetConversationMessagesBeforeData['convers
 // What a message says, which never changes once written, read once by id
 export type ConversationMessageBody = GetConversationMessageBodiesData['conversationMessages'][number]
 
+// A file a member's message sent, as its body reads it
+export type ConversationMessageAttachment = ConversationMessageBody['conversationAttachments_on_message'][number]
+
 // A conversation's latest run, which says whether Strategy Dance is working on it
 export type ConversationRun = GetConversationRunData['conversationRuns'][number]
 

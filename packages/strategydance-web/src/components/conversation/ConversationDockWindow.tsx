@@ -14,6 +14,7 @@ import type { ConversationDockWindow as DockWindow, DockConversation } from '~ty
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationDock from '~hooks/conversation/useConversationDock'
+import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversationDraft'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
@@ -24,7 +25,6 @@ import ConversationDockWait from '~components/conversation/ConversationDockWait'
 import ConversationDockWindowBody from '~components/conversation/ConversationDockWindowBody'
 import ConversationDockWindowBouncer from '~components/conversation/ConversationDockWindowBouncer'
 
-import { EMPTY_CONVERSATION_COMPOSER_DRAFT } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
@@ -55,11 +55,14 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   const { organization } = useCurrentOrganization()
   const organizationSlug = useCurrentOrganizationSlug()
   const { focusRequest, setWindowMinimized, closeWindow } = useConversationDock()
-  const [draft, changeDraft] = useConversationComposerDraft(dockWindow.conversationId)
+  const [draft] = useConversationComposerDraft(dockWindow.conversationId)
+  const discardConversationDraft = useDiscardConversationDraft()
   const sectionRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
 
   const { conversationId, isMinimized, isDraft } = dockWindow
+  // A draft's first message is on its way, which stores it
+  const isFirstSendGoing = isDraft && !conversation && draft.sendingMessageId !== null
   const title = conversation?.title ?? formatMessage(conversationMessages.newTitle)
   // Which ask for this window's composer is the latest, or null when the latest was another's
   const focusRequestCount = focusRequest?.conversationId === conversationId ? focusRequest.count : null
@@ -79,9 +82,16 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
   /*
     A draft is stored once a send has started its first run, or once the window's own read of it,
     cached while it was open, found it: the dock's read can lag both, and fail, and a reload forgets
-    the first. Only a draft nothing says is stored is discarded with what was written in it
+    the first. Only a draft nothing says is stored is discarded with what was written in it, its
+    files removed, so they hold no place among the reader's unsent files.
+
+    A draft whose first send is going is not closed at all, though it can be minimized: the send
+    stores it with the files it carries, which removing them would have it refuse, and should it
+    fail, its words and files are still the reader's, to send again or remove, in the window
   */
   function close() {
+    if (isFirstSendGoing) return
+
     closeWindow(conversationId)
 
     const read = queryClient.getQueryData<GetConversationData>(
@@ -89,7 +99,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
     )
     const isStored = !!conversation || !!draft.startedRun || !!read?.conversations.length
 
-    if (isDraft && !isStored) changeDraft(() => EMPTY_CONVERSATION_COMPOSER_DRAFT)
+    if (isDraft && !isStored) discardConversationDraft(conversationId)
   }
 
   function openPage() {
@@ -166,6 +176,7 @@ function ConversationDockWindow({ dockWindow, conversation }: Props) {
               size="sm"
               icon={<XIcon />}
               aria-label={formatMessage(conversationMessages.dockClose)}
+              disabled={isFirstSendGoing}
               onClick={close}
             />
           </Tooltip>

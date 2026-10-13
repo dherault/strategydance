@@ -1747,9 +1747,10 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 }
 
 # The bodies of some of a conversation's messages, by id, which never change once written: a text's
-# Markdown and its citations, and a question's prompt and options. Read once per message, as its id
-# first appears on the page, up to 50 at a time. Only the caller's own conversation's messages come
-# back, so an id from anywhere else reads nothing
+# Markdown and its citations, a question's prompt and options, and the files a member's message sent,
+# which the mutation inserting it sets. Read once per message, as its id first appears on the page,
+# up to 50 at a time. Only the caller's own conversation's messages come back, so an id from anywhere
+# else reads nothing
 query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
   conversationMessages(
     where: {
@@ -1771,6 +1772,19 @@ query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageI
     questionPrompt
     questionOptions
     isMultipleChoice
+    # The files a member's message sent, in the order Claude reads them: only their author's, the
+    # only ones a send ever sets on its message, and never more than
+    # `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
+    conversationAttachments_on_message(
+      where: { userId: { eq_expr: "auth.uid" } }
+      orderBy: [{ createdAt: ASC }, { id: ASC }]
+      limit: 10
+    ) {
+      id
+      name
+      contentType
+      size
+    }
   }
 }
 
@@ -1829,6 +1843,19 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
     questionPrompt
     questionOptions
     isMultipleChoice
+    # The files a member's message sent, in the order Claude reads them: only their author's, the
+    # only ones a send ever sets on its message, and never more than
+    # `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
+    conversationAttachments_on_message(
+      where: { userId: { eq_expr: "auth.uid" } }
+      orderBy: [{ createdAt: ASC }, { id: ASC }]
+      limit: 10
+    ) {
+      id
+      name
+      contentType
+      size
+    }
   }
 }
 

@@ -6,7 +6,9 @@ import type { TasksToolContext } from '~types'
 import createTask from '~domain/tasks/createTask'
 
 import { aspectsSchema } from '~modules/moduleSchemas'
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 import readTasksWriteCall from '~modules/tasks/readTasksWriteCall'
+import tasksModule from '~modules/tasks/tasksModule'
 import {
   assigneeSchema,
   descriptionSchema,
@@ -44,10 +46,11 @@ function registerCreateTask(server: McpServer, context: TasksToolContext) {
     {
       title: 'Create a task',
       description:
-        "Adds a task to the team's board, at the end of its column. Choose its `status`: BACKLOG for an idea nobody agreed to yet, TODO for work the member agreed to. It is the member's unless `assignee` says otherwise. Its description is a short brief in Markdown: headings, quotes, lists and check lists; a table or code is kept as plain paragraphs. Call it when the member agrees to turn a plan into work, one task per piece, then link them with add_task_dependency. Answers its id.",
+        "Adds a task to the team's board, at the end of its column. Choose its `status`: BACKLOG for an idea nobody agreed to yet, TODO for work the member agreed to. It is the member's unless `assignee` says otherwise. Its description is a short brief in Markdown: headings, quotes, lists and check lists, and a [title](doc:<id>) or [name](task:<id>) link to mention a document or a task; a table or code is kept as plain paragraphs. Call it when the member agrees to turn a plan into work, one task per piece, then link them with add_task_dependency. Answers its id.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(tasksModule),
     },
     async (args, serverContext) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)

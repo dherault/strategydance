@@ -16,13 +16,20 @@ type ParsedConversationMessageText =
 /*
   A member's message as a send takes it, trimmed. Refused when it holds nothing to show, only
   whitespace, control and format characters such as a zero-width space, when it is not well-formed,
-  and past
-  `MAX_CONVERSATION_MESSAGE_LENGTH`
+  and past `MAX_CONVERSATION_MESSAGE_LENGTH`. A message that sends files may hold nothing to show
+  (`allowsEmpty`): its text is then empty, so its entry holds no text block, which Claude would refuse
 */
-function parseConversationMessageText(rawText: string): ParsedConversationMessageText {
+function parseConversationMessageText(
+  rawText: string,
+  { allowsEmpty = false }: { allowsEmpty?: boolean } = {},
+): ParsedConversationMessageText {
   const text = rawText.trim()
 
-  if (!text.replace(/[\p{Cc}\p{Cf}\s]/gu, '')) return { outcome: 'invalid', reason: 'A message holds some text' }
+  if (!text.replace(/[\p{Cc}\p{Cf}\s]/gu, '')) {
+    return allowsEmpty
+      ? { outcome: 'valid', text: '', drawnText: '' }
+      : { outcome: 'invalid', reason: 'A message holds some text' }
+  }
 
   if (LONE_SURROGATE_PATTERN.test(text)) return { outcome: 'invalid', reason: 'A message is well-formed text' }
 

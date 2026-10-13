@@ -5,7 +5,9 @@ import type { TasksToolContext } from '~types'
 
 import removeTaskDependency from '~domain/tasks/removeTaskDependency'
 
+import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 import readTasksWriteCall from '~modules/tasks/readTasksWriteCall'
+import tasksModule from '~modules/tasks/tasksModule'
 import { taskIdSchema } from '~modules/tasks/tasksSchemas'
 import toTasksWriteResult from '~modules/tasks/toTasksWriteResult'
 
@@ -35,6 +37,7 @@ function registerRemoveTaskDependency(server: McpServer, context: TasksToolConte
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      scopeChallenge: requireModuleWriteScope(tasksModule),
     },
     async (args, serverContext) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)

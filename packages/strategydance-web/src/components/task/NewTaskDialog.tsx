@@ -14,6 +14,7 @@ import { TASK_STATUSES } from '~constants'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLocalDate from '~hooks/common/useLocalDate'
+import useRichTextMentionSource from '~hooks/common/useRichTextMentionSource'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useReportTaskError from '~hooks/task/useReportTaskError'
 import useTaskChanges from '~hooks/task/useTaskChanges'
@@ -60,6 +61,8 @@ function NewTaskDialog({ status, onClose }: Props) {
   const { data: team } = useOrganizationTeam()
   const today = useLocalDate()
   const { createTask } = useTaskChanges()
+  // Its draft is its own until it is created, so a mention opens in a new tab rather than lose it
+  const mentions = useRichTextMentionSource({ canLeave: false })
   const report = useReportTaskError()
 
   const [draft, setDraft] = useState<TaskDraft>(() => ({
@@ -167,6 +170,7 @@ function NewTaskDialog({ status, onClose }: Props) {
         <>
           <TaskDescriptionField
             value={draft.description}
+            mentions={mentions}
             onSave={description => update({ description })}
             onDraftChange={value => {
               pendingDescriptionRef.current = value

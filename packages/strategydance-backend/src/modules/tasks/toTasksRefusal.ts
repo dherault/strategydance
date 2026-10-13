@@ -3,6 +3,7 @@ import { MAX_TASK_DEPENDENCIES, MAX_TASK_DESCRIPTION_LENGTH, MAX_TASKS } from 's
 import type { TaskReference, TasksRefusal } from '~types'
 
 import toToolRefusal from '~modules/toToolRefusal'
+import toTooManySearchesSentence from '~modules/toTooManySearchesSentence'
 
 /*
   A refusal of the Tasks module, as the model reads it: what happened, in a sentence it can act on, by
@@ -59,6 +60,8 @@ function toSentence(refusal: TasksRefusal) {
       return 'That idempotency key was sent before with another call. Send a new key with each new call.'
     case 'invalidCursor':
       return 'That cursor is not one this tool gave. Start again without it.'
+    case 'tooManySearches':
+      return toTooManySearchesSentence(refusal.retryAfterMs, 'call list_tasks without a query')
   }
 }
 

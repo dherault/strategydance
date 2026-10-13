@@ -22,6 +22,20 @@ type RichTextLabels = {
   linkPreviewButton: string
   /** What the panel says of what is not a web address */
   linkPreviewInvalid: string
+  /** The mentions menu's group of documents, the team's knowledge */
+  mentionKnowledge: string
+  /** The mentions menu's group of tasks */
+  mentionTasks: string
+  /** The slash menu's item that opens the mentions menu */
+  mentionItem: string
+  /** What the slash menu says under it */
+  mentionItemSubtext: string
+  /** What a mention of a document or a task made with no words reads while its live title is not known */
+  mentionUntitled: string
+  /** What a screen reader hears after a mention of a document deleted since */
+  mentionDocumentGone: string
+  /** What a screen reader hears after a mention of a task deleted since */
+  mentionTaskGone: string
 }
 
 const ENGLISH_LABELS: RichTextLabels = {
@@ -33,6 +47,13 @@ const ENGLISH_LABELS: RichTextLabels = {
   linkPreviewAdd: 'Add a link preview',
   linkPreviewButton: 'Preview link',
   linkPreviewInvalid: 'Paste a web address, starting with https://',
+  mentionKnowledge: 'Knowledge',
+  mentionTasks: 'Tasks',
+  mentionItem: 'Mention',
+  mentionItemSubtext: 'A document or a task',
+  mentionUntitled: 'Untitled',
+  mentionDocumentGone: "(no longer in the team's knowledge)",
+  mentionTaskGone: "(no longer on the team's board)",
 }
 
 type Overrides = Partial<RichTextLabels> & {
@@ -51,6 +72,13 @@ type RichTextDictionary = Dictionary & {
     link_preview_add: string
     link_preview_button: string
     link_preview_invalid: string
+    mention_knowledge: string
+    mention_tasks: string
+    mention_item: string
+    mention_item_subtext: string
+    mention_untitled: string
+    mention_document_gone: string
+    mention_task_gone: string
   }
 }
 
@@ -79,8 +107,20 @@ function getRichTextDictionary(
       link_preview_add: labels.linkPreviewAdd,
       link_preview_button: labels.linkPreviewButton,
       link_preview_invalid: labels.linkPreviewInvalid,
+      mention_knowledge: labels.mentionKnowledge,
+      mention_tasks: labels.mentionTasks,
+      mention_item: labels.mentionItem,
+      mention_item_subtext: labels.mentionItemSubtext,
+      mention_untitled: labels.mentionUntitled,
+      mention_document_gone: labels.mentionDocumentGone,
+      mention_task_gone: labels.mentionTaskGone,
     },
   }
 }
 
-export { getRichTextDictionary, type RichTextDictionary, type RichTextLabels }
+export {
+  ENGLISH_LABELS as RICH_TEXT_ENGLISH_LABELS,
+  getRichTextDictionary,
+  type RichTextDictionary,
+  type RichTextLabels,
+}

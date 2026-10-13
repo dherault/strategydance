@@ -42,6 +42,7 @@ describe('createApp in production', () => {
     for (const path of [
       '/.well-known/oauth-authorization-server',
       '/.well-known/oauth-protected-resource/mcp/knowledge',
+      '/.well-known/oauth-protected-resource/mcp/tasks',
       '/oauth/register',
       '/oauth/token',
       '/oauth/token/',
@@ -76,6 +77,7 @@ describe('createApp in production', () => {
       '/oauth/requests/abc',
       '/oauth/requests/abc/approve',
       '/mcp/knowledge',
+      '/mcp/tasks',
       '/users/welcome-email',
     ]) {
       const foreign = await preflight(path, 'https://agent.example.com', 'authorization,x-firebase-appcheck')

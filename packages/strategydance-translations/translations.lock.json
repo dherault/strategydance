@@ -1189,6 +1189,14 @@
         "hash": "fd1b6e0f58e02454",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.attachmentImageFailed": {
+        "hash": "2525c05de3142631",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.attachmentOpen": {
+        "hash": "227129cb8ee14e4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.cancel": {
         "hash": "07ff79083e4440c8",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1221,6 +1229,46 @@
         "hash": "66e8bcd286c734d0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.attachmentEmpty": {
+        "hash": "6540035eaf86990f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentRemove": {
+        "hash": "979dd7b0a805bddd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentRetry": {
+        "hash": "c65f1ad361558d42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentTooLarge": {
+        "hash": "02e0b280eb68d905",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentUnsupported": {
+        "hash": "6e2539419041c762",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentUploading": {
+        "hash": "6374363601ee3bcf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentsFailed": {
+        "hash": "39833bea70e1462a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentsLabel": {
+        "hash": "6bd513f0ef958369",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentsPending": {
+        "hash": "fe4611ebdee88f51",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.attachmentsPerMessage": {
+        "hash": "f21820bb1e7e193b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.composer.busy": {
         "hash": "132ab4e5616ead0f",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1229,12 +1277,36 @@
         "hash": "a8d49cfc5980d15b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.composer.files": {
+        "hash": "520a3a1a5502fa81",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.filesGone": {
+        "hash": "a83bc1cb7c228ceb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.imageTooLarge": {
+        "hash": "bdeac9ab9a56241b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.composer.label": {
         "hash": "16ac60d21b24a121",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.mentionKnowledge": {
         "hash": "e1812b4a24932a76",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.overBudget": {
+        "hash": "00e4a9bb8a23e3ea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.pastedFile": {
+        "hash": "67ae88357a4f2de6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.composer.pastedImage": {
+        "hash": "ef4ef2f89ae34510",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.placeholder": {
@@ -1455,6 +1527,10 @@
       },
       "conversation.preview.empty": {
         "hash": "1dadc3e7856a8584",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.files": {
+        "hash": "6b66cd796bcda94c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.preview.member": {
@@ -2207,6 +2283,30 @@
       },
       "knowledge.editorLinkPreviewTitle": {
         "hash": "85b125e50ef55ed7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionDocumentGone": {
+        "hash": "9cebabb0585479a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionItem": {
+        "hash": "ff31aaf96da2b50e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionItemSubtext": {
+        "hash": "6dcc28f889e5cce3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionKnowledge": {
+        "hash": "915fbe6393b74e57",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionTaskGone": {
+        "hash": "e84329bcc02a81d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionTasks": {
+        "hash": "43376af144ca2e74",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.editorTurnInto": {
@@ -3499,6 +3599,34 @@
       },
       "task.editorError": {
         "hash": "64e68bc3ca343990",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionDocumentGone": {
+        "hash": "9cebabb0585479a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionItem": {
+        "hash": "ff31aaf96da2b50e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionItemSubtext": {
+        "hash": "6dcc28f889e5cce3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionKnowledge": {
+        "hash": "915fbe6393b74e57",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionTaskGone": {
+        "hash": "e84329bcc02a81d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionTasks": {
+        "hash": "43376af144ca2e74",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionUntitled": {
+        "hash": "ea87582ebccc802c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorTurnInto": {

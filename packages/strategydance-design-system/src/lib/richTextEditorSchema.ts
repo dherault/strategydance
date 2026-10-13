@@ -12,6 +12,7 @@ import {
   defaultInlineContentSpecs,
   defaultStyleSpecs,
 } from '@blocknote/core'
+import { documentMentionInlineContentSpec } from 'strategydance-design-system/lib/documentMentionInlineContentSpec'
 import { createLinkPreviewBlockSpec } from 'strategydance-design-system/lib/linkPreviewBlockSpec'
 import {
   RICH_TEXT_CODE_LANGUAGES,
@@ -19,6 +20,7 @@ import {
   type RichTextEditorBlock,
   getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
+import { taskMentionInlineContentSpec } from 'strategydance-design-system/lib/taskMentionInlineContentSpec'
 import { createVideoEmbedBlockSpec } from 'strategydance-design-system/lib/videoEmbedBlockSpec'
 
 // The props BlockNote gives every block, which `RichText` never draws
@@ -94,8 +96,8 @@ function createRichTextCodeBlockSpec() {
 
 /*
   The schema of an editor writing `blocks` besides paragraphs: the blocks `RichText` draws, with
-  text in four styles and links. A pasted block it does not hold comes in as a paragraph, and a
-  pasted color or inline code mark is dropped
+  text in four styles, links and the mentions `blocks` names. A pasted block it does not hold comes
+  in as a paragraph, and a pasted color or inline code mark is dropped
 */
 function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
   const hasLists = blocks.includes('list')
@@ -122,6 +124,8 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
     inlineContentSpecs: {
       text: defaultInlineContentSpecs.text,
       link: defaultInlineContentSpecs.link,
+      ...(blocks.includes('documentMention') ? { documentMention: documentMentionInlineContentSpec } : {}),
+      ...(blocks.includes('taskMention') ? { taskMention: taskMentionInlineContentSpec } : {}),
     },
     styleSpecs: {
       bold: defaultStyleSpecs.bold,

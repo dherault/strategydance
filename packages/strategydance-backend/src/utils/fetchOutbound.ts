@@ -44,9 +44,21 @@ type OutboundResponse = {
   isTruncated: boolean
 }
 
+/**
+ * Why a request was refused: an address that is not a web one, a port or credentials it should not
+ * carry, a hostname resolving to an address that is not public, or more redirects than allowed
+ */
+type OutboundRefusalReason = 'address' | 'port' | 'credentials' | 'privateAddress' | 'redirects'
+
 /** A request this server will not make: to an address that is not public, a port or a protocol it does not speak */
 class OutboundRefusal extends Error {
   name = 'OutboundRefusal'
+  reason: OutboundRefusalReason
+
+  constructor(message: string, reason: OutboundRefusalReason) {
+    super(message)
+    this.reason = reason
+  }
 }
 
 const PORTS: Record<string, string> = { 'http:': '80', 'https:': '443' }
@@ -91,7 +103,9 @@ async function fetchOutbound(
     if (response.status >= 300 && response.status < 400 && location) {
       await drain(response.body)
 
-      if (redirects >= maxRedirects) throw new OutboundRefusal(`More than ${maxRedirects} redirects from ${address}`)
+      if (redirects >= maxRedirects) {
+        throw new OutboundRefusal(`More than ${maxRedirects} redirects from ${address}`, 'redirects')
+      }
 
       url = parseAddress(new URL(location, url).href)
 
@@ -111,12 +125,14 @@ function parseAddress(address: string) {
   try {
     url = new URL(address)
   } catch {
-    throw new OutboundRefusal(`Not a web address: ${address}`)
+    throw new OutboundRefusal(`Not a web address: ${address}`, 'address')
   }
 
-  if (!(url.protocol in PORTS)) throw new OutboundRefusal(`Not a web address: ${address}`)
-  if (url.port && url.port !== PORTS[url.protocol]) throw new OutboundRefusal(`Not a web port: ${address}`)
-  if (url.username || url.password) throw new OutboundRefusal(`A web address with credentials: ${address}`)
+  if (!(url.protocol in PORTS)) throw new OutboundRefusal(`Not a web address: ${address}`, 'address')
+  if (url.port && url.port !== PORTS[url.protocol]) throw new OutboundRefusal(`Not a web port: ${address}`, 'port')
+  if (url.username || url.password) {
+    throw new OutboundRefusal(`A web address with credentials: ${address}`, 'credentials')
+  }
 
   return url
 }
@@ -129,7 +145,7 @@ async function resolveChecked(url: URL, resolve: NonNullable<FetchOutboundOption
   const addresses = family ? [{ address: hostname, family }] : await untilAborted(resolve(hostname), signal)
 
   if (!addresses.length || !addresses.every(({ address }) => isGloballyRoutableAddress(address))) {
-    throw new OutboundRefusal(`Not a public address: ${url.hostname}`)
+    throw new OutboundRefusal(`Not a public address: ${url.hostname}`, 'privateAddress')
   }
 
   return addresses[0]
@@ -198,6 +214,6 @@ async function readBody(body: AsyncIterable<Uint8Array>, maxBytes: number) {
   return { body: Buffer.concat(chunks), isTruncated: false }
 }
 
-export { OutboundRefusal, type OutboundResponse, type OutboundStream, type ResolvedAddress }
+export { OutboundRefusal, type OutboundRefusalReason, type OutboundResponse, type OutboundStream, type ResolvedAddress }
 
 export default fetchOutbound

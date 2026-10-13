@@ -98,7 +98,23 @@ export const ERROR_CODE_OAUTH_CLIENT_REFUSED = 'OAUTH_CLIENT_REFUSED' // 400
 // allowing another takes disconnecting one first
 export const ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS = 'TOO_MANY_AGENT_CONNECTIONS' // 409
 
-// A file that is not one of the pictures a route accepts, whatever its request called it
+// A 409 for a member who has as many files uploaded and not sent yet in an organization as they may
+// (`MAX_PENDING_CONVERSATION_ATTACHMENTS`): sending or removing one makes room
+export const ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS = 'TOO_MANY_PENDING_ATTACHMENTS' // 409
+
+/*
+  A 409 for a message whose files the conversation has no room for: past its files, its images, its
+  bytes or its PDF pages, or past what its next request to Claude may take. The conversation still
+  takes text, and a new one takes the files
+*/
+export const ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET = 'CONVERSATION_ATTACHMENTS_OVER_BUDGET' // 409
+
+// A file past what Claude or the route takes: its bytes, an image's size or sides, a PDF's pages or
+// a text file's characters
+export const ERROR_CODE_ATTACHMENT_TOO_LARGE = 'ATTACHMENT_TOO_LARGE' // 413
+
+// A file that is not one of the types a route accepts, whatever its request called it, or one that
+// Claude cannot read
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
 
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
@@ -384,6 +400,13 @@ export const MAX_CONVERSATION_MESSAGE_LENGTH = 20000
 export const MAX_CONVERSATION_INPUT_TOKENS = 800000
 
 /*
+  How many input tokens a message with files may bring its conversation's next request to, short of
+  `MAX_CONVERSATION_INPUT_TOKENS`, so the files a member sends never fill the conversation by
+  themselves: the send measures it from what it knows, and the run measures again exactly
+*/
+export const MAX_CONVERSATION_SEND_INPUT_TOKENS = 700000
+
+/*
   How much of a conversation's last entry its preview keeps, in characters of plain text, so the
   list of a member's conversations stays small however long their replies run
 */
@@ -416,6 +439,41 @@ export const MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH = 200000
 */
 export const MAX_CONVERSATION_PDF_PAGES = 100
 export const MAX_CONVERSATION_PDF_PAGES_TOTAL = 300
+
+/*
+  How many files a conversation holds in all, and how many of them may be images, since every
+  request carries them all. Claude takes up to 600 images a request, and refuses any image over 2000
+  pixels a side in a request holding more than 20, so 20 images keep every request clear of that
+  rule whatever their size
+*/
+export const MAX_CONVERSATION_ATTACHMENTS = 100
+export const MAX_CONVERSATION_IMAGES = 20
+
+/*
+  An image Claude takes: up to 8000 pixels a side, read from its header, and up to 5 megabytes, which
+  stays under the 10 megabytes Claude takes once the image is encoded in base64
+*/
+export const MAX_CONVERSATION_IMAGE_DIMENSION = 8000
+export const MAX_CONVERSATION_IMAGE_SIZE = 5 * 1024 * 1024
+
+/*
+  The files a conversation takes, which the upload reads off their first bytes rather than off the
+  request: the raster images Claude reads, PDFs, and text, which Claude reads as plain text whatever
+  its kind. Deliberately not `image/*`, which admits `image/svg+xml`, an active document
+*/
+export const CONVERSATION_ATTACHMENT_CONTENT_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+]
+
+// How long a file's name may be, in characters, on one line
+export const MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH = 200
 
 /*
   How many files a member may have uploaded and not sent yet in an organization. An upload reserves

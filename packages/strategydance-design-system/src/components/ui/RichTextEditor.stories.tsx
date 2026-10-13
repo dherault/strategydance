@@ -10,10 +10,19 @@ import {
   DialogTrigger,
 } from 'strategydance-design-system/components/ui/Dialog'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
-import richTextSample, { richTextDocumentSample } from 'strategydance-design-system/components/ui/RichText.sample'
+import richTextSample, {
+  richTextDocumentSample,
+  richTextMentionSample,
+  richTextMentionSampleSource,
+} from 'strategydance-design-system/components/ui/RichText.sample'
 import { RichTextEditor, type RichTextEditorHandle } from 'strategydance-design-system/components/ui/RichTextEditor'
 import { createRichTextYUpdate } from 'strategydance-design-system/lib/createRichTextYUpdate'
-import { RICH_TEXT_EDITOR_BLOCKS, RICH_TEXT_POST_BLOCKS } from 'strategydance-design-system/lib/richText'
+import {
+  RICH_TEXT_EDITOR_BLOCKS,
+  RICH_TEXT_POST_BLOCKS,
+  RICH_TEXT_TASK_BLOCKS,
+  type RichTextMentionSource,
+} from 'strategydance-design-system/lib/richText'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
@@ -142,14 +151,37 @@ function RoundTripExample(props: Parameters<typeof RichTextEditor>[0]) {
   )
 }
 
+// The sample's source, which opens what a mention names by saying so in the console
+const mentions: RichTextMentionSource = {
+  ...richTextMentionSampleSource,
+  open: target => console.info('Open', target),
+}
+
 /*
-  Inside a modal dialog, as the top priority is written. The slash menu, the toolbar over a
-  selection and the drag handle's menu open inside the dialog, and Escape closes an open one before
-  it closes the dialog
+  A task's description mentioning documents and tasks: "@" opens a menu of those whose title holds
+  what is typed after it, as "Mention" in the slash menu does, and a pick puts a mention of it in
+  the text, drawn with its current title. One deleted since is struck through, and an "@" inside a
+  word, an email address's, is typed as itself
+*/
+export const Mentions: Story = {
+  args: {
+    initialValue: richTextMentionSample,
+    blocks: RICH_TEXT_TASK_BLOCKS,
+    mentions,
+    placeholder: 'Describe the task',
+  },
+}
+
+/*
+  Inside a modal dialog, as the top priority and a task's description are written. The slash menu,
+  the mentions menu, the toolbar over a selection and the drag handle's menu open inside the dialog,
+  and Escape closes an open one before it closes the dialog
 */
 export const InDialog: Story = {
   args: {
     initialValue: richTextSample,
+    blocks: RICH_TEXT_TASK_BLOCKS,
+    mentions,
     className: undefined,
   },
   parameters: {

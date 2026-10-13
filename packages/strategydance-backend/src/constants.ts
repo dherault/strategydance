@@ -5,6 +5,7 @@ import {
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
   MODULES,
+  type ModuleName,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
 } from 'strategydance-core'
@@ -119,6 +120,10 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
 // hyphens, so a caller may send either. `toCanonicalUuid` gives the one form an id is kept in
 export const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
 
+// Who is asking when this server fetches a page somebody else named, for a site that answers bots a
+// page of its own: a link preview's, and a directory's check
+export const OUTBOUND_USER_AGENT = 'Mozilla/5.0 (compatible; StrategyDanceBot/1.0; +https://strategydance.com)'
+
 /* ---
   CONVERSATIONS
 --- */
@@ -145,6 +150,14 @@ export const ARE_CONVERSATION_RUNS_IN_PROCESS = !IS_PRODUCTION
   model costs. Production always asks Claude
 */
 export const IS_CONVERSATION_AGENT_PLACEHOLDER = !IS_PRODUCTION && process.env.CONVERSATION_AGENT === 'placeholder'
+
+/*
+  What every file the backend uploads to Claude's Files API is named after, before the attachment's
+  id: never the member's own name for it. Development and production read the same API key, so they
+  share one workspace, and its listing holds both: production's sweep deletes the files no row names
+  only under its own prefix, so it never touches a developer's
+*/
+export const CLAUDE_FILE_NAME_PREFIX = `strategydance-${IS_PRODUCTION ? 'production' : 'development'}-`
 
 // How long a task's delivery may take, the run it delivers going the whole time: as long as the
 // worker's own timeout, which `deploy:backend` sets
@@ -205,9 +218,12 @@ export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
 /*
   The modules the public backend serves to external agents, each at its own address under
   `MODULES_PATH`, behind the bearer check, with its protected resource metadata at the app's root:
-  Knowledge for now, and every module `MODULES` lists once the Tasks module joins it
+  Knowledge and Tasks, in `MODULES`' order. A module added to `MODULES` later joins them by its name
+  here, once its write tools are challenged and its searches counted
 */
-export const SERVED_MODULES = MODULES.filter(module => module.name === 'knowledge')
+const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
+
+export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 export const MODULES_PATH = '/mcp'
 
 /*
@@ -362,6 +378,26 @@ export const MAX_CLIENT_METADATA_DOCUMENTS_KEPT = 500
 export const DEVELOPMENT_OAUTH_TOKEN_SECRET = 'strategydance-development-oauth-token-secret'
 
 /* ---
+  DIRECTORIES
+--- */
+
+// The repository the directories' check reads the lists from and opens its pull request in, the
+// branch it commits to, which it alone writes, and the branch that pull request goes into
+export const GITHUB_REPOSITORY = 'dherault/strategydance'
+
+export const DIRECTORY_CHECK_BRANCH = 'directories-check'
+
+export const DIRECTORY_CHECK_BASE_BRANCH = 'dev'
+
+// How long one call to GitHub's API may take, which a run's budget counts on
+export const GITHUB_REQUEST_TIMEOUT_MS = 15 * 1000
+
+// The directories package's two lists, from the repository's root
+export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/directories.json'
+
+export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`
@@ -377,6 +413,12 @@ export const SECRET_ANTHROPIC_API_KEY = 'anthropic-api-key'
 // What a rotated refresh token's successors are derived under, read by version, so a duplicate
 // derives under the version its first use recorded. Read only in production
 export const SECRET_OAUTH_TOKEN_SECRET = 'oauth-token-secret'
+
+// The GitHub App the directories' check opens its pull request as: its id and its private key, in
+// PEM. Read only by the worker, and by `check:directories --publish`
+export const SECRET_GITHUB_APP_ID = 'github-app-id'
+
+export const SECRET_GITHUB_APP_PRIVATE_KEY = 'github-app-private-key'
 
 /* ---
   EMAIL

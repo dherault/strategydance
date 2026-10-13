@@ -28,6 +28,7 @@ import type { KnowledgeDocument, KnowledgeDocumentFields } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useNow from '~hooks/common/useNow'
 import useRichTextEditor from '~hooks/common/useRichTextEditor'
+import useRichTextMentionSource from '~hooks/common/useRichTextMentionSource'
 import useKnowledgeDocumentAwareness from '~hooks/knowledge/useKnowledgeDocumentAwareness'
 import useKnowledgeDocumentPresence from '~hooks/knowledge/useKnowledgeDocumentPresence'
 import useKnowledgeDocumentSaver from '~hooks/knowledge/useKnowledgeDocumentSaver'
@@ -103,6 +104,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const { data: viewer } = useAuthentication()
   const { data: user } = useUser()
   const { RichTextEditor, hasFailed: hasEditorFailed } = useRichTextEditor()
+  const mentions = useRichTextMentionSource({ self: { kind: 'document', id: documentId } })
   const {
     sync,
     isReady: isTextReady,
@@ -483,9 +485,17 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
               linkPreviewAdd: formatMessage(knowledgeMessages.editorLinkPreviewAdd),
               linkPreviewButton: formatMessage(knowledgeMessages.editorLinkPreviewButton),
               linkPreviewInvalid: formatMessage(knowledgeMessages.editorLinkPreviewInvalid),
+              mentionKnowledge: formatMessage(knowledgeMessages.editorMentionKnowledge),
+              mentionTasks: formatMessage(knowledgeMessages.editorMentionTasks),
+              mentionItem: formatMessage(knowledgeMessages.editorMentionItem),
+              mentionItemSubtext: formatMessage(knowledgeMessages.editorMentionItemSubtext),
+              mentionUntitled: formatMessage(knowledgeMessages.untitled),
+              mentionDocumentGone: formatMessage(knowledgeMessages.editorMentionDocumentGone),
+              mentionTaskGone: formatMessage(knowledgeMessages.editorMentionTaskGone),
             }}
             uploadImage={uploadImage}
             previewLink={readLinkPreview}
+            mentions={mentions}
             onChange={changeContent}
             className="border-t border-neutral-200"
           />

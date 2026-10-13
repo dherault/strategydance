@@ -8,7 +8,6 @@ import {
   ConversationNoteKind,
   ConversationRunStatus,
   ConversationTranscriptRole,
-  type GetConversationRequestContextData,
   getConversationRequestContext,
   getConversationRunStop,
   renewConversationRunLease,
@@ -20,16 +19,14 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
-import buildConversationContext, {
-  type ConversationContext,
-  type ConversationProfile,
-} from '~domain/agent/buildConversationContext'
+import buildConversationContext, { type ConversationContext } from '~domain/agent/buildConversationContext'
 import buildConversationRequest, { buildConversationMessages } from '~domain/agent/buildConversationRequest'
 import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import checkTranscript from '~domain/agent/checkTranscript'
 import { MAX_CONVERSATION_PAUSES } from '~domain/agent/conversationRequestSettings'
 import measureConversationRequest from '~domain/agent/measureConversationRequest'
 import stripBeforeFallback from '~domain/agent/stripBeforeFallback'
+import toConversationProfile from '~domain/agent/toConversationProfile'
 import {
   type ConversationRequestUsage,
   type ConversationRunUsage,
@@ -162,11 +159,18 @@ async function requestConversationTurn({
       ? null
       : (parseRunContext(runContext)
         ?? buildConversationContext({
-          profile: toProfile(requestContext),
+          profile: toConversationProfile(requestContext),
           now: new Date(),
           lastContextHash:
             entries.findLast(({ role }) => role === ConversationTranscriptRole.SYSTEM)?.contextHash ?? null,
         }))
+  // What each file the conversation sent takes, as its upload counted it, which the measurement adds
+  // in place of the file blocks the count endpoint refuses
+  const fileTokens = new Map(
+    requestContext.conversationAttachments.flatMap(({ claudeFileId, tokenCount }) =>
+      claudeFileId && typeof tokenCount === 'number' ? [[claudeFileId, tokenCount] as const] : [],
+    ),
+  )
   const otherRuns = requestContext.conversationRuns
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))
@@ -204,6 +208,7 @@ async function requestConversationTurn({
       entries: entries.map(({ position, runId }) => ({ position, runId })),
       runs: [{ id: fence.runId, usage }, ...otherRuns],
       pausedRequest: paused,
+      fileTokens,
     })
 
     if (measured.inputTokens > MAX_CONVERSATION_INPUT_TOKENS) {
@@ -400,21 +405,6 @@ function parseRunContext(runContext: string | null): ConversationContext | null 
   return typeof context.hash === 'string' && Array.isArray(context.content)
     ? { hash: context.hash, content: context.content }
     : null
-}
-
-function toProfile(data: GetConversationRequestContextData): ConversationProfile {
-  return {
-    memberName: data.user?.displayName ?? null,
-    jobTitle: data.userOrganization?.jobTitle ?? null,
-    role: data.userOrganization?.role === 'ADMINISTRATOR' ? 'ADMINISTRATOR' : 'MEMBER',
-    bio: data.user?.bio ?? null,
-    locale: data.user?.locale ?? 'EN',
-    timezone: data.user?.timezone ?? null,
-    organizationName: data.organization?.name ?? '',
-    brief: data.organization?.brief ?? null,
-    exploredAspects: data.organization?.exploredAspects ?? [],
-    aspects: data.conversations[0]?.aspects ?? [],
-  }
 }
 
 // What a request used, and what the API changed of its input, which should be nothing

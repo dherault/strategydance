@@ -12,6 +12,7 @@ import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
+import recordModuleSearch from '~domain/modules/recordModuleSearch'
 import compareTaskPlaces from '~domain/tasks/compareTaskPlaces'
 import indexTaskDescriptions from '~domain/tasks/indexTaskDescriptions'
 import parseTaskAssignee from '~domain/tasks/parseTaskAssignee'
@@ -78,7 +79,11 @@ type ListTasksResult = { outcome: 'listed'; page: ListedTasksPage } | TasksRefus
   as the board's search matches it, read through a pattern that matches it as written. The tasks a
   page from before the plain text left unindexed are indexed first, 20 of them, and the answer says
   when some remain, so a query may have missed one. Aspects match any of them. The query is never
-  logged
+  logged.
+
+  An external agent's query first draws on the member's search allowance, each page of it, since a
+  cursor is the agent's to send and the query runs again for it, and is refused past it with when
+  the next one fits. A list without a query counts nothing
 */
 async function listTasks(
   caller: ModuleCaller,
@@ -93,6 +98,10 @@ async function listTasks(
   let isIndexComplete: boolean | undefined
 
   if (query !== undefined) {
+    const recorded = await recordModuleSearch(caller)
+
+    if (recorded.outcome !== 'recorded') return recorded
+
     const indexed = await indexTaskDescriptions(caller)
 
     if (indexed.outcome === 'notMember') return indexed

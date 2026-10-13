@@ -8,12 +8,15 @@ import {
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextBlock,
   type RichTextEditorBlock,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import { initProseMirrorDoc, updateYFragment } from 'y-prosemirror'
 import type * as Y from 'yjs'
 
 type ProseMirrorNode = ReturnType<typeof initProseMirrorDoc>['doc']
+
+// What an element inside text other than a hard break, a mention, reads as when text is searched: U+FFFC, the object replacement character
+const ELEMENT_TEXT = '\uFFFC'
 
 type HeadlessRichTextEditor = ReturnType<typeof getHeadlessRichTextEditor>
 
@@ -155,7 +158,7 @@ function planEdit(
   */
   const added = createNodes(
     editor,
-    normalizeRichText(edit.blocks, { blockTypes: getRichTextBlockTypes(blocks), media: false }),
+    normalizeRichText(edit.blocks, { ...getRichTextContentTypes(blocks), media: false }),
   )
 
   // A document with no text yet is one empty paragraph, which the first block appended to it takes
@@ -205,11 +208,13 @@ function findBlock(children: ProseMirrorNode[], id: string) {
   The one occurrence of `find`, in the text of any block, nested ones included, replaced by
   `replace` in the marks of the first character it replaces: a match right after a bold word does
   not turn bold, and one inside a link stays in it. A block's text counts a hard break as a line
-  break, so its offsets are the block's own, and so does `replace`, whose line breaks become hard
-  breaks as BlockNote writes them, but in code, whose text holds its line breaks
+  break and any other element in it, a mention, as an object replacement character, one character
+  each, so its offsets are the block's own. No `find` holding that character is found, so a
+  replacement never reaches into a mention. `replace` is text, whose line breaks become hard breaks
+  as BlockNote writes them, but in code, whose text holds its line breaks
 */
 function planReplaceText(root: ProseMirrorNode, find: string, replace: string) {
-  if (!find) return { outcome: 'textNotFound' as const }
+  if (!find || find.includes(ELEMENT_TEXT)) return { outcome: 'textNotFound' as const }
 
   const matches: { path: number[]; offset: number }[] = []
 
@@ -231,7 +236,7 @@ function collectMatches(
   matches: { path: number[]; offset: number }[],
 ) {
   if (node.inlineContent) {
-    const text = node.textBetween(0, node.content.size, undefined, '\n')
+    const text = node.textBetween(0, node.content.size, undefined, readLeafText)
 
     for (let offset = text.indexOf(find); offset !== -1; offset = text.indexOf(find, offset + 1)) {
       matches.push({ path, offset })
@@ -241,6 +246,11 @@ function collectMatches(
   }
 
   node.forEach((child, _offset, index) => collectMatches(child, find, [...path, index], matches))
+}
+
+// What an element inside text reads as in it: a hard break a line break, and anything else one character no text holds
+function readLeafText(leaf: ProseMirrorNode) {
+  return leaf.type.name === 'hardBreak' ? '\n' : ELEMENT_TEXT
 }
 
 function replaceInContent(content: ProseMirrorNode, offset: number, length: number, replace: string) {

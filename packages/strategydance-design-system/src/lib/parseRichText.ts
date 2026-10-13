@@ -1,9 +1,11 @@
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
-import type { RichTextBlock, RichTextBlockType } from 'strategydance-design-system/lib/richText'
+import type { RichTextBlock, RichTextBlockType, RichTextInlineType } from 'strategydance-design-system/lib/richText'
 
 type Options = {
   /** The blocks to keep, every one unless it says fewer. Any other block holding text becomes a paragraph */
   blockTypes?: readonly RichTextBlockType[]
+  /** The elements of text to keep, every one unless it says fewer. A mention left out reads as its words */
+  inlineTypes?: readonly RichTextInlineType[]
 }
 
 /*

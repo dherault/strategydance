@@ -30,15 +30,33 @@ function writes(taskId: string, otherId: string) {
 }
 
 describe('the caller', () => {
-  it('refuses every write of a caller without the write scope, before anything is read or written', async () => {
-    const kit = await board.connect({ scopes: ['tasks:read'] })
+  it('challenges every write of a caller without the write scope, still listing it, before anything is read or written', async () => {
+    const kit = await board.connect({
+      kind: 'external',
+      scopes: ['tasks:read'],
+      idempotencyScope: 'connection:checked',
+    })
     const [task, other] = [board.add(), board.add()]
-    const readOnly =
-      'This connection may only read tasks. Ask the member to connect again with write access to change them.'
 
     fake.calls.length = 0
 
-    for (const [name, args] of writes(task!.id, other!.id)) expect(await kit.refusal(name, args)).toBe(readOnly)
+    expect((await kit.client.listTools()).tools.map(tool => tool.name)).toEqual([
+      'list_tasks',
+      'read_task',
+      'create_task',
+      'update_task',
+      'add_task_dependency',
+      'remove_task_dependency',
+      'delete_task',
+      'restore_task',
+    ])
+
+    for (const [name, args] of writes(task!.id, other!.id)) {
+      await expect(kit.call(name, args)).rejects.toMatchObject({
+        name: 'InsufficientScopeError',
+        requiredScope: 'tasks:write',
+      })
+    }
 
     expect(fake.calls).toEqual([])
     expect((await kit.answer<{ total: number }>('list_tasks', {})).total).toBe(2)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { INTEGRATION_CATALOGUE, MAX_INTEGRATION_API_KEY_LENGTH, MAX_INTEGRATION_NAME_LENGTH } from '../constants'
+import { MAX_INTEGRATION_API_KEY_LENGTH, MAX_INTEGRATION_NAME_LENGTH } from '../constants'
 
 import {
   isReservedIntegrationHeader,
@@ -47,10 +47,6 @@ describe('parseIntegrationUrl', () => {
     expect(parseIntegrationUrl('https://mcp.example.com/mcp#tools')).toBeNull()
     expect(parseIntegrationUrl('mcp.example.com')).toBeNull()
     expect(parseIntegrationUrl(`https://example.com/${'a'.repeat(2000)}`)).toBeNull()
-  })
-
-  it('takes every address of the catalogue as it is written', () => {
-    for (const { url } of INTEGRATION_CATALOGUE) expect(parseIntegrationUrl(url)).toBe(new URL(url).href)
   })
 })
 

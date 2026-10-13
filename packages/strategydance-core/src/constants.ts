@@ -1,5 +1,5 @@
 import { Locale } from './enums'
-import type { IntegrationCatalogueEntry, ModuleDefinition, OrganizationImageKind } from './types'
+import type { ModuleDefinition, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -626,32 +626,3 @@ export const MAX_INTEGRATION_API_KEY_HEADER_LENGTH = 64
 */
 export const MAX_INTEGRATION_TOOLS = 200
 export const MAX_INTEGRATION_TOOLS_BYTES = 1024 * 1024
-
-/*
-  Remote MCP servers an administrator adds in a click, each one checked on 2026-10-13 to answer at
-  its address as an MCP server and, for an OAuth one, to offer S256 and a way for Strategy Dance to
-  register without a human (dynamic registration or client ID metadata documents), which M28 needs
-  to connect members' accounts. Three the design listed, Google Calendar, Gmail and Google Drive,
-  had no server at their addresses, and HubSpot's offers no way to register, so none of them is
-  here. GitHub's authorization server offers no way to register either, so GitHub is added with a
-  personal access token, which its server takes as a bearer token.
-
-  A server's slug names its mark, `/assets/images/mcp/<slug>.svg`, and its description in the
-  app's `integration` catalogue. Its authentication is one of the database's
-  `IntegrationAuthentication` values, written out since this package cannot import the generated
-  enum
-*/
-export const INTEGRATION_CATALOGUE = [
-  { slug: 'stripe', name: 'Stripe', url: 'https://mcp.stripe.com', authentication: 'OAUTH' },
-  { slug: 'linear', name: 'Linear', url: 'https://mcp.linear.app/mcp', authentication: 'OAUTH' },
-  { slug: 'notion', name: 'Notion', url: 'https://mcp.notion.com/mcp', authentication: 'OAUTH' },
-  { slug: 'github', name: 'GitHub', url: 'https://api.githubcopilot.com/mcp', authentication: 'API_KEY' },
-  { slug: 'figma', name: 'Figma', url: 'https://mcp.figma.com/mcp', authentication: 'OAUTH' },
-  { slug: 'shopify', name: 'Shopify', url: 'https://mcp.shopify.com', authentication: 'OAUTH' },
-  { slug: 'sentry', name: 'Sentry', url: 'https://mcp.sentry.dev/mcp', authentication: 'OAUTH' },
-  { slug: 'vercel', name: 'Vercel', url: 'https://mcp.vercel.com', authentication: 'OAUTH' },
-  { slug: 'asana', name: 'Asana', url: 'https://mcp.asana.com/v2/mcp', authentication: 'OAUTH' },
-  { slug: 'jira', name: 'Jira', url: 'https://mcp.atlassian.com/v1/mcp', authentication: 'OAUTH' },
-  { slug: 'intercom', name: 'Intercom', url: 'https://mcp.intercom.com/mcp', authentication: 'OAUTH' },
-  { slug: 'airtable', name: 'Airtable', url: 'https://mcp.airtable.com/mcp', authentication: 'OAUTH' },
-] as const satisfies readonly IntegrationCatalogueEntry[]

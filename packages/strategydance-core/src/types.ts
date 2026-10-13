@@ -1,4 +1,4 @@
-import type { INTEGRATION_CATALOGUE, MODULES } from './constants'
+import type { MODULES } from './constants'
 
 /*
   The envelope every backend response is wrapped in, success and failure alike. Declared here
@@ -272,18 +272,6 @@ export type OAuthAuthorizationDecision = {
 /* ---
   INTEGRATIONS
 --- */
-
-// One of `INTEGRATION_CATALOGUE`: a remote MCP server an administrator adds in a click
-export type IntegrationCatalogueEntry = {
-  readonly slug: string
-  readonly name: string
-  readonly url: string
-  // One of the database's `IntegrationAuthentication` values
-  readonly authentication: 'OAUTH' | 'API_KEY' | 'NONE'
-}
-
-// The slug of one of `INTEGRATION_CATALOGUE`
-export type IntegrationCatalogueSlug = (typeof INTEGRATION_CATALOGUE)[number]['slug']
 
 /*
   A tool an MCP server listed, as `OrganizationIntegration.tools` keeps it: what the server said of

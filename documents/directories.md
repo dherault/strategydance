@@ -87,7 +87,8 @@ The answer is held to a JSON schema:
 - `categories`: every `DirectoryCategory` the site lists, `ANY_STARTUP` alone for one that takes any
   product, and `REGIONAL` beside the kinds for one that takes a single region's startups, as the
   package's `DIRECTORY_CATEGORY_DESCRIPTIONS` say; kept once each, in the enum's order, and an
-  empty list taken for no answer;
+  empty list taken for no answer, as is one that sets `ANY_STARTUP` beside a kind
+  (`isDirectoryCategoryListValid`);
 - `areCurrentCategoriesAccurate`;
 - `businessModel`, or null when the pages do not show how a listing works;
 - `evidence`: the quote, and its page, that a business model change or an `INACTIVE` verdict rests on;

@@ -1104,8 +1104,8 @@ type OrganizationIntegration @table @index(fields: ["organizationId", "createdAt
   # The Streamable HTTP endpoint, https on its own port, as the URL parser writes it
   # (`parseIntegrationUrl`). Every member reads it, so a secret belongs in the key, never here
   url: String!
-  # The catalogue server it was added from, one of `INTEGRATION_CATALOGUE`'s slugs, which names
-  # its mark. Null for one added by its address
+  # The server it was added from, the slug of one of strategydance-external-mcp-servers'
+  # `EXTERNAL_MCP_SERVERS`, which names its mark. Null for one added by its address
   catalogueSlug: String
   authentication: IntegrationAuthentication!
   # Whether the agent may call it. One turned off keeps everything else

@@ -29,7 +29,10 @@ async function probe(server: ExternalMcpServer) {
   try {
     const reach = await reachIntegration({ url: server.url, authentication, credential: null })
 
-    if (authentication === IntegrationAuthentication.API_KEY) return `answered without a key (${reach.toolCount} tools)`
+    // A key-based entry answering without one takes no authentication: the list says otherwise
+    if (authentication === IntegrationAuthentication.API_KEY) {
+      throw new Error(`answered without a key (${reach.toolCount} tools), so its authentication is NONE`)
+    }
 
     return reach.issuer === null ? `listed ${reach.toolCount} tools` : `issuer ${reach.issuer}`
   } catch (error) {
@@ -51,7 +54,9 @@ await Promise.all(
         console.log(`ok      ${server.name}: ${await probe(server)}`)
       } catch (error) {
         failures.push(server.name)
-        console.log(`FAILED  ${server.name}: ${error instanceof IntegrationFailure ? error.kind : String(error)}`)
+        console.log(
+          `FAILED  ${server.name}: ${error instanceof IntegrationFailure ? error.kind : (error as Error).message}`,
+        )
       }
     }),
   ),

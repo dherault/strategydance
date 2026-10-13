@@ -9,8 +9,12 @@ export type Directory = {
   submissionUrl: string
   description: string
   businessModel: DirectoryBusinessModel
-  // When the directory was last checked, null until something checks it
+  // The UTC day (YYYY-MM-DD) the directory was last checked, whatever came of it, null until
+  // something checks it
   lastChecked: string | null
+  // The UTC day of the first of the checks in a row that could not reach the site, null once one
+  // reaches it: a site is only taken for gone when a later check still cannot
+  unreachableSince: string | null
 }
 
 // A directory nothing can be submitted to today, kept so a later check can bring it back

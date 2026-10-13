@@ -2,13 +2,25 @@ import { describe, expect, it } from 'bun:test'
 
 import {
   DIRECTORIES,
+  DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
   DirectoryBusinessModel,
   DirectoryInactiveReason,
   DirectoryType,
   INACTIVE_DIRECTORIES,
 } from './index'
 
-const DIRECTORY_KEYS = ['name', 'type', 'rootUrl', 'submissionUrl', 'description', 'businessModel', 'lastChecked']
+const DIRECTORY_KEYS = [
+  'name',
+  'type',
+  'rootUrl',
+  'submissionUrl',
+  'description',
+  'businessModel',
+  'lastChecked',
+  'unreachableSince',
+]
+
+const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 // The files as they are on disk, besides the lists parsed from them
 const directoriesText = await Bun.file(new URL('./directories.json', import.meta.url)).text()
@@ -40,6 +52,13 @@ describe.each(LISTS)('$name', ({ directories, text, keys }) => {
   // The JSON is cast to its type, which would let an entry without a field through
   it('gives every entry exactly its fields, in order', () => {
     for (const directory of directories) expect(Object.keys(directory)).toEqual(keys)
+  })
+
+  it('dates its checks by the day', () => {
+    for (const directory of directories) {
+      if (directory.lastChecked !== null) expect(directory.lastChecked).toMatch(DAY_PATTERN)
+      if (directory.unreachableSince !== null) expect(directory.unreachableSince).toMatch(DAY_PATTERN)
+    }
   })
 
   it('roots each website at the origin it is submitted to', () => {
@@ -93,5 +112,18 @@ describe('both lists', () => {
     expect(new Set(names).size).toBe(names.length)
     expect(new Set(submissionUrls).size).toBe(submissionUrls.length)
     expect(new Set(websiteRootUrls).size).toBe(websiteRootUrls.length)
+  })
+})
+
+describe('DIRECTORY_BUSINESS_MODEL_PRECEDENCE', () => {
+  // Every model a directory with a free path can take, once, beside the two that have none
+  it('orders every model but PAID and UNKNOWN, once', () => {
+    const models: string[] = [
+      ...DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
+      DirectoryBusinessModel.PAID,
+      DirectoryBusinessModel.UNKNOWN,
+    ]
+
+    expect(models.toSorted()).toEqual(Object.values(DirectoryBusinessModel).toSorted())
   })
 })

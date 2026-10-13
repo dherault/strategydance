@@ -8,9 +8,10 @@ Both lists were read on 2026-10-13 from the README of
 [mmmmingos/where-to-submit-your-startup](https://github.com/mmmmingos/where-to-submit-your-startup).
 `DIRECTORIES` holds its directories, the ones only for some startups, and its Reddit communities,
 without its notes and dates. Each business model was read from those notes:
-`DirectoryBusinessModel`, in `src/enums.ts`, says what each one means and which one a site takes
-when it has several catches. `INACTIVE_DIRECTORIES` holds the sites and communities under its
-"Reported submission problems", each with the reason its note gave, a `DirectoryInactiveReason`.
+`DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS`, in `src/constants.ts`, says what each one means, and
+`DIRECTORY_BUSINESS_MODEL_PRECEDENCE` which one a site takes when it has several catches.
+`INACTIVE_DIRECTORIES` holds the sites and communities under its "Reported submission problems",
+each with the reason its note gave, a `DirectoryInactiveReason`.
 
 Each entry holds:
 
@@ -21,9 +22,13 @@ Each entry holds:
 - `submissionUrl`: where a startup is submitted
 - `description`: empty for now
 - `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for every inactive one
-- `lastChecked`: null until something checks the directory
+- `lastChecked`: the UTC day (`YYYY-MM-DD`) of the last check, whatever came of it, null until
+  something checks the directory
+- `unreachableSince`: the UTC day of the first of the checks in a row that could not reach the
+  site, null once one reaches it
 
-An inactive entry also holds `inactiveReason`:
+An inactive entry also holds `inactiveReason`, which `DIRECTORY_INACTIVE_REASON_DESCRIPTIONS`
+describes:
 
 - `UNREACHABLE`: does not resolve, refuses or drops every connection, fails TLS, or only errors
 - `PARKED`: parked, for sale or expired, a host's default page, or a suspended hosting account

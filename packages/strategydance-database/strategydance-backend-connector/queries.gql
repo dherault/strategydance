@@ -1768,10 +1768,10 @@ query GetAgentConnectionTokenForRevocation($hash: String!) @auth(level: NO_ACCES
   }
 }
 
-# A server of an organization as its administrators' routes change it, deleted or not, its key's
-# ciphertext included: the one read of it, made after `organizationAdministratorMiddleware` has
-# checked the caller, and every write that follows checks it again. Null for a server of another
-# organization
+# A server of an organization as its administrators' routes change it, and its members' Connects
+# read it, deleted or not, its key's and its client secret's ciphertexts included: read after a
+# route's middleware has checked the caller, and every write that follows checks them again. Null for
+# a server of another organization
 query GetOrganizationIntegrationForAdministrator($organizationId: UUID!, $integrationId: UUID!)
 @auth(level: NO_ACCESS) {
   organizationIntegrations(where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId } }, limit: 1) {
@@ -1789,8 +1789,98 @@ query GetOrganizationIntegrationForAdministrator($organizationId: UUID!, $integr
     apiKeyScheme
     apiKeyHeader
     issuer
+    oauthClientId
+    encryptedOAuthClientSecret
+    oauthClientSecretExpiresAt
+    oauthClientAuthenticationMethod
+    toolCount
     toolDefinitionHashes
     lastError
     deletedAt
+  }
+}
+
+# The Connect a sign-in's state names, found by the state's hash alone, before anybody is known, as
+# the authorization server's own requests are: whoever holds a 256-bit state is whom the callback
+# trusts to bring its code back, and only the member's own page finishes it
+query GetIntegrationAuthorizationByState($stateHash: String!) @auth(level: NO_ACCESS) {
+  integrationAuthorizations(where: { stateHash: { eq: $stateHash } }, limit: 1) {
+    id
+    integrationId
+    membershipUserId
+    membershipOrganizationId
+  }
+}
+
+# A Connect of the organization's server by its id, whoever started it, so the finish can tell
+# another account's from one that is gone, and refuses both. Null once it is finished or replaced
+query GetIntegrationAuthorizationForMember($organizationId: UUID!, $integrationId: UUID!, $authorizationId: UUID!)
+@auth(level: NO_ACCESS) {
+  integrationAuthorizations(
+    where: {
+      id: { eq: $authorizationId }
+      integrationId: { eq: $integrationId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+    limit: 1
+  ) {
+    id
+    membershipUserId
+    encryptedCodeVerifier
+    encryptedCode
+    codeExpiresAt
+    configRevision
+    oauthClientId
+    oauthClientAuthenticationMethod
+    resource
+    scope
+    issuer
+    isIssuerParameterSupported
+    tokenEndpoint
+    revocationEndpoint
+    expiresAt
+  }
+}
+
+# A member's connection to a server, its tokens' ciphertexts included, with what of the server it is
+# used against, in one read: a token goes to the address read here, and only while the server is at
+# the revision the connection was made under. Null when they have none
+query GetIntegrationConnectionForMember($organizationId: UUID!, $userId: String!, $integrationId: UUID!)
+@auth(level: NO_ACCESS) {
+  integrationConnections(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+    limit: 1
+  ) {
+    id
+    generation
+    configRevision
+    status
+    accountLabel
+    oauthClientId
+    oauthClientAuthenticationMethod
+    resource
+    issuer
+    isIssuerParameterSupported
+    tokenEndpoint
+    revocationEndpoint
+    encryptedAccessToken
+    encryptedRefreshToken
+    accessTokenExpiresAt
+    scope
+    refreshingUntil
+    refreshLeaseId
+    integration {
+      url
+      authentication
+      configRevision
+      isEnabled
+      oauthClientId
+      encryptedOAuthClientSecret
+      deletedAt
+    }
   }
 }

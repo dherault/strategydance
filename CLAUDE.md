@@ -39,8 +39,11 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-directories` — the places a startup can be submitted to, websites and
   Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its root and
   submission addresses and its business model, `DirectoryBusinessModel`, whose comment says how
-  one is chosen when a directory has several catches. Data and types with no runtime dependency,
-  as the core is. The list was read from the README of where-to-submit-your-startup
+  one is chosen when a directory has several catches. Those nothing can be submitted to today are
+  `INACTIVE_DIRECTORIES`, from `src/inactiveDirectories.json`, each with its
+  `DirectoryInactiveReason`, and a directory is in one list or the other, never both. Data and
+  types with no runtime dependency, as the core is. Both lists were read from the README of
+  where-to-submit-your-startup
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query

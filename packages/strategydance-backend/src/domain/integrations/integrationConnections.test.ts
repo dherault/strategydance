@@ -40,6 +40,7 @@ const { default: finishIntegrationConnection } = await import('./finishIntegrati
 const { default: readIntegrationAccessToken } = await import('./readIntegrationAccessToken')
 const { default: disconnectIntegration } = await import('./disconnectIntegration')
 const { default: cancelIntegrationConnection } = await import('./cancelIntegrationConnection')
+const { default: retryIntegration } = await import('./retryIntegration')
 const { default: decryptIntegrationSecret } = await import('./decryptIntegrationSecret')
 const { default: encryptIntegrationSecret } = await import('./encryptIntegrationSecret')
 
@@ -699,6 +700,43 @@ describe("reading a member's access token", () => {
     server().configRevision += 1
 
     expect(await readIntegrationAccessToken(caller(ADA))).toEqual({ outcome: 'notConnected' })
+  })
+})
+
+describe("an administrator's Retry of an OAuth server", () => {
+  function forgetTools() {
+    Object.assign(server(), { tools: null, toolCount: null, toolDefinitionHashes: [] })
+  }
+
+  test('lists the tools again with their own token when they connected an account', async () => {
+    await connect(ADA)
+    forgetTools()
+
+    expect(await retryIntegration(caller(ADA))).toEqual({ outcome: 'reached', toolCount: 2 })
+    expect(server().toolCount).toBe(2)
+    expect(provider.recorded.listings).toEqual(['ada@example.com', 'ada@example.com'])
+  })
+
+  test('records the issuer alone when they connected no account', async () => {
+    await connect(BOB)
+
+    expect(await retryIntegration(caller(ADA))).toEqual({ outcome: 'reached', toolCount: 2 })
+    expect(provider.recorded.listings).toEqual(['bob@example.com'])
+  })
+
+  test('refreshes a token the server refused once, then answers it as theirs to connect again', async () => {
+    await connect(ADA)
+    provider.forgetAccessTokens()
+
+    expect((await retryIntegration(caller(ADA))).outcome).toBe('reached')
+    expect(tokenRequests('refresh_token')).toHaveLength(1)
+
+    provider.forgetAccessTokens()
+    provider.switches.isRefreshRefused = true
+
+    expect(await retryIntegration(caller(ADA))).toEqual({ outcome: 'connectionExpired' })
+    expect(connection(ADA)!.status).toBe(IntegrationConnectionStatus.NEEDS_AUTHENTICATION)
+    expect(server().lastError).toBeNull()
   })
 })
 

@@ -77,6 +77,7 @@ type IntegrationOutcome =
         | 'notYours'
         | 'connectionRefused'
         | 'connectionExpired'
+        | 'busy'
     }
 
 /*
@@ -156,6 +157,14 @@ function respondRefusal(response: Response, result: IntegrationOutcome) {
       break
     case 'keyUnavailable':
       respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The key cannot be stored now, try again later')
+      break
+    case 'busy':
+      respondError(
+        response,
+        503,
+        ERROR_CODE_SERVICE_UNAVAILABLE,
+        'Your account at the server is being refreshed, try again',
+      )
       break
   }
 

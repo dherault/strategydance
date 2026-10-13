@@ -326,6 +326,8 @@ function createIntegrationOAuthServerFake({
     clients,
     // Whether a token is one the authorization server issued, and still takes
     isLiveAccessToken: (accessToken: string) => accessTokens.has(accessToken),
+    // Revokes every access token issued, as a server does before their expiry, keeping refresh tokens
+    forgetAccessTokens: () => accessTokens.clear(),
     isCurrentRefreshToken: (refreshToken: string) => refreshTokens.get(refreshToken)?.isCurrent === true,
   }
 }

@@ -97,8 +97,9 @@ told nothing. A failure of the API itself counts as no check at all.
 
 - A description is written where there is none, or where the review found the current one wrong.
 - A business model changes only when the review's quote is on the page it names (`isEvidenceFound`):
-  a page the probe read, or a document web fetch brought back, at that address, holds the quote,
-  with case, spaces, quotation marks and dashes ignored and an ellipsis standing for a cut
+  a page the probe read, or a document web fetch brought back, at that address, its scheme and port
+  included, so a page of another origin never vouches for it, holds the quote, with case, spaces,
+  quotation marks and dashes ignored and an ellipsis standing for a cut
   (`isQuotedIn`). Only a fetch's document counts, never what the code of web fetch's dynamic
   filtering printed, nor a result's own fields. It never changes to `UNKNOWN`. The models came from
   upstream's notes, written by people who tried to submit, which a FAQ rarely beats.
@@ -119,8 +120,8 @@ Both files are written sorted by name, each entry's fields in the type's order, 
 hold the files to that.
 
 The worker runs the code of the last release on `main` against the lists on `dev`. When the lists
-hold a field or a value this code does not know, `readDirectoryLists` refuses them, and the run
-writes nothing until a release catches up.
+hold a field or a value this code does not know, or a day that does not exist, `readDirectoryLists`
+refuses them, and the run writes nothing until a release catches up or the lists are fixed.
 
 ## The rolling pull request
 
@@ -144,18 +145,19 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   afresh, once. Each check carries the entry as it was checked, and leaves one that changed
   meanwhile, by a person's push or an overlapping run, rather than write an old site's review over
   it.
-- The pull request is read again once the commit lands, so a run never writes over a newer
-  description. One a person closed while the run ran stays closed, since a new one would undo the
-  rejection: the next run starts the branch again from `dev`.
+- The pull request is read again once the commit lands. One a person closed while the run ran
+  stays closed, since a new one would undo the rejection: the next run starts the branch again from
+  `dev`.
 - Each commit is `[directories] Check N directories on <day>`. No hook runs on an API commit, so the
-  prefix is written by the code. The day's report is the commit's body, and goes on top of the pull
-  request's description, the oldest days dropped once it outgrows GitHub's 65,536 characters.
+  prefix is written by the code. The day's report is the commit's body, and a comment of its own on
+  the pull request, so runs that overlap each add theirs and never write over another's, as a shared
+  description would.
 - The report has a row per directory: its result, what changed, the quote it rests on, and Claude's
   notes. Every word a page or Claude wrote is escaped, so it can break no table, link nothing, and
   mention nobody (`@`, `#123`), and a link's destination has its parentheses percent-encoded, so an
   address Claude gave cannot end its link early. A quote past 300 characters is dropped and notes
-  past 600 are cut, and a report too long for the description on its own is cut there, its commit
-  holding it whole, so the pull request is always updated once the commit lands.
+  past 600 are cut, and a report too long for a comment is cut there, its commit holding it whole,
+  so it always reaches the pull request once the commit lands.
 
 CI runs on the pull request, and Copilot reviews each push, as on any pull request into `dev`. No
 Hosting preview is built for it (`firebase-hosting-pull-request.yml`), since no page reads the two

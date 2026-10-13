@@ -1,4 +1,4 @@
-import type { MODULES } from './constants'
+import type { INTEGRATION_CATALOGUE, MODULES } from './constants'
 
 /*
   The envelope every backend response is wrapped in, success and failure alike. Declared here
@@ -267,4 +267,48 @@ export type OAuthAuthorizationRequestSummary = {
 // the client, or nowhere when the client could not be verified
 export type OAuthAuthorizationDecision = {
   redirectUrl: string | null
+}
+
+/* ---
+  INTEGRATIONS
+--- */
+
+// One of `INTEGRATION_CATALOGUE`: a remote MCP server an administrator adds in a click
+export type IntegrationCatalogueEntry = {
+  readonly slug: string
+  readonly name: string
+  readonly url: string
+  // One of the database's `IntegrationAuthentication` values
+  readonly authentication: 'OAUTH' | 'API_KEY' | 'NONE'
+}
+
+// The slug of one of `INTEGRATION_CATALOGUE`
+export type IntegrationCatalogueSlug = (typeof INTEGRATION_CATALOGUE)[number]['slug']
+
+/*
+  A tool an MCP server listed, as `OrganizationIntegration.tools` keeps it: what the server said of
+  it, read through the MCP SDK's own schema, and the hash of its definition an administrator's
+  approval is bound to, so a server that changes a tool loses the approval given to the old one.
+  Every text in it is the server's, shown as plain text and never as Markdown
+*/
+export type IntegrationTool = {
+  name: string
+  title?: string
+  description?: string
+  inputSchema: Record<string, unknown>
+  annotations?: {
+    title?: string
+    readOnlyHint?: boolean
+    destructiveHint?: boolean
+    idempotentHint?: boolean
+    openWorldHint?: boolean
+  }
+  definitionHash: string
+}
+
+// What adding a server answers with: its id, and how many tools it listed, none for an OAuth server
+// until a member connects an account
+export type AddIntegrationData = {
+  integrationId: string
+  toolCount: number
 }

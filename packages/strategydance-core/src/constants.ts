@@ -1,5 +1,5 @@
 import { Locale } from './enums'
-import type { ModuleDefinition, OrganizationImageKind } from './types'
+import type { IntegrationCatalogueEntry, ModuleDefinition, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -116,6 +116,48 @@ export const ERROR_CODE_ATTACHMENT_TOO_LARGE = 'ATTACHMENT_TOO_LARGE' // 413
 // A file that is not one of the types a route accepts, whatever its request called it, or one that
 // Claude cannot read
 export const ERROR_CODE_UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE' // 415
+
+// A 409 for an organization that has as many MCP servers as it may (`MAX_INTEGRATIONS`): adding or
+// restoring another takes deleting one first
+export const ERROR_CODE_TOO_MANY_INTEGRATIONS = 'TOO_MANY_INTEGRATIONS' // 409
+
+// A 409 for a server named as another of the organization's is, whatever the case: the agent names
+// a server by its name, so two would be one
+export const ERROR_CODE_INTEGRATION_NAME_TAKEN = 'INTEGRATION_NAME_TAKEN' // 409
+
+/*
+  Why a server could not be added, changed or reached again, each a 422 an administrator acts on
+  in its own way: the address is not one Strategy Dance reaches (not https, or not on the public
+  internet), nothing answered there, it answered too late, it refused the key, it asked for
+  authentication the server was added without, it did not answer as an MCP server, its OAuth
+  discovery failed or names no way for Strategy Dance to connect, or it lists more tools than a
+  server may. Each is one of the database's `IntegrationError` values with `INTEGRATION_` before
+  it, which `INTEGRATION_FAILURE_ERROR_CODES` pairs
+*/
+export const ERROR_CODE_INTEGRATION_ADDRESS_REFUSED = 'INTEGRATION_ADDRESS_REFUSED' // 422
+export const ERROR_CODE_INTEGRATION_UNREACHABLE = 'INTEGRATION_UNREACHABLE' // 422
+export const ERROR_CODE_INTEGRATION_TIMED_OUT = 'INTEGRATION_TIMED_OUT' // 422
+export const ERROR_CODE_INTEGRATION_KEY_REFUSED = 'INTEGRATION_KEY_REFUSED' // 422
+export const ERROR_CODE_INTEGRATION_AUTHENTICATION_REQUIRED = 'INTEGRATION_AUTHENTICATION_REQUIRED' // 422
+export const ERROR_CODE_INTEGRATION_NOT_MCP_SERVER = 'INTEGRATION_NOT_MCP_SERVER' // 422
+export const ERROR_CODE_INTEGRATION_DISCOVERY_FAILED = 'INTEGRATION_DISCOVERY_FAILED' // 422
+export const ERROR_CODE_INTEGRATION_TOO_MANY_TOOLS = 'INTEGRATION_TOO_MANY_TOOLS' // 422
+
+/*
+  Each of the database's `IntegrationError` values and the code a route answers it with, written
+  out since this package cannot import the generated enum: the backend types its use of this over
+  the enum, so a value added there fails its typecheck until it is paired here
+*/
+export const INTEGRATION_FAILURE_ERROR_CODES = {
+  ADDRESS_REFUSED: ERROR_CODE_INTEGRATION_ADDRESS_REFUSED,
+  UNREACHABLE: ERROR_CODE_INTEGRATION_UNREACHABLE,
+  TIMED_OUT: ERROR_CODE_INTEGRATION_TIMED_OUT,
+  KEY_REFUSED: ERROR_CODE_INTEGRATION_KEY_REFUSED,
+  AUTHENTICATION_REQUIRED: ERROR_CODE_INTEGRATION_AUTHENTICATION_REQUIRED,
+  NOT_MCP_SERVER: ERROR_CODE_INTEGRATION_NOT_MCP_SERVER,
+  DISCOVERY_FAILED: ERROR_CODE_INTEGRATION_DISCOVERY_FAILED,
+  TOO_MANY_TOOLS: ERROR_CODE_INTEGRATION_TOO_MANY_TOOLS,
+} as const
 
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
@@ -552,3 +594,64 @@ export const ARE_MODULES_STAFF_ONLY: boolean = true
   Consenting again with an agent already connected replaces its connection, and counts once
 */
 export const MAX_AGENT_CONNECTIONS = 100
+
+/* ---
+  INTEGRATIONS
+--- */
+
+/*
+  How many MCP servers an organization adds, deleted ones not counted, so taking a delete back is
+  held to it as adding is. Written out again in `CreateOrganizationIntegration`,
+  `RestoreOrganizationIntegration` and the limit of `GetOrganizationIntegrations`, which cannot
+  import it: change the four together
+*/
+export const MAX_INTEGRATIONS = 50
+
+// How long a server's name may be, on one line, as designed
+export const MAX_INTEGRATION_NAME_LENGTH = 40
+
+// How long a server's address may be
+export const MAX_INTEGRATION_URL_LENGTH = 2000
+
+// How long an API key may be, which no real key comes near, so a paste of the wrong thing is refused
+export const MAX_INTEGRATION_API_KEY_LENGTH = 4000
+
+// How long the name of the header a key is sent in may be
+export const MAX_INTEGRATION_API_KEY_HEADER_LENGTH = 64
+
+/*
+  How many tools a server may list, and how much they may hold as JSON text, so one server never
+  fills the row, the dialog or, from M29, what the agent reads of the organization's servers. A
+  server past either is refused, rather than kept in part
+*/
+export const MAX_INTEGRATION_TOOLS = 200
+export const MAX_INTEGRATION_TOOLS_BYTES = 1024 * 1024
+
+/*
+  Remote MCP servers an administrator adds in a click, each one checked on 2026-10-13 to answer at
+  its address as an MCP server and, for an OAuth one, to offer S256 and a way for Strategy Dance to
+  register without a human (dynamic registration or client ID metadata documents), which M28 needs
+  to connect members' accounts. Three the design listed, Google Calendar, Gmail and Google Drive,
+  had no server at their addresses, and HubSpot's offers no way to register, so none of them is
+  here. GitHub's authorization server offers no way to register either, so GitHub is added with a
+  personal access token, which its server takes as a bearer token.
+
+  A server's slug names its mark, `/assets/images/mcp/<slug>.svg`, and its description in the
+  app's `integration` catalogue. Its authentication is one of the database's
+  `IntegrationAuthentication` values, written out since this package cannot import the generated
+  enum
+*/
+export const INTEGRATION_CATALOGUE = [
+  { slug: 'stripe', name: 'Stripe', url: 'https://mcp.stripe.com', authentication: 'OAUTH' },
+  { slug: 'linear', name: 'Linear', url: 'https://mcp.linear.app/mcp', authentication: 'OAUTH' },
+  { slug: 'notion', name: 'Notion', url: 'https://mcp.notion.com/mcp', authentication: 'OAUTH' },
+  { slug: 'github', name: 'GitHub', url: 'https://api.githubcopilot.com/mcp', authentication: 'API_KEY' },
+  { slug: 'figma', name: 'Figma', url: 'https://mcp.figma.com/mcp', authentication: 'OAUTH' },
+  { slug: 'shopify', name: 'Shopify', url: 'https://mcp.shopify.com', authentication: 'OAUTH' },
+  { slug: 'sentry', name: 'Sentry', url: 'https://mcp.sentry.dev/mcp', authentication: 'OAUTH' },
+  { slug: 'vercel', name: 'Vercel', url: 'https://mcp.vercel.com', authentication: 'OAUTH' },
+  { slug: 'asana', name: 'Asana', url: 'https://mcp.asana.com/v2/mcp', authentication: 'OAUTH' },
+  { slug: 'jira', name: 'Jira', url: 'https://mcp.atlassian.com/v1/mcp', authentication: 'OAUTH' },
+  { slug: 'intercom', name: 'Intercom', url: 'https://mcp.intercom.com/mcp', authentication: 'OAUTH' },
+  { slug: 'airtable', name: 'Airtable', url: 'https://mcp.airtable.com/mcp', authentication: 'OAUTH' },
+] as const satisfies readonly IntegrationCatalogueEntry[]

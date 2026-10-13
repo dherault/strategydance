@@ -11,7 +11,9 @@ import { ApiError, requestApiFile } from '~data/api'
   The bytes of a file one of the reader's messages sent, as the thread draws an image, read from
   the backend with the reader's token, since nothing else may read it, and kept, since they never
   change. The composer leaves the bytes of an image it sent here, so its thread draws it without
-  reading it back. A file the backend says is gone, or not the reader's, is not asked for again
+  reading it back. A file the backend says is gone, or not the reader's, is kept as none, so neither
+  a remount, a focus nor a reconnection asks for it again; any other failure, a slow server or a
+  lost connection, is tried again later
 */
 function useConversationAttachmentFile(conversationId: string, attachmentId: string) {
   const { data: viewer } = useAuthentication()
@@ -25,21 +27,28 @@ function useConversationAttachmentFile(conversationId: string, attachmentId: str
 
   const { data, isError } = useQuery({
     queryKey: key,
-    queryFn: ({ signal }) =>
-      requestApiFile({
-        path: `/organizations/${organizationId}/conversations/${conversationId}/attachments/${attachmentId}`,
-        signal,
-      }),
+    queryFn: async ({ signal }) => {
+      try {
+        return await requestApiFile({
+          path: `/organizations/${organizationId}/conversations/${conversationId}/attachments/${attachmentId}`,
+          signal,
+        })
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 403 || error.status === 404)) return null
+
+        throw error
+      }
+    },
     enabled: isEnabled,
     staleTime: Infinity,
-    retry: (count, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && count < 2,
+    retry: 2,
   })
 
   return {
     file: data ?? null,
     // What names the file, for what is kept of it, as its thumbnail
     key,
-    hasFailed: isEnabled && isError && data === undefined,
+    hasFailed: isEnabled && ((isError && data === undefined) || data === null),
   }
 }
 

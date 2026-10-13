@@ -1,7 +1,7 @@
 # Conversations
 
 How Strategy Dance's conversation agents get built: what the design asks for, the decisions taken,
-and the architecture. The thirty-six milestones that take the feature from nothing to launch, each
+and the architecture. The thirty-seven milestones that take the feature from nothing to launch, each
 one pull request into `dev` that a Claude Code session can implement, are in
 [conversations-milestones.md](conversations-milestones.md), with the conventions every one of them
 follows.
@@ -40,8 +40,18 @@ of more than 20; and with what building the attachments settled, each where it a
 module, the Subagents module, in process only (see Subagents), built in M30 to M33, with M34 written
 for integrations and built after M29, which moved Launch to M35; and the daily orchestrator that will
 launch them is written down, without milestones (see The orchestrator). Revised on 2026-10-12, in
-M26, with what bringing the attachments to the composer and the thread settled, in Attachments. When
-a decision changes, change it here first.
+M26, with what bringing the attachments to the composer and the thread settled, in Attachments.
+Revised on 2026-10-13, after a review of the subagents' plan, as David chose: M30 is split in two,
+M30 making a subagent and running it once and M31 chaining its runs, bounding how many go at once
+and giving them their queue, which moved the milestones after it by one; daily caps on the
+conversations and runs members and organizations start, and on the subagents a member launches,
+come in a milestone of their own, M35, which moved Integrations in subagents to M36 and Launch to
+M37 (see Usage caps); the parent's Stop reaches its own anchor's subagents alone; a report is cut to
+8000 characters and asked for at a subagent's last step; a member's entry names its files, so the
+agent can hand them over; and what the review found is closed where it applies: the promotion is a
+mutation of its own and every cascade keeps one lock order, a launch finalizes the member's dead
+subagent runs before it counts, a delete only asks, and what a Retry deleted is left out of the ten
+and of the batches. When a decision changes, change it here first.
 
 ## The design
 
@@ -76,8 +86,8 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
 | Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Knowledge first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it; budget, software solutions, directories and marketing tactics later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
-| Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M35) |
-| Usage limits | None yet: a credit system comes later. Until then the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue) and no daily cap, as David chose on 2026-10-12, until Launch decides one or credits exist (M36) |
+| Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M36) |
+| Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member, 100 conversations and 500 runs an organization, and 30 subagents a member (see Usage caps), until a credit system replaces them. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12 |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user` and the Subagents module's own, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
@@ -763,7 +773,9 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   again or the reconcile route, as after a crash (see The transcript); before counting, the route finalizes every dead run the member has in that
   organization, so crashes elsewhere never lock them out. Subagents' runs count toward an allowance
   of their own, five per member in each organization, on a queue of their own, and a parent's
-  reaction to its subagents toward the member's three, as any run of theirs (see Subagents).
+  reaction to its subagents toward the member's three, as any run of theirs (see Subagents). From
+  M35, daily caps bound how many conversations and runs a member and an organization start, beside
+  how many go at once (see Usage caps).
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
   flag; build the request from the transcript and check it (see The transcript); stream it, writing
@@ -1399,7 +1411,7 @@ agents in M20:
   document the team keeps from AI is neither found, listed nor read by any agent, and one the team
   keeps from AI's changes is changed by none. A member who connects an external agent lets what AI
   may read reach that agent's provider. Members decide which agents they connect, as David chose on
-  2026-10-07, and no organization setting governs it; the legal review before M36 names it.
+  2026-10-07, and no organization setting governs it; the legal review before M37 names it.
 - **Addresses.** An external agent's results carry each document's web address,
   `https://strategydance.com/<organization>/knowledge/<id>`, where `<organization>` is the segment
   the app's paths lead with: the organization's slug, or its id while it has none, as
@@ -1439,7 +1451,7 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
 - **The board is the team's.** Any member reads and changes any task, and so does any agent acting
   as one: tasks carry no AI permission, unlike documents, as David chose on 2026-10-09, since a
   task is a short brief the whole team shares and nothing on the board is private. What an external
-  agent reads of it reaches that agent's provider, which the legal review before M36 names with the
+  agent reads of it reaches that agent's provider, which the legal review before M37 names with the
   rest.
 - **A description is a post's, with mentions.** It is stored as a post's blocks and mentions,
   serialized (`RICH_TEXT_TASK_BLOCKS`: paragraphs, headings, quotes, lists and check lists, and
@@ -1848,7 +1860,7 @@ cost of a search step before a deferred tool's first use; Knowledge's and the Ta
 thinking is checked against, so a module joining that way would cost no conversation its earlier
 reasoning.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
-David's call at M36.
+David's call at M37.
 
 ### Subagents
 
@@ -1890,7 +1902,7 @@ way (see The orchestrator).
     and it ends with a report, its last reply, saying what it did, what it found and what it changed,
     with `doc:` and `task:` links, and what it needs when it could not finish.
   - Its tools are everything its launcher has but `ask_user` and the Subagents module's: web search,
-    the Knowledge and Tasks modules, and from M35 the integration tools. Every subagent sends the
+    the Knowledge and Tasks modules, and from M36 the integration tools. Every subagent sends the
     same system prompt and the same tools list, pinned like the conversation's, so their requests
     share a cached prefix, which tools granted per launch would split: David chose every tool over
     a grant (see Risks).
@@ -2038,8 +2050,9 @@ way (see The orchestrator).
   which is the member's action and the runs carrying it on, not counting those a Retry deleted, so
   the run a Retry starts can launch its fan-out again, and at most 100 per conversation until
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.
-  No daily cap: the workspace's spend limit and the budget alert are the guard, until Launch decides
-  one or credits exist (M36).
+  From M35, at most 30 a member in a rolling 24 hours (`MAX_DAILY_SUBAGENTS_PER_MEMBER`), as David
+  chose on 2026-10-13, counted from the subagents' rows, deleted ones included (see Usage caps). The
+  workspace's spend limit and the budget alert stay the guard above it.
 - **Stop.** The parent's Stop asks the live subagents launched on the stopped run's anchor to stop
   too, as David chose on 2026-10-13: they are the action the member stops, and a fan-out an earlier
   message started goes on, which Stop all reaches. Each of their active runs' `stopRequestedAt` is
@@ -2106,7 +2119,7 @@ way (see The orchestrator).
   Retry whose cut runs launched subagents asks first, naming how many it stops and discards, since
   their reports are lost while what they wrote stays: a parent that failed at its limits after a
   fan-out offers Retry alone, which would otherwise end the fan-out without a word.
-- **Integrations** (M35, written now and built after M29): a subagent reaches the three integration
+- **Integrations** (M36, written now and built after M29): a subagent reaches the three integration
   tools as its member, with their connections and the organization's keys, and calls only the tools
   an administrator lets run without approval, as David chose, since nobody can approve a call for a
   subagent. Any other call is refused with a sentence asking it to say in its report what it would
@@ -2114,8 +2127,9 @@ way (see The orchestrator).
 - **Cost.** A subagent's run costs what a conversation's does, about $0.15 for three cached requests
   (see Cost), but a subagent may take four runs of 25 requests over a context that grows with what it
   reads, some $1.50 a full run: a fan-out of ten subagents that each use their whole budget comes to
-  some $60, where five short ones come to a few dollars. Each request is in its run's ledger, which
-  the credit system will read.
+  some $60, where five short ones come to a few dollars, and the thirty a member may launch a day
+  from M35 some $180 at most. Each request is in its run's ledger, which the credit system will
+  read.
 
 ### The orchestrator (later)
 
@@ -2304,7 +2318,7 @@ address, and whatever an injected instruction wrote into it, out from the reader
 
 ### Release gate
 
-Until M36, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M37, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -2319,17 +2333,17 @@ worker's claim checks the role again, so a queued run stops too:
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
   M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
   member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M36.
+  caller being staff until M37.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M36 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M37 removes.
   Locally it is lifted, so every member of every organization has conversations: the web against
   the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep the gate.
 - Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, lifted on the development backend as
-  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M36, since an
+  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M37, since an
   external agent reaches them without any conversation: the consent page's Allow refuses anybody
   else, the token verifier checks the role on every call, so a connection outlives no lost role,
   and the Connected agents tab and the Use with your agents button show for staff only. The
@@ -2352,8 +2366,8 @@ account, and until both exist every send in production answers 503.
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
-   file or a chat). The workspace's default inference region is the legal review's call before M36.
-   Check the organization's rate limit tier before staff use, and raise it before M36.
+   file or a chat). The workspace's default inference region is the legal review's call before M37.
+   Check the organization's rate limit tier before staff use, and raise it before M37.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -2414,15 +2428,65 @@ account, and until both exist every send in production answers 503.
     production queues nothing, and the parent's reconcile finalizes its subagents once their runs are
     twenty minutes old.
 
+### Usage caps
+
+Daily caps, as David chose on 2026-10-13, built in M35, bound what members and organizations start
+until the credit system replaces them. Each counts over the 24 hours before the request rather than a
+calendar day, so no time zone decides when it frees.
+
+| Cap | Per member | Per organization |
+| --- | --- | --- |
+| Conversations started (`MAX_DAILY_CONVERSATIONS_PER_MEMBER`, `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION`) | 20 | 100 |
+| Runs started (`MAX_DAILY_RUNS_PER_MEMBER`, `MAX_DAILY_RUNS_PER_ORGANIZATION`) | 100 | 500 |
+| Subagents launched (`MAX_DAILY_SUBAGENTS_PER_MEMBER`) | 30 | none |
+
+- **Runs as well as conversations.** Spend follows runs: one conversation holds 2000 entries and its
+  member three runs at once, so conversations alone would leave a member who never starts another
+  unbounded. A hundred runs come to some $15 at the typical $0.15 a run (see Cost), and to some $150
+  if every one used its 25 requests.
+- **Counted from rows already kept**, deleted ones included, so no ledger of their own: a deleted
+  conversation stays at least a day before the sweep prunes it, and Retry deletes no run, so
+  deleting or retrying gets round nothing. Each count reads at most as many rows as its cap, under
+  `@check`, through an index on `createdAt`:
+  - conversations: the `Conversation` rows with `parent` null created by the member in the
+    organization, or by anybody in it for the organization's cap;
+  - runs: the `ConversationRun` rows of those conversations triggered `MESSAGE`, `ANSWER`, `RESUME`,
+    `RETRY` or `REPORTS`. A subagent's own runs, `LAUNCH` and `CONTINUE`, count toward neither run
+    cap: the thirty and its four runs bound them;
+  - subagents: the `Conversation` rows with a `parent` launched by the member in the organization.
+- **What refuses.** Starting a conversation, a send, Resume and Retry are refused past a cap, by
+  their route before anything is stored, and again in their mutation, where the member's count runs
+  under the membership lock the mutation already takes, so two sends at once cannot both pass it.
+  An answer's continuation and a reaction finish what is under way: they count toward the cap and
+  are never refused, so a member at a cap can still answer a question waiting, and a fan-out's
+  reports still come back. A launch past thirty is refused with a sentence the model can act on,
+  saying when the member can launch again and to do the work itself meanwhile.
+- **The organization's counts take no lock of their own.** Two members starting at once can each
+  pass one by one, which a spend cap can afford. A lock on the organization's row would serialize
+  every run start of a team, and meet the order `UpdateOrganizationMemberRole` takes, the
+  organization then the membership, the other way round.
+- **The refusal** is a 429 with a code for each cap and whose it is, the member's or the
+  organization's (`ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED`,
+  `ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED`, `ERROR_CODE_MEMBER_DAILY_RUNS_REACHED` and
+  `ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED`), and a `Retry-After`, the seconds until the oldest
+  row it counted turns 24 hours old, which `ApiError` carries, since the envelope holds a code and a
+  message alone. The composer, or Resume's and Retry's note, says which cap was reached and when it
+  frees, from the `conversation` catalogue, and keeps the draft.
+- **Staff are capped too**: the caps guard spend, not a release. The development backend lifts them,
+  as it lifts the gates (`IS_USAGE_CAPPED`), since placeholder runs cost nothing and a developer
+  starts dozens; the tests and `check:conversation-runs` turn them on.
+- The spend limit and the budget alert stay the guard above them, across organizations.
+
 ### Cost
 
 At first-party list prices ($4 per million input tokens, $20 per million output, cache reads $0.20,
 cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M36
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M37
 adds a section on it to `operations-costs.md`. Subagents multiply it: a fan-out of ten that each use
-their whole budget comes to some $60 (see Subagents).
+their whole budget comes to some $60 (see Subagents). From M35 the daily caps bound a member's day:
+a hundred runs, some $15 at this cost, and thirty subagents, some $180 at most (see Usage caps).
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
 the replay of a first turn read 8080 tokens from the cache and wrote 164. Between a
@@ -2434,15 +2498,17 @@ the lifetime is chosen from what members' pauses turn out to be.
 
 ## Risks and open questions
 
-- **Spend**: nothing caps usage until credits exist; the budget alert is the guard.
+- **Spend**: until M35 nothing caps usage, and the budget alert is the guard. From M35 the daily
+  caps bound each member and organization (see Usage caps), and the alert still watches the total,
+  which many organizations at their caps add up to.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
-  checked before staff use and raised before M36. Subagents add up to five runs per member beside
+  checked before staff use and raised before M37. Subagents add up to five runs per member beside
   their three, twenty at once across their queue, which the tier has to hold too.
 - **Fan-out spend**: one member action can launch ten subagents of four runs each, some $60 when
-  each uses its whole budget, and nothing caps how many actions a day, by David's choice on
-  2026-10-12, until Launch decides a cap or credits exist (M36). The spend limit and the budget alert
-  stay the guard, and the bounds per action, at once and per subagent keep each fan-out finite.
+  each uses its whole budget, and from M35 a member launches at most thirty a day, some $180, as
+  David chose on 2026-10-13. The spend limit and the budget alert stay the guard above that, and the
+  bounds per action, at once and per subagent keep each fan-out finite.
 - **Subagents hold every write**, as David chose over tools granted per launch: injected text that
   reaches a subagent, from the web or a document, can do what the parent could, with nobody watching
   as it happens. Its row, its thread, its report, the AI permissions and a restore for a day bound it
@@ -2471,7 +2537,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   Claude's, bounded by its output, so neither is reachable without injected text making the model
   write such a shape; moving both to markdown-it, or bounding what they parse, closes it.
 - **Processing location**: the API runs inference in the workspace's default region unless a
-  request names one (`inference_geo`). The legal review before M36 picks it, and names Anthropic as
+  request names one (`inference_geo`). The legal review before M37 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
   they are deleted.
 - **Prompt injection**: knowledge, tasks, the web, files and integrations carry text others wrote,
@@ -2491,7 +2557,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   carries no AI permission, on that member's word alone: no setting lets an organization refuse
   external agents, and no administrator sees the connections, by David's decision on 2026-10-07.
   What AI may read then reaches the agent's provider, OpenAI or Cursor say, which the legal review
-  before M36 names; injected text reaching that agent can do what its access allows. The AI
+  before M37 names; injected text reaching that agent can do what its access allows. The AI
   permissions bound it, a connection can be read only, and the member disconnects it from Connected
   agents. If teams ask for more, an organization switch and an administrators' view of connections
   fit the data as it is.

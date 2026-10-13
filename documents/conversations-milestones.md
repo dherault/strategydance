@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The thirty-six milestones that build the conversations feature, each one pull request into `dev`
+The thirty-seven milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
@@ -44,8 +44,8 @@ merges, write its pull request number in the table below.
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
 M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, M30 as soon as M17
-and M25 have, and M12, M24 and M27 well before their neighbours. M35 is written now and built only
-once M29 has merged.
+and M25 have, M35 as soon as M33 has, and M12, M24 and M27 well before their neighbours. M36 is
+written now and built only once M29 has merged.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -83,8 +83,9 @@ once M29 has merged.
 | M32 | The Subagents module | core, backend, database, web | M31 | |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | |
 | M34 | Subagents in the thread | web, database | M24, M26, M33 | |
-| M35 | Integrations in subagents (written, not to build yet) | backend | M29, M33 | |
-| M36 | Launch | all | all | |
+| M35 | Usage caps | core, database, backend, web, root | M33 | |
+| M36 | Integrations in subagents (written, not to build yet) | backend | M29, M33 | |
+| M37 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -2028,7 +2029,43 @@ Not in the design: built from the design system's components, as Connected agent
 - **Verify** in a browser, on the conversation page and in a docked window, at desktop and phone
   widths: a fan-out of three, one stopped from its row, the others reported, and the reaction drawn.
 
-### M35: Integrations in subagents
+### M35: Usage caps
+
+What the caps are, and why each rule below holds, is in Usage caps, as David chose on 2026-10-13.
+
+- `MAX_DAILY_CONVERSATIONS_PER_MEMBER` (20), `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION` (100),
+  `MAX_DAILY_RUNS_PER_MEMBER` (100), `MAX_DAILY_RUNS_PER_ORGANIZATION` (500) and
+  `MAX_DAILY_SUBAGENTS_PER_MEMBER` (30) in strategydance-core, with the four error codes.
+- **The schema change**, additive: an index on `createdAt` on `Conversation` and on
+  `ConversationRun`, for the counts.
+- **The counts**, each reading at most as many rows as its cap, deleted rows included, the
+  member's under the membership lock the mutation already takes and the organization's without one:
+  - `StartConversation`, the conversations and the runs;
+  - `SendConversationMessage`, `SendConversationMessageAnsweringCalls`, `ResumeConversationRun` and
+    `RetryConversationRun`, the runs;
+  - the launch's mutation, the subagents, `launch_subagent` refusing past thirty with a sentence
+    saying when the member can launch again and to do the work itself meanwhile.
+
+  Each route counts first, so a refusal stores nothing, and answers 429 with `Retry-After`.
+  `ContinueConversationRun` and a reaction's start check no cap.
+- `IS_USAGE_CAPPED`, off on the development backend and on everywhere else, as
+  `IS_CONVERSATIONS_RELEASE_GATED` is; the tests and the check script turn it on.
+- **The web**: `ApiError` carries `Retry-After`, and the composer and Resume's and Retry's note say
+  which cap was reached and when it frees, keeping the draft, the composer's map of failures taking
+  the new ones. Strings in the `conversation` catalogue, and `bun run translate`.
+- `CLAUDE.md`: the caps, and that a new way to start a conversation or a run counts toward them.
+- **Tests**:
+  - Each cap refusing at its value and passing below it, the member's and the organization's.
+  - A deleted conversation and a retried run still counted.
+  - A subagent's runs counted toward no run cap.
+  - An answer's continuation and a reaction starting past the cap.
+  - A launch refused past thirty, with its sentence.
+  - `Retry-After` at the oldest counted row's 24 hours.
+- `check:conversation-runs` gains the caps: two sends at once at the member's cap, one refused.
+- **Verify**: with the caps on locally and lowered, start conversations and send past them, and read
+  each refusal in the composer and in Resume's and Retry's note, at desktop and phone widths.
+
+### M36: Integrations in subagents
 
 Written on 2026-10-12, as David chose, to build once M29 has merged and not before.
 
@@ -2047,7 +2084,7 @@ Written on 2026-10-12, as David chose, to build once M29 has merged and not befo
 - **Verify**: a subagent reading through an auto-approved tool, and one reporting a call it could not
   make, which the parent proposes and the member allows.
 
-### M36: Launch
+### M37: Launch
 
 - Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`, the backend's
   `IS_CONVERSATIONS_RELEASE_GATED` and `ARE_MODULES_STAFF_ONLY`.
@@ -2061,5 +2098,5 @@ Written on 2026-10-12, as David chose, to build once M29 has merged and not befo
   at again against the recorded usage, and the legal page reviewed for AI processing, naming
   Anthropic as processor and the region inference runs in, and saying that what a member's
   connected agents read reaches those agents' providers, at the member's choice, which are David's
-  calls; and, before subagents reach everyone, a daily cap on them per member or the credit system,
-  which is David's call too, since none caps them during staff use.
+  calls; and the daily caps of M35 looked at again against the recorded usage, which is David's call
+  too.

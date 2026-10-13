@@ -38,6 +38,13 @@ mock.module('~domain/agent/conversationClaudeClient', () => ({
   default: createPlaceholderClaudeClient({ stepDurationMs: 0 }),
 }))
 
+// The directories' check, which its own tests cover, and the GitHub App's token it is run with
+const publishDirectoryCheck = mock(async (_options: { today: string }) => ({ outcome: 'committed', url: null }))
+
+mock.module('~domain/directories/publishDirectoryCheck', () => ({ default: publishDirectoryCheck }))
+
+mock.module('~domain/github/createGitHubAppToken', () => ({ default: async () => 'installation-token' }))
+
 const { default: createInternalRouter } = await import('./internal')
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
@@ -260,5 +267,16 @@ describe('POST /internal/sweep', () => {
     expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
     expect([...modules.clients.keys()]).toEqual(['recent'])
     expect(modules.requests.size).toBe(0)
+  })
+})
+
+describe('POST /internal/directories-check', () => {
+  test("checks a day's directories, as the GitHub App", async () => {
+    const response = await fetch(`${origin}/internal/directories-check`, { method: 'POST' })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'success' })
+    expect(publishDirectoryCheck).toHaveBeenCalledTimes(1)
+    expect(publishDirectoryCheck.mock.calls[0][0].today).toBe(new Date().toISOString().slice(0, 10))
   })
 })

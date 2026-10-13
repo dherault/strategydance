@@ -17,7 +17,9 @@ concurrency:
   queue: max
 jobs:
   build_and_preview:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    # Not for the daily directories check's pull request, which changes two JSON files no page
+    # reads, and would build and deploy a preview on every day's commit
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref != 'directories-check' }}
     runs-on: ubuntu-latest
     # This job holds a production service account, and `pull_request` runs the workflow from
     # the pull request's own code, so the head-repo check stops forks but not somebody with

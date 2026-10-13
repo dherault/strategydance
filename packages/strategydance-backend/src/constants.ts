@@ -120,6 +120,10 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
 // hyphens, so a caller may send either. `toCanonicalUuid` gives the one form an id is kept in
 export const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
 
+// Who is asking when this server fetches a page somebody else named, for a site that answers bots a
+// page of its own: a link preview's, and a directory's check
+export const OUTBOUND_USER_AGENT = 'Mozilla/5.0 (compatible; StrategyDanceBot/1.0; +https://strategydance.com)'
+
 /* ---
   CONVERSATIONS
 --- */
@@ -374,6 +378,26 @@ export const MAX_CLIENT_METADATA_DOCUMENTS_KEPT = 500
 export const DEVELOPMENT_OAUTH_TOKEN_SECRET = 'strategydance-development-oauth-token-secret'
 
 /* ---
+  DIRECTORIES
+--- */
+
+// The repository the directories' check reads the lists from and opens its pull request in, the
+// branch it commits to, which it alone writes, and the branch that pull request goes into
+export const GITHUB_REPOSITORY = 'dherault/strategydance'
+
+export const DIRECTORY_CHECK_BRANCH = 'directories-check'
+
+export const DIRECTORY_CHECK_BASE_BRANCH = 'dev'
+
+// How long one call to GitHub's API may take, which a run's budget counts on
+export const GITHUB_REQUEST_TIMEOUT_MS = 15 * 1000
+
+// The directories package's two lists, from the repository's root
+export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/directories.json'
+
+export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`
@@ -389,6 +413,12 @@ export const SECRET_ANTHROPIC_API_KEY = 'anthropic-api-key'
 // What a rotated refresh token's successors are derived under, read by version, so a duplicate
 // derives under the version its first use recorded. Read only in production
 export const SECRET_OAUTH_TOKEN_SECRET = 'oauth-token-secret'
+
+// The GitHub App the directories' check opens its pull request as: its id and its private key, in
+// PEM. Read only by the worker, and by `check:directories --publish`
+export const SECRET_GITHUB_APP_ID = 'github-app-id'
+
+export const SECRET_GITHUB_APP_PRIVATE_KEY = 'github-app-private-key'
 
 /* ---
   EMAIL

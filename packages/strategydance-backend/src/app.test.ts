@@ -78,6 +78,7 @@ describe('createApp', () => {
   test('the backend answers 404 on the internal routes', async () => {
     expect((await post(origins.backend, '/internal/conversation-runs')).status).toBe(404)
     expect((await post(origins.backend, '/internal/sweep')).status).toBe(404)
+    expect((await post(origins.backend, '/internal/directories-check')).status).toBe(404)
   })
 
   test('the worker answers its internal routes', async () => {

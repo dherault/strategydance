@@ -6,7 +6,8 @@
     "submissionUrl": "https://1000.tools/my/tools/create",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "10words",
@@ -15,7 +16,8 @@
     "submissionUrl": "https://app.10words.io/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "1payment.tools",
@@ -24,7 +26,8 @@
     "submissionUrl": "https://1payment.tools/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "360Quadrants",
@@ -33,7 +36,8 @@
     "submissionUrl": "https://www.360quadrants.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "A1 Gallery",
@@ -42,7 +46,8 @@
     "submissionUrl": "https://www.a1.gallery/submit",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Active Search Results",
@@ -51,7 +56,8 @@
     "submissionUrl": "https://www.activesearchresults.com/addwebsite.php",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Add AI Directory",
@@ -60,7 +66,8 @@
     "submissionUrl": "https://www.addaidirectory.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AgentHunter",
@@ -69,7 +76,8 @@
     "submissionUrl": "https://www.agenthunter.io/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AgentMRR",
@@ -78,7 +86,8 @@
     "submissionUrl": "https://agentmrr.com/docs/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AgentsIndex",
@@ -87,7 +96,8 @@
     "submissionUrl": "https://agentsindex.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Agent Store",
@@ -96,7 +106,8 @@
     "submissionUrl": "https://aiagentstore.ai/new-agent",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Agents Directory",
@@ -105,7 +116,8 @@
     "submissionUrl": "https://aiagentsdirectory.com/submit-agent",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Agents List",
@@ -114,7 +126,8 @@
     "submissionUrl": "https://aiagentslist.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Agents Live",
@@ -123,7 +136,8 @@
     "submissionUrl": "https://aiagentslive.com/agents/submit/1",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Agents Marketplace",
@@ -132,7 +146,8 @@
     "submissionUrl": "https://trillionagent.com/register-agent/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Agents Verse",
@@ -141,7 +156,8 @@
     "submissionUrl": "https://aiagentsverse.com/submit-ai-agent/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Center",
@@ -150,7 +166,8 @@
     "submissionUrl": "https://aicenter.ai/submit-tools",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Collection",
@@ -159,7 +176,8 @@
     "submissionUrl": "https://thataicollection.com/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Depot",
@@ -168,7 +186,8 @@
     "submissionUrl": "https://aidepot.co/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Directories",
@@ -177,7 +196,8 @@
     "submissionUrl": "https://www.aidirectori.es/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Dreamthere",
@@ -186,7 +206,8 @@
     "submissionUrl": "https://ai.dreamthere.cn/site/submit",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Findy",
@@ -195,7 +216,8 @@
     "submissionUrl": "https://aifindy.com/contacto/publica-tu-ia-en-aifindy",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI For Developers",
@@ -204,7 +226,8 @@
     "submissionUrl": "https://aifordevelopers.org/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Headshot Hub",
@@ -213,7 +236,8 @@
     "submissionUrl": "https://aiheadshothub.com/listings/create/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Heron",
@@ -222,7 +246,8 @@
     "submissionUrl": "https://aiheron.com/promote",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Hubs",
@@ -231,7 +256,8 @@
     "submissionUrl": "https://aihubs.ai/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Hunt List",
@@ -240,7 +266,8 @@
     "submissionUrl": "https://aihuntlist.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Hustle",
@@ -249,7 +276,8 @@
     "submissionUrl": "https://aihustle.tools/submit/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Journey",
@@ -258,7 +286,8 @@
     "submissionUrl": "https://aijourney.so/submit-ai-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Just Better",
@@ -267,7 +296,8 @@
     "submissionUrl": "https://aijustbetter.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Library",
@@ -276,7 +306,8 @@
     "submissionUrl": "https://www.theailibrary.co/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Marketing Directory",
@@ -285,7 +316,8 @@
     "submissionUrl": "https://www.aimarketing.directory/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Mojo",
@@ -294,7 +326,8 @@
     "submissionUrl": "https://aimojo.io/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI NavHub",
@@ -303,7 +336,8 @@
     "submissionUrl": "https://ainavhub.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Parabellum",
@@ -312,7 +346,8 @@
     "submissionUrl": "https://aiparabellum.com/submit-your-ai-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Pulse",
@@ -321,7 +356,8 @@
     "submissionUrl": "https://www.aipulse.fyi/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Respo",
@@ -330,7 +366,8 @@
     "submissionUrl": "https://airespo.com/submit-tool/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Search",
@@ -339,7 +376,8 @@
     "submissionUrl": "https://ai-search.io/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI to Grow",
@@ -348,7 +386,8 @@
     "submissionUrl": "https://aitogrow.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tool Board",
@@ -357,7 +396,8 @@
     "submissionUrl": "https://aitoolboard.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tool Center",
@@ -366,7 +406,8 @@
     "submissionUrl": "https://aitoolcenter.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tool Net",
@@ -375,7 +416,8 @@
     "submissionUrl": "https://www.aitoolnet.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tool Trek",
@@ -384,7 +426,8 @@
     "submissionUrl": "https://aitooltrek.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools",
@@ -393,7 +436,8 @@
     "submissionUrl": "https://aitools.inc/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Directory",
@@ -402,7 +446,8 @@
     "submissionUrl": "https://aitoolsdirectory.com/submit-tool",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Explorer",
@@ -411,7 +456,8 @@
     "submissionUrl": "https://aitoolsexplorer.com/submit-ai-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools List",
@@ -420,7 +466,8 @@
     "submissionUrl": "https://aitoolslist.io/submit-ai-tool/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Magazine",
@@ -429,7 +476,8 @@
     "submissionUrl": "https://aitoolsmagazine.com/submit-listing/details/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Marketer",
@@ -438,7 +486,8 @@
     "submissionUrl": "https://aitoolsmarketer.com/submit/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Saver",
@@ -447,7 +496,8 @@
     "submissionUrl": "https://www.aitoolsaver.com/submit-ai-tool",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools SME",
@@ -456,7 +506,8 @@
     "submissionUrl": "https://www.aitoolssme.com/submit-your-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Submit",
@@ -465,7 +516,8 @@
     "submissionUrl": "https://submitaitools.org/submit-your-ai-tool/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Time",
@@ -474,7 +526,8 @@
     "submissionUrl": "https://aitoolstime.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Up",
@@ -483,7 +536,8 @@
     "submissionUrl": "https://aitoolsup.com/submit-tool/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Tools Zone",
@@ -492,7 +546,8 @@
     "submissionUrl": "https://aitoolszone.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Toolz Dir",
@@ -501,7 +556,8 @@
     "submissionUrl": "https://www.aitoolzdir.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Top 10",
@@ -510,7 +566,8 @@
     "submissionUrl": "https://aitop10.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI Trendz",
@@ -519,7 +576,8 @@
     "submissionUrl": "https://aitrendz.xyz/submit-ai-link/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI With Me",
@@ -528,7 +586,8 @@
     "submissionUrl": "https://aiwith.me/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AI138",
@@ -537,7 +596,8 @@
     "submissionUrl": "https://www.ai138.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIBase",
@@ -546,7 +606,8 @@
     "submissionUrl": "https://app.aibase.com/submission",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIBestTop Tools",
@@ -555,7 +616,8 @@
     "submissionUrl": "https://aibesttop.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIBoom.Tools",
@@ -564,7 +626,8 @@
     "submissionUrl": "https://aiboom.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIChief",
@@ -573,7 +636,8 @@
     "submissionUrl": "https://aichief.com/submit-ai-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIDirectory.org",
@@ -582,7 +646,8 @@
     "submissionUrl": "https://www.aidirectory.org/user-submit/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Aidirs",
@@ -591,7 +656,8 @@
     "submissionUrl": "https://aidirs.best/pricing",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIGC Navigation",
@@ -600,7 +666,8 @@
     "submissionUrl": "https://www.aigc.cn/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AiMatchPro",
@@ -609,7 +676,8 @@
     "submissionUrl": "https://aimatch.pro/list",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AInav",
@@ -618,7 +686,8 @@
     "submissionUrl": "https://www.ainav.cn/%e6%8f%90%e4%ba%a4%e7%bd%91%e7%ab%99",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AINave",
@@ -627,7 +696,8 @@
     "submissionUrl": "https://ainave.com/submit/products",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AINewTool",
@@ -636,7 +706,8 @@
     "submissionUrl": "https://ainewtool.site/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIPURE",
@@ -645,7 +716,8 @@
     "submissionUrl": "https://aipure.ai/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AISO Tools",
@@ -654,7 +726,8 @@
     "submissionUrl": "https://aisotools.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIStage",
@@ -663,7 +736,8 @@
     "submissionUrl": "https://aistage.net/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIToolex",
@@ -672,7 +746,8 @@
     "submissionUrl": "https://aitoolex.com/submit",
     "description": "",
     "businessModel": "FREE_FOR_LIMITED_TIME",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIToolly",
@@ -681,7 +756,8 @@
     "submissionUrl": "https://aitoolly.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "aitools.fyi",
@@ -690,7 +766,8 @@
     "submissionUrl": "https://aitools.fyi/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIToolsCapital",
@@ -699,7 +776,8 @@
     "submissionUrl": "https://aitoolscapital.com/submit-tool/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIToolsHunt",
@@ -708,7 +786,8 @@
     "submissionUrl": "https://aitoolshunt.com/submit-ai-tool/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AiToolsObserver",
@@ -717,7 +796,8 @@
     "submissionUrl": "https://aitoolsobserver.com/submit/add-url/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AITopTools",
@@ -726,7 +806,8 @@
     "submissionUrl": "https://aitoptools.com/claim-your-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AIWget",
@@ -735,7 +816,8 @@
     "submissionUrl": "https://aiwget.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Aixploria",
@@ -744,7 +826,8 @@
     "submissionUrl": "https://www.aixploria.com/en/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Aixuanfeng",
@@ -753,7 +836,8 @@
     "submissionUrl": "https://www.aixuanfeng.com/links/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "All My Faves",
@@ -762,7 +846,8 @@
     "submissionUrl": "https://allmyfaves.com/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "All Top Startups",
@@ -771,7 +856,8 @@
     "submissionUrl": "https://alltopstartups.com/submit-startup/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AllMCPs",
@@ -780,7 +866,8 @@
     "submissionUrl": "https://allmcps.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Alpha Digits",
@@ -789,7 +876,8 @@
     "submissionUrl": "https://alphadigits.com/submit-app-for-review/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Alt Hunt",
@@ -798,7 +886,8 @@
     "submissionUrl": "https://althunt.io/new",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Altern",
@@ -807,7 +896,8 @@
     "submissionUrl": "https://altern.ai/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Alternative.me",
@@ -816,7 +906,8 @@
     "submissionUrl": "https://alternative.me/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AlternativeTo",
@@ -825,7 +916,8 @@
     "submissionUrl": "https://alternativeto.net/manage-item/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AnyFP",
@@ -834,7 +926,8 @@
     "submissionUrl": "https://anyfp.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "App Launcher",
@@ -843,7 +936,8 @@
     "submissionUrl": "https://www.applauncher.io/launch/create",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "App Rater",
@@ -852,7 +946,8 @@
     "submissionUrl": "https://apprater.net/add",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Appiod",
@@ -861,7 +956,8 @@
     "submissionUrl": "https://appiod.com/submit-app-for-review/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Apps 400",
@@ -870,7 +966,8 @@
     "submissionUrl": "https://apps400.com/submit-your-application-for-review",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Apps Listo",
@@ -879,7 +976,8 @@
     "submissionUrl": "https://appslisto.com/submit-your-app/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Apps Mamma",
@@ -888,7 +986,8 @@
     "submissionUrl": "https://appsmamma.com/submit-your-app/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Apps Mirror",
@@ -897,7 +996,8 @@
     "submissionUrl": "https://appsmirror.com/submit-your-app-for-review",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Appscribed",
@@ -906,7 +1006,8 @@
     "submissionUrl": "https://appscribed.com/submit-ai-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "AppsThunder",
@@ -915,7 +1016,8 @@
     "submissionUrl": "https://appsthunder.com/submit-your-app/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Arctic Startup",
@@ -924,7 +1026,8 @@
     "submissionUrl": "https://arcticstartup.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Ask AI For It",
@@ -933,7 +1036,8 @@
     "submissionUrl": "https://askaiforit.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Aura",
@@ -942,7 +1046,8 @@
     "submissionUrl": "https://auraplusplus.com/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Awesome AI & SaaS Tools",
@@ -951,7 +1056,8 @@
     "submissionUrl": "https://appsandwebsites.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Awesome AI Tools",
@@ -960,7 +1066,8 @@
     "submissionUrl": "https://awesomeaitools.com/submit-your-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Awesome Indie",
@@ -969,7 +1076,8 @@
     "submissionUrl": "https://awesomeindie.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "B2B Stack",
@@ -978,7 +1086,8 @@
     "submissionUrl": "https://www.b2bstack.com.br/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BAI.tools",
@@ -987,7 +1096,8 @@
     "submissionUrl": "https://bai.tools/submit-ai-tools",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Based Tools",
@@ -996,7 +1106,8 @@
     "submissionUrl": "https://www.basedtools.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Being Guru",
@@ -1005,7 +1116,8 @@
     "submissionUrl": "https://beingguru.com/submit-startup/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Best AI Tools",
@@ -1014,7 +1126,8 @@
     "submissionUrl": "https://www.startupaitools.com/submit-ai-tools/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Best of AI",
@@ -1023,7 +1136,8 @@
     "submissionUrl": "https://bestofai.io/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Best-AI.org",
@@ -1032,7 +1146,8 @@
     "submissionUrl": "https://best-ai.org/submit-tool",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BestWebsites",
@@ -1041,7 +1156,8 @@
     "submissionUrl": "https://bestwebsites.info/en/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Beta Bound",
@@ -1050,7 +1166,8 @@
     "submissionUrl": "https://betabound.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Beta Testing",
@@ -1059,7 +1176,8 @@
     "submissionUrl": "https://betatesting.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BetaList",
@@ -1068,7 +1186,8 @@
     "submissionUrl": "https://betalist.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Better Launch",
@@ -1077,7 +1196,8 @@
     "submissionUrl": "https://www.betterlaunch.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Beyond AI Tools",
@@ -1086,7 +1206,8 @@
     "submissionUrl": "https://www.beyondaitools.com/product/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Bowora",
@@ -1095,7 +1216,8 @@
     "submissionUrl": "https://bowora.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Bro Find AI",
@@ -1104,7 +1226,8 @@
     "submissionUrl": "https://brofindai.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BroUseAI",
@@ -1113,7 +1236,8 @@
     "submissionUrl": "https://www.brouseai.com/submission/ai",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BuildHop",
@@ -1122,7 +1246,8 @@
     "submissionUrl": "https://buildhop.io/app/create",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BuildVoyage",
@@ -1131,7 +1256,8 @@
     "submissionUrl": "https://buildvoyage.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Built By Me",
@@ -1140,7 +1266,8 @@
     "submissionUrl": "https://builtbyme.io/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BuiltByIndies",
@@ -1149,7 +1276,8 @@
     "submissionUrl": "https://builtbyindies.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BuiltInChicago",
@@ -1158,7 +1286,8 @@
     "submissionUrl": "https://www.builtinchicago.org/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Business Tool Vault",
@@ -1167,7 +1296,8 @@
     "submissionUrl": "https://www.businesstoolvault.com/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "BusinessHunt",
@@ -1176,7 +1306,8 @@
     "submissionUrl": "https://businesshunt.co/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Buy Sell Startups",
@@ -1185,7 +1316,8 @@
     "submissionUrl": "https://www.buysellstartups.com/startup-index",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Capterra",
@@ -1194,7 +1326,8 @@
     "submissionUrl": "https://www.capterra.com/vendors/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ChatDevelopers.com",
@@ -1203,7 +1336,8 @@
     "submissionUrl": "https://chatdevelopers.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "CitedIndex",
@@ -1212,7 +1346,8 @@
     "submissionUrl": "https://citedindex.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Clapstorm",
@@ -1221,7 +1356,8 @@
     "submissionUrl": "https://www.clapstorm.com/submit",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Cloudfindr",
@@ -1230,7 +1366,8 @@
     "submissionUrl": "https://www.cloudfindr.co/list-your-app",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ComparaSoftware",
@@ -1239,7 +1376,8 @@
     "submissionUrl": "https://www.comparasoftware.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "CompareCamp",
@@ -1248,7 +1386,8 @@
     "submissionUrl": "https://comparecamp.com/request-a-review/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ConfettiSaaS",
@@ -1257,7 +1396,8 @@
     "submissionUrl": "https://confettisaas.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "craked.dev",
@@ -1266,7 +1406,8 @@
     "submissionUrl": "https://www.craked.dev/products",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "CrowdReviews",
@@ -1275,7 +1416,8 @@
     "submissionUrl": "https://www.crowdreviews.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "CrozDesk",
@@ -1284,7 +1426,8 @@
     "submissionUrl": "https://vendor.crozdesk.com/user/signup",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Crunchbase",
@@ -1293,7 +1436,8 @@
     "submissionUrl": "https://support.crunchbase.com/hc/en-us/articles/115011823988-How-do-I-create-a-Crunchbase-profile",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "CtrlAlt.cc",
@@ -1302,7 +1446,8 @@
     "submissionUrl": "https://ctrlalt.cc/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Curated.design",
@@ -1311,7 +1456,8 @@
     "submissionUrl": "https://curated.design/submit/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Cuspera",
@@ -1320,7 +1466,8 @@
     "submissionUrl": "https://www.cuspera.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Daily Pings",
@@ -1329,7 +1476,8 @@
     "submissionUrl": "https://dailypings.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Dang.ai",
@@ -1338,7 +1486,8 @@
     "submissionUrl": "https://dang.ai/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DanielLaunches",
@@ -1347,7 +1496,8 @@
     "submissionUrl": "https://daniellaunches.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DataLook.io",
@@ -1356,7 +1506,8 @@
     "submissionUrl": "https://datalook.io/submit-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Days Launch",
@@ -1365,7 +1516,8 @@
     "submissionUrl": "https://dayslaunch.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DeepLaunch.io",
@@ -1374,7 +1526,8 @@
     "submissionUrl": "https://deeplaunch.io/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DesiFounder",
@@ -1383,7 +1536,8 @@
     "submissionUrl": "https://desifounder.com/spotlight",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Dessign",
@@ -1392,7 +1546,8 @@
     "submissionUrl": "https://dessign.net/submit-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Dev Resources",
@@ -1401,7 +1556,8 @@
     "submissionUrl": "https://devresourc.es/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DevHunt",
@@ -1410,7 +1566,8 @@
     "submissionUrl": "https://devhunt.org/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DevPages",
@@ -1419,7 +1576,8 @@
     "submissionUrl": "https://devpages.io/submit-a-tool",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DevSuite",
@@ -1428,7 +1586,8 @@
     "submissionUrl": "https://devsuite.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Direct2App",
@@ -1437,7 +1596,8 @@
     "submissionUrl": "https://www.direct2app.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Directory LDM Studio",
@@ -1446,7 +1606,8 @@
     "submissionUrl": "https://directory.ldmstudio.com/add/add.php",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Directory Web Promotion",
@@ -1455,7 +1616,8 @@
     "submissionUrl": "https://promotebusinessdirectory.com/submit.php",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DodoMRR",
@@ -1464,7 +1626,8 @@
     "submissionUrl": "https://www.dodomrr.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Dofollow.Tools",
@@ -1473,7 +1636,8 @@
     "submissionUrl": "https://dofollow.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Dokey AI",
@@ -1482,7 +1646,8 @@
     "submissionUrl": "https://dokeyai.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DomainRating.lol",
@@ -1491,7 +1656,8 @@
     "submissionUrl": "https://domainrating.lol/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "DoMore",
@@ -1500,7 +1666,8 @@
     "submissionUrl": "https://domore.ai/partners",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Dynamite AI",
@@ -1509,7 +1676,8 @@
     "submissionUrl": "https://www.dynamite-ai.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "e27",
@@ -1518,7 +1686,8 @@
     "submissionUrl": "https://e27.co/startup/create/profile/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "early.tools",
@@ -1527,7 +1696,8 @@
     "submissionUrl": "https://www.early.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "EarlyHunt",
@@ -1536,7 +1706,8 @@
     "submissionUrl": "https://earlyhunt.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Easy Save AI",
@@ -1545,7 +1716,8 @@
     "submissionUrl": "https://easysaveai.com/product/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Easy With AI",
@@ -1554,7 +1726,8 @@
     "submissionUrl": "https://easywithai.com/submit-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "eBool",
@@ -1563,7 +1736,8 @@
     "submissionUrl": "https://www.ebool.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "EliteAI Tools",
@@ -1572,7 +1746,8 @@
     "submissionUrl": "https://eliteai.tools/tool/submit-new-tool?tab=launch",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Emoji Launch",
@@ -1581,7 +1756,8 @@
     "submissionUrl": "https://emojilaunch.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "EU-Startups",
@@ -1590,7 +1766,8 @@
     "submissionUrl": "https://www.eu-startups.com/directory/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Every AI",
@@ -1599,7 +1776,8 @@
     "submissionUrl": "https://every-ai.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "EveryDev.ai",
@@ -1608,7 +1786,8 @@
     "submissionUrl": "https://www.everydev.ai/create/tool",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ExactSeek",
@@ -1617,7 +1796,8 @@
     "submissionUrl": "https://www.exactseek.com/add.html",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "F6S",
@@ -1626,7 +1806,8 @@
     "submissionUrl": "https://www.f6s.com/submitmystartup.com",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FalcoScan",
@@ -1635,7 +1816,8 @@
     "submissionUrl": "https://falcoscan.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FastLaunch",
@@ -1644,7 +1826,8 @@
     "submissionUrl": "https://fastlaunch.io/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Fazier",
@@ -1653,7 +1836,8 @@
     "submissionUrl": "https://fazier.com/launch",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FeaturedCustomers",
@@ -1662,7 +1846,8 @@
     "submissionUrl": "https://www.featuredcustomers.com/vendor-solutions",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Find My AI Tool",
@@ -1671,7 +1856,8 @@
     "submissionUrl": "https://findmyaitool.com/submit-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Find Your SaaS",
@@ -1680,7 +1866,8 @@
     "submissionUrl": "https://findyoursaas.com/pricing",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Findly.tools",
@@ -1689,7 +1876,8 @@
     "submissionUrl": "https://findly.tools/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Findstack",
@@ -1698,7 +1886,8 @@
     "submissionUrl": "https://www.findstack.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FindThatSoftware",
@@ -1707,7 +1896,8 @@
     "submissionUrl": "https://findthatsoftware.com/vendors",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "findyouragent.ai",
@@ -1716,7 +1906,8 @@
     "submissionUrl": "https://findyouragent.ai/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FirstLook.tools",
@@ -1725,7 +1916,8 @@
     "submissionUrl": "https://firstlook.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Firsto",
@@ -1734,7 +1926,8 @@
     "submissionUrl": "https://firsto.co/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FiveTaco",
@@ -1743,7 +1936,8 @@
     "submissionUrl": "https://fivetaco.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "flowtools",
@@ -1752,7 +1946,8 @@
     "submissionUrl": "https://www.flowtools.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "founders.page",
@@ -1761,7 +1956,8 @@
     "submissionUrl": "https://www.founders.page/signup",
     "description": "",
     "businessModel": "FREE_FOR_LIMITED_TIME",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Foundr",
@@ -1770,7 +1966,8 @@
     "submissionUrl": "https://foundr.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Foundrlist",
@@ -1779,7 +1976,8 @@
     "submissionUrl": "https://www.foundrlist.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Free AI Apps",
@@ -1788,7 +1986,8 @@
     "submissionUrl": "https://freeappsai.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FreeAI.run",
@@ -1797,7 +1996,8 @@
     "submissionUrl": "https://www.freeai.run/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FrogDR",
@@ -1806,7 +2006,8 @@
     "submissionUrl": "https://frogdr.com/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Funnel Directory",
@@ -1815,7 +2016,8 @@
     "submissionUrl": "https://funneldirectory.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Future AI Guide",
@@ -1824,7 +2026,8 @@
     "submissionUrl": "https://tools.futureaiguide.com/tools/create/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Future Tools",
@@ -1833,7 +2036,8 @@
     "submissionUrl": "https://futuretools.io/submit-a-tool",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Futurepedia",
@@ -1842,7 +2046,8 @@
     "submissionUrl": "https://www.futurepedia.io/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FutureStack",
@@ -1851,7 +2056,8 @@
     "submissionUrl": "https://www.usefuturestack.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "FWOL",
@@ -1860,7 +2066,8 @@
     "submissionUrl": "http://fwol.cn/infos_add.php",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "G2",
@@ -1869,7 +2076,8 @@
     "submissionUrl": "https://sell.g2.com/create-a-profile",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GeekWire",
@@ -1878,7 +2086,8 @@
     "submissionUrl": "https://www.geekwire.com/submit-startup/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Genify",
@@ -1887,7 +2096,8 @@
     "submissionUrl": "https://genify.dev/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GetApp",
@@ -1896,7 +2106,8 @@
     "submissionUrl": "https://www.getapp.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GetLatka",
@@ -1905,7 +2116,8 @@
     "submissionUrl": "https://getlatka.com/add",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Gets.Tools",
@@ -1914,7 +2126,8 @@
     "submissionUrl": "https://gets.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Glama MCP Connectors",
@@ -1923,7 +2136,8 @@
     "submissionUrl": "https://glama.ai/mcp/connectors",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GoodFirms",
@@ -1932,7 +2146,8 @@
     "submissionUrl": "https://www.goodfirms.co/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GPT Academy",
@@ -1941,7 +2156,8 @@
     "submissionUrl": "https://www.gptacademy.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GptDemo.net",
@@ -1950,7 +2166,8 @@
     "submissionUrl": "https://www.gptdemo.net/gpt/add-tool?lg=en",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GreenRocket",
@@ -1959,7 +2176,8 @@
     "submissionUrl": "https://greenrocket.app/create",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "GroupifyAI",
@@ -1968,7 +2186,8 @@
     "submissionUrl": "https://groupify.ai/new-tool-form",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Gust",
@@ -1977,7 +2196,8 @@
     "submissionUrl": "https://gust.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "HHLink",
@@ -1986,7 +2206,8 @@
     "submissionUrl": "https://www.hhlink.com/%E6%8F%90%E4%BA%A4%E6%96%B0%E7%BD%91%E7%AB%99",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "High Rank Directory",
@@ -1995,7 +2216,8 @@
     "submissionUrl": "https://highrankdirectory.com/submit.php",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Hot100",
@@ -2004,7 +2226,8 @@
     "submissionUrl": "https://www.hot100.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "How to Buy SaaS",
@@ -2013,7 +2236,8 @@
     "submissionUrl": "https://www.howtobuysaas.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "HuntScreens",
@@ -2022,7 +2246,8 @@
     "submissionUrl": "https://huntscreens.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Huzzler",
@@ -2031,7 +2256,8 @@
     "submissionUrl": "https://huzzler.so/products/create",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Idea Kiln",
@@ -2040,7 +2266,8 @@
     "submissionUrl": "https://ideakiln.com/dashboard/submit-idea",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Inc42",
@@ -2049,7 +2276,8 @@
     "submissionUrl": "https://tally.so/r/w2poXD",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Index by Dodo Payments",
@@ -2058,7 +2286,8 @@
     "submissionUrl": "https://index.dodopayments.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Indie Folio",
@@ -2067,7 +2296,8 @@
     "submissionUrl": "https://indiefol.io/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Indie Hackers",
@@ -2076,7 +2306,8 @@
     "submissionUrl": "https://www.indiehackers.com/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Indie Page",
@@ -2085,7 +2316,8 @@
     "submissionUrl": "https://indiepa.ge/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Indie-Builds",
@@ -2094,7 +2326,8 @@
     "submissionUrl": "https://indie-builds.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Indie.Deals",
@@ -2103,7 +2336,8 @@
     "submissionUrl": "https://indie.deals/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Indiehacker Tools",
@@ -2112,7 +2346,8 @@
     "submissionUrl": "https://www.indiehacker.tools/list-indie-tool",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "IndieHub",
@@ -2121,7 +2356,8 @@
     "submissionUrl": "https://indiehub.best/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "IndieHunt",
@@ -2130,7 +2366,8 @@
     "submissionUrl": "https://indiehunt.io/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "IndieHustles",
@@ -2139,7 +2376,8 @@
     "submissionUrl": "https://indiehustles.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "IndieProducts.io",
@@ -2148,7 +2386,8 @@
     "submissionUrl": "https://www.indieproducts.io/",
     "description": "",
     "businessModel": "FREE_FOR_LIMITED_TIME",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "IndieTool",
@@ -2157,7 +2396,8 @@
     "submissionUrl": "https://www.indietool.io/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "InnMind",
@@ -2166,7 +2406,8 @@
     "submissionUrl": "https://app.innmind.com/register",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Insidr AI Directory",
@@ -2175,7 +2416,8 @@
     "submissionUrl": "https://www.insidr.ai/submit-tools/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Intelligent Tools",
@@ -2184,7 +2426,8 @@
     "submissionUrl": "https://intelligenttools.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Invent List",
@@ -2193,7 +2436,8 @@
     "submissionUrl": "https://inventlist.com/submit",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "It's LaunchDay",
@@ -2202,7 +2446,8 @@
     "submissionUrl": "https://www.itslaunchday.com/submit-product",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ITQlick",
@@ -2211,7 +2456,8 @@
     "submissionUrl": "https://www.itqlick.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Joinly",
@@ -2220,7 +2466,8 @@
     "submissionUrl": "https://www.joinly.xyz/submit-startup",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "JustLaunched",
@@ -2229,7 +2476,8 @@
     "submissionUrl": "https://justlaunched.fyi/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Kick Product",
@@ -2238,7 +2486,8 @@
     "submissionUrl": "https://www.kickproduct.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Lachief.io",
@@ -2247,7 +2496,8 @@
     "submissionUrl": "https://www.lachief.io/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Land-book",
@@ -2256,7 +2506,8 @@
     "submissionUrl": "https://land-book.com/websites/new",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Landingfolio",
@@ -2265,7 +2516,8 @@
     "submissionUrl": "https://www.landingfolio.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launch AI",
@@ -2274,7 +2526,8 @@
     "submissionUrl": "https://trylaunch.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launch List",
@@ -2283,7 +2536,8 @@
     "submissionUrl": "https://www.launch-list.org/submit/product",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launch Llama",
@@ -2292,7 +2546,8 @@
     "submissionUrl": "https://tools.launchllama.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launch Vault",
@@ -2301,7 +2556,8 @@
     "submissionUrl": "https://www.launchvault.dev/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LaunchAF",
@@ -2310,7 +2566,8 @@
     "submissionUrl": "https://launchaf.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LaunchBert",
@@ -2319,7 +2576,8 @@
     "submissionUrl": "https://launchbert.com/products/create",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LaunchBoard.dev",
@@ -2328,7 +2586,8 @@
     "submissionUrl": "https://launchboard.dev/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LaunchIgniter",
@@ -2337,7 +2596,8 @@
     "submissionUrl": "https://launchigniter.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launching Next",
@@ -2346,7 +2606,8 @@
     "submissionUrl": "https://www.launchingnext.com/submit/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launchory",
@@ -2355,7 +2616,8 @@
     "submissionUrl": "https://www.launchory.app/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LaunchPact",
@@ -2364,7 +2626,8 @@
     "submissionUrl": "https://www.launchpact.io/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LaunchPad India",
@@ -2373,7 +2636,8 @@
     "submissionUrl": "https://launchpadindia.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Launchpadly",
@@ -2382,7 +2646,8 @@
     "submissionUrl": "https://launchpadly.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LibHunt",
@@ -2391,7 +2656,8 @@
     "submissionUrl": "https://www.libhunt.com/repo/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Lifto",
@@ -2400,7 +2666,8 @@
     "submissionUrl": "https://liftoapp.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LineZine AI Tool Directory",
@@ -2409,7 +2676,8 @@
     "submissionUrl": "https://linezine.com/list-your-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Link Centre",
@@ -2418,7 +2686,8 @@
     "submissionUrl": "https://www.linkcentre.com/addurl/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "List My SaaS",
@@ -2427,7 +2696,8 @@
     "submissionUrl": "https://listmysaas.xyz/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ListBulb",
@@ -2436,7 +2706,8 @@
     "submissionUrl": "https://www.listbulb.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Listmyai",
@@ -2445,7 +2716,8 @@
     "submissionUrl": "https://listmyai.net/submit-ai-tools",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ListYourIdea",
@@ -2454,7 +2726,8 @@
     "submissionUrl": "https://listyouridea.com/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ListYourTool",
@@ -2463,7 +2736,8 @@
     "submissionUrl": "https://www.listyourtool.com/submit-tool",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "LLM Relevance",
@@ -2472,7 +2746,8 @@
     "submissionUrl": "https://www.llmrelevance.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Lobsters",
@@ -2481,7 +2756,8 @@
     "submissionUrl": "https://lobste.rs/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Look AI Tools",
@@ -2490,7 +2766,8 @@
     "submissionUrl": "https://lookaitools.com/submit-listing/details/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MadGenius",
@@ -2499,7 +2776,8 @@
     "submissionUrl": "https://madgenius.co/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MagicBox.tools",
@@ -2508,7 +2786,8 @@
     "submissionUrl": "https://magicbox.tools/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MAGNiTT",
@@ -2517,7 +2796,8 @@
     "submissionUrl": "https://magnitt.com/startups",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Make.rs",
@@ -2526,7 +2806,8 @@
     "submissionUrl": "https://make.rs/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Maker Move",
@@ -2535,7 +2816,8 @@
     "submissionUrl": "https://www.makermove.com/promote",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MakerHunt",
@@ -2544,7 +2826,8 @@
     "submissionUrl": "https://makerhunt.io/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Makerlist.io",
@@ -2553,7 +2836,8 @@
     "submissionUrl": "https://makerlist.io/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MakerPad",
@@ -2562,7 +2846,8 @@
     "submissionUrl": "https://www.makerpad.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Marketing Internet Directory",
@@ -2571,7 +2856,8 @@
     "submissionUrl": "https://www.marketinginternetdirectory.com/submit.php",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MarketingDB",
@@ -2580,7 +2866,8 @@
     "submissionUrl": "https://marketingdb.live/submit/plan",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MCP Market",
@@ -2589,7 +2876,8 @@
     "submissionUrl": "https://mcpmarket.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MCP Store",
@@ -2598,7 +2886,8 @@
     "submissionUrl": "https://mcpstore.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "mcp.so",
@@ -2607,7 +2896,8 @@
     "submissionUrl": "https://mcp.so/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "MCPBundles",
@@ -2616,7 +2906,8 @@
     "submissionUrl": "https://www.mcpbundles.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "mcpservers.org",
@@ -2625,7 +2916,8 @@
     "submissionUrl": "https://mcpservers.org/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "mcpub",
@@ -2634,7 +2926,8 @@
     "submissionUrl": "https://mcpub.dev/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Mergeek",
@@ -2643,7 +2936,8 @@
     "submissionUrl": "https://mergeek.com/zh/publish_project",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Microlaunch",
@@ -2652,7 +2946,8 @@
     "submissionUrl": "https://microlaunch.net/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Mydentify",
@@ -2661,7 +2956,8 @@
     "submissionUrl": "https://mydentify.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NavFolders.com",
@@ -2670,7 +2966,8 @@
     "submissionUrl": "https://navfolders.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Navs.site",
@@ -2679,7 +2976,8 @@
     "submissionUrl": "https://navs.site/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NavTools.ai",
@@ -2688,7 +2986,8 @@
     "submissionUrl": "https://navtools.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Neeed Directory",
@@ -2697,7 +2996,8 @@
     "submissionUrl": "https://neeed.directory/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NeonRev",
@@ -2706,7 +3006,8 @@
     "submissionUrl": "https://www.neonrev.com/advertise/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "New SaaSly",
@@ -2715,7 +3016,8 @@
     "submissionUrl": "https://newsaasly.com/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NewTool",
@@ -2724,7 +3026,8 @@
     "submissionUrl": "https://newtool.site/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Next Big Product",
@@ -2733,7 +3036,8 @@
     "submissionUrl": "https://nextbigproduct.com/list-fast",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Next Big What",
@@ -2742,7 +3046,8 @@
     "submissionUrl": "https://submit.nextbigwhat.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NextGen Tools",
@@ -2751,7 +3056,8 @@
     "submissionUrl": "https://www.nxgntools.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NextPedia",
@@ -2760,7 +3066,8 @@
     "submissionUrl": "https://nextpedia.io/submit-tool/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Nick Launches",
@@ -2769,7 +3076,8 @@
     "submissionUrl": "https://nicklaunches.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "No Code Founders",
@@ -2778,7 +3086,8 @@
     "submissionUrl": "https://www.nocodefounders.com/list-your-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "NoCode.Tech",
@@ -2787,7 +3096,8 @@
     "submissionUrl": "https://www.nocode.tech/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Noon Launch",
@@ -2796,7 +3106,8 @@
     "submissionUrl": "https://noonlaunch.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Official MCP Registry",
@@ -2805,7 +3116,8 @@
     "submissionUrl": "https://registry.modelcontextprotocol.io/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "OGFolio",
@@ -2814,7 +3126,8 @@
     "submissionUrl": "https://www.ogfolio.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "OGimage.gallery",
@@ -2823,7 +3136,8 @@
     "submissionUrl": "https://www.ogimage.gallery/submit",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Open Launch",
@@ -2832,7 +3146,8 @@
     "submissionUrl": "https://open-launch.com/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Open Makers",
@@ -2841,7 +3156,8 @@
     "submissionUrl": "https://openmakers.io/add-product",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Open SaaS Directory",
@@ -2850,7 +3166,8 @@
     "submissionUrl": "https://opensaas.directory/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Open Startup List",
@@ -2859,7 +3176,8 @@
     "submissionUrl": "https://openstartuplist.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "OpenAlternative",
@@ -2868,7 +3186,8 @@
     "submissionUrl": "https://openalternative.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "OpenFuture AI",
@@ -2877,7 +3196,8 @@
     "submissionUrl": "https://openfuture.ai/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "OpenHunts",
@@ -2886,7 +3206,8 @@
     "submissionUrl": "https://openhunts.com/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "OpenTools",
@@ -2895,7 +3216,8 @@
     "submissionUrl": "https://opentools.ai/friends/launch-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "osalt.com",
@@ -2904,7 +3226,8 @@
     "submissionUrl": "https://osalt.com/suggest",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Outbid",
@@ -2913,7 +3236,8 @@
     "submissionUrl": "https://outbid.lol/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Owler",
@@ -2922,7 +3246,8 @@
     "submissionUrl": "https://www.owler.com/owler-community",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Owwly",
@@ -2931,7 +3256,8 @@
     "submissionUrl": "https://owwly.com/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PayOnceApps",
@@ -2940,7 +3266,8 @@
     "submissionUrl": "https://payonceapps.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Peerlist Launchpad",
@@ -2949,7 +3276,8 @@
     "submissionUrl": "https://peerlist.io/launchpad",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PeerPush",
@@ -2958,7 +3286,8 @@
     "submissionUrl": "https://peerpush.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PeerSpot",
@@ -2967,7 +3296,8 @@
     "submissionUrl": "https://www.peerspot.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PhotoToolFinder",
@@ -2976,7 +3306,8 @@
     "submissionUrl": "https://phototoolfinder.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Phygital+ AI Library",
@@ -2985,7 +3316,8 @@
     "submissionUrl": "https://library.phygital.plus/tool-submission",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Pitchwall",
@@ -2994,7 +3326,8 @@
     "submissionUrl": "https://pitchwall.co/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PlatformsDirectory.com",
@@ -3003,7 +3336,8 @@
     "submissionUrl": "https://www.platformsdirectory.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Postmake",
@@ -3012,7 +3346,8 @@
     "submissionUrl": "https://postmake.io/submit-badge-listing",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PoweredByAI",
@@ -3021,7 +3356,8 @@
     "submissionUrl": "https://poweredbyai.app/submit-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Pro Launch",
@@ -3030,7 +3366,8 @@
     "submissionUrl": "https://prolaunch.net/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Prodpapa",
@@ -3039,7 +3376,8 @@
     "submissionUrl": "https://www.prodpapa.com/pricing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Product Inspire",
@@ -3048,7 +3386,8 @@
     "submissionUrl": "https://www.productinspire.com/register",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Product Watch",
@@ -3057,7 +3396,8 @@
     "submissionUrl": "https://productwatch.io/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ProductBurst",
@@ -3066,7 +3406,8 @@
     "submissionUrl": "https://productburst.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ProductFame",
@@ -3075,7 +3416,8 @@
     "submissionUrl": "https://productfame.com/products/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Productivity Directory",
@@ -3084,7 +3426,8 @@
     "submissionUrl": "https://productivity.directory/s/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Profit Hunt",
@@ -3093,7 +3436,8 @@
     "submissionUrl": "https://profithunt.co/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "PromoteProject",
@@ -3102,7 +3446,8 @@
     "submissionUrl": "https://www.promoteproject.com/submit-startup",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ProofStories",
@@ -3111,7 +3456,8 @@
     "submissionUrl": "https://proofstories.io/submit/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Proven Expert",
@@ -3120,7 +3466,8 @@
     "submissionUrl": "https://www.provenexpert.com/en-us/register/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Quality Internet Directory",
@@ -3129,7 +3476,8 @@
     "submissionUrl": "https://www.qualityinternetdirectory.com/submit.php",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/AlphaandBetausers",
@@ -3138,7 +3486,8 @@
     "submissionUrl": "https://www.reddit.com/r/alphaandbetausers/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/buildinpublic",
@@ -3147,7 +3496,8 @@
     "submissionUrl": "https://www.reddit.com/r/buildinpublic/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/Design_Critiques",
@@ -3156,7 +3506,8 @@
     "submissionUrl": "https://www.reddit.com/r/design_critiques/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/Entrepreneur",
@@ -3165,7 +3516,8 @@
     "submissionUrl": "https://www.reddit.com/r/Entrepreneur/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/EntrepreneurRideAlong",
@@ -3174,7 +3526,8 @@
     "submissionUrl": "https://www.reddit.com/r/EntrepreneurRideAlong/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/IMadeThis",
@@ -3183,7 +3536,8 @@
     "submissionUrl": "https://www.reddit.com/r/IMadeThis/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/IndieBiz",
@@ -3192,7 +3546,8 @@
     "submissionUrl": "https://www.reddit.com/r/indiebiz/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/indiehackers",
@@ -3201,7 +3556,8 @@
     "submissionUrl": "https://www.reddit.com/r/indiehackers/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/LadyBusiness",
@@ -3210,7 +3566,8 @@
     "submissionUrl": "https://www.reddit.com/r/ladybusiness/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/microsaas",
@@ -3219,7 +3576,8 @@
     "submissionUrl": "https://www.reddit.com/r/microsaas/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/plugyourproduct",
@@ -3228,7 +3586,8 @@
     "submissionUrl": "https://www.reddit.com/r/plugyourproduct/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/RoastMyStartup",
@@ -3237,7 +3596,8 @@
     "submissionUrl": "https://www.reddit.com/r/roastmystartup/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/SaaS",
@@ -3246,7 +3606,8 @@
     "submissionUrl": "https://www.reddit.com/r/SaaS/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/SideProject",
@@ -3255,7 +3616,8 @@
     "submissionUrl": "https://www.reddit.com/r/SideProject/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/SmallBusiness",
@@ -3264,7 +3626,8 @@
     "submissionUrl": "https://www.reddit.com/r/smallbusiness/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "r/Startups",
@@ -3273,7 +3636,8 @@
     "submissionUrl": "https://www.reddit.com/r/startups/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ramen.tools",
@@ -3282,7 +3646,8 @@
     "submissionUrl": "https://ramen.tools/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "RankmyAI",
@@ -3291,7 +3656,8 @@
     "submissionUrl": "https://www.rankmyai.com/tool-addition",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "RankYourAI",
@@ -3300,7 +3666,8 @@
     "submissionUrl": "https://rankyourai.com/p/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Resource.fyi",
@@ -3309,7 +3676,8 @@
     "submissionUrl": "https://resource.fyi/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Revispy Launchpad",
@@ -3318,7 +3686,8 @@
     "submissionUrl": "https://www.revispy.com/launchpad",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Right AI",
@@ -3327,7 +3696,8 @@
     "submissionUrl": "https://right-ai.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Romanian Startups",
@@ -3336,7 +3706,8 @@
     "submissionUrl": "https://www.romanianstartups.com/register/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaS AI Tools",
@@ -3345,7 +3716,8 @@
     "submissionUrl": "https://saasaitools.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaS Bison",
@@ -3354,7 +3726,8 @@
     "submissionUrl": "https://saasbison.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaS Curate",
@@ -3363,7 +3736,8 @@
     "submissionUrl": "https://www.saascurate.com/promote",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaS Genius",
@@ -3372,7 +3746,8 @@
     "submissionUrl": "https://www.saasgenius.com/get-listed/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaS Page",
@@ -3381,7 +3756,8 @@
     "submissionUrl": "https://www.saaspa.ge/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaSBoard",
@@ -3390,7 +3766,8 @@
     "submissionUrl": "https://saasboard.app/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaSCity",
@@ -3399,7 +3776,8 @@
     "submissionUrl": "https://saascity.io/saascity?submit=1",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaSFame",
@@ -3408,7 +3786,8 @@
     "submissionUrl": "https://saasfame.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaSHub",
@@ -3417,7 +3796,8 @@
     "submissionUrl": "https://www.saashub.com/services/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaasList",
@@ -3426,7 +3806,8 @@
     "submissionUrl": "https://saaslist.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Saaspo",
@@ -3435,7 +3816,8 @@
     "submissionUrl": "https://saaspo.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaStore",
@@ -3444,7 +3826,8 @@
     "submissionUrl": "https://saastore.ai/signup/seller",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SaaSworthy",
@@ -3453,7 +3836,8 @@
     "submissionUrl": "https://www.saasworthy.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ScrollLaunch",
@@ -3462,7 +3846,8 @@
     "submissionUrl": "https://www.scrolllaunch.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "See AI First",
@@ -3471,7 +3856,8 @@
     "submissionUrl": "https://seeaifirst.com/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "See What New AI",
@@ -3480,7 +3866,8 @@
     "submissionUrl": "https://www.seewhatnewai.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SeekAIs",
@@ -3489,7 +3876,8 @@
     "submissionUrl": "https://seekais.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SelectHub",
@@ -3498,7 +3886,8 @@
     "submissionUrl": "https://www.selecthub.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Serchen",
@@ -3507,7 +3896,8 @@
     "submissionUrl": "https://www.serchen.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Ship or Die",
@@ -3516,7 +3906,8 @@
     "submissionUrl": "https://shipordie.club/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Ship with No-Code",
@@ -3525,7 +3916,8 @@
     "submissionUrl": "https://www.shno.co/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ShipBoost",
@@ -3534,7 +3926,8 @@
     "submissionUrl": "https://shipboost.io/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ShipGrowth",
@@ -3543,7 +3936,8 @@
     "submissionUrl": "https://shipgrowth.dev/submit/free-submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Shipybara",
@@ -3552,7 +3946,8 @@
     "submissionUrl": "https://shipybara.com/projects/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ShowMeBestAI",
@@ -3561,7 +3956,8 @@
     "submissionUrl": "https://showmebest.ai/submit/free-submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Side Projectors",
@@ -3570,7 +3966,8 @@
     "submissionUrl": "https://www.sideprojectors.com/submit/type",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SideHunt",
@@ -3579,7 +3976,8 @@
     "submissionUrl": "https://sidehunt.io/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SimilarLabs",
@@ -3588,7 +3986,8 @@
     "submissionUrl": "https://similarlabs.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Simple Lister",
@@ -3597,7 +3996,8 @@
     "submissionUrl": "https://simplelister.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Site Promotion Directory",
@@ -3606,7 +4006,8 @@
     "submissionUrl": "https://www.sitepromotiondirectory.com/submit.php",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Site Web Directory",
@@ -3615,7 +4016,8 @@
     "submissionUrl": "https://www.siteswebdirectory.com/submit.php",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Site-Plus",
@@ -3624,7 +4026,8 @@
     "submissionUrl": "https://www.sites-plus.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SiteLike",
@@ -3633,7 +4036,8 @@
     "submissionUrl": "https://www.sitelike.org/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SmartCustomer",
@@ -3642,7 +4046,8 @@
     "submissionUrl": "https://biz.smartcustomer.com/register",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Smithery",
@@ -3651,7 +4056,8 @@
     "submissionUrl": "https://smithery.ai/servers/new",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Smol Launch",
@@ -3660,7 +4066,8 @@
     "submissionUrl": "https://smollaunch.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SnapMunk",
@@ -3669,7 +4076,8 @@
     "submissionUrl": "https://www.snapmunk.com/submit-your-startup/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SoftwareSuggest",
@@ -3678,7 +4086,8 @@
     "submissionUrl": "https://www.softwaresuggest.com/vendors",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SoftwareWorld",
@@ -3687,7 +4096,8 @@
     "submissionUrl": "https://www.softwareworld.co/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SoMuch",
@@ -3696,7 +4106,8 @@
     "submissionUrl": "https://somuch.com/submit-links/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Space Bandits",
@@ -3705,7 +4116,8 @@
     "submissionUrl": "https://www.spacebandits.io/startups",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Spectacle",
@@ -3714,7 +4126,8 @@
     "submissionUrl": "https://startupvideos.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Spiff.store",
@@ -3723,7 +4136,8 @@
     "submissionUrl": "https://spiff.store/submit-tool",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SpotSaaS",
@@ -3732,7 +4146,8 @@
     "submissionUrl": "https://partners.spotsaas.com/register",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StarTap",
@@ -3741,7 +4156,8 @@
     "submissionUrl": "https://startap.cc/play",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Starter Best",
@@ -3750,7 +4166,8 @@
     "submissionUrl": "https://starterbest.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StartFast",
@@ -3759,7 +4176,8 @@
     "submissionUrl": "https://startfa.st/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup 88",
@@ -3768,7 +4186,8 @@
     "submissionUrl": "https://startup88.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup AIdeas",
@@ -3777,7 +4196,8 @@
     "submissionUrl": "https://startupaideas.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StartUp Beat",
@@ -3786,7 +4206,8 @@
     "submissionUrl": "https://startupbeat.com/startup-beat-featured-startup-pitch-guidelines/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Benchmarks",
@@ -3795,7 +4216,8 @@
     "submissionUrl": "https://www.startupbenchmarks.com/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Buffer",
@@ -3804,7 +4226,8 @@
     "submissionUrl": "https://startupbuffer.com/site/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Dope",
@@ -3813,7 +4236,8 @@
     "submissionUrl": "https://startupdope.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Europe",
@@ -3822,7 +4246,8 @@
     "submissionUrl": "https://startupeurope.net/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Fame",
@@ -3831,7 +4256,8 @@
     "submissionUrl": "https://startupfa.me/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Fast",
@@ -3840,7 +4266,8 @@
     "submissionUrl": "https://www.startupfa.st/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Guys",
@@ -3849,7 +4276,8 @@
     "submissionUrl": "https://www.startupguys.net/submit-startup/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Inspire",
@@ -3858,7 +4286,8 @@
     "submissionUrl": "https://www.startupinspire.com/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Ranked",
@@ -3867,7 +4296,8 @@
     "submissionUrl": "https://startupranked.com/",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Ranking",
@@ -3876,7 +4306,8 @@
     "submissionUrl": "https://www.startupranking.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Sea",
@@ -3885,7 +4316,8 @@
     "submissionUrl": "http://www.startupsea.com/p/submit-startup.html",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Spotlight",
@@ -3894,7 +4326,8 @@
     "submissionUrl": "https://www.startupspotlight.co/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Stash",
@@ -3903,7 +4336,8 @@
     "submissionUrl": "https://startupstash.com/add-listing/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Tile",
@@ -3912,7 +4346,8 @@
     "submissionUrl": "https://startuptile.com/payg/pay",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup Tracker",
@@ -3921,7 +4356,8 @@
     "submissionUrl": "https://startuptracker.io/crowdsourcing/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startup.sx",
@@ -3930,7 +4366,8 @@
     "submissionUrl": "https://www.startup.sx/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StartupBase",
@@ -3939,7 +4376,8 @@
     "submissionUrl": "https://startupbase.io/launch",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StartupBlink",
@@ -3948,7 +4386,8 @@
     "submissionUrl": "https://www.startupblink.com/startups",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StartupLibrary",
@@ -3957,7 +4396,8 @@
     "submissionUrl": "https://startuplibrary.net/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startuplist Africa",
@@ -3966,7 +4406,8 @@
     "submissionUrl": "https://www.startuplist.africa/submit-startup",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startups Gallery",
@@ -3975,7 +4416,8 @@
     "submissionUrl": "https://startups.gallery/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startups-List",
@@ -3984,7 +4426,8 @@
     "submissionUrl": "https://startups-list.com/cities",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startups.fm",
@@ -3993,7 +4436,8 @@
     "submissionUrl": "https://startups.fm/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startups.fyi",
@@ -4002,7 +4446,8 @@
     "submissionUrl": "https://www.startups.fyi/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Startups.watch",
@@ -4011,7 +4456,8 @@
     "submissionUrl": "https://startups.watch/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StartupTrusted",
@@ -4020,7 +4466,8 @@
     "submissionUrl": "https://startuptrusted.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Stellar Launch",
@@ -4029,7 +4476,8 @@
     "submissionUrl": "https://www.stellarlaunch.org/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "StrictSeal",
@@ -4038,7 +4486,8 @@
     "submissionUrl": "https://strictseal.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SubmitMySaas",
@@ -4047,7 +4496,8 @@
     "submissionUrl": "https://submitmysaas.com/projects/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Super Launch",
@@ -4056,7 +4506,8 @@
     "submissionUrl": "https://www.superlaun.ch/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Superb Crew",
@@ -4065,7 +4516,8 @@
     "submissionUrl": "https://superbcrew.com/your-voice/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "SuperLaunchList",
@@ -4074,7 +4526,8 @@
     "submissionUrl": "https://superlaunchlist.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Taalk",
@@ -4083,7 +4536,8 @@
     "submissionUrl": "https://taalk.com/submit-startup",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tap4 AI",
@@ -4092,7 +4546,8 @@
     "submissionUrl": "https://tap4.ai/submit/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tapscape",
@@ -4101,7 +4556,8 @@
     "submissionUrl": "https://www.tapscape.com/submit-app-review/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tech Map",
@@ -4110,7 +4566,8 @@
     "submissionUrl": "https://techmap.me/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tech Pluto",
@@ -4119,7 +4576,8 @@
     "submissionUrl": "https://www.techpluto.com/",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Techboard",
@@ -4128,7 +4586,8 @@
     "submissionUrl": "https://techboard.com.au/get-listed/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Techendo",
@@ -4137,7 +4596,8 @@
     "submissionUrl": "https://techendo.com/beta/add",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tekpon",
@@ -4146,7 +4606,8 @@
     "submissionUrl": "https://tekpon.com/get-listed/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Thank John",
@@ -4155,7 +4616,8 @@
     "submissionUrl": "https://thankjohn.com/get-started",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ThatsMyAI",
@@ -4164,7 +4626,8 @@
     "submissionUrl": "https://thatsmy.ai/submit-tool",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "The Agents Index",
@@ -4173,7 +4636,8 @@
     "submissionUrl": "https://theagentsindex.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "The AI Generation",
@@ -4182,7 +4646,8 @@
     "submissionUrl": "https://www.theaigeneration.com/add/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "The Hack Stack",
@@ -4191,7 +4656,8 @@
     "submissionUrl": "https://thehackstack.com/add-product",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "The Startup INC",
@@ -4200,7 +4666,8 @@
     "submissionUrl": "https://thestartupinc.com/submit-startup/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TheAISurf",
@@ -4209,7 +4676,8 @@
     "submissionUrl": "https://theaisurf.com/submit-listing/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "There's An AI For That",
@@ -4218,7 +4686,8 @@
     "submissionUrl": "https://theresanaiforthat.com/launch/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TheSaaSDir",
@@ -4227,7 +4696,8 @@
     "submissionUrl": "https://thesaasdir.com/submit/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TheSaaSDirectory",
@@ -4236,7 +4706,8 @@
     "submissionUrl": "https://thesaasdirectory.com/create-listing/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Thingtesting",
@@ -4245,7 +4716,8 @@
     "submissionUrl": "https://thingtesting.com/submit-brand",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tiny Launch",
@@ -4254,7 +4726,8 @@
     "submissionUrl": "https://www.tinylaunch.com/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tiny Startups",
@@ -4263,7 +4736,8 @@
     "submissionUrl": "https://www.tinystartups.com/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TipSeason",
@@ -4272,7 +4746,8 @@
     "submissionUrl": "https://www.tipseason.com/ai-tools/submit-free",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Today Launches",
@@ -4281,7 +4756,8 @@
     "submissionUrl": "https://todaylaunches.com/pricing",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tool AI",
@@ -4290,7 +4766,8 @@
     "submissionUrl": "https://www.toolai.io/submit/tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tool Directory",
@@ -4299,7 +4776,8 @@
     "submissionUrl": "https://tooldirectory.ai/submit-tool",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ToolDirs",
@@ -4308,7 +4786,8 @@
     "submissionUrl": "https://tooldirs.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ToolFame",
@@ -4317,7 +4796,8 @@
     "submissionUrl": "https://toolfame.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolfio",
@@ -4326,7 +4806,8 @@
     "submissionUrl": "https://toolfio.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolfolio",
@@ -4335,7 +4816,8 @@
     "submissionUrl": "https://toolfolio.com/boosted-listing",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolify.ai",
@@ -4344,7 +4826,8 @@
     "submissionUrl": "https://www.toolify.ai/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolkitly",
@@ -4353,7 +4836,8 @@
     "submissionUrl": "https://www.toolkitly.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ToolPasta",
@@ -4362,7 +4846,8 @@
     "submissionUrl": "https://robopost.app/en/toolpasta/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ToolPilot",
@@ -4371,7 +4856,8 @@
     "submissionUrl": "https://www.toolpilot.ai/pages/submit-your-ai-tool",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tools AI Online",
@@ -4380,7 +4866,8 @@
     "submissionUrl": "https://www.tools-ai.online/submit-tool",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tools NoCode",
@@ -4389,7 +4876,8 @@
     "submissionUrl": "https://toolsnocode.com/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tools.so",
@@ -4398,7 +4886,8 @@
     "submissionUrl": "https://tools.so/submit",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolscout AI",
@@ -4407,7 +4896,8 @@
     "submissionUrl": "https://toolscout.ai/submit",
     "description": "",
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolsfine",
@@ -4416,7 +4906,8 @@
     "submissionUrl": "https://toolsfine.com/submit-ai-tools-or-product",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toolspedia",
@@ -4425,7 +4916,8 @@
     "submissionUrl": "https://toolspedia.io/submit-tool/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Toools",
@@ -4434,7 +4926,8 @@
     "submissionUrl": "https://www.toools.design/suggest-a-tool",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TopAI.tools",
@@ -4443,7 +4936,8 @@
     "submissionUrl": "https://topai.tools/submit",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TopAITools4U",
@@ -4452,7 +4946,8 @@
     "submissionUrl": "https://www.topaitools4u.site/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Tracxn",
@@ -4461,7 +4956,8 @@
     "submissionUrl": "https://tracxn.com/listyourstartup",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Trust Revenue",
@@ -4470,7 +4966,8 @@
     "submissionUrl": "https://trust-revenue.com/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TrustMRR",
@@ -4479,7 +4976,8 @@
     "submissionUrl": "https://trustmrr.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Trustpilot",
@@ -4488,7 +4986,8 @@
     "submissionUrl": "https://business.trustpilot.com/signup",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TrustRadius",
@@ -4497,7 +4996,8 @@
     "submissionUrl": "https://www.trustradius.com/",
     "description": "",
     "businessModel": "UNKNOWN",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "TrustROAS",
@@ -4506,7 +5006,8 @@
     "submissionUrl": "https://trustroas.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Turbo0",
@@ -4515,7 +5016,8 @@
     "submissionUrl": "https://turbo0.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Twelve Tools",
@@ -4524,7 +5026,8 @@
     "submissionUrl": "https://twelve.tools/submit-your-tool",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "ufind.best",
@@ -4533,7 +5036,8 @@
     "submissionUrl": "https://ufind.best/pricing",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Uneed",
@@ -4542,7 +5046,8 @@
     "submissionUrl": "https://www.uneed.best/submit-a-tool",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Unloc.tools",
@@ -4551,7 +5056,8 @@
     "submissionUrl": "https://unloc.tools/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Uno Directory",
@@ -4560,7 +5066,8 @@
     "submissionUrl": "https://uno.directory/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Vantaige",
@@ -4569,7 +5076,8 @@
     "submissionUrl": "https://vantaige.io/list-your-ai-tool",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Verified Tools",
@@ -4578,7 +5086,8 @@
     "submissionUrl": "https://www.verifiedtools.info/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "VerifiedDR",
@@ -4587,7 +5096,8 @@
     "submissionUrl": "https://verifieddr.com/",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Versily",
@@ -4596,7 +5106,8 @@
     "submissionUrl": "https://versily.com/start/product",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "VibeHacker",
@@ -4605,7 +5116,8 @@
     "submissionUrl": "https://vibehacker.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Victrays",
@@ -4614,7 +5126,8 @@
     "submissionUrl": "https://victrays.com/",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Viesearch",
@@ -4623,7 +5136,8 @@
     "submissionUrl": "https://viesearch.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Votekicker",
@@ -4632,7 +5146,8 @@
     "submissionUrl": "https://votekicker.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "WaildWorld",
@@ -4641,7 +5156,8 @@
     "submissionUrl": "https://waildworld.com/",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "We Like Tools",
@@ -4650,7 +5166,8 @@
     "submissionUrl": "https://weliketools.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Web App Rater",
@@ -4659,7 +5176,8 @@
     "submissionUrl": "https://webapprater.com/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Web Designer News",
@@ -4668,7 +5186,8 @@
     "submissionUrl": "https://www.webdesignernews.com/advertise",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "WebCatalog",
@@ -4677,7 +5196,8 @@
     "submissionUrl": "https://webcatalog.io/en/apps/submit",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Webcurate",
@@ -4686,7 +5206,8 @@
     "submissionUrl": "https://webcurate.co/",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Website Hunt",
@@ -4695,7 +5216,8 @@
     "submissionUrl": "https://www.websitehunt.co/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Webspot",
@@ -4704,7 +5226,8 @@
     "submissionUrl": "https://webspot.app/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "WeekHack",
@@ -4713,7 +5236,8 @@
     "submissionUrl": "https://www.weekhack.com/launches/submit",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Wellfound",
@@ -4722,7 +5246,8 @@
     "submissionUrl": "https://help.wellfound.com/article/720-how-can-i-create-a-new-company-or-access-an-existing-one",
     "description": "",
     "businessModel": "FREE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Welodge Pulse",
@@ -4731,7 +5256,8 @@
     "submissionUrl": "https://pulse.welodge.co.zw/app/startups/new",
     "description": "",
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "What Is AI Tools",
@@ -4740,7 +5266,8 @@
     "submissionUrl": "https://whatisaitools.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "WhatLaunched.Today",
@@ -4749,7 +5276,8 @@
     "submissionUrl": "https://whatlaunched.today/",
     "description": "",
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "WhatTheAI",
@@ -4758,7 +5286,8 @@
     "submissionUrl": "https://whattheai.tech/submit",
     "description": "",
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Where2Go",
@@ -4767,7 +5296,8 @@
     "submissionUrl": "https://where2go.com/binn/su.w2g?function=form",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "WIP",
@@ -4776,7 +5306,8 @@
     "submissionUrl": "https://wip.co/join",
     "description": "",
     "businessModel": "PAID",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Wired Business",
@@ -4785,7 +5316,8 @@
     "submissionUrl": "https://wired.business/submit-your-website",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Xinquji",
@@ -4794,7 +5326,8 @@
     "submissionUrl": "https://xinquji.com/submit",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "YourStory",
@@ -4803,7 +5336,8 @@
     "submissionUrl": "https://yourstory.com/companies",
     "description": "",
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "zPlatform.ai",
@@ -4812,7 +5346,8 @@
     "submissionUrl": "https://zplatform.ai/submit-ai-tool/",
     "description": "",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   },
   {
     "name": "Zumvu",
@@ -4821,6 +5356,7 @@
     "submissionUrl": "https://zumvu.com/",
     "description": "",
     "businessModel": "FREE_FOR_LIMITED_TIME",
-    "lastChecked": null
+    "lastChecked": null,
+    "unreachableSince": null
   }
 ]

@@ -86,7 +86,7 @@ describe('fetchClientMetadataDocument', () => {
 
   test('refuses a body cut short, an error status, a redirect, and what is not a JSON object', async () => {
     const redirect: Fetch = mock(async () => {
-      throw new OutboundRefusal('More than 0 redirects from https://example.com')
+      throw new OutboundRefusal('More than 0 redirects from https://example.com', 'redirects')
     })
 
     for (const fetch of [

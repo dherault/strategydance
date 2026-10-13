@@ -1168,12 +1168,12 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     up to 200 by 160 pixels, opening whole in a dialog under their name and size; any other file is
     a chip with its icon, name and size, which reads nothing, as the design has it. An image's bytes
     are read through `requestApiFile`, past the browser's HTTP cache, which keys them by address
-    alone, and kept for the tab by reader, never stale, a 4xx not tried again by itself; the images
-    the reader just sent are drawn from the bytes that went up, never read back. A thumbnail, in the
-    thread as in the tray, is a small copy drawn from them one at a time (`useImageThumbnail`), since
-    an `<img>` decodes its picture whole whatever size it is drawn at; only the dialog draws the
-    image whole. Addresses are held while something draws them (`useObjectUrl`) and given back
-    after.
+    alone, and kept for the tab by reader, never stale, a 403 or a 404 kept as no file, never asked
+    again; the images the reader just sent are drawn from the bytes that went up, never read back. A
+    thumbnail, in the thread as in the tray, is a small copy drawn from them one at a time
+    (`useImageThumbnail`), since an `<img>` decodes its picture whole whatever size it is drawn at;
+    only the dialog draws the image whole. Addresses are held while something draws them
+    (`useObjectUrl`) and given back after.
   - **The list** words a message of files alone "You: plan.pdf", or "You: 3 files".
 
 ### The agent

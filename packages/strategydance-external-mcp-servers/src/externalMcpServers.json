@@ -24,18 +24,6 @@
     "lastChecked": "2026-10-13"
   },
   {
-    "slug": "asana",
-    "name": "Asana",
-    "url": "https://mcp.asana.com/v2/mcp",
-    "authentication": "OAUTH",
-    "apiKeyScheme": null,
-    "apiKeyHeader": null,
-    "category": "PROJECTS",
-    "description": "Tasks, projects and goals.",
-    "hasMark": true,
-    "lastChecked": "2026-10-13"
-  },
-  {
     "slug": "attio",
     "name": "Attio",
     "url": "https://mcp.attio.com/mcp",

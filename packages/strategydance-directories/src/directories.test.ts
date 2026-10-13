@@ -12,6 +12,7 @@ import {
   DirectoryType,
   INACTIVE_DIRECTORIES,
   INACTIVE_DIRECTORY_FIELDS,
+  isDirectoryCategoryListValid,
   MAX_DIRECTORY_DESCRIPTION_LENGTH,
 } from './index'
 
@@ -35,15 +36,8 @@ const ALL_DIRECTORIES = [...DIRECTORIES, ...INACTIVE_DIRECTORIES]
 
 describe.each(LISTS)('$name', ({ directories, text, fields }) => {
   // Each once, in the enum's order, as the check writes them, so the same categories read the same
-  it('holds only known categories, each once, in order', () => {
-    const categories: string[] = Object.values(DirectoryCategory)
-
-    for (const directory of directories) {
-      const positions = directory.categories.map(category => categories.indexOf(category))
-
-      expect(positions).not.toContain(-1)
-      expect(positions).toEqual([...new Set(positions)].toSorted((a, b) => a - b))
-    }
+  it('holds only known categories, each once, in order, ANY_STARTUP beside no kind', () => {
+    for (const { categories } of directories) expect(isDirectoryCategoryListValid(categories)).toBe(true)
   })
 
   it('holds only known types and business models', () => {
@@ -160,6 +154,23 @@ describe('both lists', () => {
     expect(new Set(names).size).toBe(names.length)
     expect(new Set(submissionUrls).size).toBe(submissionUrls.length)
     expect(new Set(websiteRootUrls).size).toBe(websiteRootUrls.length)
+  })
+})
+
+describe('isDirectoryCategoryListValid', () => {
+  it('takes known categories, each once, in the enum order', () => {
+    expect(isDirectoryCategoryListValid([])).toBe(true)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.AI_TOOLS, DirectoryCategory.SAAS])).toBe(true)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.SAAS, DirectoryCategory.AI_TOOLS])).toBe(false)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.SAAS, DirectoryCategory.SAAS])).toBe(false)
+    expect(isDirectoryCategoryListValid(['GAMES'])).toBe(false)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.AI_TOOLS, 'GAMES'])).toBe(false)
+  })
+
+  it('takes ANY_STARTUP beside REGIONAL alone', () => {
+    expect(isDirectoryCategoryListValid([DirectoryCategory.ANY_STARTUP, DirectoryCategory.REGIONAL])).toBe(true)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.ANY_STARTUP, DirectoryCategory.AI_TOOLS])).toBe(false)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.SAAS, DirectoryCategory.REGIONAL])).toBe(true)
   })
 })
 

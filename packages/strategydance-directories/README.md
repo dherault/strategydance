@@ -31,7 +31,8 @@ Each entry holds:
 - `categories`: the kinds of product the directory lists, each a `DirectoryCategory`, which
   `DIRECTORY_CATEGORY_DESCRIPTIONS` describes, once each and in the enum's order, written by the
   daily check, empty until it has been: `ANY_STARTUP` for one that takes any product, rather than
-  every kind, and `REGIONAL` beside the kinds for one that takes a single region's startups
+  every kind, and `REGIONAL` beside the kinds for one that takes a single region's startups.
+  `isDirectoryCategoryListValid` says whether a list keeps to all that
 - `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for those imported as inactive, while one
   the daily check moves there keeps its own
 - `lastChecked`: the UTC day (`YYYY-MM-DD`) of the last check, whatever came of it, null until

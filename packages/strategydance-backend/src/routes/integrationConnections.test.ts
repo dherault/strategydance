@@ -185,10 +185,11 @@ describe("a member's Connect, through the routes", () => {
     expect(fake.connections.size).toBe(0)
   })
 
-  test('cancels a Connect under way', async () => {
-    await call('POST', '/connection')
+  test('cancels the Connect under way it names', async () => {
+    const started = await call('POST', '/connection')
 
-    expect((await call('DELETE', '/connection/authorization')).status).toBe(200)
+    expect(started.body.data.authorizationId).toMatch(/^[0-9a-f]{32}$/)
+    expect((await call('DELETE', `/connection/authorizations/${started.body.data.authorizationId}`)).status).toBe(200)
     expect(fake.authorizations.size).toBe(0)
   })
 

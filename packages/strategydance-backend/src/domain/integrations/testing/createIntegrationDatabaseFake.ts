@@ -642,7 +642,9 @@ function createIntegrationDatabaseFake() {
       return { integrationAuthorization_deleteMany: count }
     },
     CancelIntegrationAuthorization: variables => ({
-      integrationAuthorization_deleteMany: deleteAuthorizations(authorization => isMember(authorization, variables)),
+      integrationAuthorization_deleteMany: deleteAuthorizations(
+        authorization => authorization.id === id(variables.authorizationId) && isMember(authorization, variables),
+      ),
     }),
     ConnectIntegration: variables => {
       lockServer(variables)

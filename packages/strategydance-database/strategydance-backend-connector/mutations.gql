@@ -4840,12 +4840,18 @@ mutation ConsumeIntegrationAuthorization(
   ) @check(expr: "this == 1", message: "The sign-in was finished already or has expired")
 }
 
-# Cancels a member's Connect under way, so a sign-in finished in its window after connects nothing.
-# The backend reads the count
-mutation CancelIntegrationAuthorization($organizationId: UUID!, $userId: String!, $integrationId: UUID!)
-@auth(level: NO_ACCESS) {
+# Cancels a member's Connect under way, by its id, so a sign-in finished in its window after connects
+# nothing, and a Connect they started since, which replaced it, is left alone. The backend reads the
+# count
+mutation CancelIntegrationAuthorization(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $authorizationId: UUID!
+) @auth(level: NO_ACCESS) {
   integrationAuthorization_deleteMany(
     where: {
+      id: { eq: $authorizationId }
       integrationId: { eq: $integrationId }
       membershipUserId: { eq: $userId }
       membershipOrganizationId: { eq: $organizationId }

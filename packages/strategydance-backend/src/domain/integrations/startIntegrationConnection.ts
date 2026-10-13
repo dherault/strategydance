@@ -12,6 +12,7 @@ import { INTEGRATION_OAUTH_CALLBACK_URL } from '~constants'
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
+import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import classifyIntegrationFailure from '~domain/integrations/classifyIntegrationFailure'
 import createIntegrationFetch from '~domain/integrations/createIntegrationFetch'
@@ -31,7 +32,8 @@ type StartIntegrationConnectionParameters = {
 
 /*
   Starts a member's Connect to one of the organization's OAuth servers, answering the address of the
-  authorization server's sign-in, which their page opens in the window it opened for it:
+  authorization server's sign-in, which their page opens in the window it opened for it, and the
+  Connect's id, which a Cancel names:
 
   - the server, live and taking OAuth, is discovered again, every request through the guarded fetch,
     and has to name the issuer its row holds: another issuer is another authorization server, which
@@ -141,7 +143,11 @@ async function startIntegrationConnection({
 
   if (refusal) return refusal
 
-  return { outcome: 'started', authorizationUrl: authorizationUrl.href } as const
+  return {
+    outcome: 'started',
+    authorizationUrl: authorizationUrl.href,
+    authorizationId: toCanonicalUuid(authorizationId),
+  } as const
 }
 
 // The revocation endpoint (RFC 7009) the authorization server names, an https one alone

@@ -234,6 +234,8 @@ const editBodySchema = settingsSchema.and(z.object({ expected: expectedSchema })
 
 const enabledBodySchema = z.object({ isEnabled: z.boolean() })
 
+const authorizationParamsSchema = integrationParamsSchema.extend({ authorizationId: z.string().regex(UUID_PATTERN) })
+
 // The Connect a member's page finishes, from the address the callback sent it to
 const finishBodySchema = z.object({ authorizationId: z.string().regex(UUID_PATTERN) })
 
@@ -251,6 +253,8 @@ type IntegrationsRequest<Body = unknown> = Request<
 >
 
 type IntegrationRequest<Body = unknown> = Request<z.infer<typeof integrationParamsSchema>, ApiResponse, Body>
+
+type AuthorizationRequest = Request<z.infer<typeof authorizationParamsSchema>, ApiResponse>
 
 /*
   An organization's MCP servers, which its administrators add, change, turn on and off, retry and
@@ -423,7 +427,10 @@ function createIntegrationsRouter() {
 
       if (respondRefusal(response, result) || result.outcome !== 'started') return
 
-      response.json({ status: 'success', data: { authorizationUrl: result.authorizationUrl } })
+      response.json({
+        status: 'success',
+        data: { authorizationUrl: result.authorizationUrl, authorizationId: result.authorizationId },
+      })
     },
   )
 
@@ -448,15 +455,18 @@ function createIntegrationsRouter() {
     },
   )
 
-  // Cancels the member's Connect under way, so its sign-in connects nothing once finished
+  // Cancels the member's Connect the page names, so its sign-in connects nothing once finished
   router.delete(
-    '/:integrationId/connection/authorization',
+    '/:integrationId/connection/authorizations/:authorizationId',
     appCheckMiddleware,
     authenticationMiddleware,
-    validateMiddleware({ params: integrationParamsSchema }),
+    validateMiddleware({ params: authorizationParamsSchema }),
     ...member,
-    async (request: IntegrationRequest, response: Response) => {
-      const result = await cancelIntegrationConnection(toCaller(request))
+    async (request: AuthorizationRequest, response: Response) => {
+      const result = await cancelIntegrationConnection({
+        ...toCaller(request),
+        authorizationId: toCanonicalUuid(request.params.authorizationId),
+      })
 
       if (respondRefusal(response, result)) return
 

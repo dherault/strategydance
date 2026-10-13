@@ -522,11 +522,30 @@ describe('finishing a Connect', () => {
   })
 
   test('connects nothing once the member canceled the Connect', async () => {
-    const authorizationUrl = await start()
+    const started = await startIntegrationConnection(caller(ADA))
 
-    await cancelIntegrationConnection(caller(ADA))
+    if (started.outcome !== 'started') throw new Error('Not started')
 
-    expect((await receiveIntegrationAuthorizationCode(provider.approve(authorizationUrl))).outcome).toBe('failed')
+    await cancelIntegrationConnection({ ...caller(ADA), authorizationId: started.authorizationId })
+
+    expect((await receiveIntegrationAuthorizationCode(provider.approve(started.authorizationUrl))).outcome).toBe(
+      'failed',
+    )
+  })
+
+  test('leaves a Connect started since alone when a Cancel of the one it replaced lands late', async () => {
+    const first = await startIntegrationConnection(caller(ADA))
+    const second = await startIntegrationConnection(caller(ADA))
+
+    if (first.outcome !== 'started' || second.outcome !== 'started') throw new Error('Not started')
+
+    await cancelIntegrationConnection({ ...caller(ADA), authorizationId: first.authorizationId })
+
+    const { authorization } = await receiveIntegrationAuthorizationCode(provider.approve(second.authorizationUrl))
+
+    expect(await finishIntegrationConnection({ ...caller(ADA), authorizationId: authorization! })).toEqual({
+      outcome: 'connected',
+    })
   })
 })
 

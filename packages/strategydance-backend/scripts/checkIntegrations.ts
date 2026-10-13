@@ -895,9 +895,18 @@ async function checkConnections() {
       'The sign-in was finished already or has expired',
     ),
   )
+  const canceled = createId()
+
+  await start(member, canceled, `state-k-${checkId}`)
   check(
-    'a Connect is canceled',
-    (await cancelIntegrationAuthorization(dataConnect, member)).data.integrationAuthorization_deleteMany === 1,
+    'a Cancel naming the Connect a newer one replaced cancels nothing',
+    (await cancelIntegrationAuthorization(dataConnect, { ...member, authorizationId: lateId })).data
+      .integrationAuthorization_deleteMany === 0,
+  )
+  check(
+    'a Connect is canceled by its id',
+    (await cancelIntegrationAuthorization(dataConnect, { ...member, authorizationId: canceled })).data
+      .integrationAuthorization_deleteMany === 1,
   )
 
   // Connecting

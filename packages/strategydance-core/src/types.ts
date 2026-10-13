@@ -301,10 +301,14 @@ export type AddIntegrationData = {
   toolCount: number
 }
 
-// What starting a Connect answers: the address of the authorization server's sign-in, which the
-// page opens in the window it opened for it, an https one alone
+/*
+  What starting a Connect answers: the address of the authorization server's sign-in, which the page
+  opens in the window it opened for it, an https one alone, and the Connect's id, which a Cancel names,
+  so it cancels that Connect and never one started since
+*/
 export type StartIntegrationConnectionData = {
   authorizationUrl: string
+  authorizationId: string
 }
 
 /*

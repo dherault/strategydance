@@ -325,15 +325,18 @@ async function checkReconfiguring() {
   const id = createId()
   const hashes = ['hash-a', 'hash-b']
 
-  await create({ integrationId: id, catalogueSlug: 'github', toolDefinitionHashes: hashes })
+  const createdName = 'Reconfigured'
+
+  await create({ integrationId: id, name: createdName, catalogueSlug: 'github', toolDefinitionHashes: hashes })
   await allowOrganizationIntegrationTool(dataConnect, { ...administrator, integrationId: id, definitionHash: 'hash-a' })
 
-  const reconfigure = (configRevision: number, keyGeneration: number) =>
+  const reconfigure = (configRevision: number, keyGeneration: number, readName = createdName) =>
     reconfigureOrganizationIntegration(dataConnect, {
       ...administrator,
       integrationId: id,
       name: 'Moved',
       normalizedName: 'moved',
+      readName,
       configRevision,
       keyGeneration,
       url: 'https://mcp.elsewhere.example/mcp',
@@ -352,6 +355,10 @@ async function checkReconfiguring() {
   check(
     'a change made from a configuration read before another is refused',
     await isRefused(reconfigure(1, 0), 'The server was changed or deleted meanwhile'),
+  )
+  check(
+    'a change made over a rename made meanwhile is refused',
+    await isRefused(reconfigure(0, 0, 'Another name'), 'The server was changed or deleted meanwhile'),
   )
   check('a change made from the stored configuration goes through', (await refusal(reconfigure(0, 0))) === null)
 
@@ -373,6 +380,7 @@ async function checkReconfiguring() {
         integrationId: id,
         name: 'Notion',
         normalizedName: 'notion',
+        readName: 'Moved',
         configRevision: 1,
         keyGeneration: 1,
         url: 'https://mcp.elsewhere.example/mcp',
@@ -395,7 +403,9 @@ async function checkReconfiguring() {
 async function checkKeysAndTools() {
   const id = createId()
 
-  await create({ integrationId: id, toolDefinitionHashes: ['hash-a', 'hash-b', 'hash-c'] })
+  const keyedName = 'Keyed first'
+
+  await create({ integrationId: id, name: keyedName, toolDefinitionHashes: ['hash-a', 'hash-b', 'hash-c'] })
 
   const allow = (definitionHash: string) =>
     allowOrganizationIntegrationTool(dataConnect, { ...administrator, integrationId: id, definitionHash })
@@ -426,6 +436,7 @@ async function checkKeysAndTools() {
       integrationId: id,
       name: 'Keyed',
       normalizedName: 'keyed',
+      readName: keyedName,
       configRevision: 0,
       keyGeneration,
       configRevisionIncrement: 1,

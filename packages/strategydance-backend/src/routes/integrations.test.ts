@@ -372,6 +372,36 @@ describe('changing a server', () => {
     expect(stored).toMatchObject({ apiKeyScheme: 'HEADER', configRevision: 1, keyGeneration: 0 })
   })
 
+  test('refuses a change made over a rename made meanwhile, keeping the rename', async () => {
+    const moved = await add({ ...OPEN, name: 'Open' })
+
+    answer = async () => {
+      moved.name = 'Renamed first'
+
+      return listed(['hash-a'])
+    }
+
+    expect(
+      (await call('PATCH', `/${moved.id}`, { ...OPEN, name: 'Open', url: 'https://mcp.moved.example/mcp' })).status,
+    ).toBe(409)
+    expect(moved.name).toBe('Renamed first')
+
+    const stored = await add()
+
+    answer = async () => {
+      stored.name = 'Renamed meanwhile'
+      stored.normalizedName = 'renamed meanwhile'
+
+      return listed(['hash-a'])
+    }
+
+    const { status, body } = await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'replaced_9999' })
+
+    expect(status).toBe(409)
+    expect(body.code).toBe(ERROR_CODE_CONFLICT)
+    expect(stored.name).toBe('Renamed meanwhile')
+  })
+
   test('refuses a change made over another made meanwhile', async () => {
     const stored = await add()
 

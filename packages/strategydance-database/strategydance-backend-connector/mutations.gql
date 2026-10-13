@@ -4082,7 +4082,8 @@ mutation PruneOAuthClients @auth(level: NO_ACCESS) {
 #
 # A write made after reaching the server matches the `configRevision` and `keyGeneration` it reached
 # it with, under a check that it changed one row, so a result read from a configuration another
-# administrator has replaced since is refused rather than stored over theirs
+# administrator has replaced since is refused rather than stored over theirs. One that also writes
+# the name matches the name it read, `$readName`, so a rename made meanwhile is not undone
 
 # Adds a server, with what reaching it found: its tools for one that took no OAuth, or the issuer of
 # its authorization server for one that does, whose tools wait for a member's connection (M28).
@@ -4200,6 +4201,7 @@ mutation ReconfigureOrganizationIntegration(
   $integrationId: UUID!
   $name: String!
   $normalizedName: String!
+  $readName: String!
   $configRevision: Int!
   $keyGeneration: Int!
   $url: String!
@@ -4237,6 +4239,7 @@ mutation ReconfigureOrganizationIntegration(
     where: {
       id: { eq: $integrationId }
       organizationId: { eq: $organizationId }
+      name: { eq: $readName }
       configRevision: { eq: $configRevision }
       keyGeneration: { eq: $keyGeneration }
       deletedAt: { isNull: true }
@@ -4276,6 +4279,7 @@ mutation UpdateOrganizationIntegrationKey(
   $integrationId: UUID!
   $name: String!
   $normalizedName: String!
+  $readName: String!
   $configRevision: Int!
   $keyGeneration: Int!
   $configRevisionIncrement: Int!
@@ -4313,6 +4317,7 @@ mutation UpdateOrganizationIntegrationKey(
       id: { eq: $integrationId }
       organizationId: { eq: $organizationId }
       authentication: { eq: API_KEY }
+      name: { eq: $readName }
       configRevision: { eq: $configRevision }
       keyGeneration: { eq: $keyGeneration }
       deletedAt: { isNull: true }

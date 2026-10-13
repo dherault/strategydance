@@ -41,8 +41,9 @@ type EditIntegrationParameters = {
     the approvals of the tools still listed (`UpdateOrganizationIntegrationKey`)
   - a name alone is renamed
 
-  Each write matches the configuration the server was reached with, so an edit made meanwhile wins
-  and this one is refused as a conflict, for the administrator to look again
+  Each write matches the configuration the server was reached with and the name it was read with, so
+  an edit made meanwhile, a rename included, wins and this one is refused as a conflict, for the
+  administrator to look again
 */
 async function editIntegration({ organizationId, userId, integrationId, settings }: EditIntegrationParameters) {
   const stored = await readIntegrationForAdministrator(organizationId, integrationId)
@@ -105,7 +106,8 @@ async function editIntegration({ organizationId, userId, integrationId, settings
     }
   }
 
-  const matched = { configRevision: stored.configRevision, keyGeneration: stored.keyGeneration }
+  // What the server was read as: a change made to it meanwhile, a rename included, refuses this one
+  const matched = { readName: stored.name, configRevision: stored.configRevision, keyGeneration: stored.keyGeneration }
   const refusal = isServerChanged
     ? await runIntegrationWrite(() =>
         reconfigureOrganizationIntegration(dataConnect, {

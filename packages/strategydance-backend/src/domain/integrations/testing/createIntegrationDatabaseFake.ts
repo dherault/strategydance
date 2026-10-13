@@ -170,8 +170,11 @@ function createIntegrationDatabaseFake() {
       checkNameFree(variables)
 
       const row =
-        findLive(variables, { configRevision: variables.configRevision, keyGeneration: variables.keyGeneration })
-        ?? refuse('The server was changed or deleted meanwhile')
+        findLive(variables, {
+          name: variables.readName,
+          configRevision: variables.configRevision,
+          keyGeneration: variables.keyGeneration,
+        }) ?? refuse('The server was changed or deleted meanwhile')
 
       // Every variable is passed, as the mutation's comment asks: one left out would keep its column
       for (const field of [
@@ -215,6 +218,7 @@ function createIntegrationDatabaseFake() {
       const row =
         findLive(variables, {
           authentication: IntegrationAuthentication.API_KEY,
+          name: variables.readName,
           configRevision: variables.configRevision,
           keyGeneration: variables.keyGeneration,
         }) ?? refuse('The server was changed or deleted meanwhile')

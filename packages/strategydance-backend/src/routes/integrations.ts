@@ -32,6 +32,7 @@ import { UUID_PATTERN } from '~constants'
 
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
+import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
@@ -281,7 +282,7 @@ function createIntegrationsRouter() {
     ...administrator,
     async (request: IntegrationsRequest<z.infer<typeof addBodySchema>>, response: Response) => {
       const result = await addIntegration({
-        organizationId: request.params.organizationId,
+        organizationId: toCanonicalUuid(request.params.organizationId),
         userId: readViewer(request).id,
         settings: request.body,
       })
@@ -304,9 +305,9 @@ function createIntegrationsRouter() {
     async (request: IntegrationRequest<z.infer<typeof editBodySchema>>, response: Response) => {
       const { expected, ...settings } = request.body
       const result = await editIntegration({
-        organizationId: request.params.organizationId,
+        organizationId: toCanonicalUuid(request.params.organizationId),
         userId: readViewer(request).id,
-        integrationId: request.params.integrationId,
+        integrationId: toCanonicalUuid(request.params.integrationId),
         settings,
         expected,
       })
@@ -327,9 +328,9 @@ function createIntegrationsRouter() {
     ...administrator,
     async (request: IntegrationRequest, response: Response) => {
       const result = await retryIntegration({
-        organizationId: request.params.organizationId,
+        organizationId: toCanonicalUuid(request.params.organizationId),
         userId: readViewer(request).id,
-        integrationId: request.params.integrationId,
+        integrationId: toCanonicalUuid(request.params.integrationId),
       })
 
       if (respondRefusal(response, result)) return
@@ -438,7 +439,7 @@ function createIntegrationsRouter() {
     async (request: IntegrationRequest<z.infer<typeof finishBodySchema>>, response: Response) => {
       const result = await finishIntegrationConnection({
         ...toCaller(request),
-        authorizationId: request.body.authorizationId,
+        authorizationId: toCanonicalUuid(request.body.authorizationId),
       })
 
       if (respondRefusal(response, result)) return
@@ -483,11 +484,16 @@ function createIntegrationsRouter() {
   return router
 }
 
+/*
+  The organization, the caller and the server a route acts on, its ids canonical whatever spelling the
+  path used, since the live queries' refreshes compare the variables an operation is called with as
+  text: the page a sign-in ends on names them hyphenated, as the callback wrote them
+*/
 function toCaller(request: IntegrationRequest<unknown>) {
   return {
-    organizationId: request.params.organizationId,
+    organizationId: toCanonicalUuid(request.params.organizationId),
     userId: readViewer(request).id,
-    integrationId: request.params.integrationId,
+    integrationId: toCanonicalUuid(request.params.integrationId),
   }
 }
 

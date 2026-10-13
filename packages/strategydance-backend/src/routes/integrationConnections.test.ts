@@ -175,6 +175,12 @@ describe("a member's Connect, through the routes", () => {
     })
     expect(fake.connections.get(`${INTEGRATION_ID}:${MEMBER}`)).toBeDefined()
 
+    // The page names the ids hyphenated, as the callback wrote them; the operations, whose variables
+    // the live queries' refreshes compare as text, are handed them as Data Connect writes them
+    const connected = fake.calls.find(({ name }) => name === 'ConnectIntegration')!
+
+    expect(connected.variables).toMatchObject({ organizationId: ORGANIZATION_ID, integrationId: INTEGRATION_ID })
+
     expect((await call('DELETE', '/connection')).status).toBe(200)
     expect(fake.connections.size).toBe(0)
   })

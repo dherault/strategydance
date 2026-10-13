@@ -91,6 +91,13 @@ function IntegrationDialog({ integration, preset, integrations, isAdministrator,
   const [isSaving, setIsSaving] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
   const [failure, setFailure] = useState<IntegrationFailure | null>(null)
+  // The server as the dialog showed it when it opened, which an edit is made from: a change since
+  // mounts the dialog anew (`getIntegrationFormKey`), and one the page has not heard of yet refuses it
+  const [shown] = useState(() =>
+    integration
+      ? { name: integration.name, configRevision: integration.configRevision, keyGeneration: integration.keyGeneration }
+      : null,
+  )
 
   const isReadOnly = !isAdministrator
   const parsedUrl = parseIntegrationUrl(url)
@@ -167,8 +174,8 @@ function IntegrationDialog({ integration, preset, integrations, isAdministrator,
     setFailure(null)
 
     try {
-      if (integration) {
-        await editIntegration(integration.id, settings)
+      if (integration && shown) {
+        await editIntegration(integration.id, settings, shown)
         toast.success(formatMessage(integrationMessages.saved))
       } else {
         const added = await addIntegration(settings)

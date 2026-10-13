@@ -46,6 +46,8 @@ function useOrganizationIntegrationTools(integrationId: string) {
   const row = data?.organizationIntegrations[0]
 
   return {
+    // The revision the tools were listed under, which an approval of one is sent with
+    configRevision: row?.configRevision ?? null,
     tools: parseIntegrationTools(row?.tools),
     autoApprovedTools: row?.autoApprovedTools ?? NO_APPROVALS,
     isLoading: isPending && !isError,

@@ -35,6 +35,8 @@ describe('getIntegrationFormKey', () => {
       { authentication: IntegrationAuthentication.OAUTH },
       { apiKeyScheme: IntegrationApiKeyScheme.HEADER, apiKeyHeader: 'X-API-Key' },
       { apiKeyLastFour: '9999' },
+      { keyGeneration: 1 },
+      { configRevision: 1 },
     ]) {
       expect(getIntegrationFormKey({ ...INTEGRATION, ...change })).not.toBe(key)
     }

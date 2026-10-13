@@ -16,6 +16,9 @@ function getIntegrationFormKey(integration: OrganizationIntegration) {
     integration.apiKeyScheme,
     integration.apiKeyHeader ?? null,
     integration.apiKeyLastFour ?? null,
+    // A key replaced, even by one too short to show its last four, or a configuration changed
+    integration.keyGeneration,
+    integration.configRevision,
   ])
 }
 

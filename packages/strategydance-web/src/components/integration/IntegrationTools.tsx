@@ -33,7 +33,9 @@ type Props = {
 */
 function IntegrationTools({ integration, isAdministrator }: Props) {
   const { formatMessage } = useIntl()
-  const { tools, autoApprovedTools, isLoading, hasFailed } = useOrganizationIntegrationTools(integration.id)
+  const { configRevision, tools, autoApprovedTools, isLoading, hasFailed } = useOrganizationIntegrationTools(
+    integration.id,
+  )
   const { setIntegrationToolApproval } = useIntegrationRequests()
   const [pendingHash, setPendingHash] = useState<string | null>(null)
 
@@ -41,10 +43,12 @@ function IntegrationTools({ integration, isAdministrator }: Props) {
     integration.authentication === IntegrationAuthentication.OAUTH && (integration.toolCount ?? null) === null
 
   async function setApproval(tool: string, definitionHash: string, isAutoApproved: boolean) {
+    if (configRevision === null) return
+
     setPendingHash(definitionHash)
 
     try {
-      await setIntegrationToolApproval(integration.id, definitionHash, isAutoApproved)
+      await setIntegrationToolApproval(integration.id, { definitionHash, isAutoApproved, configRevision })
       toast.success(
         formatMessage(isAutoApproved ? integrationMessages.runsWithoutApproval : integrationMessages.asksForApproval, {
           tool,

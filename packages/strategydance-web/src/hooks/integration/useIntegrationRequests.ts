@@ -15,6 +15,13 @@ type IntegrationSettings = {
   apiKeyHeader: string | null
 }
 
+// A server as a dialog showed it: what an edit is made from
+type IntegrationShown = {
+  name: string
+  configRevision: number
+  keyGeneration: number
+}
+
 /*
   The calls to the integrations' routes for the current organization, each of which an
   administrator alone makes. They answer nothing the page reads afterwards: the live list and the
@@ -35,18 +42,18 @@ function useIntegrationRequests() {
   return {
     addIntegration: (settings: IntegrationSettings) =>
       requestApi<AddIntegrationData>({ method: 'POST', path: toPath(), body: settings }),
-    editIntegration: (integrationId: string, settings: IntegrationSettings) =>
-      requestApi({ method: 'PATCH', path: toPath(`/${integrationId}`), body: settings }),
+    // Sent with the server as its dialog showed it, so an edit from a stale view is refused
+    editIntegration: (integrationId: string, settings: IntegrationSettings, expected: IntegrationShown) =>
+      requestApi({ method: 'PATCH', path: toPath(`/${integrationId}`), body: { ...settings, expected } }),
     retryIntegration: (integrationId: string) =>
       requestApi({ method: 'POST', path: toPath(`/${integrationId}/retry`) }),
     setIntegrationEnabled: (integrationId: string, isEnabled: boolean) =>
       requestApi({ method: 'PUT', path: toPath(`/${integrationId}/enabled`), body: { isEnabled } }),
-    setIntegrationToolApproval: (integrationId: string, definitionHash: string, isAutoApproved: boolean) =>
-      requestApi({
-        method: 'PUT',
-        path: toPath(`/${integrationId}/auto-approved-tools`),
-        body: { definitionHash, isAutoApproved },
-      }),
+    // Sent with the revision the tools were shown under
+    setIntegrationToolApproval: (
+      integrationId: string,
+      approval: { definitionHash: string; isAutoApproved: boolean; configRevision: number },
+    ) => requestApi({ method: 'PUT', path: toPath(`/${integrationId}/auto-approved-tools`), body: approval }),
     deleteIntegration: (integrationId: string) => requestApi({ method: 'DELETE', path: toPath(`/${integrationId}`) }),
     restoreIntegration: (integrationId: string) =>
       requestApi({ method: 'POST', path: toPath(`/${integrationId}/restore`) }),

@@ -1778,11 +1778,11 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 What a subagent is, and why each rule below holds, is in Subagents.
 
 - **The schema change**, additive:
-  - `Conversation` gains `parent`, `launchRunId`, `launchToolUseId`, `launchAnchorPosition`,
-    `report`, `reportedAt`, `reportDeliveredAt` and `subagentCount`, indexed on `parentId`, and
-    `ConversationMessage` gains `attachmentIds`, a `BRIEF`'s files.
-  - `ConversationRunTrigger` gains `LAUNCH`, `CONTINUE` and `REPORTS`, `ConversationRunStatus`
-    `PENDING` and `CHAINED`, and `ConversationMessageKind` `BRIEF`, each appended.
+  - `Conversation` gains `parent`, indexed as every reference is, `launchRunId`, `launchToolUseId`,
+    `launchAnchorPosition`, `report`, `reportedAt` and `subagentCount`, and `ConversationMessage`
+    gains `attachmentIds`, a `BRIEF`'s files. `reportDeliveredAt` comes with the reaction, in M32.
+  - `ConversationRunTrigger` gains `LAUNCH` and `CONTINUE`, `ConversationRunStatus` `PENDING` and
+    `CHAINED`, and `ConversationMessageKind` `BRIEF`, each appended. `REPORTS` comes in M32.
   - The limits go in strategydance-core (see The data).
   - The web's exhaustive maps over those enums take the new values in the same milestone, or the
     typecheck fails: `isOlderConversationRun`'s ranks of `ConversationRunStatus`, `PENDING` before
@@ -1795,20 +1795,28 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - Every way a member acts on a conversation refuses a subagent (see Subagents): the send, answer,
     Resume, Retry, Stop and reconcile routes, an upload under its id, and the web's delete, restore,
     read and aspects mutations, `parent` null in each filter.
-- `launchSubagent` in `domain/subagents/`, called directly here, since the module comes in M31. It is
-  the one mutation Modules § The Subagents module's tools describes, taking the membership lock,
-  which counts the slots and the ten, then the parent's row, which counts the hundred, the order
-  every run start keeps, then the queueing. The call's key joins it in M31.
+- `launchSubagent` in `domain/subagents/`, called directly here, since the module comes in M31. It
+  first finalizes the member's dead subagent runs in the organization, as a run start finalizes
+  their dead runs (`finalizeDeadConversationRuns`), then runs the one mutation Modules § The
+  Subagents module's tools describes, taking the membership lock, which counts the slots and the
+  ten, those a Retry deleted left out, then the parent's row, which counts the hundred, the order
+  every run start keeps, then the queueing. It takes only files the conversation has sent, within a
+  send's budget by their `tokenCount`. The call's key joins it in M31, and so do the checks of the
+  launching run, inside the mutation: M30's script launches from no run, `launchRunId` and
+  `launchToolUseId` null, on the parent's latest anchor.
 - **The subagent's run**, in `runConversation`:
   - Its system prompt, `subagentSystemPrompt.ts`, and its tools list, both pinned by their bytes.
   - The brief as its anchor, its files sent by their Files API ids.
   - No tagging, unread count or question.
-  - The chain: `CHAINED`, the `CONTINUE` run carrying on as Resume does, and the tool calls' budget
-    read from the run's number.
+  - The chain: `CHAINED` at any of a run's three limits, 25 requests, 10 minutes or 100 entries,
+    the `CONTINUE` run carrying on as Resume does, and the tool calls' budget, counted from the
+    anchor today, fifty for each run the chain has taken, read from the run's number.
   - The report, written by the mutation that ends its last run.
-  - The promotion of the member's oldest `PENDING` run, in the mutation that ends a subagent for
-    good from a run that held a slot, never in one that chains or one that ends a `PENDING` run, and
-    skipping a run whose membership is gone, which the reconcile and the sweep finalize.
+  - The promotion, a mutation of its own taking the membership lock, after a write that ends a
+    subagent for good from a run that held a slot, never after one that chains or one that ends a
+    `PENDING` run: it promotes the member's oldest `PENDING` runs into the slots then free, setting
+    each one's `createdAt` from the database's clock, and skips a run whose membership is gone, one
+    asked to stop and one whose subagent is deleted, which the reconcile and the sweep finalize.
 - **The `subagent-runs` queue**, with `SUBAGENT_RUN_QUEUE_PATH` beside `CONVERSATION_RUN_QUEUE_PATH`
   (setup step 11). A run's queue follows from it, a subagent's or not, and is carried through
   everything that touches its task: `enqueueRun`, `queueConversationRun`,
@@ -1816,23 +1824,31 @@ What a subagent is, and why each rule below holds, is in Subagents.
   created in, `findConversationRunTask`, which recovery asks, and the requeueing of a dead run. Tests
   create, look up and requeue a run on each queue. The worker's route stays the same.
 - **Recovery**: the reconcile route for a parent's subagents, `POST …/subagents/reconcile`, and the
-  sweep's backstop, finalizing dead subagent runs and `PENDING` ones whose membership is gone,
-  queueing again and promoting.
+  sweep's backstop, finalizing the member's dead subagent runs across the organization and the
+  `PENDING` runs the promotion skips, queueing again and promoting.
 - `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` calls
   `launchSubagent` in its own process, as that account of the emulators, refusing to run anywhere
   else, as `mcp:knowledge` does, since no route launches one until M31's module. Its runs then go
   in that process, as every run does in development, and the script stays until they report.
-- `CLAUDE.md`: what a subagent is, its queue, and that every read or count of a member's
-  conversations leaves subagents out.
+- `CLAUDE.md`: what a subagent is, its queue, that every read or count of a member's
+  conversations leaves subagents out, and that a run is `QUEUED`, `RUNNING` or `PENDING` exactly
+  while its conversation's `activeRunId` names it, the rule § The database states for the first two.
 - **Tests** on `createConversationDatabaseFake` with the scripted client:
-  - A chain of four runs, the fourth failing at its limits with its report.
+  - A chain of four runs, the fourth failing at its limits with its report, and a run chaining at
+    its 100 entries.
   - A sixth launch waiting `PENDING`, and promoted by another's end.
   - A chain while all five slots are taken, promoting nothing and staying at five.
   - A `PENDING` run stopped while five run, promoting nothing.
   - A subagent's thread read by its id through the tail, bodies, history and run queries, and another
     member's subagent id reading nothing.
   - Two ends at once promoting one run once.
-  - A `PENDING` run of a member removed, skipped by the promotion and finalized by the sweep.
+  - A `PENDING` run of a member removed, skipped by the promotion and finalized by the sweep, and
+    one asked to stop, or whose subagent is deleted, skipped and finalized as stopped.
+  - A launch finalizing a dead subagent run of another parent's before it counts, and running.
+  - A run promoted after twenty minutes pending, its queueing failing, queued again by the
+    reconcile rather than finalized.
+  - The ten not counting subagents a Retry deleted.
+  - A file a draft holds, and files past a send's budget, refused.
   - Each route and web mutation refusing a subagent's id, called directly.
   - A dead subagent run finalized by the reconcile, and reporting so.
   - The brief's files sent by id.
@@ -1846,8 +1862,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
 
 - `MODULES` gains `subagents` (see Modules § The Subagents module's tools), kept out of
   `SERVED_MODULE_NAMES`, and `MODULE_SERVERS` gains its server.
-- **The authorization server keeps to the served modules**: `SERVED_MODULE_NAMES` moves to
-  strategydance-core beside `MODULES`, and `parseModuleResource`, the metadata's `scopes_supported`
+- **The authorization server keeps to the served modules**: `SERVED_MODULE_NAMES`, unexported in the
+  backend's `constants.ts` today, moves to strategydance-core beside `MODULES`, and `parseModuleResource`, the metadata's `scopes_supported`
   and the consent page read it rather than `MODULES`, so a client asking for `/mcp/subagents` is
   refused as for an address no module has. A test asks for it, and `check:oauth` does too. The `module` catalogue words it, as
   `getModuleMessages`' type asks, with `bun run translate`. Its results carry no web address, so
@@ -1856,16 +1872,20 @@ What a subagent is, and why each rule below holds, is in Subagents.
   `domain/subagents/`: `list_subagents` and `read_subagent` read, `launch_subagent` and
   `stop_subagent` write under a key, as `readModuleWriteCall` reads it.
 - `ModuleCaller` gains an optional `launcher`, `{ conversationId, runId }`, for an agent caller,
-  which `toModuleAuthInfo` and `readModuleCaller` carry and which only a worker that has claimed a
-  run fills. `measureConversationMessage` keeps connecting without one, before any run exists, and
-  every Subagents tool refuses a caller without it.
+  which `toModuleAuthInfo` and `readModuleCaller` carry, the strict schema of the second gaining
+  it, and which only a worker that has claimed a run fills. `measureConversationMessage` keeps
+  connecting without one, before any run exists, and every Subagents tool refuses a caller without
+  it.
+- The launch's mutation checks the launching run after the parent's row, still `RUNNING` and not
+  asked to stop, so a Stop or a delete it races is seen whichever commits first.
 - The refusals, each a sentence the model can act on:
   - from a subagent;
-  - from a `REPORTS` run;
   - from a run that has ended or was asked to stop;
-  - past ten launches on the anchor, or 100 in the conversation;
-  - a file that is not the conversation's;
+  - past ten launches on the anchor, those a Retry deleted left out, or 100 in the conversation;
+  - a file the conversation has not sent, or files past a send's budget;
   - a subagent of another conversation.
+
+  A launch from a reaction is refused from M32, which adds `REPORTS`.
 - `createSubagentsDatabaseFake` joins `createModuleDatabaseFake`, as each module's fake does.
 - **Tests** through `createModuleTestKit('subagents')`:
   - A launch called again with its key finding the same subagent.
@@ -1883,6 +1903,8 @@ What a subagent is, and why each rule below holds, is in Subagents.
 
 ### M32: Subagents in conversations
 
+- **The schema change**, additive: `ConversationRunTrigger` gains `REPORTS`, appended, and
+  `Conversation` gains `reportDeliveredAt`.
 - `CONVERSATION_MODULES` gains `subagents`, so the agent's list ends with its four tools, and the
   subagents' list leaves them out with `ask_user`. The worker fills the caller's launcher.
 - **The system prompt** says:
@@ -1896,11 +1918,17 @@ What a subagent is, and why each rule below holds, is in Subagents.
 - **The reaction**:
   - The `REPORTS` run and its entry, counted toward the member's three runs on `conversation-runs`;
     one that finds them taken waits for the page's reconcile or the member's next send.
+  - `launch_subagent` refuses a `REPORTS` run, inside the launch's mutation; the reads and
+    `stop_subagent` serve it.
   - It starts at a subagent's end, at a parent run's `COMPLETED` end, and from the reconcile route.
-  - The send and the answer carry undelivered reports, through an optional variable, counted as
-    `$attachmentIds` is (`CLAUDE.md` § The database).
+  - The send and the answer carry undelivered reports, after every tool result, an answer's
+    included, through an optional variable, counted as `$attachmentIds` is (`CLAUDE.md` § The
+    database).
+  - A batch, its delivery and its reaction leave out the subagents a Retry deleted.
 - **The cascades**: Stop, Delete, Restore, Retry and the sweep, with the routes for Stop all and a
-  subagent's Stop (see Subagents).
+  subagent's Stop (see Subagents). Each keeps the one order § Subagents gives, the parent's runs
+  before its row, which turns `DeleteConversation` round, and each that frees a slot is followed by
+  a promotion. A delete is the web's, so it only asks: it frees no slot and queues nothing.
 - **Tests**:
   - A batch of three reacted to once, after the last report.
   - Two ends at once starting one reaction.
@@ -1910,10 +1938,14 @@ What a subagent is, and why each rule below holds, is in Subagents.
     and by the sweep with no page open.
   - A reaction whose task could not be created, with no page open, queued again by the sweep.
   - A launch that counted five and left its run pending while a Stop ended one, its run promoted by
-    the Stop.
+    the promotion following the Stop.
+  - A deleted parent's `PENDING` subagents skipped by the promotion and finalized as stopped.
   - A question waiting not consumed, its answer carrying the reports.
-  - A send carrying them, after its tool results.
-  - A reaction's launch refused.
+  - A send carrying them, after its tool results, and an answer carrying them after every result,
+    its answers included.
+  - A reaction's launch refused, and its `read_subagent` served.
+  - A Retry's deleted subagents left out of the next batch and of the ten, the run it starts
+    launching ten again.
   - A Retry stopping and deleting the cut runs' subagents, and the parent's restore not bringing them
     back.
   - Stop reaching a `PENDING` subagent.
@@ -1929,8 +1961,10 @@ What a subagent is, and why each rule below holds, is in Subagents.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its
     `subagentCount` by as many, and a parent that reached the hundred launching again after.
 - `check:conversation-runs` gains the reaction's lock, two ends at once, and a launch against the
-  parent's Stop, Stop all and delete, each taking the membership then the parent's row, and against a
-  send, an answer, Resume and Retry, each in both orders.
+  parent's Stop, Stop all and delete, each in the one order, the parent's runs before its row, and
+  against a send, an answer, Resume and Retry, each in both orders. PGlite runs one transaction at a
+  time, so the order itself is checked by reading the mutations: no mutation takes the membership
+  after a run, or a `QUEUED`, `RUNNING` or `PENDING` run after its conversation's row.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, and read the board and the
     reaction.
@@ -1947,6 +1981,8 @@ Not in the design: built from the design system's components, as Connected agent
   (`?subagent=<id>`, validated as a string, as `CLAUDE.md` § Routing asks), through a bouncer under
   its waiter.
 - The strip above the composer, "3 subagents working", with Stop all.
+- Retry asks first when the runs it cuts launched subagents, naming how many it stops and discards
+  (see Subagents § In the parent's thread).
 - The page reconciles its subagents every two minutes while any is live, or a report waits
   undelivered while the parent could react to it (see Subagents § Recovery).
 - `BRIEF` drawn at the top of a subagent's thread, its files as chips read through its

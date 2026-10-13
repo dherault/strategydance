@@ -323,11 +323,12 @@ New tables in `schema.gql`, each commented as the existing ones are:
   by Retry), `isFull` (see
   Attachments), `deletedAt`, `pruneClaimedAt`, `createdAt`, `updatedAt` (its last activity). Indexed on `userId`,
   `organizationId`, `updatedAt`. From M30, a subagent's (see Subagents): `parent` (an optional
-  reference to the conversation that launched it, null on every other, indexed), `launchRunId` and
-  `launchToolUseId` (the run and the call that launched it), `launchAnchorPosition` (the parent's
-  anchor it was launched on, which makes its batch), `report`, `reportedAt` and
-  `reportDeliveredAt`; and on a parent, `subagentCount`, the subagents it launched and not yet
-  pruned, which a launch moves on as its lock (see Subagents).
+  reference to the conversation that launched it, null on every other, indexed as every reference
+  is), `launchRunId` and `launchToolUseId` (the run and the call that launched it, null for a launch
+  M30's script makes), `launchAnchorPosition` (the parent's anchor it was launched on, which makes
+  its batch), `report` and `reportedAt`, and from M32 `reportDeliveredAt`; and on a parent,
+  `subagentCount`, the subagents it launched and not yet pruned, which a launch moves on as its lock
+  (see Subagents).
   - `activeRunId` is the run in flight, null when idle: a plain UUID rather than a reference,
     because the first send writes the conversation and its run in one mutation, and a reference would
     have it write the conversation's row twice, which Data Connect skips.
@@ -360,8 +361,8 @@ New tables in `schema.gql`, each commented as the existing ones are:
     counter only grows, so a retry's deleted messages leave gaps, never reuse.
 - **`ConversationRun`**: one go of the agent, from what started it to its end: a member's action,
   and from M30 a launch, a chain or a parent's reaction to its subagents. `conversation`,
-  `trigger` (`MESSAGE`, `ANSWER`, `RESUME`, `RETRY`, and from M30 `LAUNCH`, `CONTINUE` and `REPORTS`,
-  see Subagents), `status` (`QUEUED`, `RUNNING`, `WAITING`,
+  `trigger` (`MESSAGE`, `ANSWER`, `RESUME`, `RETRY`, from M30 `LAUNCH` and `CONTINUE`, and from M32
+  `REPORTS`, see Subagents), `status` (`QUEUED`, `RUNNING`, `WAITING`,
   `COMPLETED`, `STOPPED`, `FAILED`, `REFUSED`, `INTERRUPTED`, `CONTINUED`: a waiting run whose turn
   was consumed, see Consuming a waiting turn; and from M30 `PENDING`, a subagent's run waiting for a
   slot, and `CHAINED`, one that reached its limits and handed on to the next), `membershipCreatedAt` (the `createdAt` of the
@@ -1539,7 +1540,7 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 | --- | --- | --- |
 | `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and whether its report was delivered | read |
 | `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, as for one that does not exist | read |
-| `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten of the conversation's own files. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), and for a file that is not the conversation's | write |
+| `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten files the conversation has sent. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), those a Retry deleted left out, past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), for a file the conversation has not sent, and for files past a send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS` | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
 - **The caller carries its launcher**, apart from its access. An agent caller may carry a
@@ -1547,16 +1548,22 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
   run as it fills the rest, never from a tool's arguments. Everything else that connects the modules
   carries none: `measureConversationMessage` connects them before any run exists, to count the
   tools list, and lists the Subagents module's tools like any others. Every Subagents tool refuses a
-  caller without a launcher, so listing is all such a caller can do. The module reads the launching
-  run on the terms of its fence: still `RUNNING`, not asked to stop, not a reaction, and its
-  conversation no subagent. The later orchestrator's runs carry theirs the same way.
+  caller without a launcher, so listing is all such a caller can do. The launcher joins the caller's
+  strict schema in `readModuleCaller`, which refuses a field it does not know. Every tool reads the
+  launching run on the terms of its fence: still `RUNNING`, not asked to stop, and its conversation
+  no subagent. A launch also refuses a reaction's run, `REPORTS`, inside its mutation (see A launch
+  is one mutation); the reads and `stop_subagent` serve a reaction, whose entry points to
+  `read_subagent` for the rest of a subagent's writes. The later orchestrator's runs carry theirs
+  the same way.
 - **A launch is one mutation**, keyed as every write is, under the member's membership lock and then
   the parent's row (see Subagents): its `ModuleCallResult`, the subagent's conversation, its `BRIEF` message, its first transcript entry
   and its first run, `QUEUED` or `PENDING` by the slots it counts (see Subagents), which also counts
   the ten and the hundred. The subagent's id derives from the parent's and the call's key, so a
-  launch called again finds the same subagent. The run is queued after the mutation, and one that
-  could not be has its lease brought in to now, as `enqueueRun` does for any run, for the parent's
-  reconcile to queue it again.
+  launch called again finds the same subagent. The mutation checks the launching run after the
+  parent's row, still `RUNNING`, not asked to stop and not a reaction, so a Stop or a delete it
+  races is seen whichever commits first (see Subagents). The run is queued after the mutation, and
+  one that could not be has its lease brought in to now, as `enqueueRun` does for any run, for the
+  parent's reconcile to queue it again.
 - **Its reads run beside the others**, four at a time, as their `readOnlyHint` lets them; a launch and
   a stop run alone, in order. A result carries no web address, since a subagent is reached from its
   parent's thread, not from a page of its own.
@@ -1886,16 +1893,21 @@ way (see The orchestrator).
 - **The brief** is its first `USER` entry: the launcher's text and the parent's files it names, each
   as the Files API reference the parent's transcript holds, so nothing is uploaded again and each
   subagent pays only for the files it was given, measured by their `tokenCount` as the parent's are.
-  It is drawn as a `BRIEF` message at the top of the subagent's thread, its files as chips the
+  A launch names only files the conversation has sent, `READY` with their `message` set, never one
+  waiting in a draft, whose prune would delete it under a running subagent, and holds them to a
+  send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS`, by their `tokenCount`, so no subagent is full
+  at its first request. It is drawn as a `BRIEF` message at the top of the subagent's thread, its files as chips the
   parent's attachment route serves. Which files those are is kept on the message, since a file's
   `ConversationAttachment.message` names the parent's message that sent it and the transcript is the
   backend's alone: `ConversationMessage.attachmentIds`, a list on a `BRIEF` alone, which the bodies
   query selects, and the thread reads those rows among the parent's files, matched with the caller
   and the organization as every lookup of a file is. A subagent tags no aspects, counts no unread replies, asks no
   question and never waits: nobody reads its thread as it comes.
-- **Chained runs.** A subagent's run has a conversation run's limits, 25 requests and 10 minutes, but
-  a subagent takes up to four runs (`MAX_SUBAGENT_RUNS`), some 40 minutes and 100 requests, as David
-  chose. A run that reaches either limit before its fourth ends `CHAINED` and inserts the next run,
+- **Chained runs.** A subagent's run has a conversation run's limits, 25 requests, 10 minutes and
+  100 entries drawn (the backend's `CONVERSATION_RUN_MAX_REQUESTS` and
+  `CONVERSATION_RUN_MAX_DURATION_MS`, core's `MAX_CONVERSATION_RUN_ENTRIES`), but a subagent takes up
+  to four runs (`MAX_SUBAGENT_RUNS`), some 40 minutes and 100 requests, as David chose. A run that
+  reaches any of the three before its fourth ends `CHAINED` and inserts the next run,
   triggered `CONTINUE` on the same anchor, in one mutation, and queues it. The next carries on as
   Resume does (see The transcript), without a note to delete: it runs the calls that never started,
   then sends its context and the request. At the ten minutes, the calls running finish, no other
@@ -1909,13 +1921,22 @@ way (see The orchestrator).
   subagent that drew no text reports how it ended and nothing more.
 - **Slots.** At most five subagent runs go at once per member in each organization, across all their
   conversations (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), apart from their three conversation runs,
-  which a fan-out never blocks. A launch counts the member's subagent runs holding a dispatch, under
-  the membership lock as a run start counts, and inserts its first run `QUEUED`, queued at once, or,
-  past five, `PENDING`: launched, holding no dispatch and no lease, its subagent busy since
-  `activeRunId` names it. The mutation that ends a subagent for good from a run that held a slot,
-  `QUEUED` or `RUNNING`, under the same lock, promotes the member's oldest `PENDING` run to `QUEUED`
-  with a lease, and the worker queues it. A `PENDING` run stopped or finalized held no slot, so its
-  end promotes nothing. A run that
+  which a fan-out never blocks. A launch first finalizes the member's dead subagent runs in the
+  organization, as a run start finalizes their dead runs (`finalizeDeadConversationRuns`), so one
+  crash elsewhere never leaves every launch after it waiting for the daily sweep. It then counts the
+  member's subagent runs holding a dispatch, under the membership lock as a run start counts, and
+  inserts its first run `QUEUED`, queued at once, or, past five, `PENDING`: launched, holding no
+  dispatch and no lease, its subagent busy since `activeRunId` names it. A run is then `QUEUED`,
+  `RUNNING` or `PENDING` exactly while its conversation's `activeRunId` names it, and every write
+  that ends one lets go of it as before. Once a write ends a subagent for good from a run that held a
+  slot, `QUEUED` or `RUNNING`, a promotion, a mutation of its own under the same lock, promotes the
+  member's oldest `PENDING` runs into the slots then free, `QUEUED` with a lease, and the backend
+  queues each (see A launch and a cascade take one lock, for why it follows the write rather than
+  joining it). The promotion sets the run's `createdAt`, when it
+  was queued, from the database's clock, so its twenty minutes for being queued again, which the
+  reconcile counts from `createdAt`, start there: a run promoted after waiting longer would otherwise
+  be finalized at its first reconcile when its queueing failed. A `PENDING` run stopped or finalized
+  held no slot, so its end promotes nothing. A run that
   chains promotes nothing: its `CONTINUE` run takes its slot at once, `QUEUED` in the same mutation,
   so a chain never frees a slot it still holds, and a chain with all five slots taken stays at five.
   Five a member, not five a parent, as David's "five at once" is read here: three conversations
@@ -1923,7 +1944,9 @@ way (see The orchestrator).
   worker's fence meets it: a member removed leaves theirs waiting on a lock nobody takes. The
   promotion skips a `PENDING` run whose `membershipCreatedAt` no membership holds any more, and the
   reconcile and the sweep finalize it as interrupted, so a subagent of a member invited back is never
-  left busy.
+  left busy. It skips too a `PENDING` run asked to stop or whose subagent is deleted, which a delete
+  only asks to stop (see Delete, restore, Retry and the sweep), and the reconcile and the sweep
+  finalize it as stopped, so no slot goes to a run that would stop at its claim.
 - **A queue of their own.** Subagent runs go through a Cloud Tasks queue of their own,
   `subagent-runs`, twenty dispatches at once (Setup, step 11), to the worker's same
   `/internal/conversation-runs`, so a few fan-outs of forty minutes never hold the fifty dispatches
@@ -1935,8 +1958,10 @@ way (see The orchestrator).
   any is live, or a report waits undelivered while the parent could react to it (not deleted, not
   full, its last run `COMPLETED` and nothing waiting), it calls
   `POST …/conversations/:conversationId/subagents/reconcile` every two minutes,
-  which finalizes their dead runs, queues again a run whose task is gone while it is under twenty
-  minutes old, as the run reconcile does, promotes `PENDING` runs into free slots, and starts the
+  which finalizes the member's dead subagent runs in the organization, not only its own subagents',
+  since a dead run of another parent's holds one of the five, as a launch does, queues again a run
+  whose task is gone while it is under twenty minutes old, as the run reconcile does, finalizes the
+  `PENDING` runs the promotion skips, promotes `PENDING` runs into free slots, and starts the
   parent's reaction when one is due. A worker's crash is delivered again by Cloud Tasks, as for any
   run. With no page open, the daily sweep is the backstop: it finalizes subagent runs past their
   lease and promotes as the route does, and it reconciles every queued run past its lease that no
@@ -1949,7 +1974,8 @@ way (see The orchestrator).
   turn goes on or ends: nothing waits on subagents. David chose both a wait tool and a reaction to
   unwaited subagents; the reaction alone does what the wait would, without a second state with its
   own rules for a send and a stop, so there is no `wait_for_subagents` (2026-10-12). The subagents a
-  parent's runs launch on one anchor are a batch. Once every subagent of a batch has reported and the
+  parent's runs launch on one anchor are a batch, less those a Retry deleted, which never report to
+  it: no batch waits on them, and no entry carries them. Once every subagent of a batch has reported and the
   parent is idle, not deleted, its last run `COMPLETED`, no run going and no question waiting, a run
   starts in the
   parent, triggered `REPORTS`. Its `USER` entry holds one text block per undelivered report of every
@@ -1970,11 +1996,13 @@ way (see The orchestrator).
     next of the member's runs to end, the parent's page at its next reconcile, or the sweep starts
     it, while the member's next send there carries them anyway. It launches nothing: the module refuses
     `launch_subagent` from a `REPORTS` run, so every fan-out starts from the member's word, and
-    subagents, a reaction and more subagents never loop with nobody watching. It reads, writes and
+    subagents, a reaction and more subagents never loop with nobody watching. The module's other
+    tools serve it, `read_subagent` above all, which pages what its entry leaves out. It reads, writes and
     replies as any run does, and its reply adds to `unreadCount`, which brings the member back. Its
     `USER` entry is drawn as nothing, since the subagents' rows show their reports.
-  - **The member's next send or answer** carries every finished report not delivered yet, after the
-    entry's tool results and before the member's text or answers, and marks them delivered, those of a
+  - **The member's next send or answer** carries every finished report not delivered yet, after
+    every tool result of the entry, an answer's among them, since rule 3 puts them all first, and
+    before the member's files and text, and marks them delivered, those of a
     batch still working included: a member's message is where they hear of everything so far, and
     the reaction that batch's completion starts carries its remaining reports alone. That is
     how a parent that was busy, waiting on a question or ended with a note hears of them. A report
@@ -1992,21 +2020,26 @@ way (see The orchestrator).
     delivered as it starts, and ends at once with the full note, costing nothing, as any run starting
     at the cap does (see Size).
 - **Bounds**, as David chose: at most ten subagents launched on one anchor (`MAX_SUBAGENTS_PER_ACTION`),
-  which is the member's action and the runs carrying it on, and at most 100 per conversation until
+  which is the member's action and the runs carrying it on, not counting those a Retry deleted, so
+  the run a Retry starts can launch its fan-out again, and at most 100 per conversation until
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.
   No daily cap: the workspace's spend limit and the budget alert are the guard, until Launch decides
   one or credits exist (M35).
 - **Stop.** The parent's Stop asks every live subagent of the conversation to stop too: each active
   run's `stopRequestedAt` is set, and a `QUEUED` or `PENDING` one is finalized at once, as the route
-  finalizes a queued run. Subagents mostly work while the parent is idle, when its Stop does not show,
+  finalizes a queued run, a promotion following into the slots that freed. Subagents mostly work while the parent is idle, when its Stop does not show,
   so while any works the thread shows a strip above the composer, "3 subagents working", with "Stop
   all" (`POST …/subagents/stop`); each row has a Stop (`POST …/subagents/:subagentId/stop`), and so
   does the viewer; `stop_subagent` is the agent's. A stopped subagent reports what it had, and its
   batch completes with it.
 - **Delete, restore, Retry and the sweep.** `DeleteConversation` sets `deletedAt` on the parent's
   subagents at the parent's own instant and asks their runs to stop, and `RestoreConversation`
-  restores those deleted at that same instant, which a `Timestamp` read back matches exactly. Retry on
-  the parent stops and deletes the subagents the runs it cuts launched (`launchRunId` among them), at
+  restores those deleted at that same instant, which a `Timestamp` read back matches exactly. A
+  delete is the web's and queues no task, so it only asks: it ends no run and frees no slot, the
+  workers end the `QUEUED` and `RUNNING` runs as they read the flag, each end followed by its
+  promotion, and the promotion skips the `PENDING` ones, which the reconcile and the sweep finalize.
+  Retry on the parent stops the subagents the runs it cuts launched (`launchRunId` among them) as
+  the parent's Stop does, finalizing their `QUEUED` and `PENDING` runs at once, and deletes them, at
   an instant of their own, so restoring the parent never brings them back, and their reports are
   never delivered; what they wrote stays written, as with every tool. The sweep prunes a parent's
   subagents before the parent, each with its module call results under `conversation:<subagentId>`,
@@ -2017,23 +2050,31 @@ way (see The orchestrator).
   again once they are gone. A restored parent whose subagents
   reported while it was deleted reacts once its page reconciles, which it does while a report waits
   undelivered, since Restore is the web's and starts no run.
-- **A launch and a cascade take one lock**, the parent's row. A launch's mutation first moves the
-  parent's `subagentCount` on, where the parent is not deleted, under `@check(this == 1)`, which is
-  also what counts the hundred; the parent's Stop, Stop all and `DeleteConversation` each write the
-  parent's row first too, before they reach its subagents, and Stop sets the launching run's
+- **A launch and a cascade take one lock**, the parent's row. A launch's mutation moves the parent's
+  `subagentCount` on, where the parent is not deleted, under `@check(this == 1)`, which is also what
+  counts the hundred; the parent's Stop, Stop all, Retry and `DeleteConversation` each write the
+  parent's row too, before the step that reaches its subagents, and Stop sets the stopped run's
   `stopRequestedAt` in that transaction. Whichever commits second sees the first: a launch after a
   Stop or a delete finds its run asked to stop or its parent deleted and is refused, and a Stop or a
-  delete after a launch reaches the subagent it made. A launch takes the membership's lock before
-  the parent's row, the order every run start already keeps (`SendConversationMessage` locks the
-  membership, then writes the conversation), and so do a reaction's start and the promotion. Stop,
-  Stop all and a delete keep it too, membership then parent, and promote in that same mutation as
-  many `PENDING` runs as the slot-holding runs they end at once free, so a launch that counted five
-  and left its run pending while a Stop ended one finds it promoted once the Stop takes the lock
-  after it. One order everywhere, so no two of them wait on each other's lock and no freed slot is
-  left unused. The emulator's PGlite runs one transaction at a time, so the race is
-  Postgres' to reason about: the fake's tests and the emulator check hold the outcome, a launch
-  after a Stop or a delete refused and one before reached by it, and a launch against a send, an
-  answer, Resume and Retry, in both orders.
+  delete after a launch reaches the subagent it made, since a step after a lock sees what committed
+  before it. The rows go in one order everywhere: the membership, then the parent's runs, the
+  parent's row, its subagents' runs, and their rows. A worker's fenced write takes its run before its
+  conversation, so Stop and a delete write the parent's runs they stop before the parent's row,
+  never after it, which `DeleteConversation` turns round from M32, since it writes the conversation
+  first today; a launch, a reaction's start and a run start take the membership before the parent's
+  row, as `SendConversationMessage` locks the membership, then writes the conversation. The
+  promotion is a mutation of its own, the membership then the `PENDING` runs, following whatever
+  freed the slot rather than joining it: inside a worker's end it would take the membership after
+  the run the fence holds, the reverse of that order, and a Retry, which holds the membership as a
+  run start does when it reaches the subagents' runs it stops, would wait on that run while the end
+  waited on the membership. It promotes the member's oldest `PENDING` runs into whatever slots are
+  free, so a launch that counted five and left its run pending while a Stop ended one finds it
+  promoted by the promotion that follows the Stop, which takes the membership after the launch. No
+  two of them wait on each other's lock, and a crash between a write and its promotion leaves a slot
+  free only until the reconcile or the sweep promotes into it. The emulator's PGlite runs one
+  transaction at a time, so the race is Postgres' to reason about: the fake's tests and the emulator
+  check hold the outcome, a launch after a Stop or a delete refused and one before reached by it, and
+  a launch against a send, an answer, Resume and Retry, in both orders.
 - **In the parent's thread** (M33), a `launch_subagent` call is drawn as the subagent's row: its title,
   its status, live (queued, waiting for a slot, working with its step, reported, stopped, failed or
   interrupted), Stop while it works, and "View work". That opens its thread in a dialog, live and
@@ -2043,7 +2084,10 @@ way (see The orchestrator).
   `GetConversationSubagents($organizationId, $conversationId)`, live, reads a parent's subagents with
   their latest run's status and whether they reported. It refreshes, as the list does, on a run
   starting or ending by its author in the organization, since a subagent's run writes name the
-  subagent and not its parent; each working row reads its step through `GetConversationRun`.
+  subagent and not its parent; each working row reads its step through `GetConversationRun`. A
+  Retry whose cut runs launched subagents asks first, naming how many it stops and discards, since
+  their reports are lost while what they wrote stays: a parent that failed at its limits after a
+  fan-out offers Retry alone, which would otherwise end the fan-out without a word.
 - **Integrations** (M34, written now and built after M29): a subagent reaches the three integration
   tools as its member, with their connections and the organization's keys, and calls only the tools
   an administrator lets run without approval, as David chose, since nobody can approve a call for a

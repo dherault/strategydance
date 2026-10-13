@@ -426,6 +426,12 @@ export type DirectoryProbe = {
   submission: DirectoryPageProbe | null
 }
 
+// A page a check read, by this server's probe or Claude's web fetch, at its address
+export type DirectoryPage = {
+  url: string
+  text: string
+}
+
 // The quote, and the page it was read on, that a business model or a verdict of inactive rests on
 export type DirectoryEvidence = {
   quote: string
@@ -453,19 +459,22 @@ export type DirectoryCheckUsage = {
 }
 
 /*
-  What became of a review: an answer, with the text Claude's fetches brought back, which its quotes
+  What became of a review: an answer, with the pages Claude's fetches brought back, which its quotes
   are checked against; no answer worth reading, a refusal, an answer past its schema or the
   deadline, which counts as a check that told nothing; or a failure of the API itself, which counts
   as no check at all
 */
 export type DirectoryReview =
-  | { outcome: 'answered'; answer: DirectoryReviewAnswer; fetchedText: string; usage: DirectoryCheckUsage }
+  | { outcome: 'answered'; answer: DirectoryReviewAnswer; fetchedPages: DirectoryPage[]; usage: DirectoryCheckUsage }
   | { outcome: 'unanswered'; failure: string; usage: DirectoryCheckUsage }
   | { outcome: 'failed'; failure: string; usage: DirectoryCheckUsage }
 
 // One directory's check, before it is applied to the lists
 export type DirectoryCheck = {
   name: string
+  // The entry as it was checked, so a check is applied to that entry alone, never to one somebody
+  // changed meanwhile
+  directory: Directory | InactiveDirectory
   probe: DirectoryProbe
   // Null when the probe alone decided, a site it could not reach
   review: DirectoryReview | null

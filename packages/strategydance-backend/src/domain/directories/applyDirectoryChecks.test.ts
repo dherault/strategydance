@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import type { Directory, InactiveDirectory } from 'strategydance-directories'
 
-import type { DirectoryCheck, DirectoryLists, DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
+import type { DirectoryCheck, DirectoryLists, DirectoryPage, DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
 
 import applyDirectoryChecks from '~domain/directories/applyDirectoryChecks'
 import {
@@ -27,37 +27,24 @@ function createCheck(
   {
     root = {},
     answer,
-    fetchedText = '',
+    fetchedPages = [],
     submissionProbe = null,
   }: {
     root?: Partial<DirectoryPageProbe>
     answer?: Partial<DirectoryReviewAnswer> | 'unanswered' | 'failed'
-    fetchedText?: string
+    fetchedPages?: DirectoryPage[]
     submissionProbe?: DirectoryPageProbe | null
   } = {},
 ): DirectoryCheck {
   const probe = { root: createPageProbe(directory.rootUrl, root), submission: null }
+  const check = { name: directory.name, directory, probe, submissionProbe }
 
-  if (answer === 'unanswered')
-    return {
-      name: directory.name,
-      probe,
-      review: { outcome: 'unanswered', failure: 'Refused', usage: USAGE },
-      submissionProbe,
-    }
-  if (answer === 'failed')
-    return {
-      name: directory.name,
-      probe,
-      review: { outcome: 'failed', failure: 'Overloaded', usage: USAGE },
-      submissionProbe,
-    }
+  if (answer === 'unanswered') return { ...check, review: { outcome: 'unanswered', failure: 'Refused', usage: USAGE } }
+  if (answer === 'failed') return { ...check, review: { outcome: 'failed', failure: 'Overloaded', usage: USAGE } }
 
   return {
-    name: directory.name,
-    probe,
-    review: answer ? { outcome: 'answered', answer: createAnswer(answer), fetchedText, usage: USAGE } : null,
-    submissionProbe,
+    ...check,
+    review: answer ? { outcome: 'answered', answer: createAnswer(answer), fetchedPages, usage: USAGE } : null,
   }
 }
 
@@ -94,7 +81,7 @@ describe('applyDirectoryChecks', () => {
     const directory = createDirectory('tools')
     const answer = {
       businessModel: 'FREE_WITH_BADGE',
-      evidence: { quote: QUOTE, url: 'https://tools.example/faq' },
+      evidence: { quote: QUOTE, url: directory.rootUrl },
     } as const
 
     const quoted = apply(createLists([directory]), createCheck(directory, { answer }))
@@ -114,20 +101,24 @@ describe('applyDirectoryChecks', () => {
     expect(invented.outcome.notes).toContain('without a quote found')
   })
 
-  test('reads quotes in what Claude fetched too', () => {
+  test('reads quotes in what Claude fetched too, on the page the quote names', () => {
     const directory = createDirectory('tools')
-    const { directories } = apply(
-      createLists([directory]),
+    const pricing = { url: 'https://www.tools.example/pricing/', text: 'Pricing. Every listing is $49, once.' }
+    const check = (url: string, fetchedPages: DirectoryPage[] = [pricing]) =>
       createCheck(directory, {
-        answer: {
-          businessModel: 'PAID',
-          evidence: { quote: 'Every listing is $49', url: 'https://tools.example/pricing' },
-        },
-        fetchedText: 'Pricing. Every listing is $49, once.',
-      }),
-    )
+        answer: { businessModel: 'PAID', evidence: { quote: 'Every listing is $49', url } },
+        fetchedPages,
+      })
 
-    expect(directories[0].businessModel).toBe('PAID')
+    expect(apply(createLists([directory]), check('https://tools.example/pricing')).directories[0].businessModel).toBe(
+      'PAID',
+    )
+    expect(apply(createLists([directory]), check('https://tools.example/faq')).directories[0].businessModel).toBe(
+      'FREE',
+    )
+    expect(
+      apply(createLists([directory]), check('https://tools.example/pricing', [])).directories[0].businessModel,
+    ).toBe('FREE')
   })
 
   test('takes a moved submission page only when it answered, on the site, and is nobody else’s', () => {
@@ -292,6 +283,18 @@ describe('applyDirectoryChecks', () => {
         createCheck(directory, { root: { finalUrl: 'https://casino.example/' }, answer: {} }),
       ).directories[0],
     ).toMatchObject({ rootUrl: 'http://tools.example/' })
+  })
+
+  test('leaves a directory somebody changed while it was checked', () => {
+    const directory = createDirectory('tools')
+    const changed = { ...directory, rootUrl: 'https://tools.example.org/' }
+    const { directories, outcome } = apply(createLists([changed]), createCheck(directory, { answer: {} }))
+
+    expect(directories).toEqual([changed])
+    expect(outcome).toMatchObject({
+      result: 'notChecked',
+      notes: expect.stringContaining('Changed while it was checked'),
+    })
   })
 
   test('leaves a directory no longer in either list', () => {

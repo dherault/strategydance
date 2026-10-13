@@ -51,7 +51,30 @@ describe('requestDirectoryReview', () => {
       answer: createAnswer(),
       usage: { inputTokens: 1000, outputTokens: 100 },
     })
-    expect(review.outcome === 'answered' && review.fetchedText).toContain('Free listings need our badge on your site.')
+    expect(review.outcome === 'answered' && review.fetchedPages).toEqual([
+      { url: 'https://tools.example/faq', text: 'Free listings need our badge on your site.' },
+    ])
+  })
+
+  test('counts no text but a fetched page, never what code printed', async () => {
+    const printed: BetaContentBlock = {
+      type: 'code_execution_tool_result',
+      tool_use_id: 'srvtoolu_2',
+      content: {
+        type: 'code_execution_result',
+        stdout: 'Listings are free forever',
+        stderr: '',
+        return_code: 0,
+        content: [],
+      },
+    } as BetaContentBlock
+    const claude = createScriptedClaudeClient({ answers: [answer([...FETCHED, printed, text(createAnswer())])] })
+
+    const review = await requestDirectoryReview(DIRECTORY, PROBE, claude.client)
+
+    expect(review.outcome === 'answered' && review.fetchedPages.map(({ text }) => text)).toEqual([
+      'Free listings need our badge on your site.',
+    ])
   })
 
   test('sends a paused turn back, and reads the answer of its last part', async () => {
@@ -62,7 +85,7 @@ describe('requestDirectoryReview', () => {
     const review = await requestDirectoryReview(DIRECTORY, PROBE, claude.client)
 
     expect(review).toMatchObject({ outcome: 'answered', usage: { inputTokens: 2000, outputTokens: 200 } })
-    expect(review.outcome === 'answered' && review.fetchedText).toContain('Free listings need our badge')
+    expect(review.outcome === 'answered' && review.fetchedPages).toHaveLength(1)
     expect(JSON.parse(claude.requests[1]).messages.at(-1)).toEqual({ role: 'assistant', content: FETCHED })
   })
 

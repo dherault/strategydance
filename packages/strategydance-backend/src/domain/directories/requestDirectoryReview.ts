@@ -7,7 +7,7 @@ import logger from '~utils/logger'
 
 import stripBeforeFallback from '~domain/agent/stripBeforeFallback'
 import buildDirectoryReviewRequest from '~domain/directories/buildDirectoryReviewRequest'
-import collectFetchedText from '~domain/directories/collectFetchedText'
+import collectFetchedPages from '~domain/directories/collectFetchedPages'
 import { DIRECTORY_REVIEW_TIMEOUT_MS, MAX_DIRECTORY_REVIEW_PAUSES } from '~domain/directories/directoryCheckSettings'
 import readDirectoryReview from '~domain/directories/readDirectoryReview'
 
@@ -70,7 +70,7 @@ async function requestDirectoryReview(
       return { outcome: 'unanswered', failure, usage }
     }
 
-    return { outcome: 'answered', answer, fetchedText: collectFetchedText(content), usage }
+    return { outcome: 'answered', answer, fetchedPages: collectFetchedPages(content), usage }
   }
 }
 

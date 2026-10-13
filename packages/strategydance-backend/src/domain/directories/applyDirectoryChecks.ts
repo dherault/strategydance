@@ -5,11 +5,17 @@ import {
   type InactiveDirectory,
 } from 'strategydance-directories'
 
-import type { DirectoryCheck, DirectoryCheckOutcome, DirectoryLists, DirectoryReviewAnswer } from '~types'
+import type {
+  DirectoryCheck,
+  DirectoryCheckOutcome,
+  DirectoryLists,
+  DirectoryPage,
+  DirectoryReviewAnswer,
+} from '~types'
 
 import countDaysBetween from '~domain/directories/countDaysBetween'
 import { DIRECTORY_PAGE_MIN_TEXT_LENGTH, DIRECTORY_UNREACHABLE_DAYS } from '~domain/directories/directoryCheckSettings'
-import isQuotedIn from '~domain/directories/isQuotedIn'
+import isEvidenceFound from '~domain/directories/isEvidenceFound'
 import toSiteHost from '~domain/directories/toSiteHost'
 
 type Applied = { lists: DirectoryLists; outcome: DirectoryCheckOutcome }
@@ -56,6 +62,9 @@ function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today
   const entry = active ?? inactive
 
   if (!entry) return unchanged(lists, check.name, '', 'No longer in either list, so nothing was written')
+  if (!isSameEntry(entry, check.directory)) {
+    return unchanged(lists, entry.name, entry.rootUrl, 'Changed while it was checked, so its check was not applied')
+  }
   if (check.review?.outcome === 'failed') return unchanged(lists, entry.name, entry.rootUrl, check.review.failure)
 
   const { root } = check.probe
@@ -103,12 +112,11 @@ function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today
   }
 
   const { answer } = review
-  const readText = [root.text, check.probe.submission?.text ?? '', review.fetchedText].join('\n')
-  const isEvidenceQuoted = !!answer.evidence && isQuotedIn(answer.evidence.quote, readText)
+  const isEvidenceQuoted = !!answer.evidence && isEvidenceFound(answer.evidence, readPages(check, review.fetchedPages))
   const isClientRendered =
     root.isClientRendered
     && (check.probe.submission?.isClientRendered ?? true)
-    && review.fetchedText.length < DIRECTORY_PAGE_MIN_TEXT_LENGTH
+    && review.fetchedPages.every(({ text }) => text.length < DIRECTORY_PAGE_MIN_TEXT_LENGTH)
 
   if (answer.notes) notes.push(answer.notes)
 
@@ -220,6 +228,26 @@ function moveWithinSite(lists: DirectoryLists, directory: Directory, finalUrl: s
   if (isUsed(lists, directory.name, { rootUrl, submissionUrl })) return null
 
   return { ...directory, rootUrl, submissionUrl }
+}
+
+// Every page the check read, at each address it was read at: the probe's, before and after their
+// redirects, and those Claude fetched
+function readPages({ probe }: DirectoryCheck, fetchedPages: DirectoryPage[]) {
+  const probed = [probe.root, probe.submission].flatMap(page =>
+    page ? [page.url, page.finalUrl].flatMap(url => (url ? [{ url, text: page.text }] : [])) : [],
+  )
+
+  return [...probed, ...fetchedPages]
+}
+
+// Whether the entry in the lists is still the one that was checked, every field alike
+function isSameEntry(entry: Directory | InactiveDirectory, checked: Directory | InactiveDirectory) {
+  const reasonOf = (directory: Directory | InactiveDirectory) =>
+    'inactiveReason' in directory ? directory.inactiveReason : null
+
+  return (
+    JSON.stringify(toDirectory(entry)) === JSON.stringify(toDirectory(checked)) && reasonOf(entry) === reasonOf(checked)
+  )
 }
 
 // Whether another directory, in either list, already holds one of these addresses

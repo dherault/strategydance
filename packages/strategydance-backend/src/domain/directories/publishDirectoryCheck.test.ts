@@ -124,6 +124,19 @@ describe('publishDirectoryCheck', () => {
   })
 })
 
+test('applies no check to a directory a push changed while it ran', async () => {
+  const github = createGitHubFake({ files: FILES })
+  const renamed = `${JSON.stringify([createDirectory('alpha'), createDirectory('beta', { rootUrl: 'https://beta.example.org/', submissionUrl: 'https://beta.example.org/' })], null, 2)}\n`
+
+  github.state.beforeCommit = () => {
+    github.state.beforeCommit = () => {}
+    github.push('directories-check', { [DIRECTORIES_FILE_PATH]: renamed })
+  }
+
+  expect((await publish(github)).outcome).toBe('unchanged')
+  expect(readDirectories(github).map(({ lastChecked }) => lastChecked)).toEqual([null, null])
+})
+
 describe('addReport', () => {
   test('puts the report on top, and drops the oldest past GitHub’s limit', () => {
     const body = addReport(addReport('', '### 1\nold'), '### 2\nnew')

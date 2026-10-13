@@ -42,7 +42,7 @@ async function runDirectoryChecks(
         if (probe.root.outcome === 'unreachable' || probe.root.outcome === 'missing') {
           logger.info(`Directories: ${directory.name} could not be reached: ${probe.root.failure}`)
 
-          return { name: directory.name, probe, review: null, submissionProbe: null }
+          return { name: directory.name, directory, probe, review: null, submissionProbe: null }
         }
 
         const review = await requestDirectoryReview(directory, probe, claude)
@@ -56,7 +56,7 @@ async function runDirectoryChecks(
           `Directories: reviewed ${directory.name}: ${review.outcome === 'answered' ? review.answer.verdict : review.failure}`,
         )
 
-        return { name: directory.name, probe, review, submissionProbe }
+        return { name: directory.name, directory, probe, review, submissionProbe }
       }),
     ),
   )

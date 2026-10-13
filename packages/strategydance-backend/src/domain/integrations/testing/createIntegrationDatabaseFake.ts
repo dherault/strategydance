@@ -132,6 +132,8 @@ function createIntegrationDatabaseFake() {
   const connections = new Map<string, FakeConnection>()
   // Every operation called, by name, in order, with its variables
   const calls: { name: string; variables: AnyVariables }[] = []
+  // What a test does once, right before the operation named runs, as another caller would meanwhile
+  const before = new Map<string, () => void>()
 
   function id(value: unknown) {
     return toCanonicalUuid(String(value))
@@ -823,13 +825,11 @@ function createIntegrationDatabaseFake() {
     },
     DisconnectIntegration: variables => {
       const connection = findConnection(variables)
+      const isDeleted = connection !== null && connection.generation === id(variables.generation)
 
-      if (connection) connections.delete(connectionKey(variables))
+      if (isDeleted) connections.delete(connectionKey(variables))
 
-      return {
-        integrationConnection_deleteMany: connection ? 1 : 0,
-        integrationAuthorization_deleteMany: deleteAuthorizations(authorization => isMember(authorization, variables)),
-      }
+      return { integrationConnection_deleteMany: isDeleted ? 1 : 0 }
     },
     PruneIntegrationAuthorizations: () => ({
       integrationAuthorization_deleteMany: deleteAuthorizations(
@@ -848,6 +848,10 @@ function createIntegrationDatabaseFake() {
 
   for (const [name, operation] of Object.entries(operations)) {
     sdk[name.charAt(0).toLowerCase() + name.slice(1)] = async (_dataConnect: unknown, variables: AnyVariables) => {
+      const meanwhile = before.get(name)
+
+      before.delete(name)
+      meanwhile?.()
       calls.push({ name, variables })
 
       return { data: operation(variables) }
@@ -862,6 +866,7 @@ function createIntegrationDatabaseFake() {
     authorizations,
     connections,
     calls,
+    before,
     addMember(userId: string, organizationId: string, role: string = OrganizationRole.MEMBER) {
       roles.set(membershipKey(userId, organizationId), role)
     },
@@ -886,6 +891,7 @@ function createIntegrationDatabaseFake() {
       authorizations.clear()
       connections.clear()
       calls.length = 0
+      before.clear()
     },
   }
 }

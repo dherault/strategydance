@@ -806,6 +806,19 @@ describe('disconnecting', () => {
     expect(connection(ADA)).toBeUndefined()
   })
 
+  test('leaves a reconnect made meanwhile as it is, and revokes nothing of it', async () => {
+    await connect()
+
+    // Another tab's reconnect lands between the disconnect's read and its delete
+    fake.before.set('DisconnectIntegration', () => {
+      connection(ADA)!.generation = '44444444444444448444444444444444'
+    })
+
+    expect(await disconnectIntegration(caller(ADA))).toEqual({ outcome: 'conflict' })
+    expect(connection(ADA)).toBeDefined()
+    expect(provider.recorded.revocations).toEqual([])
+  })
+
   test("leaves another member's connection as it is", async () => {
     await connect(ADA)
     await connect(BOB)

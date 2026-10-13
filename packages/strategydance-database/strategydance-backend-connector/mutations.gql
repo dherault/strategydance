@@ -5110,23 +5110,17 @@ mutation MarkIntegrationConnectionTokenRefused(
   )
 }
 
-# Disconnects a member from a server: deletes their connection and any Connect of theirs under way.
-# The backend revokes the tokens it read before, best effort
-mutation DisconnectIntegration($organizationId: UUID!, $userId: String!, $integrationId: UUID!)
-@auth(level: NO_ACCESS)
-@transaction {
+# Disconnects a member from a server: deletes the connection the backend read, by its generation, so
+# a reconnect made meanwhile, from another tab, is left as it is. The backend reads the count, and
+# revokes the tokens it read only when this deleted their connection
+mutation DisconnectIntegration($organizationId: UUID!, $userId: String!, $integrationId: UUID!, $generation: UUID!)
+@auth(level: NO_ACCESS) {
   integrationConnection_deleteMany(
     where: {
       integrationId: { eq: $integrationId }
       membershipUserId: { eq: $userId }
       membershipOrganizationId: { eq: $organizationId }
-    }
-  )
-  integrationAuthorization_deleteMany(
-    where: {
-      integrationId: { eq: $integrationId }
-      membershipUserId: { eq: $userId }
-      membershipOrganizationId: { eq: $organizationId }
+      generation: { eq: $generation }
     }
   )
 }

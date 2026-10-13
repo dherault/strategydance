@@ -1127,11 +1127,18 @@ async function checkConnections() {
 
   const moved = { ...discovered, issuer: 'https://other.example.com' }
 
-  await connect(member, createId(), { configRevision: 2, ...moved })
+  const disconnected = createId()
+
+  await connect(member, disconnected, { configRevision: 2, ...moved })
   check(
-    'disconnecting deletes the connection',
-    (await disconnectIntegration(dataConnect, member)).data.integrationConnection_deleteMany === 1
-      && (await readConnections(id)).length === 0,
+    'a disconnect leaves a connection of another generation, a reconnect made meanwhile, as it is',
+    (await disconnectIntegration(dataConnect, { ...member, generation: createId() })).data
+      .integrationConnection_deleteMany === 0,
+  )
+  check(
+    'disconnecting deletes the connection read',
+    (await disconnectIntegration(dataConnect, { ...member, generation: disconnected })).data
+      .integrationConnection_deleteMany === 1 && (await readConnections(id)).length === 0,
   )
 
   const pruned = createId()

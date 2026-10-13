@@ -18,10 +18,11 @@ type DisconnectIntegrationParameters = {
 }
 
 /*
-  Disconnects a member from one of the organization's servers: deletes their connection and any
-  Connect of theirs under way, then asks the authorization server to revoke the tokens it read before,
-  best effort, so what the member asked for holds whether or not the server answers. A member with
-  nothing to disconnect is answered as disconnected all the same
+  Disconnects a member from one of the organization's servers: deletes the connection it read, by its
+  generation, then asks the authorization server to revoke that connection's tokens, best effort, so
+  what the member asked for holds whether or not the server answers. A reconnect made meanwhile, from
+  another tab, is another generation, left as it is and answered as a change, its tokens unrevoked. A
+  member with nothing to disconnect is answered as disconnected all the same
 */
 async function disconnectIntegration(caller: DisconnectIntegrationParameters) {
   const {
@@ -30,9 +31,12 @@ async function disconnectIntegration(caller: DisconnectIntegrationParameters) {
     },
   } = await getIntegrationConnectionForMember(dataConnect, caller)
 
-  await deleteIntegrationConnection(dataConnect, caller)
+  if (!connection) return { outcome: 'disconnected' } as const
 
-  if (!connection?.encryptedAccessToken || !connection.revocationEndpoint) return { outcome: 'disconnected' } as const
+  const { data } = await deleteIntegrationConnection(dataConnect, { ...caller, generation: connection.generation })
+
+  if (data.integrationConnection_deleteMany !== 1) return { outcome: 'conflict' } as const
+  if (!connection.encryptedAccessToken || !connection.revocationEndpoint) return { outcome: 'disconnected' } as const
 
   const authenticationMethod = connection.oauthClientAuthenticationMethod
 

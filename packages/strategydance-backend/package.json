@@ -14,6 +14,7 @@
     "check:conversation-page": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationPage.ts",
     "check:conversation-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationRuns.ts",
     "check:conversation-search": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationSearch.ts",
+    "check:integrations": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkIntegrations.ts",
     "check:knowledge-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkKnowledgeModule.ts",
     "check:oauth": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkOAuth.ts",
     "check:tasks-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkTasksModule.ts",

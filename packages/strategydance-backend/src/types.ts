@@ -494,3 +494,21 @@ export type DirectoryCheckOutcome = {
   evidence: DirectoryEvidence | null
   notes: string
 }
+
+/* ---
+  GITHUB
+--- */
+
+/*
+  GitHub's API as one token: a REST call answered with its status and its body, JSON or text as
+  GitHub sends it, a status outside 2xx thrown but those the caller handles, and a GraphQL query
+  answered with its data. The real one calls GitHub; the tests' fake keeps a repository in memory
+*/
+export type GitHubClient = {
+  request(
+    method: 'GET' | 'POST' | 'PATCH',
+    path: string,
+    options?: { body?: unknown; accept?: string; allowedStatuses?: number[] },
+  ): Promise<{ status: number; data: unknown }>
+  graphql<Data>(query: string, variables: Record<string, unknown>): Promise<Data>
+}

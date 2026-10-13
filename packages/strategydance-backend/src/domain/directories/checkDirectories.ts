@@ -47,6 +47,7 @@ async function checkDirectories(
 
   return {
     lists: applied.lists,
+    outcomes: applied.outcomes,
     checks,
     skipped,
     usage,

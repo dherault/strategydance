@@ -5,8 +5,11 @@ import { DIRECTORIES_FILE_PATH, INACTIVE_DIRECTORIES_FILE_PATH } from '~constant
 import createAnthropicClaudeClient from '~domain/agent/createAnthropicClaudeClient'
 import checkDirectories from '~domain/directories/checkDirectories'
 import { DIRECTORY_CHECK_COUNT, INACTIVE_DIRECTORY_CHECK_COUNT } from '~domain/directories/directoryCheckSettings'
+import publishDirectoryCheck from '~domain/directories/publishDirectoryCheck'
 import readDirectoryLists from '~domain/directories/readDirectoryLists'
 import serializeDirectoryLists from '~domain/directories/serializeDirectoryLists'
+import createGitHubAppToken from '~domain/github/createGitHubAppToken'
+import createGitHubClient from '~domain/github/createGitHubClient'
 
 /*
   Runs the directories' check on this checkout's lists, as the worker runs it every day on the
@@ -16,8 +19,14 @@ import serializeDirectoryLists from '~domain/directories/serializeDirectoryLists
     bun run check:directories --count 3 --inactive 0  # fewer, or more
     bun run check:directories --name "Product Hunt"   # those named, again and again if need be
     bun run check:directories --dry-run               # prints the report, writes nothing
+    bun run check:directories --publish --count 2     # as the worker does, on the repository
 
-  Every review asks Claude, which costs money, about $0.20 to $0.40 a directory: the report says
+  `--publish` reads the lists from GitHub and commits to the rolling pull request into `dev`, as the
+  worker's `/internal/directories-check` does, as the GitHub App: what proves the App before a
+  release takes the route to the worker. Its id and key are GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY
+  when set, and the `github-app-id` and `github-app-private-key` secrets otherwise.
+
+  Every review asks Claude, which costs money, about $0.05 to $0.40 a directory: the report says
   what the run cost. Claude's key is ANTHROPIC_API_KEY when set, and the `anthropic-api-key` secret
   otherwise
 */
@@ -28,6 +37,7 @@ const { values } = parseArgs({
     inactive: { type: 'string', default: String(INACTIVE_DIRECTORY_CHECK_COUNT) },
     name: { type: 'string', multiple: true },
     'dry-run': { type: 'boolean', default: false },
+    publish: { type: 'boolean', default: false },
   },
 })
 
@@ -37,6 +47,26 @@ const inactiveCount = Number(values.inactive)
 if (!Number.isInteger(count) || count < 0 || !Number.isInteger(inactiveCount) || inactiveCount < 0) {
   console.error('--count and --inactive take a whole number')
   process.exit(1)
+}
+
+const today = new Date().toISOString().slice(0, 10)
+
+if (values.publish) {
+  if (values.name || values['dry-run']) {
+    console.error('--publish checks what a day picks, and writes it: it takes neither --name nor --dry-run')
+    process.exit(1)
+  }
+
+  const { outcome, url } = await publishDirectoryCheck({
+    github: createGitHubClient(await createGitHubAppToken()),
+    claude: createAnthropicClaudeClient(),
+    today,
+    count,
+    inactiveCount,
+  })
+
+  console.log(`${outcome}${url ? `: ${url}` : ''}`)
+  process.exit(0)
 }
 
 const REPOSITORY_ROOT = new URL('../../../', import.meta.url)
@@ -57,7 +87,7 @@ const result = await checkDirectories(lists, {
   count,
   inactiveCount,
   names: values.name,
-  today: new Date().toISOString().slice(0, 10),
+  today,
 })
 
 console.log(result.report)

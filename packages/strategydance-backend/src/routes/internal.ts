@@ -9,10 +9,14 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import validateMiddleware from '~middleware/validate'
 
+import createAnthropicClaudeClient from '~domain/agent/createAnthropicClaudeClient'
 import pruneConversationAttachments from '~domain/conversations/pruneConversationAttachments'
 import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
 import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
 import runConversation from '~domain/conversations/runConversation'
+import publishDirectoryCheck from '~domain/directories/publishDirectoryCheck'
+import createGitHubAppToken from '~domain/github/createGitHubAppToken'
+import createGitHubClient from '~domain/github/createGitHubClient'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
@@ -100,6 +104,22 @@ function createInternalRouter() {
     await pruneOAuthAuthorizationRequests()
     await pruneAgentConnectionTokens()
     await pruneOAuthClients()
+
+    response.json({ status: 'success' })
+  })
+
+  /*
+    Checks a day's directories, as Cloud Scheduler asks once a day, and commits what it found to the
+    rolling pull request into `dev`, opening one when none is open (`publishDirectoryCheck`): a run
+    takes a few minutes, inside the worker's fifteen. A run that fails leaves the lists as they were,
+    and the next day picks the same directories. Takes no body
+  */
+  router.post('/directories-check', async (_request: Request, response: Response<ApiResponse>) => {
+    await publishDirectoryCheck({
+      github: createGitHubClient(await createGitHubAppToken()),
+      claude: createAnthropicClaudeClient(),
+      today: new Date().toISOString().slice(0, 10),
+    })
 
     response.json({ status: 'success' })
   })

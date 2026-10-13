@@ -5,6 +5,7 @@ import {
   ContactRoundIcon,
   FileTextIcon,
   LighthouseIcon,
+  PlugIcon,
   SquareKanbanIcon,
   StoreIcon,
   UsersRoundIcon,
@@ -17,6 +18,7 @@ import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from 'strategydance-desi
 import { COMPANY_ASPECTS } from '~constants'
 
 import useCanUseConversations from '~hooks/conversation/useCanUseConversations'
+import useCanUseIntegrations from '~hooks/integration/useCanUseIntegrations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useUser from '~hooks/user/useUser'
@@ -35,6 +37,7 @@ function SidebarNavigation() {
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: user } = useUser()
   const canUseConversations = useCanUseConversations()
+  const canUseIntegrations = useCanUseIntegrations()
 
   /*
     The organization's explored aspects, in `COMPANY_ASPECTS`'s order rather than the order they
@@ -122,6 +125,15 @@ function SidebarNavigation() {
               label={formatMessage(navigationMessages.profile)}
               icon={<StoreIcon />}
               link={{ to: '/$organizationSlug/profile', params: { organizationSlug } }}
+            />
+          ) : null}
+          {/* Every member reads the organization's servers, while the gate lets the reader in */}
+          {canUseIntegrations ? (
+            <NavigationLink
+              path={`/${organizationSlug}/integrations`}
+              label={formatMessage(navigationMessages.integrations)}
+              icon={<PlugIcon />}
+              link={{ to: '/$organizationSlug/integrations', params: { organizationSlug } }}
             />
           ) : null}
         </SidebarMenu>

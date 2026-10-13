@@ -38,6 +38,9 @@ describe('isGloballyRoutableAddress', () => {
       'ff02::1',
       '2001:db8::1',
       '100::1',
+      // Unassigned IPv6, outside the global unicast block
+      '4000::1',
+      'c000::1',
       // IPv4 written as IPv6, and the gateways to IPv4
       '::ffff:127.0.0.1',
       '::ffff:169.254.169.254',

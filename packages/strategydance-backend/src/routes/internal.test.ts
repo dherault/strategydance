@@ -33,6 +33,11 @@ const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
 
 mock.module('~domain/tasks/pruneDeletedTasks', () => ({ default: pruneDeletedTasks }))
 
+// The integrations' prune, which `check:integrations` checks against the emulators
+const pruneDeletedIntegrations = mock(async () => ({ deleted: 0 }))
+
+mock.module('~domain/integrations/pruneDeletedIntegrations', () => ({ default: pruneDeletedIntegrations }))
+
 // The client every run asks, the placeholder without the pauses it makes for a person to watch
 mock.module('~domain/agent/conversationClaudeClient', () => ({
   default: createPlaceholderClaudeClient({ stepDurationMs: 0 }),
@@ -197,13 +202,15 @@ describe('POST /internal/sweep', () => {
     expect([...fake.searches.keys()]).toEqual([kept.id])
   })
 
-  test("prunes the board's deleted tasks too", async () => {
+  test("prunes the board's deleted tasks and the organizations' deleted servers too", async () => {
     pruneDeletedTasks.mockClear()
+    pruneDeletedIntegrations.mockClear()
 
     const response = await fetch(`${origin}/internal/sweep`, { method: 'POST' })
 
     expect(response.status).toBe(200)
     expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
+    expect(pruneDeletedIntegrations).toHaveBeenCalledTimes(1)
   })
 
   test('removes the documents deleted over a day ago in every organization, and keeps the rest', async () => {

@@ -8,6 +8,7 @@ const COMMIT_PREFIX_TO_PATH = {
   backend: 'packages/strategydance-backend/',
   core: 'packages/strategydance-core/',
   directories: 'packages/strategydance-directories/',
+  'external-mcp-servers': 'packages/strategydance-external-mcp-servers/',
   database: 'packages/strategydance-database/',
   translations: 'packages/strategydance-translations/',
   emails: 'packages/strategydance-emails/',

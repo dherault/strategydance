@@ -268,3 +268,35 @@ export type OAuthAuthorizationRequestSummary = {
 export type OAuthAuthorizationDecision = {
   redirectUrl: string | null
 }
+
+/* ---
+  INTEGRATIONS
+--- */
+
+/*
+  A tool an MCP server listed, as `OrganizationIntegration.tools` keeps it: what the server said of
+  it, read through the MCP SDK's own schema, and the hash of its definition an administrator's
+  approval is bound to, so a server that changes a tool loses the approval given to the old one.
+  Every text in it is the server's, shown as plain text and never as Markdown
+*/
+export type IntegrationTool = {
+  name: string
+  title?: string
+  description?: string
+  inputSchema: Record<string, unknown>
+  annotations?: {
+    title?: string
+    readOnlyHint?: boolean
+    destructiveHint?: boolean
+    idempotentHint?: boolean
+    openWorldHint?: boolean
+  }
+  definitionHash: string
+}
+
+// What adding a server answers with: its id, and how many tools it listed, none for an OAuth server
+// until a member connects an account
+export type AddIntegrationData = {
+  integrationId: string
+  toolCount: number
+}

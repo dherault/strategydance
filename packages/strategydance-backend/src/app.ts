@@ -13,6 +13,7 @@ import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
 import createConversationsRouter from '~routes/conversations'
+import createIntegrationsRouter from '~routes/integrations'
 import createInternalRouter from '~routes/internal'
 import createLinkPreviewsRouter from '~routes/linkPreviews'
 import createModuleMetadataRouter from '~routes/moduleMetadata'
@@ -77,8 +78,9 @@ function createApp({ isWorker }: Options) {
     app.use('/oauth/requests', createOAuthRequestsRouter())
     app.use('/oauth', createOAuthRouter())
     app.use(MODULES_PATH, createModulesRouter())
-    // Ahead of the organizations' router, so its paths are matched first
+    // Ahead of the organizations' router, so their paths are matched first
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())
+    app.use('/organizations/:organizationId/integrations', createIntegrationsRouter())
     app.use('/organizations', createOrganizationsRouter())
     app.use('/users', createUsersRouter())
   }

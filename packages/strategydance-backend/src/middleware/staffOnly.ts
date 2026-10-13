@@ -12,11 +12,12 @@ import respondError from '~utils/respondError'
 /*
   Lets through only Strategy Dance's own administrators while conversations are open to them alone
   (`ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core), and everybody once they launch, as it
-  already does on the development backend (`IS_CONVERSATIONS_RELEASE_GATED`).
+  already does on the development backend (`IS_CONVERSATIONS_RELEASE_GATED`). The integrations'
+  routes are behind it too, since the agent is what calls an organization's MCP servers.
 
   It runs after `authenticationMiddleware`. The gate hides an unfinished feature and protects no
-  data: a conversation is its author's alone either way, which the operations behind each route
-  check. A run checks it again before a worker claims it, so a run queued by somebody who is no
+  data: a conversation is its author's alone either way, and an organization's servers its
+  administrators' to change, which the operations behind each route check. A run checks it again before a worker claims it, so a run queued by somebody who is no
   longer staff stops too
 */
 async function staffOnlyMiddleware(request: Request, response: Response, next: NextFunction) {
@@ -29,7 +30,12 @@ async function staffOnlyMiddleware(request: Request, response: Response, next: N
   const { data } = await getUserStaffStatus(dataConnect, { userId: readViewer(request).id })
 
   if (!data.user?.isAdministrator) {
-    respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Conversations are open to Strategy Dance’s administrators alone')
+    respondError(
+      response,
+      403,
+      ERROR_CODE_FORBIDDEN,
+      'Conversations and integrations are open to Strategy Dance’s administrators alone',
+    )
 
     return
   }

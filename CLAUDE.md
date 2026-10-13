@@ -48,6 +48,13 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   ([directories.md](documents/directories.md)). Both files are written as `JSON.stringify(list,
   null, 2)` writes them, sorted by name, which the tests hold them to, so a script's edit passes the
   lint
+- `packages/strategydance-external-mcp-servers` — the remote MCP servers an organization adds in a
+  click from its Integrations page, as `EXTERNAL_MCP_SERVERS` from `src/externalMcpServers.json`,
+  with `findExternalMcpServer` by slug and `findExternalMcpServerByUrl`: each with its address,
+  its authentication, a category, a description in English, which the web's `externalMcpServer`
+  catalogue translates, and whether the web has its mark. Data with no runtime dependency, as the
+  directories are. An entry is checked before it ships by `bun run probe:integrations`, in the
+  backend's package, and the package's README says how one is added
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
@@ -55,10 +62,11 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 - `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
   browser cannot do for itself because it needs a secret or the server's word. Today that is
   inviting people, which emails them, storing the pictures of documents' text, reading what a
-  web page says of itself for a link preview, sending and searching conversations, and serving the
-  modules to the agents members connect, through its own authorization server. Its image runs
-  a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them,
-  sweeps what was deleted once a day, and checks the directories once a day. See below
+  web page says of itself for a link preview, sending and searching conversations, serving the
+  modules to the agents members connect, through its own authorization server, and reaching the MCP
+  servers an organization adds, with their keys encrypted. Its image runs a second time as the
+  private worker, which runs conversations' runs as Cloud Tasks delivers them, sweeps what was
+  deleted once a day, and checks the directories once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
@@ -451,6 +459,21 @@ only way the app talks to them.
   list, as the sends' `$attachmentIds` step checks `this == size(vars.attachmentIds)`, and this
   without it, so a caller from before the variable is refused rather than writing rows it never
   named. `check:conversation-attachments` checks it
+- A nullable variable left out of a write leaves its column as it was, and only null clears it: a
+  write meant to clear a column, as `ReconfigureOrganizationIntegration` clears the key given for
+  another server, is called with every such variable, null included, which
+  `createIntegrationDatabaseFake` holds the backend to
+- An organization's MCP servers are `OrganizationIntegration` rows, which the backend alone writes.
+  An edit carries the name, `configRevision` and `keyGeneration` its dialog showed, and an approval
+  the revision its tools were shown under, which the row has to hold still when the request arrives
+  and when it is written, so an administrator's change made meanwhile wins over a stale view.
+  Approvals are added and removed by hash (`autoApprovedTools_update`), never rewritten, so one given
+  meanwhile stays.
+  `GetOrganizationIntegrations`, live, never selects the key's ciphertext nor the tools, which
+  `GetOrganizationIntegrationTools` reads for one dialog: a write added later that changes what
+  either selects names itself in their refreshes, and the agent's `lastUsedAt` write (M29) never
+  does. `bun run check:integrations`, in the backend's package, checks the operations against the
+  emulators
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
@@ -642,8 +665,8 @@ A conversation is kept twice, once for Claude and once for the page, and
   mounts. Locally the gate is lifted, so every member of every organization has them: the web
   against the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
-  the tests keep it. A gate added for conversations, as the integrations' will be, keys off the
-  same two. The modules reach external agents under a gate of their own until they launch,
+  the tests keep it. A gate added for conversations keys off the same two, as the integrations' does
+  (`useCanUseIntegrations`, and `staffOnlyMiddleware` on their routes). The modules reach external agents under a gate of their own until they launch,
   `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
@@ -888,10 +911,17 @@ in `utils/`, one concern per file.
   no Files API source, so a file is counted once from its bytes when it is stored, into
   `tokenCount`, and every measurement takes file blocks out and adds those counts
   (`replaceConversationFiles`)
-- A request to an address somebody else gave, a link preview's page today, goes through
-  `fetchOutbound` in `utils/`, never `fetch`: http or https on its own port, every address the
-  hostname resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address
-  checked, each redirect checked again, a deadline and a byte cap. The server otherwise reaches its
+- A request to an address somebody else gave goes through the outbound guard in `utils/`, never
+  `fetch`. `requestOutbound` makes one request: http or https on its own port, https alone where
+  the caller says, a hostname that is no name of this server's own network, every address it
+  resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address checked,
+  and a redirect answered rather than followed. `fetchOutbound`, for a link preview's page or a
+  client ID metadata document, follows redirects through it, each checked again, within a deadline
+  and a byte cap. `createGuardedFetch` is the `fetch` the MCP SDK's client takes to reach an
+  organization's MCP server: https alone, every redirect handed to the SDK, which follows a
+  same-origin one through it again and refuses another, so a key never leaves its server, each
+  request's deadline merged with the operation's, and a streamed body cut at its cap. A refusal names
+  the origin alone, never a path or a query that could hold a key. The server otherwise reaches its
   metadata server and its own network on anybody's say
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
   `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
@@ -912,6 +942,23 @@ in `utils/`, one concern per file.
   `/internal/conversation-runs`, whose request stays open for the whole run, since Cloud Run
   throttles the CPU once a response is sent. Queueing it twice queues it once (`ALREADY_EXISTS`),
   and a run that could not be queued stays queued while the send answers 503
+- An organization's MCP servers are its administrators' to change, through `routes/integrations.ts`,
+  mounted at `/organizations/:organizationId/integrations`, each route running
+  `organizationAdministratorMiddleware`, then `staffOnlyMiddleware` until conversations launch, and
+  those that reach a server `integrationRateLimitMiddleware`. What they do is in
+  `domain/integrations/`: `reachIntegration` lists a server's tools through the MCP SDK's client,
+  a 2025 handshake first, or discovers an OAuth server's issuer, which has to offer S256 and a way to
+  register, a server's origin taken as its authorization server only when every metadata address
+  answered 404. Whatever fails is an `IntegrationFailure` of one of the database's
+  `IntegrationError` kinds, which a route answers with its own code
+  (`INTEGRATION_FAILURE_ERROR_CODES`), and nothing is saved when a server cannot be reached. A key
+  is encrypted with Cloud KMS in production (`INTEGRATION_KMS_KEY_NAME`, on which the runtime
+  account holds `roles/cloudkms.cryptoKeyEncrypterDecrypter`) and under a fixed local key anywhere
+  else, bound to its organization and server, and read back only to reach the server again. A log
+  or a refusal names a server's origin alone, never what it answered. The routes' tests run against
+  `createIntegrationDatabaseFake` with `reachIntegration` mocked, `bun run check:integrations`
+  checks the operations against the emulators, and `bun run probe:integrations` reaches every
+  server of strategydance-external-mcp-servers through the same code from this machine
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
   deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, each
@@ -925,7 +972,8 @@ in `utils/`, one concern per file.
   and in production the files the Files API holds that no row names, a day old
   (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
-  organization's documents deleted over a day ago, the conversation searches over a day old, which
+  organization's documents and MCP servers deleted over a day ago, the servers with their keys
+  (`PruneDeletedIntegrations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
   nobody uses (`domain/oauth/prune…`). A milestone that keeps
@@ -1332,7 +1380,7 @@ tree at unpredictable moments, and an unexpected path belongs in `.gitignore`, n
 
 Write subjects in the imperative mood, saying what the change does rather than which files it
 touches. A husky `commit-msg` hook (`scripts/prefixCommit.ts`) prepends a scope derived from the
-staged paths: `[web]`, `[backend]`, `[core]`, `[directories]`, `[database]`, `[design-system]`,
+staged paths: `[web]`, `[backend]`, `[core]`, `[directories]`, `[external-mcp-servers]`, `[database]`, `[design-system]`,
 `[translations]`, `[emails]`, `[documents]`, or `[root]` when the change spans more than one. **Write the message
 without a prefix and let the hook add it**; a prefix you write by hand is respected, so a wrong
 one sticks. A commit touching two packages is always `[root]`, which is a reason to keep commits

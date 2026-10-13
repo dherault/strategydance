@@ -2338,8 +2338,11 @@ worker's claim checks the role again, so a queued run stops too:
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
   M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
-  member started it, so the callback is gated through it. The integration list query filters on the
-  caller being staff until M37.
+  member started it, so the callback is gated through it. The integration list query checks
+  membership alone, as David chose on 2026-10-13 (M27): the page's bouncer (`useCanUseIntegrations`)
+  and the routes gate integrations as they gate conversations, the list holds nothing secret, and a
+  connector cannot tell the emulators from production, so a staff filter would have broken the local
+  lift.
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
@@ -2419,7 +2422,24 @@ account, and until both exist every send in production answers 503.
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting
    at 50%, 90% and 100% (done on 2026-10-04).
 9. For M27 to M29: a Cloud KMS key for integration secrets, with
-   `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account.
+   `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account, on that key alone.
+   Not done on 2026-10-13, when M27 was built: the API was not enabled on the project, so until this
+   step a key-based server's add answers 503 in production, while one taking OAuth or nothing works.
+   The backend names the key `INTEGRATION_KMS_KEY_NAME`:
+
+   ```sh
+   gcloud services enable cloudkms.googleapis.com --project strategydance
+   gcloud kms keyrings create integrations --location us-central1 --project strategydance
+   gcloud kms keys create integration-secrets --keyring integrations --location us-central1 \
+     --purpose encryption --rotation-period 90d --next-rotation-time "$(date -u -v+90d +%Y-%m-%dT%H:%M:%SZ)" \
+     --project strategydance
+   gcloud kms keys add-iam-policy-binding integration-secrets --keyring integrations --location us-central1 \
+     --member serviceAccount:995028545701-compute@developer.gserviceaccount.com \
+     --role roles/cloudkms.cryptoKeyEncrypterDecrypter --project strategydance
+   ```
+
+   A rotation keeps the old versions, which the ciphertexts made under them name: never destroy one
+   while a key encrypted under it is stored.
 10. For M18: the secret refresh tokens' successors are derived under, 32 random bytes typed into
     Secret Manager as `oauth-token-secret` (`openssl rand -base64 32 | gcloud secrets create
     oauth-token-secret --data-file=- --project strategydance`), with Secret Manager's accessor role

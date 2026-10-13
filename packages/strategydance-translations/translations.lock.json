@@ -1976,6 +1976,244 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "externalMcpServer": {
+      "externalMcpServer.ahrefs": {
+        "hash": "3bdf06dd3e71a94e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.airtable": {
+        "hash": "372527ff651cd5fe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.attio": {
+        "hash": "3a447da6c317e50a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.beehiiv": {
+        "hash": "6717a5ddb1aa5099",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.buffer": {
+        "hash": "a3301d32fdc51e2c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.calcom": {
+        "hash": "d00d9e527d38749e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.calendly": {
+        "hash": "9cd9a33343efb471",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.canva": {
+        "hash": "7fc4de23c3fe98ea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.clickup": {
+        "hash": "82a73a67093769ee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.cloudflare": {
+        "hash": "4e827916d537d21c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.customerio": {
+        "hash": "ff0dd714fb875e3a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.dropbox": {
+        "hash": "24f911b76783446f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.figma": {
+        "hash": "fcb709c42ce4068c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.folk": {
+        "hash": "51a8d189a6460513",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.github": {
+        "hash": "59b2b8a8673f18da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.granola": {
+        "hash": "a1946cf1067e8cd4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.heroku": {
+        "hash": "af6cd495df83c1ab",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.huggingface": {
+        "hash": "6a29b1c2396e4631",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.hunter": {
+        "hash": "cb4488a2a61eb5fe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.intercom": {
+        "hash": "fdd57a6d97c1f802",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.jira": {
+        "hash": "2365e743de14e744",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.klaviyo": {
+        "hash": "d3842982826c3b4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.lemlist": {
+        "hash": "18240945af701d8e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.linear": {
+        "hash": "5d93f6773d3a9968",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.lovable": {
+        "hash": "e854510bc36a58c9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.mailerlite": {
+        "hash": "03e1cc20a0d9effb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.mercury": {
+        "hash": "3a62bc9d814440d9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.metaads": {
+        "hash": "c8ae781ad4f9c086",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.miro": {
+        "hash": "f009734d27e1138e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.mixpanel": {
+        "hash": "bf54ae05df9057e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.monday": {
+        "hash": "3f7630ba86475a8c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.neon": {
+        "hash": "21923bf06e467b94",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.netlify": {
+        "hash": "3103002fd4fcce9b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.notion": {
+        "hash": "bfe05d2bdcee0c7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.paddle": {
+        "hash": "9ad1dff5d00ddc8b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.paypal": {
+        "hash": "2387d2a7e100a3e1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.plain": {
+        "hash": "f7b63529b3af19f3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.porkbun": {
+        "hash": "c39933c730fb2884",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.posthog": {
+        "hash": "23f5d8c9905f8798",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.qonto": {
+        "hash": "2b323e1cfec1e237",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.quo": {
+        "hash": "2bc24639def303a1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.ramp": {
+        "hash": "d0d21efb4b16b315",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.remote": {
+        "hash": "10e69ae94de73b90",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.replit": {
+        "hash": "69cb412eeb6e97c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.resend": {
+        "hash": "ed5cfb5dc0605e2e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.semrush": {
+        "hash": "5cb8ff6669647003",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.sentry": {
+        "hash": "6ebfb5f8a70bf902",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.shopify": {
+        "hash": "76bd85da328f3604",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.square": {
+        "hash": "4ea78eb9dd5daf5a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.stripe": {
+        "hash": "0fd0ab14c94781ed",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.supabase": {
+        "hash": "a9639cb305c38898",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.superhuman": {
+        "hash": "40e8e77eb46f2317",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.tally": {
+        "hash": "80384a6ab661a83a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.tiktokads": {
+        "hash": "4ef2b3d83d731f2c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.todoist": {
+        "hash": "a4dd2321a4a9c3a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.typeform": {
+        "hash": "94a6d1760a1f8443",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.vercel": {
+        "hash": "d5aa38eb6bd4639d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.webflow": {
+        "hash": "553d00d9dfdad881",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "externalMcpServer.zapier": {
+        "hash": "7fe8e8813538cef2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "global": {
       "global.closeNotification": {
         "hash": "89a465a24fac1347",
@@ -2023,6 +2261,424 @@
       },
       "global.showPassword": {
         "hash": "5abc086d954813bd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
+    "integration": {
+      "integration.addCatalogueServer": {
+        "hash": "d73ec720a26c5922",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.addServer": {
+        "hash": "f3b459e75fcaf606",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.added": {
+        "hash": "415552d586097a4d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.addedWithTools": {
+        "hash": "3bc88ba2b7ee9d7a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyHeaderInvalid": {
+        "hash": "5f1066ca82bfc6af",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyHeaderLabel": {
+        "hash": "a716f236f9647a60",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyInvalid": {
+        "hash": "5d2f4dd62706f266",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyKeepHint": {
+        "hash": "3601da52a5241c9f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyKeepHintShort": {
+        "hash": "7ad234c658ab4079",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyLabel": {
+        "hash": "aee2c0572b140927",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyRequired": {
+        "hash": "bb97917a7ec95393",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeyRequiredAgain": {
+        "hash": "dab4b29dcc562ef8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeySchemeBearer": {
+        "hash": "35badf91e897a826",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeySchemeHeader": {
+        "hash": "3592cf9db3e0d4bb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.apiKeySchemeLabel": {
+        "hash": "ca9a2178d8f4ebc4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.approvalError": {
+        "hash": "32939bf85f908062",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.asksForApproval": {
+        "hash": "39e0253a0c323097",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.authenticationApiKey": {
+        "hash": "6282c709378cff99",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.authenticationLabel": {
+        "hash": "e1b408c64b469c92",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.authenticationNone": {
+        "hash": "ff8b994a6130164d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.authenticationOAuth": {
+        "hash": "3dc04c81a93d3ab4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.cancel": {
+        "hash": "c4492fda48fecfb8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryAnalytics": {
+        "hash": "5d0ceab23bde3f6b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryAutomation": {
+        "hash": "d4be2d7ee0c6802d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryCommunication": {
+        "hash": "72b10273ecf0e0ff",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryCustomers": {
+        "hash": "55190603cf2e929b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryDesign": {
+        "hash": "ba74c0e9a891e20a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryDevelopment": {
+        "hash": "b8a7d3181d554ca3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryDocuments": {
+        "hash": "1567e467b81f65ff",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryFinance": {
+        "hash": "ca175396cb2035e4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryMarketing": {
+        "hash": "5f705a7de1d13d59",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryPayments": {
+        "hash": "cffcc85e240f3927",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryPeople": {
+        "hash": "217745557554dd12",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.categoryProjects": {
+        "hash": "94aa963d9c601dbb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.close": {
+        "hash": "38a7b333d84825a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.columnActions": {
+        "hash": "d6f59f7eb5dddeaa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.columnLastUsed": {
+        "hash": "01273042e6d9d0a5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.columnOn": {
+        "hash": "49bf96fb4c68d156",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.columnServer": {
+        "hash": "f125613229641955",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.columnStatus": {
+        "hash": "7dcfe8733ed494c7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.delete": {
+        "hash": "60b03c2d70d67fc7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.deleteConfirm": {
+        "hash": "c9936f5770417235",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.deleteError": {
+        "hash": "b29fdd20ef85bc94",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.deleted": {
+        "hash": "35a683bd0b4910d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.dialogAddDescription": {
+        "hash": "66ae031612ea6175",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.dialogAddTitle": {
+        "hash": "db45c0592a39aa71",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.dialogDescription": {
+        "hash": "a7947de8a8633e4e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.emptyText": {
+        "hash": "17852ab802b937d8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.emptyTitle": {
+        "hash": "0f305ef5e390e1fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureAddressRefused": {
+        "hash": "b1955ad834b67553",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureAuthenticationRequired": {
+        "hash": "74016b8d30c3d919",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureConflict": {
+        "hash": "88e7165ad648d273",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureDiscoveryFailed": {
+        "hash": "e5c8b2ac84211842",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureFull": {
+        "hash": "fd2f19fa11fd291a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureGone": {
+        "hash": "1db23822e3985665",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureKeyRefused": {
+        "hash": "76a2e5ddf85a31da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureKeyUnavailable": {
+        "hash": "dba14b6e73fbd7fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureNotMcpServer": {
+        "hash": "7a98959c05a52c63",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureRateLimited": {
+        "hash": "85f0b61a12bba8ba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureTimedOut": {
+        "hash": "bc4cf87868d80b9f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureTooManyTools": {
+        "hash": "d9929398b60b1ae2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureUnknown": {
+        "hash": "0b30881abaca53fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureUnreachable": {
+        "hash": "830e5884a0d64c47",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.galleryDescription": {
+        "hash": "dcb13af4b5131360",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.galleryTitle": {
+        "hash": "e350f6706b54d6f2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.lastUsedJustNow": {
+        "hash": "79eaef7664ef828b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.lead": {
+        "hash": "764add5b6e59518b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.leadAvailable": {
+        "hash": "e1c3fa4e04366508",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.leadMembers": {
+        "hash": "6a56b89cf7923c62",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.loadError": {
+        "hash": "2dc62740ac398ecf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.nameInvalid": {
+        "hash": "d76bb9a9cf9d7700",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.nameLabel": {
+        "hash": "92a4367d88980d14",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.namePlaceholder": {
+        "hash": "f2e8f688ded6a4f2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.nameRequired": {
+        "hash": "128f3779ee2e72f4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.nameTaken": {
+        "hash": "5eea02ce025db475",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.neverUsed": {
+        "hash": "52ebad5b93e89c9d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.reachable": {
+        "hash": "56920463bbbdc0f1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.readOnlyClaim": {
+        "hash": "69ea58ee777b6c2b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.readOnlyClaimHint": {
+        "hash": "60caf95eea643a9a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.restoreError": {
+        "hash": "f6fc415306458e0e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.retry": {
+        "hash": "25afc669c35c2500",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.runWithoutApproval": {
+        "hash": "41e59045607f8aee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.runsWithoutApproval": {
+        "hash": "1a00b6c0d741416e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.save": {
+        "hash": "1346ef789e197d53",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.saved": {
+        "hash": "dc102636ab7b8f9e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.statusConnected": {
+        "hash": "c0a5dce636f5be25",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.statusError": {
+        "hash": "926ea0912c712c20",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.statusNeedsAuthentication": {
+        "hash": "b7d9c89e8f587ddd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.statusOff": {
+        "hash": "5b94a75a8817bc30",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toggleError": {
+        "hash": "a52131413ef0e8ef",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsApprovalWarning": {
+        "hash": "1af82cb4bbb3cd30",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsCount": {
+        "hash": "0621e74b70099917",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsEmpty": {
+        "hash": "4e0fdfc00be39821",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsLoadError": {
+        "hash": "424469d9dc8f12b2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsTitle": {
+        "hash": "606f8e781d12613f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsWaiting": {
+        "hash": "67ed0dc8230de3df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.turnOff": {
+        "hash": "1cc6f3286a2c5646",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.turnOn": {
+        "hash": "148abc8474a4469b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.turnedOff": {
+        "hash": "b31313650e248e0e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.turnedOn": {
+        "hash": "be5d169f37444701",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.undo": {
+        "hash": "462dc3a73e1d192e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.urlHint": {
+        "hash": "0ffa5e10b37b4986",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.urlInvalid": {
+        "hash": "50782cebd0d02c09",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.urlLabel": {
+        "hash": "832a2f0c7c55540a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
@@ -2983,6 +3639,10 @@
       },
       "navigation.githubStargazers": {
         "hash": "43a1d9ec8d9513c4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.integrations": {
+        "hash": "8122d2f707abcdb0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.knowledge": {

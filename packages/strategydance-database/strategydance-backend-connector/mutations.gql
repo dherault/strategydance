@@ -4071,3 +4071,553 @@ mutation PruneOAuthClients @auth(level: NO_ACCESS) {
     }
   )
 }
+
+# --- Integrations ---
+#
+# An organization's MCP servers, which its administrators change through the backend alone, since
+# adding or changing one reaches the server first. Every operation takes the organization, the
+# server and the administrator the backend verified, and checks in its redacted step that they
+# administer the organization, in words `isAdministratorRefusal` reads. Each names the organization
+# as `$organizationId` and the server as `$integrationId`, which the live queries' refreshes read.
+#
+# A write made after reaching the server matches the `configRevision` and `keyGeneration` it reached
+# it with, under a check that it changed one row, so a result read from a configuration another
+# administrator has replaced since is refused rather than stored over theirs. One that also writes
+# the name matches the name it read, `$readName`, so a rename made meanwhile is not undone
+
+# Adds a server, with what reaching it found: its tools for one that took no OAuth, or the issuer of
+# its authorization server for one that does, whose tools wait for a member's connection (M28).
+#
+# The first step takes the organization's row lock, so two administrators adding at once count each
+# other: at most 50 live servers (`MAX_INTEGRATIONS` in strategydance-core), and no two of one name
+mutation CreateOrganizationIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $name: String!
+  $normalizedName: String!
+  $url: String!
+  $catalogueSlug: String
+  $authentication: IntegrationAuthentication!
+  $encryptedApiKey: String
+  $apiKeyLastFour: String
+  $apiKeyScheme: IntegrationApiKeyScheme!
+  $apiKeyHeader: String
+  $issuer: String
+  $tools: String
+  $toolCount: Int
+  $toolDefinitionHashes: [String!]!
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can add a server to it") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can add a server")
+    }
+    organizationIntegrations(
+      where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 50
+    ) @check(expr: "size(this) < 50", message: "An organization adds at most 50 servers") {
+      id
+    }
+    taken: organizationIntegrations(
+      where: {
+        organizationId: { eq: $organizationId }
+        normalizedName: { eq: $normalizedName }
+        deletedAt: { isNull: true }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Another server of the organization has this name") {
+      id
+    }
+  }
+  organizationIntegration_insert(
+    data: {
+      id: $integrationId
+      organizationId: $organizationId
+      name: $name
+      normalizedName: $normalizedName
+      url: $url
+      catalogueSlug: $catalogueSlug
+      authentication: $authentication
+      encryptedApiKey: $encryptedApiKey
+      apiKeyLastFour: $apiKeyLastFour
+      apiKeyScheme: $apiKeyScheme
+      apiKeyHeader: $apiKeyHeader
+      issuer: $issuer
+      tools: $tools
+      toolCount: $toolCount
+      toolDefinitionHashes: $toolDefinitionHashes
+    }
+  )
+}
+
+# Renames a server, under the organization's row lock, so two renames cannot take one name, matching
+# the name the administrator renamed, so one made meanwhile is not undone
+mutation RenameOrganizationIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $name: String!
+  $normalizedName: String!
+  $readName: String!
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+    taken: organizationIntegrations(
+      where: {
+        _and: [
+          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { deletedAt: { isNull: true } }
+          { _not: { id: { eq: $integrationId } } }
+        ]
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Another server of the organization has this name") {
+      id
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      name: { eq: $readName }
+      deletedAt: { isNull: true }
+    }
+    data: { name: $name, normalizedName: $normalizedName, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Points a server at another address or another authentication, with what reaching it there found,
+# the external MCP server at its new address, if any, and its name, under the organization's row
+# lock, as a rename takes it.
+# Everything given for the old ones goes in the same write: the key, unless a new one is given, the
+# issuer, the tools and every approval, since another server could list identical tools. It bumps
+# `configRevision`, and `keyGeneration`, since whatever key it holds now was given for this server.
+# M28 deletes the registered client, members' connections and pending authorizations here too.
+#
+# Every variable is passed, null to clear its column: one left out leaves the column as it was, the
+# old server's key included
+mutation ReconfigureOrganizationIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $name: String!
+  $normalizedName: String!
+  $readName: String!
+  $configRevision: Int!
+  $keyGeneration: Int!
+  $url: String!
+  $catalogueSlug: String
+  $authentication: IntegrationAuthentication!
+  $encryptedApiKey: String
+  $apiKeyLastFour: String
+  $apiKeyScheme: IntegrationApiKeyScheme!
+  $apiKeyHeader: String
+  $issuer: String
+  $tools: String
+  $toolCount: Int
+  $toolDefinitionHashes: [String!]!
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+    taken: organizationIntegrations(
+      where: {
+        _and: [
+          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { deletedAt: { isNull: true } }
+          { _not: { id: { eq: $integrationId } } }
+        ]
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Another server of the organization has this name") {
+      id
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      name: { eq: $readName }
+      configRevision: { eq: $configRevision }
+      keyGeneration: { eq: $keyGeneration }
+      deletedAt: { isNull: true }
+    }
+    data: {
+      name: $name
+      normalizedName: $normalizedName
+      url: $url
+      catalogueSlug: $catalogueSlug
+      authentication: $authentication
+      encryptedApiKey: $encryptedApiKey
+      apiKeyLastFour: $apiKeyLastFour
+      apiKeyScheme: $apiKeyScheme
+      apiKeyHeader: $apiKeyHeader
+      issuer: $issuer
+      tools: $tools
+      toolCount: $toolCount
+      toolDefinitionHashes: $toolDefinitionHashes
+      autoApprovedTools: []
+      configRevision_update: { inc: 1 }
+      keyGeneration_update: { inc: 1 }
+      lastError: null
+      lastErrorAt: null
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Replaces a key-based server's key, or how it is sent, at the same address, with the tools the
+# server listed for it, and its name, under the organization's row lock, as a rename takes it. A new key bumps `keyGeneration` and another way of sending it
+# `configRevision`, each by the increment the backend passes, 1 or 0. Approvals stay, but for the
+# tools the server no longer lists, which `$removedToolDefinitionHashes` names: removed rather than
+# rewritten, so an approval given meanwhile for a tool still listed is kept
+mutation UpdateOrganizationIntegrationKey(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $name: String!
+  $normalizedName: String!
+  $readName: String!
+  $configRevision: Int!
+  $keyGeneration: Int!
+  $configRevisionIncrement: Int!
+  $keyGenerationIncrement: Int!
+  $encryptedApiKey: String!
+  $apiKeyLastFour: String
+  $apiKeyScheme: IntegrationApiKeyScheme!
+  $apiKeyHeader: String
+  $tools: String!
+  $toolCount: Int!
+  $toolDefinitionHashes: [String!]!
+  $removedToolDefinitionHashes: [String!]!
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+    taken: organizationIntegrations(
+      where: {
+        _and: [
+          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { deletedAt: { isNull: true } }
+          { _not: { id: { eq: $integrationId } } }
+        ]
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Another server of the organization has this name") {
+      id
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      authentication: { eq: API_KEY }
+      name: { eq: $readName }
+      configRevision: { eq: $configRevision }
+      keyGeneration: { eq: $keyGeneration }
+      deletedAt: { isNull: true }
+    }
+    data: {
+      name: $name
+      normalizedName: $normalizedName
+      encryptedApiKey: $encryptedApiKey
+      apiKeyLastFour: $apiKeyLastFour
+      apiKeyScheme: $apiKeyScheme
+      apiKeyHeader: $apiKeyHeader
+      tools: $tools
+      toolCount: $toolCount
+      toolDefinitionHashes: $toolDefinitionHashes
+      autoApprovedTools_update: [{ remove: $removedToolDefinitionHashes }]
+      configRevision_update: { inc: $configRevisionIncrement }
+      keyGeneration_update: { inc: $keyGenerationIncrement }
+      lastError: null
+      lastErrorAt: null
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Stores the tools a server listed again, at the configuration it was reached with, its approvals
+# kept but for the tools it no longer lists, and clears its error
+mutation RecordOrganizationIntegrationTools(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $keyGeneration: Int!
+  $tools: String!
+  $toolCount: Int!
+  $toolDefinitionHashes: [String!]!
+  $removedToolDefinitionHashes: [String!]!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
+      keyGeneration: { eq: $keyGeneration }
+      deletedAt: { isNull: true }
+    }
+    data: {
+      tools: $tools
+      toolCount: $toolCount
+      toolDefinitionHashes: $toolDefinitionHashes
+      autoApprovedTools_update: [{ remove: $removedToolDefinitionHashes }]
+      lastError: null
+      lastErrorAt: null
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Clears an OAuth server's error once its discovery found the issuer it holds again
+mutation RecordOrganizationIntegrationIssuer(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $issuer: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
+      issuer: { eq: $issuer }
+      deletedAt: { isNull: true }
+    }
+    data: { lastError: null, lastErrorAt: null, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Takes the issuer an OAuth server's discovery resolved when it is another than the one it holds:
+# another authorization server, so everything given for the old one goes in this write, as an
+# address's change takes it, and `configRevision` is bumped. M28 deletes the registered client,
+# members' connections and pending authorizations here too
+mutation ChangeOrganizationIntegrationIssuer(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $issuer: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      authentication: { eq: OAUTH }
+      configRevision: { eq: $configRevision }
+      deletedAt: { isNull: true }
+    }
+    data: {
+      issuer: $issuer
+      tools: null
+      toolCount: null
+      toolDefinitionHashes: []
+      autoApprovedTools: []
+      configRevision_update: { inc: 1 }
+      lastError: null
+      lastErrorAt: null
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Records why a server could not be reached again, at the configuration it was reached with
+mutation RecordOrganizationIntegrationError(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $keyGeneration: Int!
+  $error: IntegrationError!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
+      keyGeneration: { eq: $keyGeneration }
+      deletedAt: { isNull: true }
+    }
+    data: { lastError: $error, lastErrorAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Turns a server on or off for the agent, keeping everything else
+mutation SetOrganizationIntegrationEnabled(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $isEnabled: Boolean!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { isEnabled: $isEnabled, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server is gone")
+}
+
+# Lets one of a server's tools run without a member's approval (M29), by the hash of the definition
+# the administrator reviewed, at the configuration it was shown under, which the server has to list
+# still: a tool it changed since, or a server reconfigured since, is refused
+mutation AllowOrganizationIntegrationTool(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $definitionHash: String!
+  $configRevision: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
+      toolDefinitionHashes: { includes: $definitionHash }
+      deletedAt: { isNull: true }
+    }
+    data: { autoApprovedTools_update: [{ add: [$definitionHash] }], updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server no longer lists this tool")
+}
+
+# Takes the approval of one of a server's tools back, at the configuration it was shown under, which a
+# tool no longer listed has lost already
+mutation DisallowOrganizationIntegrationTool(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $definitionHash: String!
+  $configRevision: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
+      deletedAt: { isNull: true }
+    }
+    data: { autoApprovedTools_update: [{ remove: [$definitionHash] }], updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+}
+
+# Deletes a server, keeping its key for an Undo within a day, and prunes the organization's servers
+# deleted over a day ago, as the daily sweep does for every organization
+mutation DeleteOrganizationIntegration($organizationId: UUID!, $userId: String!, $integrationId: UUID!)
+@auth(level: NO_ACCESS)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can delete its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can delete a server")
+    }
+  }
+  organizationIntegration_updateMany(
+    where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server is gone")
+  organizationIntegration_deleteMany(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+  ) @redact
+}
+
+# Takes a delete back within a day, under the organization's row lock, its limit and its names, as
+# adding is: the backend passes the name the server holds, which it matches
+mutation RestoreOrganizationIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $normalizedName: String!
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can restore its servers") {
+      role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can restore a server")
+    }
+    organizationIntegrations(
+      where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 50
+    ) @check(expr: "size(this) < 50", message: "An organization adds at most 50 servers") {
+      id
+    }
+    taken: organizationIntegrations(
+      where: {
+        organizationId: { eq: $organizationId }
+        normalizedName: { eq: $normalizedName }
+        deletedAt: { isNull: true }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Another server of the organization has this name") {
+      id
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      normalizedName: { eq: $normalizedName }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The server is gone for good")
+}
+
+# The daily sweep's: deletes every organization's servers deleted over a day ago, past their Undo,
+# with the key each holds. Deleting what is gone already deletes nothing, so a sweep that failed is
+# finished by the next
+mutation PruneDeletedIntegrations @auth(level: NO_ACCESS) {
+  organizationIntegration_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}

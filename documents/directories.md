@@ -116,9 +116,12 @@ told nothing. A failure of the API itself counts as no check at all.
   always fails is not paid for every day. A failure of the API, or a directory the run had no time
   for, leaves the entry as it was, to be picked again the next day.
 
-Both files are written sorted by name, each entry's fields in the type's order, as
+Both files are written sorted by name, as the package's `compareDirectoryNames` orders them, each
+entry's fields in the order its `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS` give, as
 `JSON.stringify(list, null, 2)` writes them, which is how oxfmt lays them out. The package's tests
-hold the files to that.
+hold the files to that, and to what a run assumes of them: days that exist and have come,
+`unreachableSince` never after `lastChecked`, descriptions on one line within
+`MAX_DIRECTORY_DESCRIPTION_LENGTH`, and addresses without a fragment.
 
 The worker runs the code of the last release on `main` against the lists on `dev`. When the lists
 hold a field or a value this code does not know, or a day that does not exist, `readDirectoryLists`

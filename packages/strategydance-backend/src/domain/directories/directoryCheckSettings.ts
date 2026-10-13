@@ -11,9 +11,14 @@ export const INACTIVE_DIRECTORY_CHECK_COUNT = 1
 // How many directories are checked at once
 export const DIRECTORY_CHECK_CONCURRENCY = 3
 
-// How long a run starts new checks for, well inside the worker's fifteen minutes, so what it checked
-// is written before Cloud Run cuts the request
-export const DIRECTORY_CHECK_BUDGET_MS = 10 * 60 * 1000
+/*
+  How long a run starts new checks for, so what it checked is written before Cloud Run cuts the
+  worker's request at fifteen minutes. A check started at the last moment can take four and a half
+  more, its two probes, its review and a moved submission page's probe each at their deadline, and
+  the GitHub calls around the checks a minute and a half each way at theirs
+  (`GITHUB_REQUEST_TIMEOUT_MS`): 6 + 4.5 + 1.5 + 1.5 leaves a minute and a half to spare
+*/
+export const DIRECTORY_CHECK_BUDGET_MS = 6 * 60 * 1000
 
 // How many days after a check first fails to reach a site a later one has to fail too before the
 // site is taken for gone, so a weekend's outage retires nothing

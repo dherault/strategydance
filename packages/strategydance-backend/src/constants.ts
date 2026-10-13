@@ -389,6 +389,9 @@ export const DIRECTORY_CHECK_BRANCH = 'directories-check'
 
 export const DIRECTORY_CHECK_BASE_BRANCH = 'dev'
 
+// How long one call to GitHub's API may take, which a run's budget counts on
+export const GITHUB_REQUEST_TIMEOUT_MS = 15 * 1000
+
 // The directories package's two lists, from the repository's root
 export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/directories.json'
 

@@ -1,11 +1,8 @@
 import type { GitHubClient } from '~types'
 
-import { OUTBOUND_USER_AGENT } from '~constants'
+import { GITHUB_REQUEST_TIMEOUT_MS, OUTBOUND_USER_AGENT } from '~constants'
 
 const API_URL = 'https://api.github.com'
-
-// How long one call may take
-const TIMEOUT_MS = 30 * 1000
 
 // A call GitHub answered with a status the caller did not expect, or a GraphQL query it refused
 export class GitHubError extends Error {
@@ -35,7 +32,7 @@ function createGitHubClient(token: string): GitHubClient {
       const init: RequestInit = {
         method,
         headers: { ...headers, accept, ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(GITHUB_REQUEST_TIMEOUT_MS),
       }
 
       if (body !== undefined) init.body = JSON.stringify(body)

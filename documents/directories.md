@@ -139,9 +139,10 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   dropped, and its directories come back in their turn. The branch is reset only when `dev` holds
   all it holds, or a closed pull request carried its head: anything else is another run's work,
   committed and not yet given its pull request, which the run leaves, waiting for the next day
-  (`busy`). A run whose pull request was closed while it ran resets the branch itself, so the next
-  one does not mistake its commit for another run's, but only while the branch still points at that
-  commit: past it is a newer run's.
+  (`busy`). A branch `dev` holds all of moves on as a fast-forward, which GitHub refuses once
+  anybody committed meanwhile. A run whose pull request was closed while it ran gives the branch back
+  `dev`'s lists, in a commit made against its own, so a newer run's commit on top refuses it rather
+  than being dropped, and the next run, finding lists no different from `dev`'s, resets it.
 - The run reads both files at the branch's head and commits them in one commit through GraphQL
   `createCommitOnBranch` with `expectedHeadOid`, so a push in between refuses the commit instead of
   being written over. The checks, already paid for, are then applied again to the lists read

@@ -202,6 +202,13 @@ function sendRequest(
       response => resolve({ status: response.statusCode ?? 0, headers: response.headers, body: response }),
     )
 
+    /*
+      An abort destroys the request's socket with the abort's error too, which the request
+      reports itself: under Bun nothing else listens on a TLS socket, and a stream let go of, as the
+      MCP client lets go of its server events when it closes, took the process down with an error
+      nobody heard
+    */
+    request.on('socket', socket => socket.on('error', () => {}))
     request.on('error', reject)
     request.end(body)
   })

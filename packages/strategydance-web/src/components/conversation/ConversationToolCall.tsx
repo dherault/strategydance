@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 import { ConversationToolStatus } from 'strategydance-database/web'
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
-import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
@@ -29,7 +28,8 @@ type Props = {
 /*
   Something Strategy Dance used while answering: a bordered row with a spinner while it runs or a
   wrench, its label, a "Tool" badge, and under them the tool's name with its state unless it
-  succeeded. A finished call opens its input and output, or its error, beside what else it offers
+  succeeded. A finished call opens its input and output, or its error, wherever the row is clicked
+  but on what else it offers: its label is a button stretched over the whole row, under the action
 */
 function ConversationToolCall({ toolName, status, onOpen, action = null }: Props) {
   const intl = useIntl()
@@ -38,14 +38,43 @@ function ConversationToolCall({ toolName, status, onOpen, action = null }: Props
   const isFinished = isFailed || status === ConversationToolStatus.SUCCEEDED
   const statusMessage = status === ConversationToolStatus.SUCCEEDED ? null : STATUS_MESSAGES[status]
 
+  function renderLabel() {
+    const label = (
+      <span
+        className={cn(
+          'truncate',
+          status === ConversationToolStatus.CANCELLED && 'text-muted-foreground',
+          action && 'max-sm:whitespace-normal',
+        )}
+      >
+        {getConversationToolLabel(intl, toolName, status)}
+      </span>
+    )
+
+    if (!isFinished) return label
+
+    return (
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        data-tool-call-open=""
+        className="flex min-w-0 cursor-pointer text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-secondary"
+        onClick={onOpen}
+      >
+        {label}
+      </button>
+    )
+  }
+
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-col overflow-hidden rounded-xs border bg-white',
+        'relative flex min-w-0 flex-col overflow-hidden rounded-xs border bg-white',
         isFailed ? 'border-red-200' : 'border-border',
+        isFinished && 'transition-colors duration-150 ease-in-out has-[[data-tool-call-open]:hover]:bg-neutral-50',
       )}
     >
-      <div className="flex min-w-0 items-center gap-2.5 py-2 pr-1.5 pl-2">
+      <div className={cn('flex min-w-0 items-center gap-2.5 py-2 pl-2', action ? 'pr-1.5' : 'pr-3')}>
         <span
           className={cn(
             'grid size-7 flex-none place-items-center rounded-xs',
@@ -63,15 +92,7 @@ function ConversationToolCall({ toolName, status, onOpen, action = null }: Props
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-secondary">
-            <span
-              className={cn(
-                'truncate',
-                status === ConversationToolStatus.CANCELLED && 'text-muted-foreground',
-                action && 'max-sm:whitespace-normal',
-              )}
-            >
-              {getConversationToolLabel(intl, toolName, status)}
-            </span>
+            {renderLabel()}
             {/* A row with an action of its own leaves its label the badge's room on a phone, and wraps it */}
             <Badge
               size="sm"
@@ -91,17 +112,7 @@ function ConversationToolCall({ toolName, status, onOpen, action = null }: Props
             ) : null}
           </span>
         </span>
-        {action}
-        {isFinished ? (
-          <Button
-            variant="transparent"
-            size="sm"
-            className={cn(action && 'max-sm:px-2')}
-            onClick={onOpen}
-          >
-            {formatMessage(isFailed ? conversationMessages.viewError : conversationMessages.viewOutput)}
-          </Button>
-        ) : null}
+        {action ? <span className="relative flex-none">{action}</span> : null}
       </div>
     </div>
   )

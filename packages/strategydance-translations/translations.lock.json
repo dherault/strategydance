@@ -1905,14 +1905,6 @@
         "hash": "996b701e92458726",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.viewError": {
-        "hash": "df2def49d0308961",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "conversation.viewOutput": {
-        "hash": "afaaf4738855278a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "conversation.working": {
         "hash": "81f56f56f069b62c",
         "locales": "DE,ES,FR,JA,PT,ZH"

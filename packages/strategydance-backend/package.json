@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@google-cloud/kms": "^6.2.1",
     "@google-cloud/secret-manager": "^7.1.1",
     "@google-cloud/tasks": "^7.2.1",
     "@modelcontextprotocol/client": "^2.3.0",

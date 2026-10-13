@@ -398,6 +398,31 @@ export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/dir
 export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
 
 /* ---
+  INTEGRATIONS
+--- */
+
+/*
+  The Cloud KMS key an organization's MCP server's key is encrypted with, read and written only
+  in production, by the runtime service account, which holds
+  `roles/cloudkms.cryptoKeyEncrypterDecrypter` on it alone (setup step 9 of conversations.md)
+*/
+export const INTEGRATION_KMS_KEY_NAME = `projects/${FIREBASE_PROJECT_ID}/locations/us-central1/keyRings/integrations/cryptoKeys/integration-secrets`
+
+/*
+  What a server's key is encrypted with outside production, with AES-256-GCM, in base64: nothing it
+  encrypts leaves the emulators
+*/
+export const DEVELOPMENT_INTEGRATION_KEY = 'R8LcZ+EtejprT21lOlRLjP9PXko8NVzfUbxDoCt8FRU='
+
+/*
+  Reaching a server, to list its tools or discover its authorization server: each request within 15
+  seconds and 4 MiB, the whole of it within 30 seconds, as M29 holds each call to
+*/
+export const INTEGRATION_REQUEST_TIMEOUT_MS = 15_000
+export const INTEGRATION_OPERATION_TIMEOUT_MS = 30_000
+export const MAX_INTEGRATION_RESPONSE_BYTES = 4 * 1024 * 1024
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`

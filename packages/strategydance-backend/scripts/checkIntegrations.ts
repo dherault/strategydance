@@ -331,6 +331,8 @@ async function checkReconfiguring() {
     reconfigureOrganizationIntegration(dataConnect, {
       ...administrator,
       integrationId: id,
+      name: 'Moved',
+      normalizedName: 'moved',
       configRevision,
       keyGeneration,
       url: 'https://mcp.elsewhere.example/mcp',
@@ -359,6 +361,31 @@ async function checkReconfiguring() {
   )
   check('and bumps the revision and the generation', stored?.configRevision === 1 && stored.keyGeneration === 1)
   check('it keeps the issuer it found', stored?.issuer === 'https://auth.elsewhere.example')
+  check('and the name it is given in the same write', stored?.name === 'Moved')
+  check(
+    'a change taking the name another server holds is refused',
+    await isRefused(
+      reconfigureOrganizationIntegration(dataConnect, {
+        ...administrator,
+        integrationId: id,
+        name: 'Notion',
+        normalizedName: 'notion',
+        configRevision: 1,
+        keyGeneration: 1,
+        url: 'https://mcp.elsewhere.example/mcp',
+        authentication: IntegrationAuthentication.NONE,
+        encryptedApiKey: null,
+        apiKeyLastFour: null,
+        apiKeyScheme: IntegrationApiKeyScheme.BEARER,
+        apiKeyHeader: null,
+        issuer: null,
+        tools: '[]',
+        toolCount: 0,
+        toolDefinitionHashes: [],
+      }),
+      'Another server of the organization has this name',
+    ),
+  )
 }
 
 async function checkKeysAndTools() {
@@ -393,6 +420,8 @@ async function checkKeysAndTools() {
     updateOrganizationIntegrationKey(dataConnect, {
       ...administrator,
       integrationId: id,
+      name: 'Keyed',
+      normalizedName: 'keyed',
       configRevision: 0,
       keyGeneration,
       configRevisionIncrement: 1,

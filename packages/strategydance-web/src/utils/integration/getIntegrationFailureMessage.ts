@@ -19,6 +19,11 @@ const FAILURE_MESSAGES: Record<IntegrationFailure, MessageDescriptor> = {
   gone: integrationMessages.failureGone,
   keyUnavailable: integrationMessages.failureKeyUnavailable,
   rateLimited: integrationMessages.failureRateLimited,
+  issuerChanged: integrationMessages.failureIssuerChanged,
+  authorizationExpired: integrationMessages.failureAuthorizationExpired,
+  authorizationNotYours: integrationMessages.failureAuthorizationNotYours,
+  connectionRefused: integrationMessages.failureConnectionRefused,
+  connectionExpired: integrationMessages.failureConnectionExpired,
   unknown: integrationMessages.failureUnknown,
 }
 

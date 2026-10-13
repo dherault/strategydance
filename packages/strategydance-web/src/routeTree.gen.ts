@@ -22,6 +22,7 @@ import { Route as AuthenticatedAppOrganizationSlugRouteImport } from './routes/_
 import { Route as AuthenticatedAppAccountRouteImport } from './routes/_authenticated/_app/account'
 import { Route as AuthenticatedAppAdministrationRouteImport } from './routes/_authenticated/_app/administration'
 import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/_app/today'
+import { Route as AuthenticatedIntegrationsConnectedRouteImport } from './routes/_authenticated/integrations.connected'
 import { Route as AuthenticatedInvitationInvitationIdRouteImport } from './routes/_authenticated/invitation.$invitationId'
 import { Route as AuthenticatedOauthConsentRouteImport } from './routes/_authenticated/oauth.consent'
 import { Route as AuthenticatedAppOrganizationSlugIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/index'
@@ -112,6 +113,12 @@ const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
   path: '/today',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedIntegrationsConnectedRoute =
+  AuthenticatedIntegrationsConnectedRouteImport.update({
+    id: '/integrations/connected',
+    path: '/integrations/connected',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedInvitationInvitationIdRoute =
   AuthenticatedInvitationInvitationIdRouteImport.update({
     id: '/invitation/$invitationId',
@@ -265,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
   '/today': typeof AuthenticatedAppTodayRoute
+  '/integrations/connected': typeof AuthenticatedIntegrationsConnectedRoute
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
   '/oauth/consent': typeof AuthenticatedOauthConsentRoute
   '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
@@ -297,6 +305,7 @@ export interface FileRoutesByTo {
   '/authentication/password-reset': typeof AuthenticationPasswordResetRoute
   '/authentication': typeof AuthenticationIndexRoute
   '/today': typeof AuthenticatedAppTodayRoute
+  '/integrations/connected': typeof AuthenticatedIntegrationsConnectedRoute
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
   '/oauth/consent': typeof AuthenticatedOauthConsentRoute
   '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
@@ -335,6 +344,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/account': typeof AuthenticatedAppAccountRouteWithChildren
   '/_authenticated/_app/administration': typeof AuthenticatedAppAdministrationRouteWithChildren
   '/_authenticated/_app/today': typeof AuthenticatedAppTodayRoute
+  '/_authenticated/integrations/connected': typeof AuthenticatedIntegrationsConnectedRoute
   '/_authenticated/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
   '/_authenticated/oauth/consent': typeof AuthenticatedOauthConsentRoute
   '/_authenticated/_app/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/administration'
     | '/today'
+    | '/integrations/connected'
     | '/invitation/$invitationId'
     | '/oauth/consent'
     | '/$organizationSlug/build-in-public'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/authentication/password-reset'
     | '/authentication'
     | '/today'
+    | '/integrations/connected'
     | '/invitation/$invitationId'
     | '/oauth/consent'
     | '/$organizationSlug/build-in-public'
@@ -442,6 +454,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/account'
     | '/_authenticated/_app/administration'
     | '/_authenticated/_app/today'
+    | '/_authenticated/integrations/connected'
     | '/_authenticated/invitation/$invitationId'
     | '/_authenticated/oauth/consent'
     | '/_authenticated/_app/$organizationSlug/build-in-public'
@@ -568,6 +581,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/today'
       preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
       parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/integrations/connected': {
+      id: '/_authenticated/integrations/connected'
+      path: '/integrations/connected'
+      fullPath: '/integrations/connected'
+      preLoaderRoute: typeof AuthenticatedIntegrationsConnectedRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/invitation/$invitationId': {
       id: '/_authenticated/invitation/$invitationId'
@@ -875,12 +895,15 @@ const AuthenticatedAppRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
+  AuthenticatedIntegrationsConnectedRoute: typeof AuthenticatedIntegrationsConnectedRoute
   AuthenticatedInvitationInvitationIdRoute: typeof AuthenticatedInvitationInvitationIdRoute
   AuthenticatedOauthConsentRoute: typeof AuthenticatedOauthConsentRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
+  AuthenticatedIntegrationsConnectedRoute:
+    AuthenticatedIntegrationsConnectedRoute,
   AuthenticatedInvitationInvitationIdRoute:
     AuthenticatedInvitationInvitationIdRoute,
   AuthenticatedOauthConsentRoute: AuthenticatedOauthConsentRoute,

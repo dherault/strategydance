@@ -6,6 +6,8 @@ import type { ExternalMcpServer } from 'strategydance-external-mcp-servers'
 
 import type { OrganizationIntegration } from '~types'
 
+import useIntegrationConnect from '~hooks/integration/useIntegrationConnect'
+import useIntegrationConnections from '~hooks/integration/useIntegrationConnections'
 import useIntegrationRequests from '~hooks/integration/useIntegrationRequests'
 import useOrganizationIntegrations from '~hooks/integration/useOrganizationIntegrations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
@@ -15,6 +17,7 @@ import getIntegrationFormKey from '~utils/integration/getIntegrationFormKey'
 import getIntegrationStatus from '~utils/integration/getIntegrationStatus'
 import readIntegrationFailure from '~utils/integration/readIntegrationFailure'
 
+import IntegrationConnectDialog from '~components/integration/IntegrationConnectDialog'
 import IntegrationDialog from '~components/integration/IntegrationDialog'
 import IntegrationGallery from '~components/integration/IntegrationGallery'
 import IntegrationsEmpty from '~components/integration/IntegrationsEmpty'
@@ -31,7 +34,9 @@ type OpenDialog = { integrationId: string } | { preset: ExternalMcpServer | null
 /*
   The organization's MCP servers, which Strategy Dance can call in conversations: a table of them,
   each opening its dialog, and for administrators the gallery of popular servers not added yet, as
-  designed. Every member reads them; only administrators add, change, turn on and off, and delete.
+  designed. Every member reads them, each server's status their own, and connects their own account
+  to a server taking OAuth, from its row or its dialog, waiting in the connect dialog while they sign
+  in; only administrators add, change, turn on and off, and delete.
 
   The dialog of a server is mounted only while open, around the server it shows, read from the live
   list, so another administrator's change reaches it, mounting it anew when it changes a setting its
@@ -41,8 +46,15 @@ type OpenDialog = { integrationId: string } | { preset: ExternalMcpServer | null
 function Integrations() {
   const { formatMessage } = useIntl()
   const { organization, role } = useCurrentOrganization()
-  const { data: integrations, loading, refetch, hasFailed } = useOrganizationIntegrations()
+  const { data: integrations, loading, refetch, hasFailed: hasIntegrationsFailed } = useOrganizationIntegrations()
+  const {
+    data: connections,
+    loading: connectionsLoading,
+    refetch: refetchConnections,
+    hasFailed: hasConnectionsFailed,
+  } = useIntegrationConnections()
   const { setIntegrationEnabled, deleteIntegration, restoreIntegration } = useIntegrationRequests()
+  const { attempt, connect, cancel } = useIntegrationConnect(connections)
   const [openDialog, setOpenDialog] = useState<OpenDialog | null>(null)
 
   const isAdministrator = role === OrganizationRole.ADMINISTRATOR
@@ -51,7 +63,18 @@ function Integrations() {
       ? (integrations.find(({ id }) => id === openDialog.integrationId) ?? null)
       : null
   const isDialogOpen = openDialog !== null && ('preset' in openDialog || openIntegration !== null)
-  const available = integrations.filter(integration => getIntegrationStatus(integration) === 'connected').length
+  const hasFailed = hasIntegrationsFailed || hasConnectionsFailed
+  const findConnection = (integrationId: string) =>
+    connections.find(connection => connection.integrationId === integrationId) ?? null
+  const available = integrations.filter(
+    integration => getIntegrationStatus(integration, findConnection(integration.id)) === 'connected',
+  ).length
+
+  // Connect from the server's dialog closes it, the connect dialog taking its place, as designed
+  function startConnecting(integration: OrganizationIntegration) {
+    setOpenDialog(null)
+    connect(integration).catch((error: unknown) => console.error('A Connect could not start', error))
+  }
 
   async function toggle(integration: OrganizationIntegration, isEnabled: boolean) {
     try {
@@ -108,16 +131,18 @@ function Integrations() {
       />
       {organization && hasFailed ? (
         <IntegrationsLoadFailed
-          isRetrying={loading}
-          onRetry={refetch}
+          isRetrying={loading || connectionsLoading}
+          onRetry={() => Promise.all([refetch(), refetchConnections()]).then(() => {})}
         />
       ) : null}
       {organization && !hasFailed && integrations.length ? (
         <IntegrationsTable
           integrations={integrations}
+          connections={connections}
           isAdministrator={isAdministrator}
           onOpen={integration => setOpenDialog({ integrationId: integration.id })}
           onToggle={toggle}
+          onConnect={startConnecting}
         />
       ) : null}
       {organization && !hasFailed && !integrations.length ? (
@@ -136,8 +161,17 @@ function Integrations() {
           preset={openDialog && 'preset' in openDialog ? openDialog.preset : null}
           integrations={integrations}
           isAdministrator={isAdministrator}
+          connection={openIntegration ? findConnection(openIntegration.id) : null}
           onClose={() => setOpenDialog(null)}
           onDelete={remove}
+          onConnect={startConnecting}
+        />
+      ) : null}
+      {attempt ? (
+        <IntegrationConnectDialog
+          attempt={attempt}
+          onCancel={cancel}
+          onRetry={() => startConnecting(attempt.integration)}
         />
       ) : null}
     </ContainerLayout>

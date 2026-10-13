@@ -1022,6 +1022,28 @@ describe('disconnecting', () => {
     expect(provider.recorded.revocations).toEqual([])
   })
 
+  test('revokes the tokens of a connection whose delete went through though its answer was lost', async () => {
+    await connect()
+    fake.after.set('DisconnectIntegration', () => {
+      throw new Error('The connection was reset')
+    })
+
+    expect(await disconnectIntegration(caller(ADA))).toEqual({ outcome: 'disconnected' })
+    expect(connection(ADA)).toBeUndefined()
+    expect(provider.recorded.revocations).toHaveLength(1)
+  })
+
+  test('revokes nothing when a delete fails and the connection stands', async () => {
+    await connect()
+    fake.before.set('DisconnectIntegration', () => {
+      throw new Error('The database is down')
+    })
+
+    await expect(disconnectIntegration(caller(ADA))).rejects.toThrow('The database is down')
+    expect(connection(ADA)).toBeDefined()
+    expect(provider.recorded.revocations).toHaveLength(0)
+  })
+
   test('authenticates a Basic client as RFC 6749 encodes it, at every endpoint, its secret holding what a form escapes', async () => {
     provider = createIntegrationOAuthServerFake({ tokenEndpointAuthMethodsSupported: ['client_secret_basic'] })
     await connect()

@@ -6,6 +6,7 @@ import {
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
+import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import decryptIntegrationSecret from '~domain/integrations/decryptIntegrationSecret'
 import isIntegrationClientAuthenticationMethod from '~domain/integrations/isIntegrationClientAuthenticationMethod'
@@ -22,7 +23,9 @@ type DisconnectIntegrationParameters = {
   generation, then asks the authorization server to revoke that connection's tokens, best effort, so
   what the member asked for holds whether or not the server answers. A reconnect made meanwhile, from
   another tab, is another generation, left as it is and answered as a change, its tokens unrevoked. A
-  member with nothing to disconnect is answered as disconnected all the same
+  delete that fails is read back, since one whose answer was lost deleted all the same: the
+  connection gone, its tokens are revoked as they would have been. A member with nothing to disconnect
+  is answered as disconnected all the same
 */
 async function disconnectIntegration(caller: DisconnectIntegrationParameters) {
   const {
@@ -33,9 +36,19 @@ async function disconnectIntegration(caller: DisconnectIntegrationParameters) {
 
   if (!connection) return { outcome: 'disconnected' } as const
 
-  const { data } = await deleteIntegrationConnection(dataConnect, { ...caller, generation: connection.generation })
+  let deleted
 
-  if (data.integrationConnection_deleteMany !== 1) return { outcome: 'conflict' } as const
+  try {
+    const { data } = await deleteIntegrationConnection(dataConnect, { ...caller, generation: connection.generation })
+
+    deleted = data.integrationConnection_deleteMany
+  } catch (error) {
+    if (!(await isGone(caller, connection.generation))) throw error
+
+    deleted = 1
+  }
+
+  if (deleted !== 1) return { outcome: 'conflict' } as const
   if (!connection.encryptedAccessToken || !connection.revocationEndpoint) return { outcome: 'disconnected' } as const
 
   const authenticationMethod = connection.oauthClientAuthenticationMethod
@@ -83,6 +96,22 @@ async function disconnectIntegration(caller: DisconnectIntegrationParameters) {
   }
 
   return { outcome: 'disconnected' } as const
+}
+
+// Whether the connection of the generation read is gone, read back after its delete failed; a read
+// that fails too says it is not, and the failure stands
+async function isGone(caller: DisconnectIntegrationParameters, generation: string) {
+  try {
+    const {
+      data: {
+        integrationConnections: [connection],
+      },
+    } = await getIntegrationConnectionForMember(dataConnect, caller)
+
+    return !connection || toCanonicalUuid(connection.generation) !== toCanonicalUuid(generation)
+  } catch {
+    return false
+  }
 }
 
 export default disconnectIntegration

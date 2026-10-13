@@ -11,6 +11,7 @@ import useOrganizationIntegrations from '~hooks/integration/useOrganizationInteg
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import getIntegrationFailureMessage from '~utils/integration/getIntegrationFailureMessage'
+import getIntegrationFormKey from '~utils/integration/getIntegrationFormKey'
 import getIntegrationStatus from '~utils/integration/getIntegrationStatus'
 import readIntegrationFailure from '~utils/integration/readIntegrationFailure'
 
@@ -33,8 +34,9 @@ type OpenDialog = { integrationId: string } | { preset: ExternalMcpServer | null
   designed. Every member reads them; only administrators add, change, turn on and off, and delete.
 
   The dialog of a server is mounted only while open, around the server it shows, read from the live
-  list, so another administrator's change reaches it, and it closes when the server goes. A delete
-  offers its Undo in a toast, as conversations' does
+  list, so another administrator's change reaches it, mounting it anew when it changes a setting its
+  form edits (`getIntegrationFormKey`), and it closes when the server goes. A delete offers its Undo
+  in a toast, as conversations' does
 */
 function Integrations() {
   const { formatMessage } = useIntl()
@@ -129,7 +131,7 @@ function Integrations() {
       ) : null}
       {isDialogOpen ? (
         <IntegrationDialog
-          key={openIntegration?.id ?? 'new'}
+          key={openIntegration ? getIntegrationFormKey(openIntegration) : 'new'}
           integration={openIntegration}
           preset={openDialog && 'preset' in openDialog ? openDialog.preset : null}
           integrations={integrations}

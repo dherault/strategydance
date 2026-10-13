@@ -567,6 +567,21 @@ describe('finishing a Connect', () => {
     expect(provider.recorded.revocations[0].token_type_hint).toBe('refresh_token')
   })
 
+  test('keeps the connection a finish stored when only the answer to its write was lost', async () => {
+    const { search } = await signIn()
+
+    fake.after.set('ConnectIntegration', () => {
+      throw new Error('The connection was reset')
+    })
+
+    expect(await finishIntegrationConnection({ ...caller(ADA), authorizationId: search.authorization! })).toEqual({
+      outcome: 'connected',
+    })
+    expect(provider.recorded.revocations).toHaveLength(0)
+    expect(provider.isLiveAccessToken(await openAccessToken(ADA))).toBe(true)
+    expect(server().toolCount).toBe(2)
+  })
+
   test('connects nothing for a member removed meanwhile', async () => {
     const { search } = await signIn()
 

@@ -4,6 +4,7 @@ import {
   connectIntegration,
   consumeIntegrationAuthorization,
   getIntegrationAuthorizationForMember,
+  getIntegrationConnectionForMember,
   IntegrationApiKeyScheme,
   IntegrationAuthentication,
   recordFirstIntegrationTools,
@@ -42,7 +43,8 @@ type FinishIntegrationConnectionParameters = {
   code expired, so two finishes exchange it once. The server has to be the one it started on, at the
   same revision and issuer. The code is exchanged with the verifier its challenge was made from, and
   the tokens stored, encrypted under a fresh generation, replacing the member's earlier connection;
-  tokens a refused write could not keep are revoked. The first connection to a server lists its tools
+  tokens a refused write could not keep are revoked, and so are those of a write that failed otherwise
+  unless reading back finds them stored, its answer lost. The first connection to a server lists its tools
   with the new token, at the address of the revision connected, which nothing waits on
 */
 async function finishIntegrationConnection({
@@ -184,9 +186,11 @@ async function finishIntegrationConnection({
       }),
     )
   } catch (error) {
-    await revoke()
+    if (!(await isStored(caller, encryptedAccessToken))) {
+      await revoke()
 
-    throw error
+      throw error
+    }
   }
 
   if (refusal) {
@@ -200,6 +204,25 @@ async function finishIntegrationConnection({
   }
 
   return { outcome: 'connected' } as const
+}
+
+// Whether the member's connection holds the access token a finish wrote, read back after its write
+// failed, as a write whose answer was lost does; a read that fails too finds nothing
+async function isStored(
+  caller: { organizationId: string; userId: string; integrationId: string },
+  encryptedAccessToken: string,
+) {
+  try {
+    const {
+      data: {
+        integrationConnections: [connection],
+      },
+    } = await getIntegrationConnectionForMember(dataConnect, caller)
+
+    return connection?.encryptedAccessToken === encryptedAccessToken
+  } catch {
+    return false
+  }
 }
 
 /*

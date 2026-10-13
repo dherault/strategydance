@@ -44,7 +44,7 @@ describe('buildDirectoryReviewRequest', () => {
           name: 'web_fetch',
           max_uses: 3,
           max_content_tokens: 8000,
-          allowed_domains: ['app.tools.example', 'portal.tools.example'],
+          allowed_domains: ['app.tools.example', 'www.portal.tools.example'],
         },
       ],
     })
@@ -95,11 +95,11 @@ describe('buildDirectoryReviewRequest', () => {
       submissionUrl: 'https://launched.lovable.app/submit',
     })
     const request = buildDirectoryReviewRequest(directory, {
-      root: createPageProbe(directory.rootUrl, { finalUrl: 'https://203.0.113.9/' }),
-      submission: null,
+      root: createPageProbe(directory.rootUrl, { finalUrl: 'https://www.lovable.app/' }),
+      submission: createPageProbe(directory.submissionUrl, { finalUrl: 'https://203.0.113.9/' }),
     })
 
-    expect(request.tools).toMatchObject([{ allowed_domains: ['launched.lovable.app'] }])
+    expect(request.tools).toMatchObject([{ allowed_domains: ['launched.lovable.app', 'www.lovable.app'] }])
   })
 
   test('sends a paused turn back as its parts', () => {

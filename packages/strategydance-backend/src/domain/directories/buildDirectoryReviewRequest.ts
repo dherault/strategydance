@@ -160,22 +160,29 @@ function describePage(label: string, page: DirectoryPageProbe, rootUrl: string) 
 }
 
 /*
-  The hosts web fetch may read: the entry's and those its pages redirected to, each without its
-  `www.`, since a domain allows its subdomains. Never a parent domain: on a platform's subdomain,
-  such as a site on lovable.app, the parent would open every other tenant's site, whose pages a
-  review could then quote. An address written as an IP is no domain the tool takes
+  The hosts web fetch may read: exactly the entry's and those its pages redirected to, `www.`
+  included, since a domain allows every subdomain of its own. Never a parent: on a platform's
+  subdomain, such as a site on lovable.app, the parent would open every other tenant's site, whose
+  pages a review could then quote, and a redirect to www.lovable.app would open it all the same
+  without its `www.`. An address written as an IP is no domain the tool takes
 */
 function readAllowedDomains(directory: Directory, probe: DirectoryProbe) {
   const urls = [directory.rootUrl, directory.submissionUrl, probe.root.finalUrl, probe.submission?.finalUrl]
   const hosts = urls.flatMap(url => {
-    if (!url) return []
-
-    const host = toSiteHost(url)
+    const host = url ? toHostname(url) : ''
 
     return host && !isIP(host) && host.includes('.') ? [host] : []
   })
 
   return [...new Set(hosts)]
+}
+
+function toHostname(url: string) {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return ''
+  }
 }
 
 export default buildDirectoryReviewRequest

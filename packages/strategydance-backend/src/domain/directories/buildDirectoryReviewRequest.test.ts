@@ -44,7 +44,7 @@ describe('buildDirectoryReviewRequest', () => {
           name: 'web_fetch',
           max_uses: 3,
           max_content_tokens: 8000,
-          allowed_domains: ['app.tools.example', 'tools.example', 'portal.tools.example'],
+          allowed_domains: ['app.tools.example', 'portal.tools.example'],
         },
       ],
     })
@@ -89,17 +89,17 @@ describe('buildDirectoryReviewRequest', () => {
     expect(text).toContain('in the list of inactive directories, as PARKED')
   })
 
-  test('keeps a country second-level domain, and no address written as an IP', () => {
-    const directory = createDirectory('uk', {
-      rootUrl: 'https://shop.example.co.uk/',
-      submissionUrl: 'https://shop.example.co.uk/submit',
+  test('allows no parent domain, which would open other tenants of a platform, and no IP', () => {
+    const directory = createDirectory('lovable', {
+      rootUrl: 'https://launched.lovable.app/',
+      submissionUrl: 'https://launched.lovable.app/submit',
     })
     const request = buildDirectoryReviewRequest(directory, {
       root: createPageProbe(directory.rootUrl, { finalUrl: 'https://203.0.113.9/' }),
       submission: null,
     })
 
-    expect(request.tools).toMatchObject([{ allowed_domains: ['shop.example.co.uk', 'example.co.uk'] }])
+    expect(request.tools).toMatchObject([{ allowed_domains: ['launched.lovable.app'] }])
   })
 
   test('sends a paused turn back as its parts', () => {

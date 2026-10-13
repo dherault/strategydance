@@ -161,9 +161,9 @@ function describePage(label: string, page: DirectoryPageProbe, rootUrl: string) 
 
 /*
   The hosts web fetch may read: the entry's and those its pages redirected to, each without its
-  `www.`, and the domain each is a subdomain of, since a domain allows its subdomains and not its
-  parent, and a directory at app.example.com explains itself at example.com. An address written as
-  an IP is no domain the tool takes
+  `www.`, since a domain allows its subdomains. Never a parent domain: on a platform's subdomain,
+  such as a site on lovable.app, the parent would open every other tenant's site, whose pages a
+  review could then quote. An address written as an IP is no domain the tool takes
 */
 function readAllowedDomains(directory: Directory, probe: DirectoryProbe) {
   const urls = [directory.rootUrl, directory.submissionUrl, probe.root.finalUrl, probe.submission?.finalUrl]
@@ -172,26 +172,10 @@ function readAllowedDomains(directory: Directory, probe: DirectoryProbe) {
 
     const host = toSiteHost(url)
 
-    if (!host || isIP(host) || !host.includes('.')) return []
-
-    const parent = toParentDomain(host)
-
-    return parent ? [host, parent] : [host]
+    return host && !isIP(host) && host.includes('.') ? [host] : []
   })
 
   return [...new Set(hosts)]
-}
-
-/*
-  The domain a host is a subdomain of, by its last two labels, or three under a country's
-  second-level domain such as co.uk, which no site owns. Null for a host that is a domain already
-*/
-function toParentDomain(host: string) {
-  const labels = host.split('.')
-  const isCountrySecondLevel = labels.at(-1)!.length === 2 && labels.at(-2)!.length <= 3
-  const length = isCountrySecondLevel ? 3 : 2
-
-  return labels.length > length ? labels.slice(-length).join('.') : null
 }
 
 export default buildDirectoryReviewRequest

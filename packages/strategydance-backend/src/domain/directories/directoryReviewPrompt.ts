@@ -4,12 +4,10 @@ import {
   DIRECTORY_INACTIVE_REASON_DESCRIPTIONS,
   DirectoryBusinessModel,
   DirectoryInactiveReason,
+  MAX_DIRECTORY_DESCRIPTION_LENGTH,
 } from 'strategydance-directories'
 
-import {
-  DIRECTORY_REVIEW_MAX_FETCHES,
-  MAX_DIRECTORY_DESCRIPTION_LENGTH,
-} from '~domain/directories/directoryCheckSettings'
+import { DIRECTORY_REVIEW_MAX_FETCHES } from '~domain/directories/directoryCheckSettings'
 
 // The reasons a review may give: whether a site can be reached is the probe's to say, and a
 // community closed to promotion is a Reddit community's, which no review reads

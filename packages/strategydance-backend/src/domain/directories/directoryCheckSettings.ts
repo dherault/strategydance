@@ -71,9 +71,6 @@ export const MAX_DIRECTORY_REVIEW_PAUSES = 3
 // How long one directory's review may take, its paused parts included
 export const DIRECTORY_REVIEW_TIMEOUT_MS = 4 * 60 * 1000
 
-// The longest description kept, in characters: one sentence
-export const MAX_DIRECTORY_DESCRIPTION_LENGTH = 200
-
 // The shortest quote taken for evidence, so a word or two found anywhere proves nothing
 export const MIN_DIRECTORY_EVIDENCE_LENGTH = 12
 

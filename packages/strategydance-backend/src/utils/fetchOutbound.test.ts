@@ -69,7 +69,7 @@ describe('fetchOutbound', () => {
           resolve: createResolver({ 'internal.example': addresses }),
           send,
         }),
-      ).rejects.toBeInstanceOf(OutboundRefusal)
+      ).rejects.toMatchObject({ name: 'OutboundRefusal', reason: 'privateAddress' })
       expect(send).not.toHaveBeenCalled()
     }
   })
@@ -161,7 +161,7 @@ describe('fetchOutbound', () => {
         resolve: createResolver({ 'example.com': [PUBLIC] }),
         send,
       }),
-    ).rejects.toThrow('More than 2 redirects')
+    ).rejects.toMatchObject({ message: expect.stringContaining('More than 2 redirects'), reason: 'redirects' })
     expect(send).toHaveBeenCalledTimes(3)
   })
 

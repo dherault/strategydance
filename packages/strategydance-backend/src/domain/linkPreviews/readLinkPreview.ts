@@ -1,5 +1,7 @@
 import type { LinkPreviewData } from 'strategydance-core'
 
+import { OUTBOUND_USER_AGENT } from '~constants'
+
 import fetchOutbound from '~utils/fetchOutbound'
 import logger from '~utils/logger'
 
@@ -9,9 +11,6 @@ import parseLinkPreviewHtml from '~domain/linkPreviews/parseLinkPreviewHtml'
 const MAX_HTML_BYTES = 1024 * 1024
 const TIMEOUT_MS = 5000
 const MAX_REDIRECTS = 5
-
-// Who is asking, for a site that answers bots a page of its own
-const USER_AGENT = 'Mozilla/5.0 (compatible; StrategyDanceBot/1.0; +https://strategydance.com)'
 
 /*
   What a web page says of itself, for a link preview card: fetched through `fetchOutbound`, which
@@ -27,7 +26,7 @@ async function readLinkPreview(url: string, fetch = fetchOutbound): Promise<Link
       maxRedirects: MAX_REDIRECTS,
       headers: {
         accept: 'text/html,application/xhtml+xml',
-        'user-agent': USER_AGENT,
+        'user-agent': OUTBOUND_USER_AGENT,
       },
     })
     const contentType = response.headers['content-type'] ?? ''

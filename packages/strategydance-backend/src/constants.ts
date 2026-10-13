@@ -120,6 +120,10 @@ export const ALLOWED_ORIGINS = IS_PRODUCTION
 // hyphens, so a caller may send either. `toCanonicalUuid` gives the one form an id is kept in
 export const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
 
+// Who is asking when this server fetches a page somebody else named, for a site that answers bots a
+// page of its own: a link preview's, and a directory's check
+export const OUTBOUND_USER_AGENT = 'Mozilla/5.0 (compatible; StrategyDanceBot/1.0; +https://strategydance.com)'
+
 /* ---
   CONVERSATIONS
 --- */

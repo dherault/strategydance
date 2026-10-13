@@ -145,6 +145,13 @@
         "typescript": "^7.0.2",
       },
     },
+    "packages/strategydance-external-mcp-servers": {
+      "name": "strategydance-external-mcp-servers",
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "typescript": "^7.0.2",
+      },
+    },
     "packages/strategydance-translations": {
       "name": "strategydance-translations",
       "dependencies": {
@@ -2705,6 +2712,8 @@
     "strategydance-directories": ["strategydance-directories@workspace:packages/strategydance-directories"],
 
     "strategydance-emails": ["strategydance-emails@workspace:packages/strategydance-emails"],
+
+    "strategydance-external-mcp-servers": ["strategydance-external-mcp-servers@workspace:packages/strategydance-external-mcp-servers"],
 
     "strategydance-translations": ["strategydance-translations@workspace:packages/strategydance-translations"],
 

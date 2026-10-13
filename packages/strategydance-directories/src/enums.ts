@@ -55,3 +55,26 @@ export const DirectoryBusinessModel = {
 } as const
 
 export type DirectoryBusinessModel = (typeof DirectoryBusinessModel)[keyof typeof DirectoryBusinessModel]
+
+/*
+  Why a directory is in the inactive list, read from what it showed when it was last checked. A
+  site whose submission is closed for a while is inactive too, since nothing can be submitted there
+  today, and a later check brings it back
+*/
+export const DirectoryInactiveReason = {
+  // Does not resolve, refuses or drops every connection, fails TLS, or its server only errors
+  UNREACHABLE: 'UNREACHABLE',
+  // Parked, for sale or expired, a host's default page, or a suspended hosting account
+  PARKED: 'PARKED',
+  // The domain now serves something else, or sends visitors on to an unrelated site
+  REPURPOSED: 'REPURPOSED',
+  // Up, with no way to submit: it never had one, removed it, paused it, or the site has closed
+  NO_SUBMISSION: 'NO_SUBMISSION',
+  // The way to submit is there and fails: a form that sends nothing, a sign-in that breaks, an
+  // address that bounces, or a queue nobody reads
+  BROKEN_SUBMISSION: 'BROKEN_SUBMISSION',
+  // A community closed to promotion: its rules ban it, or Reddit banned the community
+  CLOSED_TO_PROMOTION: 'CLOSED_TO_PROMOTION',
+} as const
+
+export type DirectoryInactiveReason = (typeof DirectoryInactiveReason)[keyof typeof DirectoryInactiveReason]

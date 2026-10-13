@@ -698,6 +698,35 @@ describe("reading a member's access token", () => {
     })
   })
 
+  test('marks each connection issued to a client the server no longer takes at its next refresh', async () => {
+    provider = createIntegrationOAuthServerFake({ registeredAuthenticationMethod: 'client_secret_post' })
+    await connect(ADA)
+    await connect(BOB)
+
+    const forgotten = server().oauthClientId
+
+    provider.clients.clear()
+    expireSoon(ADA)
+
+    expect(await readIntegrationAccessToken(caller(ADA))).toEqual({ outcome: 'needsAuthentication' })
+    expect(connection(ADA)!.status).toBe(IntegrationConnectionStatus.NEEDS_AUTHENTICATION)
+    expect(server()).toMatchObject({ oauthClientId: null, encryptedOAuthClientSecret: null })
+
+    // Ada connects again under a new registration, which Bob's refresh, with the client forgotten, leaves alone
+    await connect(ADA)
+
+    const registered = server().oauthClientId
+
+    expect(registered).not.toBe(forgotten)
+
+    expireSoon(BOB)
+
+    expect(await readIntegrationAccessToken(caller(BOB))).toEqual({ outcome: 'needsAuthentication' })
+    expect(connection(BOB)!.status).toBe(IntegrationConnectionStatus.NEEDS_AUTHENTICATION)
+    expect(server().oauthClientId).toBe(registered)
+    expect((await readIntegrationAccessToken(caller(ADA))).outcome).toBe('ready')
+  })
+
   test('lets the lease go when the token endpoint is out of reach, for the next try', async () => {
     await connect()
     expireSoon(ADA)

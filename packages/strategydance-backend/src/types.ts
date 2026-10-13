@@ -9,6 +9,7 @@ import type { CompanyAspect, TaskStatus } from 'strategydance-database/backend'
 import type {
   Directory,
   DirectoryBusinessModel,
+  DirectoryCategory,
   DirectoryInactiveReason,
   InactiveDirectory,
 } from 'strategydance-directories'
@@ -444,6 +445,9 @@ export type DirectoryReviewAnswer = {
   inactiveReason: DirectoryInactiveReason | null
   description: string | null
   isCurrentDescriptionAccurate: boolean
+  // Once each, in the enum's order, null when the answer named none
+  categories: DirectoryCategory[] | null
+  areCurrentCategoriesAccurate: boolean
   businessModel: DirectoryBusinessModel | null
   evidence: DirectoryEvidence | null
   submissionUrl: string | null

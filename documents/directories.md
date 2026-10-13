@@ -5,7 +5,10 @@
 submitted to today, each with its `DirectoryInactiveReason`. Both were read on 2026-10-13 from the
 README of [where-to-submit-your-startup](https://github.com/mmmmingos/where-to-submit-your-startup).
 Sites change: they go down, get parked, change what they charge, close their submissions. The daily
-check keeps the lists true, and writes each directory's description, which the import left empty.
+check keeps the lists true, and writes each directory's description and the kinds of product it
+lists, its `categories`, which the import left empty. Each entry also has an `id`, a slug of the
+name it was imported under, which never changes, so whatever refers to a directory keeps finding it
+after a rename.
 
 Once a day, Cloud Scheduler calls the worker's `POST /internal/directories-check`. A run checks ten
 active directories and one inactive one, and commits what it found to a pull request into `dev`,
@@ -81,6 +84,12 @@ The answer is held to a JSON schema:
 - `description`: one English sentence of 200 characters at most, saying what the site lists and
   for whom, with no prices and no praise;
 - `isCurrentDescriptionAccurate`;
+- `categories`: every `DirectoryCategory` the site lists, `ANY_STARTUP` alone for one that takes any
+  product, and `REGIONAL` beside the kinds for one that takes a single region's startups, as the
+  package's `DIRECTORY_CATEGORY_DESCRIPTIONS` say; kept once each, in the enum's order, and an
+  empty list taken for no answer, as is one that sets `ANY_STARTUP` beside a kind
+  (`isDirectoryCategoryListValid`);
+- `areCurrentCategoriesAccurate`;
 - `businessModel`, or null when the pages do not show how a listing works;
 - `evidence`: the quote, and its page, that a business model change or an `INACTIVE` verdict rests on;
 - `submissionUrl`: a moved submission page;
@@ -93,9 +102,11 @@ told nothing. A failure of the API itself counts as no check at all.
 
 ## What a run writes
 
-`applyDirectoryChecks` is pure and keyed by name. A run changes only what it can prove:
+`applyDirectoryChecks` is pure and keyed by id, so a directory renamed while it was checked is
+still found, and left, as any entry changed meanwhile is. A run changes only what it can prove:
 
-- A description is written where there is none, or where the review found the current one wrong.
+- A description is written where there is none, or where the review found the current one wrong,
+  and so are the categories.
 - A business model changes only when the review's quote is on the page it names (`findEvidencePage`):
   a page the probe read, or a document web fetch brought back, at that address, its scheme and port
   included, so a page of another origin never vouches for it, holds the quote, with case, spaces,
@@ -126,6 +137,13 @@ hold the files to that, and to what a run assumes of them: days that exist and h
 The worker runs the code of the last release on `main` against the lists on `dev`. When the lists
 hold a field or a value this code does not know, or a day that does not exist, `readDirectoryLists`
 refuses them, and the run writes nothing until a release catches up or the lists are fixed.
+
+So a new field, or a new value of an enum, reaches the lists in the pull request that teaches the
+reader it, merged in this order: the open "Check directories" pull request first, merged or closed,
+since its branch's entries would conflict with every line the new field adds beside them; then the
+pull request; then a release soon after, since runs write nothing from its merge into `dev` until
+it reaches `main`. Its field goes in `DIRECTORY_FIELDS` or `INACTIVE_DIRECTORY_FIELDS`, which the
+typechecker holds to the type, and in the reader's schema, which a test holds to those.
 
 ## The rolling pull request
 

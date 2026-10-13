@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { BetaContentBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
+import { DIRECTORY_CATEGORY_DESCRIPTIONS, DirectoryCategory } from 'strategydance-directories'
 
 import buildDirectoryReviewRequest, { DIRECTORY_REVIEW_SCHEMA } from '~domain/directories/buildDirectoryReviewRequest'
 import {
@@ -58,10 +59,19 @@ describe('buildDirectoryReviewRequest', () => {
     expect(DIRECTORY_REVIEW_SCHEMA.additionalProperties).toBe(false)
   })
 
+  test('tells Claude what each category means, in the package words', () => {
+    const { system } = buildDirectoryReviewRequest(DIRECTORY, PROBE)
+
+    for (const category of Object.values(DirectoryCategory)) {
+      expect(system).toContain(`- ${category}: ${DIRECTORY_CATEGORY_DESCRIPTIONS[category]}\n`)
+    }
+  })
+
   test('gives the entry and what the probe read of each page', () => {
     const text = readText(buildDirectoryReviewRequest(DIRECTORY, PROBE))
 
     expect(text).toContain('"submissionUrl": "https://app.tools.example/submit"')
+    expect(text).toContain('"categories": []')
     expect(text).toContain('Its home page, https://app.tools.example/, answered our server with HTTP 200.')
     expect(text).toContain('It redirected to https://www.portal.tools.example/home, another site than the entry.')
     expect(text).toContain('Listings are free once our badge is on your site.')

@@ -5,11 +5,14 @@ import {
   DIRECTORIES,
   DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
   DIRECTORY_FIELDS,
+  DIRECTORY_ID_PATTERN,
   DirectoryBusinessModel,
+  DirectoryCategory,
   DirectoryInactiveReason,
   DirectoryType,
   INACTIVE_DIRECTORIES,
   INACTIVE_DIRECTORY_FIELDS,
+  isDirectoryCategoryListValid,
   MAX_DIRECTORY_DESCRIPTION_LENGTH,
 } from './index'
 
@@ -32,6 +35,11 @@ const LISTS = [
 const ALL_DIRECTORIES = [...DIRECTORIES, ...INACTIVE_DIRECTORIES]
 
 describe.each(LISTS)('$name', ({ directories, text, fields }) => {
+  // Each once, in the enum's order, as the check writes them, so the same categories read the same
+  it('holds only known categories, each once, in order, ANY_STARTUP beside no kind', () => {
+    for (const { categories } of directories) expect(isDirectoryCategoryListValid(categories)).toBe(true)
+  })
+
   it('holds only known types and business models', () => {
     const types: string[] = Object.values(DirectoryType)
     const businessModels: string[] = Object.values(DirectoryBusinessModel)
@@ -67,6 +75,10 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
     for (const { lastChecked, unreachableSince } of directories) {
       if (unreachableSince !== null) expect(unreachableSince <= (lastChecked ?? '')).toBe(true)
     }
+  })
+
+  it('identifies each entry by a slug', () => {
+    for (const { id } of directories) expect(id).toMatch(DIRECTORY_ID_PATTERN)
   })
 
   it('names each entry without spaces around its name', () => {
@@ -128,18 +140,37 @@ describe('INACTIVE_DIRECTORIES', () => {
 })
 
 // One entry per directory across both lists, so a directory is never active and inactive at once,
-// and whatever checks them never checks or moves one twice
+// whatever checks them never checks or moves one twice, and an id names one directory alone
 describe('both lists', () => {
   it('list each directory once', () => {
+    const ids = ALL_DIRECTORIES.map(({ id }) => id)
     const names = ALL_DIRECTORIES.map(({ name }) => name.toLowerCase())
     const submissionUrls = ALL_DIRECTORIES.map(({ submissionUrl }) => submissionUrl)
     const websiteRootUrls = ALL_DIRECTORIES.filter(({ type }) => type === DirectoryType.WEBSITE).map(
       ({ rootUrl }) => rootUrl,
     )
 
+    expect(new Set(ids).size).toBe(ids.length)
     expect(new Set(names).size).toBe(names.length)
     expect(new Set(submissionUrls).size).toBe(submissionUrls.length)
     expect(new Set(websiteRootUrls).size).toBe(websiteRootUrls.length)
+  })
+})
+
+describe('isDirectoryCategoryListValid', () => {
+  it('takes known categories, each once, in the enum order', () => {
+    expect(isDirectoryCategoryListValid([])).toBe(true)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.AI_TOOLS, DirectoryCategory.SAAS])).toBe(true)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.SAAS, DirectoryCategory.AI_TOOLS])).toBe(false)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.SAAS, DirectoryCategory.SAAS])).toBe(false)
+    expect(isDirectoryCategoryListValid(['GAMES'])).toBe(false)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.AI_TOOLS, 'GAMES'])).toBe(false)
+  })
+
+  it('takes ANY_STARTUP beside REGIONAL alone', () => {
+    expect(isDirectoryCategoryListValid([DirectoryCategory.ANY_STARTUP, DirectoryCategory.REGIONAL])).toBe(true)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.ANY_STARTUP, DirectoryCategory.AI_TOOLS])).toBe(false)
+    expect(isDirectoryCategoryListValid([DirectoryCategory.SAAS, DirectoryCategory.REGIONAL])).toBe(true)
   })
 })
 

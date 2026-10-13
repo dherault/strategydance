@@ -6,6 +6,7 @@ export * from './constants'
 export * from './enums'
 
 export { default as compareDirectoryNames } from './compareDirectoryNames'
+export { default as isDirectoryCategoryListValid } from './isDirectoryCategoryListValid'
 
 export type * from './types'
 

@@ -31,7 +31,7 @@ const RESPONSE_PARAMETERS = ['state', 'code', 'error', 'iss'] as const
   The answer's issuer is checked against the one discovered (RFC 9207), as the authorization server
   said it would send it. A refusal, the member's or the server's, deletes the Connect. What it answers
   is the query of the page the browser goes on to, the ids hyphenated, so the router reads them as
-  text: the Connect's when it was known, and how it went. Nothing it was sent is logged
+  text: the Connect's when it was known, and how it went. Nothing it was sent is logged here
 */
 async function receiveIntegrationAuthorizationCode(query: string): Promise<IntegrationConnectedSearch> {
   const parameters = parseOAuthParameters(query, RESPONSE_PARAMETERS)

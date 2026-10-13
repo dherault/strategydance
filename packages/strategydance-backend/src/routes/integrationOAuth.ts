@@ -26,7 +26,10 @@ function noStoreMiddleware(_request: Request, response: Response, next: NextFunc
   - `GET /callback`: where an authorization server sends the member's browser back after their
     sign-in. It keeps the code for the member's own page to finish (`receiveIntegrationAuthorizationCode`)
     and always answers a 303 to that page, whatever happened, never storable, and the address it came
-    from, which holds the code, is sent nowhere as a referrer. Nothing it was sent is logged
+    from, which holds the code, is sent nowhere as a referrer. The backend logs nothing it was sent.
+    Cloud Run's own request log keeps the address, its code and state with it, unless the exclusion
+    setup step 12 of conversations.md adds is in place: the code opens nothing without the verifier
+    the Connect keeps encrypted, and the state is spent once its code is kept
   - `GET /client`: Strategy Dance's client ID metadata document, its own address as its `client_id`,
     which an authorization server reading such documents fetches, from any origin
 */

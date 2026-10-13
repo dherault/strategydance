@@ -2454,6 +2454,17 @@ account, and until both exist every send in production answers 503.
     on `conversation-runs` alone, grant them on this queue too. Until it exists, a launch in
     production queues nothing, and the parent's reconcile finalizes its subagents once their runs are
     twenty minutes old.
+12. For M28, before its release reaches production: keep the callback of members' Connects out of
+    Cloud Run's request log, whose `httpRequest.requestUrl` holds the code and the state an
+    authorization server sends in its query. The backend logs neither; the platform logs every
+    request's address. A code there is worth little, spent once and useless without the PKCE verifier
+    the Connect keeps encrypted, but a log is no place for it. An exclusion on the `_Default` sink
+    drops those entries, the backend's own line saying how each sign-in came back staying:
+
+    ```sh
+    gcloud logging sinks update _Default --project strategydance \
+      --add-exclusion='name=integration-oauth-callback,filter=logName="projects/strategydance/logs/run.googleapis.com%2Frequests" AND httpRequest.requestUrl:"/integrations/oauth/callback"'
+    ```
 
 ### Usage caps
 

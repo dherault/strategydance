@@ -1009,8 +1009,11 @@ in `utils/`, one concern per file.
   the code is exchanged for the account that started the Connect alone, so a sign-in somebody else
   started and sent connects nothing (OAuth CSRF). A token is read through
   `readIntegrationAccessToken`, refreshed under the connection's lease, and goes to the address of the
-  revision it was given for. Nothing logs a code, a state, a token or what a server answered, the
-  development logger leaving the callback's query out. The flow's tests run the real SDK through the
+  revision it was given for. The backend logs no code, state, token or anything a server answered,
+  the development logger leaving the callback's query out; Cloud Run's own request log keeps the
+  callback's address, code and state with it, unless the exclusion of setup step 12 in
+  conversations.md is in place, the code being worthless without the verifier the Connect keeps
+  encrypted. The flow's tests run the real SDK through the
   guard against `createIntegrationOAuthServerFake`, an MCP server and its authorization server in
   memory, with `createIntegrationFetch` mocked to reach it
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is

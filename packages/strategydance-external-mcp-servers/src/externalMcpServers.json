@@ -120,6 +120,18 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "customerio",
+    "name": "Customer.io",
+    "url": "https://mcp.customer.io/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "MARKETING",
+    "description": "Lifecycle messages, segments, campaigns and broadcasts.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "dropbox",
     "name": "Dropbox",
     "url": "https://mcp.dropbox.com/mcp",
@@ -141,6 +153,18 @@
     "category": "DESIGN",
     "description": "Files, frames and comments.",
     "hasMark": true,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "folk",
+    "name": "folk",
+    "url": "https://mcp.folk.app/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "CUSTOMERS",
+    "description": "Contacts, companies, deals and pipelines.",
+    "hasMark": false,
     "lastChecked": "2026-10-13"
   },
   {
@@ -168,6 +192,18 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "heroku",
+    "name": "Heroku",
+    "url": "https://mcp.heroku.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "DEVELOPMENT",
+    "description": "Apps, dynos, add-ons and deploys.",
+    "hasMark": true,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "huggingface",
     "name": "Hugging Face",
     "url": "https://huggingface.co/mcp",
@@ -177,6 +213,18 @@
     "category": "DEVELOPMENT",
     "description": "Models, datasets and Spaces.",
     "hasMark": true,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "hunter",
+    "name": "Hunter",
+    "url": "https://mcp.hunter.io/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "CUSTOMERS",
+    "description": "Find, verify and enrich B2B emails.",
+    "hasMark": false,
     "lastChecked": "2026-10-13"
   },
   {
@@ -216,6 +264,18 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "lemlist",
+    "name": "lemlist",
+    "url": "https://app.lemlist.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "CUSTOMERS",
+    "description": "Outreach campaigns, leads and performance.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "linear",
     "name": "Linear",
     "url": "https://mcp.linear.app/mcp",
@@ -228,6 +288,30 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "lovable",
+    "name": "Lovable",
+    "url": "https://mcp.lovable.dev",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "DEVELOPMENT",
+    "description": "Build, edit and deploy apps from prompts.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "mailerlite",
+    "name": "MailerLite",
+    "url": "https://mcp.mailerlite.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "MARKETING",
+    "description": "Subscribers, groups, campaigns and automations.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "mercury",
     "name": "Mercury",
     "url": "https://mcp.mercury.com/mcp",
@@ -237,6 +321,18 @@
     "category": "FINANCE",
     "description": "Bank accounts, balances, transactions and statements.",
     "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "metaads",
+    "name": "Meta Ads",
+    "url": "https://mcp.facebook.com/ads",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "MARKETING",
+    "description": "Facebook and Instagram ad campaigns and insights.",
+    "hasMark": true,
     "lastChecked": "2026-10-13"
   },
   {
@@ -336,6 +432,30 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "plain",
+    "name": "Plain",
+    "url": "https://mcp.plain.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "CUSTOMERS",
+    "description": "Support threads, customers and help center.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "porkbun",
+    "name": "Porkbun",
+    "url": "https://mcp.porkbun.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "DEVELOPMENT",
+    "description": "Domains, DNS records and hosting.",
+    "hasMark": true,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "posthog",
     "name": "PostHog",
     "url": "https://mcp.posthog.com/mcp",
@@ -348,6 +468,30 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "qonto",
+    "name": "Qonto",
+    "url": "https://mcp.qonto.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "FINANCE",
+    "description": "Business bank accounts and transactions.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "quo",
+    "name": "Quo",
+    "url": "https://mcp.quo.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "COMMUNICATION",
+    "description": "Business phone calls, texts and contacts.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "ramp",
     "name": "Ramp",
     "url": "https://mcp.ramp.com/mcp",
@@ -357,6 +501,30 @@
     "category": "FINANCE",
     "description": "Card spend, reimbursements and approvals.",
     "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "remote",
+    "name": "Remote",
+    "url": "https://mcp.remote.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "PEOPLE",
+    "description": "Global employment, payroll, time off and expenses.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "replit",
+    "name": "Replit",
+    "url": "https://replit-mcp.com/server/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "DEVELOPMENT",
+    "description": "Create and update apps with Replit Agent.",
+    "hasMark": true,
     "lastChecked": "2026-10-13"
   },
   {
@@ -444,6 +612,18 @@
     "lastChecked": "2026-10-13"
   },
   {
+    "slug": "superhuman",
+    "name": "Superhuman Mail",
+    "url": "https://mcp.mail.superhuman.com/mcp",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "COMMUNICATION",
+    "description": "Search, draft and send email.",
+    "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
     "slug": "tally",
     "name": "Tally",
     "url": "https://api.tally.so/mcp",
@@ -453,6 +633,18 @@
     "category": "DOCUMENTS",
     "description": "Forms and their submissions.",
     "hasMark": false,
+    "lastChecked": "2026-10-13"
+  },
+  {
+    "slug": "tiktokads",
+    "name": "TikTok Ads",
+    "url": "https://business-api.tiktok.com/open_mcp/tt-ads-mcp-layer",
+    "authentication": "OAUTH",
+    "apiKeyScheme": null,
+    "apiKeyHeader": null,
+    "category": "MARKETING",
+    "description": "TikTok ad campaigns, audiences and reporting.",
+    "hasMark": true,
     "lastChecked": "2026-10-13"
   },
   {

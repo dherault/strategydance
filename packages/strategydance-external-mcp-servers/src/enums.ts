@@ -54,6 +54,10 @@ export const ExternalMcpServerCategory = {
   CUSTOMERS: 'CUSTOMERS',
   // Acting across other apps
   AUTOMATION: 'AUTOMATION',
+  // Talking to people: email, calls, texts
+  COMMUNICATION: 'COMMUNICATION',
+  // The team: hiring, payroll, time off
+  PEOPLE: 'PEOPLE',
 } as const
 
 export type ExternalMcpServerCategory = (typeof ExternalMcpServerCategory)[keyof typeof ExternalMcpServerCategory]

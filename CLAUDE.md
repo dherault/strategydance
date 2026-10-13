@@ -38,12 +38,16 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   alike. Keep it that way
 - `packages/strategydance-directories` — the places a startup can be submitted to, websites and
   Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its root and
-  submission addresses and its business model, `DirectoryBusinessModel`, whose comment says how
-  one is chosen when a directory has several catches. Those nothing can be submitted to today are
-  `INACTIVE_DIRECTORIES`, from `src/inactiveDirectories.json`, each with its
-  `DirectoryInactiveReason`, and a directory is in one list or the other, never both. Data and
-  types with no runtime dependency, as the core is. Both lists were read from the README of
-  where-to-submit-your-startup
+  submission addresses, its description and its business model, `DirectoryBusinessModel`, which
+  `DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS` and `DIRECTORY_BUSINESS_MODEL_PRECEDENCE` describe and
+  order. Those nothing can be submitted to today are `INACTIVE_DIRECTORIES`, from
+  `src/inactiveDirectories.json`, each with its `DirectoryInactiveReason`, and a directory is in one
+  list or the other, never both. Data and types with no runtime dependency, as the core is. Both
+  lists were read from the README of where-to-submit-your-startup, and a daily check, the
+  backend's, keeps them true through a pull request a human merges
+  ([directories.md](documents/directories.md)). Both files are written as `JSON.stringify(list,
+  null, 2)` writes them, sorted by name, which the tests hold them to, so a script's edit passes the
+  lint
 - `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
   one connector per caller, and the SDK generated from them. Import it as
   `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
@@ -53,8 +57,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   inviting people, which emails them, storing the pictures of documents' text, reading what a
   web page says of itself for a link preview, sending and searching conversations, and serving the
   modules to the agents members connect, through its own authorization server. Its image runs
-  a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them
-  and sweeps what was deleted once a day. See below
+  a second time as the private worker, which runs conversations' runs as Cloud Tasks delivers them,
+  sweeps what was deleted once a day, and checks the directories once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
@@ -120,6 +124,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
+| `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -926,6 +931,16 @@ in `utils/`, one concern per file.
   nobody uses (`domain/oauth/prune…`). A milestone that keeps
   something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
   sweep that failed is finished by the next
+- The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks
+  a day's directories and commits what it found to one rolling pull request into `dev`, from the
+  branch `directories-check`, which only it writes (`publishDirectoryCheck` in
+  `domain/directories/`): it reads the lists at that branch's head, or `dev`'s when no pull request
+  is open, and commits both files at once against the head it read. It reaches GitHub as a GitHub
+  App, its id and private key the `github-app-id` and `github-app-private-key` secrets, minted into
+  an installation token by `domain/github/`, since a pull request opened with Actions' own token
+  runs no CI. It runs the last release's code on `dev`'s lists, so `readDirectoryLists` refuses a
+  field or a value it does not know rather than write the lists back without it. What a run picks,
+  proves and writes, and its setup, are [directories.md](documents/directories.md)'s
 - Strategy Dance's OAuth authorization server, which external agents go through to reach a module
   as a member, is the public backend's: the protocol's own endpoints in `routes/oauth.ts`
   (`register`, `authorize`, `token`, `revoke`), the consent page's in `routes/oauthRequests.ts`,

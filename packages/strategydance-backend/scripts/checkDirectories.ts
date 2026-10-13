@@ -26,7 +26,7 @@ import createGitHubClient from '~domain/github/createGitHubClient'
   release takes the route to the worker. Its id and key are GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY
   when set, and the `github-app-id` and `github-app-private-key` secrets otherwise.
 
-  Every review asks Claude, which costs money, about $0.05 to $0.40 a directory: the report says
+  Every review asks Claude, which costs money, about $0.10 a directory: the report says
   what the run cost. Claude's key is ANTHROPIC_API_KEY when set, and the `anthropic-api-key` secret
   otherwise
 */

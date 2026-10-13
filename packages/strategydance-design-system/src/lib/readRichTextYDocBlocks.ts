@@ -7,7 +7,7 @@ import {
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextBlock,
   type RichTextEditorBlock,
-  getRichTextBlockTypes,
+  getRichTextContentTypes,
 } from 'strategydance-design-system/lib/richText'
 import type * as Y from 'yjs'
 
@@ -42,11 +42,11 @@ function readRichTextYDocBlocks(
 
   if (!read) return null
 
-  const blockTypes = getRichTextBlockTypes(blocks)
+  const types = getRichTextContentTypes(blocks)
 
   return yDocToBlocks(editor, read.copy, RICH_TEXT_YJS_FRAGMENT).map(block => ({
     id: block.id,
-    value: normalizeRichText([block], { blockTypes }),
+    value: normalizeRichText([block], types),
   }))
 }
 

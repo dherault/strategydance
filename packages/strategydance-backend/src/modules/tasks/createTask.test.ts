@@ -108,6 +108,28 @@ describe('create_task', () => {
     expect(task.descriptionText).toBe('Why\nWho | What\nAda | Email\nline one\nline two')
   })
 
+  it("stores the agent's links to documents and tasks in a description as mentions of them", async () => {
+    const kit = await board.connect()
+    const created = await kit.answer<{ id: string }>('create_task', {
+      name: 'Price the beta',
+      status: 'TODO',
+      description: 'As [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) says',
+    })
+    const task = fake.tasks.get(created.id)!
+
+    expect(parseRichText(task.description)).toEqual([
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'As ' },
+          { type: 'documentMention', props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Pricing' } },
+          { type: 'text', text: ' says' },
+        ],
+      },
+    ])
+    expect(task.descriptionText).toBe('As Pricing says')
+  })
+
   it('refuses a description past what a task holds once stored, before anything is written', async () => {
     const kit = await board.connect()
 

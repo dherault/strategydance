@@ -115,7 +115,51 @@ function isWithin(type: Y.AbstractType<unknown>, ancestor: object) {
   return false
 }
 
+const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
+const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+
 describe('updateRichTextYDoc', () => {
+  it('writes mentions, which load nothing, and reads them back as written', () => {
+    const doc = createDoc([paragraph('Alpha')])
+    const mentions = paragraph(
+      { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing' } },
+      ' then ',
+      { type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship' } },
+    )
+
+    expect(
+      updateRichTextYDoc(doc, {
+        type: 'replaceBlocks',
+        fromId: readIds(doc)[0],
+        toId: readIds(doc)[0],
+        blocks: [mentions],
+      }),
+    ).toMatchObject({ outcome: 'updated' })
+    expect(read(doc)).toEqual([mentions])
+    expect(isWellFormed(doc)).toBe(true)
+  })
+
+  it('never finds a piece of text across a mention, nor one holding the character it reads as', () => {
+    const doc = createDoc([
+      paragraph('See ', { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing' } }, ' now'),
+    ])
+    const stateVector = Y.encodeStateVector(doc)
+
+    expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'See Pricing now', replace: 'x' })).toEqual({
+      outcome: 'textNotFound',
+    })
+    expect(updateRichTextYDoc(doc, { type: 'replaceText', find: 'See \uFFFC now', replace: 'x' })).toEqual({
+      outcome: 'textNotFound',
+    })
+    expect(Y.encodeStateVector(doc)).toEqual(stateVector)
+    expect(updateRichTextYDoc(doc, { type: 'replaceText', find: ' now', replace: ' today' })).toMatchObject({
+      outcome: 'updated',
+    })
+    expect(read(doc)).toEqual([
+      paragraph('See ', { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing' } }, ' today'),
+    ])
+  })
+
   it('merges a range replaced on one copy with typing in another block on the other', () => {
     const ana = createDoc([paragraph('Alpha'), paragraph('Bravo'), paragraph('Charlie'), paragraph('Delta')])
     const ben = fork(ana)

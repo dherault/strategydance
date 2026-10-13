@@ -3,7 +3,11 @@ import { describe, expect, it, spyOn } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
-import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richText'
+import {
+  RICH_TEXT_EDITOR_BLOCKS,
+  RICH_TEXT_TASK_BLOCKS,
+  type RichTextMentionSource,
+} from 'strategydance-design-system/lib/richText'
 
 function render(blocks: unknown) {
   return renderToStaticMarkup(<RichText value={JSON.stringify(blocks)} />)
@@ -15,6 +19,46 @@ function renderDocument(blocks: unknown) {
     <RichText
       value={JSON.stringify(blocks)}
       blocks={RICH_TEXT_EDITOR_BLOCKS}
+    />,
+  )
+}
+
+const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
+const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+
+const MENTIONS = [
+  {
+    type: 'paragraph',
+    content: [
+      { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Old title' } },
+      { type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship it' } },
+    ],
+  },
+]
+
+function createSource(overrides: Partial<RichTextMentionSource> = {}): RichTextMentionSource {
+  return {
+    documents: new Map([[DOCUMENT_ID, 'Pricing plan']]),
+    tasks: new Map(),
+    request: () => {},
+    getHref: ({ kind, id }) => `/acme/${kind === 'document' ? 'knowledge' : 'tasks'}/${id}`,
+    open: () => {},
+    ...overrides,
+  }
+}
+
+// The words some markup draws, without its tags
+function readWords(markup: string) {
+  return markup.replace(/<[^>]+>/g, '')
+}
+
+// As a task's description draws its text, its mentions drawn from `mentions`
+function renderTask(blocks: unknown, mentions?: RichTextMentionSource) {
+  return renderToStaticMarkup(
+    <RichText
+      value={JSON.stringify(blocks)}
+      blocks={RICH_TEXT_TASK_BLOCKS}
+      mentions={mentions}
     />,
   )
 }
@@ -221,6 +265,36 @@ describe('RichText', () => {
     expect(markup).toContain('referrerPolicy="no-referrer"')
     expect(markup).toContain('example.org</span><span class="mt-auto truncate')
     expect(render([{ type: 'linkPreview', props: { url: 'https://example.org/' } }])).toBe('')
+  })
+
+  it('draws a mention found in its list as a link with its live title, and one the list lacks struck through', () => {
+    const markup = renderTask(MENTIONS, createSource())
+
+    expect(markup).toContain(`href="/acme/knowledge/${DOCUMENT_ID}"`)
+    expect(readWords(markup)).toBe('Pricing planShip it (no longer on the team&#x27;s board)')
+    expect(markup).not.toContain('target="_blank"')
+    expect(markup).toContain('line-through')
+    expect(markup).toContain('<span class="sr-only"> (no longer on the team&#x27;s board)</span>')
+    expect(markup).toContain('<span class="whitespace-nowrap"><svg')
+  })
+
+  it('draws a mention as its icon and its words while its list is not read, or without a source', () => {
+    expect(renderTask(MENTIONS, createSource({ documents: null, tasks: null }))).not.toContain('<a ')
+    expect(readWords(renderTask(MENTIONS))).toBe('Old titleShip it')
+    expect(renderTask(MENTIONS)).not.toContain('line-through')
+    expect(renderTask(MENTIONS)).toContain('<svg')
+  })
+
+  it('opens a mention in a new tab where the page gives no way to open it in the app', () => {
+    expect(renderTask(MENTIONS, createSource({ open: undefined }))).toContain(
+      'target="_blank" rel="noopener noreferrer"',
+    )
+  })
+
+  it("draws a post's mentions as their words alone, since a post holds none", () => {
+    expect(render(MENTIONS)).toBe(
+      '<div class="text-[15px] leading-[1.6] wrap-anywhere text-pretty text-secondary [&amp;&gt;:first-child]:mt-0 [&amp;&gt;:last-child]:mb-0 [&amp;:not(.descender-room_*)&gt;:is(h1,h2,h3):last-child]:pb-(--descender-room)"><p class="mb-2">Old titleShip it</p></div>',
+    )
   })
 
   it("draws a heading at its level's tag, the second when it has none or one past the third", () => {

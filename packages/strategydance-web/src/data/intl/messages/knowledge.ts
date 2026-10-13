@@ -202,6 +202,42 @@ const knowledgeMessages = defineMessages({
     description:
       'Message under the field where the link of a link preview block is pasted, when what was pasted is not a web address.',
   },
+  editorMentionKnowledge: {
+    id: 'knowledge.editorMentionKnowledge',
+    defaultMessage: 'Knowledge',
+    description:
+      "Heading of the group of the team's knowledge, its notes and plans, in the menu that typing @ opens in the text editor, to mention one in the text.",
+  },
+  editorMentionTasks: {
+    id: 'knowledge.editorMentionTasks',
+    defaultMessage: 'Tasks',
+    description:
+      "Heading of the group of the team's tasks, the cards on its board, in the menu that typing @ opens in the text editor, to mention one in the text.",
+  },
+  editorMentionItem: {
+    id: 'knowledge.editorMentionItem',
+    defaultMessage: 'Mention',
+    description:
+      "Item of the text editor's menu of blocks, opened by typing a slash, that opens the menu of the team's knowledge and tasks to mention one in the text.",
+  },
+  editorMentionItemSubtext: {
+    id: 'knowledge.editorMentionItemSubtext',
+    defaultMessage: 'A document or a task',
+    description:
+      'Line under "Mention" in the text editor\'s menu of blocks, saying what can be mentioned: an item of the team\'s knowledge, or a task on its board.',
+  },
+  editorMentionDocumentGone: {
+    id: 'knowledge.editorMentionDocumentGone',
+    defaultMessage: "(no longer in the team's knowledge)",
+    description:
+      "Read by screen readers after a mention, in the text, of an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
+  },
+  editorMentionTaskGone: {
+    id: 'knowledge.editorMentionTaskGone',
+    defaultMessage: "(no longer on the team's board)",
+    description:
+      "Read by screen readers after a mention, in the text, of a task on the team's board, the shared list of work to do, that was deleted since. Shown crossed out to sighted readers.",
+  },
   editorImageTypeError: {
     id: 'knowledge.editorImageTypeError',
     defaultMessage: 'A picture is a PNG, JPEG, GIF or WebP file.',

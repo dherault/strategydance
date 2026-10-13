@@ -1,8 +1,10 @@
 import MarkdownIt, { type Token } from 'markdown-it'
 import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRichText'
+import { readRichTextMentionHref } from 'strategydance-design-system/lib/readRichTextMentionHref'
 import {
   type RichTextBlock,
   type RichTextInline,
+  type RichTextMentionTarget,
   type RichTextRun,
   type RichTextStyles,
   type RichTextTableContent,
@@ -56,8 +58,10 @@ type Node = { token: Token; children: Node[] }
   `richTextToMarkdown` separates two styles with is nothing. Any other tag, and one `<u>` or `</u>`
   without the other, stays as written, so nothing is ever HTML. A single line break breaks the
   line, as the `Markdown` component draws it. A link is kept to a web or mail address, and one to
-  anything else stays as written. A picture is a link to its address with its alternative text, so
-  nothing is loaded from anywhere, and inline code is its text.
+  anything else stays as written, but a link to a document or a task, `[title](doc:<id>)` or
+  `[name](task:<id>)` as Strategy Dance's agent writes one, which is a mention of it, made with the
+  link's words without their styles. A picture is a link to its address with its alternative text,
+  so nothing is loaded from anywhere, and inline code is its text.
 
   Never cut to a length: what holds a text to one is whatever stores it
 */
@@ -242,6 +246,24 @@ function readPhrasing(
     else inline.push(...content)
   }
 
+  // A mention of what a link names, with its words, or its words alone inside another link
+  const pushMention = (target: RichTextMentionTarget, read: (runs: RichTextInline[]) => void) => {
+    const runs: RichTextInline[] = []
+
+    read(runs)
+
+    const content = runs.filter(run => run.type === 'text')
+    const words = content.map(run => run.text).join('')
+
+    if (isInLink) inline.push(...content)
+    else if (target.kind === 'document')
+      inline.push({ type: 'documentMention', props: { documentId: target.id, title: words } })
+    else inline.push({ type: 'taskMention', props: { taskId: target.id, name: words } })
+  }
+
+  // What a link's or a picture's address names, a document or a task, or null for any other
+  const readTarget = (href: string | null) => (href ? readRichTextMentionHref(href) : null)
+
   nodes.forEach(({ token, children }, index) => {
     switch (token.type) {
       case 'text':
@@ -267,17 +289,26 @@ function readPhrasing(
         else inline.push(createRun(token.content, getStyles()))
 
         return
-      case 'link_open':
-        pushLink(readAttribute(token, 'href'), runs => readPhrasing(children, getStyles(), runs, depth + 1, true))
+      case 'link_open': {
+        const href = readAttribute(token, 'href')
+        const target = readTarget(href)
+        const read = (runs: RichTextInline[]) => readPhrasing(children, getStyles(), runs, depth + 1, true)
+
+        if (target) pushMention(target, read)
+        else pushLink(href, read)
 
         return
+      }
       case 'image': {
         const href = readAttribute(token, 'src')
-        const text = token.content || href
-
-        pushLink(href, runs => {
+        const target = readTarget(href)
+        const text = target ? token.content : token.content || href
+        const read = (runs: RichTextInline[]) => {
           if (text) runs.push(createRun(text, getStyles()))
-        })
+        }
+
+        if (target) pushMention(target, read)
+        else pushLink(href, read)
 
         return
       }

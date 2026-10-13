@@ -27,7 +27,24 @@ function readIds(doc: Y.Doc) {
   return readContainers(doc).map(container => container.getAttribute('id') as string)
 }
 
+const MENTIONS: RichTextBlock = {
+  type: 'paragraph',
+  content: [
+    { type: 'text', text: 'See ' },
+    { type: 'documentMention', props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Pricing' } },
+    { type: 'text', text: ' and ' },
+    { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+  ],
+}
+
 describe('readRichTextYDocBlocks', () => {
+  it('reads mentions as they were stored, and refuses a text holding them with a schema that lacks them', () => {
+    const doc = createDoc([MENTIONS])
+
+    expect(readRichTextYDocBlocks(doc)).toEqual([{ id: readIds(doc)[0], value: [MENTIONS] }])
+    expect(readRichTextYDocBlocks(doc, { blocks: ['heading', 'quote', 'list', 'checklist'] })).toBeNull()
+  })
+
   it('reads each top-level block with the id the shared text keeps it under', () => {
     const doc = createDoc([
       paragraph('Alpha'),

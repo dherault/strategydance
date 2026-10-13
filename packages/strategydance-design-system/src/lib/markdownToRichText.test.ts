@@ -9,6 +9,9 @@ import type {
   RichTextStyles,
 } from 'strategydance-design-system/lib/richText'
 
+const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
+const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+
 function run(text: string, styles?: RichTextStyles): RichTextRun {
   return { type: 'text', text, ...(styles ? { styles } : {}) }
 }
@@ -176,7 +179,51 @@ describe('markdownToRichText', () => {
         [paragraph({ type: 'link', href: 'https://example.com/x', content: [run('https://example.com/x')] }, '。')],
       ],
       ['to a script, as written', '[a](javascript:alert(1))', [paragraph('[a](javascript:alert(1))')]],
-      ['to a document, as its words', '[a](doc:123)', [paragraph('a')]],
+      ['to a document naming no id, as its words', '[a](doc:123)', [paragraph('a')]],
+      [
+        'to a document, as a mention of it with its words, unstyled',
+        `See [Pricing **plan**](doc:${DOCUMENT_ID}).`,
+        [
+          paragraph(
+            'See ',
+            { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing plan' } },
+            '.',
+          ),
+        ],
+      ],
+      [
+        'to a task, whatever the case of its scheme and its id, and its hyphens',
+        '**[Ship](TASK:7A1B2C3D-4E5F-4071-8293-A4B5C6D7E8F9)**',
+        [paragraph({ type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship' } })],
+      ],
+      [
+        'to a document, with no words',
+        `[](doc:${DOCUMENT_ID})`,
+        [paragraph({ type: 'documentMention', props: { documentId: DOCUMENT_ID } })],
+      ],
+      [
+        'to a document, written as a picture of it',
+        `![Plan](doc:${DOCUMENT_ID})`,
+        [paragraph({ type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Plan' } })],
+      ],
+      [
+        'to a task, in a list item and a table',
+        `- [Ship](task:${TASK_ID})\n\n| A |\n| - |\n| [Ship](task:${TASK_ID}) |`,
+        [
+          { type: 'bulletListItem', content: [{ type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship' } }] },
+          {
+            type: 'table',
+            content: {
+              type: 'tableContent',
+              headerRows: 1,
+              rows: [
+                { cells: [[run('A')]] },
+                { cells: [[{ type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship' } }]] },
+              ],
+            },
+          },
+        ],
+      ],
     ]
 
     for (const [name, markdown, expected] of cases) {

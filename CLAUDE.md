@@ -51,11 +51,17 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
   editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
   drawn by `RichText` without it. A post's editor writes text and lists (`RICH_TEXT_POST_BLOCKS`),
-  and a knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos and link
-  preview cards (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks unless
-  told a document's, since a feed and a public page draw posts. The editor's own blocks, the video
-  and the card, are the core's `createBlockSpec` with plain DOM, never React's, so the headless
-  editor the Yjs helpers convert through loads no React. BlockNote's menus are built from its own
+  a task's description's also mentions of documents and tasks (`RICH_TEXT_TASK_BLOCKS`), and a
+  knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos, link preview
+  cards and mentions (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks
+  unless told more, since a feed and a public page draw posts. The editor's own blocks, the video
+  and the card, are the core's `createBlockSpec`, and its mentions the core's
+  `createInlineContentSpec`, with plain DOM, never React's, so the headless editor the Yjs helpers
+  convert through loads no React. A mention's chip is a span whatever it draws, since BlockNote
+  reads a pasted outer link as a link before the mention. `RichTextEditor` and `RichText` draw
+  mentions from the page's `mentions`, a `RichTextMentionSource`, which the web builds with
+  `useRichTextMentionSource`: the organization's live documents and board, each read once a mention
+  or the `@` menu asks for it, and their addresses. BlockNote's menus are built from its own
   Base UI copies of shadcn's components, which the design system's never reach, so
   `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
   drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
@@ -66,8 +72,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
-  the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, and
-  a table without a header row under an empty one. `markdownToRichText` parses with markdown-it,
+  the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, a
+  table without a header row under an empty one, and a mention as the agent's own link to what it
+  names, `[title](doc:<id>)` or `[name](task:<id>)`, which reads back as the mention. `markdownToRichText` parses with markdown-it,
   never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by
   the thousand, text an agent could be told to write, and its tests hold markdown-it to the
   length of a document. It
@@ -497,7 +504,10 @@ faces.
   and delete it, with whatever somebody typed in it
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
-  text. A new block type reaches every tab before anybody can write one. The Yjs helpers read with
+  text. A new block type reaches every tab before anybody can write one, and so does a new inline
+  type, unless David chooses to ship it with the release that writes it, as mentions shipped. A
+  node's props are append-only: y-prosemirror writes every attribute, and a shared text holding
+  one its schema does not declare can no longer be read by the backend. The Yjs helpers read with
   a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another, and their read deletes a block it
   lacks as surely: a document's editor and its helpers keep to one list
 - A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's

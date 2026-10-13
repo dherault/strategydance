@@ -44,7 +44,7 @@ function registerReadTask(server: McpServer, { caller, toAddress }: TasksToolCon
     {
       title: 'Read a task',
       description:
-        "Reads a task of the team's board: its fields, who created it and when, its description as Markdown with its `version`, the tasks it waits on (`dependsOn`) and those waiting on it (`waitedOnBy`), each with id, name and status, the first 20 of each with their `count`, and whether it is blocked. Call it before changing a task's description, which takes the `version` it gives. A description too long to answer whole comes as its plain text with `isDescriptionComplete` false and no version: you can read it but not replace it.",
+        "Reads a task of the team's board: its fields, who created it and when, its description as Markdown with its `version`, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task, the tasks it waits on (`dependsOn`) and those waiting on it (`waitedOnBy`), each with id, name and status, the first 20 of each with their `count`, and whether it is blocked. Call it before changing a task's description, which takes the `version` it gives. A description too long to answer whole comes as its plain text with `isDescriptionComplete` false and no version: you can read it but not replace it.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

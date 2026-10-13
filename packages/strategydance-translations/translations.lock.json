@@ -2209,6 +2209,30 @@
         "hash": "85b125e50ef55ed7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.editorMentionDocumentGone": {
+        "hash": "9cebabb0585479a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionItem": {
+        "hash": "ff31aaf96da2b50e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionItemSubtext": {
+        "hash": "6dcc28f889e5cce3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionKnowledge": {
+        "hash": "915fbe6393b74e57",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionTaskGone": {
+        "hash": "e84329bcc02a81d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.editorMentionTasks": {
+        "hash": "43376af144ca2e74",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.editorTurnInto": {
         "hash": "5ec56d5ad4433055",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3499,6 +3523,34 @@
       },
       "task.editorError": {
         "hash": "64e68bc3ca343990",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionDocumentGone": {
+        "hash": "9cebabb0585479a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionItem": {
+        "hash": "ff31aaf96da2b50e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionItemSubtext": {
+        "hash": "6dcc28f889e5cce3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionKnowledge": {
+        "hash": "915fbe6393b74e57",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionTaskGone": {
+        "hash": "e84329bcc02a81d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionTasks": {
+        "hash": "43376af144ca2e74",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionUntitled": {
+        "hash": "ea87582ebccc802c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorTurnInto": {

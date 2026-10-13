@@ -58,6 +58,21 @@ describe('create_document', () => {
     expect(JSON.parse(stored.content)).toBeArray()
   })
 
+  it("stores the agent's links to documents and tasks as mentions, their words in the plain text", async () => {
+    const kit = await connect()
+    const content =
+      'Price it as [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) says, in [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)'
+    const created = await kit.answer<Created>('create_document', { title: 'Plan', aspects: [], content })
+    const stored = fake.documents.get(created.id)!
+
+    expect(documents.read(created.id).map(block => block.markdown)).toEqual([content])
+    expect(stored.contentText).toBe('Price it as Pricing says, in Launch')
+    expect(JSON.parse(stored.content)[0].content[1]).toEqual({
+      type: 'documentMention',
+      props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Pricing' },
+    })
+  })
+
   it('makes a document AI may read and change, whose version a read confirms', async () => {
     const kit = await connect()
     const created = await kit.answer<Created>('create_document', { title: 'Notes', aspects: [], content: 'First' })

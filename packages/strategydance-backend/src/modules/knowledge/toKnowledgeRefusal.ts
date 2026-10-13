@@ -38,7 +38,7 @@ function toSentence(refusal: KnowledgeRefusal) {
     case 'stateTooLong':
       return "The document's shared history has grown too large to take this edit. Tell the member, who can copy it into a new document."
     case 'textNotFound':
-      return 'That text does not occur in the document. Read it again and copy the text exactly.'
+      return 'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc: or task: link, is no text to find: replace its block to change it.'
     case 'textNotUnique':
       return `That text occurs ${refusal.count} times in the document. Include more of the text around it, so it occurs once.`
     case 'invalidRange':

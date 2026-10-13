@@ -35,7 +35,7 @@ function registerCreateDocument(server: McpServer, context: KnowledgeToolContext
     {
       title: 'Create knowledge',
       description:
-        "Creates a document in the organization's knowledge, with its title, its aspects and its text in Markdown. Call it to write down a decision, a plan or notes the member agreed to keep, once a search found no document it belongs in. The team shares it at once, and you may read and change it, as they may turn off. Answers its id and version.",
+        "Creates a document in the organization's knowledge, with its title, its aspects and its text in Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task. Call it to write down a decision, a plan or notes the member agreed to keep, once a search found no document it belongs in. The team shares it at once, and you may read and change it, as they may turn off. Answers its id and version.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

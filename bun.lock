@@ -123,6 +123,13 @@
         "vite": "^8.3.2",
       },
     },
+    "packages/strategydance-directories": {
+      "name": "strategydance-directories",
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "typescript": "^7.0.2",
+      },
+    },
     "packages/strategydance-emails": {
       "name": "strategydance-emails",
       "dependencies": {
@@ -2693,6 +2700,8 @@
     "strategydance-database": ["strategydance-database@workspace:packages/strategydance-database"],
 
     "strategydance-design-system": ["strategydance-design-system@workspace:packages/strategydance-design-system"],
+
+    "strategydance-directories": ["strategydance-directories@workspace:packages/strategydance-directories"],
 
     "strategydance-emails": ["strategydance-emails@workspace:packages/strategydance-emails"],
 

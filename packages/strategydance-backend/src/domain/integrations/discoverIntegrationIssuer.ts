@@ -135,25 +135,30 @@ async function readsInitializeAnswer(response: Response) {
   const isEventStream = (response.headers.get('content-type') ?? '').includes('text/event-stream')
   let text = ''
 
-  while (text.length < MAX_INITIALIZE_ANSWER_BYTES) {
-    const { value, done } = await reader.read()
+  try {
+    while (text.length < MAX_INITIALIZE_ANSWER_BYTES) {
+      const { value, done } = await reader.read()
 
-    if (value) text += decoder.decode(value, { stream: true })
+      if (value) text += decoder.decode(value, { stream: true })
 
-    const messages = isEventStream
-      ? text
-          .split('\n')
-          .filter(line => line.startsWith('data:'))
-          .map(line => line.slice('data:'.length).trim())
-      : done
-        ? [text]
-        : []
+      const messages = isEventStream
+        ? text
+            .split('\n')
+            .filter(line => line.startsWith('data:'))
+            .map(line => line.slice('data:'.length).trim())
+        : done
+          ? [text]
+          : []
 
-    if (messages.some(isInitializeResult)) return true
-    if (done) return false
+      if (messages.some(isInitializeResult)) return true
+      if (done) return false
+    }
+
+    return false
+  } finally {
+    // The reader holds the stream, so it is what closes it, and the connection with it
+    await reader.cancel().catch(() => {})
   }
-
-  return false
 }
 
 function isInitializeResult(message: string) {

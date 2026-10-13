@@ -182,6 +182,35 @@ describe('discoverIntegrationIssuer', () => {
     }
   })
 
+  test('closes a stream of events left open once it has read the answer', async () => {
+    const answer = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { protocolVersion: '2025-06-18', capabilities: {} },
+    })
+    let isClosed = false
+    const { fetch } = createNetwork({
+      [`POST ${URL}`]: () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode(`event: message\ndata: ${answer}\n\n`))
+            },
+            cancel() {
+              isClosed = true
+            },
+          }),
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+      'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+        json({ resource: URL, authorization_servers: ['https://auth.example.com'] }),
+      'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
+    })
+
+    expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+    expect(isClosed).toBe(true)
+  })
+
   test('refuses an address that neither challenges nor answers as an MCP server, whatever metadata its host has', async () => {
     for (const respond of [
       () => new Response('<html>A page</html>', { headers: { 'content-type': 'text/html' } }),

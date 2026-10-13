@@ -1,5 +1,6 @@
 [
   {
+    "id": "1000-tools",
     "name": "1000.tools",
     "type": "WEBSITE",
     "rootUrl": "https://1000.tools/",
@@ -10,6 +11,7 @@
     "unreachableSince": null
   },
   {
+    "id": "10words",
     "name": "10words",
     "type": "WEBSITE",
     "rootUrl": "https://app.10words.io/",
@@ -20,6 +22,7 @@
     "unreachableSince": null
   },
   {
+    "id": "1payment-tools",
     "name": "1payment.tools",
     "type": "WEBSITE",
     "rootUrl": "https://1payment.tools/",
@@ -30,6 +33,7 @@
     "unreachableSince": null
   },
   {
+    "id": "360quadrants",
     "name": "360Quadrants",
     "type": "WEBSITE",
     "rootUrl": "https://www.360quadrants.com/",
@@ -40,6 +44,7 @@
     "unreachableSince": null
   },
   {
+    "id": "a1-gallery",
     "name": "A1 Gallery",
     "type": "WEBSITE",
     "rootUrl": "https://www.a1.gallery/",
@@ -50,6 +55,7 @@
     "unreachableSince": null
   },
   {
+    "id": "active-search-results",
     "name": "Active Search Results",
     "type": "WEBSITE",
     "rootUrl": "https://www.activesearchresults.com/",
@@ -60,6 +66,7 @@
     "unreachableSince": null
   },
   {
+    "id": "add-ai-directory",
     "name": "Add AI Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.addaidirectory.com/",
@@ -70,6 +77,7 @@
     "unreachableSince": null
   },
   {
+    "id": "agenthunter",
     "name": "AgentHunter",
     "type": "WEBSITE",
     "rootUrl": "https://www.agenthunter.io/",
@@ -80,6 +88,7 @@
     "unreachableSince": null
   },
   {
+    "id": "agentmrr",
     "name": "AgentMRR",
     "type": "WEBSITE",
     "rootUrl": "https://agentmrr.com/",
@@ -90,6 +99,7 @@
     "unreachableSince": null
   },
   {
+    "id": "agentsindex",
     "name": "AgentsIndex",
     "type": "WEBSITE",
     "rootUrl": "https://agentsindex.ai/",
@@ -100,6 +110,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-agent-store",
     "name": "AI Agent Store",
     "type": "WEBSITE",
     "rootUrl": "https://aiagentstore.ai/",
@@ -110,6 +121,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-agents-directory",
     "name": "AI Agents Directory",
     "type": "WEBSITE",
     "rootUrl": "https://aiagentsdirectory.com/",
@@ -120,6 +132,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-agents-list",
     "name": "AI Agents List",
     "type": "WEBSITE",
     "rootUrl": "https://aiagentslist.com/",
@@ -130,6 +143,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-agents-live",
     "name": "AI Agents Live",
     "type": "WEBSITE",
     "rootUrl": "https://aiagentslive.com/",
@@ -140,6 +154,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-agents-marketplace",
     "name": "AI Agents Marketplace",
     "type": "WEBSITE",
     "rootUrl": "https://trillionagent.com/",
@@ -150,6 +165,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-agents-verse",
     "name": "AI Agents Verse",
     "type": "WEBSITE",
     "rootUrl": "https://aiagentsverse.com/",
@@ -160,6 +176,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-center",
     "name": "AI Center",
     "type": "WEBSITE",
     "rootUrl": "https://aicenter.ai/",
@@ -170,6 +187,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-collection",
     "name": "AI Collection",
     "type": "WEBSITE",
     "rootUrl": "https://thataicollection.com/",
@@ -180,6 +198,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-depot",
     "name": "AI Depot",
     "type": "WEBSITE",
     "rootUrl": "https://aidepot.co/",
@@ -190,6 +209,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-directories",
     "name": "AI Directories",
     "type": "WEBSITE",
     "rootUrl": "https://www.aidirectori.es/",
@@ -200,6 +220,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-dreamthere",
     "name": "AI Dreamthere",
     "type": "WEBSITE",
     "rootUrl": "https://ai.dreamthere.cn/",
@@ -210,6 +231,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-findy",
     "name": "AI Findy",
     "type": "WEBSITE",
     "rootUrl": "https://aifindy.com/",
@@ -220,6 +242,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-for-developers",
     "name": "AI For Developers",
     "type": "WEBSITE",
     "rootUrl": "https://aifordevelopers.org/",
@@ -230,6 +253,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-headshot-hub",
     "name": "AI Headshot Hub",
     "type": "WEBSITE",
     "rootUrl": "https://aiheadshothub.com/",
@@ -240,6 +264,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-heron",
     "name": "AI Heron",
     "type": "WEBSITE",
     "rootUrl": "https://aiheron.com/",
@@ -250,6 +275,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-hubs",
     "name": "AI Hubs",
     "type": "WEBSITE",
     "rootUrl": "https://aihubs.ai/",
@@ -260,6 +286,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-hunt-list",
     "name": "AI Hunt List",
     "type": "WEBSITE",
     "rootUrl": "https://aihuntlist.com/",
@@ -270,6 +297,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-hustle",
     "name": "AI Hustle",
     "type": "WEBSITE",
     "rootUrl": "https://aihustle.tools/",
@@ -280,6 +308,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-journey",
     "name": "AI Journey",
     "type": "WEBSITE",
     "rootUrl": "https://aijourney.so/",
@@ -290,6 +319,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-just-better",
     "name": "AI Just Better",
     "type": "WEBSITE",
     "rootUrl": "https://aijustbetter.com/",
@@ -300,6 +330,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-library",
     "name": "AI Library",
     "type": "WEBSITE",
     "rootUrl": "https://www.theailibrary.co/",
@@ -310,6 +341,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-marketing-directory",
     "name": "AI Marketing Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.aimarketing.directory/",
@@ -320,6 +352,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-mojo",
     "name": "AI Mojo",
     "type": "WEBSITE",
     "rootUrl": "https://aimojo.io/",
@@ -330,6 +363,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-navhub",
     "name": "AI NavHub",
     "type": "WEBSITE",
     "rootUrl": "https://ainavhub.com/",
@@ -340,6 +374,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-parabellum",
     "name": "AI Parabellum",
     "type": "WEBSITE",
     "rootUrl": "https://aiparabellum.com/",
@@ -350,6 +385,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-pulse",
     "name": "AI Pulse",
     "type": "WEBSITE",
     "rootUrl": "https://www.aipulse.fyi/",
@@ -360,6 +396,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-respo",
     "name": "AI Respo",
     "type": "WEBSITE",
     "rootUrl": "https://airespo.com/",
@@ -370,6 +407,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-search",
     "name": "AI Search",
     "type": "WEBSITE",
     "rootUrl": "https://ai-search.io/",
@@ -380,6 +418,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-to-grow",
     "name": "AI to Grow",
     "type": "WEBSITE",
     "rootUrl": "https://aitogrow.com/",
@@ -390,6 +429,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tool-board",
     "name": "AI Tool Board",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolboard.com/",
@@ -400,6 +440,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tool-center",
     "name": "AI Tool Center",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolcenter.com/",
@@ -410,6 +451,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tool-net",
     "name": "AI Tool Net",
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolnet.com/",
@@ -420,6 +462,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tool-trek",
     "name": "AI Tool Trek",
     "type": "WEBSITE",
     "rootUrl": "https://aitooltrek.com/",
@@ -430,6 +473,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools",
     "name": "AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://aitools.inc/",
@@ -440,6 +484,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-directory",
     "name": "AI Tools Directory",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsdirectory.com/",
@@ -450,6 +495,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-explorer",
     "name": "AI Tools Explorer",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsexplorer.com/",
@@ -460,6 +506,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-list",
     "name": "AI Tools List",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolslist.io/",
@@ -470,6 +517,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-magazine",
     "name": "AI Tools Magazine",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsmagazine.com/",
@@ -480,6 +528,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-marketer",
     "name": "AI Tools Marketer",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsmarketer.com/",
@@ -490,6 +539,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-saver",
     "name": "AI Tools Saver",
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolsaver.com/",
@@ -500,6 +550,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-sme",
     "name": "AI Tools SME",
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolssme.com/",
@@ -510,6 +561,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-submit",
     "name": "AI Tools Submit",
     "type": "WEBSITE",
     "rootUrl": "https://submitaitools.org/",
@@ -520,6 +572,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-time",
     "name": "AI Tools Time",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolstime.com/",
@@ -530,6 +583,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-up",
     "name": "AI Tools Up",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsup.com/",
@@ -540,6 +594,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-tools-zone",
     "name": "AI Tools Zone",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolszone.com/",
@@ -550,6 +605,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-toolz-dir",
     "name": "AI Toolz Dir",
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolzdir.com/",
@@ -560,6 +616,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-top-10",
     "name": "AI Top 10",
     "type": "WEBSITE",
     "rootUrl": "https://aitop10.tools/",
@@ -570,6 +627,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-trendz",
     "name": "AI Trendz",
     "type": "WEBSITE",
     "rootUrl": "https://aitrendz.xyz/",
@@ -580,6 +638,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai-with-me",
     "name": "AI With Me",
     "type": "WEBSITE",
     "rootUrl": "https://aiwith.me/",
@@ -590,6 +649,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ai138",
     "name": "AI138",
     "type": "WEBSITE",
     "rootUrl": "https://www.ai138.com/",
@@ -600,6 +660,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aibase",
     "name": "AIBase",
     "type": "WEBSITE",
     "rootUrl": "https://app.aibase.com/",
@@ -610,6 +671,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aibesttop-tools",
     "name": "AIBestTop Tools",
     "type": "WEBSITE",
     "rootUrl": "https://aibesttop.com/",
@@ -620,6 +682,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aiboom-tools",
     "name": "AIBoom.Tools",
     "type": "WEBSITE",
     "rootUrl": "https://aiboom.tools/",
@@ -630,6 +693,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aichief",
     "name": "AIChief",
     "type": "WEBSITE",
     "rootUrl": "https://aichief.com/",
@@ -640,6 +704,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aidirectory-org",
     "name": "AIDirectory.org",
     "type": "WEBSITE",
     "rootUrl": "https://www.aidirectory.org/",
@@ -650,6 +715,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aidirs",
     "name": "Aidirs",
     "type": "WEBSITE",
     "rootUrl": "https://aidirs.best/",
@@ -660,6 +726,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aigc-navigation",
     "name": "AIGC Navigation",
     "type": "WEBSITE",
     "rootUrl": "https://www.aigc.cn/",
@@ -670,6 +737,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aimatchpro",
     "name": "AiMatchPro",
     "type": "WEBSITE",
     "rootUrl": "https://aimatch.pro/",
@@ -680,6 +748,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ainav",
     "name": "AInav",
     "type": "WEBSITE",
     "rootUrl": "https://www.ainav.cn/",
@@ -690,6 +759,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ainave",
     "name": "AINave",
     "type": "WEBSITE",
     "rootUrl": "https://ainave.com/",
@@ -700,6 +770,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ainewtool",
     "name": "AINewTool",
     "type": "WEBSITE",
     "rootUrl": "https://ainewtool.site/",
@@ -710,6 +781,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aipure",
     "name": "AIPURE",
     "type": "WEBSITE",
     "rootUrl": "https://aipure.ai/",
@@ -720,6 +792,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aiso-tools",
     "name": "AISO Tools",
     "type": "WEBSITE",
     "rootUrl": "https://aisotools.com/",
@@ -730,6 +803,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aistage",
     "name": "AIStage",
     "type": "WEBSITE",
     "rootUrl": "https://aistage.net/",
@@ -740,6 +814,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitoolex",
     "name": "AIToolex",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolex.com/",
@@ -750,6 +825,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitoolly",
     "name": "AIToolly",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolly.com/",
@@ -760,6 +836,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitools-fyi",
     "name": "aitools.fyi",
     "type": "WEBSITE",
     "rootUrl": "https://aitools.fyi/",
@@ -770,6 +847,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitoolscapital",
     "name": "AIToolsCapital",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolscapital.com/",
@@ -780,6 +858,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitoolshunt",
     "name": "AIToolsHunt",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolshunt.com/",
@@ -790,6 +869,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitoolsobserver",
     "name": "AiToolsObserver",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsobserver.com/",
@@ -800,6 +880,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aitoptools",
     "name": "AITopTools",
     "type": "WEBSITE",
     "rootUrl": "https://aitoptools.com/",
@@ -810,6 +891,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aiwget",
     "name": "AIWget",
     "type": "WEBSITE",
     "rootUrl": "https://aiwget.com/",
@@ -820,6 +902,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aixploria",
     "name": "Aixploria",
     "type": "WEBSITE",
     "rootUrl": "https://www.aixploria.com/",
@@ -830,6 +913,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aixuanfeng",
     "name": "Aixuanfeng",
     "type": "WEBSITE",
     "rootUrl": "https://www.aixuanfeng.com/",
@@ -840,6 +924,7 @@
     "unreachableSince": null
   },
   {
+    "id": "all-my-faves",
     "name": "All My Faves",
     "type": "WEBSITE",
     "rootUrl": "https://allmyfaves.com/",
@@ -850,6 +935,7 @@
     "unreachableSince": null
   },
   {
+    "id": "all-top-startups",
     "name": "All Top Startups",
     "type": "WEBSITE",
     "rootUrl": "https://alltopstartups.com/",
@@ -860,6 +946,7 @@
     "unreachableSince": null
   },
   {
+    "id": "allmcps",
     "name": "AllMCPs",
     "type": "WEBSITE",
     "rootUrl": "https://allmcps.com/",
@@ -870,6 +957,7 @@
     "unreachableSince": null
   },
   {
+    "id": "alpha-digits",
     "name": "Alpha Digits",
     "type": "WEBSITE",
     "rootUrl": "https://alphadigits.com/",
@@ -880,6 +968,7 @@
     "unreachableSince": null
   },
   {
+    "id": "alt-hunt",
     "name": "Alt Hunt",
     "type": "WEBSITE",
     "rootUrl": "https://althunt.io/",
@@ -890,6 +979,7 @@
     "unreachableSince": null
   },
   {
+    "id": "altern",
     "name": "Altern",
     "type": "WEBSITE",
     "rootUrl": "https://altern.ai/",
@@ -900,6 +990,7 @@
     "unreachableSince": null
   },
   {
+    "id": "alternative-me",
     "name": "Alternative.me",
     "type": "WEBSITE",
     "rootUrl": "https://alternative.me/",
@@ -910,6 +1001,7 @@
     "unreachableSince": null
   },
   {
+    "id": "alternativeto",
     "name": "AlternativeTo",
     "type": "WEBSITE",
     "rootUrl": "https://alternativeto.net/",
@@ -920,6 +1012,7 @@
     "unreachableSince": null
   },
   {
+    "id": "anyfp",
     "name": "AnyFP",
     "type": "WEBSITE",
     "rootUrl": "https://anyfp.com/",
@@ -930,6 +1023,7 @@
     "unreachableSince": null
   },
   {
+    "id": "app-launcher",
     "name": "App Launcher",
     "type": "WEBSITE",
     "rootUrl": "https://www.applauncher.io/",
@@ -940,6 +1034,7 @@
     "unreachableSince": null
   },
   {
+    "id": "app-rater",
     "name": "App Rater",
     "type": "WEBSITE",
     "rootUrl": "https://apprater.net/",
@@ -950,6 +1045,7 @@
     "unreachableSince": null
   },
   {
+    "id": "appiod",
     "name": "Appiod",
     "type": "WEBSITE",
     "rootUrl": "https://appiod.com/",
@@ -960,6 +1056,7 @@
     "unreachableSince": null
   },
   {
+    "id": "apps-400",
     "name": "Apps 400",
     "type": "WEBSITE",
     "rootUrl": "https://apps400.com/",
@@ -970,6 +1067,7 @@
     "unreachableSince": null
   },
   {
+    "id": "apps-listo",
     "name": "Apps Listo",
     "type": "WEBSITE",
     "rootUrl": "https://appslisto.com/",
@@ -980,6 +1078,7 @@
     "unreachableSince": null
   },
   {
+    "id": "apps-mamma",
     "name": "Apps Mamma",
     "type": "WEBSITE",
     "rootUrl": "https://appsmamma.com/",
@@ -990,6 +1089,7 @@
     "unreachableSince": null
   },
   {
+    "id": "apps-mirror",
     "name": "Apps Mirror",
     "type": "WEBSITE",
     "rootUrl": "https://appsmirror.com/",
@@ -1000,6 +1100,7 @@
     "unreachableSince": null
   },
   {
+    "id": "appscribed",
     "name": "Appscribed",
     "type": "WEBSITE",
     "rootUrl": "https://appscribed.com/",
@@ -1010,6 +1111,7 @@
     "unreachableSince": null
   },
   {
+    "id": "appsthunder",
     "name": "AppsThunder",
     "type": "WEBSITE",
     "rootUrl": "https://appsthunder.com/",
@@ -1020,6 +1122,7 @@
     "unreachableSince": null
   },
   {
+    "id": "arctic-startup",
     "name": "Arctic Startup",
     "type": "WEBSITE",
     "rootUrl": "https://arcticstartup.com/",
@@ -1030,6 +1133,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ask-ai-for-it",
     "name": "Ask AI For It",
     "type": "WEBSITE",
     "rootUrl": "https://askaiforit.com/",
@@ -1040,6 +1144,7 @@
     "unreachableSince": null
   },
   {
+    "id": "aura",
     "name": "Aura",
     "type": "WEBSITE",
     "rootUrl": "https://auraplusplus.com/",
@@ -1050,6 +1155,7 @@
     "unreachableSince": null
   },
   {
+    "id": "awesome-ai-saas-tools",
     "name": "Awesome AI & SaaS Tools",
     "type": "WEBSITE",
     "rootUrl": "https://appsandwebsites.com/",
@@ -1060,6 +1166,7 @@
     "unreachableSince": null
   },
   {
+    "id": "awesome-ai-tools",
     "name": "Awesome AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://awesomeaitools.com/",
@@ -1070,6 +1177,7 @@
     "unreachableSince": null
   },
   {
+    "id": "awesome-indie",
     "name": "Awesome Indie",
     "type": "WEBSITE",
     "rootUrl": "https://awesomeindie.com/",
@@ -1080,6 +1188,7 @@
     "unreachableSince": null
   },
   {
+    "id": "b2b-stack",
     "name": "B2B Stack",
     "type": "WEBSITE",
     "rootUrl": "https://www.b2bstack.com.br/",
@@ -1090,6 +1199,7 @@
     "unreachableSince": null
   },
   {
+    "id": "bai-tools",
     "name": "BAI.tools",
     "type": "WEBSITE",
     "rootUrl": "https://bai.tools/",
@@ -1100,6 +1210,7 @@
     "unreachableSince": null
   },
   {
+    "id": "based-tools",
     "name": "Based Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.basedtools.ai/",
@@ -1110,6 +1221,7 @@
     "unreachableSince": null
   },
   {
+    "id": "being-guru",
     "name": "Being Guru",
     "type": "WEBSITE",
     "rootUrl": "https://beingguru.com/",
@@ -1120,6 +1232,7 @@
     "unreachableSince": null
   },
   {
+    "id": "best-ai-tools",
     "name": "Best AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupaitools.com/",
@@ -1130,6 +1243,7 @@
     "unreachableSince": null
   },
   {
+    "id": "best-of-ai",
     "name": "Best of AI",
     "type": "WEBSITE",
     "rootUrl": "https://bestofai.io/",
@@ -1140,6 +1254,7 @@
     "unreachableSince": null
   },
   {
+    "id": "best-ai-org",
     "name": "Best-AI.org",
     "type": "WEBSITE",
     "rootUrl": "https://best-ai.org/",
@@ -1150,6 +1265,7 @@
     "unreachableSince": null
   },
   {
+    "id": "bestwebsites",
     "name": "BestWebsites",
     "type": "WEBSITE",
     "rootUrl": "https://bestwebsites.info/",
@@ -1160,6 +1276,7 @@
     "unreachableSince": null
   },
   {
+    "id": "beta-bound",
     "name": "Beta Bound",
     "type": "WEBSITE",
     "rootUrl": "https://betabound.com/",
@@ -1170,6 +1287,7 @@
     "unreachableSince": null
   },
   {
+    "id": "beta-testing",
     "name": "Beta Testing",
     "type": "WEBSITE",
     "rootUrl": "https://betatesting.com/",
@@ -1180,6 +1298,7 @@
     "unreachableSince": null
   },
   {
+    "id": "betalist",
     "name": "BetaList",
     "type": "WEBSITE",
     "rootUrl": "https://betalist.com/",
@@ -1190,6 +1309,7 @@
     "unreachableSince": null
   },
   {
+    "id": "better-launch",
     "name": "Better Launch",
     "type": "WEBSITE",
     "rootUrl": "https://www.betterlaunch.co/",
@@ -1200,6 +1320,7 @@
     "unreachableSince": null
   },
   {
+    "id": "beyond-ai-tools",
     "name": "Beyond AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.beyondaitools.com/",
@@ -1210,6 +1331,7 @@
     "unreachableSince": null
   },
   {
+    "id": "bowora",
     "name": "Bowora",
     "type": "WEBSITE",
     "rootUrl": "https://bowora.com/",
@@ -1220,6 +1342,7 @@
     "unreachableSince": null
   },
   {
+    "id": "bro-find-ai",
     "name": "Bro Find AI",
     "type": "WEBSITE",
     "rootUrl": "https://brofindai.com/",
@@ -1230,6 +1353,7 @@
     "unreachableSince": null
   },
   {
+    "id": "brouseai",
     "name": "BroUseAI",
     "type": "WEBSITE",
     "rootUrl": "https://www.brouseai.com/",
@@ -1240,6 +1364,7 @@
     "unreachableSince": null
   },
   {
+    "id": "buildhop",
     "name": "BuildHop",
     "type": "WEBSITE",
     "rootUrl": "https://buildhop.io/",
@@ -1250,6 +1375,7 @@
     "unreachableSince": null
   },
   {
+    "id": "buildvoyage",
     "name": "BuildVoyage",
     "type": "WEBSITE",
     "rootUrl": "https://buildvoyage.com/",
@@ -1260,6 +1386,7 @@
     "unreachableSince": null
   },
   {
+    "id": "built-by-me",
     "name": "Built By Me",
     "type": "WEBSITE",
     "rootUrl": "https://builtbyme.io/",
@@ -1270,6 +1397,7 @@
     "unreachableSince": null
   },
   {
+    "id": "builtbyindies",
     "name": "BuiltByIndies",
     "type": "WEBSITE",
     "rootUrl": "https://builtbyindies.com/",
@@ -1280,6 +1408,7 @@
     "unreachableSince": null
   },
   {
+    "id": "builtinchicago",
     "name": "BuiltInChicago",
     "type": "WEBSITE",
     "rootUrl": "https://www.builtinchicago.org/",
@@ -1290,6 +1419,7 @@
     "unreachableSince": null
   },
   {
+    "id": "business-tool-vault",
     "name": "Business Tool Vault",
     "type": "WEBSITE",
     "rootUrl": "https://www.businesstoolvault.com/",
@@ -1300,6 +1430,7 @@
     "unreachableSince": null
   },
   {
+    "id": "businesshunt",
     "name": "BusinessHunt",
     "type": "WEBSITE",
     "rootUrl": "https://businesshunt.co/",
@@ -1310,6 +1441,7 @@
     "unreachableSince": null
   },
   {
+    "id": "buy-sell-startups",
     "name": "Buy Sell Startups",
     "type": "WEBSITE",
     "rootUrl": "https://www.buysellstartups.com/",
@@ -1320,6 +1452,7 @@
     "unreachableSince": null
   },
   {
+    "id": "capterra",
     "name": "Capterra",
     "type": "WEBSITE",
     "rootUrl": "https://www.capterra.com/",
@@ -1330,6 +1463,7 @@
     "unreachableSince": null
   },
   {
+    "id": "chatdevelopers-com",
     "name": "ChatDevelopers.com",
     "type": "WEBSITE",
     "rootUrl": "https://chatdevelopers.com/",
@@ -1340,6 +1474,7 @@
     "unreachableSince": null
   },
   {
+    "id": "citedindex",
     "name": "CitedIndex",
     "type": "WEBSITE",
     "rootUrl": "https://citedindex.com/",
@@ -1350,6 +1485,7 @@
     "unreachableSince": null
   },
   {
+    "id": "clapstorm",
     "name": "Clapstorm",
     "type": "WEBSITE",
     "rootUrl": "https://www.clapstorm.com/",
@@ -1360,6 +1496,7 @@
     "unreachableSince": null
   },
   {
+    "id": "cloudfindr",
     "name": "Cloudfindr",
     "type": "WEBSITE",
     "rootUrl": "https://www.cloudfindr.co/",
@@ -1370,6 +1507,7 @@
     "unreachableSince": null
   },
   {
+    "id": "comparasoftware",
     "name": "ComparaSoftware",
     "type": "WEBSITE",
     "rootUrl": "https://www.comparasoftware.com/",
@@ -1380,6 +1518,7 @@
     "unreachableSince": null
   },
   {
+    "id": "comparecamp",
     "name": "CompareCamp",
     "type": "WEBSITE",
     "rootUrl": "https://comparecamp.com/",
@@ -1390,6 +1529,7 @@
     "unreachableSince": null
   },
   {
+    "id": "confettisaas",
     "name": "ConfettiSaaS",
     "type": "WEBSITE",
     "rootUrl": "https://confettisaas.com/",
@@ -1400,6 +1540,7 @@
     "unreachableSince": null
   },
   {
+    "id": "craked-dev",
     "name": "craked.dev",
     "type": "WEBSITE",
     "rootUrl": "https://www.craked.dev/",
@@ -1410,6 +1551,7 @@
     "unreachableSince": null
   },
   {
+    "id": "crowdreviews",
     "name": "CrowdReviews",
     "type": "WEBSITE",
     "rootUrl": "https://www.crowdreviews.com/",
@@ -1420,6 +1562,7 @@
     "unreachableSince": null
   },
   {
+    "id": "crozdesk",
     "name": "CrozDesk",
     "type": "WEBSITE",
     "rootUrl": "https://vendor.crozdesk.com/",
@@ -1430,6 +1573,7 @@
     "unreachableSince": null
   },
   {
+    "id": "crunchbase",
     "name": "Crunchbase",
     "type": "WEBSITE",
     "rootUrl": "https://support.crunchbase.com/",
@@ -1440,6 +1584,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ctrlalt-cc",
     "name": "CtrlAlt.cc",
     "type": "WEBSITE",
     "rootUrl": "https://ctrlalt.cc/",
@@ -1450,6 +1595,7 @@
     "unreachableSince": null
   },
   {
+    "id": "curated-design",
     "name": "Curated.design",
     "type": "WEBSITE",
     "rootUrl": "https://curated.design/",
@@ -1460,6 +1606,7 @@
     "unreachableSince": null
   },
   {
+    "id": "cuspera",
     "name": "Cuspera",
     "type": "WEBSITE",
     "rootUrl": "https://www.cuspera.com/",
@@ -1470,6 +1617,7 @@
     "unreachableSince": null
   },
   {
+    "id": "daily-pings",
     "name": "Daily Pings",
     "type": "WEBSITE",
     "rootUrl": "https://dailypings.com/",
@@ -1480,6 +1628,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dang-ai",
     "name": "Dang.ai",
     "type": "WEBSITE",
     "rootUrl": "https://dang.ai/",
@@ -1490,6 +1639,7 @@
     "unreachableSince": null
   },
   {
+    "id": "daniellaunches",
     "name": "DanielLaunches",
     "type": "WEBSITE",
     "rootUrl": "https://daniellaunches.com/",
@@ -1500,6 +1650,7 @@
     "unreachableSince": null
   },
   {
+    "id": "datalook-io",
     "name": "DataLook.io",
     "type": "WEBSITE",
     "rootUrl": "https://datalook.io/",
@@ -1510,6 +1661,7 @@
     "unreachableSince": null
   },
   {
+    "id": "days-launch",
     "name": "Days Launch",
     "type": "WEBSITE",
     "rootUrl": "https://dayslaunch.com/",
@@ -1520,6 +1672,7 @@
     "unreachableSince": null
   },
   {
+    "id": "deeplaunch-io",
     "name": "DeepLaunch.io",
     "type": "WEBSITE",
     "rootUrl": "https://deeplaunch.io/",
@@ -1530,6 +1683,7 @@
     "unreachableSince": null
   },
   {
+    "id": "desifounder",
     "name": "DesiFounder",
     "type": "WEBSITE",
     "rootUrl": "https://desifounder.com/",
@@ -1540,6 +1694,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dessign",
     "name": "Dessign",
     "type": "WEBSITE",
     "rootUrl": "https://dessign.net/",
@@ -1550,6 +1705,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dev-resources",
     "name": "Dev Resources",
     "type": "WEBSITE",
     "rootUrl": "https://devresourc.es/",
@@ -1560,6 +1716,7 @@
     "unreachableSince": null
   },
   {
+    "id": "devhunt",
     "name": "DevHunt",
     "type": "WEBSITE",
     "rootUrl": "https://devhunt.org/",
@@ -1570,6 +1727,7 @@
     "unreachableSince": null
   },
   {
+    "id": "devpages",
     "name": "DevPages",
     "type": "WEBSITE",
     "rootUrl": "https://devpages.io/",
@@ -1580,6 +1738,7 @@
     "unreachableSince": null
   },
   {
+    "id": "devsuite",
     "name": "DevSuite",
     "type": "WEBSITE",
     "rootUrl": "https://devsuite.co/",
@@ -1590,6 +1749,7 @@
     "unreachableSince": null
   },
   {
+    "id": "direct2app",
     "name": "Direct2App",
     "type": "WEBSITE",
     "rootUrl": "https://www.direct2app.com/",
@@ -1600,6 +1760,7 @@
     "unreachableSince": null
   },
   {
+    "id": "directory-ldm-studio",
     "name": "Directory LDM Studio",
     "type": "WEBSITE",
     "rootUrl": "https://directory.ldmstudio.com/",
@@ -1610,6 +1771,7 @@
     "unreachableSince": null
   },
   {
+    "id": "directory-web-promotion",
     "name": "Directory Web Promotion",
     "type": "WEBSITE",
     "rootUrl": "https://promotebusinessdirectory.com/",
@@ -1620,6 +1782,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dodomrr",
     "name": "DodoMRR",
     "type": "WEBSITE",
     "rootUrl": "https://www.dodomrr.com/",
@@ -1630,6 +1793,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dofollow-tools",
     "name": "Dofollow.Tools",
     "type": "WEBSITE",
     "rootUrl": "https://dofollow.tools/",
@@ -1640,6 +1804,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dokey-ai",
     "name": "Dokey AI",
     "type": "WEBSITE",
     "rootUrl": "https://dokeyai.com/",
@@ -1650,6 +1815,7 @@
     "unreachableSince": null
   },
   {
+    "id": "domainrating-lol",
     "name": "DomainRating.lol",
     "type": "WEBSITE",
     "rootUrl": "https://domainrating.lol/",
@@ -1660,6 +1826,7 @@
     "unreachableSince": null
   },
   {
+    "id": "domore",
     "name": "DoMore",
     "type": "WEBSITE",
     "rootUrl": "https://domore.ai/",
@@ -1670,6 +1837,7 @@
     "unreachableSince": null
   },
   {
+    "id": "dynamite-ai",
     "name": "Dynamite AI",
     "type": "WEBSITE",
     "rootUrl": "https://www.dynamite-ai.com/",
@@ -1680,6 +1848,7 @@
     "unreachableSince": null
   },
   {
+    "id": "e27",
     "name": "e27",
     "type": "WEBSITE",
     "rootUrl": "https://e27.co/",
@@ -1690,6 +1859,7 @@
     "unreachableSince": null
   },
   {
+    "id": "early-tools",
     "name": "early.tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.early.tools/",
@@ -1700,6 +1870,7 @@
     "unreachableSince": null
   },
   {
+    "id": "earlyhunt",
     "name": "EarlyHunt",
     "type": "WEBSITE",
     "rootUrl": "https://earlyhunt.com/",
@@ -1710,6 +1881,7 @@
     "unreachableSince": null
   },
   {
+    "id": "easy-save-ai",
     "name": "Easy Save AI",
     "type": "WEBSITE",
     "rootUrl": "https://easysaveai.com/",
@@ -1720,6 +1892,7 @@
     "unreachableSince": null
   },
   {
+    "id": "easy-with-ai",
     "name": "Easy With AI",
     "type": "WEBSITE",
     "rootUrl": "https://easywithai.com/",
@@ -1730,6 +1903,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ebool",
     "name": "eBool",
     "type": "WEBSITE",
     "rootUrl": "https://www.ebool.com/",
@@ -1740,6 +1914,7 @@
     "unreachableSince": null
   },
   {
+    "id": "eliteai-tools",
     "name": "EliteAI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://eliteai.tools/",
@@ -1750,6 +1925,7 @@
     "unreachableSince": null
   },
   {
+    "id": "emoji-launch",
     "name": "Emoji Launch",
     "type": "WEBSITE",
     "rootUrl": "https://emojilaunch.com/",
@@ -1760,6 +1936,7 @@
     "unreachableSince": null
   },
   {
+    "id": "eu-startups",
     "name": "EU-Startups",
     "type": "WEBSITE",
     "rootUrl": "https://www.eu-startups.com/",
@@ -1770,6 +1947,7 @@
     "unreachableSince": null
   },
   {
+    "id": "every-ai",
     "name": "Every AI",
     "type": "WEBSITE",
     "rootUrl": "https://every-ai.com/",
@@ -1780,6 +1958,7 @@
     "unreachableSince": null
   },
   {
+    "id": "everydev-ai",
     "name": "EveryDev.ai",
     "type": "WEBSITE",
     "rootUrl": "https://www.everydev.ai/",
@@ -1790,6 +1969,7 @@
     "unreachableSince": null
   },
   {
+    "id": "exactseek",
     "name": "ExactSeek",
     "type": "WEBSITE",
     "rootUrl": "https://www.exactseek.com/",
@@ -1800,6 +1980,7 @@
     "unreachableSince": null
   },
   {
+    "id": "f6s",
     "name": "F6S",
     "type": "WEBSITE",
     "rootUrl": "https://www.f6s.com/",
@@ -1810,6 +1991,7 @@
     "unreachableSince": null
   },
   {
+    "id": "falcoscan",
     "name": "FalcoScan",
     "type": "WEBSITE",
     "rootUrl": "https://falcoscan.com/",
@@ -1820,6 +2002,7 @@
     "unreachableSince": null
   },
   {
+    "id": "fastlaunch",
     "name": "FastLaunch",
     "type": "WEBSITE",
     "rootUrl": "https://fastlaunch.io/",
@@ -1830,6 +2013,7 @@
     "unreachableSince": null
   },
   {
+    "id": "fazier",
     "name": "Fazier",
     "type": "WEBSITE",
     "rootUrl": "https://fazier.com/",
@@ -1840,6 +2024,7 @@
     "unreachableSince": null
   },
   {
+    "id": "featuredcustomers",
     "name": "FeaturedCustomers",
     "type": "WEBSITE",
     "rootUrl": "https://www.featuredcustomers.com/",
@@ -1850,6 +2035,7 @@
     "unreachableSince": null
   },
   {
+    "id": "find-my-ai-tool",
     "name": "Find My AI Tool",
     "type": "WEBSITE",
     "rootUrl": "https://findmyaitool.com/",
@@ -1860,6 +2046,7 @@
     "unreachableSince": null
   },
   {
+    "id": "find-your-saas",
     "name": "Find Your SaaS",
     "type": "WEBSITE",
     "rootUrl": "https://findyoursaas.com/",
@@ -1870,6 +2057,7 @@
     "unreachableSince": null
   },
   {
+    "id": "findly-tools",
     "name": "Findly.tools",
     "type": "WEBSITE",
     "rootUrl": "https://findly.tools/",
@@ -1880,6 +2068,7 @@
     "unreachableSince": null
   },
   {
+    "id": "findstack",
     "name": "Findstack",
     "type": "WEBSITE",
     "rootUrl": "https://www.findstack.com/",
@@ -1890,6 +2079,7 @@
     "unreachableSince": null
   },
   {
+    "id": "findthatsoftware",
     "name": "FindThatSoftware",
     "type": "WEBSITE",
     "rootUrl": "https://findthatsoftware.com/",
@@ -1900,6 +2090,7 @@
     "unreachableSince": null
   },
   {
+    "id": "findyouragent-ai",
     "name": "findyouragent.ai",
     "type": "WEBSITE",
     "rootUrl": "https://findyouragent.ai/",
@@ -1910,6 +2101,7 @@
     "unreachableSince": null
   },
   {
+    "id": "firstlook-tools",
     "name": "FirstLook.tools",
     "type": "WEBSITE",
     "rootUrl": "https://firstlook.tools/",
@@ -1920,6 +2112,7 @@
     "unreachableSince": null
   },
   {
+    "id": "firsto",
     "name": "Firsto",
     "type": "WEBSITE",
     "rootUrl": "https://firsto.co/",
@@ -1930,6 +2123,7 @@
     "unreachableSince": null
   },
   {
+    "id": "fivetaco",
     "name": "FiveTaco",
     "type": "WEBSITE",
     "rootUrl": "https://fivetaco.com/",
@@ -1940,6 +2134,7 @@
     "unreachableSince": null
   },
   {
+    "id": "flowtools",
     "name": "flowtools",
     "type": "WEBSITE",
     "rootUrl": "https://www.flowtools.co/",
@@ -1950,6 +2145,7 @@
     "unreachableSince": null
   },
   {
+    "id": "founders-page",
     "name": "founders.page",
     "type": "WEBSITE",
     "rootUrl": "https://www.founders.page/",
@@ -1960,6 +2156,7 @@
     "unreachableSince": null
   },
   {
+    "id": "foundr",
     "name": "Foundr",
     "type": "WEBSITE",
     "rootUrl": "https://foundr.ai/",
@@ -1970,6 +2167,7 @@
     "unreachableSince": null
   },
   {
+    "id": "foundrlist",
     "name": "Foundrlist",
     "type": "WEBSITE",
     "rootUrl": "https://www.foundrlist.com/",
@@ -1980,6 +2178,7 @@
     "unreachableSince": null
   },
   {
+    "id": "free-ai-apps",
     "name": "Free AI Apps",
     "type": "WEBSITE",
     "rootUrl": "https://freeappsai.com/",
@@ -1990,6 +2189,7 @@
     "unreachableSince": null
   },
   {
+    "id": "freeai-run",
     "name": "FreeAI.run",
     "type": "WEBSITE",
     "rootUrl": "https://www.freeai.run/",
@@ -2000,6 +2200,7 @@
     "unreachableSince": null
   },
   {
+    "id": "frogdr",
     "name": "FrogDR",
     "type": "WEBSITE",
     "rootUrl": "https://frogdr.com/",
@@ -2010,6 +2211,7 @@
     "unreachableSince": null
   },
   {
+    "id": "funnel-directory",
     "name": "Funnel Directory",
     "type": "WEBSITE",
     "rootUrl": "https://funneldirectory.com/",
@@ -2020,6 +2222,7 @@
     "unreachableSince": null
   },
   {
+    "id": "future-ai-guide",
     "name": "Future AI Guide",
     "type": "WEBSITE",
     "rootUrl": "https://tools.futureaiguide.com/",
@@ -2030,6 +2233,7 @@
     "unreachableSince": null
   },
   {
+    "id": "future-tools",
     "name": "Future Tools",
     "type": "WEBSITE",
     "rootUrl": "https://futuretools.io/",
@@ -2040,6 +2244,7 @@
     "unreachableSince": null
   },
   {
+    "id": "futurepedia",
     "name": "Futurepedia",
     "type": "WEBSITE",
     "rootUrl": "https://www.futurepedia.io/",
@@ -2050,6 +2255,7 @@
     "unreachableSince": null
   },
   {
+    "id": "futurestack",
     "name": "FutureStack",
     "type": "WEBSITE",
     "rootUrl": "https://www.usefuturestack.com/",
@@ -2060,6 +2266,7 @@
     "unreachableSince": null
   },
   {
+    "id": "fwol",
     "name": "FWOL",
     "type": "WEBSITE",
     "rootUrl": "http://fwol.cn/",
@@ -2070,6 +2277,7 @@
     "unreachableSince": null
   },
   {
+    "id": "g2",
     "name": "G2",
     "type": "WEBSITE",
     "rootUrl": "https://sell.g2.com/",
@@ -2080,6 +2288,7 @@
     "unreachableSince": null
   },
   {
+    "id": "geekwire",
     "name": "GeekWire",
     "type": "WEBSITE",
     "rootUrl": "https://www.geekwire.com/",
@@ -2090,6 +2299,7 @@
     "unreachableSince": null
   },
   {
+    "id": "genify",
     "name": "Genify",
     "type": "WEBSITE",
     "rootUrl": "https://genify.dev/",
@@ -2100,6 +2310,7 @@
     "unreachableSince": null
   },
   {
+    "id": "getapp",
     "name": "GetApp",
     "type": "WEBSITE",
     "rootUrl": "https://www.getapp.com/",
@@ -2110,6 +2321,7 @@
     "unreachableSince": null
   },
   {
+    "id": "getlatka",
     "name": "GetLatka",
     "type": "WEBSITE",
     "rootUrl": "https://getlatka.com/",
@@ -2120,6 +2332,7 @@
     "unreachableSince": null
   },
   {
+    "id": "gets-tools",
     "name": "Gets.Tools",
     "type": "WEBSITE",
     "rootUrl": "https://gets.tools/",
@@ -2130,6 +2343,7 @@
     "unreachableSince": null
   },
   {
+    "id": "glama-mcp-connectors",
     "name": "Glama MCP Connectors",
     "type": "WEBSITE",
     "rootUrl": "https://glama.ai/",
@@ -2140,6 +2354,7 @@
     "unreachableSince": null
   },
   {
+    "id": "goodfirms",
     "name": "GoodFirms",
     "type": "WEBSITE",
     "rootUrl": "https://www.goodfirms.co/",
@@ -2150,6 +2365,7 @@
     "unreachableSince": null
   },
   {
+    "id": "gpt-academy",
     "name": "GPT Academy",
     "type": "WEBSITE",
     "rootUrl": "https://www.gptacademy.co/",
@@ -2160,6 +2376,7 @@
     "unreachableSince": null
   },
   {
+    "id": "gptdemo-net",
     "name": "GptDemo.net",
     "type": "WEBSITE",
     "rootUrl": "https://www.gptdemo.net/",
@@ -2170,6 +2387,7 @@
     "unreachableSince": null
   },
   {
+    "id": "greenrocket",
     "name": "GreenRocket",
     "type": "WEBSITE",
     "rootUrl": "https://greenrocket.app/",
@@ -2180,6 +2398,7 @@
     "unreachableSince": null
   },
   {
+    "id": "groupifyai",
     "name": "GroupifyAI",
     "type": "WEBSITE",
     "rootUrl": "https://groupify.ai/",
@@ -2190,6 +2409,7 @@
     "unreachableSince": null
   },
   {
+    "id": "gust",
     "name": "Gust",
     "type": "WEBSITE",
     "rootUrl": "https://gust.com/",
@@ -2200,6 +2420,7 @@
     "unreachableSince": null
   },
   {
+    "id": "hhlink",
     "name": "HHLink",
     "type": "WEBSITE",
     "rootUrl": "https://www.hhlink.com/",
@@ -2210,6 +2431,7 @@
     "unreachableSince": null
   },
   {
+    "id": "high-rank-directory",
     "name": "High Rank Directory",
     "type": "WEBSITE",
     "rootUrl": "https://highrankdirectory.com/",
@@ -2220,6 +2442,7 @@
     "unreachableSince": null
   },
   {
+    "id": "hot100",
     "name": "Hot100",
     "type": "WEBSITE",
     "rootUrl": "https://www.hot100.ai/",
@@ -2230,6 +2453,7 @@
     "unreachableSince": null
   },
   {
+    "id": "how-to-buy-saas",
     "name": "How to Buy SaaS",
     "type": "WEBSITE",
     "rootUrl": "https://www.howtobuysaas.com/",
@@ -2240,6 +2464,7 @@
     "unreachableSince": null
   },
   {
+    "id": "huntscreens",
     "name": "HuntScreens",
     "type": "WEBSITE",
     "rootUrl": "https://huntscreens.com/",
@@ -2250,6 +2475,7 @@
     "unreachableSince": null
   },
   {
+    "id": "huzzler",
     "name": "Huzzler",
     "type": "WEBSITE",
     "rootUrl": "https://huzzler.so/",
@@ -2260,6 +2486,7 @@
     "unreachableSince": null
   },
   {
+    "id": "idea-kiln",
     "name": "Idea Kiln",
     "type": "WEBSITE",
     "rootUrl": "https://ideakiln.com/",
@@ -2270,6 +2497,7 @@
     "unreachableSince": null
   },
   {
+    "id": "inc42",
     "name": "Inc42",
     "type": "WEBSITE",
     "rootUrl": "https://tally.so/",
@@ -2280,6 +2508,7 @@
     "unreachableSince": null
   },
   {
+    "id": "index-by-dodo-payments",
     "name": "Index by Dodo Payments",
     "type": "WEBSITE",
     "rootUrl": "https://index.dodopayments.com/",
@@ -2290,6 +2519,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indie-folio",
     "name": "Indie Folio",
     "type": "WEBSITE",
     "rootUrl": "https://indiefol.io/",
@@ -2300,6 +2530,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indie-hackers",
     "name": "Indie Hackers",
     "type": "WEBSITE",
     "rootUrl": "https://www.indiehackers.com/",
@@ -2310,6 +2541,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indie-page",
     "name": "Indie Page",
     "type": "WEBSITE",
     "rootUrl": "https://indiepa.ge/",
@@ -2320,6 +2552,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indie-builds",
     "name": "Indie-Builds",
     "type": "WEBSITE",
     "rootUrl": "https://indie-builds.com/",
@@ -2330,6 +2563,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indie-deals",
     "name": "Indie.Deals",
     "type": "WEBSITE",
     "rootUrl": "https://indie.deals/",
@@ -2340,6 +2574,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indiehacker-tools",
     "name": "Indiehacker Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.indiehacker.tools/",
@@ -2350,6 +2585,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indiehub",
     "name": "IndieHub",
     "type": "WEBSITE",
     "rootUrl": "https://indiehub.best/",
@@ -2360,6 +2596,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indiehunt",
     "name": "IndieHunt",
     "type": "WEBSITE",
     "rootUrl": "https://indiehunt.io/",
@@ -2370,6 +2607,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indiehustles",
     "name": "IndieHustles",
     "type": "WEBSITE",
     "rootUrl": "https://indiehustles.com/",
@@ -2380,6 +2618,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indieproducts-io",
     "name": "IndieProducts.io",
     "type": "WEBSITE",
     "rootUrl": "https://www.indieproducts.io/",
@@ -2390,6 +2629,7 @@
     "unreachableSince": null
   },
   {
+    "id": "indietool",
     "name": "IndieTool",
     "type": "WEBSITE",
     "rootUrl": "https://www.indietool.io/",
@@ -2400,6 +2640,7 @@
     "unreachableSince": null
   },
   {
+    "id": "innmind",
     "name": "InnMind",
     "type": "WEBSITE",
     "rootUrl": "https://app.innmind.com/",
@@ -2410,6 +2651,7 @@
     "unreachableSince": null
   },
   {
+    "id": "insidr-ai-directory",
     "name": "Insidr AI Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.insidr.ai/",
@@ -2420,6 +2662,7 @@
     "unreachableSince": null
   },
   {
+    "id": "intelligent-tools",
     "name": "Intelligent Tools",
     "type": "WEBSITE",
     "rootUrl": "https://intelligenttools.co/",
@@ -2430,6 +2673,7 @@
     "unreachableSince": null
   },
   {
+    "id": "invent-list",
     "name": "Invent List",
     "type": "WEBSITE",
     "rootUrl": "https://inventlist.com/",
@@ -2440,6 +2684,7 @@
     "unreachableSince": null
   },
   {
+    "id": "its-launchday",
     "name": "It's LaunchDay",
     "type": "WEBSITE",
     "rootUrl": "https://www.itslaunchday.com/",
@@ -2450,6 +2695,7 @@
     "unreachableSince": null
   },
   {
+    "id": "itqlick",
     "name": "ITQlick",
     "type": "WEBSITE",
     "rootUrl": "https://www.itqlick.com/",
@@ -2460,6 +2706,7 @@
     "unreachableSince": null
   },
   {
+    "id": "joinly",
     "name": "Joinly",
     "type": "WEBSITE",
     "rootUrl": "https://www.joinly.xyz/",
@@ -2470,6 +2717,7 @@
     "unreachableSince": null
   },
   {
+    "id": "justlaunched",
     "name": "JustLaunched",
     "type": "WEBSITE",
     "rootUrl": "https://justlaunched.fyi/",
@@ -2480,6 +2728,7 @@
     "unreachableSince": null
   },
   {
+    "id": "kick-product",
     "name": "Kick Product",
     "type": "WEBSITE",
     "rootUrl": "https://www.kickproduct.com/",
@@ -2490,6 +2739,7 @@
     "unreachableSince": null
   },
   {
+    "id": "lachief-io",
     "name": "Lachief.io",
     "type": "WEBSITE",
     "rootUrl": "https://www.lachief.io/",
@@ -2500,6 +2750,7 @@
     "unreachableSince": null
   },
   {
+    "id": "land-book",
     "name": "Land-book",
     "type": "WEBSITE",
     "rootUrl": "https://land-book.com/",
@@ -2510,6 +2761,7 @@
     "unreachableSince": null
   },
   {
+    "id": "landingfolio",
     "name": "Landingfolio",
     "type": "WEBSITE",
     "rootUrl": "https://www.landingfolio.com/",
@@ -2520,6 +2772,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launch-ai",
     "name": "Launch AI",
     "type": "WEBSITE",
     "rootUrl": "https://trylaunch.ai/",
@@ -2530,6 +2783,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launch-list",
     "name": "Launch List",
     "type": "WEBSITE",
     "rootUrl": "https://www.launch-list.org/",
@@ -2540,6 +2794,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launch-llama",
     "name": "Launch Llama",
     "type": "WEBSITE",
     "rootUrl": "https://tools.launchllama.co/",
@@ -2550,6 +2805,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launch-vault",
     "name": "Launch Vault",
     "type": "WEBSITE",
     "rootUrl": "https://www.launchvault.dev/",
@@ -2560,6 +2816,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchaf",
     "name": "LaunchAF",
     "type": "WEBSITE",
     "rootUrl": "https://launchaf.com/",
@@ -2570,6 +2827,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchbert",
     "name": "LaunchBert",
     "type": "WEBSITE",
     "rootUrl": "https://launchbert.com/",
@@ -2580,6 +2838,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchboard-dev",
     "name": "LaunchBoard.dev",
     "type": "WEBSITE",
     "rootUrl": "https://launchboard.dev/",
@@ -2590,6 +2849,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchigniter",
     "name": "LaunchIgniter",
     "type": "WEBSITE",
     "rootUrl": "https://launchigniter.com/",
@@ -2600,6 +2860,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launching-next",
     "name": "Launching Next",
     "type": "WEBSITE",
     "rootUrl": "https://www.launchingnext.com/",
@@ -2610,6 +2871,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchory",
     "name": "Launchory",
     "type": "WEBSITE",
     "rootUrl": "https://www.launchory.app/",
@@ -2620,6 +2882,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchpact",
     "name": "LaunchPact",
     "type": "WEBSITE",
     "rootUrl": "https://www.launchpact.io/",
@@ -2630,6 +2893,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchpad-india",
     "name": "LaunchPad India",
     "type": "WEBSITE",
     "rootUrl": "https://launchpadindia.co/",
@@ -2640,6 +2904,7 @@
     "unreachableSince": null
   },
   {
+    "id": "launchpadly",
     "name": "Launchpadly",
     "type": "WEBSITE",
     "rootUrl": "https://launchpadly.co/",
@@ -2650,6 +2915,7 @@
     "unreachableSince": null
   },
   {
+    "id": "libhunt",
     "name": "LibHunt",
     "type": "WEBSITE",
     "rootUrl": "https://www.libhunt.com/",
@@ -2660,6 +2926,7 @@
     "unreachableSince": null
   },
   {
+    "id": "lifto",
     "name": "Lifto",
     "type": "WEBSITE",
     "rootUrl": "https://liftoapp.com/",
@@ -2670,6 +2937,7 @@
     "unreachableSince": null
   },
   {
+    "id": "linezine-ai-tool-directory",
     "name": "LineZine AI Tool Directory",
     "type": "WEBSITE",
     "rootUrl": "https://linezine.com/",
@@ -2680,6 +2948,7 @@
     "unreachableSince": null
   },
   {
+    "id": "link-centre",
     "name": "Link Centre",
     "type": "WEBSITE",
     "rootUrl": "https://www.linkcentre.com/",
@@ -2690,6 +2959,7 @@
     "unreachableSince": null
   },
   {
+    "id": "list-my-saas",
     "name": "List My SaaS",
     "type": "WEBSITE",
     "rootUrl": "https://listmysaas.xyz/",
@@ -2700,6 +2970,7 @@
     "unreachableSince": null
   },
   {
+    "id": "listbulb",
     "name": "ListBulb",
     "type": "WEBSITE",
     "rootUrl": "https://www.listbulb.com/",
@@ -2710,6 +2981,7 @@
     "unreachableSince": null
   },
   {
+    "id": "listmyai",
     "name": "Listmyai",
     "type": "WEBSITE",
     "rootUrl": "https://listmyai.net/",
@@ -2720,6 +2992,7 @@
     "unreachableSince": null
   },
   {
+    "id": "listyouridea",
     "name": "ListYourIdea",
     "type": "WEBSITE",
     "rootUrl": "https://listyouridea.com/",
@@ -2730,6 +3003,7 @@
     "unreachableSince": null
   },
   {
+    "id": "listyourtool",
     "name": "ListYourTool",
     "type": "WEBSITE",
     "rootUrl": "https://www.listyourtool.com/",
@@ -2740,6 +3014,7 @@
     "unreachableSince": null
   },
   {
+    "id": "llm-relevance",
     "name": "LLM Relevance",
     "type": "WEBSITE",
     "rootUrl": "https://www.llmrelevance.com/",
@@ -2750,6 +3025,7 @@
     "unreachableSince": null
   },
   {
+    "id": "lobsters",
     "name": "Lobsters",
     "type": "WEBSITE",
     "rootUrl": "https://lobste.rs/",
@@ -2760,6 +3036,7 @@
     "unreachableSince": null
   },
   {
+    "id": "look-ai-tools",
     "name": "Look AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://lookaitools.com/",
@@ -2770,6 +3047,7 @@
     "unreachableSince": null
   },
   {
+    "id": "madgenius",
     "name": "MadGenius",
     "type": "WEBSITE",
     "rootUrl": "https://madgenius.co/",
@@ -2780,6 +3058,7 @@
     "unreachableSince": null
   },
   {
+    "id": "magicbox-tools",
     "name": "MagicBox.tools",
     "type": "WEBSITE",
     "rootUrl": "https://magicbox.tools/",
@@ -2790,6 +3069,7 @@
     "unreachableSince": null
   },
   {
+    "id": "magnitt",
     "name": "MAGNiTT",
     "type": "WEBSITE",
     "rootUrl": "https://magnitt.com/",
@@ -2800,6 +3080,7 @@
     "unreachableSince": null
   },
   {
+    "id": "make-rs",
     "name": "Make.rs",
     "type": "WEBSITE",
     "rootUrl": "https://make.rs/",
@@ -2810,6 +3091,7 @@
     "unreachableSince": null
   },
   {
+    "id": "maker-move",
     "name": "Maker Move",
     "type": "WEBSITE",
     "rootUrl": "https://www.makermove.com/",
@@ -2820,6 +3102,7 @@
     "unreachableSince": null
   },
   {
+    "id": "makerhunt",
     "name": "MakerHunt",
     "type": "WEBSITE",
     "rootUrl": "https://makerhunt.io/",
@@ -2830,6 +3113,7 @@
     "unreachableSince": null
   },
   {
+    "id": "makerlist-io",
     "name": "Makerlist.io",
     "type": "WEBSITE",
     "rootUrl": "https://makerlist.io/",
@@ -2840,6 +3124,7 @@
     "unreachableSince": null
   },
   {
+    "id": "makerpad",
     "name": "MakerPad",
     "type": "WEBSITE",
     "rootUrl": "https://www.makerpad.co/",
@@ -2850,6 +3135,7 @@
     "unreachableSince": null
   },
   {
+    "id": "marketing-internet-directory",
     "name": "Marketing Internet Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.marketinginternetdirectory.com/",
@@ -2860,6 +3146,7 @@
     "unreachableSince": null
   },
   {
+    "id": "marketingdb",
     "name": "MarketingDB",
     "type": "WEBSITE",
     "rootUrl": "https://marketingdb.live/",
@@ -2870,6 +3157,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mcp-market",
     "name": "MCP Market",
     "type": "WEBSITE",
     "rootUrl": "https://mcpmarket.com/",
@@ -2880,6 +3168,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mcp-store",
     "name": "MCP Store",
     "type": "WEBSITE",
     "rootUrl": "https://mcpstore.co/",
@@ -2890,6 +3179,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mcp-so",
     "name": "mcp.so",
     "type": "WEBSITE",
     "rootUrl": "https://mcp.so/",
@@ -2900,6 +3190,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mcpbundles",
     "name": "MCPBundles",
     "type": "WEBSITE",
     "rootUrl": "https://www.mcpbundles.com/",
@@ -2910,6 +3201,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mcpservers-org",
     "name": "mcpservers.org",
     "type": "WEBSITE",
     "rootUrl": "https://mcpservers.org/",
@@ -2920,6 +3212,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mcpub",
     "name": "mcpub",
     "type": "WEBSITE",
     "rootUrl": "https://mcpub.dev/",
@@ -2930,6 +3223,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mergeek",
     "name": "Mergeek",
     "type": "WEBSITE",
     "rootUrl": "https://mergeek.com/",
@@ -2940,6 +3234,7 @@
     "unreachableSince": null
   },
   {
+    "id": "microlaunch",
     "name": "Microlaunch",
     "type": "WEBSITE",
     "rootUrl": "https://microlaunch.net/",
@@ -2950,6 +3245,7 @@
     "unreachableSince": null
   },
   {
+    "id": "mydentify",
     "name": "Mydentify",
     "type": "WEBSITE",
     "rootUrl": "https://mydentify.com/",
@@ -2960,6 +3256,7 @@
     "unreachableSince": null
   },
   {
+    "id": "navfolders-com",
     "name": "NavFolders.com",
     "type": "WEBSITE",
     "rootUrl": "https://navfolders.com/",
@@ -2970,6 +3267,7 @@
     "unreachableSince": null
   },
   {
+    "id": "navs-site",
     "name": "Navs.site",
     "type": "WEBSITE",
     "rootUrl": "https://navs.site/",
@@ -2980,6 +3278,7 @@
     "unreachableSince": null
   },
   {
+    "id": "navtools-ai",
     "name": "NavTools.ai",
     "type": "WEBSITE",
     "rootUrl": "https://navtools.ai/",
@@ -2990,6 +3289,7 @@
     "unreachableSince": null
   },
   {
+    "id": "neeed-directory",
     "name": "Neeed Directory",
     "type": "WEBSITE",
     "rootUrl": "https://neeed.directory/",
@@ -3000,6 +3300,7 @@
     "unreachableSince": null
   },
   {
+    "id": "neonrev",
     "name": "NeonRev",
     "type": "WEBSITE",
     "rootUrl": "https://www.neonrev.com/",
@@ -3010,6 +3311,7 @@
     "unreachableSince": null
   },
   {
+    "id": "new-saasly",
     "name": "New SaaSly",
     "type": "WEBSITE",
     "rootUrl": "https://newsaasly.com/",
@@ -3020,6 +3322,7 @@
     "unreachableSince": null
   },
   {
+    "id": "newtool",
     "name": "NewTool",
     "type": "WEBSITE",
     "rootUrl": "https://newtool.site/",
@@ -3030,6 +3333,7 @@
     "unreachableSince": null
   },
   {
+    "id": "next-big-product",
     "name": "Next Big Product",
     "type": "WEBSITE",
     "rootUrl": "https://nextbigproduct.com/",
@@ -3040,6 +3344,7 @@
     "unreachableSince": null
   },
   {
+    "id": "next-big-what",
     "name": "Next Big What",
     "type": "WEBSITE",
     "rootUrl": "https://submit.nextbigwhat.com/",
@@ -3050,6 +3355,7 @@
     "unreachableSince": null
   },
   {
+    "id": "nextgen-tools",
     "name": "NextGen Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.nxgntools.com/",
@@ -3060,6 +3366,7 @@
     "unreachableSince": null
   },
   {
+    "id": "nextpedia",
     "name": "NextPedia",
     "type": "WEBSITE",
     "rootUrl": "https://nextpedia.io/",
@@ -3070,6 +3377,7 @@
     "unreachableSince": null
   },
   {
+    "id": "nick-launches",
     "name": "Nick Launches",
     "type": "WEBSITE",
     "rootUrl": "https://nicklaunches.com/",
@@ -3080,6 +3388,7 @@
     "unreachableSince": null
   },
   {
+    "id": "no-code-founders",
     "name": "No Code Founders",
     "type": "WEBSITE",
     "rootUrl": "https://www.nocodefounders.com/",
@@ -3090,6 +3399,7 @@
     "unreachableSince": null
   },
   {
+    "id": "nocode-tech",
     "name": "NoCode.Tech",
     "type": "WEBSITE",
     "rootUrl": "https://www.nocode.tech/",
@@ -3100,6 +3410,7 @@
     "unreachableSince": null
   },
   {
+    "id": "noon-launch",
     "name": "Noon Launch",
     "type": "WEBSITE",
     "rootUrl": "https://noonlaunch.com/",
@@ -3110,6 +3421,7 @@
     "unreachableSince": null
   },
   {
+    "id": "official-mcp-registry",
     "name": "Official MCP Registry",
     "type": "WEBSITE",
     "rootUrl": "https://registry.modelcontextprotocol.io/",
@@ -3120,6 +3432,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ogfolio",
     "name": "OGFolio",
     "type": "WEBSITE",
     "rootUrl": "https://www.ogfolio.com/",
@@ -3130,6 +3443,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ogimage-gallery",
     "name": "OGimage.gallery",
     "type": "WEBSITE",
     "rootUrl": "https://www.ogimage.gallery/",
@@ -3140,6 +3454,7 @@
     "unreachableSince": null
   },
   {
+    "id": "open-launch",
     "name": "Open Launch",
     "type": "WEBSITE",
     "rootUrl": "https://open-launch.com/",
@@ -3150,6 +3465,7 @@
     "unreachableSince": null
   },
   {
+    "id": "open-makers",
     "name": "Open Makers",
     "type": "WEBSITE",
     "rootUrl": "https://openmakers.io/",
@@ -3160,6 +3476,7 @@
     "unreachableSince": null
   },
   {
+    "id": "open-saas-directory",
     "name": "Open SaaS Directory",
     "type": "WEBSITE",
     "rootUrl": "https://opensaas.directory/",
@@ -3170,6 +3487,7 @@
     "unreachableSince": null
   },
   {
+    "id": "open-startup-list",
     "name": "Open Startup List",
     "type": "WEBSITE",
     "rootUrl": "https://openstartuplist.com/",
@@ -3180,6 +3498,7 @@
     "unreachableSince": null
   },
   {
+    "id": "openalternative",
     "name": "OpenAlternative",
     "type": "WEBSITE",
     "rootUrl": "https://openalternative.co/",
@@ -3190,6 +3509,7 @@
     "unreachableSince": null
   },
   {
+    "id": "openfuture-ai",
     "name": "OpenFuture AI",
     "type": "WEBSITE",
     "rootUrl": "https://openfuture.ai/",
@@ -3200,6 +3520,7 @@
     "unreachableSince": null
   },
   {
+    "id": "openhunts",
     "name": "OpenHunts",
     "type": "WEBSITE",
     "rootUrl": "https://openhunts.com/",
@@ -3210,6 +3531,7 @@
     "unreachableSince": null
   },
   {
+    "id": "opentools",
     "name": "OpenTools",
     "type": "WEBSITE",
     "rootUrl": "https://opentools.ai/",
@@ -3220,6 +3542,7 @@
     "unreachableSince": null
   },
   {
+    "id": "osalt-com",
     "name": "osalt.com",
     "type": "WEBSITE",
     "rootUrl": "https://osalt.com/",
@@ -3230,6 +3553,7 @@
     "unreachableSince": null
   },
   {
+    "id": "outbid",
     "name": "Outbid",
     "type": "WEBSITE",
     "rootUrl": "https://outbid.lol/",
@@ -3240,6 +3564,7 @@
     "unreachableSince": null
   },
   {
+    "id": "owler",
     "name": "Owler",
     "type": "WEBSITE",
     "rootUrl": "https://www.owler.com/",
@@ -3250,6 +3575,7 @@
     "unreachableSince": null
   },
   {
+    "id": "owwly",
     "name": "Owwly",
     "type": "WEBSITE",
     "rootUrl": "https://owwly.com/",
@@ -3260,6 +3586,7 @@
     "unreachableSince": null
   },
   {
+    "id": "payonceapps",
     "name": "PayOnceApps",
     "type": "WEBSITE",
     "rootUrl": "https://payonceapps.com/",
@@ -3270,6 +3597,7 @@
     "unreachableSince": null
   },
   {
+    "id": "peerlist-launchpad",
     "name": "Peerlist Launchpad",
     "type": "WEBSITE",
     "rootUrl": "https://peerlist.io/",
@@ -3280,6 +3608,7 @@
     "unreachableSince": null
   },
   {
+    "id": "peerpush",
     "name": "PeerPush",
     "type": "WEBSITE",
     "rootUrl": "https://peerpush.com/",
@@ -3290,6 +3619,7 @@
     "unreachableSince": null
   },
   {
+    "id": "peerspot",
     "name": "PeerSpot",
     "type": "WEBSITE",
     "rootUrl": "https://www.peerspot.com/",
@@ -3300,6 +3630,7 @@
     "unreachableSince": null
   },
   {
+    "id": "phototoolfinder",
     "name": "PhotoToolFinder",
     "type": "WEBSITE",
     "rootUrl": "https://phototoolfinder.com/",
@@ -3310,6 +3641,7 @@
     "unreachableSince": null
   },
   {
+    "id": "phygital-ai-library",
     "name": "Phygital+ AI Library",
     "type": "WEBSITE",
     "rootUrl": "https://library.phygital.plus/",
@@ -3320,6 +3652,7 @@
     "unreachableSince": null
   },
   {
+    "id": "pitchwall",
     "name": "Pitchwall",
     "type": "WEBSITE",
     "rootUrl": "https://pitchwall.co/",
@@ -3330,6 +3663,7 @@
     "unreachableSince": null
   },
   {
+    "id": "platformsdirectory-com",
     "name": "PlatformsDirectory.com",
     "type": "WEBSITE",
     "rootUrl": "https://www.platformsdirectory.com/",
@@ -3340,6 +3674,7 @@
     "unreachableSince": null
   },
   {
+    "id": "postmake",
     "name": "Postmake",
     "type": "WEBSITE",
     "rootUrl": "https://postmake.io/",
@@ -3350,6 +3685,7 @@
     "unreachableSince": null
   },
   {
+    "id": "poweredbyai",
     "name": "PoweredByAI",
     "type": "WEBSITE",
     "rootUrl": "https://poweredbyai.app/",
@@ -3360,6 +3696,7 @@
     "unreachableSince": null
   },
   {
+    "id": "pro-launch",
     "name": "Pro Launch",
     "type": "WEBSITE",
     "rootUrl": "https://prolaunch.net/",
@@ -3370,6 +3707,7 @@
     "unreachableSince": null
   },
   {
+    "id": "prodpapa",
     "name": "Prodpapa",
     "type": "WEBSITE",
     "rootUrl": "https://www.prodpapa.com/",
@@ -3380,6 +3718,7 @@
     "unreachableSince": null
   },
   {
+    "id": "product-inspire",
     "name": "Product Inspire",
     "type": "WEBSITE",
     "rootUrl": "https://www.productinspire.com/",
@@ -3390,6 +3729,7 @@
     "unreachableSince": null
   },
   {
+    "id": "product-watch",
     "name": "Product Watch",
     "type": "WEBSITE",
     "rootUrl": "https://productwatch.io/",
@@ -3400,6 +3740,7 @@
     "unreachableSince": null
   },
   {
+    "id": "productburst",
     "name": "ProductBurst",
     "type": "WEBSITE",
     "rootUrl": "https://productburst.com/",
@@ -3410,6 +3751,7 @@
     "unreachableSince": null
   },
   {
+    "id": "productfame",
     "name": "ProductFame",
     "type": "WEBSITE",
     "rootUrl": "https://productfame.com/",
@@ -3420,6 +3762,7 @@
     "unreachableSince": null
   },
   {
+    "id": "productivity-directory",
     "name": "Productivity Directory",
     "type": "WEBSITE",
     "rootUrl": "https://productivity.directory/",
@@ -3430,6 +3773,7 @@
     "unreachableSince": null
   },
   {
+    "id": "profit-hunt",
     "name": "Profit Hunt",
     "type": "WEBSITE",
     "rootUrl": "https://profithunt.co/",
@@ -3440,6 +3784,7 @@
     "unreachableSince": null
   },
   {
+    "id": "promoteproject",
     "name": "PromoteProject",
     "type": "WEBSITE",
     "rootUrl": "https://www.promoteproject.com/",
@@ -3450,6 +3795,7 @@
     "unreachableSince": null
   },
   {
+    "id": "proofstories",
     "name": "ProofStories",
     "type": "WEBSITE",
     "rootUrl": "https://proofstories.io/",
@@ -3460,6 +3806,7 @@
     "unreachableSince": null
   },
   {
+    "id": "proven-expert",
     "name": "Proven Expert",
     "type": "WEBSITE",
     "rootUrl": "https://www.provenexpert.com/",
@@ -3470,6 +3817,7 @@
     "unreachableSince": null
   },
   {
+    "id": "quality-internet-directory",
     "name": "Quality Internet Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.qualityinternetdirectory.com/",
@@ -3480,6 +3828,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-alphaandbetausers",
     "name": "r/AlphaandBetausers",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/alphaandbetausers/",
@@ -3490,6 +3839,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-buildinpublic",
     "name": "r/buildinpublic",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/buildinpublic/",
@@ -3500,6 +3850,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-design-critiques",
     "name": "r/Design_Critiques",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/design_critiques/",
@@ -3510,6 +3861,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-entrepreneur",
     "name": "r/Entrepreneur",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/Entrepreneur/",
@@ -3520,6 +3872,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-entrepreneurridealong",
     "name": "r/EntrepreneurRideAlong",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/EntrepreneurRideAlong/",
@@ -3530,6 +3883,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-imadethis",
     "name": "r/IMadeThis",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/IMadeThis/",
@@ -3540,6 +3894,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-indiebiz",
     "name": "r/IndieBiz",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/indiebiz/",
@@ -3550,6 +3905,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-indiehackers",
     "name": "r/indiehackers",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/indiehackers/",
@@ -3560,6 +3916,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-ladybusiness",
     "name": "r/LadyBusiness",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/ladybusiness/",
@@ -3570,6 +3927,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-microsaas",
     "name": "r/microsaas",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/microsaas/",
@@ -3580,6 +3938,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-plugyourproduct",
     "name": "r/plugyourproduct",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/plugyourproduct/",
@@ -3590,6 +3949,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-roastmystartup",
     "name": "r/RoastMyStartup",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/roastmystartup/",
@@ -3600,6 +3960,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-saas",
     "name": "r/SaaS",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/SaaS/",
@@ -3610,6 +3971,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-sideproject",
     "name": "r/SideProject",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/SideProject/",
@@ -3620,6 +3982,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-smallbusiness",
     "name": "r/SmallBusiness",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/smallbusiness/",
@@ -3630,6 +3993,7 @@
     "unreachableSince": null
   },
   {
+    "id": "r-startups",
     "name": "r/Startups",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/startups/",
@@ -3640,6 +4004,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ramen-tools",
     "name": "ramen.tools",
     "type": "WEBSITE",
     "rootUrl": "https://ramen.tools/",
@@ -3650,6 +4015,7 @@
     "unreachableSince": null
   },
   {
+    "id": "rankmyai",
     "name": "RankmyAI",
     "type": "WEBSITE",
     "rootUrl": "https://www.rankmyai.com/",
@@ -3660,6 +4026,7 @@
     "unreachableSince": null
   },
   {
+    "id": "rankyourai",
     "name": "RankYourAI",
     "type": "WEBSITE",
     "rootUrl": "https://rankyourai.com/",
@@ -3670,6 +4037,7 @@
     "unreachableSince": null
   },
   {
+    "id": "resource-fyi",
     "name": "Resource.fyi",
     "type": "WEBSITE",
     "rootUrl": "https://resource.fyi/",
@@ -3680,6 +4048,7 @@
     "unreachableSince": null
   },
   {
+    "id": "revispy-launchpad",
     "name": "Revispy Launchpad",
     "type": "WEBSITE",
     "rootUrl": "https://www.revispy.com/",
@@ -3690,6 +4059,7 @@
     "unreachableSince": null
   },
   {
+    "id": "right-ai",
     "name": "Right AI",
     "type": "WEBSITE",
     "rootUrl": "https://right-ai.com/",
@@ -3700,6 +4070,7 @@
     "unreachableSince": null
   },
   {
+    "id": "romanian-startups",
     "name": "Romanian Startups",
     "type": "WEBSITE",
     "rootUrl": "https://www.romanianstartups.com/",
@@ -3710,6 +4081,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saas-ai-tools",
     "name": "SaaS AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://saasaitools.com/",
@@ -3720,6 +4092,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saas-bison",
     "name": "SaaS Bison",
     "type": "WEBSITE",
     "rootUrl": "https://saasbison.com/",
@@ -3730,6 +4103,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saas-curate",
     "name": "SaaS Curate",
     "type": "WEBSITE",
     "rootUrl": "https://www.saascurate.com/",
@@ -3740,6 +4114,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saas-genius",
     "name": "SaaS Genius",
     "type": "WEBSITE",
     "rootUrl": "https://www.saasgenius.com/",
@@ -3750,6 +4125,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saas-page",
     "name": "SaaS Page",
     "type": "WEBSITE",
     "rootUrl": "https://www.saaspa.ge/",
@@ -3760,6 +4136,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saasboard",
     "name": "SaaSBoard",
     "type": "WEBSITE",
     "rootUrl": "https://saasboard.app/",
@@ -3770,6 +4147,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saascity",
     "name": "SaaSCity",
     "type": "WEBSITE",
     "rootUrl": "https://saascity.io/",
@@ -3780,6 +4158,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saasfame",
     "name": "SaaSFame",
     "type": "WEBSITE",
     "rootUrl": "https://saasfame.com/",
@@ -3790,6 +4169,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saashub",
     "name": "SaaSHub",
     "type": "WEBSITE",
     "rootUrl": "https://www.saashub.com/",
@@ -3800,6 +4180,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saaslist",
     "name": "SaasList",
     "type": "WEBSITE",
     "rootUrl": "https://saaslist.com/",
@@ -3810,6 +4191,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saaspo",
     "name": "Saaspo",
     "type": "WEBSITE",
     "rootUrl": "https://saaspo.com/",
@@ -3820,6 +4202,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saastore",
     "name": "SaaStore",
     "type": "WEBSITE",
     "rootUrl": "https://saastore.ai/",
@@ -3830,6 +4213,7 @@
     "unreachableSince": null
   },
   {
+    "id": "saasworthy",
     "name": "SaaSworthy",
     "type": "WEBSITE",
     "rootUrl": "https://www.saasworthy.com/",
@@ -3840,6 +4224,7 @@
     "unreachableSince": null
   },
   {
+    "id": "scrolllaunch",
     "name": "ScrollLaunch",
     "type": "WEBSITE",
     "rootUrl": "https://www.scrolllaunch.com/",
@@ -3850,6 +4235,7 @@
     "unreachableSince": null
   },
   {
+    "id": "see-ai-first",
     "name": "See AI First",
     "type": "WEBSITE",
     "rootUrl": "https://seeaifirst.com/",
@@ -3860,6 +4246,7 @@
     "unreachableSince": null
   },
   {
+    "id": "see-what-new-ai",
     "name": "See What New AI",
     "type": "WEBSITE",
     "rootUrl": "https://www.seewhatnewai.com/",
@@ -3870,6 +4257,7 @@
     "unreachableSince": null
   },
   {
+    "id": "seekais",
     "name": "SeekAIs",
     "type": "WEBSITE",
     "rootUrl": "https://seekais.com/",
@@ -3880,6 +4268,7 @@
     "unreachableSince": null
   },
   {
+    "id": "selecthub",
     "name": "SelectHub",
     "type": "WEBSITE",
     "rootUrl": "https://www.selecthub.com/",
@@ -3890,6 +4279,7 @@
     "unreachableSince": null
   },
   {
+    "id": "serchen",
     "name": "Serchen",
     "type": "WEBSITE",
     "rootUrl": "https://www.serchen.com/",
@@ -3900,6 +4290,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ship-or-die",
     "name": "Ship or Die",
     "type": "WEBSITE",
     "rootUrl": "https://shipordie.club/",
@@ -3910,6 +4301,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ship-with-no-code",
     "name": "Ship with No-Code",
     "type": "WEBSITE",
     "rootUrl": "https://www.shno.co/",
@@ -3920,6 +4312,7 @@
     "unreachableSince": null
   },
   {
+    "id": "shipboost",
     "name": "ShipBoost",
     "type": "WEBSITE",
     "rootUrl": "https://shipboost.io/",
@@ -3930,6 +4323,7 @@
     "unreachableSince": null
   },
   {
+    "id": "shipgrowth",
     "name": "ShipGrowth",
     "type": "WEBSITE",
     "rootUrl": "https://shipgrowth.dev/",
@@ -3940,6 +4334,7 @@
     "unreachableSince": null
   },
   {
+    "id": "shipybara",
     "name": "Shipybara",
     "type": "WEBSITE",
     "rootUrl": "https://shipybara.com/",
@@ -3950,6 +4345,7 @@
     "unreachableSince": null
   },
   {
+    "id": "showmebestai",
     "name": "ShowMeBestAI",
     "type": "WEBSITE",
     "rootUrl": "https://showmebest.ai/",
@@ -3960,6 +4356,7 @@
     "unreachableSince": null
   },
   {
+    "id": "side-projectors",
     "name": "Side Projectors",
     "type": "WEBSITE",
     "rootUrl": "https://www.sideprojectors.com/",
@@ -3970,6 +4367,7 @@
     "unreachableSince": null
   },
   {
+    "id": "sidehunt",
     "name": "SideHunt",
     "type": "WEBSITE",
     "rootUrl": "https://sidehunt.io/",
@@ -3980,6 +4378,7 @@
     "unreachableSince": null
   },
   {
+    "id": "similarlabs",
     "name": "SimilarLabs",
     "type": "WEBSITE",
     "rootUrl": "https://similarlabs.com/",
@@ -3990,6 +4389,7 @@
     "unreachableSince": null
   },
   {
+    "id": "simple-lister",
     "name": "Simple Lister",
     "type": "WEBSITE",
     "rootUrl": "https://simplelister.com/",
@@ -4000,6 +4400,7 @@
     "unreachableSince": null
   },
   {
+    "id": "site-promotion-directory",
     "name": "Site Promotion Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.sitepromotiondirectory.com/",
@@ -4010,6 +4411,7 @@
     "unreachableSince": null
   },
   {
+    "id": "site-web-directory",
     "name": "Site Web Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.siteswebdirectory.com/",
@@ -4020,6 +4422,7 @@
     "unreachableSince": null
   },
   {
+    "id": "site-plus",
     "name": "Site-Plus",
     "type": "WEBSITE",
     "rootUrl": "https://www.sites-plus.com/",
@@ -4030,6 +4433,7 @@
     "unreachableSince": null
   },
   {
+    "id": "sitelike",
     "name": "SiteLike",
     "type": "WEBSITE",
     "rootUrl": "https://www.sitelike.org/",
@@ -4040,6 +4444,7 @@
     "unreachableSince": null
   },
   {
+    "id": "smartcustomer",
     "name": "SmartCustomer",
     "type": "WEBSITE",
     "rootUrl": "https://biz.smartcustomer.com/",
@@ -4050,6 +4455,7 @@
     "unreachableSince": null
   },
   {
+    "id": "smithery",
     "name": "Smithery",
     "type": "WEBSITE",
     "rootUrl": "https://smithery.ai/",
@@ -4060,6 +4466,7 @@
     "unreachableSince": null
   },
   {
+    "id": "smol-launch",
     "name": "Smol Launch",
     "type": "WEBSITE",
     "rootUrl": "https://smollaunch.com/",
@@ -4070,6 +4477,7 @@
     "unreachableSince": null
   },
   {
+    "id": "snapmunk",
     "name": "SnapMunk",
     "type": "WEBSITE",
     "rootUrl": "https://www.snapmunk.com/",
@@ -4080,6 +4488,7 @@
     "unreachableSince": null
   },
   {
+    "id": "softwaresuggest",
     "name": "SoftwareSuggest",
     "type": "WEBSITE",
     "rootUrl": "https://www.softwaresuggest.com/",
@@ -4090,6 +4499,7 @@
     "unreachableSince": null
   },
   {
+    "id": "softwareworld",
     "name": "SoftwareWorld",
     "type": "WEBSITE",
     "rootUrl": "https://www.softwareworld.co/",
@@ -4100,6 +4510,7 @@
     "unreachableSince": null
   },
   {
+    "id": "somuch",
     "name": "SoMuch",
     "type": "WEBSITE",
     "rootUrl": "https://somuch.com/",
@@ -4110,6 +4521,7 @@
     "unreachableSince": null
   },
   {
+    "id": "space-bandits",
     "name": "Space Bandits",
     "type": "WEBSITE",
     "rootUrl": "https://www.spacebandits.io/",
@@ -4120,6 +4532,7 @@
     "unreachableSince": null
   },
   {
+    "id": "spectacle",
     "name": "Spectacle",
     "type": "WEBSITE",
     "rootUrl": "https://startupvideos.com/",
@@ -4130,6 +4543,7 @@
     "unreachableSince": null
   },
   {
+    "id": "spiff-store",
     "name": "Spiff.store",
     "type": "WEBSITE",
     "rootUrl": "https://spiff.store/",
@@ -4140,6 +4554,7 @@
     "unreachableSince": null
   },
   {
+    "id": "spotsaas",
     "name": "SpotSaaS",
     "type": "WEBSITE",
     "rootUrl": "https://partners.spotsaas.com/",
@@ -4150,6 +4565,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startap",
     "name": "StarTap",
     "type": "WEBSITE",
     "rootUrl": "https://startap.cc/",
@@ -4160,6 +4576,7 @@
     "unreachableSince": null
   },
   {
+    "id": "starter-best",
     "name": "Starter Best",
     "type": "WEBSITE",
     "rootUrl": "https://starterbest.com/",
@@ -4170,6 +4587,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startfast",
     "name": "StartFast",
     "type": "WEBSITE",
     "rootUrl": "https://startfa.st/",
@@ -4180,6 +4598,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-88",
     "name": "Startup 88",
     "type": "WEBSITE",
     "rootUrl": "https://startup88.com/",
@@ -4190,6 +4609,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-aideas",
     "name": "Startup AIdeas",
     "type": "WEBSITE",
     "rootUrl": "https://startupaideas.com/",
@@ -4200,6 +4620,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-beat",
     "name": "StartUp Beat",
     "type": "WEBSITE",
     "rootUrl": "https://startupbeat.com/",
@@ -4210,6 +4631,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-benchmarks",
     "name": "Startup Benchmarks",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupbenchmarks.com/",
@@ -4220,6 +4642,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-buffer",
     "name": "Startup Buffer",
     "type": "WEBSITE",
     "rootUrl": "https://startupbuffer.com/",
@@ -4230,6 +4653,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-dope",
     "name": "Startup Dope",
     "type": "WEBSITE",
     "rootUrl": "https://startupdope.com/",
@@ -4240,6 +4664,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-europe",
     "name": "Startup Europe",
     "type": "WEBSITE",
     "rootUrl": "https://startupeurope.net/",
@@ -4250,6 +4675,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-fame",
     "name": "Startup Fame",
     "type": "WEBSITE",
     "rootUrl": "https://startupfa.me/",
@@ -4260,6 +4686,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-fast",
     "name": "Startup Fast",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupfa.st/",
@@ -4270,6 +4697,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-guys",
     "name": "Startup Guys",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupguys.net/",
@@ -4280,6 +4708,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-inspire",
     "name": "Startup Inspire",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupinspire.com/",
@@ -4290,6 +4719,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-ranked",
     "name": "Startup Ranked",
     "type": "WEBSITE",
     "rootUrl": "https://startupranked.com/",
@@ -4300,6 +4730,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-ranking",
     "name": "Startup Ranking",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupranking.com/",
@@ -4310,6 +4741,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-sea",
     "name": "Startup Sea",
     "type": "WEBSITE",
     "rootUrl": "http://www.startupsea.com/",
@@ -4320,6 +4752,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-spotlight",
     "name": "Startup Spotlight",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupspotlight.co/",
@@ -4330,6 +4763,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-stash",
     "name": "Startup Stash",
     "type": "WEBSITE",
     "rootUrl": "https://startupstash.com/",
@@ -4340,6 +4774,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-tile",
     "name": "Startup Tile",
     "type": "WEBSITE",
     "rootUrl": "https://startuptile.com/",
@@ -4350,6 +4785,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-tracker",
     "name": "Startup Tracker",
     "type": "WEBSITE",
     "rootUrl": "https://startuptracker.io/",
@@ -4360,6 +4796,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startup-sx",
     "name": "Startup.sx",
     "type": "WEBSITE",
     "rootUrl": "https://www.startup.sx/",
@@ -4370,6 +4807,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startupbase",
     "name": "StartupBase",
     "type": "WEBSITE",
     "rootUrl": "https://startupbase.io/",
@@ -4380,6 +4818,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startupblink",
     "name": "StartupBlink",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupblink.com/",
@@ -4390,6 +4829,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startuplibrary",
     "name": "StartupLibrary",
     "type": "WEBSITE",
     "rootUrl": "https://startuplibrary.net/",
@@ -4400,6 +4840,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startuplist-africa",
     "name": "Startuplist Africa",
     "type": "WEBSITE",
     "rootUrl": "https://www.startuplist.africa/",
@@ -4410,6 +4851,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startups-gallery",
     "name": "Startups Gallery",
     "type": "WEBSITE",
     "rootUrl": "https://startups.gallery/",
@@ -4420,6 +4862,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startups-list",
     "name": "Startups-List",
     "type": "WEBSITE",
     "rootUrl": "https://startups-list.com/",
@@ -4430,6 +4873,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startups-fm",
     "name": "Startups.fm",
     "type": "WEBSITE",
     "rootUrl": "https://startups.fm/",
@@ -4440,6 +4884,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startups-fyi",
     "name": "Startups.fyi",
     "type": "WEBSITE",
     "rootUrl": "https://www.startups.fyi/",
@@ -4450,6 +4895,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startups-watch",
     "name": "Startups.watch",
     "type": "WEBSITE",
     "rootUrl": "https://startups.watch/",
@@ -4460,6 +4906,7 @@
     "unreachableSince": null
   },
   {
+    "id": "startuptrusted",
     "name": "StartupTrusted",
     "type": "WEBSITE",
     "rootUrl": "https://startuptrusted.com/",
@@ -4470,6 +4917,7 @@
     "unreachableSince": null
   },
   {
+    "id": "stellar-launch",
     "name": "Stellar Launch",
     "type": "WEBSITE",
     "rootUrl": "https://www.stellarlaunch.org/",
@@ -4480,6 +4928,7 @@
     "unreachableSince": null
   },
   {
+    "id": "strictseal",
     "name": "StrictSeal",
     "type": "WEBSITE",
     "rootUrl": "https://strictseal.com/",
@@ -4490,6 +4939,7 @@
     "unreachableSince": null
   },
   {
+    "id": "submitmysaas",
     "name": "SubmitMySaas",
     "type": "WEBSITE",
     "rootUrl": "https://submitmysaas.com/",
@@ -4500,6 +4950,7 @@
     "unreachableSince": null
   },
   {
+    "id": "super-launch",
     "name": "Super Launch",
     "type": "WEBSITE",
     "rootUrl": "https://www.superlaun.ch/",
@@ -4510,6 +4961,7 @@
     "unreachableSince": null
   },
   {
+    "id": "superb-crew",
     "name": "Superb Crew",
     "type": "WEBSITE",
     "rootUrl": "https://superbcrew.com/",
@@ -4520,6 +4972,7 @@
     "unreachableSince": null
   },
   {
+    "id": "superlaunchlist",
     "name": "SuperLaunchList",
     "type": "WEBSITE",
     "rootUrl": "https://superlaunchlist.com/",
@@ -4530,6 +4983,7 @@
     "unreachableSince": null
   },
   {
+    "id": "taalk",
     "name": "Taalk",
     "type": "WEBSITE",
     "rootUrl": "https://taalk.com/",
@@ -4540,6 +4994,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tap4-ai",
     "name": "Tap4 AI",
     "type": "WEBSITE",
     "rootUrl": "https://tap4.ai/",
@@ -4550,6 +5005,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tapscape",
     "name": "Tapscape",
     "type": "WEBSITE",
     "rootUrl": "https://www.tapscape.com/",
@@ -4560,6 +5016,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tech-map",
     "name": "Tech Map",
     "type": "WEBSITE",
     "rootUrl": "https://techmap.me/",
@@ -4570,6 +5027,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tech-pluto",
     "name": "Tech Pluto",
     "type": "WEBSITE",
     "rootUrl": "https://www.techpluto.com/",
@@ -4580,6 +5038,7 @@
     "unreachableSince": null
   },
   {
+    "id": "techboard",
     "name": "Techboard",
     "type": "WEBSITE",
     "rootUrl": "https://techboard.com.au/",
@@ -4590,6 +5049,7 @@
     "unreachableSince": null
   },
   {
+    "id": "techendo",
     "name": "Techendo",
     "type": "WEBSITE",
     "rootUrl": "https://techendo.com/",
@@ -4600,6 +5060,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tekpon",
     "name": "Tekpon",
     "type": "WEBSITE",
     "rootUrl": "https://tekpon.com/",
@@ -4610,6 +5071,7 @@
     "unreachableSince": null
   },
   {
+    "id": "thank-john",
     "name": "Thank John",
     "type": "WEBSITE",
     "rootUrl": "https://thankjohn.com/",
@@ -4620,6 +5082,7 @@
     "unreachableSince": null
   },
   {
+    "id": "thatsmyai",
     "name": "ThatsMyAI",
     "type": "WEBSITE",
     "rootUrl": "https://thatsmy.ai/",
@@ -4630,6 +5093,7 @@
     "unreachableSince": null
   },
   {
+    "id": "the-agents-index",
     "name": "The Agents Index",
     "type": "WEBSITE",
     "rootUrl": "https://theagentsindex.com/",
@@ -4640,6 +5104,7 @@
     "unreachableSince": null
   },
   {
+    "id": "the-ai-generation",
     "name": "The AI Generation",
     "type": "WEBSITE",
     "rootUrl": "https://www.theaigeneration.com/",
@@ -4650,6 +5115,7 @@
     "unreachableSince": null
   },
   {
+    "id": "the-hack-stack",
     "name": "The Hack Stack",
     "type": "WEBSITE",
     "rootUrl": "https://thehackstack.com/",
@@ -4660,6 +5126,7 @@
     "unreachableSince": null
   },
   {
+    "id": "the-startup-inc",
     "name": "The Startup INC",
     "type": "WEBSITE",
     "rootUrl": "https://thestartupinc.com/",
@@ -4670,6 +5137,7 @@
     "unreachableSince": null
   },
   {
+    "id": "theaisurf",
     "name": "TheAISurf",
     "type": "WEBSITE",
     "rootUrl": "https://theaisurf.com/",
@@ -4680,6 +5148,7 @@
     "unreachableSince": null
   },
   {
+    "id": "theres-an-ai-for-that",
     "name": "There's An AI For That",
     "type": "WEBSITE",
     "rootUrl": "https://theresanaiforthat.com/",
@@ -4690,6 +5159,7 @@
     "unreachableSince": null
   },
   {
+    "id": "thesaasdir",
     "name": "TheSaaSDir",
     "type": "WEBSITE",
     "rootUrl": "https://thesaasdir.com/",
@@ -4700,6 +5170,7 @@
     "unreachableSince": null
   },
   {
+    "id": "thesaasdirectory",
     "name": "TheSaaSDirectory",
     "type": "WEBSITE",
     "rootUrl": "https://thesaasdirectory.com/",
@@ -4710,6 +5181,7 @@
     "unreachableSince": null
   },
   {
+    "id": "thingtesting",
     "name": "Thingtesting",
     "type": "WEBSITE",
     "rootUrl": "https://thingtesting.com/",
@@ -4720,6 +5192,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tiny-launch",
     "name": "Tiny Launch",
     "type": "WEBSITE",
     "rootUrl": "https://www.tinylaunch.com/",
@@ -4730,6 +5203,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tiny-startups",
     "name": "Tiny Startups",
     "type": "WEBSITE",
     "rootUrl": "https://www.tinystartups.com/",
@@ -4740,6 +5214,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tipseason",
     "name": "TipSeason",
     "type": "WEBSITE",
     "rootUrl": "https://www.tipseason.com/",
@@ -4750,6 +5225,7 @@
     "unreachableSince": null
   },
   {
+    "id": "today-launches",
     "name": "Today Launches",
     "type": "WEBSITE",
     "rootUrl": "https://todaylaunches.com/",
@@ -4760,6 +5236,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tool-ai",
     "name": "Tool AI",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolai.io/",
@@ -4770,6 +5247,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tool-directory",
     "name": "Tool Directory",
     "type": "WEBSITE",
     "rootUrl": "https://tooldirectory.ai/",
@@ -4780,6 +5258,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tooldirs",
     "name": "ToolDirs",
     "type": "WEBSITE",
     "rootUrl": "https://tooldirs.com/",
@@ -4790,6 +5269,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolfame",
     "name": "ToolFame",
     "type": "WEBSITE",
     "rootUrl": "https://toolfame.com/",
@@ -4800,6 +5280,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolfio",
     "name": "Toolfio",
     "type": "WEBSITE",
     "rootUrl": "https://toolfio.com/",
@@ -4810,6 +5291,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolfolio",
     "name": "Toolfolio",
     "type": "WEBSITE",
     "rootUrl": "https://toolfolio.com/",
@@ -4820,6 +5302,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolify-ai",
     "name": "Toolify.ai",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolify.ai/",
@@ -4830,6 +5313,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolkitly",
     "name": "Toolkitly",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolkitly.com/",
@@ -4840,6 +5324,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolpasta",
     "name": "ToolPasta",
     "type": "WEBSITE",
     "rootUrl": "https://robopost.app/",
@@ -4850,6 +5335,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolpilot",
     "name": "ToolPilot",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolpilot.ai/",
@@ -4860,6 +5346,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tools-ai-online",
     "name": "Tools AI Online",
     "type": "WEBSITE",
     "rootUrl": "https://www.tools-ai.online/",
@@ -4870,6 +5357,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tools-nocode",
     "name": "Tools NoCode",
     "type": "WEBSITE",
     "rootUrl": "https://toolsnocode.com/",
@@ -4880,6 +5368,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tools-so",
     "name": "Tools.so",
     "type": "WEBSITE",
     "rootUrl": "https://tools.so/",
@@ -4890,6 +5379,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolscout-ai",
     "name": "Toolscout AI",
     "type": "WEBSITE",
     "rootUrl": "https://toolscout.ai/",
@@ -4900,6 +5390,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolsfine",
     "name": "Toolsfine",
     "type": "WEBSITE",
     "rootUrl": "https://toolsfine.com/",
@@ -4910,6 +5401,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toolspedia",
     "name": "Toolspedia",
     "type": "WEBSITE",
     "rootUrl": "https://toolspedia.io/",
@@ -4920,6 +5412,7 @@
     "unreachableSince": null
   },
   {
+    "id": "toools",
     "name": "Toools",
     "type": "WEBSITE",
     "rootUrl": "https://www.toools.design/",
@@ -4930,6 +5423,7 @@
     "unreachableSince": null
   },
   {
+    "id": "topai-tools",
     "name": "TopAI.tools",
     "type": "WEBSITE",
     "rootUrl": "https://topai.tools/",
@@ -4940,6 +5434,7 @@
     "unreachableSince": null
   },
   {
+    "id": "topaitools4u",
     "name": "TopAITools4U",
     "type": "WEBSITE",
     "rootUrl": "https://www.topaitools4u.site/",
@@ -4950,6 +5445,7 @@
     "unreachableSince": null
   },
   {
+    "id": "tracxn",
     "name": "Tracxn",
     "type": "WEBSITE",
     "rootUrl": "https://tracxn.com/",
@@ -4960,6 +5456,7 @@
     "unreachableSince": null
   },
   {
+    "id": "trust-revenue",
     "name": "Trust Revenue",
     "type": "WEBSITE",
     "rootUrl": "https://trust-revenue.com/",
@@ -4970,6 +5467,7 @@
     "unreachableSince": null
   },
   {
+    "id": "trustmrr",
     "name": "TrustMRR",
     "type": "WEBSITE",
     "rootUrl": "https://trustmrr.com/",
@@ -4980,6 +5478,7 @@
     "unreachableSince": null
   },
   {
+    "id": "trustpilot",
     "name": "Trustpilot",
     "type": "WEBSITE",
     "rootUrl": "https://business.trustpilot.com/",
@@ -4990,6 +5489,7 @@
     "unreachableSince": null
   },
   {
+    "id": "trustradius",
     "name": "TrustRadius",
     "type": "WEBSITE",
     "rootUrl": "https://www.trustradius.com/",
@@ -5000,6 +5500,7 @@
     "unreachableSince": null
   },
   {
+    "id": "trustroas",
     "name": "TrustROAS",
     "type": "WEBSITE",
     "rootUrl": "https://trustroas.com/",
@@ -5010,6 +5511,7 @@
     "unreachableSince": null
   },
   {
+    "id": "turbo0",
     "name": "Turbo0",
     "type": "WEBSITE",
     "rootUrl": "https://turbo0.com/",
@@ -5020,6 +5522,7 @@
     "unreachableSince": null
   },
   {
+    "id": "twelve-tools",
     "name": "Twelve Tools",
     "type": "WEBSITE",
     "rootUrl": "https://twelve.tools/",
@@ -5030,6 +5533,7 @@
     "unreachableSince": null
   },
   {
+    "id": "ufind-best",
     "name": "ufind.best",
     "type": "WEBSITE",
     "rootUrl": "https://ufind.best/",
@@ -5040,6 +5544,7 @@
     "unreachableSince": null
   },
   {
+    "id": "uneed",
     "name": "Uneed",
     "type": "WEBSITE",
     "rootUrl": "https://www.uneed.best/",
@@ -5050,6 +5555,7 @@
     "unreachableSince": null
   },
   {
+    "id": "unloc-tools",
     "name": "Unloc.tools",
     "type": "WEBSITE",
     "rootUrl": "https://unloc.tools/",
@@ -5060,6 +5566,7 @@
     "unreachableSince": null
   },
   {
+    "id": "uno-directory",
     "name": "Uno Directory",
     "type": "WEBSITE",
     "rootUrl": "https://uno.directory/",
@@ -5070,6 +5577,7 @@
     "unreachableSince": null
   },
   {
+    "id": "vantaige",
     "name": "Vantaige",
     "type": "WEBSITE",
     "rootUrl": "https://vantaige.io/",
@@ -5080,6 +5588,7 @@
     "unreachableSince": null
   },
   {
+    "id": "verified-tools",
     "name": "Verified Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.verifiedtools.info/",
@@ -5090,6 +5599,7 @@
     "unreachableSince": null
   },
   {
+    "id": "verifieddr",
     "name": "VerifiedDR",
     "type": "WEBSITE",
     "rootUrl": "https://verifieddr.com/",
@@ -5100,6 +5610,7 @@
     "unreachableSince": null
   },
   {
+    "id": "versily",
     "name": "Versily",
     "type": "WEBSITE",
     "rootUrl": "https://versily.com/",
@@ -5110,6 +5621,7 @@
     "unreachableSince": null
   },
   {
+    "id": "vibehacker",
     "name": "VibeHacker",
     "type": "WEBSITE",
     "rootUrl": "https://vibehacker.com/",
@@ -5120,6 +5632,7 @@
     "unreachableSince": null
   },
   {
+    "id": "victrays",
     "name": "Victrays",
     "type": "WEBSITE",
     "rootUrl": "https://victrays.com/",
@@ -5130,6 +5643,7 @@
     "unreachableSince": null
   },
   {
+    "id": "viesearch",
     "name": "Viesearch",
     "type": "WEBSITE",
     "rootUrl": "https://viesearch.com/",
@@ -5140,6 +5654,7 @@
     "unreachableSince": null
   },
   {
+    "id": "votekicker",
     "name": "Votekicker",
     "type": "WEBSITE",
     "rootUrl": "https://votekicker.com/",
@@ -5150,6 +5665,7 @@
     "unreachableSince": null
   },
   {
+    "id": "waildworld",
     "name": "WaildWorld",
     "type": "WEBSITE",
     "rootUrl": "https://waildworld.com/",
@@ -5160,6 +5676,7 @@
     "unreachableSince": null
   },
   {
+    "id": "we-like-tools",
     "name": "We Like Tools",
     "type": "WEBSITE",
     "rootUrl": "https://weliketools.com/",
@@ -5170,6 +5687,7 @@
     "unreachableSince": null
   },
   {
+    "id": "web-app-rater",
     "name": "Web App Rater",
     "type": "WEBSITE",
     "rootUrl": "https://webapprater.com/",
@@ -5180,6 +5698,7 @@
     "unreachableSince": null
   },
   {
+    "id": "web-designer-news",
     "name": "Web Designer News",
     "type": "WEBSITE",
     "rootUrl": "https://www.webdesignernews.com/",
@@ -5190,6 +5709,7 @@
     "unreachableSince": null
   },
   {
+    "id": "webcatalog",
     "name": "WebCatalog",
     "type": "WEBSITE",
     "rootUrl": "https://webcatalog.io/",
@@ -5200,6 +5720,7 @@
     "unreachableSince": null
   },
   {
+    "id": "webcurate",
     "name": "Webcurate",
     "type": "WEBSITE",
     "rootUrl": "https://webcurate.co/",
@@ -5210,6 +5731,7 @@
     "unreachableSince": null
   },
   {
+    "id": "website-hunt",
     "name": "Website Hunt",
     "type": "WEBSITE",
     "rootUrl": "https://www.websitehunt.co/",
@@ -5220,6 +5742,7 @@
     "unreachableSince": null
   },
   {
+    "id": "webspot",
     "name": "Webspot",
     "type": "WEBSITE",
     "rootUrl": "https://webspot.app/",
@@ -5230,6 +5753,7 @@
     "unreachableSince": null
   },
   {
+    "id": "weekhack",
     "name": "WeekHack",
     "type": "WEBSITE",
     "rootUrl": "https://www.weekhack.com/",
@@ -5240,6 +5764,7 @@
     "unreachableSince": null
   },
   {
+    "id": "wellfound",
     "name": "Wellfound",
     "type": "WEBSITE",
     "rootUrl": "https://help.wellfound.com/",
@@ -5250,6 +5775,7 @@
     "unreachableSince": null
   },
   {
+    "id": "welodge-pulse",
     "name": "Welodge Pulse",
     "type": "WEBSITE",
     "rootUrl": "https://pulse.welodge.co.zw/",
@@ -5260,6 +5786,7 @@
     "unreachableSince": null
   },
   {
+    "id": "what-is-ai-tools",
     "name": "What Is AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://whatisaitools.com/",
@@ -5270,6 +5797,7 @@
     "unreachableSince": null
   },
   {
+    "id": "whatlaunched-today",
     "name": "WhatLaunched.Today",
     "type": "WEBSITE",
     "rootUrl": "https://whatlaunched.today/",
@@ -5280,6 +5808,7 @@
     "unreachableSince": null
   },
   {
+    "id": "whattheai",
     "name": "WhatTheAI",
     "type": "WEBSITE",
     "rootUrl": "https://whattheai.tech/",
@@ -5290,6 +5819,7 @@
     "unreachableSince": null
   },
   {
+    "id": "where2go",
     "name": "Where2Go",
     "type": "WEBSITE",
     "rootUrl": "https://where2go.com/",
@@ -5300,6 +5830,7 @@
     "unreachableSince": null
   },
   {
+    "id": "wip",
     "name": "WIP",
     "type": "WEBSITE",
     "rootUrl": "https://wip.co/",
@@ -5310,6 +5841,7 @@
     "unreachableSince": null
   },
   {
+    "id": "wired-business",
     "name": "Wired Business",
     "type": "WEBSITE",
     "rootUrl": "https://wired.business/",
@@ -5320,6 +5852,7 @@
     "unreachableSince": null
   },
   {
+    "id": "xinquji",
     "name": "Xinquji",
     "type": "WEBSITE",
     "rootUrl": "https://xinquji.com/",
@@ -5330,6 +5863,7 @@
     "unreachableSince": null
   },
   {
+    "id": "yourstory",
     "name": "YourStory",
     "type": "WEBSITE",
     "rootUrl": "https://yourstory.com/",
@@ -5340,6 +5874,7 @@
     "unreachableSince": null
   },
   {
+    "id": "zplatform-ai",
     "name": "zPlatform.ai",
     "type": "WEBSITE",
     "rootUrl": "https://zplatform.ai/",
@@ -5350,6 +5885,7 @@
     "unreachableSince": null
   },
   {
+    "id": "zumvu",
     "name": "Zumvu",
     "type": "WEBSITE",
     "rootUrl": "https://zumvu.com/",

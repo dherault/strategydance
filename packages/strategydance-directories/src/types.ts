@@ -1,6 +1,9 @@
 import type { DirectoryBusinessModel, DirectoryInactiveReason, DirectoryType } from './enums'
 
 export type Directory = {
+  // A slug of the name the entry was first given, which never changes, even when the name does, so
+  // whatever refers to a directory keeps finding it
+  id: string
   name: string
   type: DirectoryType
   // The site's origin, or a Reddit community's own page, since reddit.com itself is never down

@@ -9,12 +9,13 @@ import {
 import type { DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
 
 /*
-  What the directories' tests build from: an entry at `https://<name>.example/`, a page a probe read,
-  and a review's answer, each at a plain default a test overrides
+  What the directories' tests build from: an entry at `https://<name>.example/`, its id a slug of
+  its name, a page a probe read, and a review's answer, each at a plain default a test overrides
 */
 
 export function createDirectory(name: string, fields: Partial<Directory> = {}): Directory {
   return {
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     name,
     type: DirectoryType.WEBSITE,
     rootUrl: `https://${name}.example/`,

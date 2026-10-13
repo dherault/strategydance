@@ -1,5 +1,6 @@
 [
   {
+    "id": "100-ai-apps",
     "name": "100 AI Apps",
     "type": "WEBSITE",
     "rootUrl": "https://100apps.org/",
@@ -11,6 +12,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "aeo-tools",
     "name": "AEO Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.aeotools.space/",
@@ -22,6 +24,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "ai-agents-base",
     "name": "AI Agents Base",
     "type": "WEBSITE",
     "rootUrl": "https://aiagentsbase.com/",
@@ -33,6 +36,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-corner",
     "name": "AI Corner",
     "type": "WEBSITE",
     "rootUrl": "https://aicorner.net/",
@@ -44,6 +48,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "ai-dir",
     "name": "AI Dir",
     "type": "WEBSITE",
     "rootUrl": "https://aidir.wiki/",
@@ -55,6 +60,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-directory",
     "name": "AI Directory",
     "type": "WEBSITE",
     "rootUrl": "https://aidirectory.wiki/",
@@ -66,6 +72,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-navbar",
     "name": "AI Navbar",
     "type": "WEBSITE",
     "rootUrl": "https://ainavbar.com/",
@@ -77,6 +84,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-pedia-hub",
     "name": "AI Pedia Hub",
     "type": "WEBSITE",
     "rootUrl": "https://aipediahub.com/",
@@ -88,6 +96,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "ai-resource-pro",
     "name": "AI Resource Pro",
     "type": "WEBSITE",
     "rootUrl": "https://airesourcepro.com/",
@@ -99,6 +108,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "ai-scout",
     "name": "AI Scout",
     "type": "WEBSITE",
     "rootUrl": "https://aiscout.net/",
@@ -110,6 +120,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-sites-net",
     "name": "AI Sites Net",
     "type": "WEBSITE",
     "rootUrl": "https://ai-sites.net/",
@@ -121,6 +132,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-startups",
     "name": "AI Startups",
     "type": "WEBSITE",
     "rootUrl": "https://aistartups.net/",
@@ -132,6 +144,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "ai-tool-details",
     "name": "AI Tool Details",
     "type": "WEBSITE",
     "rootUrl": "https://aitooldetails.com/",
@@ -143,6 +156,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-tool-list",
     "name": "AI Tool List",
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoollist.org/",
@@ -154,6 +168,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "ai-toolhunt",
     "name": "AI Toolhunt",
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolhunt.com/",
@@ -165,6 +180,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-tools-arena",
     "name": "AI Tools Arena",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsarena.com/",
@@ -176,6 +192,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "ai-tools-by-neil-patel",
     "name": "AI Tools by Neil Patel",
     "type": "WEBSITE",
     "rootUrl": "https://aitools.neilpatel.com/",
@@ -187,6 +204,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "ai-tools-corner",
     "name": "AI Tools Corner",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolscorner.com/",
@@ -198,6 +216,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "ai-tools-explore",
     "name": "AI Tools Explore",
     "type": "WEBSITE",
     "rootUrl": "https://aiex.me/",
@@ -209,6 +228,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "ai-tools-for-me",
     "name": "AI Tools For Me",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsforme.com/",
@@ -220,6 +240,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-tools-guide",
     "name": "AI Tools Guide",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsguide.com/",
@@ -231,6 +252,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "ai-tools-guru",
     "name": "AI Tools Guru",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolguru.com/",
@@ -242,6 +264,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-tools-hunter",
     "name": "AI Tools Hunter",
     "type": "WEBSITE",
     "rootUrl": "https://ai-hunter.io/",
@@ -253,6 +276,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "ai-tools-love",
     "name": "AI Tools Love",
     "type": "WEBSITE",
     "rootUrl": "https://aitools.love/",
@@ -264,6 +288,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ai-tools-pin",
     "name": "AI Tools Pin",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolspin.com/",
@@ -275,6 +300,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "aicyclopedia",
     "name": "AICYCLOPEDIA",
     "type": "WEBSITE",
     "rootUrl": "https://www.aicyclopedia.com/",
@@ -286,6 +312,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "aimiracle-mag",
     "name": "AIMiracle MAG",
     "type": "WEBSITE",
     "rootUrl": "https://aimiracle.ai/",
@@ -297,6 +324,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "aisupersmart",
     "name": "AISuperSmart",
     "type": "WEBSITE",
     "rootUrl": "https://www.aisupersmart.com/",
@@ -308,6 +336,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "aitoolz",
     "name": "AiToolz",
     "type": "WEBSITE",
     "rootUrl": "https://aitoolz.net/",
@@ -319,6 +348,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "aixyz",
     "name": "Aixyz",
     "type": "WEBSITE",
     "rootUrl": "https://www.aixyz.co/",
@@ -330,6 +360,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "akita-saas-directory",
     "name": "Akita SaaS Directory",
     "type": "WEBSITE",
     "rootUrl": "https://akitaapp.com/",
@@ -341,6 +372,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "all-ai-tools-tech",
     "name": "All AI Tools .tech",
     "type": "WEBSITE",
     "rootUrl": "https://allaitools.tech/",
@@ -352,6 +384,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "all-startups",
     "name": "All Startups",
     "type": "WEBSITE",
     "rootUrl": "https://www.allstartups.info/",
@@ -363,6 +396,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "all-that-saas",
     "name": "All That SaaS",
     "type": "WEBSITE",
     "rootUrl": "https://allthatsaas.com/",
@@ -374,6 +408,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "all-the-ai-tools",
     "name": "All The AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://alltheaitools.com/",
@@ -385,6 +420,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "all-things-ai",
     "name": "All Things AI",
     "type": "WEBSITE",
     "rootUrl": "https://allthingsai.com/",
@@ -396,6 +432,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "alternatives-co",
     "name": "Alternatives.co",
     "type": "WEBSITE",
     "rootUrl": "https://alternatives.co/",
@@ -407,6 +444,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "amfibi",
     "name": "Amfibi",
     "type": "WEBSITE",
     "rootUrl": "https://www.amfibi.com/",
@@ -418,6 +456,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "appsolite",
     "name": "Appsolite",
     "type": "WEBSITE",
     "rootUrl": "https://appsolite.com/",
@@ -429,6 +468,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "appvita",
     "name": "Appvita",
     "type": "WEBSITE",
     "rootUrl": "https://appvita.com/",
@@ -440,6 +480,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "best-startup-tools",
     "name": "Best Startup Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.beststartuptools.com/",
@@ -451,6 +492,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "beta-founder",
     "name": "Beta Founder",
     "type": "WEBSITE",
     "rootUrl": "https://betafounder.co/",
@@ -462,6 +504,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "blpdirectory",
     "name": "BLPDirectory",
     "type": "WEBSITE",
     "rootUrl": "https://blpdirectory.info/",
@@ -473,6 +516,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "buffer-apps",
     "name": "Buffer Apps",
     "type": "WEBSITE",
     "rootUrl": "https://www.bufferapps.com/",
@@ -484,6 +528,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "builders-to",
     "name": "Builders.to",
     "type": "WEBSITE",
     "rootUrl": "https://builders.to/",
@@ -495,6 +540,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "byblos-ai",
     "name": "Byblos AI",
     "type": "WEBSITE",
     "rootUrl": "https://byblosai.com/",
@@ -506,6 +552,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "cabinet-m",
     "name": "Cabinet M",
     "type": "WEBSITE",
     "rootUrl": "https://www.cabinetm.com/",
@@ -517,6 +564,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "chat-ai-apps",
     "name": "Chat AI Apps",
     "type": "WEBSITE",
     "rootUrl": "https://www.chataiapps.com/",
@@ -528,6 +576,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "chatgate-ai",
     "name": "ChatGate AI",
     "type": "WEBSITE",
     "rootUrl": "https://chatgate.ai/",
@@ -539,6 +588,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "choosetheai",
     "name": "ChooseTheAI",
     "type": "WEBSITE",
     "rootUrl": "https://choosetheai.com/",
@@ -550,6 +600,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "coglist-ai",
     "name": "CogList AI",
     "type": "WEBSITE",
     "rootUrl": "https://coglist.com/",
@@ -561,6 +612,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "collaborizm",
     "name": "Collaborizm",
     "type": "WEBSITE",
     "rootUrl": "https://www.collaborizm.com/",
@@ -572,6 +624,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "cool-startups",
     "name": "Cool Startups",
     "type": "WEBSITE",
     "rootUrl": "https://coolstartups.io/",
@@ -583,6 +636,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "crazy-about-startups",
     "name": "Crazy About Startups",
     "type": "WEBSITE",
     "rootUrl": "https://crazyaboutstartups.com/",
@@ -594,6 +648,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "critiqs-ai",
     "name": "Critiqs AI",
     "type": "WEBSITE",
     "rootUrl": "https://critiqs.ai/",
@@ -605,6 +660,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "demos-co",
     "name": "Demos.co",
     "type": "WEBSITE",
     "rootUrl": "https://demos.co/",
@@ -616,6 +672,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "discover-cloud",
     "name": "Discover Cloud",
     "type": "WEBSITE",
     "rootUrl": "https://www.discovercloud.com/",
@@ -627,6 +684,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "disrupt-500",
     "name": "Disrupt 500",
     "type": "WEBSITE",
     "rootUrl": "https://disrupt500.com/",
@@ -638,6 +696,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "drop-your-ai",
     "name": "Drop Your AI",
     "type": "WEBSITE",
     "rootUrl": "https://www.dropyourai.com/",
@@ -649,6 +708,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "earlylaunch",
     "name": "EarlyLaunch",
     "type": "WEBSITE",
     "rootUrl": "https://earlylaunch.io/",
@@ -660,6 +720,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "evolmagazine-com",
     "name": "Evolmagazine.com",
     "type": "WEBSITE",
     "rootUrl": "https://www.evolmagazine.com/",
@@ -671,6 +732,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "expify",
     "name": "Expify",
     "type": "WEBSITE",
     "rootUrl": "https://www.expify.ai/",
@@ -682,6 +744,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "faind-ai",
     "name": "Faind AI",
     "type": "WEBSITE",
     "rootUrl": "https://faind.ai/",
@@ -693,6 +756,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "favird",
     "name": "Favird",
     "type": "WEBSITE",
     "rootUrl": "https://favird.com/",
@@ -704,6 +768,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "find-an-ai-tools",
     "name": "Find An AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://findanaitools.com/",
@@ -715,6 +780,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "findcool-tools",
     "name": "Findcool Tools",
     "type": "WEBSITE",
     "rootUrl": "https://findcool.tools/",
@@ -726,6 +792,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "finding-startups",
     "name": "Finding Startups",
     "type": "WEBSITE",
     "rootUrl": "https://findingstartups.com/",
@@ -737,6 +804,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "free-ai-tool",
     "name": "Free AI Tool",
     "type": "WEBSITE",
     "rootUrl": "https://freeaitool.ai/",
@@ -748,6 +816,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "gate2ai",
     "name": "Gate2AI",
     "type": "WEBSITE",
     "rootUrl": "https://gate2ai.com/",
@@ -759,6 +828,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "getbyte",
     "name": "GetByte",
     "type": "WEBSITE",
     "rootUrl": "https://www.getbyte.tech/",
@@ -770,6 +840,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "getworm",
     "name": "Getworm",
     "type": "WEBSITE",
     "rootUrl": "https://getworm.com/",
@@ -781,6 +852,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "go-publicly",
     "name": "Go Publicly",
     "type": "WEBSITE",
     "rootUrl": "https://go-publicly.com/",
@@ -792,6 +864,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "gpte",
     "name": "GPTE",
     "type": "WEBSITE",
     "rootUrl": "https://gpte.ai/",
@@ -803,6 +876,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "growthjunkie",
     "name": "GrowthJunkie",
     "type": "WEBSITE",
     "rootUrl": "https://growthjunkie.com/",
@@ -814,6 +888,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "handpicked-tools",
     "name": "Handpicked Tools",
     "type": "WEBSITE",
     "rootUrl": "https://handpickedtools.com/",
@@ -825,6 +900,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "havnai",
     "name": "Havnai",
     "type": "WEBSITE",
     "rootUrl": "https://havnai.com/",
@@ -836,6 +912,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "heyaiworld",
     "name": "HeyAIworld",
     "type": "WEBSITE",
     "rootUrl": "https://heyaiworld.com/",
@@ -847,6 +924,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "ia-sur-mesure",
     "name": "IA sur mesure",
     "type": "WEBSITE",
     "rootUrl": "https://iasurmesure.com/",
@@ -858,6 +936,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "index-co",
     "name": "Index.co",
     "type": "WEBSITE",
     "rootUrl": "https://index.co/",
@@ -869,6 +948,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "indexflow",
     "name": "IndexFlow",
     "type": "WEBSITE",
     "rootUrl": "https://indexflow.tech/",
@@ -880,6 +960,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "indie-dev-tools",
     "name": "Indie Dev Tools",
     "type": "WEBSITE",
     "rootUrl": "https://indiedev.tools/",
@@ -891,6 +972,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "indie-directory",
     "name": "Indie Directory",
     "type": "WEBSITE",
     "rootUrl": "https://indiedirectory.top/",
@@ -902,6 +984,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "indie-hunting",
     "name": "Indie Hunting",
     "type": "WEBSITE",
     "rootUrl": "https://indiehunting.com/",
@@ -913,6 +996,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "indie-tools",
     "name": "Indie Tools",
     "type": "WEBSITE",
     "rootUrl": "https://indietools.io/",
@@ -924,6 +1008,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "indie-voice",
     "name": "Indie Voice",
     "type": "WEBSITE",
     "rootUrl": "https://indievoice.app/",
@@ -935,6 +1020,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "indiebuilds",
     "name": "Indiebuilds",
     "type": "WEBSITE",
     "rootUrl": "https://www.indiebuilds.co/",
@@ -946,6 +1032,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "indiestack",
     "name": "IndieStack",
     "type": "WEBSITE",
     "rootUrl": "https://indiestack.co/",
@@ -957,6 +1044,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "innovativ-es",
     "name": "Innovativ.es",
     "type": "WEBSITE",
     "rootUrl": "https://innovativ.es/",
@@ -968,6 +1056,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "instantai",
     "name": "InstantAI",
     "type": "WEBSITE",
     "rootUrl": "https://instantai.io/",
@@ -979,6 +1068,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "its-launched",
     "name": "It's Launched",
     "type": "WEBSITE",
     "rootUrl": "https://itslaunched.com/",
@@ -990,6 +1080,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "killer-startups",
     "name": "Killer Startups",
     "type": "WEBSITE",
     "rootUrl": "https://killerstartups.com/",
@@ -1001,6 +1092,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "launch-cab",
     "name": "Launch.cab",
     "type": "WEBSITE",
     "rootUrl": "https://launch.cab/",
@@ -1012,6 +1104,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "launched",
     "name": "Launched",
     "type": "WEBSITE",
     "rootUrl": "https://launched.io/",
@@ -1023,6 +1116,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "launched-by-lovable",
     "name": "Launched by Lovable",
     "type": "WEBSITE",
     "rootUrl": "https://launched.lovable.app/",
@@ -1034,6 +1128,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "live-apps",
     "name": "Live Apps",
     "type": "WEBSITE",
     "rootUrl": "https://liveapps.ai/",
@@ -1045,6 +1140,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "loop",
     "name": "Loop",
     "type": "WEBSITE",
     "rootUrl": "https://app.loopinput.com/",
@@ -1056,6 +1152,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "makerlog",
     "name": "Makerlog",
     "type": "WEBSITE",
     "rootUrl": "https://getmakerlog.com/",
@@ -1067,6 +1164,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "makerthrive",
     "name": "MakerThrive",
     "type": "WEBSITE",
     "rootUrl": "https://makerthrive.com/",
@@ -1078,6 +1176,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "marketing-tools-list",
     "name": "Marketing Tools List",
     "type": "WEBSITE",
     "rootUrl": "https://marketingtoolslist.com/",
@@ -1089,6 +1188,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "microstartups",
     "name": "MicroStartups",
     "type": "WEBSITE",
     "rootUrl": "https://www.microstartups.co/",
@@ -1100,6 +1200,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "netted",
     "name": "Netted",
     "type": "WEBSITE",
     "rootUrl": "https://www.netted.net/",
@@ -1111,6 +1212,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "new-startups",
     "name": "New Startups",
     "type": "WEBSITE",
     "rootUrl": "https://www.new-startups.com/",
@@ -1122,6 +1224,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "noteableai",
     "name": "Noteableai",
     "type": "WEBSITE",
     "rootUrl": "https://noteableai.com/",
@@ -1133,6 +1236,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "orbic-ai",
     "name": "Orbic AI",
     "type": "WEBSITE",
     "rootUrl": "https://orbic.ai/",
@@ -1144,6 +1248,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "oye-startups",
     "name": "Oye Startups",
     "type": "WEBSITE",
     "rootUrl": "https://oyestartups.com/",
@@ -1155,6 +1260,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "pay-once-alternatives",
     "name": "Pay Once Alternatives",
     "type": "WEBSITE",
     "rootUrl": "https://payoncealternatives.com/",
@@ -1166,6 +1272,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "pitch-bracket",
     "name": "Pitch Bracket",
     "type": "WEBSITE",
     "rootUrl": "https://pitch-bracket.com/",
@@ -1177,6 +1284,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "preapps",
     "name": "PreApps",
     "type": "WEBSITE",
     "rootUrl": "https://www.preapps.com/",
@@ -1188,6 +1296,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "prefundia",
     "name": "Prefundia",
     "type": "WEBSITE",
     "rootUrl": "https://prefundia.com/",
@@ -1199,6 +1308,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "product-bump",
     "name": "Product Bump",
     "type": "WEBSITE",
     "rootUrl": "https://productbump.dev/",
@@ -1210,6 +1320,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "r-coupons",
     "name": "r/Coupons",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/coupons/",
@@ -1221,6 +1332,7 @@
     "inactiveReason": "CLOSED_TO_PROMOTION"
   },
   {
+    "id": "r-shamelessplug",
     "name": "r/shamelessplug",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/shamelessplug/",
@@ -1232,6 +1344,7 @@
     "inactiveReason": "CLOSED_TO_PROMOTION"
   },
   {
+    "id": "r-thesidehustle",
     "name": "r/thesidehustle",
     "type": "REDDIT_COMMUNITY",
     "rootUrl": "https://www.reddit.com/r/thesidehustle/",
@@ -1243,6 +1356,7 @@
     "inactiveReason": "CLOSED_TO_PROMOTION"
   },
   {
+    "id": "rankinpublic",
     "name": "RankInPublic",
     "type": "WEBSITE",
     "rootUrl": "https://rankinpublic.com/",
@@ -1254,6 +1368,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "rayday",
     "name": "RayDay",
     "type": "WEBSITE",
     "rootUrl": "https://raiday.ai/",
@@ -1265,6 +1380,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ready-saas-go",
     "name": "Ready SaaS Go",
     "type": "WEBSITE",
     "rootUrl": "https://readysaasgo.com/",
@@ -1276,6 +1392,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "remote-tools",
     "name": "Remote Tools",
     "type": "WEBSITE",
     "rootUrl": "https://www.remote.tools/",
@@ -1287,6 +1404,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "saas-directory",
     "name": "SaaS Directory",
     "type": "WEBSITE",
     "rootUrl": "https://www.saasdirectory.com/",
@@ -1298,6 +1416,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "saas-frame",
     "name": "SaaS Frame",
     "type": "WEBSITE",
     "rootUrl": "https://www.saasframe.io/",
@@ -1309,6 +1428,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "saas-gallery",
     "name": "SaaS Gallery",
     "type": "WEBSITE",
     "rootUrl": "https://saasgallery.com/",
@@ -1320,6 +1440,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "saas-mantra",
     "name": "SaaS Mantra",
     "type": "WEBSITE",
     "rootUrl": "https://www.saasmantra.com/",
@@ -1331,6 +1452,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "saas-pages",
     "name": "SaaS Pages",
     "type": "WEBSITE",
     "rootUrl": "https://saaspages.xyz/",
@@ -1342,6 +1464,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "saasgpters",
     "name": "SaaSGPTers",
     "type": "WEBSITE",
     "rootUrl": "https://saasgpters.com/",
@@ -1353,6 +1476,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "saasified",
     "name": "SaaSified",
     "type": "WEBSITE",
     "rootUrl": "https://saasified.co/",
@@ -1364,6 +1488,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "saaspromo",
     "name": "SaaSPromo",
     "type": "WEBSITE",
     "rootUrl": "https://saaspromo.com/",
@@ -1375,6 +1500,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "sales-tools-ai",
     "name": "Sales Tools AI",
     "type": "WEBSITE",
     "rootUrl": "https://salestoolsai.top/",
@@ -1386,6 +1512,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "searchaidirectory",
     "name": "SearchAiDirectory",
     "type": "WEBSITE",
     "rootUrl": "https://searchaidirectory.com/",
@@ -1397,6 +1524,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "selljam-ai",
     "name": "Selljam.ai",
     "type": "WEBSITE",
     "rootUrl": "https://selljam.ai/",
@@ -1408,6 +1536,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "show-startup",
     "name": "Show Startup",
     "type": "WEBSITE",
     "rootUrl": "https://showstartup.sahilkhan.xyz/",
@@ -1419,6 +1548,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "side-project-stack",
     "name": "Side Project Stack",
     "type": "WEBSITE",
     "rootUrl": "https://sideprojectstack.com/",
@@ -1430,6 +1560,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "similarsitesearch",
     "name": "SimilarSiteSearch",
     "type": "WEBSITE",
     "rootUrl": "https://www.similarsitesearch.com/",
@@ -1441,6 +1572,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "slant",
     "name": "Slant",
     "type": "WEBSITE",
     "rootUrl": "https://www.slant.co/",
@@ -1452,6 +1584,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "software-select",
     "name": "Software Select",
     "type": "WEBSITE",
     "rootUrl": "https://softwareselecthq.com/",
@@ -1463,6 +1596,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "softwaresupp",
     "name": "SoftwareSupp",
     "type": "WEBSITE",
     "rootUrl": "https://softwaresupp.com/",
@@ -1474,6 +1608,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "solo-push",
     "name": "Solo Push",
     "type": "WEBSITE",
     "rootUrl": "https://solopush.com/",
@@ -1485,6 +1620,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "stackviv",
     "name": "Stackviv",
     "type": "WEBSITE",
     "rootUrl": "https://stackviv.ai/",
@@ -1496,6 +1632,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "starticorn",
     "name": "Starticorn",
     "type": "WEBSITE",
     "rootUrl": "https://starticorn.com/",
@@ -1507,6 +1644,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "startup-button",
     "name": "Startup Button",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupbutton.com/",
@@ -1518,6 +1656,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "startup-collections",
     "name": "Startup Collections",
     "type": "WEBSITE",
     "rootUrl": "https://startupcollections.com/",
@@ -1529,6 +1668,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "startup-founders",
     "name": "Startup Founders",
     "type": "WEBSITE",
     "rootUrl": "https://startupfounders.com.au/",
@@ -1540,6 +1680,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "startup-galaxy",
     "name": "Startup Galaxy",
     "type": "WEBSITE",
     "rootUrl": "https://world.startupsgalaxy.com/",
@@ -1551,6 +1692,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "startup-john",
     "name": "Startup John",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupjohn.com/",
@@ -1562,6 +1704,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "startup-lift",
     "name": "Startup Lift",
     "type": "WEBSITE",
     "rootUrl": "https://startuplift.com/",
@@ -1573,6 +1716,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "startup-pitch",
     "name": "Startup Pitch",
     "type": "WEBSITE",
     "rootUrl": "https://thestartuppitch.com/",
@@ -1584,6 +1728,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "startup-resources",
     "name": "Startup Resources",
     "type": "WEBSITE",
     "rootUrl": "https://startupresources.io/",
@@ -1595,6 +1740,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "startup-roulette",
     "name": "Startup Roulette",
     "type": "WEBSITE",
     "rootUrl": "https://startuproulette.com/",
@@ -1606,6 +1752,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "startup-stage",
     "name": "Startup Stage",
     "type": "WEBSITE",
     "rootUrl": "https://startupstage.app/",
@@ -1617,6 +1764,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "startup-tabs",
     "name": "Startup Tabs",
     "type": "WEBSITE",
     "rootUrl": "https://www.startuptabs.com/",
@@ -1628,6 +1776,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "startup-tools-list",
     "name": "Startup Tools List",
     "type": "WEBSITE",
     "rootUrl": "https://startuptoolslist.com/",
@@ -1639,6 +1788,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "startup-wizz",
     "name": "Startup Wizz",
     "type": "WEBSITE",
     "rootUrl": "https://startupwizz.com/",
@@ -1650,6 +1800,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "startuplist-in",
     "name": "Startuplist.in",
     "type": "WEBSITE",
     "rootUrl": "https://startuplist.in/",
@@ -1661,6 +1812,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "startupvalley-news",
     "name": "StartupValley News",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupvalley.news/",
@@ -1672,6 +1824,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "startus",
     "name": "StartUs",
     "type": "WEBSITE",
     "rootUrl": "https://www.startus.cc/",
@@ -1683,6 +1836,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "state-of-tech",
     "name": "State of Tech",
     "type": "WEBSITE",
     "rootUrl": "https://stateoftech.net/",
@@ -1694,6 +1848,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "storyfied",
     "name": "Storyfied",
     "type": "WEBSITE",
     "rootUrl": "https://storyfied.com/",
@@ -1705,6 +1860,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "supertools",
     "name": "Supertools",
     "type": "WEBSITE",
     "rootUrl": "https://supertools.therundown.ai/",
@@ -1716,6 +1872,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "switbai",
     "name": "Switbai",
     "type": "WEBSITE",
     "rootUrl": "https://switbai.com/",
@@ -1727,6 +1884,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "t5",
     "name": "T5",
     "type": "WEBSITE",
     "rootUrl": "https://t5.dev/",
@@ -1738,6 +1896,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "tech-faster",
     "name": "Tech Faster",
     "type": "WEBSITE",
     "rootUrl": "https://techfaster.com/",
@@ -1749,6 +1908,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "the-ai-warehouse",
     "name": "The AI Warehouse",
     "type": "WEBSITE",
     "rootUrl": "https://thewarehouse.ai/",
@@ -1760,6 +1920,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "the-directory-for-ai-tools",
     "name": "The Directory for AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://ai-tools.directory/",
@@ -1771,6 +1932,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "the-next-ai-tool",
     "name": "The Next AI Tool",
     "type": "WEBSITE",
     "rootUrl": "https://thenextaitool.com/",
@@ -1782,6 +1944,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "the-startup-journal",
     "name": "The Startup Journal",
     "type": "WEBSITE",
     "rootUrl": "https://thestartupjournal.com/",
@@ -1793,6 +1956,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "the-wall-saas-directory",
     "name": "The Wall SaaS Directory",
     "type": "WEBSITE",
     "rootUrl": "https://maze.do/",
@@ -1804,6 +1968,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "tool-salad",
     "name": "Tool Salad",
     "type": "WEBSITE",
     "rootUrl": "https://toolsalad.com/",
@@ -1815,6 +1980,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "tool-summary",
     "name": "Tool Summary",
     "type": "WEBSITE",
     "rootUrl": "https://toolsummary.com/",
@@ -1826,6 +1992,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "toolfinder",
     "name": "ToolFinder",
     "type": "WEBSITE",
     "rootUrl": "https://toolfinder.wiki/",
@@ -1837,6 +2004,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "tools-hub-ai",
     "name": "Tools Hub AI",
     "type": "WEBSITE",
     "rootUrl": "https://toolshubai.com/",
@@ -1848,6 +2016,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "toolwave-io",
     "name": "Toolwave.io",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolwave.io/",
@@ -1859,6 +2028,7 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "top-tools",
     "name": "Top Tools",
     "type": "WEBSITE",
     "rootUrl": "https://toptools.ai/",
@@ -1870,6 +2040,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "trustedby",
     "name": "TrustedBy",
     "type": "WEBSITE",
     "rootUrl": "https://www.trustedby.ai/",
@@ -1881,6 +2052,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "trustlist",
     "name": "TrustList",
     "type": "WEBSITE",
     "rootUrl": "https://www.trustlist.ai/",
@@ -1892,6 +2064,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "valuer",
     "name": "Valuer",
     "type": "WEBSITE",
     "rootUrl": "https://www.valuer.ai/",
@@ -1903,6 +2076,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "vator",
     "name": "Vator",
     "type": "WEBSITE",
     "rootUrl": "https://www.vator.tv/",
@@ -1914,6 +2088,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "webwide",
     "name": "Webwide",
     "type": "WEBSITE",
     "rootUrl": "https://webwide.io/",
@@ -1925,6 +2100,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "webwiki",
     "name": "Webwiki",
     "type": "WEBSITE",
     "rootUrl": "https://www.webwiki.com/",
@@ -1936,6 +2112,7 @@
     "inactiveReason": "REPURPOSED"
   },
   {
+    "id": "whats-new-on-the-net",
     "name": "What's New on the Net",
     "type": "WEBSITE",
     "rootUrl": "https://www.whatsnewonthenet.com/",
@@ -1947,6 +2124,7 @@
     "inactiveReason": "NO_SUBMISSION"
   },
   {
+    "id": "wiki-ai-tools",
     "name": "Wiki AI Tools",
     "type": "WEBSITE",
     "rootUrl": "https://wikiaitools.com/",
@@ -1958,6 +2136,7 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "yet-another-ai-tool-directory",
     "name": "Yet Another AI Tool Directory",
     "type": "WEBSITE",
     "rootUrl": "https://yaatd.com/",
@@ -1969,6 +2148,7 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
+    "id": "yourstack",
     "name": "YourStack",
     "type": "WEBSITE",
     "rootUrl": "https://yourstack.com/",

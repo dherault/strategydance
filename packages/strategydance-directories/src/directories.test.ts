@@ -5,6 +5,7 @@ import {
   DIRECTORIES,
   DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
   DIRECTORY_FIELDS,
+  DIRECTORY_ID_PATTERN,
   DirectoryBusinessModel,
   DirectoryInactiveReason,
   DirectoryType,
@@ -69,6 +70,10 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
     }
   })
 
+  it('identifies each entry by a slug', () => {
+    for (const { id } of directories) expect(id).toMatch(DIRECTORY_ID_PATTERN)
+  })
+
   it('names each entry without spaces around its name', () => {
     for (const { name } of directories) {
       expect(name).not.toBe('')
@@ -128,15 +133,17 @@ describe('INACTIVE_DIRECTORIES', () => {
 })
 
 // One entry per directory across both lists, so a directory is never active and inactive at once,
-// and whatever checks them never checks or moves one twice
+// whatever checks them never checks or moves one twice, and an id names one directory alone
 describe('both lists', () => {
   it('list each directory once', () => {
+    const ids = ALL_DIRECTORIES.map(({ id }) => id)
     const names = ALL_DIRECTORIES.map(({ name }) => name.toLowerCase())
     const submissionUrls = ALL_DIRECTORIES.map(({ submissionUrl }) => submissionUrl)
     const websiteRootUrls = ALL_DIRECTORIES.filter(({ type }) => type === DirectoryType.WEBSITE).map(
       ({ rootUrl }) => rootUrl,
     )
 
+    expect(new Set(ids).size).toBe(ids.length)
     expect(new Set(names).size).toBe(names.length)
     expect(new Set(submissionUrls).size).toBe(submissionUrls.length)
     expect(new Set(websiteRootUrls).size).toBe(websiteRootUrls.length)

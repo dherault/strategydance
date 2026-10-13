@@ -26,7 +26,8 @@ type Options = {
   one GraphQL mutation the publisher makes, each refusing as GitHub does. A merge is three-way, a
   file at a time, from the commit the branch last took from the other: a file only one side changed
   takes that side's, and one both changed conflicts. `beforeCommit` runs before a commit lands and
-  `afterCommit` after, so a test can push or close a pull request in between
+  `afterCommit` after, and `beforePullRequest` before one is opened, so a test can push, close or
+  open one in between
 */
 function createGitHubFake({ files }: Options) {
   let shas = 0
@@ -38,7 +39,11 @@ function createGitHubFake({ files }: Options) {
   const merges: string[] = []
   // The commit of the other branch each branch last took, which a merge compares both sides to
   const mergeBases = new Map<string, string>()
-  const state = { beforeCommit: (() => {}) as () => void, afterCommit: (() => {}) as () => void }
+  const state = {
+    beforeCommit: (() => {}) as () => void,
+    afterCommit: (() => {}) as () => void,
+    beforePullRequest: (() => {}) as () => void,
+  }
 
   function createCommit(commitFiles: Files, commitParents: string[] = []) {
     const sha = `sha${++shas}`
@@ -100,6 +105,13 @@ function createGitHubFake({ files }: Options) {
       }
 
       if (method === 'POST' && route === '/pulls') {
+        state.beforePullRequest()
+
+        // As GitHub, one open pull request a branch and base
+        if (pullRequests.some(pull => pull.state === 'open' && pull.head === input.head && pull.base === input.base)) {
+          return answer(422, { message: 'Validation Failed', errors: [{ message: 'A pull request already exists' }] })
+        }
+
         const pull: PullRequest = {
           number: pullRequests.length + 1,
           html_url: `https://github.com/pull/${pullRequests.length + 1}`,

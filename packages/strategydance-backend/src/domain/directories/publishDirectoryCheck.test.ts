@@ -152,6 +152,31 @@ describe('publishDirectoryCheck', () => {
     expect(github.readFiles('directories-check')['newer.txt']).toBe('a newer run')
   })
 
+  test('reports on the pull request an overlapping run opened since it looked', async () => {
+    const github = createGitHubFake({ files: FILES })
+
+    github.state.beforePullRequest = () => {
+      github.state.beforePullRequest = () => {}
+      // The other run opens it first, with its own report
+      github.pullRequests.push({
+        number: 1,
+        html_url: 'https://github.com/pull/1',
+        body: '',
+        state: 'open',
+        head: 'directories-check',
+        base: 'dev',
+      })
+      github.comments.set(1, [{ body: '### the other run' }])
+    }
+
+    expect(await publish(github)).toEqual({ outcome: 'committed', url: 'https://github.com/pull/1' })
+    expect(github.pullRequests).toHaveLength(1)
+    expect(github.comments.get(1)?.map(({ body }) => body.split('\n')[0])).toEqual([
+      '### the other run',
+      `### ${TODAY}`,
+    ])
+  })
+
   test('leaves the branch, without asking Claude, while it holds another run’s commit', async () => {
     const github = createGitHubFake({ files: FILES })
 

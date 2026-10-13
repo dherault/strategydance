@@ -176,15 +176,20 @@ async function publishDirectoryCheck({
     return { outcome: 'closed' as const, url: pullRequest.html_url }
   }
 
-  const { data } = await github.request('POST', `/repos/${GITHUB_REPOSITORY}/pulls`, {
+  const { status, data } = await github.request('POST', `/repos/${GITHUB_REPOSITORY}/pulls`, {
     body: {
       title: PULL_REQUEST_TITLE,
       head: DIRECTORY_CHECK_BRANCH,
       base: DIRECTORY_CHECK_BASE_BRANCH,
       body: PULL_REQUEST_HEADER,
     },
+    allowedStatuses: [422],
   })
-  const created = data as PullRequest
+  // GitHub refuses a second pull request from the branch: an overlapping run opened it since this
+  // one looked, and this run's report goes on that one
+  const created = status === 422 ? await findOpenPullRequest(github) : (data as PullRequest)
+
+  if (!created) throw new Error(`GitHub refused the directories pull request: ${JSON.stringify(data)}`)
 
   await postReport(github, created.number, report)
 

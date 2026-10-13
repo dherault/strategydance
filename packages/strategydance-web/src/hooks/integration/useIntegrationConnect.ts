@@ -24,6 +24,8 @@ type ConnectAttempt = {
   integration: OrganizationIntegration
   previousConnectionId: string | null
   authorizationUrl: string | null
+  // The Connect's id once the backend answered, which a Cancel names
+  authorizationId: string | null
   isBlocked: boolean
   failure: IntegrationFailure | 'denied' | null
 }
@@ -48,8 +50,8 @@ const CONNECT_LIFETIME_MS = 10 * 60 * 1000
   hears, which ends a failed or refused Connect at once and nudges a connected one, since anybody
   can open that page. Whether the window was closed is never read, since an authorization server's
   Cross-Origin-Opener-Policy makes it read as closed while the reader is still in it. A Connect with
-  no news after its ten minutes has expired; Cancel cancels it, so a sign-in finished in the window
-  afterwards connects nothing
+  no news after its ten minutes has expired; Cancel cancels it, by its id, so a sign-in finished in the
+  window afterwards connects nothing
 */
 function useIntegrationConnect(connections: IntegrationConnection[]) {
   const { formatMessage } = useIntl()
@@ -58,6 +60,8 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
   const { startConnection, cancelConnection } = useIntegrationConnectionRequests()
   const [attempt, setAttempt] = useState<ConnectAttempt | null>(null)
   const windowRef = useRef<Window | null>(null)
+  // Which `connect` is current, so a start that answers after its Connect was canceled cancels it too
+  const currentConnectRef = useRef<symbol | null>(null)
 
   const organizationId = organization?.id ?? null
   const integrationId = attempt?.integration.id ?? null
@@ -131,6 +135,9 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
 
   async function connect(integration: OrganizationIntegration) {
     const signInWindow = window.open('', SIGN_IN_WINDOW_NAME, SIGN_IN_WINDOW_FEATURES)
+    const connectToken = Symbol(integration.id)
+
+    currentConnectRef.current = connectToken
 
     if (signInWindow) signInWindow.opener = null
 
@@ -139,12 +146,22 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
       integration,
       previousConnectionId: connections.find(connection => connection.integrationId === integration.id)?.id ?? null,
       authorizationUrl: null,
+      authorizationId: null,
       isBlocked: signInWindow === null,
       failure: null,
     })
 
     try {
-      const { authorizationUrl } = await startConnection(integration.id)
+      const { authorizationUrl, authorizationId } = await startConnection(integration.id)
+
+      // Canceled while the backend was answering: the Connect it made is canceled too
+      if (currentConnectRef.current !== connectToken) {
+        cancelConnection(integration.id, authorizationId).catch((error: unknown) => {
+          console.error('A Connect could not be canceled', error)
+        })
+
+        return
+      }
 
       if (!isHttpsAddress(authorizationUrl)) throw new Error('A sign-in at an address that is not https')
 
@@ -153,7 +170,9 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
       if (isOpen) signInWindow.location.href = authorizationUrl
 
       setAttempt(current =>
-        current?.integration.id === integration.id ? { ...current, authorizationUrl, isBlocked: !isOpen } : current,
+        current?.integration.id === integration.id
+          ? { ...current, authorizationUrl, authorizationId, isBlocked: !isOpen }
+          : current,
       )
     } catch (error) {
       console.error('A Connect could not start', error)
@@ -164,9 +183,15 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
     }
   }
 
+  /*
+    Cancels the Connect under way by its id, so a Connect started right after, which replaces it, is
+    never the one a late cancel deletes. One whose id the backend has not answered yet is canceled by
+    its `connect` once it does
+  */
   function cancel() {
     if (!attempt) return
 
+    currentConnectRef.current = null
     windowRef.current?.close()
     windowRef.current = null
     setAttempt(null)
@@ -174,7 +199,10 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
     if (attempt.failure !== null) return
 
     toast(formatMessage(integrationMessages.connectCanceled))
-    cancelConnection(attempt.integration.id).catch((error: unknown) => {
+
+    if (attempt.authorizationId === null) return
+
+    cancelConnection(attempt.integration.id, attempt.authorizationId).catch((error: unknown) => {
       console.error('A Connect could not be canceled', error)
     })
   }

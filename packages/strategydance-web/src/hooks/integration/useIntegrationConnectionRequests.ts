@@ -25,8 +25,9 @@ function useIntegrationConnectionRequests() {
   return {
     startConnection: (integrationId: string) =>
       requestApi<StartIntegrationConnectionData>({ method: 'POST', path: toPath(integrationId) }),
-    cancelConnection: (integrationId: string) =>
-      requestApi({ method: 'DELETE', path: toPath(integrationId, '/authorization') }),
+    // Names the Connect it cancels, so one started since is left alone
+    cancelConnection: (integrationId: string, authorizationId: string) =>
+      requestApi({ method: 'DELETE', path: toPath(integrationId, `/authorizations/${authorizationId}`) }),
     disconnect: (integrationId: string) => requestApi({ method: 'DELETE', path: toPath(integrationId) }),
   }
 }

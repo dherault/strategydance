@@ -1,15 +1,15 @@
 import {
   DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS,
   DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
+  DIRECTORY_CATEGORY_DESCRIPTIONS,
   DIRECTORY_INACTIVE_REASON_DESCRIPTIONS,
   DirectoryBusinessModel,
+  DirectoryCategory,
   DirectoryInactiveReason,
+  MAX_DIRECTORY_DESCRIPTION_LENGTH,
 } from 'strategydance-directories'
 
-import {
-  DIRECTORY_REVIEW_MAX_FETCHES,
-  MAX_DIRECTORY_DESCRIPTION_LENGTH,
-} from '~domain/directories/directoryCheckSettings'
+import { DIRECTORY_REVIEW_MAX_FETCHES } from '~domain/directories/directoryCheckSettings'
 
 // The reasons a review may give: whether a site can be reached is the probe's to say, and a
 // community closed to promotion is a Reddit community's, which no review reads
@@ -24,7 +24,8 @@ const MODELS = [...DIRECTORY_BUSINESS_MODEL_PRECEDENCE, DirectoryBusinessModel.P
 
 /*
   What Claude is told when it reviews a directory, built from the directories package's own words
-  for each business model and each reason, so the review and the list never mean different things
+  for each category, each business model and each reason, so the review and the list never mean
+  different things
 */
 const DIRECTORY_REVIEW_PROMPT = `You check one entry of a list of places where a founder can submit a startup: directories, launch sites, review sites, communities and the like. You are given the entry as the list holds it, and what our server saw when it fetched the entry's home page and its submission page. You may fetch up to ${DIRECTORY_REVIEW_MAX_FETCHES} more pages of the same site with web_fetch, such as its FAQ, pricing, submit or about page, found among the links of what you read, to learn how a listing works there.
 
@@ -41,6 +42,14 @@ Whether the site can be reached at all is checked separately: do not judge it.
 description: when the verdict is ACTIVE, one sentence in English of at most ${MAX_DIRECTORY_DESCRIPTION_LENGTH} characters saying what the site lists and for whom, as a neutral catalogue would: no prices, no praise such as "best" or "leading", no addresses. For instance: "Directory of AI tools sorted by category and use case, where makers submit their own products." Otherwise null.
 
 isCurrentDescriptionAccurate: false when the entry's description no longer matches what the site is, true otherwise, an empty one included.
+
+categories: when the verdict is ACTIVE, every kind of product the site lists, and an empty list otherwise. The kinds are:
+${Object.values(DirectoryCategory)
+  .map(category => `- ${category}: ${DIRECTORY_CATEGORY_DESCRIPTIONS[category]}`)
+  .join('\n')}
+A site that takes any product is ${DirectoryCategory.ANY_STARTUP} alone, rather than every kind at once. A site that takes only one country's or region's startups is ${DirectoryCategory.REGIONAL}, beside the kinds it takes or beside ${DirectoryCategory.ANY_STARTUP}.
+
+areCurrentCategoriesAccurate: false when the entry's categories no longer match what the site lists, true otherwise, an empty list included.
 
 businessModel: how the site's free path to a listing works, read from its own pages, its submission page, FAQ or pricing first. One of:
 ${MODELS.map(model => `- ${model}: ${DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS[model]}`).join('\n')}

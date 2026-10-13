@@ -658,16 +658,6 @@ const conversationMessages = defineMessages({
     description:
       'The state of a tool the AI was about to use, which stopped before it ran because the reader stopped the answer.',
   },
-  viewOutput: {
-    id: 'conversation.viewOutput',
-    defaultMessage: 'View output',
-    description: 'Button on a tool the AI used, which opens what the tool was given and what it gave back.',
-  },
-  viewError: {
-    id: 'conversation.viewError',
-    defaultMessage: 'View error',
-    description: 'Button on a tool the AI used that failed, which opens what the tool was given and how it failed.',
-  },
   documentGone: {
     id: 'conversation.documentGone',
     defaultMessage: "(no longer in the team's knowledge)",

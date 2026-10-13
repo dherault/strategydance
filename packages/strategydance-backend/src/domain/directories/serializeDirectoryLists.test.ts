@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
+import { DIRECTORY_FIELDS, INACTIVE_DIRECTORY_FIELDS } from 'strategydance-directories'
+
 import { DIRECTORIES_FILE_PATH, INACTIVE_DIRECTORIES_FILE_PATH } from '~constants'
 
 import readDirectoryLists from '~domain/directories/readDirectoryLists'
@@ -27,24 +29,39 @@ describe('serializeDirectoryLists', () => {
     const { directoriesText: text } = serializeDirectoryLists(shuffled)
 
     expect(JSON.parse(text).map(({ name }: { name: string }) => name)).toEqual([first.name, second.name])
-    expect(Object.keys(JSON.parse(text)[0])).toEqual([
-      'name',
-      'type',
-      'rootUrl',
-      'submissionUrl',
-      'description',
-      'businessModel',
-      'lastChecked',
-      'unreachableSince',
-    ])
+    expect(Object.keys(JSON.parse(text)[0])).toEqual([...DIRECTORY_FIELDS])
   })
 })
 
 describe('readDirectoryLists', () => {
+  // So the reader and the package never disagree on what an entry holds
+  test("refuses an entry without one of the package's fields", () => {
+    const [entry] = JSON.parse(directoriesText)
+    const [inactiveEntry] = JSON.parse(inactiveDirectoriesText)
+
+    for (const field of DIRECTORY_FIELDS) {
+      const { [field]: _, ...rest } = entry
+
+      expect(() => readDirectoryLists(JSON.stringify([rest]), '[]')).toThrow()
+    }
+
+    for (const field of INACTIVE_DIRECTORY_FIELDS) {
+      const { [field]: _, ...rest } = inactiveEntry
+
+      expect(() => readDirectoryLists('[]', JSON.stringify([rest]))).toThrow()
+    }
+  })
+
   test('refuses a field it does not know', () => {
     const [entry] = JSON.parse(directoriesText)
 
     expect(() => readDirectoryLists(JSON.stringify([{ ...entry, newField: true }]), '[]')).toThrow()
+  })
+
+  test('refuses a category it does not know', () => {
+    const [entry] = JSON.parse(directoriesText)
+
+    expect(() => readDirectoryLists(JSON.stringify([{ ...entry, categories: ['GAMES'] }]), '[]')).toThrow()
   })
 
   test('refuses a business model it does not know', () => {

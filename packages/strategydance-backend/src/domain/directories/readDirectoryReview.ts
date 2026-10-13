@@ -1,14 +1,15 @@
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { DirectoryBusinessModel } from 'strategydance-directories'
+import {
+  DirectoryBusinessModel,
+  DirectoryCategory,
+  isDirectoryCategoryListValid,
+  MAX_DIRECTORY_DESCRIPTION_LENGTH,
+} from 'strategydance-directories'
 import { z } from 'zod'
 
 import type { DirectoryReviewAnswer } from '~types'
 
-import {
-  MAX_DIRECTORY_DESCRIPTION_LENGTH,
-  MAX_DIRECTORY_EVIDENCE_LENGTH,
-  MAX_DIRECTORY_NOTES_LENGTH,
-} from '~domain/directories/directoryCheckSettings'
+import { MAX_DIRECTORY_EVIDENCE_LENGTH, MAX_DIRECTORY_NOTES_LENGTH } from '~domain/directories/directoryCheckSettings'
 import { DIRECTORY_REVIEW_INACTIVE_REASONS } from '~domain/directories/directoryReviewPrompt'
 
 const webUrlSchema = z.url({ protocol: /^https?$/ })
@@ -18,6 +19,8 @@ const answerSchema = z.object({
   inactiveReason: z.enum(DIRECTORY_REVIEW_INACTIVE_REASONS).nullable(),
   description: z.string().nullable(),
   isCurrentDescriptionAccurate: z.boolean(),
+  categories: z.array(z.enum(Object.values(DirectoryCategory))),
+  areCurrentCategoriesAccurate: z.boolean(),
   businessModel: z.enum(Object.values(DirectoryBusinessModel)).nullable(),
   evidence: z.object({ quote: z.string(), url: z.string() }).nullable(),
   submissionUrl: z.string().nullable(),
@@ -32,7 +35,9 @@ const answerSchema = z.object({
 
   What the schema cannot hold is held here: a description longer than a sentence or on several lines
   is dropped rather than cut, as are a quote longer than a sentence or so, an `UNKNOWN` model, which
-  says nothing, and an address that is not a web one. Notes past their length are cut, so a day's
+  says nothing, and an address that is not a web one. The categories are kept once each, in the
+  enum's order, as the list holds them, and dropped when they set `ANY_STARTUP` beside a kind, which
+  contradicts itself, as none at all says nothing. Notes past their length are cut, so a day's
   report fits a pull request's description
 */
 function readDirectoryReview(message: BetaMessage, content: BetaContentBlock[]): DirectoryReviewAnswer | null {
@@ -63,6 +68,7 @@ function readDirectoryReview(message: BetaMessage, content: BetaContentBlock[]):
   const isEvidenceValid =
     !!quote && quote.length <= MAX_DIRECTORY_EVIDENCE_LENGTH && webUrlSchema.safeParse(answer.evidence?.url).success
   const notes = answer.notes.trim()
+  const categories = Object.values(DirectoryCategory).filter(category => answer.categories.includes(category))
 
   return {
     ...answer,
@@ -70,6 +76,7 @@ function readDirectoryReview(message: BetaMessage, content: BetaContentBlock[]):
       description && description.length <= MAX_DIRECTORY_DESCRIPTION_LENGTH && !description.includes('\n')
         ? description
         : null,
+    categories: categories.length && isDirectoryCategoryListValid(categories) ? categories : null,
     businessModel: answer.businessModel === DirectoryBusinessModel.UNKNOWN ? null : answer.businessModel,
     evidence: isEvidenceValid ? answer.evidence : null,
     submissionUrl: webUrlSchema.safeParse(answer.submissionUrl).success ? answer.submissionUrl : null,

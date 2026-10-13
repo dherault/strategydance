@@ -2198,3 +2198,206 @@ query GetAgentConnections
     }
   }
 }
+
+# --- Integrations ---
+
+# The organization's MCP servers, for the Integrations page: everything but the key's ciphertext,
+# with the revision and the key's generation a dialog sends back with an edit, so one made from a stale
+# view is refused,
+# which no web operation selects, and the tools, which the dialog reads apart
+# (`GetOrganizationIntegrationTools`), so a refresh never carries every server's schemas. Any
+# member reads them, as the team does; a reader outside the organization reads an empty list.
+#
+# Refreshed by every write that changes what it selects, all of them the backend connector's, on
+# the organization they carry, by `RemoveOrganizationMember`, which empties it for a reader
+# removed, and by `DeleteOrganization`. Never by the agent's calls marking `lastUsedAt` (M29),
+# which would wake every open page at each call. At most 50 rows (`MAX_INTEGRATIONS` in
+# strategydance-core), so the list is never cut short
+query GetOrganizationIntegrations($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RenameOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ReconfigureOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateOrganizationIntegrationKey"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RecordOrganizationIntegrationTools"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RecordOrganizationIntegrationIssuer"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ChangeOrganizationIntegrationIssuer"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RecordOrganizationIntegrationError"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetOrganizationIntegrationEnabled"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  organizationIntegrations(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 50
+  ) {
+    id
+    name
+    url
+    catalogueSlug
+    authentication
+    isEnabled
+    configRevision
+    keyGeneration
+    apiKeyLastFour
+    apiKeyScheme
+    apiKeyHeader
+    toolCount
+    lastError
+    lastErrorAt
+    lastUsedAt
+    createdAt
+  }
+}
+
+# One server's tools as it last listed them, and the ones its administrators let run without a
+# member's approval, for its dialog while it is open. Refreshed by every write that changes either,
+# on the server it names, and by a delete and a restore. Null for a reader outside the organization
+query GetOrganizationIntegrationTools($organizationId: UUID!, $integrationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "ReconfigureOrganizationIntegration"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateOrganizationIntegrationKey"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RecordOrganizationIntegrationTools"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ChangeOrganizationIntegrationIssuer"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "AllowOrganizationIntegrationTool"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DisallowOrganizationIntegrationTool"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganizationIntegration"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreOrganizationIntegration"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  organizationIntegrations(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+    configRevision
+    tools
+    autoApprovedTools
+  }
+}

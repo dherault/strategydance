@@ -188,7 +188,5 @@
   "conversation.undo": "Desfazer",
   "conversation.updated": "Atualizado {time}",
   "conversation.updatedJustNow": "Agora mesmo",
-  "conversation.viewError": "Ver erro",
-  "conversation.viewOutput": "Ver saída",
   "conversation.working": "O Strategy Dance está trabalhando: {step}"
 }

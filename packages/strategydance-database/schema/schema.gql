@@ -1038,3 +1038,118 @@ type OAuthAuthorizationRequest @table @index(fields: ["createdAt"]) @index(field
   codeUsedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# How Strategy Dance proves itself to an organization's MCP server: each member's own account,
+# connected through OAuth (M28), one key the organization gives for everybody, or nothing. Append a
+# value; never reorder
+enum IntegrationAuthentication {
+  OAUTH
+  API_KEY
+  NONE
+}
+
+# How a key is sent: as a bearer token, `Authorization: Bearer <key>`, or alone in the header the
+# integration names. Append a value; never reorder
+enum IntegrationApiKeyScheme {
+  BEARER
+  HEADER
+}
+
+# Why a server could not be reached when it was last tried: its address is not one Strategy Dance
+# reaches, nothing answered, it answered too late, it refused the key, it asked for authentication
+# it was added without, it did not answer as an MCP server, its OAuth discovery failed, or it lists
+# more tools than a server may. Each is a route's error code with `INTEGRATION_` before it, which
+# `INTEGRATION_FAILURE_ERROR_CODES` in strategydance-core pairs. Append a value; never reorder
+enum IntegrationError {
+  ADDRESS_REFUSED
+  UNREACHABLE
+  TIMED_OUT
+  KEY_REFUSED
+  AUTHENTICATION_REQUIRED
+  NOT_MCP_SERVER
+  DISCOVERY_FAILED
+  TOO_MANY_TOOLS
+}
+
+# Another company's MCP server, which an organization's administrators add so that Strategy Dance's
+# agent can call its tools in conversations (M29), for members who connected their own account to it
+# when it takes OAuth (M28). Every member reads the organization's servers, and only its
+# administrators change them, through the backend, which reaches each server through its outbound
+# guard. At most 50 an organization (`MAX_INTEGRATIONS` in strategydance-core), deleted ones not
+# counted.
+#
+# Its address, its authentication and the authorization server it names are bound to everything
+# given for them: a change of either, or a discovery that resolves another issuer, clears the key,
+# the issuer, the tools and their approvals in the one write that bumps `configRevision`, and M28
+# adds the registered client, members' connections and pending authorizations to it, so no
+# credential or approval reaches a server it was not given for.
+#
+# The key is secret: `encryptedApiKey` is read by the backend alone, through
+# `GetOrganizationIntegrationForAdministrator`, and no web operation selects it. Everything else is
+# the organization's to read.
+#
+# Deleted by setting `deletedAt`, so an Undo is one update, and restored only within a day. A
+# delete prunes the organization's servers deleted over a day ago, and the daily sweep prunes every
+# organization's, with the key they hold
+type OrganizationIntegration @table @index(fields: ["organizationId", "createdAt"]) @index(fields: ["deletedAt"]) {
+  # Made by the backend rather than the database, since the key's ciphertext is bound to it
+  id: UUID!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 40 characters (`MAX_INTEGRATION_NAME_LENGTH`), by which the agent names the
+  # server, so no two live servers of an organization share one: `normalizedName` is it trimmed and
+  # in lowercase, which the writes that name a server compare under the organization's row lock
+  name: String!
+  normalizedName: String!
+  # The Streamable HTTP endpoint, https on its own port, as the URL parser writes it
+  # (`parseIntegrationUrl`). Every member reads it, so a secret belongs in the key, never here
+  url: String!
+  # The server it was added from, the slug of one of strategydance-external-mcp-servers'
+  # `EXTERNAL_MCP_SERVERS`, which names its mark. Null for one added by its address
+  catalogueSlug: String
+  authentication: IntegrationAuthentication!
+  # Whether the agent may call it. One turned off keeps everything else
+  isEnabled: Boolean! @default(value: true)
+  # Bumped by every write that changes which server the tools come from or how it is reached (the
+  # address, the authentication, the issuer, or how the key is sent), which the writes made after
+  # reaching the server match, so a result read from an old configuration is never stored over a
+  # new one, and to which M29 binds the approvals it asks members for
+  configRevision: Int! @default(value: 0)
+  # The key, for an `API_KEY` server: `v1:kms:` and Cloud KMS's ciphertext, or `v1:local:` and the
+  # development key's, bound to the organization and this id, so it opens for no other row. Null
+  # for any other authentication
+  encryptedApiKey: String
+  # Its last four characters, which every member's page shows so an administrator knows which key
+  # it is: null for a key under 12 characters, whose last four would give too much of it away
+  apiKeyLastFour: String
+  # Bumped whenever the key is replaced, to which M29 binds the approvals of a key-based server
+  keyGeneration: Int! @default(value: 0)
+  apiKeyScheme: IntegrationApiKeyScheme! @default(value: BEARER)
+  # The header a `HEADER` key is sent in, never one the client sets itself or the connection acts
+  # on (`isValidIntegrationApiKeyHeader`). Null for a bearer key
+  apiKeyHeader: String
+  # The issuer of the authorization server an `OAUTH` server named, as its discovery validated it
+  issuer: String
+  # The tools the server listed last, as JSON text of `IntegrationTool`s, at most 200 and 1 MiB
+  # (`MAX_INTEGRATION_TOOLS`, `MAX_INTEGRATION_TOOLS_BYTES`): `String` rather than `Any`, which
+  # Postgres' `jsonb` stores keeping one of two duplicate keys of a schema. Read by the dialog and
+  # the agent, never by the list, which reads `toolCount`. Both null until the server lists its
+  # tools, which an OAuth one does once a member has connected (M28), and again when its address,
+  # its authentication or its issuer changes
+  tools: String
+  toolCount: Int
+  # Each listed tool's `definitionHash`, which `autoApprovedTools` is held within
+  toolDefinitionHashes: [String!]! @default(sql: "'{}'")
+  # The hashes of the definitions administrators let run without a member's approval (M29), each
+  # SHA-256 of the tool's name, description, input schema and annotations, so a server that changes
+  # a tool loses its approval, and a listing drops the approvals of the tools it no longer lists
+  autoApprovedTools: [String!]! @default(sql: "'{}'")
+  # Why the server could not be reached when it was last tried, cleared once it is
+  lastError: IntegrationError
+  lastErrorAt: Timestamp
+  # When the agent last called it (M29), which no live query refreshes on
+  lastUsedAt: Timestamp
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

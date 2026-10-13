@@ -15,13 +15,24 @@ each with the reason its note gave, a `DirectoryInactiveReason`.
 
 Each entry holds:
 
+- `id`: a slug of the name the entry was first given, lowercase letters and digits in words joined
+  by dashes (`DIRECTORY_ID_PATTERN`), unique across both lists. It never changes, even when the
+  directory is renamed, so whatever refers to a directory keeps finding it. A directory added by
+  hand takes the slug of its name: diacritics and apostrophes dropped, every other run of
+  characters but letters and digits a dash
 - `name`
 - `type`: `WEBSITE` or `REDDIT_COMMUNITY`
 - `rootUrl`: the site's origin, or a Reddit community's own page, since reddit.com itself is never
   down
 - `submissionUrl`: where a startup is submitted
-- `description`: what the directory lists and for whom, written by the daily check, empty until it
+- `description`: what the directory lists and for whom, one sentence of
+  `MAX_DIRECTORY_DESCRIPTION_LENGTH` characters at most, written by the daily check, empty until it
   has been
+- `categories`: the kinds of product the directory lists, each a `DirectoryCategory`, which
+  `DIRECTORY_CATEGORY_DESCRIPTIONS` describes, once each and in the enum's order, written by the
+  daily check, empty until it has been: `ANY_STARTUP` for one that takes any product, rather than
+  every kind, and `REGIONAL` beside the kinds for one that takes a single region's startups.
+  `isDirectoryCategoryListValid` says whether a list keeps to all that
 - `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for those imported as inactive, while one
   the daily check moves there keeps its own
 - `lastChecked`: the UTC day (`YYYY-MM-DD`) of the last check, whatever came of it, null until
@@ -39,6 +50,8 @@ describes:
 - `BROKEN_SUBMISSION`: the way to submit is there and fails
 - `CLOSED_TO_PROMOTION`: a community whose rules ban promotion, or that Reddit banned
 
-A directory is in one list or the other, never both: the tests hold names, submission URLs and
-websites' roots unique across the two. Both files are sorted by name and written as
-`JSON.stringify(list, null, 2)` writes them, which is how the formatter lays them out.
+A directory is in one list or the other, never both: the tests hold ids, names, submission URLs
+and websites' roots unique across the two. Both files are sorted by name, as `compareDirectoryNames`
+orders them, each entry's fields in the order `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS`
+give, and written as `JSON.stringify(list, null, 2)` writes them, which is how the formatter lays
+them out. The daily check writes them through the same three, so its files pass the tests.

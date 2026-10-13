@@ -1,19 +1,12 @@
-import { lookup } from 'node:dns/promises'
-import http, { type IncomingHttpHeaders } from 'node:http'
-import https from 'node:https'
-import { isIP } from 'node:net'
+import type { IncomingHttpHeaders } from 'node:http'
 
-import isGloballyRoutableAddress from '~utils/isGloballyRoutableAddress'
-
-/** An address a hostname resolved to, as `dns.lookup` writes one */
-type ResolvedAddress = { address: string; family: number }
-
-/** A response's head, and its body as it arrives */
-type OutboundStream = {
-  status: number
-  headers: IncomingHttpHeaders
-  body: AsyncIterable<Uint8Array>
-}
+import requestOutbound, {
+  OutboundRefusal,
+  type OutboundRefusalReason,
+  type OutboundSend,
+  type OutboundStream,
+  type ResolvedAddress,
+} from '~utils/requestOutbound'
 
 type FetchOutboundOptions = {
   /** How much of the body to read, past which it is cut and said to be */
@@ -26,12 +19,7 @@ type FetchOutboundOptions = {
   /** Every address a hostname resolves to, the system's resolver unless a test stands in */
   resolve?: (hostname: string) => Promise<ResolvedAddress[]>
   /** Sends the request to the one address checked, Node's HTTP unless a test stands in */
-  send?: (
-    url: URL,
-    address: ResolvedAddress,
-    headers: Record<string, string>,
-    signal: AbortSignal,
-  ) => Promise<OutboundStream>
+  send?: OutboundSend
 }
 
 type OutboundResponse = {
@@ -44,35 +32,11 @@ type OutboundResponse = {
   isTruncated: boolean
 }
 
-/**
- * Why a request was refused: an address that is not a web one, a port or credentials it should not
- * carry, a hostname resolving to an address that is not public, or more redirects than allowed
- */
-type OutboundRefusalReason = 'address' | 'port' | 'credentials' | 'privateAddress' | 'redirects'
-
-/** A request this server will not make: to an address that is not public, a port or a protocol it does not speak */
-class OutboundRefusal extends Error {
-  name = 'OutboundRefusal'
-  reason: OutboundRefusalReason
-
-  constructor(message: string, reason: OutboundRefusalReason) {
-    super(message)
-    this.reason = reason
-  }
-}
-
-const PORTS: Record<string, string> = { 'http:': '80', 'https:': '443' }
-
 /*
-  Fetches a web address somebody else gave, with a GET, from a server that also reaches its own
-  database, its metadata server and whatever else sits on its network: the guard every request
-  made on another's behalf goes through.
-
-  The address is http or https, on its protocol's own port. Its hostname is resolved, every address
-  it resolves to has to be on the public internet (`isGloballyRoutableAddress`), and the connection
-  goes to the one checked rather than to whatever a second resolution would answer, so a name that
-  answers a public address to the check and a private one to the connection reaches nothing. A
-  redirect is followed by hand, as many as `maxRedirects`, each checked the same way. The whole
+  Fetches a web address somebody else gave, with a GET, through `requestOutbound`, the guard every
+  request made on another's behalf goes through: http or https on its protocol's own port, every
+  address its hostname resolves to on the public internet, the connection pinned to the one checked.
+  A redirect is followed by hand, as many as `maxRedirects`, each checked the same way. The whole
   fetch has a deadline, resolutions included, and the body is read up to `maxBytes`, past which it
   is cut.
 
@@ -82,113 +46,31 @@ const PORTS: Record<string, string> = { 'http:': '80', 'https:': '443' }
 */
 async function fetchOutbound(
   address: string,
-  {
-    maxBytes,
-    timeoutMs,
-    maxRedirects,
-    headers = {},
-    resolve = resolveHostname,
-    send = sendRequest,
-  }: FetchOutboundOptions,
+  { maxBytes, timeoutMs, maxRedirects, headers = {}, resolve, send }: FetchOutboundOptions,
 ): Promise<OutboundResponse> {
   const signal = AbortSignal.timeout(timeoutMs)
-  const requestHeaders = { ...headers, 'accept-encoding': 'identity' }
-  let url = parseAddress(address)
+  let url: string | URL = address
 
   for (let redirects = 0; ; redirects++) {
-    const target = await resolveChecked(url, resolve, signal)
-    const response = await send(url, target, requestHeaders, signal)
+    const response = await requestOutbound(url, { headers, signal, resolve, send })
     const location = response.headers.location
 
     if (response.status >= 300 && response.status < 400 && location) {
       await drain(response.body)
 
       if (redirects >= maxRedirects) {
-        throw new OutboundRefusal(`More than ${maxRedirects} redirects from ${address}`, 'redirects')
+        throw new OutboundRefusal(`More than ${maxRedirects} redirects from ${response.url.origin}`, 'redirects')
       }
 
-      url = parseAddress(new URL(location, url).href)
+      url = new URL(location, response.url)
 
       continue
     }
 
     const { body, isTruncated } = await readBody(response.body, maxBytes)
 
-    return { url: url.href, status: response.status, headers: response.headers, body, isTruncated }
+    return { url: response.url.href, status: response.status, headers: response.headers, body, isTruncated }
   }
-}
-
-// The address as a URL this server will request: http or https, on its protocol's port
-function parseAddress(address: string) {
-  let url: URL
-
-  try {
-    url = new URL(address)
-  } catch {
-    throw new OutboundRefusal(`Not a web address: ${address}`, 'address')
-  }
-
-  if (!(url.protocol in PORTS)) throw new OutboundRefusal(`Not a web address: ${address}`, 'address')
-  if (url.port && url.port !== PORTS[url.protocol]) throw new OutboundRefusal(`Not a web port: ${address}`, 'port')
-  if (url.username || url.password) {
-    throw new OutboundRefusal(`A web address with credentials: ${address}`, 'credentials')
-  }
-
-  return url
-}
-
-// The address to connect to, once every address the hostname resolves to is public, within the deadline
-async function resolveChecked(url: URL, resolve: NonNullable<FetchOutboundOptions['resolve']>, signal: AbortSignal) {
-  // The URL parser writes an IPv6 hostname in brackets, which neither the resolver nor the check reads
-  const hostname = url.hostname.replace(/^\[(.*)\]$/, '$1')
-  const family = isIP(hostname)
-  const addresses = family ? [{ address: hostname, family }] : await untilAborted(resolve(hostname), signal)
-
-  if (!addresses.length || !addresses.every(({ address }) => isGloballyRoutableAddress(address))) {
-    throw new OutboundRefusal(`Not a public address: ${url.hostname}`, 'privateAddress')
-  }
-
-  return addresses[0]
-}
-
-// What a promise settles to, or the signal's reason once it aborts first, a stalled resolver's say
-function untilAborted<T>(promise: Promise<T>, signal: AbortSignal) {
-  if (signal.aborted) return Promise.reject(signal.reason)
-
-  return new Promise<T>((resolve, reject) => {
-    const abort = () => reject(signal.reason)
-
-    signal.addEventListener('abort', abort, { once: true })
-    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
-  })
-}
-
-async function resolveHostname(hostname: string) {
-  return lookup(hostname, { all: true, verbatim: true })
-}
-
-// A GET to one address checked: the lookup answers it whatever it is asked, and TLS still checks the hostname
-function sendRequest(url: URL, address: ResolvedAddress, headers: Record<string, string>, signal: AbortSignal) {
-  const transport = url.protocol === 'https:' ? https : http
-
-  return new Promise<OutboundStream>((resolve, reject) => {
-    const request = transport.request(
-      url,
-      {
-        method: 'GET',
-        headers,
-        signal,
-        lookup: (_hostname, options, callback) => {
-          if (options.all) (callback as (error: null, addresses: ResolvedAddress[]) => void)(null, [address])
-          else callback(null, address.address, address.family)
-        },
-      },
-      response => resolve({ status: response.statusCode ?? 0, headers: response.headers, body: response }),
-    )
-
-    request.on('error', reject)
-    request.end()
-  })
 }
 
 async function drain(body: AsyncIterable<Uint8Array>) {

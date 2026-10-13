@@ -5,7 +5,12 @@ import type {
   BetaMessageParam,
   BetaMessageStreamParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { DirectoryBusinessModel, type Directory, type InactiveDirectory } from 'strategydance-directories'
+import {
+  type Directory,
+  DirectoryBusinessModel,
+  DirectoryCategory,
+  type InactiveDirectory,
+} from 'strategydance-directories'
 
 import type { DirectoryPageProbe, DirectoryProbe } from '~types'
 
@@ -28,8 +33,8 @@ function nullable(schema: Record<string, unknown>) {
 
 /*
   What the answer holds, every field required, those that depend on the verdict null when they do
-  not apply. The API takes no bound on a string's length, so the reader holds the description to
-  its own
+  not apply, and the categories empty. The API takes no bound on a string's length, nor holds a
+  list's items unique, so the reader holds the description and the categories to both
 */
 export const DIRECTORY_REVIEW_SCHEMA = {
   type: 'object',
@@ -38,6 +43,8 @@ export const DIRECTORY_REVIEW_SCHEMA = {
     inactiveReason: nullable({ type: 'string', enum: [...DIRECTORY_REVIEW_INACTIVE_REASONS] }),
     description: nullable({ type: 'string' }),
     isCurrentDescriptionAccurate: { type: 'boolean' },
+    categories: { type: 'array', items: { type: 'string', enum: Object.values(DirectoryCategory) } },
+    areCurrentCategoriesAccurate: { type: 'boolean' },
     businessModel: nullable({
       type: 'string',
       enum: Object.values(DirectoryBusinessModel).filter(model => model !== DirectoryBusinessModel.UNKNOWN),
@@ -56,6 +63,8 @@ export const DIRECTORY_REVIEW_SCHEMA = {
     'inactiveReason',
     'description',
     'isCurrentDescriptionAccurate',
+    'categories',
+    'areCurrentCategoriesAccurate',
     'businessModel',
     'evidence',
     'submissionUrl',
@@ -107,6 +116,7 @@ function describeDirectory(directory: Directory | InactiveDirectory, probe: Dire
     rootUrl: directory.rootUrl,
     submissionUrl: directory.submissionUrl,
     description: directory.description,
+    categories: directory.categories,
     businessModel: directory.businessModel,
   }
   const lines = [`The entry:\n${JSON.stringify(entry, null, 2)}`]

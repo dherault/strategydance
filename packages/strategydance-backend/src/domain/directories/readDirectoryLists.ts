@@ -1,4 +1,10 @@
-import { DirectoryBusinessModel, DirectoryInactiveReason, DirectoryType } from 'strategydance-directories'
+import {
+  DIRECTORY_ID_PATTERN,
+  DirectoryBusinessModel,
+  DirectoryCategory,
+  DirectoryInactiveReason,
+  DirectoryType,
+} from 'strategydance-directories'
 import { z } from 'zod'
 
 import type { DirectoryLists } from '~types'
@@ -7,11 +13,13 @@ import type { DirectoryLists } from '~types'
 const daySchema = z.iso.date()
 
 const directorySchema = z.strictObject({
+  id: z.string().regex(DIRECTORY_ID_PATTERN),
   name: z.string().min(1),
   type: z.enum(Object.values(DirectoryType)),
   rootUrl: z.url(),
   submissionUrl: z.url(),
   description: z.string(),
+  categories: z.array(z.enum(Object.values(DirectoryCategory))),
   businessModel: z.enum(Object.values(DirectoryBusinessModel)),
   lastChecked: daySchema.nullable(),
   unreachableSince: daySchema.nullable(),

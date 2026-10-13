@@ -188,7 +188,5 @@
   "conversation.undo": "撤销",
   "conversation.updated": "更新于 {time}",
   "conversation.updatedJustNow": "刚刚",
-  "conversation.viewError": "查看错误",
-  "conversation.viewOutput": "查看输出",
   "conversation.working": "Strategy Dance 正在处理：{step}"
 }

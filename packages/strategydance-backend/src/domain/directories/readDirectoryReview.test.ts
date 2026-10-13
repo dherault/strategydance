@@ -68,6 +68,21 @@ describe('readDirectoryReview', () => {
     expect(answer?.notes.endsWith('…')).toBe(true)
   })
 
+  test('keeps each category once, in the enum order, and none or a contradiction as no answer', () => {
+    expect(read([text(createAnswer({ categories: ['SAAS', 'AI_TOOLS', 'SAAS'] }))])?.categories).toEqual([
+      'AI_TOOLS',
+      'SAAS',
+    ])
+    expect(read([text({ ...createAnswer(), categories: [] })])?.categories).toBeNull()
+    expect(read([text(createAnswer({ categories: ['REGIONAL', 'ANY_STARTUP'] }))])?.categories).toEqual([
+      'ANY_STARTUP',
+      'REGIONAL',
+    ])
+    // Any product, and some kinds only, at once
+    expect(read([text(createAnswer({ categories: ['ANY_STARTUP', 'AI_TOOLS'] }))])?.categories).toBeNull()
+    expect(read([text({ ...createAnswer(), categories: ['GAMES'] })])).toBeNull()
+  })
+
   test('drops an UNKNOWN model and addresses that are not web ones', () => {
     const answer = read([
       text(

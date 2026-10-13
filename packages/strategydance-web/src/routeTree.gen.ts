@@ -28,6 +28,7 @@ import { Route as AuthenticatedAppOrganizationSlugIndexRouteImport } from './rou
 import { Route as AuthenticatedAppOrganizationSlugBuildInPublicRouteImport } from './routes/_authenticated/_app/$organizationSlug/build-in-public'
 import { Route as AuthenticatedAppOrganizationSlugConversationsRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations'
 import { Route as AuthenticatedAppOrganizationSlugExploreRouteImport } from './routes/_authenticated/_app/$organizationSlug/explore'
+import { Route as AuthenticatedAppOrganizationSlugIntegrationsRouteImport } from './routes/_authenticated/_app/$organizationSlug/integrations'
 import { Route as AuthenticatedAppOrganizationSlugProfileRouteImport } from './routes/_authenticated/_app/$organizationSlug/profile'
 import { Route as AuthenticatedAppOrganizationSlugTasksRouteImport } from './routes/_authenticated/_app/$organizationSlug/tasks'
 import { Route as AuthenticatedAppOrganizationSlugTeamRouteImport } from './routes/_authenticated/_app/$organizationSlug/team'
@@ -147,6 +148,12 @@ const AuthenticatedAppOrganizationSlugExploreRoute =
     path: '/explore',
     getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
+const AuthenticatedAppOrganizationSlugIntegrationsRoute =
+  AuthenticatedAppOrganizationSlugIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
+  } as any)
 const AuthenticatedAppOrganizationSlugProfileRoute =
   AuthenticatedAppOrganizationSlugProfileRouteImport.update({
     id: '/profile',
@@ -263,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
   '/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
   '/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
+  '/$organizationSlug/integrations': typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   '/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
   '/$organizationSlug/tasks': typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   '/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
@@ -293,6 +301,7 @@ export interface FileRoutesByTo {
   '/oauth/consent': typeof AuthenticatedOauthConsentRoute
   '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
   '/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
+  '/$organizationSlug/integrations': typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   '/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
   '/$organizationSlug/tasks': typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   '/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
@@ -331,6 +340,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
   '/_authenticated/_app/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
   '/_authenticated/_app/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
+  '/_authenticated/_app/$organizationSlug/integrations': typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   '/_authenticated/_app/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
   '/_authenticated/_app/$organizationSlug/tasks': typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   '/_authenticated/_app/$organizationSlug/team': typeof AuthenticatedAppOrganizationSlugTeamRoute
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/build-in-public'
     | '/$organizationSlug/conversations'
     | '/$organizationSlug/explore'
+    | '/$organizationSlug/integrations'
     | '/$organizationSlug/profile'
     | '/$organizationSlug/tasks'
     | '/$organizationSlug/team'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/oauth/consent'
     | '/$organizationSlug/build-in-public'
     | '/$organizationSlug/explore'
+    | '/$organizationSlug/integrations'
     | '/$organizationSlug/profile'
     | '/$organizationSlug/tasks'
     | '/$organizationSlug/team'
@@ -435,6 +447,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/$organizationSlug/build-in-public'
     | '/_authenticated/_app/$organizationSlug/conversations'
     | '/_authenticated/_app/$organizationSlug/explore'
+    | '/_authenticated/_app/$organizationSlug/integrations'
     | '/_authenticated/_app/$organizationSlug/profile'
     | '/_authenticated/_app/$organizationSlug/tasks'
     | '/_authenticated/_app/$organizationSlug/team'
@@ -598,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationSlugExploreRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
+    '/_authenticated/_app/$organizationSlug/integrations': {
+      id: '/_authenticated/_app/$organizationSlug/integrations'
+      path: '/integrations'
+      fullPath: '/$organizationSlug/integrations'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
+    }
     '/_authenticated/_app/$organizationSlug/profile': {
       id: '/_authenticated/_app/$organizationSlug/profile'
       path: '/profile'
@@ -750,6 +770,7 @@ interface AuthenticatedAppOrganizationSlugRouteChildren {
   AuthenticatedAppOrganizationSlugBuildInPublicRoute: typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
   AuthenticatedAppOrganizationSlugConversationsRoute: typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
   AuthenticatedAppOrganizationSlugExploreRoute: typeof AuthenticatedAppOrganizationSlugExploreRoute
+  AuthenticatedAppOrganizationSlugIntegrationsRoute: typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   AuthenticatedAppOrganizationSlugProfileRoute: typeof AuthenticatedAppOrganizationSlugProfileRoute
   AuthenticatedAppOrganizationSlugTasksRoute: typeof AuthenticatedAppOrganizationSlugTasksRouteWithChildren
   AuthenticatedAppOrganizationSlugTeamRoute: typeof AuthenticatedAppOrganizationSlugTeamRoute
@@ -768,6 +789,8 @@ const AuthenticatedAppOrganizationSlugRouteChildren: AuthenticatedAppOrganizatio
       AuthenticatedAppOrganizationSlugConversationsRouteWithChildren,
     AuthenticatedAppOrganizationSlugExploreRoute:
       AuthenticatedAppOrganizationSlugExploreRoute,
+    AuthenticatedAppOrganizationSlugIntegrationsRoute:
+      AuthenticatedAppOrganizationSlugIntegrationsRoute,
     AuthenticatedAppOrganizationSlugProfileRoute:
       AuthenticatedAppOrganizationSlugProfileRoute,
     AuthenticatedAppOrganizationSlugTasksRoute:

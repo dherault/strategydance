@@ -14,6 +14,7 @@
     "check:conversation-page": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationPage.ts",
     "check:conversation-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationRuns.ts",
     "check:conversation-search": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkConversationSearch.ts",
+    "check:integrations": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkIntegrations.ts",
     "check:knowledge-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkKnowledgeModule.ts",
     "check:oauth": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkOAuth.ts",
     "check:tasks-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkTasksModule.ts",
@@ -24,11 +25,13 @@
     "backfill:task-text": "bun scripts/backfillTaskText.ts",
     "check:directories": "bun scripts/checkDirectories.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
+    "probe:integrations": "bun scripts/probeIntegrations.ts",
     "send:conversation": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/sendConversationMessage.ts",
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@google-cloud/kms": "^6.2.1",
     "@google-cloud/secret-manager": "^7.1.1",
     "@google-cloud/tasks": "^7.2.1",
     "@modelcontextprotocol/client": "^2.3.0",
@@ -52,6 +55,7 @@
     "strategydance-design-system": "workspace:*",
     "strategydance-directories": "workspace:*",
     "strategydance-emails": "workspace:*",
+    "strategydance-external-mcp-servers": "workspace:*",
     "yjs": "^13.6.33",
     "zod": "^4.6.5"
   },

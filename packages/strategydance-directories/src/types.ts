@@ -1,4 +1,4 @@
-import type { DirectoryBusinessModel, DirectoryType } from './enums'
+import type { DirectoryBusinessModel, DirectoryInactiveReason, DirectoryType } from './enums'
 
 export type Directory = {
   name: string
@@ -11,4 +11,9 @@ export type Directory = {
   businessModel: DirectoryBusinessModel
   // When the directory was last checked, null until something checks it
   lastChecked: string | null
+}
+
+// A directory nothing can be submitted to today, kept so a later check can bring it back
+export type InactiveDirectory = Directory & {
+  inactiveReason: DirectoryInactiveReason
 }

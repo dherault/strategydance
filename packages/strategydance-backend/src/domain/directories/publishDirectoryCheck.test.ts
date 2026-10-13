@@ -129,6 +129,17 @@ describe('addReport', () => {
     const body = addReport(addReport('', '### 1\nold'), '### 2\nnew')
 
     expect(body.indexOf('### 2')).toBeLessThan(body.indexOf('### 1'))
-    expect(addReport(body, `### 3\n${'x'.repeat(65_000)}`)).not.toContain('### 1')
+    const longer = addReport(body, `### 3\n${'x'.repeat(64_600)}`)
+
+    expect(longer).not.toContain('### 1')
+    expect(longer).toContain('### 2')
+    expect(longer).not.toContain('cut here')
+  })
+
+  test('cuts a report past the limit alone', () => {
+    const body = addReport('', `### 1\n${'x'.repeat(70_000)}`)
+
+    expect(body.length).toBeLessThanOrEqual(65_000)
+    expect(body.endsWith('The report was cut here: its commit holds it whole.')).toBe(true)
   })
 })

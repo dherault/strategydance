@@ -41,6 +41,9 @@ const REPORT_MARKER = '<!-- directories-check report -->'
 // GitHub holds a pull request's description to 65,536 characters
 const MAX_BODY_LENGTH = 65_000
 
+// After a report cut to fit the description
+const CUT_NOTE = '\n\nThe report was cut here: its commit holds it whole.'
+
 // On the comment that says the branch conflicts with its base, so it is left once
 const CONFLICT_MARKER = '<!-- directories-check conflict -->'
 
@@ -251,10 +254,14 @@ async function reportConflict(github: GitHubClient, number: number) {
   })
 }
 
-// The description with the day's report on top of the earlier ones, the oldest dropped past GitHub's limit
+/*
+  The description with the day's report on top of the earlier ones, the oldest dropped past GitHub's
+  limit, and the day's own cut if it is past the limit alone, its commit holding it whole
+*/
 export function addReport(body: string, report: string) {
   const [, ...reports] = body.split(REPORT_MARKER).map(section => section.trim())
-  const sections = [report, ...reports]
+  const room = MAX_BODY_LENGTH - formatBody(['']).length - CUT_NOTE.length
+  const sections = [report.length > room ? `${report.slice(0, room)}${CUT_NOTE}` : report, ...reports]
 
   while (sections.length > 1 && formatBody(sections).length > MAX_BODY_LENGTH) sections.pop()
 

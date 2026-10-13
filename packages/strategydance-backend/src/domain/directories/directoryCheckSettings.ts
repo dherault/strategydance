@@ -77,6 +77,13 @@ export const MAX_DIRECTORY_DESCRIPTION_LENGTH = 200
 // The shortest quote taken for evidence, so a word or two found anywhere proves nothing
 export const MIN_DIRECTORY_EVIDENCE_LENGTH = 12
 
+// The longest quote taken for evidence, a sentence or so: a longer one proves nothing more, and
+// would swell the pull request's description
+export const MAX_DIRECTORY_EVIDENCE_LENGTH = 300
+
+// The longest notes kept for the reviewer, in characters, past which they are cut
+export const MAX_DIRECTORY_NOTES_LENGTH = 600
+
 /*
   What the model costs, in dollars per million tokens, for the report's estimate: input, a cache
   write and a cache read, and output. A fallback model's turn is counted at these too

@@ -49,6 +49,37 @@ describe('formatDirectoryCheckReport', () => {
   })
 })
 
+describe('the links', () => {
+  test('keep an address Claude gave from ending its link early', () => {
+    const report = formatDirectoryCheckReport({
+      today: '2026-10-20',
+      outcomes: [
+        {
+          name: 'Tools',
+          rootUrl: 'https://tools.example/',
+          result: 'active',
+          changes: [],
+          evidence: { quote: 'Free with our badge', url: 'https://tools.example/source)@octocat (x)' },
+          notes: '',
+        },
+        {
+          name: 'Odd',
+          rootUrl: 'not an address',
+          result: 'active',
+          changes: [],
+          evidence: { quote: 'Free with our badge', url: 'javascript:alert(1)' },
+          notes: '',
+        },
+      ],
+      skipped: [],
+      usage: USAGE,
+    })
+
+    expect(report).toContain('[source](https://tools.example/source%29@octocat%20%28x%29)')
+    expect(report).toContain('| Odd | Active | Quote: “Free with our badge”, source not a web address | - |')
+  })
+})
+
 describe('escape', () => {
   test('keeps what a page wrote from breaking the table, linking or notifying anybody', () => {
     expect(escape('a | b\nc <script> [x](y) @david #123 *bold*')).toBe(

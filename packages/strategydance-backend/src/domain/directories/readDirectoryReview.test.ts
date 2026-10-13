@@ -53,6 +53,21 @@ describe('readDirectoryReview', () => {
     expect(read([text(createAnswer({ description: '  Trimmed.  ' }))])?.description).toBe('Trimmed.')
   })
 
+  test('drops a quote past a sentence or so, and cuts long notes', () => {
+    const answer = read([
+      text(
+        createAnswer({
+          evidence: { quote: 'A'.repeat(301), url: 'https://tools.example/faq' },
+          notes: 'B'.repeat(700),
+        }),
+      ),
+    ])
+
+    expect(answer?.evidence).toBeNull()
+    expect(answer?.notes).toHaveLength(600)
+    expect(answer?.notes.endsWith('…')).toBe(true)
+  })
+
   test('drops an UNKNOWN model and addresses that are not web ones', () => {
     const answer = read([
       text(

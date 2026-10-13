@@ -48,8 +48,11 @@ function formatDirectoryCheckReport({ today, outcomes, skipped, usage }: Report)
 }
 
 function formatRow({ name, rootUrl, result, changes, evidence, notes }: DirectoryCheckOutcome) {
-  const directory = rootUrl ? `[${escape(name)}](${rootUrl})` : escape(name)
-  const evidenceLine = evidence ? [`Quote: “${escape(evidence.quote)}”, [source](${encodeURI(evidence.url)})`] : []
+  const rootDestination = toLinkDestination(rootUrl)
+  const directory = rootDestination ? `[${escape(name)}](${rootDestination})` : escape(name)
+  const sourceDestination = evidence ? toLinkDestination(evidence.url) : null
+  const source = sourceDestination ? `[source](${sourceDestination})` : 'source not a web address'
+  const evidenceLine = evidence ? [`Quote: “${escape(evidence.quote)}”, ${source}`] : []
 
   return `| ${directory} | ${RESULTS[result]} | ${[...changes.map(escape), ...evidenceLine].join('<br>') || '-'} | ${escape(notes) || '-'} |`
 }
@@ -69,6 +72,26 @@ function formatUsage({
   const count = (value: number) => value.toLocaleString('en-US')
 
   return `Claude: ${count(inputTokens + cacheCreationInputTokens + cacheReadInputTokens)} input tokens (${count(cacheReadInputTokens)} read from the cache), ${count(outputTokens)} output tokens, about $${dollars.toFixed(2)}.`
+}
+
+/*
+  A web address as a Markdown link's destination, or null for what is not one. `encodeURI` keeps
+  parentheses, so a closing one in an address Claude gave would end the link and let what follows,
+  a mention say, render on its own: they are percent-encoded, as anything else that could end it is
+*/
+function toLinkDestination(url: string) {
+  try {
+    const { href, protocol } = new URL(url)
+
+    if (protocol !== 'http:' && protocol !== 'https:') return null
+
+    return href.replace(
+      /[()<>\s]/g,
+      character => `%${character.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`,
+    )
+  } catch {
+    return null
+  }
 }
 
 /*

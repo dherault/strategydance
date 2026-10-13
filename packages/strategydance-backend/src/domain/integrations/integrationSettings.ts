@@ -25,15 +25,24 @@ function toIntegrationCredential(settings: IntegrationSettings, key: string): In
   }
 }
 
+// The shortest key whose last four characters every member may read: of a shorter one, they would give
+// too much of it away
+const MIN_KEY_LENGTH_SHOWN = 12
+
+// A key's last four characters, as the page shows them to name it, or null for a key too short to show
+function toApiKeyLastFour(key: string) {
+  return key.length >= MIN_KEY_LENGTH_SHOWN ? key.slice(-4) : null
+}
+
 // The key's fields as stored for settings, how it is sent included, null for a server taking none
 function toStoredKeyFields(settings: IntegrationSettings, key: string | null) {
   const isKeyed = settings.authentication === IntegrationAuthentication.API_KEY && key !== null
 
   return {
-    apiKeyLastFour: isKeyed ? key.slice(-4) : null,
+    apiKeyLastFour: isKeyed ? toApiKeyLastFour(key) : null,
     apiKeyScheme: isKeyed ? settings.apiKeyScheme : IntegrationApiKeyScheme.BEARER,
     apiKeyHeader: isKeyed && settings.apiKeyScheme === IntegrationApiKeyScheme.HEADER ? settings.apiKeyHeader : null,
   }
 }
 
-export { type IntegrationSettings, toIntegrationCredential, toStoredKeyFields }
+export { type IntegrationSettings, toApiKeyLastFour, toIntegrationCredential, toStoredKeyFields }

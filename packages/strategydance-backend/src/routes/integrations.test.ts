@@ -193,6 +193,20 @@ describe('adding a server', () => {
     ).toBe('linear')
   })
 
+  test('shows no part of a key too short to show', async () => {
+    const stored = await add({ ...KEYED, apiKey: 'abcd' })
+
+    expect(stored.apiKeyLastFour).toBeNull()
+
+    await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'short_key' })
+
+    expect(stored.apiKeyLastFour).toBeNull()
+
+    await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'a_long_enough_key_5678' })
+
+    expect(stored.apiKeyLastFour).toBe('5678')
+  })
+
   test('sends a key in the header named', async () => {
     const stored = await add({ ...KEYED, apiKeyScheme: 'HEADER', apiKeyHeader: 'X-API-Key' })
 

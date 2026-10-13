@@ -133,7 +133,6 @@ async function editIntegration({ organizationId, userId, integrationId, settings
           keyGenerationIncrement: isKeyChanged ? 1 : 0,
           encryptedApiKey: encryptedApiKey ?? '',
           ...toStoredKeyFields(settings, key),
-          apiKeyLastFour: key?.slice(-4) ?? '',
           tools: reach.tools ?? '[]',
           toolCount: reach.toolCount ?? 0,
           toolDefinitionHashes: reach.toolDefinitionHashes,

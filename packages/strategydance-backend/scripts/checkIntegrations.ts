@@ -4,23 +4,40 @@ import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   allowOrganizationIntegrationTool,
+  cancelIntegrationAuthorization,
   changeOrganizationIntegrationIssuer,
+  claimIntegrationConnectionRefresh,
+  connectIntegration,
   connectorConfig,
+  consumeIntegrationAuthorization,
   createOrganizationIntegration,
+  deleteIntegrationAuthorizationByState,
   deleteOrganizationIntegration,
   disallowOrganizationIntegrationTool,
+  disconnectIntegration,
+  forgetOrganizationIntegrationOAuthClient,
+  getIntegrationAuthorizationByState,
   getOrganizationIntegrationForAdministrator,
   IntegrationApiKeyScheme,
   IntegrationAuthentication,
   IntegrationError,
+  markIntegrationConnectionNeedsAuthentication,
+  markIntegrationConnectionTokenRefused,
   pruneDeletedIntegrations,
+  pruneIntegrationAuthorizations,
+  receiveIntegrationAuthorizationCode,
   reconfigureOrganizationIntegration,
+  recordFirstIntegrationTools,
+  recordIntegrationConnectionTokens,
   recordOrganizationIntegrationError,
   recordOrganizationIntegrationIssuer,
+  recordOrganizationIntegrationOAuthClient,
   recordOrganizationIntegrationTools,
+  releaseIntegrationConnectionRefresh,
   renameOrganizationIntegration,
   restoreOrganizationIntegration,
   setOrganizationIntegrationEnabled,
+  startIntegrationAuthorization,
   updateOrganizationIntegrationKey,
 } from 'strategydance-database/backend'
 
@@ -35,9 +52,9 @@ import { dataConnect } from '~firebase'
     bun run check:integrations
 
   It makes two throwaway organizations, one administered by the checked account and one it is a
-  member of, calls the backend connector's operations as the integrations' routes call them and the
-  web connector's live queries as a member and as somebody outside, removes everything it made, then
-  exits non-zero naming each check that failed. The routes' tests run against a fake of these
+  member of, calls the backend connector's operations as the integrations' routes call them, members'
+  connections and Connects included, and the web connector's live queries as a member and as
+  somebody outside, removes everything it made, then exits non-zero naming each check that failed. The routes' tests run against a fake of these
   operations: this is what says the fake's conditions are the SQL's.
 
   Like `checkTasksModule.ts`, it refuses to run unless it points at the emulator
@@ -683,6 +700,477 @@ async function checkDeletingAndRestoring() {
   check('it says how many it pruned', pruned.data.organizationIntegration_deleteMany >= 1)
 }
 
+type StoredConnection = {
+  generation: string
+  status: string
+  encryptedAccessToken: string | null
+  encryptedRefreshToken: string | null
+  refreshingUntil: string | null
+  refreshLeaseId: string | null
+}
+
+async function readConnections(integrationId: string) {
+  const data = await read<{ integrationConnections: StoredConnection[] }>(
+    `query ReadConnections($integrationId: UUID!) {
+      integrationConnections(where: { integrationId: { eq: $integrationId } }) {
+        generation status encryptedAccessToken encryptedRefreshToken refreshingUntil refreshLeaseId
+      }
+    }`,
+    { integrationId },
+  )
+
+  return data.integrationConnections
+}
+
+async function countAuthorizations(integrationId: string) {
+  const data = await read<{ integrationAuthorizations: { id: string }[] }>(
+    `query ReadAuthorizations($integrationId: UUID!) {
+      integrationAuthorizations(where: { integrationId: { eq: $integrationId } }) { id }
+    }`,
+    { integrationId },
+  )
+
+  return data.integrationAuthorizations.length
+}
+
+// Whether an operation was refused for one of the causes named, as a membership's check or its
+// reference refuses a caller who is not the member, whichever Data Connect reports first
+async function isRefusedEither(operation: Promise<unknown>, causes: string[]) {
+  const actual = await refusal(operation)
+  const isNamed = actual !== null && causes.some(cause => actual.includes(cause))
+
+  if (actual !== null && !isNamed) console.log(`        refused otherwise: ${actual}`)
+
+  return isNamed
+}
+
+async function checkConnections() {
+  const id = createId()
+  const issuer = 'https://auth.example.com'
+
+  await create({
+    integrationId: id,
+    authentication: IntegrationAuthentication.OAUTH,
+    encryptedApiKey: null,
+    apiKeyLastFour: null,
+    issuer,
+    tools: null,
+    toolCount: null,
+  })
+
+  const member = { organizationId, userId: memberId, integrationId: id }
+  const outsider = { organizationId, userId: outsiderId, integrationId: id }
+  const notMember = ['Only a member of an organization can connect an account to its servers', 'membership_fkey']
+  const discovered = {
+    oauthClientId: 'client-a',
+    oauthClientAuthenticationMethod: 'none',
+    resource: 'https://mcp.example.com/mcp',
+    issuer,
+    isIssuerParameterSupported: false,
+    tokenEndpoint: `${issuer}/token`,
+    revocationEndpoint: null,
+  }
+
+  // The registered client, recorded once
+  const recordClient = (caller: Variables, clientId: string) =>
+    recordOrganizationIntegrationOAuthClient(dataConnect, {
+      ...(caller as typeof member),
+      configRevision: 0,
+      issuer,
+      oauthClientId: clientId,
+      encryptedOAuthClientSecret: null,
+      oauthClientSecretExpiresAt: null,
+      oauthClientAuthenticationMethod: 'none',
+    })
+
+  check(
+    'a member records the client registered',
+    (await recordClient(member, 'client-a')).data.organizationIntegration_updateMany === 1,
+  )
+  check(
+    'once: a client registered meanwhile is not recorded over it',
+    (await recordClient(member, 'client-b')).data.organizationIntegration_updateMany === 0,
+  )
+  check('somebody outside records none', await isRefusedEither(recordClient(outsider, 'client-c'), notMember))
+
+  const forget = (clientId: string) =>
+    forgetOrganizationIntegrationOAuthClient(dataConnect, { ...member, oauthClientId: clientId })
+
+  check(
+    'another client is not forgotten for it',
+    (await forget('client-b')).data.organizationIntegration_updateMany === 0,
+  )
+  check('the client refused is forgotten', (await forget('client-a')).data.organizationIntegration_updateMany === 1)
+  await recordClient(member, 'client-a')
+
+  // Starting, the callback and the finish
+  const start = (caller: Variables, authorizationId: string, stateHash: string, configRevision = 0) =>
+    startIntegrationAuthorization(dataConnect, {
+      ...(caller as typeof member),
+      configRevision,
+      authorizationId,
+      stateHash,
+      encryptedCodeVerifier: 'v1:local:verifier',
+      scope: null,
+      ...discovered,
+    })
+  const firstAuthorization = createId()
+  const authorizationId = createId()
+
+  check('a member starts a Connect', (await refusal(start(member, firstAuthorization, `state-a-${checkId}`))) === null)
+  await start(member, authorizationId, `state-b-${checkId}`)
+  check('a Connect started again replaces the one under way', (await countAuthorizations(id)) === 1)
+  check(
+    'a Connect started on a revision moved on is refused',
+    await isRefused(start(member, createId(), `state-c-${checkId}`, 1), 'The server was changed or deleted meanwhile'),
+  )
+  check(
+    'somebody outside starts none',
+    await isRefusedEither(start(outsider, createId(), `state-d-${checkId}`), notMember),
+  )
+
+  const byState = await getIntegrationAuthorizationByState(dataConnect, { stateHash: `state-b-${checkId}` })
+
+  check(
+    'the callback finds a Connect by its state alone',
+    byState.data.integrationAuthorizations[0]?.id === authorizationId
+      && byState.data.integrationAuthorizations[0]?.issuer === issuer,
+  )
+
+  const receive = (stateHash: string, id_ = authorizationId) =>
+    receiveIntegrationAuthorizationCode(dataConnect, {
+      authorizationId: id_,
+      stateHash,
+      encryptedCode: 'v1:local:code',
+    })
+
+  check('the callback keeps a code', (await refusal(receive(`state-b-${checkId}`))) === null)
+  check(
+    'once, so a replayed or concurrent callback keeps none',
+    await isRefused(receive(`state-b-${checkId}`), 'The sign-in was finished already or has expired'),
+  )
+  check(
+    'a refusal deletes no Connect whose code came back',
+    (await deleteIntegrationAuthorizationByState(dataConnect, { authorizationId, stateHash: `state-b-${checkId}` }))
+      .data.integrationAuthorization_deleteMany === 0,
+  )
+
+  const consume = (caller: Variables) =>
+    consumeIntegrationAuthorization(dataConnect, { ...(caller as typeof member), authorizationId })
+
+  check(
+    'another account finishes nothing',
+    await isRefused(
+      consume({ organizationId, userId: administratorId, integrationId: id }),
+      'The sign-in was finished already or has expired',
+    ),
+  )
+  check('the member finishes it', (await refusal(consume(member))) === null)
+  check('once', await isRefused(consume(member), 'The sign-in was finished already or has expired'))
+
+  const expiredId = createId()
+
+  await start(member, expiredId, `state-e-${checkId}`)
+  await write(
+    `mutation Expire($id: UUID!) { integrationAuthorization_update(id: $id, data: { expiresAt_time: { now: true, sub: { minutes: 1 } } }) }`,
+    { id: expiredId },
+  )
+  check(
+    'an expired Connect keeps no code',
+    await isRefused(receive(`state-e-${checkId}`, expiredId), 'The sign-in was finished already or has expired'),
+  )
+
+  const lateId = createId()
+
+  await start(member, lateId, `state-f-${checkId}`)
+  await receive(`state-f-${checkId}`, lateId)
+  await write(
+    `mutation ExpireCode($id: UUID!) { integrationAuthorization_update(id: $id, data: { codeExpiresAt_time: { now: true, sub: { seconds: 1 } } }) }`,
+    { id: lateId },
+  )
+  check(
+    'a code past its two minutes is not finished',
+    await isRefused(
+      consumeIntegrationAuthorization(dataConnect, { ...member, authorizationId: lateId }),
+      'The sign-in was finished already or has expired',
+    ),
+  )
+  check(
+    'a Connect is canceled',
+    (await cancelIntegrationAuthorization(dataConnect, member)).data.integrationAuthorization_deleteMany === 1,
+  )
+
+  // Connecting
+  const connect = (caller: Variables, generation: string, fields: Variables = {}) =>
+    connectIntegration(dataConnect, {
+      ...(caller as typeof member),
+      configRevision: 0,
+      generation,
+      accountLabel: null,
+      encryptedAccessToken: `v1:local:access-${generation}`,
+      encryptedRefreshToken: `v1:local:refresh-${generation}`,
+      accessTokenExpiresAt: null,
+      scope: null,
+      ...discovered,
+      ...fields,
+    })
+  const firstGeneration = createId()
+  const generation = createId()
+
+  check('a member connects', (await refusal(connect(member, firstGeneration))) === null)
+  await connect(member, generation)
+  check(
+    'connecting again replaces the connection, under a new generation',
+    (await readConnections(id)).map(connection => connection.generation).join() === generation,
+  )
+  check(
+    'a connection on a revision moved on is refused',
+    await isRefused(connect(member, createId(), { configRevision: 1 }), 'The server was changed or deleted meanwhile'),
+  )
+  check('somebody outside connects nothing', await isRefusedEither(connect(outsider, createId()), notMember))
+
+  type ListedConnections = { integrationConnections: { integrationId: string; status: string }[] }
+  const listed = await webConnector.executeQuery<ListedConnections, Variables>(
+    'GetIntegrationConnections',
+    { organizationId },
+    as(memberId),
+  )
+  const othersListed = await webConnector.executeQuery<ListedConnections, Variables>(
+    'GetIntegrationConnections',
+    { organizationId },
+    as(administratorId),
+  )
+
+  check(
+    'a member reads their own connection, and no token',
+    listed.data.integrationConnections.length === 1
+      && listed.data.integrationConnections[0].integrationId === id
+      && !('encryptedAccessToken' in listed.data.integrationConnections[0]),
+  )
+  check('another member reads none of theirs', othersListed.data.integrationConnections.length === 0)
+
+  const recordFirst = () =>
+    recordFirstIntegrationTools(dataConnect, {
+      ...member,
+      configRevision: 0,
+      tools: '[]',
+      toolCount: 0,
+      toolDefinitionHashes: [],
+    })
+
+  check('the first connection records the tools', (await recordFirst()).data.organizationIntegration_updateMany === 1)
+  check('only while the server has none', (await recordFirst()).data.organizationIntegration_updateMany === 0)
+
+  // Refreshing under a lease
+  const claim = (refreshToken: string, leaseId: string) =>
+    claimIntegrationConnectionRefresh(dataConnect, {
+      ...member,
+      generation,
+      encryptedRefreshToken: refreshToken,
+      refreshLeaseId: leaseId,
+    })
+  const lease = createId()
+
+  check(
+    'a refresh token another refresh spent claims nothing',
+    (await claim('v1:local:stale', createId())).data.integrationConnection_updateMany === 0,
+  )
+  check(
+    'a refresh claims the connection',
+    (await claim(`v1:local:refresh-${generation}`, lease)).data.integrationConnection_updateMany === 1,
+  )
+  check(
+    'and no other while its lease holds',
+    (await claim(`v1:local:refresh-${generation}`, createId())).data.integrationConnection_updateMany === 0,
+  )
+
+  const recordTokens = (leaseId: string) =>
+    recordIntegrationConnectionTokens(dataConnect, {
+      ...member,
+      refreshLeaseId: leaseId,
+      encryptedAccessToken: 'v1:local:access-refreshed',
+      encryptedRefreshToken: 'v1:local:refresh-refreshed',
+      accessTokenExpiresAt: null,
+      scope: null,
+    })
+
+  check(
+    'a refresh without the lease writes nothing',
+    await isRefused(recordTokens(createId()), 'The refresh lost its lease'),
+  )
+  check('the refresh holding it writes its tokens', (await refusal(recordTokens(lease))) === null)
+  check('and lets the lease go', (await readConnections(id))[0]?.refreshLeaseId === null)
+
+  await write(
+    `mutation Lapse($integrationId: UUID!, $leaseId: UUID!) {
+      integrationConnection_updateMany(where: { integrationId: { eq: $integrationId } }, data: { refreshingUntil_time: { now: true, sub: { seconds: 1 } }, refreshLeaseId: $leaseId })
+    }`,
+    { integrationId: id, leaseId: createId() },
+  )
+
+  const takeover = createId()
+
+  check(
+    'a lapsed lease is taken over',
+    (await claim('v1:local:refresh-refreshed', takeover)).data.integrationConnection_updateMany === 1,
+  )
+  check(
+    'a lease is let go',
+    (await releaseIntegrationConnectionRefresh(dataConnect, { ...member, refreshLeaseId: takeover })).data
+      .integrationConnection_updateMany === 1,
+  )
+
+  const markLease = createId()
+
+  await claim('v1:local:refresh-refreshed', markLease)
+
+  const mark = (accessToken: string) =>
+    markIntegrationConnectionNeedsAuthentication(dataConnect, {
+      ...member,
+      generation,
+      encryptedAccessToken: accessToken,
+      refreshLeaseId: markLease,
+    })
+
+  check(
+    'a refusal never marks over a token written meanwhile',
+    (await mark('v1:local:access-older')).data.integrationConnection_updateMany === 0,
+  )
+  check(
+    'a refusal for good marks the connection',
+    (await mark('v1:local:access-refreshed')).data.integrationConnection_updateMany === 1,
+  )
+  check(
+    'which then needs the member and holds no token',
+    (await readConnections(id))[0]?.status === 'NEEDS_AUTHENTICATION'
+      && (await readConnections(id))[0]?.encryptedAccessToken === null,
+  )
+
+  const unrefreshable = createId()
+
+  await connect(member, unrefreshable, { encryptedRefreshToken: null })
+  check(
+    'a refused token with nothing to refresh it is marked',
+    (
+      await markIntegrationConnectionTokenRefused(dataConnect, {
+        ...member,
+        generation: unrefreshable,
+        encryptedAccessToken: `v1:local:access-${unrefreshable}`,
+      })
+    ).data.integrationConnection_updateMany === 1,
+  )
+
+  // What a change of the server takes with it
+  await connect(member, createId())
+  await start(member, createId(), `state-g-${checkId}`)
+  await changeOrganizationIntegrationIssuer(dataConnect, {
+    ...administrator,
+    integrationId: id,
+    configRevision: 0,
+    issuer: 'https://other.example.com',
+  })
+
+  const changed = await getOrganizationIntegrationForAdministrator(dataConnect, { organizationId, integrationId: id })
+
+  check(
+    "another issuer takes members' connections, their Connects and the client with it",
+    (await readConnections(id)).length === 0
+      && (await countAuthorizations(id)) === 0
+      && changed.data.organizationIntegrations[0]?.oauthClientId === null,
+  )
+
+  const elsewhere = { ...discovered, issuer: 'https://other.example.com' }
+
+  await connect(member, createId(), { configRevision: 1, ...elsewhere })
+  await startIntegrationAuthorization(dataConnect, {
+    ...member,
+    configRevision: 1,
+    authorizationId: createId(),
+    stateHash: `state-h-${checkId}`,
+    encryptedCodeVerifier: 'v1:local:verifier',
+    scope: null,
+    ...elsewhere,
+  })
+  await reconfigureOrganizationIntegration(dataConnect, {
+    ...administrator,
+    integrationId: id,
+    name: changed.data.organizationIntegrations[0]?.name ?? '',
+    normalizedName: changed.data.organizationIntegrations[0]?.normalizedName ?? '',
+    readName: changed.data.organizationIntegrations[0]?.name ?? '',
+    configRevision: 1,
+    keyGeneration: changed.data.organizationIntegrations[0]?.keyGeneration ?? 0,
+    url: 'https://mcp.example.com/v2',
+    catalogueSlug: null,
+    authentication: IntegrationAuthentication.OAUTH,
+    encryptedApiKey: null,
+    apiKeyLastFour: null,
+    apiKeyScheme: IntegrationApiKeyScheme.BEARER,
+    apiKeyHeader: null,
+    issuer: 'https://other.example.com',
+    tools: null,
+    toolCount: null,
+    toolDefinitionHashes: [],
+  })
+  check(
+    "another address takes members' connections and their Connects with it",
+    (await readConnections(id)).length === 0 && (await countAuthorizations(id)) === 0,
+  )
+
+  const moved = { ...discovered, issuer: 'https://other.example.com' }
+
+  await connect(member, createId(), { configRevision: 2, ...moved })
+  check(
+    'disconnecting deletes the connection',
+    (await disconnectIntegration(dataConnect, member)).data.integrationConnection_deleteMany === 1
+      && (await readConnections(id)).length === 0,
+  )
+
+  const pruned = createId()
+  const kept = createId()
+
+  await startIntegrationAuthorization(dataConnect, {
+    ...member,
+    configRevision: 2,
+    authorizationId: kept,
+    stateHash: `state-i-${checkId}`,
+    encryptedCodeVerifier: 'v1:local:verifier',
+    scope: null,
+    ...moved,
+  })
+  await startIntegrationAuthorization(dataConnect, {
+    organizationId,
+    userId: administratorId,
+    integrationId: id,
+    configRevision: 2,
+    authorizationId: pruned,
+    stateHash: `state-j-${checkId}`,
+    encryptedCodeVerifier: 'v1:local:verifier',
+    scope: null,
+    ...moved,
+  })
+  await write(
+    `mutation ExpireLong($id: UUID!) { integrationAuthorization_update(id: $id, data: { expiresAt_time: { now: true, sub: { hours: 2 } } }) }`,
+    { id: pruned },
+  )
+  await pruneIntegrationAuthorizations(dataConnect)
+  check(
+    'the sweep prunes the Connects expired over an hour ago, and keeps the rest',
+    (await countAuthorizations(id)) === 1,
+  )
+
+  await connect(member, createId(), { configRevision: 2, ...moved })
+  await write(
+    `mutation Remove($organizationId: UUID!, $memberId: String!) {
+      userOrganization_delete(key: { userId: $memberId, organizationId: $organizationId })
+    }`,
+    { organizationId, memberId },
+  )
+  check(
+    "a member's removal takes their connection and their Connects with their membership",
+    (await readConnections(id)).length === 0 && (await countAuthorizations(id)) === 0,
+  )
+}
+
 try {
   await setUp()
   await checkCreating()
@@ -694,6 +1182,8 @@ try {
   await checkIssuers()
   await checkEnabling()
   await checkDeletingAndRestoring()
+  // Last, since it removes the checked member
+  await checkConnections()
 } finally {
   await tearDown()
 }

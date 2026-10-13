@@ -107,6 +107,7 @@ async function publishDirectoryCheck({
   const result = await checkDirectories(lists, { claude, count, inactiveCount, today, fetch, random })
   let { report } = result
   let applied = result.lists
+  let committed = ''
 
   for (let attempt = 0; ; attempt++) {
     const files = serializeDirectoryLists(applied)
@@ -122,7 +123,13 @@ async function publishDirectoryCheck({
     }
 
     try {
-      await commit(github, head, files, `[directories] Check ${result.checks.length} directories on ${today}`, report)
+      committed = await commit(
+        github,
+        head,
+        files,
+        `[directories] Check ${result.checks.length} directories on ${today}`,
+        report,
+      )
 
       break
     } catch (error) {
@@ -156,13 +163,15 @@ async function publishDirectoryCheck({
 
   // Closed while the run ran: a rejection, which a new pull request would undo. The branch goes back
   // to `dev` now, since the commit just made is no closed pull request's, and would read as another
-  // run's work to the next
+  // run's work to the next. Only while it still points at that commit: past it is a newer run's
   if (pullRequest) {
     logger.warn(`Directories: pull request ${pullRequest.number} closed while the check ran, so it opens none`)
 
-    await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/git/refs/heads/${DIRECTORY_CHECK_BRANCH}`, {
-      body: { sha: await readBranchHead(github, DIRECTORY_CHECK_BASE_BRANCH), force: true },
-    })
+    if ((await readBranchHead(github)) === committed) {
+      await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/git/refs/heads/${DIRECTORY_CHECK_BRANCH}`, {
+        body: { sha: await readBranchHead(github, DIRECTORY_CHECK_BASE_BRANCH), force: true },
+      })
+    }
 
     return { outcome: 'closed' as const, url: pullRequest.html_url }
   }
@@ -271,27 +280,45 @@ async function commit(
   headline: string,
   body: string,
 ) {
-  await github.graphql(COMMIT_MUTATION, {
-    input: {
-      branch: { repositoryNameWithOwner: GITHUB_REPOSITORY, branchName: DIRECTORY_CHECK_BRANCH },
-      expectedHeadOid,
-      message: { headline, body },
-      fileChanges: {
-        additions: [
-          { path: DIRECTORIES_FILE_PATH, contents: Buffer.from(directoriesText).toString('base64') },
-          { path: INACTIVE_DIRECTORIES_FILE_PATH, contents: Buffer.from(inactiveDirectoriesText).toString('base64') },
-        ],
+  const { createCommitOnBranch } = await github.graphql<{ createCommitOnBranch: { commit: { oid: string } } }>(
+    COMMIT_MUTATION,
+    {
+      input: {
+        branch: { repositoryNameWithOwner: GITHUB_REPOSITORY, branchName: DIRECTORY_CHECK_BRANCH },
+        expectedHeadOid,
+        message: { headline, body },
+        fileChanges: {
+          additions: [
+            { path: DIRECTORIES_FILE_PATH, contents: Buffer.from(directoriesText).toString('base64') },
+            { path: INACTIVE_DIRECTORIES_FILE_PATH, contents: Buffer.from(inactiveDirectoriesText).toString('base64') },
+          ],
+        },
       },
     },
-  })
+  )
+
+  return createCommitOnBranch.commit.oid
 }
 
+/*
+  Asks a human, once a conflict, to resolve it or close the pull request: no report is posted while
+  it lasts, so the conflict's comment stays the latest until it is resolved, and a later conflict
+  gets one of its own. Only the latest comment is read, whatever the number before it
+*/
 async function reportConflict(github: GitHubClient, number: number) {
   logger.warn(`Directories: ${DIRECTORY_CHECK_BASE_BRANCH} conflicts with pull request ${number}, so the check waits`)
 
-  const { data } = await github.request('GET', `/repos/${GITHUB_REPOSITORY}/issues/${number}/comments?per_page=100`)
+  const { data: issue } = await github.request('GET', `/repos/${GITHUB_REPOSITORY}/issues/${number}`)
+  const { comments: count } = issue as { comments: number }
 
-  if ((data as { body: string }[]).some(({ body }) => body.includes(CONFLICT_MARKER))) return
+  if (count) {
+    const { data } = await github.request(
+      'GET',
+      `/repos/${GITHUB_REPOSITORY}/issues/${number}/comments?per_page=1&page=${count}`,
+    )
+
+    if ((data as { body: string }[]).some(({ body }) => body.includes(CONFLICT_MARKER))) return
+  }
 
   await github.request('POST', `/repos/${GITHUB_REPOSITORY}/issues/${number}/comments`, {
     body: {

@@ -25,8 +25,8 @@ type Options = {
   branches, its commits' files, its pull requests and their comments, behind the REST calls and the
   one GraphQL mutation the publisher makes, each refusing as GitHub does. A merge is three-way, a
   file at a time, from the commit the branch last took from the other: a file only one side changed
-  takes that side's, and one both changed conflicts. `beforeCommit` runs before a commit lands, so a
-  test can push in between
+  takes that side's, and one both changed conflicts. `beforeCommit` runs before a commit lands and
+  `afterCommit` after, so a test can push or close a pull request in between
 */
 function createGitHubFake({ files }: Options) {
   let shas = 0
@@ -38,7 +38,7 @@ function createGitHubFake({ files }: Options) {
   const merges: string[] = []
   // The commit of the other branch each branch last took, which a merge compares both sides to
   const mergeBases = new Map<string, string>()
-  const state = { beforeCommit: (() => {}) as () => void }
+  const state = { beforeCommit: (() => {}) as () => void, afterCommit: (() => {}) as () => void }
 
   function createCommit(commitFiles: Files, commitParents: string[] = []) {
     const sha = `sha${++shas}`
@@ -172,11 +172,20 @@ function createGitHubFake({ files }: Options) {
         return text === undefined ? answer(404) : answer(200, text)
       }
 
+      if (method === 'GET' && (match = route.match(/^\/issues\/(\d+)$/))) {
+        return answer(200, { comments: (comments.get(Number(match[1])) ?? []).length })
+      }
+
       if ((match = route.match(/^\/issues\/(\d+)\/comments$/))) {
         const number = Number(match[1])
         const list = comments.get(number) ?? []
 
-        if (method === 'GET') return answer(200, list)
+        if (method === 'GET') {
+          const perPage = Number(parameters.get('per_page') ?? 30)
+          const page = Number(parameters.get('page') ?? 1)
+
+          return answer(200, list.slice((page - 1) * perPage, page * perPage))
+        }
 
         comments.set(number, [...list, { body: input.body }])
 
@@ -206,9 +215,12 @@ function createGitHubFake({ files }: Options) {
         input.fileChanges.additions.map(({ path, contents }) => [path, Buffer.from(contents, 'base64').toString()]),
       )
 
-      branches.set(input.branch.branchName, createCommit({ ...commits.get(head)!, ...added }, [head]))
+      const oid = createCommit({ ...commits.get(head)!, ...added }, [head])
 
-      return { createCommitOnBranch: { commit: { oid: branches.get(input.branch.branchName) } } } as never
+      branches.set(input.branch.branchName, oid)
+      state.afterCommit()
+
+      return { createCommitOnBranch: { commit: { oid } } } as never
     },
   }
 

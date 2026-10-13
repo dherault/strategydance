@@ -138,6 +138,20 @@ describe('publishDirectoryCheck', () => {
     expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed', 'open'])
   })
 
+  test('leaves a newer run’s commit when its own pull request was closed while it ran', async () => {
+    const github = createGitHubFake({ files: FILES })
+
+    await publish(github)
+    github.state.afterCommit = () => {
+      github.state.afterCommit = () => {}
+      github.close(1)
+      github.push('directories-check', { 'newer.txt': 'a newer run' })
+    }
+
+    expect((await publish(github)).outcome).toBe('closed')
+    expect(github.readFiles('directories-check')['newer.txt']).toBe('a newer run')
+  })
+
   test('leaves the branch, without asking Claude, while it holds another run’s commit', async () => {
     const github = createGitHubFake({ files: FILES })
 

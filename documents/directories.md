@@ -96,7 +96,7 @@ told nothing. A failure of the API itself counts as no check at all.
 `applyDirectoryChecks` is pure and keyed by name. A run changes only what it can prove:
 
 - A description is written where there is none, or where the review found the current one wrong.
-- A business model changes only when the review's quote is on the page it names (`isEvidenceFound`):
+- A business model changes only when the review's quote is on the page it names (`findEvidencePage`):
   a page the probe read, or a document web fetch brought back, at that address, its scheme and port
   included, so a page of another origin never vouches for it, holds the quote, with case, spaces,
   quotation marks and dashes ignored and an ellipsis standing for a cut
@@ -104,7 +104,8 @@ told nothing. A failure of the API itself counts as no check at all.
   filtering printed, nor a result's own fields. It never changes to `UNKNOWN`. The models came from
   upstream's notes, written by people who tried to submit, which a FAQ rarely beats.
 - A directory moves to the inactive list only on a quote found the same way. `NO_SUBMISSION` and
-  `BROKEN_SUBMISSION` are never taken for a site whose pages are all drawn by scripts.
+  `BROKEN_SUBMISSION` are never taken when the page the quote is on is one its scripts draw, under
+  300 characters of text, whatever the site's other pages hold.
 - An inactive directory the review finds `ACTIVE` moves back, filled in.
 - A moved submission page is taken only when the probe reaches it, it shares the root's origin, and
   no other entry uses it. A form elsewhere, such as a Tally or Google Forms link, goes to the notes.

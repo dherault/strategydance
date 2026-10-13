@@ -96,14 +96,17 @@ function toLinkDestination(url: string) {
 
 /*
   Text a page or Claude wrote, made safe for a table cell on GitHub: no pipe or line break to end
-  the cell, no tag, no link or image syntax, and no `@name` or `#123`, which would notify somebody
-  or link an issue, a zero-width space keeping each apart
+  the cell, no tag, no link or image syntax, no address GitHub would make a link of on its own,
+  `https://…` or `www.…`, and no `@name` or `#123`, which would notify somebody or link an issue, a
+  zero-width space keeping each apart
 */
 export function escape(text: string) {
   return text
     .replace(/\s+/g, ' ')
     .replace(/[\\|[\]<>`*_]/g, character => `\\${character}`)
-    .replace(/([@#])(?=\w)/g, '$1​')
+    .replace(/([@#])(?=\w)/g, '$1\u200b')
+    .replace(/(https?|ftp)(:\/\/)/gi, '$1\u200b$2')
+    .replace(/\b(www)\./gi, '$1\u200b.')
     .trim()
 }
 

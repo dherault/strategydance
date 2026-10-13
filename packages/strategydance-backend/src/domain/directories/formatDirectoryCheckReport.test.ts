@@ -83,7 +83,13 @@ describe('the links', () => {
 describe('escape', () => {
   test('keeps what a page wrote from breaking the table, linking or notifying anybody', () => {
     expect(escape('a | b\nc <script> [x](y) @david #123 *bold*')).toBe(
-      'a \\| b c \\<script\\> \\[x\\](y) @​david #​123 \\*bold\\*',
+      'a \\| b c \\<script\\> \\[x\\](y) @\u200bdavid #\u200b123 \\*bold\\*',
+    )
+  })
+
+  test('keeps an address in what a page wrote from becoming a link of its own', () => {
+    expect(escape('See https://evil.example/x, HTTP://loud.example or www.evil.example')).toBe(
+      'See https\u200b://evil.example/x, HTTP\u200b://loud.example or www\u200b.evil.example',
     )
   })
 })

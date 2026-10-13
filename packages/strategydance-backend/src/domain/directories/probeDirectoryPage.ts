@@ -52,8 +52,8 @@ async function probeDirectoryPage(url: string, fetch = fetchOutbound): Promise<D
     const isHtml = /^\s*(text\/html|application\/xhtml\+xml)/i.test(contentType)
     // As UTF-8, which nearly every page is
     const page = isHtml
-      ? await readDirectoryPage(response.body.toString('utf8'))
-      : { title: '', description: '', text: '' }
+      ? await readDirectoryPage(response.body.toString('utf8'), response.url)
+      : { title: '', description: '', text: '', links: [] }
 
     return {
       url,
@@ -76,6 +76,7 @@ async function probeDirectoryPage(url: string, fetch = fetchOutbound): Promise<D
       title: '',
       description: '',
       text: '',
+      links: [],
       isClientRendered: true,
     }
   }

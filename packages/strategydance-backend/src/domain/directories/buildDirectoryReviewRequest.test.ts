@@ -15,7 +15,10 @@ const DIRECTORY = createDirectory('tools', {
 })
 
 const PROBE = {
-  root: createPageProbe(DIRECTORY.rootUrl, { finalUrl: 'https://www.portal.tools.example/home' }),
+  root: createPageProbe(DIRECTORY.rootUrl, {
+    finalUrl: 'https://www.portal.tools.example/home',
+    links: ['https://www.portal.tools.example/faq'],
+  }),
   submission: createPageProbe(DIRECTORY.submissionUrl, { text: 'Nothing', isClientRendered: true }),
 }
 
@@ -63,6 +66,12 @@ describe('buildDirectoryReviewRequest', () => {
     expect(text).toContain('It redirected to https://www.portal.tools.example/home, another site than the entry.')
     expect(text).toContain('Listings are free once our badge is on your site.')
     expect(text).toContain('Text, almost none, so scripts draw this page: Nothing')
+    expect(text).toContain('Links to the same site:\nhttps://www.portal.tools.example/faq')
+    // Only for the page its scripts draw, whose links nobody saw
+    expect(text).toContain(
+      'Pages such a site often has, which may not exist:\nhttps://app.tools.example/pricing\nhttps://app.tools.example/faq',
+    )
+    expect(text).not.toContain('https://www.portal.tools.example/pricing')
     expect(text).not.toContain('inactive')
   })
 

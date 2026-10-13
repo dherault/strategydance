@@ -413,6 +413,8 @@ export type DirectoryPageProbe = {
   title: string
   description: string
   text: string
+  // The pages of the same site it links to
+  links: string[]
   // Whether it holds too little text to be read without running its scripts, as a page a browser
   // draws does: what it says it lacks proves nothing
   isClientRendered: boolean

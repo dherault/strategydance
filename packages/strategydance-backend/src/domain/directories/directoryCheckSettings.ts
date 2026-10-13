@@ -36,6 +36,13 @@ export const DIRECTORY_PAGE_MAX_TEXT_LENGTH = 20000
 // Under this many characters of text, a page is taken for one its scripts draw
 export const DIRECTORY_PAGE_MIN_TEXT_LENGTH = 300
 
+// How many of a page's links to the same site the review is given
+export const DIRECTORY_PAGE_MAX_LINKS = 60
+
+// Where a site usually explains how a listing works, offered to a review of a page its scripts draw,
+// whose links the probe cannot see
+export const DIRECTORY_CONVENTIONAL_PATHS = ['/pricing', '/faq', '/submit', '/about']
+
 /* ---
   The review, Claude reading a directory's pages
 --- */

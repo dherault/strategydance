@@ -57,6 +57,22 @@ describe('probeDirectoryPage', () => {
     expect(result.text).not.toContain('window.app')
   })
 
+  test('gives the pages of the same site it links to, and nothing else', async () => {
+    const result = await probe({
+      status: 200,
+      url: 'https://www.directory.example/en/',
+      body: `<a href="/pricing#plans">Pricing</a><a href="faq">FAQ</a><a href="https://directory.example/submit">Submit</a>
+        <a href="https://other.example/">Elsewhere</a><a href="mailto:hi@directory.example">Mail</a><a href="/logo.png">Logo</a>
+        <a href="/pricing">Pricing again</a><a href="#top">Top</a>`,
+    })
+
+    expect(result.links).toEqual([
+      'https://www.directory.example/pricing',
+      'https://www.directory.example/en/faq',
+      'https://directory.example/submit',
+    ])
+  })
+
   test('takes a page with almost no text for one its scripts draw', async () => {
     const result = await probe({ status: 200, body: '<html><body><div id="root"></div></body></html>' })
 

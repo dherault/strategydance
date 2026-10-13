@@ -10,6 +10,7 @@ import { DirectoryBusinessModel, type Directory, type InactiveDirectory } from '
 import type { DirectoryPageProbe, DirectoryProbe } from '~types'
 
 import {
+  DIRECTORY_CONVENTIONAL_PATHS,
   DIRECTORY_REVIEW_BETAS,
   DIRECTORY_REVIEW_MAX_FETCHED_TOKENS,
   DIRECTORY_REVIEW_MAX_FETCHES,
@@ -142,6 +143,17 @@ function describePage(label: string, page: DirectoryPageProbe, rootUrl: string) 
         ? `Text, almost none, so scripts draw this page: ${page.text || '(none)'}`
         : `Text:\n<<<\n${page.text}\n>>>`,
     )
+
+    if (page.links.length) lines.push(`Links to the same site:\n${page.links.join('\n')}`)
+
+    // Its scripts draw its links too, so the review is given where a site usually explains itself
+    if (page.isClientRendered && page.finalUrl) {
+      const { origin } = new URL(page.finalUrl)
+
+      lines.push(
+        `Pages such a site often has, which may not exist:\n${DIRECTORY_CONVENTIONAL_PATHS.map(path => `${origin}${path}`).join('\n')}`,
+      )
+    }
   }
 
   return lines.join('\n')

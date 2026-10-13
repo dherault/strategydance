@@ -41,6 +41,7 @@ export function createPageProbe(url: string, fields: Partial<DirectoryPageProbe>
     title: 'A directory',
     description: '',
     text: `${'A directory of tools for founders. '.repeat(10)}Listings are free once our badge is on your site.`,
+    links: [],
     isClientRendered: false,
     ...fields,
   }

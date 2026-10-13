@@ -2026,13 +2026,16 @@ way (see The orchestrator).
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.
   No daily cap: the workspace's spend limit and the budget alert are the guard, until Launch decides
   one or credits exist (M36).
-- **Stop.** The parent's Stop asks every live subagent of the conversation to stop too: each active
-  run's `stopRequestedAt` is set, and a `QUEUED` or `PENDING` one is finalized at once, as the route
-  finalizes a queued run, a promotion following into the slots that freed. Subagents mostly work while the parent is idle, when its Stop does not show,
-  so while any works the thread shows a strip above the composer, "3 subagents working", with "Stop
-  all" (`POST …/subagents/stop`); each row has a Stop (`POST …/subagents/:subagentId/stop`), and so
-  does the viewer; `stop_subagent` is the agent's. A stopped subagent reports what it had, and its
-  batch completes with it.
+- **Stop.** The parent's Stop asks the live subagents launched on the stopped run's anchor to stop
+  too, as David chose on 2026-10-13: they are the action the member stops, and a fan-out an earlier
+  message started goes on, which Stop all reaches. Each of their active runs' `stopRequestedAt` is
+  set, and a `QUEUED` or `PENDING` one is finalized at once, as the route finalizes a queued run, a
+  promotion following into the slots that freed. Subagents mostly work while the parent is idle,
+  when its Stop does not show, so while any works the thread shows a strip above the composer, "3
+  subagents working", with "Stop all" (`POST …/subagents/stop`), which reaches every live subagent of
+  the conversation; each row has a Stop (`POST …/subagents/:subagentId/stop`), and so does the
+  viewer; `stop_subagent` is the agent's. A stopped subagent reports what it had, and its batch
+  completes with it.
 - **Delete, restore, Retry and the sweep.** `DeleteConversation` sets `deletedAt` on the parent's
   subagents at the parent's own instant and asks their runs to stop, and `RestoreConversation`
   restores those deleted at that same instant, which a `Timestamp` read back matches exactly. A

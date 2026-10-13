@@ -1975,7 +1975,8 @@ own.
     launching ten again.
   - A Retry stopping and deleting the cut runs' subagents, and the parent's restore not bringing them
     back.
-  - Stop reaching a `PENDING` subagent.
+  - Stop reaching a `PENDING` subagent of its anchor, and leaving a fan-out an earlier message
+    started working, which Stop all then stops.
   - A launch after the parent's Stop or delete refused, and one before reached by it.
   - A deleted parent never reacting, whatever its subagents report, and reacting once restored, at
     its next reconcile.

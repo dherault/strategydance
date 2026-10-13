@@ -19,6 +19,7 @@ import type {
   GetOrganizationDocumentsData,
   GetOrganizationInvitationData,
   GetOrganizationLogData,
+  GetOrganizationIntegrationsData,
   GetOrganizationTeamData,
   GetTasksData,
   GetTodayPreferencesData,
@@ -91,6 +92,9 @@ export type OrganizationDetails = {
   waiting for an answer. From the generated SDK, like the types above
 */
 export type OrganizationTeam = GetOrganizationTeamData
+
+// One of the organization's MCP servers, as its Integrations page lists it: never its key
+export type OrganizationIntegration = GetOrganizationIntegrationsData['organizationIntegrations'][number]
 
 // One member: what they may do, what they do, and who they are
 export type OrganizationMember = OrganizationTeam['userOrganizations'][number]

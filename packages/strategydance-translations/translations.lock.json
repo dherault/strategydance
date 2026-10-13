@@ -2297,6 +2297,10 @@
         "hash": "3601da52a5241c9f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "integration.apiKeyKeepHintShort": {
+        "hash": "7ad234c658ab4079",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "integration.apiKeyLabel": {
         "hash": "aee2c0572b140927",
         "locales": "DE,ES,FR,JA,PT,ZH"

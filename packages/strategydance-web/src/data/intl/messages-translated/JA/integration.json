@@ -7,6 +7,7 @@
   "integration.apiKeyHeaderLabel": "ヘッダー",
   "integration.apiKeyInvalid": "サービスから提供されたキーをそのまま1行で貼り付けてください。",
   "integration.apiKeyKeepHint": "末尾が{lastFour}の現在のキーをそのまま使用する場合は、空欄にしてください。",
+  "integration.apiKeyKeepHintShort": "現在のキーを保持する場合は空欄のままにしてください。",
   "integration.apiKeyLabel": "APIキー",
   "integration.apiKeyRequired": "APIキーを入力してください。",
   "integration.apiKeyRequiredAgain": "キーを再入力してください。キーが別のアドレスに送信されることはありません。",

@@ -99,6 +99,9 @@ function IntegrationDialog({ integration, preset, integrations, isAdministrator,
   const isServerChanged =
     integration !== null && (parsedUrl !== integration.url || authentication !== integration.authentication)
   const hadKey = integration?.authentication === IntegrationAuthentication.API_KEY
+  // A short key keeps no last four, which would give it away
+  const lastFour = integration?.apiKeyLastFour ?? null
+  const isKeyKept = hadKey && !isServerChanged
   const isSchemeChanged =
     integration !== null
     && isKeyed
@@ -315,10 +318,12 @@ function IntegrationDialog({ integration, preset, integrations, isAdministrator,
                 value={apiKey}
                 autoComplete="off"
                 spellCheck={false}
-                placeholder={hadKey && !isServerChanged ? `•••• ${integration?.apiKeyLastFour ?? ''}` : 'sk_live_…'}
+                placeholder={isKeyKept ? (lastFour ? `•••• ${lastFour}` : '••••••••') : 'sk_live_…'}
                 hint={
-                  hadKey && !isServerChanged
-                    ? formatMessage(integrationMessages.apiKeyKeepHint, { lastFour: integration?.apiKeyLastFour ?? '' })
+                  isKeyKept
+                    ? lastFour
+                      ? formatMessage(integrationMessages.apiKeyKeepHint, { lastFour })
+                      : formatMessage(integrationMessages.apiKeyKeepHintShort)
                     : null
                 }
                 error={

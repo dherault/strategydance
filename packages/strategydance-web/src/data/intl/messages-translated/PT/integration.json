@@ -7,6 +7,7 @@
   "integration.apiKeyHeaderLabel": "Cabeçalho",
   "integration.apiKeyInvalid": "Cole a chave exatamente como fornecida pelo serviço, em uma única linha.",
   "integration.apiKeyKeepHint": "Deixe em branco para manter a chave atual, terminada em {lastFour}.",
+  "integration.apiKeyKeepHintShort": "Deixe em branco para manter a chave atual.",
   "integration.apiKeyLabel": "Chave de API",
   "integration.apiKeyRequired": "Insira uma chave de API.",
   "integration.apiKeyRequiredAgain": "Insira a chave novamente: uma chave nunca é enviada para outro endereço.",

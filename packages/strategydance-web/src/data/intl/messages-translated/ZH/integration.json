@@ -7,6 +7,7 @@
   "integration.apiKeyHeaderLabel": "请求头",
   "integration.apiKeyInvalid": "请原样粘贴服务提供的密钥，保持单行。",
   "integration.apiKeyKeepHint": "留空以保留当前以 {lastFour} 结尾的密钥。",
+  "integration.apiKeyKeepHintShort": "留空以保留当前密钥。",
   "integration.apiKeyLabel": "API 密钥",
   "integration.apiKeyRequired": "请输入 API 密钥。",
   "integration.apiKeyRequiredAgain": "请重新输入密钥：密钥绝不会发送至其他地址。",

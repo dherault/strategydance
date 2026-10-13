@@ -304,6 +304,11 @@ const integrationMessages = defineMessages({
     description:
       'Help under the key field of a server that has a key, where {lastFour} is the last four characters of that key, such as "4f2a".',
   },
+  apiKeyKeepHintShort: {
+    id: 'integration.apiKeyKeepHintShort',
+    defaultMessage: 'Leave empty to keep the current key.',
+    description: 'Help under the key field of a server that has a key too short for any part of it to be shown.',
+  },
   apiKeyRequired: {
     id: 'integration.apiKeyRequired',
     defaultMessage: 'Enter an API key.',

@@ -70,8 +70,16 @@ function createIntegrationOAuthServerFake({
     // The account each listing of the tools was made as
     listings: [] as string[],
   }
-  // What a test turns off: the token endpoint answering, refreshes, and the clients it knows
-  const switches = { isTokenEndpointDown: false, isRefreshRefused: false, isRevocationDown: false }
+  /*
+    What a test turns off: the token endpoint answering, refreshes, revocations, and the MCP server
+    taking any token, as one that withdrew a member's access while their grant still refreshes
+  */
+  const switches = {
+    isTokenEndpointDown: false,
+    isRefreshRefused: false,
+    isRevocationDown: false,
+    isEveryTokenRefused: false,
+  }
 
   const handler = createMcpHandler(
     () => {
@@ -196,7 +204,7 @@ function createIntegrationOAuthServerFake({
     switch (route) {
       case `POST ${FAKE_MCP_URL}`: {
         const bearer = request.headers.get('authorization')?.replace(/^Bearer /, '') ?? ''
-        const grant = accessTokens.get(bearer)
+        const grant = switches.isEveryTokenRefused ? undefined : accessTokens.get(bearer)
 
         if (!grant) {
           return new Response('Unauthorized', {

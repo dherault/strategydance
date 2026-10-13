@@ -1069,6 +1069,34 @@ async function checkConnections() {
     ).data.integrationConnection_updateMany === 1,
   )
 
+  // A token a refresh just gave, refused all the same, is marked, but never while a refresh holds the lease
+  const refused = createId()
+  const markRefused = () =>
+    markIntegrationConnectionTokenRefused(dataConnect, {
+      ...member,
+      generation: refused,
+      encryptedAccessToken: `v1:local:access-${refused}`,
+    })
+
+  await connect(member, refused)
+  await claimIntegrationConnectionRefresh(dataConnect, {
+    ...member,
+    generation: refused,
+    encryptedRefreshToken: `v1:local:refresh-${refused}`,
+    refreshLeaseId: createId(),
+  })
+  check(
+    'a refused token is not marked while a refresh holds the lease',
+    (await markRefused()).data.integrationConnection_updateMany === 0,
+  )
+  await connect(member, refused)
+  check(
+    'and is marked once none does, refresh token or not, which goes with it',
+    (await markRefused()).data.integrationConnection_updateMany === 1
+      && (await readConnections(id))[0]?.status === 'NEEDS_AUTHENTICATION'
+      && (await readConnections(id))[0]?.encryptedRefreshToken === null,
+  )
+
   // What a change of the server takes with it
   await connect(member, createId())
   await start(member, createId(), `state-g-${checkId}`)

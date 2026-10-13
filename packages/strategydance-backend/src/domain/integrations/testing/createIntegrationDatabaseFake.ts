@@ -811,14 +811,17 @@ function createIntegrationDatabaseFake() {
         connection
         && connection.generation === id(variables.generation)
         && connection.encryptedAccessToken === variables.encryptedAccessToken
-        && connection.encryptedRefreshToken === null
+        && !isLater(connection.refreshingUntil)
 
       if (!isMarked) return { integrationConnection_updateMany: 0 }
 
       Object.assign(connection, {
         status: IntegrationConnectionStatus.NEEDS_AUTHENTICATION,
         encryptedAccessToken: null,
+        encryptedRefreshToken: null,
         accessTokenExpiresAt: null,
+        refreshingUntil: null,
+        refreshLeaseId: null,
       })
 
       return { integrationConnection_updateMany: 1 }

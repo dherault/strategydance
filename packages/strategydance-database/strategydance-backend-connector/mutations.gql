@@ -5083,8 +5083,9 @@ mutation MarkIntegrationConnectionNeedsAuthentication(
 }
 
 # Marks a member's connection as needing them to connect again when the server refused its access
-# token and it holds no refresh token to try, only while it still holds the token refused, so a
-# reconnect made meanwhile is never dropped. The backend reads the count
+# token and no refresh can mend it: it holds no refresh token to try, or the token refused was the
+# one a refresh just gave. Only while it still holds the token refused, so a reconnect or a refresh
+# made meanwhile is never dropped, and while no refresh holds its lease. The backend reads the count
 mutation MarkIntegrationConnectionTokenRefused(
   $organizationId: UUID!
   $userId: String!
@@ -5094,17 +5095,24 @@ mutation MarkIntegrationConnectionTokenRefused(
 ) @auth(level: NO_ACCESS) {
   integrationConnection_updateMany(
     where: {
-      integrationId: { eq: $integrationId }
-      membershipUserId: { eq: $userId }
-      membershipOrganizationId: { eq: $organizationId }
-      generation: { eq: $generation }
-      encryptedAccessToken: { eq: $encryptedAccessToken }
-      encryptedRefreshToken: { isNull: true }
+      _and: [
+        {
+          integrationId: { eq: $integrationId }
+          membershipUserId: { eq: $userId }
+          membershipOrganizationId: { eq: $organizationId }
+          generation: { eq: $generation }
+          encryptedAccessToken: { eq: $encryptedAccessToken }
+        }
+        { _or: [{ refreshingUntil: { isNull: true } }, { refreshingUntil: { lt_time: { now: true } } }] }
+      ]
     }
     data: {
       status: NEEDS_AUTHENTICATION
       encryptedAccessToken: null
+      encryptedRefreshToken: null
       accessTokenExpiresAt: null
+      refreshingUntil: null
+      refreshLeaseId: null
       updatedAt_expr: "request.time"
     }
   )

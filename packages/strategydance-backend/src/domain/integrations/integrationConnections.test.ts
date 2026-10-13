@@ -795,6 +795,20 @@ describe("an administrator's Retry of an OAuth server", () => {
     expect(connection(ADA)!.status).toBe(IntegrationConnectionStatus.NEEDS_AUTHENTICATION)
     expect(server().lastError).toBeNull()
   })
+
+  test('marks their connection when the server refuses even the token a refresh just gave', async () => {
+    await connect(ADA)
+    provider.switches.isEveryTokenRefused = true
+
+    expect(await retryIntegration(caller(ADA))).toEqual({ outcome: 'connectionExpired' })
+    expect(tokenRequests('refresh_token')).toHaveLength(1)
+    expect(connection(ADA)).toMatchObject({
+      status: IntegrationConnectionStatus.NEEDS_AUTHENTICATION,
+      encryptedAccessToken: null,
+      encryptedRefreshToken: null,
+    })
+    expect(await readIntegrationAccessToken(caller(ADA))).toEqual({ outcome: 'needsAuthentication' })
+  })
 })
 
 describe('disconnecting', () => {

@@ -1,4 +1,11 @@
-import { IntegrationApiKeyScheme, IntegrationAuthentication, IntegrationError } from 'strategydance-database/backend'
+import {
+  IntegrationApiKeyScheme,
+  IntegrationAuthentication,
+  IntegrationError,
+  markIntegrationConnectionTokenRefused,
+} from 'strategydance-database/backend'
+
+import { dataConnect } from '~firebase'
 
 import IntegrationFailure from '~domain/integrations/IntegrationFailure'
 import reachIntegration from '~domain/integrations/reachIntegration'
@@ -12,8 +19,8 @@ type ReadyAccess = Extract<IntegrationAccess, { outcome: 'ready' }>
   An OAuth server's tools, listed with a member's own token, as remote MCP servers list the same tools
   for every account: their token read, refreshed first when it expires, and refreshed once more when
   the server refuses it, as a token revoked before its expiry is, after which a refusal means the
-  member has to connect again. A member who never connected lists nothing; a server out of reach
-  throws, as reaching it does
+  member has to connect again, which the connection is marked as, so their page offers it. A member
+  who never connected lists nothing; a server out of reach throws, as reaching it does
 */
 async function listIntegrationToolsAsMember(caller: IntegrationCaller) {
   const access = await readIntegrationAccessToken(caller)
@@ -30,7 +37,16 @@ async function listIntegrationToolsAsMember(caller: IntegrationCaller) {
 
   const again = await listWith(refreshed)
 
-  return again === 'refused' ? ({ outcome: 'connectionExpired' } as const) : again
+  if (again !== 'refused') return again
+
+  // Even the refreshed token is refused: the connection needs the member, which their page shows
+  await markIntegrationConnectionTokenRefused(dataConnect, {
+    ...caller,
+    generation: refreshed.generation,
+    encryptedAccessToken: refreshed.encryptedAccessToken,
+  })
+
+  return { outcome: 'connectionExpired' } as const
 }
 
 // The tools, or `refused` when the server refused the token

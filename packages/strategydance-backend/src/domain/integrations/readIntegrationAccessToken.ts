@@ -44,10 +44,11 @@ type ReadIntegrationAccessTokenOptions = {
 /*
   A member's access token to a server, what it goes to and what it was read as: ready, or why not.
   `encryptedAccessToken` is what a caller hands back as `refusedAccessToken` when the server refuses
-  the token, so the refresh that follows replaces that very token
+  the token, so the refresh that follows replaces that very token, and, with `generation`, what marks
+  the connection when even a refreshed token is refused (`MarkIntegrationConnectionTokenRefused`)
 */
 type IntegrationAccess =
-  | { outcome: 'ready'; url: string; accessToken: string; encryptedAccessToken: string }
+  | { outcome: 'ready'; url: string; accessToken: string; encryptedAccessToken: string; generation: string }
   | { outcome: 'notConnected' | 'needsAuthentication' | 'busy' | 'keyUnavailable' }
   | { outcome: 'failed'; kind: IntegrationError }
 
@@ -164,6 +165,7 @@ async function open(
         toTokenOwner(caller, connection, 'access-token'),
       ),
       encryptedAccessToken,
+      generation: connection.generation,
     }
   } catch (error) {
     logger.error("Integrations: a member's access token could not be decrypted", error)
@@ -309,7 +311,13 @@ async function refresh(
     return 'leaseLost'
   }
 
-  return { outcome: 'ready', url: integration.url, accessToken: tokens.accessToken, encryptedAccessToken }
+  return {
+    outcome: 'ready',
+    url: integration.url,
+    accessToken: tokens.accessToken,
+    encryptedAccessToken,
+    generation: connection.generation,
+  }
 }
 
 // Whose a token is: the member's, at the server, under the connection's generation

@@ -27,6 +27,7 @@ import IntegrationTokenRefusal from '~domain/integrations/IntegrationTokenRefusa
 import isIntegrationClientAuthenticationMethod from '~domain/integrations/isIntegrationClientAuthenticationMethod'
 import readIntegrationRefusal from '~domain/integrations/readIntegrationRefusal'
 import requestIntegrationTokens from '~domain/integrations/requestIntegrationTokens'
+import revokeIntegrationTokens from '~domain/integrations/revokeIntegrationTokens'
 
 type IntegrationCaller = {
   organizationId: string
@@ -265,9 +266,33 @@ async function refresh(
     }
   } catch (error) {
     logger.error("Integrations: a member's refreshed tokens could not be encrypted", error)
-    await release()
 
-    return { outcome: 'keyUnavailable' }
+    /*
+      The tokens the refresh got cannot be kept, so they are revoked, best effort, and never left as
+      a grant nothing holds. A server that rotated the refresh token spent the one stored, so the
+      connection needs the member again; one that did not, answering the token it was sent, keeps it
+      good, and only the new access token is revoked, the lease let go for the next try
+    */
+    const isRotated = tokens.refreshToken !== null && tokens.refreshToken !== refreshToken
+
+    await revokeIntegrationTokens(
+      { revocationEndpoint: connection.revocationEndpoint, client: endpoint.client },
+      { accessToken: tokens.accessToken, refreshToken: isRotated ? tokens.refreshToken : null },
+    )
+
+    if (!isRotated) {
+      await release()
+
+      return { outcome: 'keyUnavailable' }
+    }
+
+    await markIntegrationConnectionNeedsAuthentication(dataConnect, {
+      ...lease,
+      generation: connection.generation,
+      encryptedAccessToken: read.encryptedAccessToken,
+    })
+
+    return { outcome: 'needsAuthentication' }
   }
 
   try {

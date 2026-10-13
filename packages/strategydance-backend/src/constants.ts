@@ -378,6 +378,23 @@ export const MAX_CLIENT_METADATA_DOCUMENTS_KEPT = 500
 export const DEVELOPMENT_OAUTH_TOKEN_SECRET = 'strategydance-development-oauth-token-secret'
 
 /* ---
+  DIRECTORIES
+--- */
+
+// The repository the directories' check reads the lists from and opens its pull request in, the
+// branch it commits to, which it alone writes, and the branch that pull request goes into
+export const GITHUB_REPOSITORY = 'dherault/strategydance'
+
+export const DIRECTORY_CHECK_BRANCH = 'directories-check'
+
+export const DIRECTORY_CHECK_BASE_BRANCH = 'dev'
+
+// The directories package's two lists, from the repository's root
+export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/directories.json'
+
+export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
+
+/* ---
   SECRETS
 
   Names in Secret Manager, in the `strategydance` project, read through `retrieveSecret`
@@ -393,6 +410,12 @@ export const SECRET_ANTHROPIC_API_KEY = 'anthropic-api-key'
 // What a rotated refresh token's successors are derived under, read by version, so a duplicate
 // derives under the version its first use recorded. Read only in production
 export const SECRET_OAUTH_TOKEN_SECRET = 'oauth-token-secret'
+
+// The GitHub App the directories' check opens its pull request as: its id and its private key, in
+// PEM. Read only by the worker, and by `check:directories --publish`
+export const SECRET_GITHUB_APP_ID = 'github-app-id'
+
+export const SECRET_GITHUB_APP_PRIVATE_KEY = 'github-app-private-key'
 
 /* ---
   EMAIL

@@ -6,6 +6,12 @@ import type {
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ModuleScope } from 'strategydance-core'
 import type { CompanyAspect, TaskStatus } from 'strategydance-database/backend'
+import type {
+  Directory,
+  DirectoryBusinessModel,
+  DirectoryInactiveReason,
+  InactiveDirectory,
+} from 'strategydance-directories'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
@@ -372,4 +378,119 @@ export type TasksWriteResult<Result> =
 export type TasksToolContext = {
   caller: ModuleCaller
   toAddress: (taskId: string) => Promise<string | undefined>
+}
+
+/* ---
+  DIRECTORIES
+
+  The daily check of the directories package's lists, `domain/directories/`
+--- */
+
+// Both lists of the directories package, as a check reads and writes them
+export type DirectoryLists = {
+  directories: Directory[]
+  inactiveDirectories: InactiveDirectory[]
+}
+
+/*
+  What a page answered a probe with: a page (`reachable`), a page that is not there (`missing`, a
+  404 or a 410), a wall put up for bots (`blocked`: a 401, a 403, a 429, a challenge, a redirect
+  loop a visitor without cookies meets), no site (`unreachable`: no such name, a name resolving to a
+  private address, a refused or dropped connection, a failed TLS handshake, the deadline, a server
+  error), or something nobody can tell apart from a passing fault (`unknown`)
+*/
+export type DirectoryPageOutcome = 'reachable' | 'missing' | 'blocked' | 'unreachable' | 'unknown'
+
+// One page a probe fetched, and the text a reader of it would see
+export type DirectoryPageProbe = {
+  url: string
+  // Where its redirects led, null when nothing answered
+  finalUrl: string | null
+  status: number | null
+  outcome: DirectoryPageOutcome
+  // Why it is not `reachable`, for the logs and the report
+  failure: string | null
+  title: string
+  description: string
+  text: string
+  // Whether it holds too little text to be read without running its scripts, as a page a browser
+  // draws does: what it says it lacks proves nothing
+  isClientRendered: boolean
+}
+
+export type DirectoryProbe = {
+  root: DirectoryPageProbe
+  // The submission page's, null when it is the root itself
+  submission: DirectoryPageProbe | null
+}
+
+// The quote, and the page it was read on, that a business model or a verdict of inactive rests on
+export type DirectoryEvidence = {
+  quote: string
+  url: string
+}
+
+// Claude's answer, as the review's schema has it and its reader checked it
+export type DirectoryReviewAnswer = {
+  verdict: 'ACTIVE' | 'INACTIVE' | 'INCONCLUSIVE'
+  inactiveReason: DirectoryInactiveReason | null
+  description: string | null
+  isCurrentDescriptionAccurate: boolean
+  businessModel: DirectoryBusinessModel | null
+  evidence: DirectoryEvidence | null
+  submissionUrl: string | null
+  notes: string
+}
+
+// What a check's requests used, summed over a review's paused parts
+export type DirectoryCheckUsage = {
+  inputTokens: number
+  cacheCreationInputTokens: number
+  cacheReadInputTokens: number
+  outputTokens: number
+}
+
+/*
+  What became of a review: an answer, with the text Claude's fetches brought back, which its quotes
+  are checked against; no answer worth reading, a refusal, an answer past its schema or the
+  deadline, which counts as a check that told nothing; or a failure of the API itself, which counts
+  as no check at all
+*/
+export type DirectoryReview =
+  | { outcome: 'answered'; answer: DirectoryReviewAnswer; fetchedText: string; usage: DirectoryCheckUsage }
+  | { outcome: 'unanswered'; failure: string; usage: DirectoryCheckUsage }
+  | { outcome: 'failed'; failure: string; usage: DirectoryCheckUsage }
+
+// One directory's check, before it is applied to the lists
+export type DirectoryCheck = {
+  name: string
+  probe: DirectoryProbe
+  // Null when the probe alone decided, a site it could not reach
+  review: DirectoryReview | null
+  // The moved submission page the review named, as a probe of it answered, or null
+  submissionProbe: DirectoryPageProbe | null
+}
+
+/*
+  What a check did to a directory: kept it active, moved it to the other list, kept it inactive,
+  counted it unreachable without moving it yet, learned nothing (`inconclusive`), or left it as it
+  was, for an API failure or a run out of time (`notChecked`)
+*/
+export type DirectoryCheckResult =
+  | 'active'
+  | 'movedToInactive'
+  | 'movedToActive'
+  | 'inactive'
+  | 'unreachable'
+  | 'inconclusive'
+  | 'notChecked'
+
+export type DirectoryCheckOutcome = {
+  name: string
+  rootUrl: string
+  result: DirectoryCheckResult
+  // What changed in its entry, a line each, for the report
+  changes: string[]
+  evidence: DirectoryEvidence | null
+  notes: string
 }

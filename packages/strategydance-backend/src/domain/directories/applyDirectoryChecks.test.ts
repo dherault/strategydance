@@ -1,0 +1,303 @@
+import { describe, expect, test } from 'bun:test'
+
+import type { Directory, InactiveDirectory } from 'strategydance-directories'
+
+import type { DirectoryCheck, DirectoryLists, DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
+
+import applyDirectoryChecks from '~domain/directories/applyDirectoryChecks'
+import {
+  createAnswer,
+  createDirectory,
+  createInactiveDirectory,
+  createPageProbe,
+} from '~domain/directories/testing/directoryFixtures'
+
+const TODAY = '2026-10-20'
+
+const USAGE = { inputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0, outputTokens: 0 }
+
+const QUOTE = 'Listings are free once our badge is on your site'
+
+function createLists(directories: Directory[], inactiveDirectories: InactiveDirectory[] = []): DirectoryLists {
+  return { directories, inactiveDirectories }
+}
+
+function createCheck(
+  directory: Directory,
+  {
+    root = {},
+    answer,
+    fetchedText = '',
+    submissionProbe = null,
+  }: {
+    root?: Partial<DirectoryPageProbe>
+    answer?: Partial<DirectoryReviewAnswer> | 'unanswered' | 'failed'
+    fetchedText?: string
+    submissionProbe?: DirectoryPageProbe | null
+  } = {},
+): DirectoryCheck {
+  const probe = { root: createPageProbe(directory.rootUrl, root), submission: null }
+
+  if (answer === 'unanswered')
+    return {
+      name: directory.name,
+      probe,
+      review: { outcome: 'unanswered', failure: 'Refused', usage: USAGE },
+      submissionProbe,
+    }
+  if (answer === 'failed')
+    return {
+      name: directory.name,
+      probe,
+      review: { outcome: 'failed', failure: 'Overloaded', usage: USAGE },
+      submissionProbe,
+    }
+
+  return {
+    name: directory.name,
+    probe,
+    review: answer ? { outcome: 'answered', answer: createAnswer(answer), fetchedText, usage: USAGE } : null,
+    submissionProbe,
+  }
+}
+
+function apply(lists: DirectoryLists, check: DirectoryCheck) {
+  const { lists: applied, outcomes } = applyDirectoryChecks(lists, [check], TODAY)
+
+  return { ...applied, outcome: outcomes[0] }
+}
+
+const UNREACHABLE = { outcome: 'unreachable', status: null, failure: 'ENOTFOUND: getaddrinfo ENOTFOUND' } as const
+
+describe('applyDirectoryChecks', () => {
+  test('describes an active directory, and dates its check', () => {
+    const directory = createDirectory('tools', { lastChecked: '2026-09-01' })
+    const { directories, outcome } = apply(createLists([directory]), createCheck(directory, { answer: {} }))
+
+    expect(directories).toEqual([{ ...directory, description: createAnswer().description!, lastChecked: TODAY }])
+    expect(outcome).toMatchObject({ result: 'active', changes: [expect.stringContaining('Description written')] })
+  })
+
+  test('keeps a description the review found right, and rewrites one it found wrong', () => {
+    const directory = createDirectory('tools', { description: 'Directory of tools.' })
+
+    expect(apply(createLists([directory]), createCheck(directory, { answer: {} })).directories[0].description).toBe(
+      'Directory of tools.',
+    )
+    expect(
+      apply(createLists([directory]), createCheck(directory, { answer: { isCurrentDescriptionAccurate: false } }))
+        .directories[0].description,
+    ).toBe(createAnswer().description!)
+  })
+
+  test('changes a business model only on a quote found in what was read', () => {
+    const directory = createDirectory('tools')
+    const answer = {
+      businessModel: 'FREE_WITH_BADGE',
+      evidence: { quote: QUOTE, url: 'https://tools.example/faq' },
+    } as const
+
+    const quoted = apply(createLists([directory]), createCheck(directory, { answer }))
+    const invented = apply(
+      createLists([directory]),
+      createCheck(directory, {
+        answer: { ...answer, evidence: { ...answer.evidence, quote: 'Badge required for every listing' } },
+      }),
+    )
+
+    expect(quoted.directories[0].businessModel).toBe('FREE_WITH_BADGE')
+    expect(quoted.outcome).toMatchObject({
+      changes: expect.arrayContaining(['Business model FREE → FREE_WITH_BADGE']),
+      evidence: answer.evidence,
+    })
+    expect(invented.directories[0].businessModel).toBe('FREE')
+    expect(invented.outcome.notes).toContain('without a quote found')
+  })
+
+  test('reads quotes in what Claude fetched too', () => {
+    const directory = createDirectory('tools')
+    const { directories } = apply(
+      createLists([directory]),
+      createCheck(directory, {
+        answer: {
+          businessModel: 'PAID',
+          evidence: { quote: 'Every listing is $49', url: 'https://tools.example/pricing' },
+        },
+        fetchedText: 'Pricing. Every listing is $49, once.',
+      }),
+    )
+
+    expect(directories[0].businessModel).toBe('PAID')
+  })
+
+  test('takes a moved submission page only when it answered, on the site, and is nobody else’s', () => {
+    const directory = createDirectory('tools')
+    const other = createDirectory('other', { submissionUrl: 'https://tools.example/taken' })
+    const check = (submissionUrl: string, probe: Partial<DirectoryPageProbe> = {}) =>
+      createCheck(directory, { answer: { submissionUrl }, submissionProbe: createPageProbe(submissionUrl, probe) })
+    const lists = createLists([directory, other])
+
+    expect(apply(lists, check('https://tools.example/new-submit')).directories[0].submissionUrl).toBe(
+      'https://tools.example/new-submit',
+    )
+    expect(apply(lists, check('https://tools.example/gone', { outcome: 'missing' })).directories[0].submissionUrl).toBe(
+      directory.submissionUrl,
+    )
+    expect(apply(lists, check('https://forms.example/tools')).directories[0].submissionUrl).toBe(
+      directory.submissionUrl,
+    )
+    expect(apply(lists, check('https://tools.example/taken')).directories[0].submissionUrl).toBe(
+      directory.submissionUrl,
+    )
+  })
+
+  test('counts a first unreachable check without moving the directory', () => {
+    const directory = createDirectory('tools')
+    const { directories, outcome } = apply(createLists([directory]), createCheck(directory, { root: UNREACHABLE }))
+
+    expect(directories).toEqual([{ ...directory, lastChecked: TODAY, unreachableSince: TODAY }])
+    expect(outcome).toMatchObject({ result: 'unreachable', notes: 'Unreachable: ENOTFOUND: getaddrinfo ENOTFOUND' })
+  })
+
+  test('moves a directory still unreachable three days after the first check', () => {
+    const recent = createDirectory('recent', { unreachableSince: '2026-10-18' })
+    const old = createDirectory('old', { unreachableSince: '2026-10-17' })
+    const lists = createLists([recent, old])
+
+    expect(apply(lists, createCheck(recent, { root: UNREACHABLE })).directories).toContainEqual({
+      ...recent,
+      lastChecked: TODAY,
+    })
+
+    const moved = apply(lists, createCheck(old, { root: { outcome: 'missing', status: 404, failure: 'HTTP 404' } }))
+
+    expect(moved.directories.map(({ name }) => name)).toEqual(['recent'])
+    expect(moved.inactiveDirectories).toEqual([{ ...old, lastChecked: TODAY, inactiveReason: 'UNREACHABLE' }])
+    expect(moved.outcome).toMatchObject({ result: 'movedToInactive', notes: 'Unreachable since 2026-10-17: HTTP 404' })
+  })
+
+  test('forgets an unreachable check once the root answers, a bot wall included', () => {
+    const directory = createDirectory('tools', { unreachableSince: '2026-10-18' })
+
+    expect(
+      apply(
+        createLists([directory]),
+        createCheck(directory, { root: { outcome: 'blocked', status: 403 }, answer: { verdict: 'INCONCLUSIVE' } }),
+      ).directories[0].unreachableSince,
+    ).toBeNull()
+  })
+
+  test('moves a directory the review found inactive, on a quote found in what was read', () => {
+    const directory = createDirectory('tools')
+    const answer = {
+      verdict: 'INACTIVE',
+      inactiveReason: 'NO_SUBMISSION',
+      evidence: { quote: QUOTE, url: directory.rootUrl },
+    } as const
+
+    const moved = apply(createLists([directory]), createCheck(directory, { answer }))
+
+    expect(moved.inactiveDirectories).toEqual([{ ...directory, lastChecked: TODAY, inactiveReason: 'NO_SUBMISSION' }])
+    expect(moved.outcome.result).toBe('movedToInactive')
+
+    const unquoted = apply(
+      createLists([directory]),
+      createCheck(directory, {
+        answer: { ...answer, evidence: { quote: 'We closed submissions forever', url: directory.rootUrl } },
+      }),
+    )
+
+    expect(unquoted.inactiveDirectories).toEqual([])
+    expect(unquoted.outcome).toMatchObject({
+      result: 'inconclusive',
+      notes: expect.stringContaining('without a quote'),
+    })
+  })
+
+  test('never says a page its scripts draw lacks a way to submit', () => {
+    const directory = createDirectory('tools')
+    const { inactiveDirectories, outcome } = apply(
+      createLists([directory]),
+      createCheck(directory, {
+        root: { text: QUOTE, isClientRendered: true },
+        answer: {
+          verdict: 'INACTIVE',
+          inactiveReason: 'BROKEN_SUBMISSION',
+          evidence: { quote: QUOTE, url: directory.rootUrl },
+        },
+      }),
+    )
+
+    expect(inactiveDirectories).toEqual([])
+    expect(outcome.result).toBe('inconclusive')
+  })
+
+  test('brings an inactive directory back once a startup can be submitted there again', () => {
+    const directory = createInactiveDirectory('back', { unreachableSince: '2026-09-01' })
+    const { directories, inactiveDirectories, outcome } = apply(
+      createLists([], [directory]),
+      createCheck(directory, { answer: {} }),
+    )
+    const { inactiveReason: _reason, ...fields } = directory
+
+    expect(inactiveDirectories).toEqual([])
+    expect(directories).toEqual([
+      { ...fields, description: createAnswer().description!, lastChecked: TODAY, unreachableSince: null },
+    ])
+    expect(outcome.result).toBe('movedToActive')
+  })
+
+  test('keeps an inactive directory still unreachable where it is, dated', () => {
+    const directory = createInactiveDirectory('gone')
+    const { inactiveDirectories, outcome } = apply(
+      createLists([], [directory]),
+      createCheck(directory, { root: UNREACHABLE }),
+    )
+
+    expect(inactiveDirectories).toEqual([{ ...directory, lastChecked: TODAY }])
+    expect(outcome.result).toBe('inactive')
+  })
+
+  test('only dates a check that told nothing, and leaves one the API failed', () => {
+    const directory = createDirectory('tools')
+
+    expect(apply(createLists([directory]), createCheck(directory, { answer: 'unanswered' }))).toMatchObject({
+      directories: [{ ...directory, lastChecked: TODAY }],
+      outcome: { result: 'inconclusive', notes: 'Refused' },
+    })
+    expect(apply(createLists([directory]), createCheck(directory, { answer: 'failed' }))).toMatchObject({
+      directories: [directory],
+      outcome: { result: 'notChecked', notes: 'Overloaded' },
+    })
+  })
+
+  test('follows a redirect within the site, and never one off it', () => {
+    const directory = createDirectory('tools', {
+      rootUrl: 'http://tools.example/',
+      submissionUrl: 'http://tools.example/submit?ref=list',
+    })
+
+    expect(
+      apply(
+        createLists([directory]),
+        createCheck(directory, { root: { finalUrl: 'https://www.tools.example/home' }, answer: {} }),
+      ).directories[0],
+    ).toMatchObject({
+      rootUrl: 'https://www.tools.example/',
+      submissionUrl: 'https://www.tools.example/submit?ref=list',
+    })
+    expect(
+      apply(
+        createLists([directory]),
+        createCheck(directory, { root: { finalUrl: 'https://casino.example/' }, answer: {} }),
+      ).directories[0],
+    ).toMatchObject({ rootUrl: 'http://tools.example/' })
+  })
+
+  test('leaves a directory no longer in either list', () => {
+    const { directories, outcome } = apply(createLists([]), createCheck(createDirectory('renamed'), { answer: {} }))
+
+    expect(directories).toEqual([])
+    expect(outcome.result).toBe('notChecked')
+  })
+})

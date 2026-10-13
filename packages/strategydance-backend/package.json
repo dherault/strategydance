@@ -22,6 +22,7 @@
     "mcp:tasks": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/serveModule.ts tasks",
     "backfill:document-text": "bun scripts/backfillDocumentText.ts",
     "backfill:task-text": "bun scripts/backfillTaskText.ts",
+    "check:directories": "bun scripts/checkDirectories.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
     "send:conversation": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/sendConversationMessage.ts",
     "deploy": "bash scripts/deploy.sh"
@@ -49,6 +50,7 @@
     "strategydance-core": "workspace:*",
     "strategydance-database": "workspace:*",
     "strategydance-design-system": "workspace:*",
+    "strategydance-directories": "workspace:*",
     "strategydance-emails": "workspace:*",
     "yjs": "^13.6.33",
     "zod": "^4.6.5"

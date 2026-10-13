@@ -5,6 +5,7 @@ import {
   renameOrganizationIntegration,
   updateOrganizationIntegrationKey,
 } from 'strategydance-database/backend'
+import { findExternalMcpServerByUrl } from 'strategydance-external-mcp-servers'
 
 import { dataConnect } from '~firebase'
 
@@ -102,6 +103,8 @@ async function editIntegration({ organizationId, userId, integrationId, settings
           ...named,
           ...matched,
           url: settings.url,
+          // The external MCP server at the new address, whose mark it now draws, or none
+          catalogueSlug: findExternalMcpServerByUrl(settings.url)?.slug ?? null,
           authentication: settings.authentication,
           encryptedApiKey,
           ...toStoredKeyFields(settings, key),

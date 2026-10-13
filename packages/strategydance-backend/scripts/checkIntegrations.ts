@@ -118,6 +118,7 @@ const administrator = { organizationId, userId: administratorId }
 type StoredIntegration = {
   name: string
   url: string
+  catalogueSlug: string | null
   authentication: string
   isEnabled: boolean
   configRevision: number
@@ -138,7 +139,7 @@ async function readIntegration(id: string) {
   const data = await read<{ organizationIntegration: StoredIntegration | null }>(
     `query ReadIntegration($id: UUID!) {
       organizationIntegration(id: $id) {
-        name url authentication isEnabled configRevision encryptedApiKey keyGeneration apiKeyScheme apiKeyHeader
+        name url catalogueSlug authentication isEnabled configRevision encryptedApiKey keyGeneration apiKeyScheme apiKeyHeader
         issuer tools toolCount toolDefinitionHashes autoApprovedTools lastError deletedAt
       }
     }`,
@@ -324,7 +325,7 @@ async function checkReconfiguring() {
   const id = createId()
   const hashes = ['hash-a', 'hash-b']
 
-  await create({ integrationId: id, toolDefinitionHashes: hashes })
+  await create({ integrationId: id, catalogueSlug: 'github', toolDefinitionHashes: hashes })
   await allowOrganizationIntegrationTool(dataConnect, { ...administrator, integrationId: id, definitionHash: 'hash-a' })
 
   const reconfigure = (configRevision: number, keyGeneration: number) =>
@@ -336,6 +337,7 @@ async function checkReconfiguring() {
       configRevision,
       keyGeneration,
       url: 'https://mcp.elsewhere.example/mcp',
+      catalogueSlug: null,
       authentication: IntegrationAuthentication.OAUTH,
       encryptedApiKey: null,
       apiKeyLastFour: null,
@@ -362,6 +364,7 @@ async function checkReconfiguring() {
   check('and bumps the revision and the generation', stored?.configRevision === 1 && stored.keyGeneration === 1)
   check('it keeps the issuer it found', stored?.issuer === 'https://auth.elsewhere.example')
   check('and the name it is given in the same write', stored?.name === 'Moved')
+  check('and the external MCP server at the new address, none here', stored?.catalogueSlug === null)
   check(
     'a change taking the name another server holds is refused',
     await isRefused(
@@ -373,6 +376,7 @@ async function checkReconfiguring() {
         configRevision: 1,
         keyGeneration: 1,
         url: 'https://mcp.elsewhere.example/mcp',
+        catalogueSlug: null,
         authentication: IntegrationAuthentication.NONE,
         encryptedApiKey: null,
         apiKeyLastFour: null,

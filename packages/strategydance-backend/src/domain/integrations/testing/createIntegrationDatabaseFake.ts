@@ -174,7 +174,15 @@ function createIntegrationDatabaseFake() {
         ?? refuse('The server was changed or deleted meanwhile')
 
       // Every variable is passed, as the mutation's comment asks: one left out would keep its column
-      for (const field of ['encryptedApiKey', 'apiKeyLastFour', 'apiKeyHeader', 'issuer', 'tools', 'toolCount']) {
+      for (const field of [
+        'catalogueSlug',
+        'encryptedApiKey',
+        'apiKeyLastFour',
+        'apiKeyHeader',
+        'issuer',
+        'tools',
+        'toolCount',
+      ]) {
         if (!(field in variables)) throw new Error(`ReconfigureOrganizationIntegration was called without ${field}`)
       }
 
@@ -182,6 +190,7 @@ function createIntegrationDatabaseFake() {
         name: variables.name,
         normalizedName: variables.normalizedName,
         url: variables.url,
+        catalogueSlug: variables.catalogueSlug,
         authentication: variables.authentication,
         encryptedApiKey: variables.encryptedApiKey,
         apiKeyLastFour: variables.apiKeyLastFour,

@@ -292,6 +292,29 @@ describe('changing a server', () => {
     expect(stored).toMatchObject({ autoApprovedTools: [], configRevision: 1, keyGeneration: 1, apiKeyLastFour: '5678' })
   })
 
+  test('takes the slug of the external MCP server at the new address, or none', async () => {
+    const stored = await add()
+
+    answer = async () => discovered('https://mcp.linear.app')
+    await call('PATCH', `/${stored.id}`, {
+      ...KEYED,
+      url: 'https://mcp.linear.app/mcp',
+      authentication: 'OAUTH',
+      apiKey: null,
+    })
+
+    expect(stored.catalogueSlug).toBe('linear')
+
+    await call('PATCH', `/${stored.id}`, {
+      ...KEYED,
+      url: 'https://mcp.elsewhere.example/mcp',
+      authentication: 'OAUTH',
+      apiKey: null,
+    })
+
+    expect(stored.catalogueSlug).toBeNull()
+  })
+
   test('clears the key when a server stops taking one', async () => {
     const stored = await add()
 

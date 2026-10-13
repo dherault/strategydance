@@ -62,9 +62,10 @@ weekend's outage retires nothing. Any check that reaches the root, or is walled 
 
 `requestDirectoryReview` sends Claude (`claude-opus-5-5`, effort `medium`, with server-side refusal
 fallbacks) the entry and what the probe read of both pages. Claude may fetch up to three more pages
-with web fetch (`web_fetch_20260209`, 8,000 tokens each at most), held to the entry's hosts, those
-its pages redirected to, and the domain each is a subdomain of, so it reads the site's own FAQ,
-pricing and submit pages. Web fetch only opens an address the conversation already holds, so the
+with web fetch (`web_fetch_20260209`, 8,000 tokens each at most), held to the entry's hosts and
+those its pages redirected to, so it reads the site's own FAQ, pricing and submit pages. Never a
+parent domain: for a site on a platform's subdomain, such as `launched.lovable.app`, the parent
+would open every other tenant's site, whose pages a review could then quote. Web fetch only opens an address the conversation already holds, so the
 request lists each probed page's links to the same site, and, for a page its scripts draw, whose
 links nobody sees, its `/pricing`, `/faq`, `/submit` and `/about`. Its system prompt is
 `directoryReviewPrompt.ts`, built from the package's
@@ -85,7 +86,8 @@ The answer is held to a JSON schema:
 - `notes`: a sentence or two for the reviewer of the pull request.
 
 A turn that web fetch's server-side loop paused is sent back, three times at most. One review may
-take four minutes. A refusal, an answer outside the schema, or the deadline counts as a check that
+take four minutes. A run starts no check after six minutes, so the slowest check it started, and
+the GitHub calls around them, still end inside the worker's fifteen. A refusal, an answer outside the schema, or the deadline counts as a check that
 told nothing. A failure of the API itself counts as no check at all.
 
 ## What a run writes
@@ -138,7 +140,10 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   request's description, the oldest days dropped once it outgrows GitHub's 65,536 characters.
 - The report has a row per directory: its result, what changed, the quote it rests on, and Claude's
   notes. Every word a page or Claude wrote is escaped, so it can break no table, link nothing, and
-  mention nobody (`@`, `#123`).
+  mention nobody (`@`, `#123`), and a link's destination has its parentheses percent-encoded, so an
+  address Claude gave cannot end its link early. A quote past 300 characters is dropped and notes
+  past 600 are cut, and a report too long for the description on its own is cut there, its commit
+  holding it whole, so the pull request is always updated once the commit lands.
 
 CI runs on the pull request, and Copilot reviews each push, as on any pull request into `dev`. No
 Hosting preview is built for it (`firebase-hosting-pull-request.yml`), since no page reads the two

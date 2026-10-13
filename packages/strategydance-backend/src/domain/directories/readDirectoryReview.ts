@@ -1,5 +1,10 @@
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { DirectoryBusinessModel, DirectoryCategory, MAX_DIRECTORY_DESCRIPTION_LENGTH } from 'strategydance-directories'
+import {
+  DirectoryBusinessModel,
+  DirectoryCategory,
+  isDirectoryCategoryListValid,
+  MAX_DIRECTORY_DESCRIPTION_LENGTH,
+} from 'strategydance-directories'
 import { z } from 'zod'
 
 import type { DirectoryReviewAnswer } from '~types'
@@ -31,7 +36,8 @@ const answerSchema = z.object({
   What the schema cannot hold is held here: a description longer than a sentence or on several lines
   is dropped rather than cut, as are a quote longer than a sentence or so, an `UNKNOWN` model, which
   says nothing, and an address that is not a web one. The categories are kept once each, in the
-  enum's order, as the list holds them, and none at all says nothing. Notes past their length are cut, so a day's
+  enum's order, as the list holds them, and dropped when they set `ANY_STARTUP` beside a kind, which
+  contradicts itself, as none at all says nothing. Notes past their length are cut, so a day's
   report fits a pull request's description
 */
 function readDirectoryReview(message: BetaMessage, content: BetaContentBlock[]): DirectoryReviewAnswer | null {
@@ -70,7 +76,7 @@ function readDirectoryReview(message: BetaMessage, content: BetaContentBlock[]):
       description && description.length <= MAX_DIRECTORY_DESCRIPTION_LENGTH && !description.includes('\n')
         ? description
         : null,
-    categories: categories.length ? categories : null,
+    categories: categories.length && isDirectoryCategoryListValid(categories) ? categories : null,
     businessModel: answer.businessModel === DirectoryBusinessModel.UNKNOWN ? null : answer.businessModel,
     evidence: isEvidenceValid ? answer.evidence : null,
     submissionUrl: webUrlSchema.safeParse(answer.submissionUrl).success ? answer.submissionUrl : null,

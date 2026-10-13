@@ -464,9 +464,11 @@ only way the app talks to them.
   another server, is called with every such variable, null included, which
   `createIntegrationDatabaseFake` holds the backend to
 - An organization's MCP servers are `OrganizationIntegration` rows, which the backend alone writes.
-  Each write made after reaching a server matches the `configRevision` and `keyGeneration` it
-  reached it with, so an administrator's change made meanwhile wins, and approvals are added and
-  removed by hash (`autoApprovedTools_update`), never rewritten, so one given meanwhile stays.
+  An edit carries the name, `configRevision` and `keyGeneration` its dialog showed, and an approval
+  the revision its tools were shown under, which the row has to hold still when the request arrives
+  and when it is written, so an administrator's change made meanwhile wins over a stale view.
+  Approvals are added and removed by hash (`autoApprovedTools_update`), never rewritten, so one given
+  meanwhile stays.
   `GetOrganizationIntegrations`, live, never selects the key's ciphertext nor the tools, which
   `GetOrganizationIntegrationTools` reads for one dialog: a write added later that changes what
   either selects names itself in their refreshes, and the agent's `lastUsedAt` write (M29) never

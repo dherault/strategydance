@@ -95,9 +95,11 @@ told nothing. A failure of the API itself counts as no check at all.
 `applyDirectoryChecks` is pure and keyed by name. A run changes only what it can prove:
 
 - A description is written where there is none, or where the review found the current one wrong.
-- A business model changes only when the review's quote appears in what was read: the probe's text,
-  or what Claude's fetches brought back (`isQuotedIn`, with case, spaces, quotation marks and dashes
-  ignored, and an ellipsis standing for a cut). It never changes to `UNKNOWN`. The models came from
+- A business model changes only when the review's quote is on the page it names (`isEvidenceFound`):
+  a page the probe read, or a document web fetch brought back, at that address, holds the quote,
+  with case, spaces, quotation marks and dashes ignored and an ellipsis standing for a cut
+  (`isQuotedIn`). Only a fetch's document counts, never what the code of web fetch's dynamic
+  filtering printed, nor a result's own fields. It never changes to `UNKNOWN`. The models came from
   upstream's notes, written by people who tried to submit, which a FAQ rarely beats.
 - A directory moves to the inactive list only on a quote found the same way. `NO_SUBMISSION` and
   `BROKEN_SUBMISSION` are never taken for a site whose pages are all drawn by scripts.
@@ -134,7 +136,9 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
 - The run reads both files at the branch's head and commits them in one commit through GraphQL
   `createCommitOnBranch` with `expectedHeadOid`, so a push in between refuses the commit instead of
   being written over. The checks, already paid for, are then applied again to the lists read
-  afresh, once.
+  afresh, once. Each check carries the entry as it was checked, and leaves one that changed
+  meanwhile, by a person's push or an overlapping run, rather than write an old site's review over
+  it.
 - Each commit is `[directories] Check N directories on <day>`. No hook runs on an API commit, so the
   prefix is written by the code. The day's report is the commit's body, and goes on top of the pull
   request's description, the oldest days dropped once it outgrows GitHub's 65,536 characters.

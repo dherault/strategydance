@@ -436,7 +436,8 @@ and `MAX_CONVERSATION_IMAGES` (20); per file, `MAX_CONVERSATION_IMAGE_DIMENSION`
 `ERROR_CODE_ATTACHMENT_TOO_LARGE`, beside `ERROR_CODE_UNSUPPORTED_MEDIA_TYPE`. The content types are
 the four raster images Claude reads, `application/pdf`, `text/plain`, `text/markdown` and
 `text/csv`. M30 adds, per member action, `MAX_SUBAGENTS_PER_ACTION` (10); per conversation,
-`MAX_CONVERSATION_SUBAGENTS` (100); and per subagent, `MAX_SUBAGENT_BRIEF_LENGTH` (20000). M31 adds,
+`MAX_CONVERSATION_SUBAGENTS` (100); and per subagent, `MAX_SUBAGENT_BRIEF_LENGTH` (20000) and
+`MAX_SUBAGENT_REPORT_LENGTH` (8000). M31 adds,
 per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per subagent,
 `MAX_SUBAGENT_RUNS` (4).
 
@@ -1914,10 +1915,16 @@ way (see The orchestrator).
   then sends its context and the request. At the ten minutes, the calls running finish, no other
   starts, and the run chains. The fifty tool calls count from the anchor, as a resumed run's do, fifty
   for each run the chain has taken, which `planConversationToolCalls` reads from the run's number. The
-  fourth run's limit ends it `FAILED`, as a conversation's run ends, and its report says it stopped at
-  its limits.
-- **The report** is its last `AGENT_TEXT`, its pieces joined, cut to 20000 characters, written to
-  `report` with `reportedAt` by the mutation that ends its last run, however it ends: completed;
+  fourth run's last request, its 25th, when it follows a turn's tool results, carries a text block
+  after them in that results entry, telling the subagent it has one request left and to write its
+  report now, calling no tool, as David chose on 2026-10-13, so work the limits cut off still ends
+  with a report. Only the requests can be seen coming: a fourth run its ten minutes or its 100
+  entries end reports its last text as before. The fourth run's limit ends it `FAILED`, as a
+  conversation's run ends, and its report says it stopped at its limits.
+- **The report** is its last `AGENT_TEXT`, its pieces joined, cut to 8000 characters
+  (`MAX_SUBAGENT_REPORT_LENGTH`), as David chose on 2026-10-13: a batch of ten then delivers some
+  20000 tokens rather than 50000, which could mark its parent full, and a full conversation is never
+  sent to again. It is written to `report` with `reportedAt` by the mutation that ends its last run, however it ends: completed;
   failed, refused or full, the report saying so beside whatever text it had; stopped; interrupted. A
   subagent that drew no text reports how it ended and nothing more.
 - **Slots.** At most five subagent runs go at once per member in each organization, across all their

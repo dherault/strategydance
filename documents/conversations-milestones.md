@@ -1786,8 +1786,8 @@ own.
     gains `attachmentIds`, a `BRIEF`'s files. `reportDeliveredAt` comes with the reaction, in M33.
   - `ConversationRunTrigger` gains `LAUNCH`, and `ConversationMessageKind` `BRIEF`, each appended.
     `CONTINUE`, `PENDING` and `CHAINED` come in M31, `REPORTS` in M33.
-  - `MAX_SUBAGENTS_PER_ACTION`, `MAX_CONVERSATION_SUBAGENTS` and `MAX_SUBAGENT_BRIEF_LENGTH` go in
-    strategydance-core (see The data).
+  - `MAX_SUBAGENTS_PER_ACTION`, `MAX_CONVERSATION_SUBAGENTS`, `MAX_SUBAGENT_BRIEF_LENGTH` and
+    `MAX_SUBAGENT_REPORT_LENGTH` go in strategydance-core (see The data).
   - Every web read that lists conversations, the list, the badge's and the dock's, filters on
     `parent` being null. So do the backend's searches and the counts that `MAX_CONVERSATIONS` and
     `MAX_ACTIVE_RUNS_PER_MEMBER` hold: a subagent is in none of them, and nothing a member sees
@@ -1810,7 +1810,7 @@ own.
   - No tagging, unread count or question.
   - A conversation run's limits, which end it `FAILED` with its note as they end any run, until M31
     chains it.
-  - The report, written by the mutation that ends its run, however it ends.
+  - The report, cut to 8000 characters, written by the mutation that ends its run, however it ends.
 - Its runs go where every run goes, the backend's process in development and `conversation-runs`
   elsewhere, until M31 gives them a queue of their own. Nothing launches one in production before
   M33, and nothing recovers a dead one before M31's reconcile and sweep, which development, with the
@@ -1828,7 +1828,8 @@ own.
   - The brief's files sent by id.
   - A file a draft holds, and files past a send's budget, refused.
   - The ten not counting subagents a Retry deleted, and the hundred refused.
-  - The report written at each way a run ends, and a run at its limits failing with its report.
+  - The report written at each way a run ends, cut to 8000 characters, and a run at its limits
+    failing with its report.
   - A subagent left out of the list, the counts and search.
 - `bun run check:subagent-runs`, in the backend's package, checks the launch's mutations against
   the emulators.
@@ -1846,7 +1847,8 @@ own.
 - **The chain**: `CHAINED` at any of a run's three limits, 25 requests, 10 minutes or 100 entries,
   before the fourth run, the `CONTINUE` run carrying on as Resume does, and the tool calls' budget,
   counted from the anchor today, fifty for each run the chain has taken, read from the run's number.
-  The report is written by the mutation that ends the last run.
+  The fourth run's 25th request, after a turn's tool results, carries the text block asking for the
+  report now. The report is written by the mutation that ends the last run.
 - **The slots**: a launch first finalizes the member's dead subagent runs in the organization, as a
   run start finalizes their dead runs (`finalizeDeadConversationRuns`), then counts the slots under
   the membership lock and inserts its first run `QUEUED` or `PENDING`.
@@ -1868,8 +1870,8 @@ own.
 - `CLAUDE.md`: the subagents' queue, and that a run is `QUEUED`, `RUNNING` or `PENDING` exactly
   while its conversation's `activeRunId` names it, the rule § The database states for the first two.
 - **Tests** on `createConversationDatabaseFake` with the scripted client:
-  - A chain of four runs, the fourth failing at its limits with its report, and a run chaining at
-    its 100 entries.
+  - A chain of four runs, the fourth's 25th request carrying the request for a report after its
+    tool results and the reply it drew becoming the report, and a run chaining at its 100 entries.
   - A sixth launch waiting `PENDING`, and promoted by another's end.
   - A chain while all five slots are taken, promoting nothing and staying at five.
   - A `PENDING` run stopped while five run, promoting nothing.

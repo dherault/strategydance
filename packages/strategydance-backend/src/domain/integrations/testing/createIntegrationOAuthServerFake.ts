@@ -18,6 +18,11 @@ type FakeOAuthServerOptions = {
   isIssuerParameterSupported?: boolean
   // How a registration authenticates at the token endpoint: as a public client, or with a secret
   registeredAuthenticationMethod?: 'none' | 'client_secret_basic' | 'client_secret_post'
+  /*
+    The methods its metadata lists, when it lists any: a registration asking for another is refused,
+    and one asking for a listed one is registered with it, whatever `registeredAuthenticationMethod`
+  */
+  tokenEndpointAuthMethodsSupported?: string[]
   // Whether its token answers carry an ID token naming the account
   isOpenIdProvider?: boolean
   // Whether refreshing rotates the refresh token, spending the one presented
@@ -52,6 +57,7 @@ function createIntegrationOAuthServerFake({
   isClientMetadataDocumentSupported = false,
   isIssuerParameterSupported = false,
   registeredAuthenticationMethod = 'none',
+  tokenEndpointAuthMethodsSupported,
   isOpenIdProvider = false,
   isRotating = true,
   accessTokenLifetime = 3600,
@@ -237,23 +243,34 @@ function createIntegrationOAuthServerFake({
           response_types_supported: ['code'],
           code_challenge_methods_supported: ['S256'],
           ...(scopesSupported && { scopes_supported: scopesSupported }),
+          ...(tokenEndpointAuthMethodsSupported && {
+            token_endpoint_auth_methods_supported: tokenEndpointAuthMethodsSupported,
+          }),
           ...(isClientMetadataDocumentSupported && { client_id_metadata_document_supported: true }),
           ...(isIssuerParameterSupported && { authorization_response_iss_parameter_supported: true }),
         })
       case `POST ${FAKE_ISSUER}/register`: {
         const metadata = (await request.json()) as Record<string, unknown>
-        const clientId = `client_${randomBytes(8).toString('hex')}`
-        const secret = registeredAuthenticationMethod === 'none' ? null : token('secret')
+        const requested = String(metadata.token_endpoint_auth_method)
 
         recorded.registrations.push(metadata)
-        clients.set(clientId, { secret, method: registeredAuthenticationMethod })
+
+        if (tokenEndpointAuthMethodsSupported && !tokenEndpointAuthMethodsSupported.includes(requested)) {
+          return oauthError('invalid_client_metadata')
+        }
+
+        const method = tokenEndpointAuthMethodsSupported ? requested : registeredAuthenticationMethod
+        const clientId = `client_${randomBytes(8).toString('hex')}`
+        const secret = method === 'none' ? null : token('secret')
+
+        clients.set(clientId, { secret, method })
 
         return json(
           {
             ...metadata,
             client_id: clientId,
             ...(secret && { client_secret: secret }),
-            token_endpoint_auth_method: registeredAuthenticationMethod,
+            token_endpoint_auth_method: method,
           },
           201,
         )

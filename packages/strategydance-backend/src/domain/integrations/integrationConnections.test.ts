@@ -185,6 +185,29 @@ describe('starting a Connect', () => {
     expect(tokenRequests('authorization_code')[0].client_id).toBe(INTEGRATION_OAUTH_CLIENT_ID)
   })
 
+  test('registers with a secret where the authorization server lists only methods that take one', async () => {
+    provider = createIntegrationOAuthServerFake({
+      tokenEndpointAuthMethodsSupported: ['private_key_jwt', 'client_secret_post', 'client_secret_basic'],
+    })
+
+    await connect()
+
+    expect(provider.recorded.registrations[0].token_endpoint_auth_method).toBe('client_secret_basic')
+    expect(server()).toMatchObject({ oauthClientAuthenticationMethod: 'client_secret_basic' })
+    expect(server().encryptedOAuthClientSecret).toStartWith('v1:local:')
+    // The secret goes in the Basic header, never the form
+    expect(tokenRequests('authorization_code')[0].client_secret).toBeUndefined()
+  })
+
+  test('registers a public client wherever the server lists one, beside methods with a secret', async () => {
+    provider = createIntegrationOAuthServerFake({ tokenEndpointAuthMethodsSupported: ['client_secret_basic', 'none'] })
+
+    await connect()
+
+    expect(provider.recorded.registrations[0].token_endpoint_auth_method).toBe('none')
+    expect(server()).toMatchObject({ oauthClientAuthenticationMethod: 'none', encryptedOAuthClientSecret: null })
+  })
+
   test('has two concurrent Connects present the client recorded first', async () => {
     const [first, second] = await Promise.all([start(ADA), start(BOB)])
     const clientId = server().oauthClientId

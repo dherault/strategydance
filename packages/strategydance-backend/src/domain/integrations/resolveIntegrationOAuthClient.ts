@@ -12,6 +12,7 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import buildIntegrationClientMetadata from '~domain/integrations/buildIntegrationClientMetadata'
+import chooseIntegrationRegistrationMethod from '~domain/integrations/chooseIntegrationRegistrationMethod'
 import decryptIntegrationSecret from '~domain/integrations/decryptIntegrationSecret'
 import type { IntegrationAuthorizationServer } from '~domain/integrations/discoverIntegrationAuthorizationServer'
 import encryptIntegrationSecret from '~domain/integrations/encryptIntegrationSecret'
@@ -54,7 +55,8 @@ type ResolveIntegrationOAuthClientParameters = {
     production's is
   - the client registered with the server before, whose secret, if it has one, opens for this server
     alone, unless that secret is about to stop being taken
-  - a new registration (RFC 7591), recorded for every member where none is recorded yet: a Connect
+  - a new registration (RFC 7591), asking for a public client unless the server lists only methods
+    with a secret, recorded for every member where none is recorded yet: a Connect
     that lost the race to another's registration takes the one recorded first, and a server
     reconfigured meanwhile refuses it as changed
 
@@ -97,7 +99,9 @@ async function resolveIntegrationOAuthClient({
   try {
     registered = await registerClient(server.issuer, {
       metadata: server.metadata,
-      clientMetadata: buildIntegrationClientMetadata(),
+      clientMetadata: buildIntegrationClientMetadata(
+        chooseIntegrationRegistrationMethod(server.metadata.token_endpoint_auth_methods_supported),
+      ),
       fetchFn: fetch,
     })
   } catch (error) {

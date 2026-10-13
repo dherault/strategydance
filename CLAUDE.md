@@ -37,8 +37,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   runtime dependencies, so it is importable from the browser bundle and from a Node script
   alike. Keep it that way
 - `packages/strategydance-directories` — the places a startup can be submitted to, websites and
-  Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its root and
-  submission addresses, its description and its business model, `DirectoryBusinessModel`, which
+  Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its `id`, a slug
+  that never changes, even on a rename, its root and submission addresses, its description, the
+  kinds of product it lists, `DirectoryCategory`, which `DIRECTORY_CATEGORY_DESCRIPTIONS`
+  describes, and its business model, `DirectoryBusinessModel`, which
   `DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS` and `DIRECTORY_BUSINESS_MODEL_PRECEDENCE` describe and
   order. Those nothing can be submitted to today are `INACTIVE_DIRECTORIES`, from
   `src/inactiveDirectories.json`, each with its `DirectoryInactiveReason`, and a directory is in one

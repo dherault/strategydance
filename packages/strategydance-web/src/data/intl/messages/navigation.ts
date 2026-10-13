@@ -83,6 +83,12 @@ const navigationMessages = defineMessages({
     description:
       'Sidebar link, under the "Company" heading, to the page where administrators set how the organization appears to its team, the community and agents.',
   },
+  integrations: {
+    id: 'navigation.integrations',
+    defaultMessage: 'Integrations',
+    description:
+      "Sidebar link, under the \"Company\" heading, to the page listing the other companies' services, MCP servers, that Strategy Dance, the app's AI, can use in conversations, and that page's title.",
+  },
   administration: {
     id: 'navigation.administration',
     defaultMessage: 'Administration',

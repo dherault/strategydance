@@ -32,6 +32,7 @@
   "navigation.githubStar": "Star",
   "navigation.githubStarLabel": "GitHubで{repository}にスターを付ける",
   "navigation.githubStargazers": "{count, plural, other {GitHubで # 件のスター}}",
+  "navigation.integrations": "インテグレーション",
   "navigation.knowledge": "ナレッジ",
   "navigation.logOut": "ログアウト",
   "navigation.organizationBrief": "概要",

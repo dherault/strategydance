@@ -16,13 +16,16 @@ type FakeOAuthServerOptions = {
   isClientMetadataDocumentSupported?: boolean
   // Whether it sends `iss` back with a sign-in (RFC 9207)
   isIssuerParameterSupported?: boolean
-  // How a registration authenticates at the token endpoint: as a public client, or with a secret
+  /*
+    How a registration authenticates at the token endpoint, as the server chooses whatever the
+    registration asked: as a public client, or with a secret. Left out, it is the method asked for
+  */
   registeredAuthenticationMethod?: 'none' | 'client_secret_basic' | 'client_secret_post'
   /*
-    The methods its metadata lists, when it lists any: a registration asking for another is refused,
-    and one asking for a listed one is registered with it, whatever `registeredAuthenticationMethod`
+    The methods its metadata lists, as most MCP servers' do, or null to list none, which means
+    `client_secret_basic` alone: a registration asking for a method it does not take is refused
   */
-  tokenEndpointAuthMethodsSupported?: string[]
+  tokenEndpointAuthMethodsSupported?: string[] | null
   // Whether its token answers carry an ID token naming the account
   isOpenIdProvider?: boolean
   // Whether refreshing rotates the refresh token, spending the one presented
@@ -56,8 +59,8 @@ type Grant = {
 function createIntegrationOAuthServerFake({
   isClientMetadataDocumentSupported = false,
   isIssuerParameterSupported = false,
-  registeredAuthenticationMethod = 'none',
-  tokenEndpointAuthMethodsSupported,
+  registeredAuthenticationMethod,
+  tokenEndpointAuthMethodsSupported = ['client_secret_basic', 'client_secret_post', 'none'],
   isOpenIdProvider = false,
   isRotating = true,
   accessTokenLifetime = 3600,
@@ -255,11 +258,11 @@ function createIntegrationOAuthServerFake({
 
         recorded.registrations.push(metadata)
 
-        if (tokenEndpointAuthMethodsSupported && !tokenEndpointAuthMethodsSupported.includes(requested)) {
+        if (!(tokenEndpointAuthMethodsSupported ?? ['client_secret_basic']).includes(requested)) {
           return oauthError('invalid_client_metadata')
         }
 
-        const method = tokenEndpointAuthMethodsSupported ? requested : registeredAuthenticationMethod
+        const method = registeredAuthenticationMethod ?? requested
         const clientId = `client_${randomBytes(8).toString('hex')}`
         const secret = method === 'none' ? null : token('secret')
 

@@ -208,6 +208,25 @@ describe('starting a Connect', () => {
     expect(server()).toMatchObject({ oauthClientAuthenticationMethod: 'none', encryptedOAuthClientSecret: null })
   })
 
+  test('registers for a Basic secret where the server lists no method, as RFC 8414 reads it', async () => {
+    provider = createIntegrationOAuthServerFake({ tokenEndpointAuthMethodsSupported: null })
+
+    await connect()
+
+    expect(provider.recorded.registrations[0].token_endpoint_auth_method).toBe('client_secret_basic')
+    expect(server()).toMatchObject({ oauthClientAuthenticationMethod: 'client_secret_basic' })
+  })
+
+  test('keeps the method a registration answers, whatever it asked for', async () => {
+    provider = createIntegrationOAuthServerFake({ registeredAuthenticationMethod: 'client_secret_post' })
+
+    await connect()
+
+    expect(provider.recorded.registrations[0].token_endpoint_auth_method).toBe('none')
+    expect(server()).toMatchObject({ oauthClientAuthenticationMethod: 'client_secret_post' })
+    expect(tokenRequests('authorization_code')[0].client_secret).toStartWith('secret_')
+  })
+
   test('has two concurrent Connects present the client recorded first', async () => {
     const [first, second] = await Promise.all([start(ADA), start(BOB)])
     const clientId = server().oauthClientId

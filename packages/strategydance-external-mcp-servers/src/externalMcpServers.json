@@ -92,7 +92,7 @@
     "apiKeyHeader": null,
     "category": "DESIGN",
     "description": "Designs to generate, edit, search and export.",
-    "hasMark": true,
+    "hasMark": false,
     "lastChecked": "2026-10-13"
   },
   {
@@ -200,7 +200,7 @@
     "apiKeyHeader": null,
     "category": "DEVELOPMENT",
     "description": "Apps, dynos, add-ons and deploys.",
-    "hasMark": true,
+    "hasMark": false,
     "lastChecked": "2026-10-13"
   },
   {

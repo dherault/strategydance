@@ -62,6 +62,7 @@ function IntegrationConnected({ outcome, organization, integration, authorizatio
 
     const message: IntegrationConnectionMessage = {
       integrationId: integration ?? null,
+      authorizationId: authorization ?? null,
       outcome: ending.outcome,
       code: ending.code,
     }
@@ -76,7 +77,7 @@ function IntegrationConnected({ outcome, organization, integration, authorizatio
     }
 
     window.close()
-  }, [ending, integration])
+  }, [ending, integration, authorization])
 
   function renderEnding() {
     if (!ending) {

@@ -47,8 +47,8 @@ const CONNECT_LIFETIME_MS = 10 * 60 * 1000
 
   The Connect lands when the reader's live connection to the server appears anew, which is the
   proof: the page the sign-in ends on also says how it went, on a channel every tab of the origin
-  hears, which ends a failed or refused Connect at once and nudges a connected one, since anybody
-  can open that page. Whether the window was closed is never read, since an authorization server's
+  hears, which ends a failed or refused Connect at once when it names it and nudges a connected one,
+  since anybody can open that page. Whether the window was closed is never read, since an authorization server's
   Cross-Origin-Opener-Policy makes it read as closed while the reader is still in it. A Connect with
   no news after its ten minutes has expired; Cancel cancels it, by its id, so a sign-in finished in the
   window afterwards connects nothing
@@ -66,6 +66,7 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
   const organizationId = organization?.id ?? null
   const integrationId = attempt?.integration.id ?? null
   const integrationName = attempt?.integration.name ?? null
+  const authorizationId = attempt?.authorizationId ?? null
   const previousConnectionId = attempt?.previousConnectionId ?? null
   const isWaiting = attempt !== null && attempt.failure === null
 
@@ -100,16 +101,21 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
 
     channel.onmessage = (event: MessageEvent<IntegrationConnectionMessage>) => {
       const { data } = event
-      const isForThis =
-        data.integrationId === null || toCanonicalId(data.integrationId) === toCanonicalId(integrationId)
-
-      if (!isForThis) return
 
       if (data.outcome === 'connected') {
         queryClient.invalidateQueries({ queryKey: ['GetIntegrationConnections', organizationId] }).catch(() => {})
 
         return
       }
+
+      // A failure ends this Connect only when it names it: one from an older sign-in, or naming none,
+      // leaves it waiting on its own
+      const isForThis =
+        authorizationId !== null
+        && data.authorizationId !== null
+        && toCanonicalId(data.authorizationId) === toCanonicalId(authorizationId)
+
+      if (!isForThis) return
 
       setAttempt(current =>
         current?.integration.id === integrationId
@@ -131,7 +137,16 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
       channel.close()
       clearTimeout(timeout)
     }
-  }, [isWaiting, integrationId, integrationName, previousConnectionId, organizationId, queryClient, formatMessage])
+  }, [
+    isWaiting,
+    integrationId,
+    integrationName,
+    authorizationId,
+    previousConnectionId,
+    organizationId,
+    queryClient,
+    formatMessage,
+  ])
 
   async function connect(integration: OrganizationIntegration) {
     const signInWindow = window.open('', SIGN_IN_WINDOW_NAME, SIGN_IN_WINDOW_FEATURES)

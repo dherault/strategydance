@@ -329,12 +329,15 @@ export type IntegrationConnectedSearch = {
 
 /*
   What the page a sign-in ends on says to the window that opened it, on
-  `INTEGRATION_CONNECTION_CHANNEL`: which server, when it knows, and how it went, with the backend's
-  error code when it failed. Anybody can open that page with a made-up query, so a window waiting on
-  it takes `connected` as a nudge to look, and only the member's live connection as the proof
+  `INTEGRATION_CONNECTION_CHANNEL`: which server and which Connect, when it knows, and how it went,
+  with the backend's error code when it failed. A window waiting on a Connect takes a failure or a
+  refusal for that Connect alone, so an older sign-in coming back late never ends a newer one. Anybody
+  can open that page with a made-up query, so it takes `connected` as a nudge to look, and only the
+  member's live connection as the proof
 */
 export type IntegrationConnectionMessage = {
   integrationId: string | null
+  authorizationId: string | null
   outcome: 'connected' | 'denied' | 'failed'
   code: string | null
 }

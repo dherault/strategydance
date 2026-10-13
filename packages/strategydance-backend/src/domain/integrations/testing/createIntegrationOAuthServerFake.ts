@@ -76,6 +76,8 @@ function createIntegrationOAuthServerFake({
     registrations: [] as Record<string, unknown>[],
     tokenRequests: [] as Record<string, string>[],
     revocations: [] as Record<string, string>[],
+    // The client each revocation authenticated as, or null for one that did not
+    revocationClients: [] as (string | null)[],
     // The account each listing of the tools was made as
     listings: [] as string[],
   }
@@ -137,7 +139,7 @@ function createIntegrationOAuthServerFake({
   function authenticate(request: Request, form: URLSearchParams) {
     const authorization = request.headers.get('authorization')
     const [id, secret] = authorization?.startsWith('Basic ')
-      ? Buffer.from(authorization.slice('Basic '.length), 'base64').toString('utf8').split(':')
+      ? readBasicCredentials(authorization.slice('Basic '.length))
       : [form.get('client_id'), form.get('client_secret')]
 
     if (!id) return null
@@ -264,7 +266,8 @@ function createIntegrationOAuthServerFake({
 
         const method = registeredAuthenticationMethod ?? requested
         const clientId = `client_${randomBytes(8).toString('hex')}`
-        const secret = method === 'none' ? null : token('secret')
+        // A secret holding what a form escapes, which a Basic header encoded otherwise than RFC 6749 asks breaks
+        const secret = method === 'none' ? null : `${token('secret')} :+%!~'`
 
         clients.set(clientId, { secret, method })
 
@@ -280,10 +283,17 @@ function createIntegrationOAuthServerFake({
       }
       case `POST ${FAKE_ISSUER}/token`:
         return answerToken(request)
-      case `POST ${FAKE_ISSUER}/revoke`:
-        recorded.revocations.push(Object.fromEntries(new URLSearchParams(await request.text())))
+      case `POST ${FAKE_ISSUER}/revoke`: {
+        const form = new URLSearchParams(await request.text())
+        const clientId = authenticate(request, form)
 
-        return switches.isRevocationDown ? new Response('Down', { status: 503 }) : new Response(null, { status: 200 })
+        recorded.revocations.push(Object.fromEntries(form))
+        recorded.revocationClients.push(clientId)
+
+        if (switches.isRevocationDown) return new Response('Down', { status: 503 })
+
+        return clientId ? new Response(null, { status: 200 }) : oauthError('invalid_client', 401)
+      }
       default:
         return new Response('Not found', { status: 404 })
     }
@@ -358,6 +368,22 @@ function createIntegrationOAuthServerFake({
     forgetAccessTokens: () => accessTokens.clear(),
     isCurrentRefreshToken: (refreshToken: string) => refreshTokens.get(refreshToken)?.isCurrent === true,
   }
+}
+
+/*
+  A Basic header's id and secret, each read as RFC 6749 encodes it, form-encoded before the pair is
+  joined, and refused, as nulls, when either part is encoded any other way
+*/
+function readBasicCredentials(encoded: string) {
+  const decoded = Buffer.from(encoded, 'base64').toString('utf8')
+  const colon = decoded.indexOf(':')
+  const parts = colon === -1 ? [] : [decoded.slice(0, colon), decoded.slice(colon + 1)]
+  const read = parts.map(part => new URLSearchParams(`value=${part}`).get('value') ?? '')
+  const isFormEncoded =
+    parts.length === 2
+    && read.every((part, index) => new URLSearchParams({ value: part }).toString() === `value=${parts[index]}`)
+
+  return isFormEncoded ? read : [null, null]
 }
 
 // An ID token naming the account, unsigned, as the label reads it

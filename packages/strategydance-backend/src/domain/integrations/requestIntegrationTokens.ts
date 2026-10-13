@@ -11,6 +11,7 @@ import { IntegrationError } from 'strategydance-database/backend'
 
 import { INTEGRATION_OAUTH_CALLBACK_URL, MAX_INTEGRATION_TOKEN_LENGTH } from '~constants'
 
+import applyIntegrationClientAuthentication from '~domain/integrations/applyIntegrationClientAuthentication'
 import classifyIntegrationFailure from '~domain/integrations/classifyIntegrationFailure'
 import IntegrationTokenRefusal from '~domain/integrations/IntegrationTokenRefusal'
 import readIntegrationAccountLabel from '~domain/integrations/readIntegrationAccountLabel'
@@ -44,9 +45,10 @@ const MAX_ACCESS_TOKEN_LIFETIME_SECONDS = 365 * 24 * 60 * 60
 /*
   Asks a server's token endpoint for a member's tokens, a code exchanged or a refresh token spent,
   through the MCP SDK and the guarded fetch it is given, the client authenticated as its registration
-  said, and the resource named, as MCP asks of both (RFC 8707). The endpoint is the one its Connect
-  discovered, so nothing is discovered again: the SDK's metadata is rebuilt from it alone, with no
-  method list, so the client's own method is the one used, and no `iss`, which the callback checked.
+  said, as its revocations are (`applyIntegrationClientAuthentication`), and the resource named, as
+  MCP asks of both (RFC 8707). The endpoint is the one its Connect discovered, so nothing is
+  discovered again: the SDK's metadata is rebuilt from it alone, with no `iss`, which the callback
+  checked.
 
   The answer has to be a bearer token, whatever its case, of a sane length, with a refresh token of a
   sane length if any; an expiry that is no positive number means none known. An authorization server's
@@ -70,6 +72,8 @@ async function requestIntegrationTokens(
     token_endpoint_auth_method: client.authenticationMethod,
     redirect_uris: [INTEGRATION_OAUTH_CALLBACK_URL],
   }
+  const addClientAuthentication = (headers: Headers, form: URLSearchParams) =>
+    applyIntegrationClientAuthentication(client, headers, form)
   let tokens: OAuthTokens
 
   try {
@@ -82,6 +86,7 @@ async function requestIntegrationTokens(
             codeVerifier: grant.codeVerifier,
             redirectUri: INTEGRATION_OAUTH_CALLBACK_URL,
             resource,
+            addClientAuthentication,
             fetchFn: fetch,
           })
         : await refreshAuthorization(issuer, {
@@ -89,6 +94,7 @@ async function requestIntegrationTokens(
             clientInformation,
             refreshToken: grant.refreshToken,
             resource,
+            addClientAuthentication,
             fetchFn: fetch,
           })
   } catch (error) {

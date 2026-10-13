@@ -1007,6 +1007,17 @@ describe('disconnecting', () => {
     expect(provider.recorded.revocations).toEqual([])
   })
 
+  test('authenticates a Basic client as RFC 6749 encodes it, at every endpoint, its secret holding what a form escapes', async () => {
+    provider = createIntegrationOAuthServerFake({ tokenEndpointAuthMethodsSupported: ['client_secret_basic'] })
+    await connect()
+    expireSoon(ADA)
+
+    expect((await readIntegrationAccessToken(caller(ADA))).outcome).toBe('ready')
+    expect(await disconnectIntegration(caller(ADA))).toEqual({ outcome: 'disconnected' })
+    expect(tokenRequests('refresh_token')).toHaveLength(1)
+    expect(provider.recorded.revocationClients).toEqual([server().oauthClientId])
+  })
+
   test("leaves another member's connection as it is", async () => {
     await connect(ADA)
     await connect(BOB)

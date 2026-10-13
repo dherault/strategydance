@@ -1767,3 +1767,30 @@ query GetAgentConnectionTokenForRevocation($hash: String!) @auth(level: NO_ACCES
     }
   }
 }
+
+# A server of an organization as its administrators' routes change it, deleted or not, its key's
+# ciphertext included: the one read of it, made after `organizationAdministratorMiddleware` has
+# checked the caller, and every write that follows checks it again. Null for a server of another
+# organization
+query GetOrganizationIntegrationForAdministrator($organizationId: UUID!, $integrationId: UUID!)
+@auth(level: NO_ACCESS) {
+  organizationIntegrations(where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId } }, limit: 1) {
+    id
+    name
+    normalizedName
+    url
+    catalogueSlug
+    authentication
+    isEnabled
+    configRevision
+    encryptedApiKey
+    apiKeyLastFour
+    keyGeneration
+    apiKeyScheme
+    apiKeyHeader
+    issuer
+    toolDefinitionHashes
+    lastError
+    deletedAt
+  }
+}

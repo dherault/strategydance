@@ -19,6 +19,7 @@ import type { IntegrationError as StoredIntegrationError } from 'strategydance-d
 
 import type { IntegrationConfiguration, IntegrationReach } from '~domain/integrations/reachIntegration'
 import createIntegrationDatabaseFake, {
+  type FakeIntegration,
   IntegrationError,
   OrganizationRole,
 } from '~domain/integrations/testing/createIntegrationDatabaseFake'
@@ -131,6 +132,13 @@ const KEYED = {
 
 const OPEN = { name: 'DeepWiki', url: 'https://mcp.deepwiki.com/mcp', authentication: 'NONE' }
 
+// An edit, from a dialog showing the server as it is when the edit is sent
+function edit(stored: FakeIntegration, body: Record<string, unknown>) {
+  const { name, configRevision, keyGeneration } = stored
+
+  return call('PATCH', `/${stored.id}`, { ...body, expected: { name, configRevision, keyGeneration } })
+}
+
 async function add(body: Record<string, unknown> = KEYED) {
   const { status, body: answered } = await call('POST', '', body)
 
@@ -198,11 +206,11 @@ describe('adding a server', () => {
 
     expect(stored.apiKeyLastFour).toBeNull()
 
-    await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'short_key' })
+    await edit(stored, { ...KEYED, apiKey: 'short_key' })
 
     expect(stored.apiKeyLastFour).toBeNull()
 
-    await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'a_long_enough_key_5678' })
+    await edit(stored, { ...KEYED, apiKey: 'a_long_enough_key_5678' })
 
     expect(stored.apiKeyLastFour).toBe('5678')
   })
@@ -287,7 +295,7 @@ describe('changing a server', () => {
 
     reached = []
 
-    const { status } = await call('PATCH', `/${stored.id}`, { ...KEYED, name: 'Code', apiKey: null })
+    const { status } = await edit(stored, { ...KEYED, name: 'Code', apiKey: null })
 
     expect(status).toBe(200)
     expect(stored.name).toBe('Code')
@@ -301,11 +309,11 @@ describe('changing a server', () => {
 
     const moved = { ...KEYED, url: 'https://mcp.elsewhere.example/mcp', apiKey: null }
 
-    expect((await call('PATCH', `/${stored.id}`, moved)).status).toBe(400)
+    expect((await edit(stored, moved)).status).toBe(400)
 
     answer = async () => listed(['hash-a'])
 
-    const { status } = await call('PATCH', `/${stored.id}`, { ...moved, apiKey: 'new_key_5678' })
+    const { status } = await edit(stored, { ...moved, apiKey: 'new_key_5678' })
 
     expect(status).toBe(200)
     expect(reached.at(-1)).toMatchObject({
@@ -319,7 +327,7 @@ describe('changing a server', () => {
     const stored = await add()
 
     answer = async () => discovered('https://mcp.linear.app')
-    await call('PATCH', `/${stored.id}`, {
+    await edit(stored, {
       ...KEYED,
       url: 'https://mcp.linear.app/mcp',
       authentication: 'OAUTH',
@@ -328,7 +336,7 @@ describe('changing a server', () => {
 
     expect(stored.catalogueSlug).toBe('linear')
 
-    await call('PATCH', `/${stored.id}`, {
+    await edit(stored, {
       ...KEYED,
       url: 'https://mcp.elsewhere.example/mcp',
       authentication: 'OAUTH',
@@ -343,7 +351,7 @@ describe('changing a server', () => {
 
     stored.encryptedApiKey = 'v1:local:unreadable'
 
-    const edited = await call('PATCH', `/${stored.id}`, {
+    const edited = await edit(stored, {
       ...KEYED,
       apiKey: null,
       apiKeyScheme: 'HEADER',
@@ -360,7 +368,7 @@ describe('changing a server', () => {
 
     answer = async () => discovered('https://auth.example.com')
 
-    await call('PATCH', `/${stored.id}`, { ...KEYED, authentication: 'OAUTH', apiKey: null })
+    await edit(stored, { ...KEYED, authentication: 'OAUTH', apiKey: null })
 
     expect(stored).toMatchObject({ encryptedApiKey: null, apiKeyLastFour: null, issuer: 'https://auth.example.com' })
   })
@@ -373,7 +381,7 @@ describe('changing a server', () => {
     stored.autoApprovedTools = ['hash-a', 'hash-b']
     answer = async () => listed(['hash-a'])
 
-    const { status } = await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'replaced_9999' })
+    const { status } = await edit(stored, { ...KEYED, apiKey: 'replaced_9999' })
 
     expect(status).toBe(200)
     expect(reached.at(-1)?.credential?.key).toBe('replaced_9999')
@@ -388,7 +396,7 @@ describe('changing a server', () => {
   test('sends the stored key in another header, bumping the revision', async () => {
     const stored = await add()
 
-    await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: null, apiKeyScheme: 'HEADER', apiKeyHeader: 'X-API-Key' })
+    await edit(stored, { ...KEYED, apiKey: null, apiKeyScheme: 'HEADER', apiKeyHeader: 'X-API-Key' })
 
     expect(reached.at(-1)?.credential).toEqual({ key: 'ghp_secret1234', scheme: 'HEADER', header: 'X-API-Key' })
     expect(stored).toMatchObject({ apiKeyScheme: 'HEADER', configRevision: 1, keyGeneration: 0 })
@@ -403,9 +411,7 @@ describe('changing a server', () => {
       return listed(['hash-a'])
     }
 
-    expect(
-      (await call('PATCH', `/${moved.id}`, { ...OPEN, name: 'Open', url: 'https://mcp.moved.example/mcp' })).status,
-    ).toBe(409)
+    expect((await edit(moved, { ...OPEN, name: 'Open', url: 'https://mcp.moved.example/mcp' })).status).toBe(409)
     expect(moved.name).toBe('Renamed first')
 
     const stored = await add()
@@ -417,11 +423,30 @@ describe('changing a server', () => {
       return listed(['hash-a'])
     }
 
-    const { status, body } = await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'replaced_9999' })
+    const { status, body } = await edit(stored, { ...KEYED, apiKey: 'replaced_9999' })
 
     expect(status).toBe(409)
     expect(body.code).toBe(ERROR_CODE_CONFLICT)
     expect(stored.name).toBe('Renamed meanwhile')
+  })
+
+  test('refuses an edit from a dialog showing the server as it was, reaching nothing', async () => {
+    const stored = await add()
+    const shown = { ...stored }
+
+    stored.name = 'Renamed by another'
+    reached = []
+
+    const stale = await call('PATCH', `/${stored.id}`, {
+      ...KEYED,
+      url: 'https://mcp.elsewhere.example/mcp',
+      apiKey: 'new_key_5678',
+      expected: { name: shown.name, configRevision: shown.configRevision, keyGeneration: shown.keyGeneration },
+    })
+
+    expect(stale.body.code).toBe(ERROR_CODE_CONFLICT)
+    expect(reached).toHaveLength(0)
+    expect(stored).toMatchObject({ name: 'Renamed by another', url: 'https://api.githubcopilot.com/mcp' })
   })
 
   test('refuses a change made over another made meanwhile', async () => {
@@ -433,7 +458,7 @@ describe('changing a server', () => {
       return listed(['hash-a'])
     }
 
-    const { status, body } = await call('PATCH', `/${stored.id}`, { ...KEYED, apiKey: 'replaced_9999' })
+    const { status, body } = await edit(stored, { ...KEYED, apiKey: 'replaced_9999' })
 
     expect(status).toBe(409)
     expect(body.code).toBe(ERROR_CODE_CONFLICT)
@@ -501,7 +526,7 @@ describe('turning a server on and off, and its tools', () => {
     )
   })
 
-  test('lets a listed tool run without approval by its hash, and takes that back', async () => {
+  test('lets a listed tool run without approval by its hash, at the configuration shown, and takes that back', async () => {
     const hash = 'a'.repeat(64)
 
     answer = async () => listed([hash])
@@ -509,18 +534,38 @@ describe('turning a server on and off, and its tools', () => {
     const stored = await add()
 
     expect(
-      (await call('PUT', `/${stored.id}/auto-approved-tools`, { definitionHash: hash, isAutoApproved: true })).status,
+      (
+        await call('PUT', `/${stored.id}/auto-approved-tools`, {
+          definitionHash: hash,
+          isAutoApproved: true,
+          configRevision: stored.configRevision,
+        })
+      ).status,
     ).toBe(200)
     expect(stored.autoApprovedTools).toEqual([hash])
 
     const unlisted = await call('PUT', `/${stored.id}/auto-approved-tools`, {
       definitionHash: 'b'.repeat(64),
       isAutoApproved: true,
+      configRevision: stored.configRevision,
     })
 
     expect(unlisted.body.code).toBe(ERROR_CODE_CONFLICT)
 
-    await call('PUT', `/${stored.id}/auto-approved-tools`, { definitionHash: hash, isAutoApproved: false })
+    const stale = await call('PUT', `/${stored.id}/auto-approved-tools`, {
+      definitionHash: hash,
+      isAutoApproved: false,
+      configRevision: stored.configRevision + 1,
+    })
+
+    expect(stale.body.code).toBe(ERROR_CODE_CONFLICT)
+    expect(stored.autoApprovedTools).toEqual([hash])
+
+    await call('PUT', `/${stored.id}/auto-approved-tools`, {
+      definitionHash: hash,
+      isAutoApproved: false,
+      configRevision: stored.configRevision,
+    })
 
     expect(stored.autoApprovedTools).toEqual([])
   })

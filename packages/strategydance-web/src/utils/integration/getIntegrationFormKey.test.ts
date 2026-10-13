@@ -13,6 +13,8 @@ const INTEGRATION: OrganizationIntegration = {
   catalogueSlug: 'github',
   authentication: IntegrationAuthentication.API_KEY,
   isEnabled: true,
+  configRevision: 0,
+  keyGeneration: 0,
   apiKeyLastFour: '1234',
   apiKeyScheme: IntegrationApiKeyScheme.BEARER,
   apiKeyHeader: null,

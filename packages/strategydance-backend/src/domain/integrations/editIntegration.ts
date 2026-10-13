@@ -28,6 +28,8 @@ type EditIntegrationParameters = {
   userId: string
   integrationId: string
   settings: IntegrationSettings
+  // The server as the administrator's dialog showed it, which the edit is made from
+  expected: { name: string; configRevision: number; keyGeneration: number }
 }
 
 /*
@@ -41,18 +43,41 @@ type EditIntegrationParameters = {
     the approvals of the tools still listed (`UpdateOrganizationIntegrationKey`)
   - a name alone is renamed
 
-  Each write matches the configuration the server was reached with and the name it was read with, so
+  The edit is made from the server as the dialog showed it, its name, its revision and its key's
+  generation, which the server has to hold still when the edit arrives and when it is written, so
   an edit made meanwhile, a rename included, wins and this one is refused as a conflict, for the
   administrator to look again
 */
-async function editIntegration({ organizationId, userId, integrationId, settings }: EditIntegrationParameters) {
+async function editIntegration({
+  organizationId,
+  userId,
+  integrationId,
+  settings,
+  expected,
+}: EditIntegrationParameters) {
   const stored = await readIntegrationForAdministrator(organizationId, integrationId)
 
   if (!stored || stored.deletedAt) return { outcome: 'gone' } as const
 
+  // A dialog showing the server as it was before another administrator's change would send their
+  // change back as its own: refused before anything is reached, for the administrator to look again
+  const isStale =
+    stored.name !== expected.name
+    || stored.configRevision !== expected.configRevision
+    || stored.keyGeneration !== expected.keyGeneration
+
+  if (isStale) return { outcome: 'conflict' } as const
+
   const owner = { organizationId, integrationId }
   const name = settings.name.trim()
-  const named = { organizationId, userId, integrationId, name, normalizedName: normalizeIntegrationName(name) }
+  const named = {
+    organizationId,
+    userId,
+    integrationId,
+    name,
+    normalizedName: normalizeIntegrationName(name),
+    readName: expected.name,
+  }
   const isServerChanged = settings.url !== stored.url || settings.authentication !== stored.authentication
   const isKeyed = settings.authentication === IntegrationAuthentication.API_KEY
   const isKeyChanged = isKeyed && settings.apiKey !== null
@@ -106,8 +131,8 @@ async function editIntegration({ organizationId, userId, integrationId, settings
     }
   }
 
-  // What the server was read as: a change made to it meanwhile, a rename included, refuses this one
-  const matched = { readName: stored.name, configRevision: stored.configRevision, keyGeneration: stored.keyGeneration }
+  // What the server was shown as: a change made to it meanwhile, a rename included, refuses this one
+  const matched = { configRevision: expected.configRevision, keyGeneration: expected.keyGeneration }
   const refusal = isServerChanged
     ? await runIntegrationWrite(() =>
         reconfigureOrganizationIntegration(dataConnect, {

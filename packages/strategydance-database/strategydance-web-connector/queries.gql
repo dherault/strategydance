@@ -2202,6 +2202,8 @@ query GetAgentConnections
 # --- Integrations ---
 
 # The organization's MCP servers, for the Integrations page: everything but the key's ciphertext,
+# with the revision and the key's generation a dialog sends back with an edit, so one made from a stale
+# view is refused,
 # which no web operation selects, and the tools, which the dialog reads apart
 # (`GetOrganizationIntegrationTools`), so a refresh never carries every server's schemas. Any
 # member reads them, as the team does; a reader outside the organization reads an empty list.
@@ -2306,6 +2308,8 @@ query GetOrganizationIntegrations($organizationId: UUID!)
     catalogueSlug
     authentication
     isEnabled
+    configRevision
+    keyGeneration
     apiKeyLastFour
     apiKeyScheme
     apiKeyHeader
@@ -2392,6 +2396,7 @@ query GetOrganizationIntegrationTools($organizationId: UUID!, $integrationId: UU
     limit: 1
   ) {
     id
+    configRevision
     tools
     autoApprovedTools
   }

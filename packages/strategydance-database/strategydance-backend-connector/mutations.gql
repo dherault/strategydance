@@ -4152,13 +4152,15 @@ mutation CreateOrganizationIntegration(
   )
 }
 
-# Renames a server, under the organization's row lock, so two renames cannot take one name
+# Renames a server, under the organization's row lock, so two renames cannot take one name, matching
+# the name the administrator renamed, so one made meanwhile is not undone
 mutation RenameOrganizationIntegration(
   $organizationId: UUID!
   $userId: String!
   $integrationId: UUID!
   $name: String!
   $normalizedName: String!
+  $readName: String!
 ) @auth(level: NO_ACCESS) @transaction {
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
   query @redact {
@@ -4180,9 +4182,14 @@ mutation RenameOrganizationIntegration(
     }
   }
   organizationIntegration_updateMany(
-    where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      name: { eq: $readName }
+      deletedAt: { isNull: true }
+    }
     data: { name: $name, normalizedName: $normalizedName, updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "The server is gone")
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
 }
 
 # Points a server at another address or another authentication, with what reaching it there found,
@@ -4493,12 +4500,14 @@ mutation SetOrganizationIntegrationEnabled(
 }
 
 # Lets one of a server's tools run without a member's approval (M29), by the hash of the definition
-# the administrator reviewed, which the server has to list still: a tool it changed since is refused
+# the administrator reviewed, at the configuration it was shown under, which the server has to list
+# still: a tool it changed since, or a server reconfigured since, is refused
 mutation AllowOrganizationIntegrationTool(
   $organizationId: UUID!
   $userId: String!
   $integrationId: UUID!
   $definitionHash: String!
+  $configRevision: Int!
 ) @auth(level: NO_ACCESS) @transaction {
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
@@ -4510,6 +4519,7 @@ mutation AllowOrganizationIntegrationTool(
     where: {
       id: { eq: $integrationId }
       organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
       toolDefinitionHashes: { includes: $definitionHash }
       deletedAt: { isNull: true }
     }
@@ -4517,12 +4527,14 @@ mutation AllowOrganizationIntegrationTool(
   ) @check(expr: "this == 1", message: "The server no longer lists this tool")
 }
 
-# Takes the approval of one of a server's tools back, which a tool no longer listed has lost already
+# Takes the approval of one of a server's tools back, at the configuration it was shown under, which a
+# tool no longer listed has lost already
 mutation DisallowOrganizationIntegrationTool(
   $organizationId: UUID!
   $userId: String!
   $integrationId: UUID!
   $definitionHash: String!
+  $configRevision: Int!
 ) @auth(level: NO_ACCESS) @transaction {
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
@@ -4531,9 +4543,14 @@ mutation DisallowOrganizationIntegrationTool(
     }
   }
   organizationIntegration_updateMany(
-    where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      configRevision: { eq: $configRevision }
+      deletedAt: { isNull: true }
+    }
     data: { autoApprovedTools_update: [{ remove: [$definitionHash] }], updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "The server is gone")
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
 }
 
 # Deletes a server, keeping its key for an Undo within a day, and prunes the organization's servers

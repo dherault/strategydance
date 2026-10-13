@@ -159,7 +159,8 @@ function createIntegrationDatabaseFake() {
       checkAdministrator(variables, 'change a server')
       checkNameFree(variables)
 
-      const row = findLive(variables) ?? refuse('The server is gone')
+      const row =
+        findLive(variables, { name: variables.readName }) ?? refuse('The server was changed or deleted meanwhile')
 
       Object.assign(row, { name: variables.name, normalizedName: variables.normalizedName })
 
@@ -313,7 +314,7 @@ function createIntegrationDatabaseFake() {
     AllowOrganizationIntegrationTool: variables => {
       checkAdministrator(variables, 'change a server')
 
-      const row = findLive(variables)
+      const row = findLive(variables, { configRevision: variables.configRevision })
 
       if (!row || !row.toolDefinitionHashes.includes(variables.definitionHash)) {
         refuse('The server no longer lists this tool')
@@ -327,7 +328,9 @@ function createIntegrationDatabaseFake() {
     DisallowOrganizationIntegrationTool: variables => {
       checkAdministrator(variables, 'change a server')
 
-      const row = findLive(variables) ?? refuse('The server is gone')
+      const row =
+        findLive(variables, { configRevision: variables.configRevision })
+        ?? refuse('The server was changed or deleted meanwhile')
 
       row.autoApprovedTools = row.autoApprovedTools.filter(hash => hash !== variables.definitionHash)
 

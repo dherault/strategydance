@@ -144,11 +144,22 @@ const addBodySchema = settingsSchema.superRefine((settings, context) => {
   }
 })
 
+// The server as the dialog showed it, which an edit is made from, so one from a stale view is refused
+const expectedSchema = z.object({
+  name: z.string(),
+  configRevision: z.number().int().nonnegative(),
+  keyGeneration: z.number().int().nonnegative(),
+})
+
+const editBodySchema = settingsSchema.and(z.object({ expected: expectedSchema }))
+
 const enabledBodySchema = z.object({ isEnabled: z.boolean() })
 
 const approvalBodySchema = z.object({
   definitionHash: z.string().regex(/^[0-9a-f]{64}$/),
   isAutoApproved: z.boolean(),
+  // The revision the tools were shown under
+  configRevision: z.number().int().nonnegative(),
 })
 
 type IntegrationsRequest<Body = unknown> = Request<
@@ -205,14 +216,16 @@ function createIntegrationsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     integrationRateLimitMiddleware,
-    validateMiddleware({ params: integrationParamsSchema, body: settingsSchema }),
+    validateMiddleware({ params: integrationParamsSchema, body: editBodySchema }),
     ...administrator,
-    async (request: IntegrationRequest<z.infer<typeof settingsSchema>>, response: Response) => {
+    async (request: IntegrationRequest<z.infer<typeof editBodySchema>>, response: Response) => {
+      const { expected, ...settings } = request.body
       const result = await editIntegration({
         organizationId: request.params.organizationId,
         userId: readViewer(request).id,
         integrationId: request.params.integrationId,
-        settings: request.body,
+        settings,
+        expected,
       })
 
       if (respondRefusal(response, result)) return
@@ -268,8 +281,7 @@ function createIntegrationsRouter() {
     validateMiddleware({ params: integrationParamsSchema, body: approvalBodySchema }),
     ...administrator,
     async (request: IntegrationRequest<z.infer<typeof approvalBodySchema>>, response: Response) => {
-      const { definitionHash, isAutoApproved } = request.body
-      const result = await setIntegrationToolApproval(toCaller(request), definitionHash, isAutoApproved)
+      const result = await setIntegrationToolApproval(toCaller(request), request.body)
 
       if (respondRefusal(response, result)) return
 

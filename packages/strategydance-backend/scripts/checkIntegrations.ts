@@ -301,23 +301,28 @@ async function checkRenaming() {
 
   await create({ integrationId: id, name: 'Sentry' })
 
-  const rename = (name: string, userId = administratorId) =>
+  const rename = (name: string, readName: string, userId = administratorId) =>
     renameOrganizationIntegration(dataConnect, {
       organizationId,
       userId,
       integrationId: id,
       name,
       normalizedName: name.trim().toLowerCase(),
+      readName,
     })
 
-  check('a server keeps its own name in another case', (await refusal(rename('SENTRY'))) === null)
+  check(
+    'a rename made over another made meanwhile is refused',
+    await isRefused(rename('Errors', 'Not its name'), 'The server was changed or deleted meanwhile'),
+  )
+  check('a server keeps its own name in another case', (await refusal(rename('SENTRY', 'Sentry'))) === null)
   check(
     "a server cannot take another's name",
-    await isRefused(rename('notion'), 'Another server of the organization has this name'),
+    await isRefused(rename('notion', 'SENTRY'), 'Another server of the organization has this name'),
   )
   check(
     'a member cannot rename one',
-    await isRefused(rename('Errors', memberId), 'Only an administrator can change a server'),
+    await isRefused(rename('Errors', 'SENTRY', memberId), 'Only an administrator can change a server'),
   )
 }
 
@@ -328,7 +333,12 @@ async function checkReconfiguring() {
   const createdName = 'Reconfigured'
 
   await create({ integrationId: id, name: createdName, catalogueSlug: 'github', toolDefinitionHashes: hashes })
-  await allowOrganizationIntegrationTool(dataConnect, { ...administrator, integrationId: id, definitionHash: 'hash-a' })
+  await allowOrganizationIntegrationTool(dataConnect, {
+    ...administrator,
+    integrationId: id,
+    definitionHash: 'hash-a',
+    configRevision: 0,
+  })
 
   const reconfigure = (configRevision: number, keyGeneration: number, readName = createdName) =>
     reconfigureOrganizationIntegration(dataConnect, {
@@ -407,9 +417,18 @@ async function checkKeysAndTools() {
 
   await create({ integrationId: id, name: keyedName, toolDefinitionHashes: ['hash-a', 'hash-b', 'hash-c'] })
 
-  const allow = (definitionHash: string) =>
-    allowOrganizationIntegrationTool(dataConnect, { ...administrator, integrationId: id, definitionHash })
+  const allow = (definitionHash: string, configRevision = 0) =>
+    allowOrganizationIntegrationTool(dataConnect, {
+      ...administrator,
+      integrationId: id,
+      definitionHash,
+      configRevision,
+    })
 
+  check(
+    'a tool shown under another configuration is refused',
+    await isRefused(allow('hash-a', 7), 'The server no longer lists this tool'),
+  )
   check('a listed tool is allowed', (await refusal(allow('hash-a'))) === null)
   check('allowing it twice keeps it once', (await refusal(allow('hash-a'))) === null)
   await allow('hash-b')
@@ -426,6 +445,7 @@ async function checkKeysAndTools() {
     ...administrator,
     integrationId: id,
     definitionHash: 'hash-b',
+    configRevision: 0,
   })
   check('an approval is taken back', (await readIntegration(id))?.autoApprovedTools.join() === 'hash-a')
   await allow('hash-c')

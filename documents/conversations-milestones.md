@@ -2069,7 +2069,8 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
   the new ones. Strings in the `conversation` catalogue, and `bun run translate`.
 - `CLAUDE.md`: the caps, and that a new way to start a conversation or a run counts toward them.
 - **Tests**:
-  - Each cap refusing at its value and passing below it, the member's and the organization's.
+  - Each cap refusing at its value and passing below it, the member's and the organization's, and a
+    member of two organizations counted in each apart.
   - A deleted conversation and a retried run still counted.
   - A send retried at the cap after its first try was stored, answered with its run, not refused.
   - A subagent's runs counted toward no run cap.

@@ -300,3 +300,37 @@ export type AddIntegrationData = {
   integrationId: string
   toolCount: number
 }
+
+// What starting a Connect answers: the address of the authorization server's sign-in, which the
+// page opens in the window it opened for it, an https one alone
+export type StartIntegrationConnectionData = {
+  authorizationUrl: string
+}
+
+/*
+  What came back to Strategy Dance's callback from an OAuth server's sign-in: a code, which the
+  member's page finishes, the member's refusal, or nothing it could use, an unknown or spent sign-in
+  included
+*/
+export type IntegrationAuthorizationOutcome = 'received' | 'denied' | 'failed'
+
+// The query the callback sends the browser to `INTEGRATION_CONNECTED_PATH` with, the ids hyphenated,
+// each present when the sign-in it came back from was known
+export type IntegrationConnectedSearch = {
+  outcome: IntegrationAuthorizationOutcome
+  organization?: string
+  integration?: string
+  authorization?: string
+}
+
+/*
+  What the page a sign-in ends on says to the window that opened it, on
+  `INTEGRATION_CONNECTION_CHANNEL`: which server, when it knows, and how it went, with the backend's
+  error code when it failed. Anybody can open that page with a made-up query, so a window waiting on
+  it takes `connected` as a nudge to look, and only the member's live connection as the proof
+*/
+export type IntegrationConnectionMessage = {
+  integrationId: string | null
+  outcome: 'connected' | 'denied' | 'failed'
+  code: string | null
+}

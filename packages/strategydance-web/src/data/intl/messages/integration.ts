@@ -97,18 +97,166 @@ const integrationMessages = defineMessages({
   statusConnected: {
     id: 'integration.statusConnected',
     defaultMessage: 'Connected',
-    description: 'Badge on a server that works: Strategy Dance reached it and read its tools.',
+    description:
+      'Badge on a server that works for the reader: Strategy Dance reached it, and, for a server taking OAuth, the reader connected their own account to it.',
   },
   statusNeedsAuthentication: {
     id: 'integration.statusNeedsAuthentication',
     defaultMessage: 'Needs authentication',
     description:
-      'Badge on a server whose tools wait until a member signs in to it with their own account, which nobody has yet.',
+      'Badge on a server taking OAuth that the reader has not connected their own account to yet, or whose access to it expired: Strategy Dance cannot use it for them until they connect.',
   },
   statusError: {
     id: 'integration.statusError',
     defaultMessage: 'Error',
     description: 'Badge on a server that could not be reached the last time Strategy Dance tried.',
+  },
+  connect: {
+    id: 'integration.connect',
+    defaultMessage: 'Connect',
+    description:
+      "Button that opens a server's sign-in, so the reader connects their own account to it and Strategy Dance can use it for them.",
+  },
+  connectLabel: {
+    id: 'integration.connectLabel',
+    defaultMessage: 'Connect your account to {name}',
+    description:
+      'Accessible label of the Connect button in the row of a server, where {name} is the server\'s name, such as "Linear".',
+  },
+  disconnect: {
+    id: 'integration.disconnect',
+    defaultMessage: 'Disconnect',
+    description:
+      "Button in a server's dialog that disconnects the reader's own account from the server, so Strategy Dance no longer uses it for them.",
+  },
+  disconnectConfirm: {
+    id: 'integration.disconnectConfirm',
+    defaultMessage: 'Confirm disconnect',
+    description: 'The Disconnect button once pressed, asking to be pressed again to disconnect the account.',
+  },
+  disconnected: {
+    id: 'integration.disconnected',
+    defaultMessage: '{name} disconnected',
+    description:
+      "Confirmation shown after the reader disconnected their account from a server, where {name} is the server's name.",
+  },
+  disconnectError: {
+    id: 'integration.disconnectError',
+    defaultMessage: '{name} could not be disconnected. Try again.',
+    description:
+      "Error shown when disconnecting the reader's account from a server failed, where {name} is the server's name.",
+  },
+  connected: {
+    id: 'integration.connected',
+    defaultMessage: '{name} connected',
+    description:
+      "Confirmation shown once the reader's account is connected to a server, where {name} is the server's name.",
+  },
+  connectTitle: {
+    id: 'integration.connectTitle',
+    defaultMessage: 'Connect {name}',
+    description:
+      "Title of the dialog shown while the reader signs in to a server in another window, where {name} is the server's name.",
+  },
+  connectDescription: {
+    id: 'integration.connectDescription',
+    defaultMessage: 'Approve access in the {name} window that opened, then come back here.',
+    description:
+      "Text of the dialog shown while the reader signs in to a server in another window, where {name} is the server's name.",
+  },
+  connectWaiting: {
+    id: 'integration.connectWaiting',
+    defaultMessage: 'Waiting for {name}',
+    description:
+      "Shown beside a spinner in the dialog while Strategy Dance waits for the reader to finish signing in to a server, where {name} is the server's name.",
+  },
+  connectBlocked: {
+    id: 'integration.connectBlocked',
+    defaultMessage: 'Your browser blocked the window. Open it to approve access.',
+    description:
+      'Shown in the connect dialog when the browser refused to open the window of the sign-in, above a button that opens it.',
+  },
+  connectOpen: {
+    id: 'integration.connectOpen',
+    defaultMessage: 'Open {name}',
+    description:
+      "Button in the connect dialog that opens a server's sign-in in a new window when the browser blocked it, where {name} is the server's name.",
+  },
+  connectRetry: {
+    id: 'integration.connectRetry',
+    defaultMessage: 'Try again',
+    description: 'Button in the connect dialog that starts the sign-in again after it failed.',
+  },
+  connectDenied: {
+    id: 'integration.connectDenied',
+    defaultMessage: "Access to {name} wasn't approved.",
+    description:
+      "Shown in the connect dialog when the reader refused access in the server's sign-in window, where {name} is the server's name.",
+  },
+  connectCanceled: {
+    id: 'integration.connectCanceled',
+    defaultMessage: 'Connection canceled',
+    description: 'Confirmation shown when the reader closes the connect dialog before finishing the sign-in.',
+  },
+  accountConnected: {
+    id: 'integration.accountConnected',
+    defaultMessage: 'Connected',
+    description: "Title of the box in a server's dialog saying the reader's own account is connected to the server.",
+  },
+  accountConnectedAs: {
+    id: 'integration.accountConnectedAs',
+    defaultMessage: 'As {account}',
+    description:
+      'Under "Connected" in a server\'s dialog: which of the reader\'s accounts is connected, where {account} is its email or name, such as "ada@example.com".',
+  },
+  accountConnectedSince: {
+    id: 'integration.accountConnectedSince',
+    defaultMessage: 'Since {date}',
+    description:
+      'Under "Connected" in a server\'s dialog when the server does not say which account it is: when the reader connected it, where {date} is a date, such as "Oct 13".',
+  },
+  accountNotConnected: {
+    id: 'integration.accountNotConnected',
+    defaultMessage: 'Not connected',
+    description:
+      "Title of the box in a server's dialog saying the reader has not connected their own account to the server.",
+  },
+  accountNotConnectedHint: {
+    id: 'integration.accountNotConnectedHint',
+    defaultMessage: 'Sign in to {name} to give Strategy Dance access.',
+    description: 'Under "Not connected" in a server\'s dialog, where {name} is the server\'s name.',
+  },
+  accountExpiredHint: {
+    id: 'integration.accountExpiredHint',
+    defaultMessage: 'Access expired. Reconnect to use {name} again.',
+    description:
+      "Under \"Needs authentication\" in a server's dialog, when the server no longer takes the reader's account, where {name} is the server's name.",
+  },
+  connectedPageConnecting: {
+    id: 'integration.connectedPageConnecting',
+    defaultMessage: 'Connecting',
+    description:
+      "Title of the small window a server's sign-in ends in, while Strategy Dance finishes connecting the reader's account.",
+  },
+  connectedPageConnected: {
+    id: 'integration.connectedPageConnected',
+    defaultMessage: 'Connected',
+    description: "Title of the small window a server's sign-in ends in, once the reader's account is connected.",
+  },
+  connectedPageDenied: {
+    id: 'integration.connectedPageDenied',
+    defaultMessage: 'Access not approved',
+    description: "Title of the small window a server's sign-in ends in, when the reader refused access.",
+  },
+  connectedPageFailed: {
+    id: 'integration.connectedPageFailed',
+    defaultMessage: "Couldn't connect",
+    description: "Title of the small window a server's sign-in ends in, when connecting the reader's account failed.",
+  },
+  connectedPageClose: {
+    id: 'integration.connectedPageClose',
+    defaultMessage: 'You can close this window.',
+    description: "Text of the small window a server's sign-in ends in, once there is nothing left to do in it.",
   },
   turnOn: {
     id: 'integration.turnOn',
@@ -493,6 +641,36 @@ const integrationMessages = defineMessages({
     description:
       'Why a server could not be added, changed or retried: the reader did too many of these in a few minutes.',
   },
+  failureIssuerChanged: {
+    id: 'integration.failureIssuerChanged',
+    defaultMessage: "This server's sign-in moved elsewhere. An administrator can retry the server to take the new one.",
+    description:
+      "Why a member could not connect their account to a server taking OAuth: the server now names another sign-in service than the one recorded, which only an administrator's Retry takes, since it disconnects everybody.",
+  },
+  failureAuthorizationExpired: {
+    id: 'integration.failureAuthorizationExpired',
+    defaultMessage: 'This sign-in expired or was already used. Connect again.',
+    description:
+      "Why connecting a member's account to a server could not finish: the sign-in in the window it opened took too long, or was finished already.",
+  },
+  failureAuthorizationNotYours: {
+    id: 'integration.failureAuthorizationNotYours',
+    defaultMessage: 'This sign-in was started by another account. Connect from your own.',
+    description:
+      'Why connecting an account to a server could not finish: the sign-in was started by somebody else, for instance from a link they sent, so it connects nothing.',
+  },
+  failureConnectionRefused: {
+    id: 'integration.failureConnectionRefused',
+    defaultMessage: 'The server refused the sign-in. Connect again.',
+    description:
+      "Why connecting a member's account to a server failed: the server refused the sign-in when Strategy Dance finished it.",
+  },
+  failureConnectionExpired: {
+    id: 'integration.failureConnectionExpired',
+    defaultMessage: 'Your access to this server expired. Connect your account again.',
+    description:
+      "Why a server's tools could not be listed again with the reader's own account: the server no longer takes it, so they connect again.",
+  },
   failureUnknown: {
     id: 'integration.failureUnknown',
     defaultMessage: 'Something went wrong. Try again.',
@@ -510,9 +688,15 @@ const integrationMessages = defineMessages({
   },
   toolsWaiting: {
     id: 'integration.toolsWaiting',
-    defaultMessage: "Connect an account to list this server's tools.",
+    defaultMessage: "Connect your account to list this server's tools.",
     description:
-      'Shown in place of the tools of a server taking OAuth, whose tools are listed once a member signs in to it with their own account.',
+      'Shown in place of the tools of a server taking OAuth that nobody has connected an account to yet: its tools are listed once a member, the reader for instance, connects their own account.',
+  },
+  toolsWaitingConnected: {
+    id: 'integration.toolsWaitingConnected',
+    defaultMessage: "This server's tools could not be listed yet.",
+    description:
+      'Shown in place of the tools of a server taking OAuth whose tools could not be listed when the first account was connected. Administrators get a Retry button beside it.',
   },
   toolsEmpty: {
     id: 'integration.toolsEmpty',

@@ -212,22 +212,35 @@ describe('applyDirectoryChecks', () => {
     })
   })
 
-  test('never says a page its scripts draw lacks a way to submit', () => {
+  test('never takes the page its scripts draw that a quote is on for one lacking a way to submit', () => {
     const directory = createDirectory('tools')
-    const { inactiveDirectories, outcome } = apply(
+    const submit = 'https://tools.example/submit'
+    const answer = {
+      verdict: 'INACTIVE',
+      inactiveReason: 'BROKEN_SUBMISSION',
+      evidence: { quote: 'Submit your tool here', url: submit },
+    } as const
+
+    // The home page reads well, and the page quoted is a shell its scripts fill
+    const shell = apply(
+      createLists([directory]),
+      createCheck(directory, { answer, fetchedPages: [{ url: submit, text: 'Submit your tool here' }] }),
+    )
+
+    expect(shell.inactiveDirectories).toEqual([])
+    expect(shell.outcome).toMatchObject({ result: 'inconclusive', notes: expect.stringContaining('scripts draw') })
+
+    // The home page is a shell, and the page quoted reads well
+    const page = apply(
       createLists([directory]),
       createCheck(directory, {
-        root: { text: QUOTE, isClientRendered: true },
-        answer: {
-          verdict: 'INACTIVE',
-          inactiveReason: 'BROKEN_SUBMISSION',
-          evidence: { quote: QUOTE, url: directory.rootUrl },
-        },
+        root: { text: '', isClientRendered: true },
+        answer: { ...answer, evidence: { quote: 'The submit form is broken for now', url: submit } },
+        fetchedPages: [{ url: submit, text: `${'Our directory. '.repeat(30)}The submit form is broken for now.` }],
       }),
     )
 
-    expect(inactiveDirectories).toEqual([])
-    expect(outcome.result).toBe('inconclusive')
+    expect(page.outcome.result).toBe('movedToInactive')
   })
 
   test('brings an inactive directory back once a startup can be submitted there again', () => {

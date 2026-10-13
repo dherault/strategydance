@@ -15,7 +15,7 @@ import type {
 
 import countDaysBetween from '~domain/directories/countDaysBetween'
 import { DIRECTORY_PAGE_MIN_TEXT_LENGTH, DIRECTORY_UNREACHABLE_DAYS } from '~domain/directories/directoryCheckSettings'
-import isEvidenceFound from '~domain/directories/isEvidenceFound'
+import findEvidencePage from '~domain/directories/findEvidencePage'
 import toSiteHost from '~domain/directories/toSiteHost'
 
 type Applied = { lists: DirectoryLists; outcome: DirectoryCheckOutcome }
@@ -52,7 +52,7 @@ function applyDirectoryChecks(lists: DirectoryLists, checks: DirectoryCheck[], t
     wrong, and a business model or a submission page only on what proves it: a quote found in what
     was read, and a probe of the page that answered
   - one that answered INACTIVE moves the directory only on a quote found in what was read, and
-    never says a page whose scripts draw it lacks a way to submit
+    never takes the page the quote is on for one lacking a way to submit when its scripts draw it
   - one that answered nothing worth reading only dates the check, so a site that always fails is not
     paid for daily, and a failure of the API leaves the entry as it was
 */
@@ -112,11 +112,11 @@ function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today
   }
 
   const { answer } = review
-  const isEvidenceQuoted = !!answer.evidence && isEvidenceFound(answer.evidence, readPages(check, review.fetchedPages))
-  const isClientRendered =
-    root.isClientRendered
-    && (check.probe.submission?.isClientRendered ?? true)
-    && review.fetchedPages.every(({ text }) => text.length < DIRECTORY_PAGE_MIN_TEXT_LENGTH)
+  const evidencePage = answer.evidence ? findEvidencePage(answer.evidence, readPages(check, review.fetchedPages)) : null
+  const isEvidenceQuoted = !!evidencePage
+  // Whether the page the quote is on holds too little text to be read without its scripts, which
+  // then proves nothing of a way to submit it may seem to lack
+  const isClientRendered = !!evidencePage && evidencePage.text.length < DIRECTORY_PAGE_MIN_TEXT_LENGTH
 
   if (answer.notes) notes.push(answer.notes)
 
@@ -136,7 +136,7 @@ function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today
     if (!reason) notes.push('Said inactive without a reason, so nothing moved.')
     else if (!isEvidenceQuoted) notes.push(`Said ${reason} without a quote found in what was read, so nothing moved.`)
     else if (isSubmissionReason && isClientRendered) {
-      notes.push(`Said ${reason} of pages scripts draw, which proves nothing, so nothing moved.`)
+      notes.push(`Said ${reason} from a page its scripts draw, which proves nothing, so nothing moved.`)
     } else if (inactive) {
       if (reason !== inactive.inactiveReason) changes.push(`Reason ${inactive.inactiveReason} → ${reason}`)
 

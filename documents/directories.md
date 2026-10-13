@@ -130,15 +130,17 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
 
 - **With one open**, the run merges `dev` into its branch first. A run reads the lists on the
   branch, so it never checks again what the days before it checked. If the merge conflicts, the
-  run stops before Claude is asked, and comments once on the pull request asking a human to resolve
-  the conflict or close it.
+  run stops before Claude is asked, and comments on the pull request asking a human to resolve the
+  conflict or close it, once a conflict: no report is posted while it lasts, so its comment stays
+  the latest, which is all a run reads.
 - **With none open**, the branch is pointed at `dev`'s head, created again when GitHub deleted it
   after a merge. A pull request closed without a merge counts as a rejection: its commits are
   dropped, and its directories come back in their turn. The branch is reset only when `dev` holds
   all it holds, or a closed pull request carried its head: anything else is another run's work,
   committed and not yet given its pull request, which the run leaves, waiting for the next day
   (`busy`). A run whose pull request was closed while it ran resets the branch itself, so the next
-  one does not mistake its commit for another run's.
+  one does not mistake its commit for another run's, but only while the branch still points at that
+  commit: past it is a newer run's.
 - The run reads both files at the branch's head and commits them in one commit through GraphQL
   `createCommitOnBranch` with `expectedHeadOid`, so a push in between refuses the commit instead of
   being written over. The checks, already paid for, are then applied again to the lists read
@@ -153,8 +155,9 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   the pull request, so runs that overlap each add theirs and never write over another's, as a shared
   description would.
 - The report has a row per directory: its result, what changed, the quote it rests on, and Claude's
-  notes. Every word a page or Claude wrote is escaped, so it can break no table, link nothing, and
-  mention nobody (`@`, `#123`), and a link's destination has its parentheses percent-encoded, so an
+  notes. Every word a page or Claude wrote is escaped, so it can break no table, link nothing, not
+  even an address GitHub would make a link of on its own (`https://…`, `www.…`), and mention nobody
+  (`@`, `#123`), and a link's destination has its parentheses percent-encoded, so an
   address Claude gave cannot end its link early. A quote past 300 characters is dropped and notes
   past 600 are cut, and a report too long for a comment is cut there, its commit holding it whole,
   so it always reaches the pull request once the commit lands.

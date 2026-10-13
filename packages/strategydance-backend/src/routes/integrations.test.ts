@@ -127,7 +127,6 @@ const KEYED = {
   url: 'https://api.githubcopilot.com/mcp',
   authentication: 'API_KEY',
   apiKey: 'ghp_secret1234',
-  catalogueSlug: 'github',
 }
 
 const OPEN = { name: 'DeepWiki', url: 'https://mcp.deepwiki.com/mcp', authentication: 'NONE' }
@@ -184,6 +183,16 @@ describe('adding a server', () => {
     expect(reached[0].credential).toBeNull()
   })
 
+  test('marks a server with the external MCP server at its address, whatever the caller says', async () => {
+    expect((await add({ ...OPEN, name: 'Elsewhere', catalogueSlug: 'github' })).catalogueSlug).toBeNull()
+
+    answer = async () => discovered('https://mcp.linear.app')
+
+    expect(
+      (await add({ name: 'Issues', url: 'https://mcp.linear.app/mcp', authentication: 'OAUTH' })).catalogueSlug,
+    ).toBe('linear')
+  })
+
   test('sends a key in the header named', async () => {
     const stored = await add({ ...KEYED, apiKeyScheme: 'HEADER', apiKeyHeader: 'X-API-Key' })
 
@@ -203,7 +212,6 @@ describe('adding a server', () => {
       { ...KEYED, apiKeyScheme: 'HEADER' },
       { ...KEYED, apiKeyScheme: 'HEADER', apiKeyHeader: 'Content-Type' },
       { ...KEYED, apiKeyScheme: 'HEADER', apiKeyHeader: 'Mcp-Session-Id' },
-      { ...KEYED, catalogueSlug: 'nothing-of-the-kind' },
       { ...OPEN, authentication: 'PASSWORD' },
     ]) {
       const { status, body: answered } = await call('POST', '', body)

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { normalizeIntegrationName } from 'strategydance-core'
 import { createOrganizationIntegration, IntegrationAuthentication } from 'strategydance-database/backend'
+import { findExternalMcpServerByUrl } from 'strategydance-external-mcp-servers'
 
 import { dataConnect } from '~firebase'
 
@@ -21,8 +22,6 @@ type AddIntegrationParameters = {
   organizationId: string
   userId: string
   settings: IntegrationSettings
-  // The external MCP server it was added from, or null for one added by its address
-  catalogueSlug: string | null
 }
 
 /*
@@ -31,7 +30,7 @@ type AddIntegrationParameters = {
   the failure names. Its id is made here, since its key's ciphertext is bound to it, and the key is
   encrypted only once the server took it
 */
-async function addIntegration({ organizationId, userId, settings, catalogueSlug }: AddIntegrationParameters) {
+async function addIntegration({ organizationId, userId, settings }: AddIntegrationParameters) {
   const integrationId = randomUUID()
   const key = settings.authentication === IntegrationAuthentication.API_KEY ? settings.apiKey : null
   let reach
@@ -70,7 +69,9 @@ async function addIntegration({ organizationId, userId, settings, catalogueSlug 
       name: settings.name.trim(),
       normalizedName: normalizeIntegrationName(settings.name),
       url: settings.url,
-      catalogueSlug,
+      // The external MCP server at its address, whose mark it draws, read off the address rather
+      // than taken from the caller, so no server wears another's mark
+      catalogueSlug: findExternalMcpServerByUrl(settings.url)?.slug ?? null,
       authentication: settings.authentication,
       encryptedApiKey,
       ...toStoredKeyFields(settings, key),

@@ -20,7 +20,6 @@ import {
   IntegrationAuthentication,
   type IntegrationError,
 } from 'strategydance-database/backend'
-import { findExternalMcpServer } from 'strategydance-external-mcp-servers'
 import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
@@ -139,21 +138,11 @@ const settingsSchema = z
     }
   })
 
-const addBodySchema = settingsSchema
-  .and(
-    z.object({
-      catalogueSlug: z
-        .string()
-        .refine(slug => findExternalMcpServer(slug) !== null, 'No such external MCP server')
-        .nullable()
-        .default(null),
-    }),
-  )
-  .superRefine((settings, context) => {
-    if (settings.authentication === IntegrationAuthentication.API_KEY && settings.apiKey === null) {
-      context.addIssue({ code: 'custom', path: ['apiKey'], message: 'A key-based server takes its key' })
-    }
-  })
+const addBodySchema = settingsSchema.superRefine((settings, context) => {
+  if (settings.authentication === IntegrationAuthentication.API_KEY && settings.apiKey === null) {
+    context.addIssue({ code: 'custom', path: ['apiKey'], message: 'A key-based server takes its key' })
+  }
+})
 
 const enabledBodySchema = z.object({ isEnabled: z.boolean() })
 
@@ -197,12 +186,10 @@ function createIntegrationsRouter() {
     validateMiddleware({ params: integrationsParamsSchema, body: addBodySchema }),
     ...administrator,
     async (request: IntegrationsRequest<z.infer<typeof addBodySchema>>, response: Response) => {
-      const { catalogueSlug, ...settings } = request.body
       const result = await addIntegration({
         organizationId: request.params.organizationId,
         userId: readViewer(request).id,
-        settings,
-        catalogueSlug,
+        settings: request.body,
       })
 
       if (respondRefusal(response, result) || result.outcome !== 'added') return

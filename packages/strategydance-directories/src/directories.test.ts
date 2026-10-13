@@ -10,6 +10,7 @@ import {
   DirectoryType,
   INACTIVE_DIRECTORIES,
   INACTIVE_DIRECTORY_FIELDS,
+  MAX_DIRECTORY_DESCRIPTION_LENGTH,
 } from './index'
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -46,10 +47,41 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
     for (const directory of directories) expect(Object.keys(directory)).toEqual([...fields])
   })
 
+  // Days that exist and have come, in UTC, as a check dates what it did
   it('dates its checks by the day', () => {
+    const today = new Date().toISOString().slice(0, 10)
+
     for (const directory of directories) {
-      if (directory.lastChecked !== null) expect(directory.lastChecked).toMatch(DAY_PATTERN)
-      if (directory.unreachableSince !== null) expect(directory.unreachableSince).toMatch(DAY_PATTERN)
+      for (const day of [directory.lastChecked, directory.unreachableSince]) {
+        if (day === null) continue
+
+        expect(day).toMatch(DAY_PATTERN)
+        expect(new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10)).toBe(day)
+        expect(day <= today).toBe(true)
+      }
+    }
+  })
+
+  // The first check that could not reach a site dated the entry too, and later ones only move on
+  it('counts a site unreachable only from a day it was checked', () => {
+    for (const { lastChecked, unreachableSince } of directories) {
+      if (unreachableSince !== null) expect(unreachableSince <= (lastChecked ?? '')).toBe(true)
+    }
+  })
+
+  it('names each entry without spaces around its name', () => {
+    for (const { name } of directories) {
+      expect(name).not.toBe('')
+      expect(name).toBe(name.trim())
+    }
+  })
+
+  // One sentence, as the check writes it
+  it('describes each entry in a line', () => {
+    for (const { description } of directories) {
+      expect(description.length).toBeLessThanOrEqual(MAX_DIRECTORY_DESCRIPTION_LENGTH)
+      expect(description).not.toContain('\n')
+      expect(description).toBe(description.trim())
     }
   })
 
@@ -58,6 +90,10 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
       const submissionUrl = new URL(directory.submissionUrl)
 
       expect(['http:', 'https:']).toContain(submissionUrl.protocol)
+      // A fragment never reaches the site, so it only makes a second address of one page
+      expect(submissionUrl.hash).toBe('')
+      expect(submissionUrl.username).toBe('')
+      expect(submissionUrl.password).toBe('')
 
       if (directory.type === DirectoryType.WEBSITE) expect(directory.rootUrl).toBe(`${submissionUrl.origin}/`)
     }

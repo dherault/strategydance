@@ -2038,11 +2038,16 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
 - `MAX_DAILY_CONVERSATIONS_PER_MEMBER` (20), `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION` (100),
   `MAX_DAILY_RUNS_PER_MEMBER` (100), `MAX_DAILY_RUNS_PER_ORGANIZATION` (500) and
   `MAX_DAILY_SUBAGENTS_PER_MEMBER` (30) in strategydance-core, with the four error codes.
-- **The schema change**, additive: an index on `createdAt` on `Conversation` and on
-  `ConversationRun`, for the counts.
-- **The counts**, each reading the newest rows, as many as its cap, ordered by `createdAt`
-  descending as `GetConversationSearchQuota` reads, deleted rows included, the member's under the
-  membership lock the mutation already takes and the organization's without one:
+- **The schema change**, additive: `CappedStart`, the member, the organization, its `kind`
+  (`CONVERSATION`, `RUN`, `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the
+  kind and `createdAt`, on the organization, the kind and `createdAt`, and on `createdAt` for the
+  sweep, which deletes the rows over a day old beside the conversation searches.
+- **The rows**: each mutation that starts what a cap counts inserts its `CappedStart`, a `RUN` row
+  for every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, `ContinueConversationRun`
+  and a reaction's start among them.
+- **The counts**, each reading the newest `CappedStart` rows, as many as its cap, ordered by
+  `createdAt` descending as `GetConversationSearchQuota` reads, the member's under the membership
+  lock the mutation already takes and the organization's without one:
   - `StartConversation`, the conversations and the runs;
   - `SendConversationMessage`, `SendConversationMessageAnsweringCalls`, `ResumeConversationRun` and
     `RetryConversationRun`, the runs;
@@ -2052,7 +2057,9 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
   Each route counts first, so a refusal stores nothing, and answers 429 with `Retry-After`. A
   mutation a count refused reads the counts again, as `recordConversationSearch` does, to say which
   cap and when it frees.
-  `ContinueConversationRun` and a reaction's start check no cap.
+  `ContinueConversationRun` and a reaction's start check no cap. A route recognizes an action sent
+  again before it counts, as it answers a retried send with the run its first try started, so a
+  retry of a stored start is never refused.
 - `IS_USAGE_CAPPED`, off on the development backend and on everywhere else, as
   `IS_CONVERSATIONS_RELEASE_GATED` is; the tests and the check script turn it on.
 - The backend's `cors` exposes `Retry-After`, which a page of another origin cannot read otherwise,
@@ -2064,6 +2071,7 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
 - **Tests**:
   - Each cap refusing at its value and passing below it, the member's and the organization's.
   - A deleted conversation and a retried run still counted.
+  - A send retried at the cap after its first try was stored, answered with its run, not refused.
   - A subagent's runs counted toward no run cap.
   - An answer's continuation and a reaction starting past the cap.
   - A launch refused past thirty, with its sentence.

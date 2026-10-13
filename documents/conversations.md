@@ -2053,7 +2053,8 @@ way (see The orchestrator).
   the run a Retry starts can launch its fan-out again, and at most 100 per conversation until
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.
   From M35, at most 30 a member in a rolling 24 hours (`MAX_DAILY_SUBAGENTS_PER_MEMBER`), as David
-  chose on 2026-10-13, counted from the subagents' rows, deleted ones included (see Usage caps). The
+  chose on 2026-10-13, counted on the caps' ledger, which a deleted subagent leaves as it was (see
+  Usage caps). The
   workspace's spend limit and the budget alert stay the guard above it.
 - **Stop.** The parent's Stop asks the live subagents launched on the stopped run's anchor to stop
   too, as David chose on 2026-10-13: they are the action the member stops, and a fan-out an earlier
@@ -2446,26 +2447,31 @@ calendar day, so no time zone decides when it frees.
   member three runs at once, so conversations alone would leave a member who never starts another
   unbounded. A hundred runs come to some $15 at the typical $0.15 a run (see Cost), and to some $150
   if every one used its 25 requests.
-- **Counted from rows already kept**, deleted ones included, so no ledger of their own: a deleted
-  conversation stays at least a day before the sweep prunes it, and Retry deletes no run, so
-  deleting or retrying gets round nothing. Each count reads the newest rows, as many as its cap,
-  ordered by `createdAt` descending, under `@check`, through an index on `createdAt`, as
-  `GetConversationSearchQuota` reads the searches: a count can pass its cap, since a continuation and
-  a reaction are never refused and the organization's counts race, so only the newest say when it
-  frees:
-  - conversations: the `Conversation` rows with `parent` null created by the member in the
-    organization, or by anybody in it for the organization's cap;
-  - runs: the `ConversationRun` rows of those conversations triggered `MESSAGE`, `ANSWER`, `RESUME`,
-    `RETRY` or `REPORTS`. A subagent's own runs, `LAUNCH` and `CONTINUE`, count toward neither run
-    cap: the thirty and its four runs bound them;
-  - subagents: the `Conversation` rows with a `parent` launched by the member in the organization.
+- **Counted on a ledger of their own**, `CappedStart`, as the search allowance counts
+  `ConversationSearch` rows: the member, the organization, the `kind` (`CONVERSATION`, `RUN` or
+  `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the kind and `createdAt`, on
+  the organization, the kind and `createdAt` for the organization's counts, and on `createdAt` alone
+  for the sweep, which deletes the rows over a day old. The conversations and runs a cap counts
+  hold their member on the conversation alone, so counting them would join every conversation of a
+  team for each send; the ledger reads one index range instead. The mutation that starts what a cap
+  counts inserts its row: a conversation's start one `CONVERSATION` row, every run triggered
+  `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS` one `RUN` row, and a launch one `SUBAGENT` row.
+  A subagent's own runs, `LAUNCH` and `CONTINUE`, insert none: the thirty and its four runs bound
+  them. A row outlives what it counts, so deleting a conversation or retrying a run gets round
+  nothing. Each count reads the newest rows, as many as its cap, ordered by `createdAt` descending,
+  under `@check`, as `GetConversationSearchQuota` reads the searches: a count can pass its cap, since
+  a continuation and a reaction are never refused and the organization's counts race, so only the
+  newest say when it frees.
 - **What refuses.** Starting a conversation, a send, Resume and Retry are refused past a cap, by
   their route before anything is stored, and again in their mutation, where the member's count runs
   under the membership lock the mutation already takes, so two sends at once cannot both pass it.
   An answer's continuation and a reaction finish what is under way: they count toward the cap and
   are never refused, so a member at a cap can still answer a question waiting, and a fan-out's
   reports still come back. A launch past thirty is refused with a sentence the model can act on,
-  saying when the member can launch again and to do the work itself meanwhile.
+  saying when the member can launch again and to do the work itself meanwhile. A route recognizes
+  an action sent again before it counts, as it answers a retried send or Resume with the run the
+  first try started (see Queueing), so a retry whose first try was stored is answered as it was,
+  never refused by the place its own first try took.
 - **The organization's counts take no lock of their own.** Two members starting at once can each
   pass one by one, which a spend cap can afford. A lock on the organization's row would serialize
   every run start of a team, and meet the order `UpdateOrganizationMemberRole` takes, the

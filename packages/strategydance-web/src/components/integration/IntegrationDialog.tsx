@@ -23,7 +23,7 @@ import {
 import { Input } from 'strategydance-design-system/components/ui/Input'
 import { Select } from 'strategydance-design-system/components/ui/Select'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
-import { type ExternalMcpServer, findExternalMcpServerByUrl } from 'strategydance-external-mcp-servers'
+import type { ExternalMcpServer } from 'strategydance-external-mcp-servers'
 
 import type { OrganizationIntegration } from '~types'
 
@@ -168,10 +168,7 @@ function IntegrationDialog({ integration, preset, integrations, isAdministrator,
         await editIntegration(integration.id, settings)
         toast.success(formatMessage(integrationMessages.saved))
       } else {
-        const added = await addIntegration({
-          ...settings,
-          catalogueSlug: findExternalMcpServerByUrl(parsedUrl)?.slug ?? null,
-        })
+        const added = await addIntegration(settings)
 
         toast.success(
           authentication === IntegrationAuthentication.OAUTH

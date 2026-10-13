@@ -33,7 +33,7 @@ function useIntegrationRequests() {
   }
 
   return {
-    addIntegration: (settings: IntegrationSettings & { catalogueSlug: string | null }) =>
+    addIntegration: (settings: IntegrationSettings) =>
       requestApi<AddIntegrationData>({ method: 'POST', path: toPath(), body: settings }),
     editIntegration: (integrationId: string, settings: IntegrationSettings) =>
       requestApi({ method: 'PATCH', path: toPath(`/${integrationId}`), body: settings }),

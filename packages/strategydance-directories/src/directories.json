@@ -1104,9 +1104,9 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.basedtools.ai/",
     "submissionUrl": "https://www.basedtools.ai/submit",
-    "description": "",
+    "description": "Directory of AI tools and apps sorted by category, where makers can submit their own AI products for listing.",
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-13",
     "unreachableSince": null
   },
   {
@@ -1384,9 +1384,9 @@
     "type": "WEBSITE",
     "rootUrl": "https://comparecamp.com/",
     "submissionUrl": "https://comparecamp.com/request-a-review/",
-    "description": "",
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "description": "SaaS software review and comparison site that sorts B2B tools by category, where vendors can ask for their product to be reviewed.",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-13",
     "unreachableSince": null
   },
   {

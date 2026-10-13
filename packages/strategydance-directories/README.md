@@ -20,7 +20,8 @@ Each entry holds:
 - `rootUrl`: the site's origin, or a Reddit community's own page, since reddit.com itself is never
   down
 - `submissionUrl`: where a startup is submitted
-- `description`: what the directory lists and for whom, written by the daily check, empty until it
+- `description`: what the directory lists and for whom, one sentence of
+  `MAX_DIRECTORY_DESCRIPTION_LENGTH` characters at most, written by the daily check, empty until it
   has been
 - `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for those imported as inactive, while one
   the daily check moves there keeps its own
@@ -40,5 +41,7 @@ describes:
 - `CLOSED_TO_PROMOTION`: a community whose rules ban promotion, or that Reddit banned
 
 A directory is in one list or the other, never both: the tests hold names, submission URLs and
-websites' roots unique across the two. Both files are sorted by name and written as
-`JSON.stringify(list, null, 2)` writes them, which is how the formatter lays them out.
+websites' roots unique across the two. Both files are sorted by name, as `compareDirectoryNames`
+orders them, each entry's fields in the order `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS`
+give, and written as `JSON.stringify(list, null, 2)` writes them, which is how the formatter lays
+them out. The daily check writes them through the same three, so its files pass the tests.

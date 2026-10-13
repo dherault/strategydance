@@ -1,14 +1,10 @@
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { DirectoryBusinessModel } from 'strategydance-directories'
+import { DirectoryBusinessModel, MAX_DIRECTORY_DESCRIPTION_LENGTH } from 'strategydance-directories'
 import { z } from 'zod'
 
 import type { DirectoryReviewAnswer } from '~types'
 
-import {
-  MAX_DIRECTORY_DESCRIPTION_LENGTH,
-  MAX_DIRECTORY_EVIDENCE_LENGTH,
-  MAX_DIRECTORY_NOTES_LENGTH,
-} from '~domain/directories/directoryCheckSettings'
+import { MAX_DIRECTORY_EVIDENCE_LENGTH, MAX_DIRECTORY_NOTES_LENGTH } from '~domain/directories/directoryCheckSettings'
 import { DIRECTORY_REVIEW_INACTIVE_REASONS } from '~domain/directories/directoryReviewPrompt'
 
 const webUrlSchema = z.url({ protocol: /^https?$/ })

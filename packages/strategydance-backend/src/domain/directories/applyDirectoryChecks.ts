@@ -16,6 +16,7 @@ import type {
 import countDaysBetween from '~domain/directories/countDaysBetween'
 import { DIRECTORY_PAGE_MIN_TEXT_LENGTH, DIRECTORY_UNREACHABLE_DAYS } from '~domain/directories/directoryCheckSettings'
 import findEvidencePage from '~domain/directories/findEvidencePage'
+import pickDirectoryFields from '~domain/directories/pickDirectoryFields'
 import toSiteHost from '~domain/directories/toSiteHost'
 
 type Applied = { lists: DirectoryLists; outcome: DirectoryCheckOutcome }
@@ -70,7 +71,7 @@ function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today
   const { root } = check.probe
   const changes: string[] = []
   const notes: string[] = []
-  let next: Directory = { ...toDirectory(entry), lastChecked: today }
+  let next: Directory = { ...pickDirectoryFields(entry), lastChecked: today }
 
   if (root.outcome === 'reachable' && root.finalUrl) {
     const moved = moveWithinSite(lists, next, root.finalUrl)
@@ -246,7 +247,8 @@ function isSameEntry(entry: Directory | InactiveDirectory, checked: Directory | 
     'inactiveReason' in directory ? directory.inactiveReason : null
 
   return (
-    JSON.stringify(toDirectory(entry)) === JSON.stringify(toDirectory(checked)) && reasonOf(entry) === reasonOf(checked)
+    JSON.stringify(pickDirectoryFields(entry)) === JSON.stringify(pickDirectoryFields(checked))
+    && reasonOf(entry) === reasonOf(checked)
   )
 }
 
@@ -270,19 +272,6 @@ function sameOrigin(url: string, rootUrl: string) {
   } catch {
     return false
   }
-}
-
-function toDirectory({
-  name,
-  type,
-  rootUrl,
-  submissionUrl,
-  description,
-  businessModel,
-  lastChecked,
-  unreachableSince,
-}: Directory): Directory {
-  return { name, type, rootUrl, submissionUrl, description, businessModel, lastChecked, unreachableSince }
 }
 
 function replaceActive(lists: DirectoryLists, directory: Directory): DirectoryLists {

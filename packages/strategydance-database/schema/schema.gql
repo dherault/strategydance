@@ -1119,7 +1119,8 @@ type OrganizationIntegration @table @index(fields: ["organizationId", "createdAt
   # development key's, bound to the organization and this id, so it opens for no other row. Null
   # for any other authentication
   encryptedApiKey: String
-  # Its last four characters, which the page shows so an administrator knows which key it is
+  # Its last four characters, which every member's page shows so an administrator knows which key
+  # it is: null for a key under 12 characters, whose last four would give too much of it away
   apiKeyLastFour: String
   # Bumped whenever the key is replaced, to which M29 binds the approvals of a key-based server
   keyGeneration: Int! @default(value: 0)

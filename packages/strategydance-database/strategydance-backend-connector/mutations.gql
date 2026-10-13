@@ -4285,7 +4285,7 @@ mutation UpdateOrganizationIntegrationKey(
   $configRevisionIncrement: Int!
   $keyGenerationIncrement: Int!
   $encryptedApiKey: String!
-  $apiKeyLastFour: String!
+  $apiKeyLastFour: String
   $apiKeyScheme: IntegrationApiKeyScheme!
   $apiKeyHeader: String
   $tools: String!

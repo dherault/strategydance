@@ -1002,7 +1002,8 @@ in `utils/`, one concern per file.
   SDK's `registerClient`, `startAuthorization`, `exchangeAuthorization` and `refreshAuthorization`,
   never its `auth()`: the client presented is Strategy Dance's client ID metadata document,
   `GET /integrations/oauth/client`, where the authorization server reads such documents and the
-  backend is https, else the server's one dynamic registration, recorded on its row. The
+  backend is https, else the dynamic registration recorded on its row, the first recorded when two
+  members' first Connects register at once, the other left unused. The
   authorization server's callback, `GET /integrations/oauth/callback` on the public backend
   (`routes/integrationOAuth.ts`), finds the Connect by its state's hash, keeps the code encrypted for
   two minutes and always answers a 303 to the app's page, which finishes it as the signed-in member:

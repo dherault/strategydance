@@ -116,6 +116,13 @@ describe('applyDirectoryChecks', () => {
     expect(apply(createLists([directory]), check('https://tools.example/faq')).directories[0].businessModel).toBe(
       'FREE',
     )
+    // Another scheme or port is another origin, whose page never vouches for this one
+    expect(apply(createLists([directory]), check('http://tools.example/pricing')).directories[0].businessModel).toBe(
+      'FREE',
+    )
+    expect(
+      apply(createLists([directory]), check('https://tools.example:8443/pricing')).directories[0].businessModel,
+    ).toBe('FREE')
     expect(
       apply(createLists([directory]), check('https://tools.example/pricing', [])).directories[0].businessModel,
     ).toBe('FREE')

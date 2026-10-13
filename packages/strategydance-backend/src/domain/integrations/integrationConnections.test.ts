@@ -682,6 +682,60 @@ describe("reading a member's access token", () => {
     expect(tokenRequests('refresh_token')).toHaveLength(1)
   })
 
+  test('revokes the tokens a refresh got once its lapsed lease was taken over, and reads what stands', async () => {
+    await connect()
+    expireSoon(ADA)
+
+    const stored = await decryptIntegrationSecret(connection(ADA)!.encryptedRefreshToken!, {
+      purpose: 'refresh-token',
+      ...tokenOwner(ADA, connection(ADA)!.generation),
+    })
+
+    // Another refresh claimed the lease once it lapsed, presented the token this one had spent, and was refused
+    fake.before.set('RecordIntegrationConnectionTokens', () => {
+      Object.assign(connection(ADA)!, {
+        status: IntegrationConnectionStatus.NEEDS_AUTHENTICATION,
+        encryptedAccessToken: null,
+        encryptedRefreshToken: null,
+        accessTokenExpiresAt: null,
+        refreshingUntil: null,
+        refreshLeaseId: null,
+      })
+    })
+
+    expect(await readIntegrationAccessToken(caller(ADA))).toEqual({ outcome: 'needsAuthentication' })
+    expect(tokenRequests('refresh_token')).toHaveLength(1)
+    expect(provider.recorded.revocations).toHaveLength(1)
+    expect(provider.recorded.revocations[0]).toMatchObject({ token_type_hint: 'refresh_token' })
+    expect(provider.recorded.revocations[0].token).not.toBe(stored)
+  })
+
+  test('revokes only the access token a refresh got once its lease was taken over, where the server keeps refresh tokens', async () => {
+    provider = createIntegrationOAuthServerFake({ isRotating: false })
+    await connect()
+    expireSoon(ADA)
+
+    const owner = tokenOwner(ADA, connection(ADA)!.generation)
+    const successor = await encryptIntegrationSecret('access_from_the_successor', { purpose: 'access-token', ...owner })
+
+    fake.before.set('RecordIntegrationConnectionTokens', () => {
+      Object.assign(connection(ADA)!, {
+        encryptedAccessToken: successor,
+        accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        refreshingUntil: null,
+        refreshLeaseId: null,
+      })
+    })
+
+    expect(await readIntegrationAccessToken(caller(ADA))).toMatchObject({
+      outcome: 'ready',
+      accessToken: 'access_from_the_successor',
+    })
+    expect(provider.recorded.revocations).toHaveLength(1)
+    expect(provider.recorded.revocations[0]).toMatchObject({ token_type_hint: 'access_token' })
+    expect(provider.recorded.revocations[0].token).not.toBe('access_from_the_successor')
+  })
+
   test('claims nothing for a reader whose refresh token another refresh has spent', async () => {
     await connect()
 

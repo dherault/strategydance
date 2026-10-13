@@ -71,7 +71,7 @@ type StoredConnection = NonNullable<Awaited<ReturnType<typeof readConnection>>>
   under its lease and while it still holds the access token it read, so tokens written meanwhile are
   never dropped. A client the server no longer takes is forgotten for the next Connect to register
   again. Any other failure lets the lease go for the next caller. A refresh whose lease was taken over
-  writes nothing and reads again
+  writes nothing, revokes the tokens it got, and reads again
 */
 async function readIntegrationAccessToken(
   caller: IntegrationCaller,
@@ -253,6 +253,19 @@ async function refresh(
   let encryptedAccessToken
   // A server that does not rotate its refresh tokens answers none, and the one held stays good
   let encryptedRefreshToken = read.encryptedRefreshToken
+  // Whether the server answered a refresh token of its own, which spent the one sent
+  const isRotated = tokens.refreshToken !== null && tokens.refreshToken !== refreshToken
+  /*
+    The tokens the refresh got and could not keep, revoked, best effort, and never left as a grant
+    nothing holds: the new access token, and the refresh token only where it is the server's new one,
+    which no other refresh can hold, since it was never stored. One a server did not rotate is the
+    stored one, still good, and stays
+  */
+  const revokeUnkept = () =>
+    revokeIntegrationTokens(
+      { revocationEndpoint: connection.revocationEndpoint, client: endpoint.client },
+      { accessToken: tokens.accessToken, refreshToken: isRotated ? tokens.refreshToken : null },
+    )
 
   try {
     encryptedAccessToken = await encryptIntegrationSecret(
@@ -270,17 +283,11 @@ async function refresh(
     logger.error("Integrations: a member's refreshed tokens could not be encrypted", error)
 
     /*
-      The tokens the refresh got cannot be kept, so they are revoked, best effort, and never left as
-      a grant nothing holds. A server that rotated the refresh token spent the one stored, so the
-      connection needs the member again; one that did not, answering the token it was sent, keeps it
-      good, and only the new access token is revoked, the lease let go for the next try
+      The tokens the refresh got cannot be kept. A server that rotated the refresh token spent the
+      one stored, so the connection needs the member again; one that did not keeps it good, the lease
+      let go for the next try
     */
-    const isRotated = tokens.refreshToken !== null && tokens.refreshToken !== refreshToken
-
-    await revokeIntegrationTokens(
-      { revocationEndpoint: connection.revocationEndpoint, client: endpoint.client },
-      { accessToken: tokens.accessToken, refreshToken: isRotated ? tokens.refreshToken : null },
-    )
+    await revokeUnkept()
 
     if (!isRotated) {
       await release()
@@ -307,6 +314,10 @@ async function refresh(
     })
   } catch (error) {
     if (readIntegrationRefusal(error) !== 'leaseLost') throw error
+
+    // Another refresh took the lease over once it lapsed, and whatever it stored stands: the tokens
+    // this one got are nobody's, and the caller reads the connection again
+    await revokeUnkept()
 
     return 'leaseLost'
   }

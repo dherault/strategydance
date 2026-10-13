@@ -131,7 +131,8 @@ describe('publishDirectoryCheck', () => {
 
     expect((await publish(github)).outcome).toBe('closed')
     expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed'])
-    expect(github.branches.get('directories-check')).toBe(github.branches.get('dev'))
+    // Its lists given back as dev's, by a commit made against its own
+    expect(github.readFiles('directories-check')).toEqual(github.readFiles('dev'))
 
     // And the next run starts again from dev, as after any closed pull request
     expect((await publish(github)).outcome).toBe('committed')
@@ -175,6 +176,19 @@ describe('publishDirectoryCheck', () => {
       '### the other run',
       `### ${TODAY}`,
     ])
+  })
+
+  test('moves the branch on to dev when dev holds all it holds, as after a merge that kept it', async () => {
+    const github = createGitHubFake({ files: FILES })
+
+    await publish(github)
+    // Merged, its branch kept, and dev moved on since
+    github.pullRequests[0].state = 'closed'
+    github.branches.set('dev', github.branches.get('directories-check')!)
+    github.push('dev', { 'other.txt': 'landed since' })
+
+    expect((await publish(github)).outcome).toBe('committed')
+    expect(github.readFiles('directories-check')['other.txt']).toBe('landed since')
   })
 
   test('leaves the branch, without asking Claude, while it holds another run’s commit', async () => {

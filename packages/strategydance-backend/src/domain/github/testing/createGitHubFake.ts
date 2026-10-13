@@ -171,6 +171,8 @@ function createGitHubFake({ files }: Options) {
 
       if (method === 'PATCH' && (match = route.match(/^\/git\/refs\/heads\/(.+)$/))) {
         if (!branches.has(match[1])) return answer(422)
+        // As GitHub, an update without force has to be a fast-forward
+        if (!input.force && !readAncestry(input.sha).has(branches.get(match[1])!)) return answer(422)
 
         branches.set(match[1], input.sha)
         mergeBases.set(match[1], input.sha)

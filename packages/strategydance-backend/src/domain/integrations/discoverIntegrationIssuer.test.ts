@@ -160,6 +160,66 @@ describe('discoverIntegrationIssuer', () => {
     expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
   })
 
+  test('takes a server answering initialize without a token, as JSON or as events', async () => {
+    const answer = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { protocolVersion: '2025-06-18', capabilities: {} },
+    })
+
+    for (const respond of [
+      () => json(JSON.parse(answer)),
+      () => new Response(`event: message\ndata: ${answer}\n\n`, { headers: { 'content-type': 'text/event-stream' } }),
+    ]) {
+      const { fetch } = createNetwork({
+        [`POST ${URL}`]: respond,
+        'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+          json({ resource: URL, authorization_servers: ['https://auth.example.com'] }),
+        'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
+      })
+
+      expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+    }
+  })
+
+  test('refuses an address that neither challenges nor answers as an MCP server, whatever metadata its host has', async () => {
+    for (const respond of [
+      () => new Response('<html>A page</html>', { headers: { 'content-type': 'text/html' } }),
+      () => new Response('Bad request', { status: 400 }),
+      () => new Response('Unauthorized', { status: 401, headers: { 'www-authenticate': 'Basic realm="api"' } }),
+    ]) {
+      const { fetch, asked } = createNetwork({
+        [`POST ${URL}`]: respond,
+        'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+          json({ resource: URL, authorization_servers: ['https://auth.example.com'] }),
+        'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
+      })
+
+      expect(await failure(discoverIntegrationIssuer(URL, fetch))).toBe(IntegrationError.NOT_MCP_SERVER)
+      expect(asked).toHaveLength(1)
+    }
+  })
+
+  test('takes a 401 without a challenge only when resource metadata names the server', async () => {
+    const bare = () => new Response('Unauthorized', { status: 401 })
+    const named = createNetwork({
+      [`POST ${URL}`]: bare,
+      'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+        json({ resource: URL, authorization_servers: ['https://auth.example.com'] }),
+      'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
+    })
+
+    expect(await discoverIntegrationIssuer(URL, named.fetch)).toBe('https://auth.example.com')
+
+    const unnamed = createNetwork({
+      [`POST ${URL}`]: bare,
+      'GET https://mcp.example.com/.well-known/oauth-authorization-server': () =>
+        json({ ...AUTHORIZATION_SERVER, issuer: 'https://mcp.example.com' }),
+    })
+
+    expect(await failure(discoverIntegrationIssuer(URL, unnamed.fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
+  })
+
   test('says an address with nothing behind it is no MCP server', async () => {
     const { fetch } = createNetwork({})
 

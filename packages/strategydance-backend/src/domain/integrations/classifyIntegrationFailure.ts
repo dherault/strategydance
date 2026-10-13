@@ -33,17 +33,16 @@ const TIMEOUT_CODES = new Set(['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_
   MCP SDK or the discovery threw, looking through each error's cause, since the SDK wraps what the
   network threw. A server answering 401 or 403 refused the key it was sent, or asked for
   authentication when it was sent none. Anything this does not recognize was answered, but not as
-  an MCP server answers, or, for a discovery, as an OAuth server answers
+  an MCP server answers, or, for a discovery, as an OAuth server answers. A response past the guard's
+  cap is too many tools while listing them, and a failed discovery while reading OAuth metadata
 */
 function classifyIntegrationFailure(
   error: unknown,
-  {
-    hasKey,
-    origin,
-    fallback = IntegrationError.NOT_MCP_SERVER,
-  }: { hasKey: boolean; origin: string; fallback?: IntegrationError },
+  { hasKey, origin, isDiscovery = false }: { hasKey: boolean; origin: string; isDiscovery?: boolean },
 ) {
   if (error instanceof IntegrationFailure) return error
+
+  const fallback = isDiscovery ? IntegrationError.DISCOVERY_FAILED : IntegrationError.NOT_MCP_SERVER
 
   const fail = (kind: IntegrationError) => new IntegrationFailure(kind, `${origin}: ${kind}`)
   const authenticationFailure = hasKey ? IntegrationError.KEY_REFUSED : IntegrationError.AUTHENTICATION_REQUIRED
@@ -52,7 +51,7 @@ function classifyIntegrationFailure(
     if (cause instanceof IntegrationFailure) return cause
 
     if (cause instanceof OutboundResponseRefusal) {
-      return fail(cause.isTooLarge ? IntegrationError.TOO_MANY_TOOLS : IntegrationError.NOT_MCP_SERVER)
+      return fail(cause.isTooLarge && !isDiscovery ? IntegrationError.TOO_MANY_TOOLS : fallback)
     }
 
     if (cause instanceof OutboundRefusal) return fail(IntegrationError.ADDRESS_REFUSED)

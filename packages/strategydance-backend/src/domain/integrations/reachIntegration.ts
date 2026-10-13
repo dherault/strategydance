@@ -73,7 +73,7 @@ async function reachIntegration(
     throw classifyIntegrationFailure(error, {
       hasKey: credential !== null,
       origin,
-      fallback: isOAuth ? IntegrationError.DISCOVERY_FAILED : IntegrationError.NOT_MCP_SERVER,
+      isDiscovery: isOAuth,
     })
   }
 }

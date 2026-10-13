@@ -60,13 +60,14 @@ describe('classifyIntegrationFailure', () => {
     )
   })
 
-  test('falls back to the kind it is given', () => {
-    expect(
-      classifyIntegrationFailure(new Error('HTTP 500 trying to load metadata'), {
-        hasKey: false,
-        origin: ORIGIN,
-        fallback: IntegrationError.DISCOVERY_FAILED,
-      }).kind,
-    ).toBe(IntegrationError.DISCOVERY_FAILED)
+  test('reads what a discovery could not read as a failed discovery, an answer past the cap included', () => {
+    const discovering = { hasKey: false, origin: ORIGIN, isDiscovery: true }
+
+    expect(classifyIntegrationFailure(new Error('HTTP 500 trying to load metadata'), discovering).kind).toBe(
+      IntegrationError.DISCOVERY_FAILED,
+    )
+    expect(classifyIntegrationFailure(new OutboundResponseRefusal('Too large', true), discovering).kind).toBe(
+      IntegrationError.DISCOVERY_FAILED,
+    )
   })
 })

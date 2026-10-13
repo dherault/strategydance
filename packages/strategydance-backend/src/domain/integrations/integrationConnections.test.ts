@@ -510,6 +510,21 @@ describe('finishing a Connect', () => {
     expect(server().toolCount).toBe(0)
   })
 
+  test('revokes the tokens it got when storing the connection fails, whatever the failure', async () => {
+    const { search } = await signIn()
+
+    fake.before.set('ConnectIntegration', () => {
+      throw new Error('The database is down')
+    })
+
+    await expect(
+      finishIntegrationConnection({ ...caller(ADA), authorizationId: search.authorization! }),
+    ).rejects.toThrow('The database is down')
+    expect(connection(ADA)).toBeUndefined()
+    expect(provider.recorded.revocations).toHaveLength(1)
+    expect(provider.recorded.revocations[0].token_type_hint).toBe('refresh_token')
+  })
+
   test('connects nothing for a member removed meanwhile', async () => {
     const { search } = await signIn()
 

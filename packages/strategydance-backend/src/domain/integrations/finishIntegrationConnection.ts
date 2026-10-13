@@ -132,6 +132,10 @@ async function finishIntegrationConnection({
     throw error
   }
 
+  // Tokens no connection keeps are revoked, whatever kept them from being stored, so no grant outlives
+  // the member's sight of it
+  const revoke = () =>
+    revokeIntegrationTokens({ ...endpoint, revocationEndpoint: authorization.revocationEndpoint }, tokens)
   const generation = randomUUID()
   let encryptedAccessToken
   let encryptedRefreshToken = null
@@ -152,33 +156,41 @@ async function finishIntegrationConnection({
     }
   } catch (error) {
     logger.error("Integrations: a member's tokens could not be encrypted", error)
-    await revokeIntegrationTokens({ ...endpoint, revocationEndpoint: authorization.revocationEndpoint }, tokens)
+    await revoke()
 
     return { outcome: 'keyUnavailable' } as const
   }
 
-  const refusal = await runIntegrationWrite(() =>
-    connectIntegration(dataConnect, {
-      ...caller,
-      configRevision: authorization.configRevision,
-      generation,
-      accountLabel: tokens.accountLabel,
-      oauthClientId: authorization.oauthClientId,
-      oauthClientAuthenticationMethod: authenticationMethod,
-      resource: authorization.resource,
-      issuer: authorization.issuer,
-      isIssuerParameterSupported: authorization.isIssuerParameterSupported,
-      tokenEndpoint: authorization.tokenEndpoint,
-      revocationEndpoint: authorization.revocationEndpoint ?? null,
-      encryptedAccessToken,
-      encryptedRefreshToken,
-      accessTokenExpiresAt: tokens.expiresAt,
-      scope: tokens.scope,
-    }),
-  )
+  let refusal
+
+  try {
+    refusal = await runIntegrationWrite(() =>
+      connectIntegration(dataConnect, {
+        ...caller,
+        configRevision: authorization.configRevision,
+        generation,
+        accountLabel: tokens.accountLabel,
+        oauthClientId: authorization.oauthClientId,
+        oauthClientAuthenticationMethod: authenticationMethod,
+        resource: authorization.resource,
+        issuer: authorization.issuer,
+        isIssuerParameterSupported: authorization.isIssuerParameterSupported,
+        tokenEndpoint: authorization.tokenEndpoint,
+        revocationEndpoint: authorization.revocationEndpoint ?? null,
+        encryptedAccessToken,
+        encryptedRefreshToken,
+        accessTokenExpiresAt: tokens.expiresAt,
+        scope: tokens.scope,
+      }),
+    )
+  } catch (error) {
+    await revoke()
+
+    throw error
+  }
 
   if (refusal) {
-    await revokeIntegrationTokens({ ...endpoint, revocationEndpoint: authorization.revocationEndpoint }, tokens)
+    await revoke()
 
     return refusal
   }

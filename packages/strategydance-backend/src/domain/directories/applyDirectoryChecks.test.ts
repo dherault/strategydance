@@ -317,6 +317,19 @@ describe('applyDirectoryChecks', () => {
     })
   })
 
+  test('finds a directory renamed while it was checked by its id, and leaves it', () => {
+    const directory = createDirectory('tools')
+    const renamed = { ...directory, name: 'Tools' }
+    const { directories, outcome } = apply(createLists([renamed]), createCheck(directory, { answer: {} }))
+
+    expect(directories).toEqual([renamed])
+    expect(outcome).toMatchObject({
+      name: 'Tools',
+      result: 'notChecked',
+      notes: expect.stringContaining('Changed while it was checked'),
+    })
+  })
+
   test('leaves a directory no longer in either list', () => {
     const { directories, outcome } = apply(createLists([]), createCheck(createDirectory('renamed'), { answer: {} }))
 

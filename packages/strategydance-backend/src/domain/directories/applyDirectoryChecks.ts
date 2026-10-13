@@ -23,8 +23,8 @@ type Applied = { lists: DirectoryLists; outcome: DirectoryCheckOutcome }
 
 /*
   The lists once each check is applied, in turn, and what each did, for the report. Pure, and keyed
-  by name, so the same checks apply again to lists read afresh when somebody pushed between the read
-  and the write
+  by id, so the same checks apply again to lists read afresh when somebody pushed between the read
+  and the write, and a directory renamed meanwhile is found, and left
 */
 function applyDirectoryChecks(lists: DirectoryLists, checks: DirectoryCheck[], today: string) {
   const outcomes: DirectoryCheckOutcome[] = []
@@ -58,8 +58,8 @@ function applyDirectoryChecks(lists: DirectoryLists, checks: DirectoryCheck[], t
     paid for daily, and a failure of the API leaves the entry as it was
 */
 function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today: string): Applied {
-  const active = lists.directories.find(({ name }) => name === check.name)
-  const inactive = active ? undefined : lists.inactiveDirectories.find(({ name }) => name === check.name)
+  const active = lists.directories.find(({ id }) => id === check.directory.id)
+  const inactive = active ? undefined : lists.inactiveDirectories.find(({ id }) => id === check.directory.id)
   const entry = active ?? inactive
 
   if (!entry) return unchanged(lists, check.name, '', 'No longer in either list, so nothing was written')
@@ -194,7 +194,7 @@ function describe(
       probe?.url === submissionUrl
       && probe.outcome === 'reachable'
       && isOnSite
-      && !isUsed(lists, entry.name, { submissionUrl })
+      && !isUsed(lists, entry.id, { submissionUrl })
     ) {
       next.submissionUrl = submissionUrl
       changes.push(`Submission page moved to ${submissionUrl}`)
@@ -226,7 +226,7 @@ function moveWithinSite(lists: DirectoryLists, directory: Directory, finalUrl: s
       ? `${to.origin}${submission.pathname}${submission.search}`
       : directory.submissionUrl
 
-  if (isUsed(lists, directory.name, { rootUrl, submissionUrl })) return null
+  if (isUsed(lists, directory.id, { rootUrl, submissionUrl })) return null
 
   return { ...directory, rootUrl, submissionUrl }
 }
@@ -255,12 +255,12 @@ function isSameEntry(entry: Directory | InactiveDirectory, checked: Directory | 
 // Whether another directory, in either list, already holds one of these addresses
 function isUsed(
   lists: DirectoryLists,
-  name: string,
+  id: string,
   { rootUrl, submissionUrl }: { rootUrl?: string; submissionUrl?: string },
 ) {
   return [...lists.directories, ...lists.inactiveDirectories].some(
     directory =>
-      directory.name !== name
+      directory.id !== id
       && ((rootUrl && directory.type === DirectoryType.WEBSITE && directory.rootUrl === rootUrl)
         || (submissionUrl && directory.submissionUrl === submissionUrl)),
   )
@@ -277,7 +277,7 @@ function sameOrigin(url: string, rootUrl: string) {
 function replaceActive(lists: DirectoryLists, directory: Directory): DirectoryLists {
   return {
     ...lists,
-    directories: lists.directories.map(existing => (existing.name === directory.name ? directory : existing)),
+    directories: lists.directories.map(existing => (existing.id === directory.id ? directory : existing)),
   }
 }
 
@@ -285,7 +285,7 @@ function replaceInactive(lists: DirectoryLists, directory: InactiveDirectory): D
   return {
     ...lists,
     inactiveDirectories: lists.inactiveDirectories.map(existing =>
-      existing.name === directory.name ? directory : existing,
+      existing.id === directory.id ? directory : existing,
     ),
   }
 }
@@ -327,7 +327,7 @@ function moveToInactive(
 ): Applied {
   return {
     lists: {
-      directories: lists.directories.filter(({ name }) => name !== directory.name),
+      directories: lists.directories.filter(({ id }) => id !== directory.id),
       inactiveDirectories: [...lists.inactiveDirectories, { ...directory, inactiveReason: reason }],
     },
     outcome: {
@@ -351,7 +351,7 @@ function moveToActive(
   return {
     lists: {
       directories: [...lists.directories, { ...directory, unreachableSince: null }],
-      inactiveDirectories: lists.inactiveDirectories.filter(({ name }) => name !== directory.name),
+      inactiveDirectories: lists.inactiveDirectories.filter(({ id }) => id !== directory.id),
     },
     outcome: {
       name: directory.name,

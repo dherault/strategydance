@@ -3,7 +3,8 @@ import { z } from 'zod'
 
 import type { DirectoryLists } from '~types'
 
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+// A real day, so a date such as 2026-99-99 never reaches what counts the days since it
+const daySchema = z.iso.date()
 
 const directorySchema = z.strictObject({
   name: z.string().min(1),
@@ -12,8 +13,8 @@ const directorySchema = z.strictObject({
   submissionUrl: z.url(),
   description: z.string(),
   businessModel: z.enum(Object.values(DirectoryBusinessModel)),
-  lastChecked: z.string().regex(DAY_PATTERN).nullable(),
-  unreachableSince: z.string().regex(DAY_PATTERN).nullable(),
+  lastChecked: daySchema.nullable(),
+  unreachableSince: daySchema.nullable(),
 })
 
 const inactiveDirectorySchema = directorySchema.extend({

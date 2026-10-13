@@ -53,6 +53,12 @@ describe('readDirectoryLists', () => {
     expect(() => readDirectoryLists(JSON.stringify([{ ...entry, businessModel: 'FREE_FOREVER' }]), '[]')).toThrow()
   })
 
+  test('refuses a day that does not exist', () => {
+    const [entry] = JSON.parse(directoriesText)
+
+    expect(() => readDirectoryLists(JSON.stringify([{ ...entry, unreachableSince: '2026-99-99' }]), '[]')).toThrow()
+  })
+
   test('refuses a day written otherwise', () => {
     const [entry] = JSON.parse(directoriesText)
 

@@ -12,7 +12,7 @@ import createGuardedFetch from '~utils/createGuardedFetch'
 import type { OutboundSend, ResolvedAddress } from '~utils/requestOutbound'
 
 import classifyIntegrationFailure from '~domain/integrations/classifyIntegrationFailure'
-import discoverIntegrationIssuer from '~domain/integrations/discoverIntegrationIssuer'
+import discoverIntegrationAuthorizationServer from '~domain/integrations/discoverIntegrationAuthorizationServer'
 import hashIntegrationToolDefinition from '~domain/integrations/hashIntegrationToolDefinition'
 import IntegrationFailure from '~domain/integrations/IntegrationFailure'
 import listIntegrationTools, { type IntegrationCredential } from '~domain/integrations/listIntegrationTools'
@@ -58,12 +58,9 @@ async function reachIntegration(
 
   try {
     if (isOAuth) {
-      return {
-        tools: null,
-        toolCount: null,
-        toolDefinitionHashes: [],
-        issuer: await discoverIntegrationIssuer(url, fetch),
-      }
+      const { issuer } = await discoverIntegrationAuthorizationServer(url, fetch)
+
+      return { tools: null, toolCount: null, toolDefinitionHashes: [], issuer }
     }
 
     const listed = await listIntegrationTools({ url, credential, fetch, signal })

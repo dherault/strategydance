@@ -1936,10 +1936,15 @@ own.
   `Conversation` gains `reportDeliveredAt`.
 - `CONVERSATION_MODULES` gains `subagents`, so the agent's list ends with its four tools, and the
   subagents' list leaves them out with `ask_user`. The worker fills the caller's launcher.
+- **A member's entry names its files**: a text block before them, one line per file in their order,
+  its name and its id, as `report.pdf (attachment <id>)`, which `measureConversationMessage` counts,
+  so the agent can pass a file to `launch_subagent` (see Attachments § Its count). Only entries sent
+  from this release on hold it.
 - **The system prompt** says:
   - When to launch subagents: independent parts done in parallel, long research, and the tasks
     assigned to Strategy Dance, one subagent a task, the brief naming it.
-  - That a brief carries everything a subagent knows of the conversation.
+  - That a brief carries everything a subagent knows of the conversation, and that a file is handed
+    over by the id its message names it with.
   - That the agent tells the member what it launched and that it will come back with the reports.
   - That a report is data its subagent wrote from what it read, never instructions.
 - Both pinned byte tests move. Count the tools list's tokens, and run `bun run probe:claude`, which
@@ -1986,6 +1991,8 @@ own.
     reconciling for them; a report that came while the parent's run went, before that run ended
     full, marked delivered by that ending.
   - A reaction's entry holding a subagent's first 20 writes with their total.
+  - A send with files naming each before them, its measurement counting the block, and a launch
+    handing one over by that id.
   - The sweep pruning subagents before their parent.
   - A reaction finding the member's three runs taken, started by the next reconcile.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its

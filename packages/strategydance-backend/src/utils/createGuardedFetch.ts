@@ -15,6 +15,22 @@ type GuardedFetchOptions = {
   send?: OutboundSend
 }
 
+/*
+  A response the guard will not hand on: a status no response has, a body compressed though none was
+  asked for, or one past its cap, which `isTooLarge` says. Set apart from a refused address, since
+  the server was reached
+*/
+class OutboundResponseRefusal extends OutboundRefusal {
+  name = 'OutboundResponseRefusal'
+
+  constructor(
+    message: string,
+    readonly isTooLarge = false,
+  ) {
+    super(message, 'response')
+  }
+}
+
 // What a server on the other end reads Strategy Dance as, since some refuse a request naming nobody
 const USER_AGENT = 'StrategyDance/1.0 (+https://strategydance.com)'
 
@@ -60,10 +76,7 @@ function createGuardedFetch({ maxBytes, timeoutMs, signal, resolve, send }: Guar
     if (response.status < 200 || response.status > 599) {
       await iterator.return?.()
 
-      throw new OutboundRefusal(
-        `Not a status a response has: ${response.status} from ${response.url.origin}`,
-        'response',
-      )
+      throw new OutboundResponseRefusal(`Not a status a response has: ${response.status} from ${response.url.origin}`)
     }
 
     const encoding = readHeader(response.headers, 'content-encoding')
@@ -71,7 +84,7 @@ function createGuardedFetch({ maxBytes, timeoutMs, signal, resolve, send }: Guar
     if (encoding && encoding.toLowerCase() !== 'identity') {
       await iterator.return?.()
 
-      throw new OutboundRefusal(`A compressed body, which was not asked for, from ${response.url.origin}`, 'response')
+      throw new OutboundResponseRefusal(`A compressed body, which was not asked for, from ${response.url.origin}`)
     }
 
     const hasBody = method !== 'HEAD' && !STATUSES_WITHOUT_BODY.has(response.status)
@@ -122,7 +135,7 @@ function createBodyStream(iterator: AsyncIterator<Uint8Array>, maxBytes: number,
 
         if (size > maxBytes) {
           await iterator.return?.()
-          controller.error(new OutboundRefusal(`A response past ${maxBytes} bytes from ${origin}`, 'response'))
+          controller.error(new OutboundResponseRefusal(`A response past ${maxBytes} bytes from ${origin}`, true))
 
           return
         }
@@ -155,5 +168,7 @@ function toHeaders(incoming: IncomingHttpHeaders) {
 
   return headers
 }
+
+export { OutboundResponseRefusal }
 
 export default createGuardedFetch

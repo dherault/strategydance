@@ -590,6 +590,29 @@ describe("reading a member's access token", () => {
     expect(tokenRequests('refresh_token')).toHaveLength(0)
   })
 
+  test('keeps the refresh token a server that does not rotate them answers no successor for', async () => {
+    provider = createIntegrationOAuthServerFake({ isRotating: false })
+    await connect()
+
+    const refreshToken = connection(ADA)!.encryptedRefreshToken
+
+    for (const attempt of [1, 2]) {
+      expireSoon(ADA)
+      expect((await readIntegrationAccessToken(caller(ADA))).outcome).toBe('ready')
+      expect(tokenRequests('refresh_token')).toHaveLength(attempt)
+      expect(connection(ADA)!.encryptedRefreshToken).not.toBeNull()
+    }
+
+    // Encrypted afresh or kept, it is the same token, which the server still takes
+    const kept = await decryptIntegrationSecret(connection(ADA)!.encryptedRefreshToken!, {
+      purpose: 'refresh-token',
+      ...tokenOwner(ADA, connection(ADA)!.generation),
+    })
+
+    expect(refreshToken).not.toBeNull()
+    expect(provider.isCurrentRefreshToken(kept)).toBe(true)
+  })
+
   test('takes over a lease a crashed refresh left to lapse', async () => {
     await connect()
     expireSoon(ADA)

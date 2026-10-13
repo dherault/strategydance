@@ -248,7 +248,8 @@ async function refresh(
   }
 
   let encryptedAccessToken
-  let encryptedRefreshToken = null
+  // A server that does not rotate its refresh tokens answers none, and the one held stays good
+  let encryptedRefreshToken = read.encryptedRefreshToken
 
   try {
     encryptedAccessToken = await encryptIntegrationSecret(

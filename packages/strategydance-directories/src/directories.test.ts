@@ -1,24 +1,16 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
+  compareDirectoryNames,
   DIRECTORIES,
   DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
+  DIRECTORY_FIELDS,
   DirectoryBusinessModel,
   DirectoryInactiveReason,
   DirectoryType,
   INACTIVE_DIRECTORIES,
+  INACTIVE_DIRECTORY_FIELDS,
 } from './index'
-
-const DIRECTORY_KEYS = [
-  'name',
-  'type',
-  'rootUrl',
-  'submissionUrl',
-  'description',
-  'businessModel',
-  'lastChecked',
-  'unreachableSince',
-]
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
@@ -27,18 +19,18 @@ const directoriesText = await Bun.file(new URL('./directories.json', import.meta
 const inactiveDirectoriesText = await Bun.file(new URL('./inactiveDirectories.json', import.meta.url)).text()
 
 const LISTS = [
-  { name: 'DIRECTORIES', directories: DIRECTORIES, text: directoriesText, keys: DIRECTORY_KEYS },
+  { name: 'DIRECTORIES', directories: DIRECTORIES, text: directoriesText, fields: DIRECTORY_FIELDS },
   {
     name: 'INACTIVE_DIRECTORIES',
     directories: INACTIVE_DIRECTORIES,
     text: inactiveDirectoriesText,
-    keys: [...DIRECTORY_KEYS, 'inactiveReason'],
+    fields: INACTIVE_DIRECTORY_FIELDS,
   },
 ]
 
 const ALL_DIRECTORIES = [...DIRECTORIES, ...INACTIVE_DIRECTORIES]
 
-describe.each(LISTS)('$name', ({ directories, text, keys }) => {
+describe.each(LISTS)('$name', ({ directories, text, fields }) => {
   it('holds only known types and business models', () => {
     const types: string[] = Object.values(DirectoryType)
     const businessModels: string[] = Object.values(DirectoryBusinessModel)
@@ -51,7 +43,7 @@ describe.each(LISTS)('$name', ({ directories, text, keys }) => {
 
   // The JSON is cast to its type, which would let an entry without a field through
   it('gives every entry exactly its fields, in order', () => {
-    for (const directory of directories) expect(Object.keys(directory)).toEqual(keys)
+    for (const directory of directories) expect(Object.keys(directory)).toEqual([...fields])
   })
 
   it('dates its checks by the day', () => {
@@ -82,7 +74,7 @@ describe.each(LISTS)('$name', ({ directories, text, keys }) => {
   it('is sorted by name', () => {
     const names = directories.map(({ name }) => name)
 
-    expect(names).toEqual(names.toSorted((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })))
+    expect(names).toEqual(directories.toSorted(compareDirectoryNames).map(({ name }) => name))
   })
 
   // As a script writes it, which is also how the formatter lays it out, so a written file passes the lint

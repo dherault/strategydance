@@ -1,4 +1,5 @@
 import { DirectoryBusinessModel, DirectoryInactiveReason } from './enums'
+import type { Directory, InactiveDirectory } from './types'
 
 /*
   What each business model means, in the words a person reads here and the checker's prompt gives
@@ -63,3 +64,33 @@ export const DIRECTORY_INACTIVE_REASON_DESCRIPTIONS: Record<DirectoryInactiveRea
   [DirectoryInactiveReason.CLOSED_TO_PROMOTION]:
     'A community closed to promotion: its rules ban it, or Reddit banned the community',
 }
+
+/*
+  Each entry's fields, in the order the files hold them, which is the order whatever writes them
+  keeps. Records rather than lists, so the typechecker refuses a field missing from them or one the
+  types lack
+*/
+const DIRECTORY_FIELD_ORDER: Record<keyof Directory, true> = {
+  name: true,
+  type: true,
+  rootUrl: true,
+  submissionUrl: true,
+  description: true,
+  businessModel: true,
+  lastChecked: true,
+  unreachableSince: true,
+}
+
+const INACTIVE_DIRECTORY_EXTRA_FIELD_ORDER: Record<Exclude<keyof InactiveDirectory, keyof Directory>, true> = {
+  inactiveReason: true,
+}
+
+export const DIRECTORY_FIELDS = Object.keys(DIRECTORY_FIELD_ORDER) as readonly (keyof Directory)[]
+
+export const INACTIVE_DIRECTORY_FIELDS = [
+  ...DIRECTORY_FIELDS,
+  ...Object.keys(INACTIVE_DIRECTORY_EXTRA_FIELD_ORDER),
+] as readonly (keyof InactiveDirectory)[]
+
+// The longest description, in characters: one sentence
+export const MAX_DIRECTORY_DESCRIPTION_LENGTH = 200

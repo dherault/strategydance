@@ -62,10 +62,11 @@ weekend's outage retires nothing. Any check that reaches the root, or is walled 
 
 `requestDirectoryReview` sends Claude (`claude-opus-5-5`, effort `medium`, with server-side refusal
 fallbacks) the entry and what the probe read of both pages. Claude may fetch up to three more pages
-with web fetch (`web_fetch_20260209`, 8,000 tokens each at most), held to the entry's hosts and
-those its pages redirected to, so it reads the site's own FAQ, pricing and submit pages. Never a
-parent domain: for a site on a platform's subdomain, such as `launched.lovable.app`, the parent
-would open every other tenant's site, whose pages a review could then quote. Web fetch only opens an address the conversation already holds, so the
+with web fetch (`web_fetch_20260209`, 8,000 tokens each at most), held to exactly the entry's
+hostnames and those its pages redirected to, `www.` included, so it reads the site's own FAQ,
+pricing and submit pages. Never a parent domain, since a domain allows all its subdomains: for a
+site on a platform's subdomain, such as `launched.lovable.app`, the parent would open every other
+tenant's site, whose pages a review could then quote. Web fetch only opens an address the conversation already holds, so the
 request lists each probed page's links to the same site, and, for a page its scripts draw, whose
 links nobody sees, its `/pricing`, `/faq`, `/submit` and `/about`. Its system prompt is
 `directoryReviewPrompt.ts`, built from the package's
@@ -139,6 +140,9 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   afresh, once. Each check carries the entry as it was checked, and leaves one that changed
   meanwhile, by a person's push or an overlapping run, rather than write an old site's review over
   it.
+- The pull request is read again once the commit lands, so a run never writes over a newer
+  description. One a person closed while the run ran stays closed, since a new one would undo the
+  rejection: the next run starts the branch again from `dev`.
 - Each commit is `[directories] Check N directories on <day>`. No hook runs on an API commit, so the
   prefix is written by the code. The day's report is the commit's body, and goes on top of the pull
   request's description, the oldest days dropped once it outgrows GitHub's 65,536 characters.

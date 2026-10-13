@@ -7,6 +7,7 @@ import {
   DIRECTORY_FIELDS,
   DIRECTORY_ID_PATTERN,
   DirectoryBusinessModel,
+  DirectoryCategory,
   DirectoryInactiveReason,
   DirectoryType,
   INACTIVE_DIRECTORIES,
@@ -33,6 +34,18 @@ const LISTS = [
 const ALL_DIRECTORIES = [...DIRECTORIES, ...INACTIVE_DIRECTORIES]
 
 describe.each(LISTS)('$name', ({ directories, text, fields }) => {
+  // Each once, in the enum's order, as the check writes them, so the same categories read the same
+  it('holds only known categories, each once, in order', () => {
+    const categories: string[] = Object.values(DirectoryCategory)
+
+    for (const directory of directories) {
+      const positions = directory.categories.map(category => categories.indexOf(category))
+
+      expect(positions).not.toContain(-1)
+      expect(positions).toEqual([...new Set(positions)].toSorted((a, b) => a - b))
+    }
+  })
+
   it('holds only known types and business models', () => {
     const types: string[] = Object.values(DirectoryType)
     const businessModels: string[] = Object.values(DirectoryBusinessModel)

@@ -1,6 +1,7 @@
 import {
   DIRECTORY_ID_PATTERN,
   DirectoryBusinessModel,
+  DirectoryCategory,
   DirectoryInactiveReason,
   DirectoryType,
 } from 'strategydance-directories'
@@ -18,6 +19,7 @@ const directorySchema = z.strictObject({
   rootUrl: z.url(),
   submissionUrl: z.url(),
   description: z.string(),
+  categories: z.array(z.enum(Object.values(DirectoryCategory))),
   businessModel: z.enum(Object.values(DirectoryBusinessModel)),
   lastChecked: daySchema.nullable(),
   unreachableSince: daySchema.nullable(),

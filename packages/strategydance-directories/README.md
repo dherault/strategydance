@@ -28,6 +28,10 @@ Each entry holds:
 - `description`: what the directory lists and for whom, one sentence of
   `MAX_DIRECTORY_DESCRIPTION_LENGTH` characters at most, written by the daily check, empty until it
   has been
+- `categories`: the kinds of product the directory lists, each a `DirectoryCategory`, which
+  `DIRECTORY_CATEGORY_DESCRIPTIONS` describes, once each and in the enum's order, written by the
+  daily check, empty until it has been: `ANY_STARTUP` for one that takes any product, rather than
+  every kind, and `REGIONAL` beside the kinds for one that takes a single region's startups
 - `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for those imported as inactive, while one
   the daily check moves there keeps its own
 - `lastChecked`: the UTC day (`YYYY-MM-DD`) of the last check, whatever came of it, null until

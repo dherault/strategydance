@@ -58,6 +58,12 @@ describe('readDirectoryLists', () => {
     expect(() => readDirectoryLists(JSON.stringify([{ ...entry, newField: true }]), '[]')).toThrow()
   })
 
+  test('refuses a category it does not know', () => {
+    const [entry] = JSON.parse(directoriesText)
+
+    expect(() => readDirectoryLists(JSON.stringify([{ ...entry, categories: ['GAMES'] }]), '[]')).toThrow()
+  })
+
   test('refuses a business model it does not know', () => {
     const [entry] = JSON.parse(directoriesText)
 

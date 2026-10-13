@@ -21,6 +21,7 @@ export function createDirectory(name: string, fields: Partial<Directory> = {}): 
     rootUrl: `https://${name}.example/`,
     submissionUrl: `https://${name}.example/submit`,
     description: '',
+    categories: [],
     businessModel: DirectoryBusinessModel.FREE,
     lastChecked: null,
     unreachableSince: null,

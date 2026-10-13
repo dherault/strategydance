@@ -97,6 +97,7 @@ const DIRECTORY_FIELD_ORDER: Record<keyof Directory, true> = {
   rootUrl: true,
   submissionUrl: true,
   description: true,
+  categories: true,
   businessModel: true,
   lastChecked: true,
   unreachableSince: true,

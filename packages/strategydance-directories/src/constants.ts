@@ -1,4 +1,4 @@
-import { DirectoryBusinessModel, DirectoryInactiveReason } from './enums'
+import { DirectoryBusinessModel, DirectoryCategory, DirectoryInactiveReason } from './enums'
 import type { Directory, InactiveDirectory } from './types'
 
 /*
@@ -63,6 +63,26 @@ export const DIRECTORY_INACTIVE_REASON_DESCRIPTIONS: Record<DirectoryInactiveRea
     'The way to submit is there and fails: a form that sends nothing, a sign-in that breaks, an address that bounces, or a queue nobody reads',
   [DirectoryInactiveReason.CLOSED_TO_PROMOTION]:
     'A community closed to promotion: its rules ban it, or Reddit banned the community',
+}
+
+/*
+  What each category means, in the words a person reads here and the checker's prompt gives Claude.
+  A directory that takes any product is `ANY_STARTUP` rather than every kind at once, and one that
+  takes a single region's startups is `REGIONAL` beside whatever kinds it takes
+*/
+export const DIRECTORY_CATEGORY_DESCRIPTIONS: Record<DirectoryCategory, string> = {
+  [DirectoryCategory.ANY_STARTUP]: 'Any startup, product or website, whatever it does',
+  [DirectoryCategory.AI_TOOLS]: 'AI tools and apps: products built on AI models, whatever they do',
+  [DirectoryCategory.AI_AGENTS]: 'AI agents, which carry out tasks on their own, and what builds or runs them',
+  [DirectoryCategory.MCP_SERVERS]: 'MCP servers and other connectors that give AI agents tools and data',
+  [DirectoryCategory.SAAS]: 'Business software sold as a service, often reviewed or compared side by side',
+  [DirectoryCategory.DEVELOPER_TOOLS]: 'Tools, libraries and APIs for software developers',
+  [DirectoryCategory.OPEN_SOURCE]: 'Open-source projects, or open alternatives to paid software',
+  [DirectoryCategory.NO_CODE]: 'No-code and low-code tools, and what is built with them',
+  [DirectoryCategory.MOBILE_APPS]: 'iOS and Android apps',
+  [DirectoryCategory.DESIGN]: 'Design tools and resources, or sites shown for their design, such as landing pages',
+  [DirectoryCategory.MARKETING]: 'Marketing, sales and growth tools',
+  [DirectoryCategory.REGIONAL]: 'Only startups from one country or region, which the description names',
 }
 
 /*

@@ -46,3 +46,24 @@ export const DirectoryInactiveReason = {
 } as const
 
 export type DirectoryInactiveReason = (typeof DirectoryInactiveReason)[keyof typeof DirectoryInactiveReason]
+
+/*
+  The kinds of product a directory lists, several at once. What each one means is
+  `DIRECTORY_CATEGORY_DESCRIPTIONS`, in `constants.ts`, the words the checker's prompt is built from
+*/
+export const DirectoryCategory = {
+  ANY_STARTUP: 'ANY_STARTUP',
+  AI_TOOLS: 'AI_TOOLS',
+  AI_AGENTS: 'AI_AGENTS',
+  MCP_SERVERS: 'MCP_SERVERS',
+  SAAS: 'SAAS',
+  DEVELOPER_TOOLS: 'DEVELOPER_TOOLS',
+  OPEN_SOURCE: 'OPEN_SOURCE',
+  NO_CODE: 'NO_CODE',
+  MOBILE_APPS: 'MOBILE_APPS',
+  DESIGN: 'DESIGN',
+  MARKETING: 'MARKETING',
+  REGIONAL: 'REGIONAL',
+} as const
+
+export type DirectoryCategory = (typeof DirectoryCategory)[keyof typeof DirectoryCategory]

@@ -133,7 +133,11 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   the conflict or close it.
 - **With none open**, the branch is pointed at `dev`'s head, created again when GitHub deleted it
   after a merge. A pull request closed without a merge counts as a rejection: its commits are
-  dropped, and its directories come back in their turn.
+  dropped, and its directories come back in their turn. The branch is reset only when `dev` holds
+  all it holds, or a closed pull request carried its head: anything else is another run's work,
+  committed and not yet given its pull request, which the run leaves, waiting for the next day
+  (`busy`). A run whose pull request was closed while it ran resets the branch itself, so the next
+  one does not mistake its commit for another run's.
 - The run reads both files at the branch's head and commits them in one commit through GraphQL
   `createCommitOnBranch` with `expectedHeadOid`, so a push in between refuses the commit instead of
   being written over. The checks, already paid for, are then applied again to the lists read
@@ -231,6 +235,8 @@ Done once, by a human, in this order:
 - **The pull request conflicts with `dev`**: the run comments once, then skips every day until the
   conflict is resolved on GitHub, or the pull request is closed so that the next run starts again
   from `dev`.
+- **Every run says `busy`**: the branch holds commits no pull request carries, such as a push to it
+  by hand. Open a pull request from it, or delete the branch.
 - **A wrong move or a wrong model**: edit it on the branch, or close the pull request. A directory
   moved by mistake is also rechecked in its turn and moved back.
 - **The lists hold something this release does not know**: the run logs the refusal and writes

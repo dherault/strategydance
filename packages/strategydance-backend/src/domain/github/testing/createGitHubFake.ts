@@ -11,6 +11,8 @@ type PullRequest = {
   state: 'open' | 'closed'
   head: string
   base: string
+  // The head commit when it was closed
+  closedHeadSha?: string
 }
 
 type Options = {
@@ -29,6 +31,7 @@ type Options = {
 function createGitHubFake({ files }: Options) {
   let shas = 0
   const commits = new Map<string, Files>()
+  const parents = new Map<string, string[]>()
   const branches = new Map<string, string>()
   const pullRequests: PullRequest[] = []
   const comments = new Map<number, { body: string }[]>()
@@ -37,12 +40,30 @@ function createGitHubFake({ files }: Options) {
   const mergeBases = new Map<string, string>()
   const state = { beforeCommit: (() => {}) as () => void }
 
-  function createCommit(commitFiles: Files) {
+  function createCommit(commitFiles: Files, commitParents: string[] = []) {
     const sha = `sha${++shas}`
 
     commits.set(sha, commitFiles)
+    parents.set(sha, commitParents)
 
     return sha
+  }
+
+  // Every commit a commit comes from, itself included
+  function readAncestry(sha: string): Set<string> {
+    const ancestry = new Set<string>()
+    const queue = [sha]
+
+    while (queue.length) {
+      const next = queue.pop()!
+
+      if (ancestry.has(next)) continue
+
+      ancestry.add(next)
+      queue.push(...(parents.get(next) ?? []))
+    }
+
+    return ancestry
   }
 
   branches.set('dev', createCommit(files))
@@ -62,13 +83,20 @@ function createGitHubFake({ files }: Options) {
 
       if (method === 'GET' && route === '/pulls') {
         const head = parameters.get('head')?.split(':')[1]
+        const state = parameters.get('state') ?? 'open'
 
         return answer(
           200,
-          pullRequests.filter(
-            pull => pull.state === 'open' && pull.head === head && pull.base === parameters.get('base'),
-          ),
+          pullRequests
+            .filter(pull => pull.state === state && pull.head === head && pull.base === parameters.get('base'))
+            .map(pull => ({ ...pull, head: { ref: pull.head, sha: pull.closedHeadSha ?? branches.get(pull.head) } })),
         )
+      }
+
+      if (method === 'GET' && (match = route.match(/^\/compare\/(.+)\.\.\.(.+)$/))) {
+        const base = readAncestry(branches.get(match[1]) ?? match[1])
+
+        return answer(200, { ahead_by: [...readAncestry(match[2])].filter(sha => !base.has(sha)).length })
       }
 
       if (method === 'POST' && route === '/pulls') {
@@ -109,7 +137,7 @@ function createGitHubFake({ files }: Options) {
 
         merges.push(input.base)
         mergeBases.set(input.base, branches.get(input.head)!)
-        branches.set(input.base, createCommit(merged))
+        branches.set(input.base, createCommit(merged, [branches.get(input.base)!, branches.get(input.head)!]))
 
         return answer(201)
       }
@@ -178,7 +206,7 @@ function createGitHubFake({ files }: Options) {
         input.fileChanges.additions.map(({ path, contents }) => [path, Buffer.from(contents, 'base64').toString()]),
       )
 
-      branches.set(input.branch.branchName, createCommit({ ...commits.get(head)!, ...added }))
+      branches.set(input.branch.branchName, createCommit({ ...commits.get(head)!, ...added }, [head]))
 
       return { createCommitOnBranch: { commit: { oid: branches.get(input.branch.branchName) } } } as never
     },
@@ -195,7 +223,17 @@ function createGitHubFake({ files }: Options) {
     readFiles: (branch: string) => commits.get(branches.get(branch)!)!,
     // A commit pushed onto a branch, as somebody else would
     push: (branch: string, changed: Files) =>
-      branches.set(branch, createCommit({ ...commits.get(branches.get(branch)!)!, ...changed })),
+      branches.set(
+        branch,
+        createCommit({ ...commits.get(branches.get(branch)!)!, ...changed }, [branches.get(branch)!]),
+      ),
+    // A pull request closed without a merge, as a person would
+    close: (number: number) => {
+      const pull = pullRequests.find(pullRequest => pullRequest.number === number)!
+
+      pull.state = 'closed'
+      pull.closedHeadSha = branches.get(pull.head)
+    },
   }
 }
 

@@ -82,7 +82,7 @@ describe('publishDirectoryCheck', () => {
     const github = createGitHubFake({ files: FILES })
 
     await publish(github)
-    github.pullRequests[0].state = 'closed'
+    github.close(1)
     await publish(github)
 
     expect(readDirectories(github).filter(({ lastChecked }) => lastChecked === TODAY)).toHaveLength(1)
@@ -125,11 +125,31 @@ describe('publishDirectoryCheck', () => {
     await publish(github)
     github.state.beforeCommit = () => {
       github.state.beforeCommit = () => {}
-      github.pullRequests[0].state = 'closed'
+      github.close(1)
     }
 
     expect((await publish(github)).outcome).toBe('closed')
     expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed'])
+    expect(github.branches.get('directories-check')).toBe(github.branches.get('dev'))
+
+    // And the next run starts again from dev, as after any closed pull request
+    expect((await publish(github)).outcome).toBe('committed')
+    expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed', 'open'])
+  })
+
+  test('leaves the branch, without asking Claude, while it holds another run’s commit', async () => {
+    const github = createGitHubFake({ files: FILES })
+
+    await publish(github)
+    // Another run committed, and has not opened its pull request yet
+    github.pullRequests.splice(0)
+
+    const head = github.branches.get('directories-check')
+    const claude = createClaude(0)
+
+    expect(await publish(github, claude)).toEqual({ outcome: 'busy', url: null })
+    expect(github.branches.get('directories-check')).toBe(head)
+    expect(claude.requests).toHaveLength(0)
   })
 
   test('applies its checks again to the lists a push changed while it ran', async () => {

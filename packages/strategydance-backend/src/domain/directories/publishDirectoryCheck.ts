@@ -98,8 +98,12 @@ async function publishDirectoryCheck({
 
       return { outcome: 'conflict' as const, url: pullRequest.html_url }
     }
-  } else {
-    await resetBranch(github)
+  } else if (!(await resetBranch(github))) {
+    logger.warn(
+      `Directories: ${DIRECTORY_CHECK_BRANCH} holds commits no pull request carries, another run's, so this one waits`,
+    )
+
+    return { outcome: 'busy' as const, url: null }
   }
 
   let head = await readBranchHead(github)
@@ -156,10 +160,15 @@ async function publishDirectoryCheck({
     return { outcome: 'committed' as const, url: open.html_url }
   }
 
-  // Closed while the run ran: a rejection, which a new pull request would undo. The next run starts
-  // the branch again from `dev`
+  // Closed while the run ran: a rejection, which a new pull request would undo. The branch goes back
+  // to `dev` now, since the commit just made is no closed pull request's, and would read as another
+  // run's work to the next
   if (pullRequest) {
     logger.warn(`Directories: pull request ${pullRequest.number} closed while the check ran, so it opens none`)
+
+    await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/git/refs/heads/${DIRECTORY_CHECK_BRANCH}`, {
+      body: { sha: await readBranchHead(github, DIRECTORY_CHECK_BASE_BRANCH), force: true },
+    })
 
     return { outcome: 'closed' as const, url: pullRequest.html_url }
   }
@@ -192,26 +201,56 @@ async function readBranchHead(github: GitHubClient, branch = DIRECTORY_CHECK_BRA
   return (data as { object: { sha: string } }).object.sha
 }
 
-// Points the branch at `dev`'s head, creating it when GitHub deleted it with its merged pull request
+/*
+  Points the branch at `dev`'s head, creating it when GitHub deleted it with its merged pull
+  request, and says whether it did. A branch holding nothing `dev` lacks, or what a closed pull
+  request carried, a rejection, is reset. Anything else is another run's, which committed and has not
+  opened its pull request yet, or opened it since this run looked: resetting it would drop that paid
+  work, so the branch is left, and the run waits for the next day
+*/
 async function resetBranch(github: GitHubClient) {
   const sha = await readBranchHead(github, DIRECTORY_CHECK_BASE_BRANCH)
-  const { status } = await github.request(
+  const { status, data } = await github.request(
     'GET',
     `/repos/${GITHUB_REPOSITORY}/git/ref/heads/${DIRECTORY_CHECK_BRANCH}`,
-    {
-      allowedStatuses: [404],
-    },
+    { allowedStatuses: [404] },
   )
 
   if (status === 404) {
     await github.request('POST', `/repos/${GITHUB_REPOSITORY}/git/refs`, {
       body: { ref: `refs/heads/${DIRECTORY_CHECK_BRANCH}`, sha },
     })
-  } else {
-    await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/git/refs/heads/${DIRECTORY_CHECK_BRANCH}`, {
-      body: { sha, force: true },
-    })
+
+    return true
   }
+
+  const head = (data as { object: { sha: string } }).object.sha
+
+  if (!(await isDiscardable(github, head))) return false
+
+  await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/git/refs/heads/${DIRECTORY_CHECK_BRANCH}`, {
+    body: { sha, force: true },
+  })
+
+  return true
+}
+
+// Whether a branch head can be dropped: `dev` holds all it holds, or a closed pull request carried it
+async function isDiscardable(github: GitHubClient, head: string) {
+  const { data: comparison } = await github.request(
+    'GET',
+    `/repos/${GITHUB_REPOSITORY}/compare/${DIRECTORY_CHECK_BASE_BRANCH}...${head}`,
+  )
+
+  if ((comparison as { ahead_by: number }).ahead_by === 0) return true
+
+  const owner = GITHUB_REPOSITORY.split('/')[0]
+  const { data: closed } = await github.request(
+    'GET',
+    `/repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${DIRECTORY_CHECK_BASE_BRANCH}&head=${owner}:${DIRECTORY_CHECK_BRANCH}&per_page=10`,
+  )
+
+  return (closed as { head: { sha: string } }[]).some(pull => pull.head.sha === head)
 }
 
 async function readLists(github: GitHubClient, sha: string): Promise<DirectoryLists> {

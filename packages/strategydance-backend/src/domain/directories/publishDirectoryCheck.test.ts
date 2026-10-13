@@ -7,7 +7,7 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 const { DIRECTORIES_FILE_PATH, INACTIVE_DIRECTORIES_FILE_PATH } = await import('~constants')
 const { default: createClaudeMessage } = await import('~domain/agent/createClaudeMessage')
 const { default: createScriptedClaudeClient } = await import('~domain/agent/testing/createScriptedClaudeClient')
-const { default: publishDirectoryCheck, addReport } = await import('~domain/directories/publishDirectoryCheck')
+const { default: publishDirectoryCheck, fitReport } = await import('~domain/directories/publishDirectoryCheck')
 const { createAnswer, createDirectory, createInactiveDirectory } =
   await import('~domain/directories/testing/directoryFixtures')
 const { default: createGitHubFake } = await import('~domain/github/testing/createGitHubFake')
@@ -63,7 +63,7 @@ describe('publishDirectoryCheck', () => {
     expect(await publish(github)).toEqual({ outcome: 'committed', url: 'https://github.com/pull/1' })
     expect(readDirectories(github).filter(({ lastChecked }) => lastChecked === TODAY)).toHaveLength(1)
     expect(github.pullRequests).toMatchObject([{ head: 'directories-check', base: 'dev', state: 'open' }])
-    expect(github.pullRequests[0].body).toContain(`### ${TODAY}`)
+    expect(github.comments.get(1)?.map(({ body }) => body.split('\n')[0])).toEqual([`### ${TODAY}`])
   })
 
   test('adds each run to the open pull request, after merging dev into it', async () => {
@@ -75,7 +75,8 @@ describe('publishDirectoryCheck', () => {
     expect(github.merges).toEqual(['directories-check'])
     expect(readDirectories(github).every(({ lastChecked }) => lastChecked === TODAY)).toBe(true)
     expect(github.pullRequests).toHaveLength(1)
-    expect(github.pullRequests[0].body.split(`### ${TODAY}`)).toHaveLength(3)
+    // Each run's report a comment of its own, which no other run writes over
+    expect(github.comments.get(1)?.map(({ body }) => body.split('\n')[0])).toEqual([`### ${TODAY}`, `### ${TODAY}`])
   })
 
   test('starts again from dev once the pull request was closed', async () => {
@@ -116,7 +117,7 @@ describe('publishDirectoryCheck', () => {
     await publish(github, claude)
 
     expect(claude.requests).toHaveLength(0)
-    expect(github.comments.get(1)).toHaveLength(1)
+    expect(github.comments.get(1)?.filter(({ body }) => body.includes('conflicts with this branch'))).toHaveLength(1)
   })
 
   test('opens no pull request again when a person closed it while the run ran', async () => {
@@ -187,22 +188,13 @@ test('applies no check to a directory a push changed while it ran', async () => 
   expect(readDirectories(github).map(({ lastChecked }) => lastChecked)).toEqual([null, null])
 })
 
-describe('addReport', () => {
-  test('puts the report on top, and drops the oldest past GitHub’s limit', () => {
-    const body = addReport(addReport('', '### 1\nold'), '### 2\nnew')
+describe('fitReport', () => {
+  test('keeps a report that fits a comment, and cuts one that does not', () => {
+    expect(fitReport('### 1\nshort')).toBe('### 1\nshort')
 
-    expect(body.indexOf('### 2')).toBeLessThan(body.indexOf('### 1'))
-    const longer = addReport(body, `### 3\n${'x'.repeat(64_600)}`)
+    const cut = fitReport(`### 1\n${'x'.repeat(70_000)}`)
 
-    expect(longer).not.toContain('### 1')
-    expect(longer).toContain('### 2')
-    expect(longer).not.toContain('cut here')
-  })
-
-  test('cuts a report past the limit alone', () => {
-    const body = addReport('', `### 1\n${'x'.repeat(70_000)}`)
-
-    expect(body.length).toBeLessThanOrEqual(65_000)
-    expect(body.endsWith('The report was cut here: its commit holds it whole.')).toBe(true)
+    expect(cut.length).toBeLessThanOrEqual(65_000)
+    expect(cut.endsWith('The report was cut here: its commit holds it whole.')).toBe(true)
   })
 })

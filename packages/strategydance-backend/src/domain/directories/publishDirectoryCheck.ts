@@ -34,20 +34,16 @@ type PullRequest = { number: number; html_url: string; body: string | null }
 
 const PULL_REQUEST_TITLE = 'Check directories'
 
-// Before each day's report in the pull request's description, newest first, so the oldest can be
-// dropped when the description outgrows GitHub's limit
-const REPORT_MARKER = '<!-- directories-check report -->'
+// GitHub holds a comment to 65,536 characters
+const MAX_COMMENT_LENGTH = 65_000
 
-// GitHub holds a pull request's description to 65,536 characters
-const MAX_BODY_LENGTH = 65_000
-
-// After a report cut to fit the description
+// After a report cut to fit a comment
 const CUT_NOTE = '\n\nThe report was cut here: its commit holds it whole.'
 
 // On the comment that says the branch conflicts with its base, so it is left once
 const CONFLICT_MARKER = '<!-- directories-check conflict -->'
 
-const PULL_REQUEST_HEADER = `The daily check of the directories package's lists, run by the worker's \`/internal/directories-check\` and described in \`documents/directories.md\`. Each run adds a commit, and its report below, newest first. Merge it whenever the changes read right: the next run then opens another.`
+const PULL_REQUEST_HEADER = `The daily check of the directories package's lists, run by the worker's \`/internal/directories-check\` and described in \`documents/directories.md\`. Each run adds a commit, and its report as a comment below. Merge it whenever the changes read right: the next run then opens another.`
 
 const COMMIT_MUTATION = `mutation CommitDirectoryCheck($input: CreateCommitOnBranchInput!) {
   createCommitOnBranch(input: $input) {
@@ -70,7 +66,7 @@ const COMMIT_MUTATION = `mutation CommitDirectoryCheck($input: CreateCommitOnBra
   The lists are read at the branch's head and committed against it, so a push in between refuses
   the commit rather than being written over; the checks, already paid for, are then applied again
   to the lists read afresh, once. The pull request is read again once the commit lands, so a run
-  never writes over a newer description, nor reports to one a person closed meanwhile
+  never reports to one a person closed meanwhile, and each day's report is a comment of its own
 */
 async function publishDirectoryCheck({
   github,
@@ -149,13 +145,11 @@ async function publishDirectoryCheck({
     }
   }
 
-  // Read again, since a run takes minutes: a person may have closed it, or another run reported
+  // Read again, since a run takes minutes: a person may have closed it, or another run opened it
   const open = await findOpenPullRequest(github)
 
   if (open) {
-    await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/pulls/${open.number}`, {
-      body: { body: addReport(open.body ?? '', report) },
-    })
+    await postReport(github, open.number, report)
 
     return { outcome: 'committed' as const, url: open.html_url }
   }
@@ -178,11 +172,14 @@ async function publishDirectoryCheck({
       title: PULL_REQUEST_TITLE,
       head: DIRECTORY_CHECK_BRANCH,
       base: DIRECTORY_CHECK_BASE_BRANCH,
-      body: addReport('', report),
+      body: PULL_REQUEST_HEADER,
     },
   })
+  const created = data as PullRequest
 
-  return { outcome: 'committed' as const, url: (data as PullRequest).html_url }
+  await postReport(github, created.number, report)
+
+  return { outcome: 'committed' as const, url: created.html_url }
 }
 
 async function findOpenPullRequest(github: GitHubClient) {
@@ -304,21 +301,20 @@ async function reportConflict(github: GitHubClient, number: number) {
 }
 
 /*
-  The description with the day's report on top of the earlier ones, the oldest dropped past GitHub's
-  limit, and the day's own cut if it is past the limit alone, its commit holding it whole
+  A day's report, as a comment of its own on the pull request, so runs that overlap each add theirs
+  and never write over another's, as a shared description would. One too long for a comment is
+  cut, its commit holding it whole
 */
-export function addReport(body: string, report: string) {
-  const [, ...reports] = body.split(REPORT_MARKER).map(section => section.trim())
-  const room = MAX_BODY_LENGTH - formatBody(['']).length - CUT_NOTE.length
-  const sections = [report.length > room ? `${report.slice(0, room)}${CUT_NOTE}` : report, ...reports]
-
-  while (sections.length > 1 && formatBody(sections).length > MAX_BODY_LENGTH) sections.pop()
-
-  return formatBody(sections)
+async function postReport(github: GitHubClient, number: number, report: string) {
+  await github.request('POST', `/repos/${GITHUB_REPOSITORY}/issues/${number}/comments`, {
+    body: { body: fitReport(report) },
+  })
 }
 
-function formatBody(reports: string[]) {
-  return [PULL_REQUEST_HEADER, ...reports].join(`\n\n${REPORT_MARKER}\n\n`)
+export function fitReport(report: string) {
+  const room = MAX_COMMENT_LENGTH - CUT_NOTE.length
+
+  return report.length > room ? `${report.slice(0, room)}${CUT_NOTE}` : report
 }
 
 export default publishDirectoryCheck

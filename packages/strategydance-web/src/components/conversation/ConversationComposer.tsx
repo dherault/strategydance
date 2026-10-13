@@ -200,6 +200,17 @@ function ConversationComposer({
 
     changeDraft(() => ({ sendingMessageId: messageId, failure: null }))
 
+    // The images sent are drawn in the thread from the bytes that went up, rather than read back:
+    // left in the cache before the send, whose message the live read can bring before its answer
+    for (const { id, contentType, file } of sentAttachments) {
+      if (!contentType.startsWith('image/')) continue
+
+      queryClient.setQueryData(
+        getConversationAttachmentQueryKey(organization?.id ?? null, conversationId, id, viewer?.uid ?? null),
+        file,
+      )
+    }
+
     try {
       const { runId } = await sendConversationMessage({
         conversationId,
@@ -212,16 +223,6 @@ function ConversationComposer({
         aspects: conversation ? [] : draftAspects,
         attachmentIds: sentAttachmentIds,
       })
-
-      // The images sent are drawn in the thread from the bytes that went up, rather than read back
-      for (const { id, contentType, file } of sentAttachments) {
-        if (!contentType.startsWith('image/')) continue
-
-        queryClient.setQueryData(
-          getConversationAttachmentQueryKey(organization?.id ?? null, conversationId, id, viewer?.uid ?? null),
-          file,
-        )
-      }
 
       // The run is recorded before the send stops going, so no composer drawing the conversation
       // ever sees neither going, and lets a second send race it

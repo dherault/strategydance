@@ -69,7 +69,8 @@ const COMMIT_MUTATION = `mutation CommitDirectoryCheck($input: CreateCommitOnBra
 
   The lists are read at the branch's head and committed against it, so a push in between refuses
   the commit rather than being written over; the checks, already paid for, are then applied again
-  to the lists read afresh, once
+  to the lists read afresh, once. The pull request is read again once the commit lands, so a run
+  never writes over a newer description, nor reports to one a person closed meanwhile
 */
 async function publishDirectoryCheck({
   github,
@@ -144,7 +145,8 @@ async function publishDirectoryCheck({
     }
   }
 
-  const open = pullRequest ?? (await findOpenPullRequest(github))
+  // Read again, since a run takes minutes: a person may have closed it, or another run reported
+  const open = await findOpenPullRequest(github)
 
   if (open) {
     await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/pulls/${open.number}`, {
@@ -152,6 +154,14 @@ async function publishDirectoryCheck({
     })
 
     return { outcome: 'committed' as const, url: open.html_url }
+  }
+
+  // Closed while the run ran: a rejection, which a new pull request would undo. The next run starts
+  // the branch again from `dev`
+  if (pullRequest) {
+    logger.warn(`Directories: pull request ${pullRequest.number} closed while the check ran, so it opens none`)
+
+    return { outcome: 'closed' as const, url: pullRequest.html_url }
   }
 
   const { data } = await github.request('POST', `/repos/${GITHUB_REPOSITORY}/pulls`, {

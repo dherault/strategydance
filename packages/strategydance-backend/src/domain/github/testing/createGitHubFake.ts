@@ -16,23 +16,25 @@ type PullRequest = {
 type Options = {
   // The files of `dev`'s head
   files: Files
-  // Whether merging `dev` into another branch conflicts
-  isMergeConflicting?: boolean
 }
 
 /*
   A repository on GitHub, in memory, for the tests of what publishes the directories' check: its
   branches, its commits' files, its pull requests and their comments, behind the REST calls and the
-  one GraphQL mutation the publisher makes, each refusing as GitHub does. `beforeCommit` runs before
-  a commit lands, so a test can push in between
+  one GraphQL mutation the publisher makes, each refusing as GitHub does. A merge is three-way, a
+  file at a time, from the commit the branch last took from the other: a file only one side changed
+  takes that side's, and one both changed conflicts. `beforeCommit` runs before a commit lands, so a
+  test can push in between
 */
-function createGitHubFake({ files, isMergeConflicting = false }: Options) {
+function createGitHubFake({ files }: Options) {
   let shas = 0
   const commits = new Map<string, Files>()
   const branches = new Map<string, string>()
   const pullRequests: PullRequest[] = []
   const comments = new Map<number, { body: string }[]>()
   const merges: string[] = []
+  // The commit of the other branch each branch last took, which a merge compares both sides to
+  const mergeBases = new Map<string, string>()
   const state = { beforeCommit: (() => {}) as () => void }
 
   function createCommit(commitFiles: Files) {
@@ -93,10 +95,21 @@ function createGitHubFake({ files, isMergeConflicting = false }: Options) {
       }
 
       if (method === 'POST' && route === '/merges') {
-        if (isMergeConflicting) return answer(409)
+        const base = commits.get(branches.get(input.base)!)!
+        const head = commits.get(branches.get(input.head)!)!
+        const start = commits.get(mergeBases.get(input.base)!)!
+        const merged: Files = { ...base }
+
+        for (const path of new Set([...Object.keys(base), ...Object.keys(head)])) {
+          if (head[path] === start[path] || head[path] === base[path]) continue
+          if (base[path] !== start[path]) return answer(409)
+
+          merged[path] = head[path]
+        }
 
         merges.push(input.base)
-        branches.set(input.base, createCommit({ ...commits.get(branches.get(input.base)!)! }))
+        mergeBases.set(input.base, branches.get(input.head)!)
+        branches.set(input.base, createCommit(merged))
 
         return answer(201)
       }
@@ -108,7 +121,10 @@ function createGitHubFake({ files, isMergeConflicting = false }: Options) {
       }
 
       if (method === 'POST' && route === '/git/refs') {
-        branches.set(input.ref.replace('refs/heads/', ''), input.sha)
+        const branch = input.ref.replace('refs/heads/', '')
+
+        branches.set(branch, input.sha)
+        mergeBases.set(branch, input.sha)
 
         return answer(201)
       }
@@ -117,6 +133,7 @@ function createGitHubFake({ files, isMergeConflicting = false }: Options) {
         if (!branches.has(match[1])) return answer(422)
 
         branches.set(match[1], input.sha)
+        mergeBases.set(match[1], input.sha)
 
         return answer(200)
       }

@@ -8,7 +8,8 @@ const { DIRECTORIES_FILE_PATH, INACTIVE_DIRECTORIES_FILE_PATH } = await import('
 const { default: createClaudeMessage } = await import('~domain/agent/createClaudeMessage')
 const { default: createScriptedClaudeClient } = await import('~domain/agent/testing/createScriptedClaudeClient')
 const { default: publishDirectoryCheck, addReport } = await import('~domain/directories/publishDirectoryCheck')
-const { createAnswer, createDirectory } = await import('~domain/directories/testing/directoryFixtures')
+const { createAnswer, createDirectory, createInactiveDirectory } =
+  await import('~domain/directories/testing/directoryFixtures')
 const { default: createGitHubFake } = await import('~domain/github/testing/createGitHubFake')
 
 const TODAY = '2026-10-20'
@@ -88,10 +89,26 @@ describe('publishDirectoryCheck', () => {
     expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed', 'open'])
   })
 
-  test('waits on a conflict with dev, asking a human once, without asking Claude', async () => {
-    const github = createGitHubFake({ files: FILES, isMergeConflicting: true })
+  test('carries into the branch what landed on dev meanwhile', async () => {
+    const github = createGitHubFake({ files: FILES })
 
     await publish(github)
+    github.push('dev', {
+      [INACTIVE_DIRECTORIES_FILE_PATH]: `${JSON.stringify([createInactiveDirectory('gone')], null, 2)}\n`,
+    })
+    await publish(github)
+
+    expect(JSON.parse(github.readFiles('directories-check')[INACTIVE_DIRECTORIES_FILE_PATH])).toMatchObject([
+      { name: 'gone' },
+    ])
+    expect(readDirectories(github).every(({ lastChecked }) => lastChecked === TODAY)).toBe(true)
+  })
+
+  test('waits on a conflict with dev, asking a human once, without asking Claude', async () => {
+    const github = createGitHubFake({ files: FILES })
+
+    await publish(github)
+    github.push('dev', { [DIRECTORIES_FILE_PATH]: `${JSON.stringify([createDirectory('alpha')], null, 2)}\n` })
 
     const claude = createClaude(0)
 
@@ -100,6 +117,19 @@ describe('publishDirectoryCheck', () => {
 
     expect(claude.requests).toHaveLength(0)
     expect(github.comments.get(1)).toHaveLength(1)
+  })
+
+  test('opens no pull request again when a person closed it while the run ran', async () => {
+    const github = createGitHubFake({ files: FILES })
+
+    await publish(github)
+    github.state.beforeCommit = () => {
+      github.state.beforeCommit = () => {}
+      github.pullRequests[0].state = 'closed'
+    }
+
+    expect((await publish(github)).outcome).toBe('closed')
+    expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed'])
   })
 
   test('applies its checks again to the lists a push changed while it ran', async () => {

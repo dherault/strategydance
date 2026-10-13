@@ -1937,9 +1937,10 @@ way (see The orchestrator).
   fourth run's last request, its 25th, when it follows a turn's tool results, carries a text block
   after them in that results entry, telling the subagent it has one request left and to write its
   report now, calling no tool, as David chose on 2026-10-13, so work the limits cut off still ends
-  with a report. Only the requests can be seen coming: a fourth run its ten minutes or its 100
-  entries end reports its last text as before. The fourth run's limit ends it `FAILED`, as a
-  conversation's run ends, and its report says it stopped at its limits.
+  with a report, and ends `COMPLETED` when it does. Only the requests can be seen coming: a fourth
+  run ended by its ten minutes or its 100 entries reports its last text as before. A fourth run that
+  reaches a limit ends `FAILED`, as a conversation's run ends, and its report says it stopped at its
+  limits.
 - **The report** is its last `AGENT_TEXT`, its pieces joined, cut to 8000 characters
   (`MAX_SUBAGENT_REPORT_LENGTH`), as David chose on 2026-10-13: a batch of ten then delivers some
   20000 tokens rather than 50000, which could mark its parent full, and a full conversation is never

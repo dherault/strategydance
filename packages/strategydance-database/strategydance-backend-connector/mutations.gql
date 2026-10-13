@@ -4185,7 +4185,8 @@ mutation RenameOrganizationIntegration(
 }
 
 # Points a server at another address or another authentication, with what reaching it there found,
-# and its name, under the organization's row lock, as a rename takes it.
+# the external MCP server at its new address, if any, and its name, under the organization's row
+# lock, as a rename takes it.
 # Everything given for the old ones goes in the same write: the key, unless a new one is given, the
 # issuer, the tools and every approval, since another server could list identical tools. It bumps
 # `configRevision`, and `keyGeneration`, since whatever key it holds now was given for this server.
@@ -4202,6 +4203,7 @@ mutation ReconfigureOrganizationIntegration(
   $configRevision: Int!
   $keyGeneration: Int!
   $url: String!
+  $catalogueSlug: String
   $authentication: IntegrationAuthentication!
   $encryptedApiKey: String
   $apiKeyLastFour: String
@@ -4243,6 +4245,7 @@ mutation ReconfigureOrganizationIntegration(
       name: $name
       normalizedName: $normalizedName
       url: $url
+      catalogueSlug: $catalogueSlug
       authentication: $authentication
       encryptedApiKey: $encryptedApiKey
       apiKeyLastFour: $apiKeyLastFour

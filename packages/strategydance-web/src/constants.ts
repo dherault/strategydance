@@ -165,6 +165,18 @@ export const CONVERSATION_ANSWER_RECONCILE_DELAY_MS = 5000
 // a word typed is one search rather than one a letter
 export const CONVERSATION_SEARCH_DELAY_MS = 300
 
+/*
+  The longest side, in pixels, the browser shrinks an image to before it sends it to a conversation,
+  and the quality it encodes a JPEG or a WebP at. Claude reads an image no larger whatever it is
+  sent, so the pixels past it would only cost bytes on the way
+*/
+export const CONVERSATION_IMAGE_LONG_SIDE = 1568
+export const CONVERSATION_IMAGE_QUALITY = 0.9
+
+// How many files a tab uploads to conversations at once. The rest wait their turn, so ten files
+// picked together each move rather than all crawl
+export const CONVERSATION_ATTACHMENT_UPLOADS_AT_ONCE = 3
+
 // How many windows the dock keeps for a member in an organization, as `GetDockConversations` reads
 // them. Opening one more lets go of the one opened longest ago
 export const MAX_DOCK_WINDOWS = 20

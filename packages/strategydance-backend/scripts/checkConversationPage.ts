@@ -146,6 +146,19 @@ const conversations = {
 const messageIds = new Map(MESSAGE_POSITIONS.map(position => [position, createId()]))
 const membersMessageId = createId()
 
+// The files the first message sent, uploaded out of the order they are read in: by when they were
+// uploaded, then by id. Two share an instant, so their ids decide. Another member's file is set on
+// the same message too, which no send does, so only the filter keeps it out
+const uploadedAt = (seconds: number) => new Date(Date.parse(deletedAt) - 60000 + seconds * 1000).toISOString()
+const [firstTiedId, secondTiedId] = [createId(), createId()].sort()
+const sentFiles = [
+  { id: createId(), name: 'last.pdf', createdAt: uploadedAt(3) },
+  { id: secondTiedId!, name: 'tied-second.md', createdAt: uploadedAt(2) },
+  { id: createId(), name: 'first.png', createdAt: uploadedAt(1) },
+  { id: firstTiedId!, name: 'tied-first.csv', createdAt: uploadedAt(2) },
+]
+const sentFileNames = ['first.png', 'tied-first.csv', 'tied-second.md', 'last.pdf']
+
 function messageAt(position: number) {
   if (position === toolCallPosition) {
     return {
@@ -215,6 +228,24 @@ async function setUp() {
     { id: membersMessageId, conversationId: conversations.members, position: 0, kind: 'MEMBER_TEXT', text: 'Mine' },
   ])
 
+  const file = (userId: string, { id, name, createdAt }: { id: string; name: string; createdAt: string }) => ({
+    id,
+    userId,
+    organizationId,
+    conversationId: conversations.checked,
+    messageId: messageIds.get(0),
+    status: 'READY',
+    name,
+    contentType: 'application/pdf',
+    size: 1024,
+    createdAt,
+  })
+
+  await insertMany('ConversationAttachment', [
+    ...sentFiles.map(sent => file(authorId, sent)),
+    file(memberId, { id: createId(), name: 'somebody-else.pdf', createdAt: uploadedAt(0) }),
+  ])
+
   const run = (number: number, status: string) => ({
     conversationId: conversations.checked,
     number,
@@ -237,9 +268,25 @@ async function tearDown() {
   )
 }
 
-type Message = { id: string; position: number; text?: string | null }
+type Message = {
+  id: string
+  position: number
+  text?: string | null
+  conversationAttachments_on_message?: { id: string; name: string; contentType: string; size: number }[]
+}
 type ConversationRead = { conversations: { conversationMessages_on_conversation: Message[] }[] }
 type PageRead = { conversations: { historyRevision: number }[]; conversationMessages: Message[] }
+
+// Whether a message read back holds the first message's files, the author's alone, in order
+function hasSentFiles(message: Message | undefined) {
+  const files = message?.conversationAttachments_on_message ?? []
+
+  return (
+    message?.id === messageIds.get(0)
+    && files.map(({ name }) => name).join() === sentFileNames.join()
+    && files.every(({ contentType, size }) => contentType === 'application/pdf' && size === 1024)
+  )
+}
 
 function isDescending(messages: Message[]) {
   return messages.every((message, index) => index === 0 || messages[index - 1]!.position > message.position)
@@ -294,6 +341,14 @@ async function runChecks() {
     lastPage.conversationMessages.length === tailStart && lastPage.conversationMessages.at(-1)?.position === 0,
   )
 
+  check(
+    "a history page reads the files its member's messages sent, the author's alone, by when they were uploaded, then by id",
+    hasSentFiles(lastPage.conversationMessages.at(-1))
+      && lastPage.conversationMessages
+        .slice(0, -1)
+        .every(({ conversationAttachments_on_message: files }) => files?.length === 0),
+  )
+
   const othersPage = await readAs<PageRead>(authorId, 'GetConversationMessagesBefore', {
     ...conversation(conversations.members),
     beforePosition: 10,
@@ -315,6 +370,13 @@ async function runChecks() {
     "bodies read the conversation's own messages by id, and nothing of another's",
     bodies.conversationMessages.length === 2
       && bodies.conversationMessages.every(({ id, text }) => id !== membersMessageId && typeof text === 'string'),
+  )
+
+  check(
+    "a body reads the files its message sent, the author's alone, in order, with their name, type and size",
+    hasSentFiles(bodies.conversationMessages.find(({ id }) => id === messageIds.get(0)))
+      && bodies.conversationMessages.find(({ id }) => id === messageIds.get(latestPosition))
+        ?.conversationAttachments_on_message?.length === 0,
   )
 
   const crossed = await readAs<{ conversationMessages: Message[] }>(authorId, 'GetConversationMessageBodies', {

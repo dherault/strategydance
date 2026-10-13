@@ -27,7 +27,11 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
     reads,
     insert(
       count: number,
-      { runId, kind = ConversationMessageKind.AGENT_TEXT }: { runId?: string; kind?: ConversationMessageKind } = {},
+      {
+        runId,
+        kind = ConversationMessageKind.AGENT_TEXT,
+        files = [],
+      }: { runId?: string; kind?: ConversationMessageKind; files?: string[] } = {},
     ) {
       for (let index = 0; index < count; index++) {
         const position = counter++
@@ -53,6 +57,12 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
           questionPrompt: null,
           questionOptions: null,
           isMultipleChoice: null,
+          conversationAttachments_on_message: files.map(name => ({
+            id: `${name}-${position}`,
+            name,
+            contentType: 'application/pdf',
+            size: 1024,
+          })),
         })
       }
     },
@@ -84,14 +94,25 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
 
       return rows
         .filter(({ id }) => ids.includes(id))
-        .map(({ id, text, citations, questionPrompt, questionOptions, isMultipleChoice }) => ({
-          id,
-          text,
-          citations,
-          questionPrompt,
-          questionOptions,
-          isMultipleChoice,
-        }))
+        .map(
+          ({
+            id,
+            text,
+            citations,
+            questionPrompt,
+            questionOptions,
+            isMultipleChoice,
+            conversationAttachments_on_message,
+          }) => ({
+            id,
+            text,
+            citations,
+            questionPrompt,
+            questionOptions,
+            isMultipleChoice,
+            conversationAttachments_on_message,
+          }),
+        )
     },
     positions() {
       return rows.map(({ position }) => position)
@@ -456,6 +477,27 @@ describe('createConversationThread', () => {
     await readAll()
 
     expect(server.reads.bodies.flat().sort()).toEqual(['message-3', 'message-4', 'message-5', 'message-6', 'message-7'])
+  })
+
+  it('keeps the files a message sent, from its body and from a page alike', async () => {
+    const server = createConversationTestServer({ pageLength: PAGE_LENGTH })
+
+    server.insert(1, { kind: ConversationMessageKind.MEMBER_TEXT, files: ['plan.pdf', 'notes.md'] })
+    server.insert(7)
+    server.insert(1, { kind: ConversationMessageKind.MEMBER_TEXT, files: ['deck.pdf'] })
+
+    const { thread, readAll } = open(server)
+
+    await settle()
+    await readAll()
+
+    const { bodies } = thread.getSnapshot()
+    const names = (id: string) => bodies.get(id)?.conversationAttachments_on_message.map(({ name }) => name)
+
+    // From the bodies' read, then from the oldest page
+    expect(names('message-8')).toEqual(['deck.pdf'])
+    expect(names('message-0')).toEqual(['plan.pdf', 'notes.md'])
+    expect(names('message-4')).toEqual([])
   })
 
   it('says a page read failed, and reads it again when asked', async () => {

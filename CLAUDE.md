@@ -570,7 +570,12 @@ A conversation is kept twice, once for Claude and once for the page, and
   messages in pages through `GetConversationMessagesBefore`. `createConversationThread` merges
   them, and reads every page it holds again when `historyRevision` moves. A field that changes in
   place belongs in the tail, one that never changes once written in the bodies, and the history
-  page carries both
+  page carries both: a member's message's files, their id, name, type and size, are its body's,
+  since the send that inserts it sets them. Their bytes come from `GET …/attachments/:attachmentId`
+  alone, read with the reader's token past the browser's HTTP cache (`useConversationAttachmentFile`)
+  and drawn from an address `useObjectUrl` holds while something draws them. An image drawn small
+  is drawn from a small copy (`useImageThumbnail`), never its own bytes, which an `<img>` decodes
+  whole whatever size it is drawn at
 - A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
   auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
@@ -643,10 +648,13 @@ A conversation is kept twice, once for Claude and once for the page, and
   conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
   a new one joins its refreshes, or a minimized window's count stands still. An open window draws
   the page's own thread and composer, which mark replies read as the page does. A composer's message,
-  its mentions, where its send stands and the run the reader last started are kept by account,
+  its mentions, its files, where its send stands and the run the reader last started are kept by account,
   organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
   drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
-  anything new a message holds, as attachments will, goes there too, never in a view's own state.
+  anything new a message holds goes there too, never in a view's own state. A file's upload is the
+  tab's, not a composer's: it runs in `~data/conversationAttachmentUploads`, three at a time, and
+  writes how far it has gone into the draft it was added to, so it goes on wherever the
+  conversation is drawn, and removing the file anywhere stops it.
   A question's answer under way is kept the same way (`~data/conversationQuestionAnswers`), and
   anything else a reader has under way in a conversation joins them on `createTabStore`
 - A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
@@ -789,7 +797,10 @@ in `utils/`, one concern per file.
   emails' with it, so the two still agree
 - Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
   through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
-  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`
+  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`. A file goes up
+  through `uploadApiFile`, on `XMLHttpRequest`, since `fetch` tells nothing of a body on its way,
+  and its bytes come back through `requestApiFile`: never an `<img>` pointed at the backend, which
+  carries no token
 - No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
   A route taking a file parses last instead, after `organizationAdministratorMiddleware` or

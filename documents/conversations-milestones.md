@@ -74,7 +74,7 @@ once M29 has merged.
 | M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
 | M24 | The dock | web | M7 | #145 |
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
-| M26 | Attachments in the composer and the thread | web, database | M22, M25 | |
+| M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |
@@ -1610,6 +1610,30 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   caller's tokens and shown as object URLs, file chips, the image dialog.
 - Verify: attach each type from the composer and ask about it; add and remove thirty files and
   attach again; reach the conversation's budget.
+- Built with these settled, on 2026-10-12, as Attachments § As M26 built it says:
+  - The tray lives in the composer's draft, and its uploads are the tab's, three at a time, so the
+    page and a dock window share one and an upload goes on wherever its conversation is drawn.
+  - Images over 1568 pixels or 5 MB are drawn again in their own type whatever their size, a GIF
+    left as it is; a file the conversation does not take, too large, empty or one past ten is named
+    and never goes up. Thumbnails are small copies, so no thread holds its images decoded whole.
+  - A failed upload is tried again under a new id once the old one is removed; a send whose files
+    expired uploads them again for the reader to send. An upload goes up as the account that added
+    it, or not at all.
+  - A paste attaches files only when it carries no text.
+  - The thread follows Claude's order, and its file chips read nothing, as designed.
+  - Verified: the four checks; `check:conversation-page`, with a message's files read in order and
+    another member's left out, `check:conversation-attachments` and `check:conversation-list` against
+    the emulators; in the browser at 1280 and 390 wide, page and dock, with the placeholder: a PNG
+    and a JPEG past 1568 pixels stored shrunk, a PDF, a Markdown file given no type, a CSV typed as a
+    spreadsheet and a text file attached through the menu and sent alone and with words, a pasted
+    screenshot, thumbnails, chips and the dialog after a reload, the sent images never read back,
+    progress and removal mid-upload under a throttled connection, an SVG, an 11 MiB file and an
+    eleventh file refused, thirty files added and removed then attached again, the thirty unsent
+    files refused then freed by a removal, the budget refused at 15 MiB with the words then sent
+    alone, a draft's dock window closed with its files removed, an upload failed by a dropped
+    connection then uploaded again, and a 10.5 MB photo stored shrunk to 340 KB while a 6 MB GIF is
+    refused, the tray, thread and dialog decoding 256, 400 and 1568 pixels. Not yet: the real model reading
+    the files, which waits for gcloud credentials on this machine, as M25's did.
 
 ### M27: Integrations: the organization's servers
 

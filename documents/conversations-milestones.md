@@ -1906,8 +1906,9 @@ own.
   it, and which only a worker that has claimed a run fills. `measureConversationMessage` keeps
   connecting without one, before any run exists, and every Subagents tool refuses a caller without
   it.
-- The launch's mutation checks the launching run after the parent's row, still `RUNNING` and not
-  asked to stop, so a Stop or a delete it races is seen whichever commits first.
+- The launch's mutation reads the launching run after it writes the parent's row, still `RUNNING`
+  and not asked to stop, so a Stop or a delete it races is seen whichever commits first. A read takes
+  no lock, so the one order holds.
 - The refusals, each a sentence the model can act on:
   - from a subagent;
   - from a run that has ended or was asked to stop;
@@ -2001,8 +2002,9 @@ own.
 - `check:conversation-runs` gains the reaction's lock, two ends at once, and a launch against the
   parent's Stop, Stop all and delete, each in the one order, the parent's runs before its row, and
   against a send, an answer, Resume and Retry, each in both orders. PGlite runs one transaction at a
-  time, so the order itself is checked by reading the mutations: no mutation takes the membership
-  after a run, or a `QUEUED`, `RUNNING` or `PENDING` run after its conversation's row.
+  time, so the order itself is checked by reading the mutations: no mutation writes the membership
+  after a run, or a `QUEUED`, `RUNNING` or `PENDING` run after its conversation's row. A read takes
+  no lock, and the launch's read of its run after the parent's row is what lets it see a Stop.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, and read the board and the
     reaction.
@@ -2038,18 +2040,23 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
   `MAX_DAILY_SUBAGENTS_PER_MEMBER` (30) in strategydance-core, with the four error codes.
 - **The schema change**, additive: an index on `createdAt` on `Conversation` and on
   `ConversationRun`, for the counts.
-- **The counts**, each reading at most as many rows as its cap, deleted rows included, the
-  member's under the membership lock the mutation already takes and the organization's without one:
+- **The counts**, each reading the newest rows, as many as its cap, ordered by `createdAt`
+  descending as `GetConversationSearchQuota` reads, deleted rows included, the member's under the
+  membership lock the mutation already takes and the organization's without one:
   - `StartConversation`, the conversations and the runs;
   - `SendConversationMessage`, `SendConversationMessageAnsweringCalls`, `ResumeConversationRun` and
     `RetryConversationRun`, the runs;
   - the launch's mutation, the subagents, `launch_subagent` refusing past thirty with a sentence
     saying when the member can launch again and to do the work itself meanwhile.
 
-  Each route counts first, so a refusal stores nothing, and answers 429 with `Retry-After`.
+  Each route counts first, so a refusal stores nothing, and answers 429 with `Retry-After`. A
+  mutation a count refused reads the counts again, as `recordConversationSearch` does, to say which
+  cap and when it frees.
   `ContinueConversationRun` and a reaction's start check no cap.
 - `IS_USAGE_CAPPED`, off on the development backend and on everywhere else, as
   `IS_CONVERSATIONS_RELEASE_GATED` is; the tests and the check script turn it on.
+- The backend's `cors` exposes `Retry-After`, which a page of another origin cannot read otherwise,
+  with a route test reading it.
 - **The web**: `ApiError` carries `Retry-After`, and the composer and Resume's and Retry's note say
   which cap was reached and when it frees, keeping the draft, the composer's map of failures taking
   the new ones. Strings in the `conversation` catalogue, and `bun run translate`.
@@ -2060,7 +2067,9 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
   - A subagent's runs counted toward no run cap.
   - An answer's continuation and a reaction starting past the cap.
   - A launch refused past thirty, with its sentence.
-  - `Retry-After` at the oldest counted row's 24 hours.
+  - `Retry-After` when the oldest of the newest rows, as many as the cap, turns 24 hours old, with
+    the count past its cap.
+  - A mutation refused after its route's count passed, reading the counts again for its refusal.
 - `check:conversation-runs` gains the caps: two sends at once at the member's cap, one refused.
 - **Verify**: with the caps on locally and lowered, start conversations and send past them, and read
   each refusal in the composer and in Resume's and Retry's note, at desktop and phone widths.

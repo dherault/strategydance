@@ -1578,9 +1578,10 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
   the parent's row (see Subagents): its `ModuleCallResult`, the subagent's conversation, its `BRIEF` message, its first transcript entry
   and its first run, `QUEUED` or `PENDING` by the slots it counts (see Subagents), which also counts
   the ten and the hundred. The subagent's id derives from the parent's and the call's key, so a
-  launch called again finds the same subagent. The mutation checks the launching run after the
-  parent's row, still `RUNNING`, not asked to stop and not a reaction, so a Stop or a delete it
-  races is seen whichever commits first (see Subagents). The run is queued after the mutation, and
+  launch called again finds the same subagent. The mutation reads the launching run after it writes
+  the parent's row, still `RUNNING`, not asked to stop and not a reaction: a read takes no lock, so
+  the order of Subagents holds, and reading after the parent's row is what lets a launch see a Stop
+  or a delete that committed before it, which a read before that row would miss. The run is queued after the mutation, and
   one that could not be has its lease brought in to now, as `enqueueRun` does for any run, for the
   parent's reconcile to queue it again.
 - **Its reads run beside the others**, four at a time, as their `readOnlyHint` lets them; a launch and
@@ -2447,8 +2448,11 @@ calendar day, so no time zone decides when it frees.
   if every one used its 25 requests.
 - **Counted from rows already kept**, deleted ones included, so no ledger of their own: a deleted
   conversation stays at least a day before the sweep prunes it, and Retry deletes no run, so
-  deleting or retrying gets round nothing. Each count reads at most as many rows as its cap, under
-  `@check`, through an index on `createdAt`:
+  deleting or retrying gets round nothing. Each count reads the newest rows, as many as its cap,
+  ordered by `createdAt` descending, under `@check`, through an index on `createdAt`, as
+  `GetConversationSearchQuota` reads the searches: a count can pass its cap, since a continuation and
+  a reaction are never refused and the organization's counts race, so only the newest say when it
+  frees:
   - conversations: the `Conversation` rows with `parent` null created by the member in the
     organization, or by anybody in it for the organization's cap;
   - runs: the `ConversationRun` rows of those conversations triggered `MESSAGE`, `ANSWER`, `RESUME`,
@@ -2469,9 +2473,13 @@ calendar day, so no time zone decides when it frees.
 - **The refusal** is a 429 with a code for each cap and whose it is, the member's or the
   organization's (`ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED`,
   `ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED`, `ERROR_CODE_MEMBER_DAILY_RUNS_REACHED` and
-  `ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED`), and a `Retry-After`, the seconds until the oldest
-  row it counted turns 24 hours old, which `ApiError` carries, since the envelope holds a code and a
-  message alone. The composer, or Resume's and Retry's note, says which cap was reached and when it
+  `ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED`), and a `Retry-After`, the seconds until the oldest of
+  the newest rows it read, as many as its cap, turns 24 hours old. A mutation a
+  count refused reads the counts again to say which cap and when, as `recordConversationSearch`
+  reads its quota again, since the route's first count may have passed before another request took
+  the place. `ApiError` carries the header, since the envelope holds a code and a message alone, and
+  the backend's `cors` exposes it, since `Retry-After` is no header a browser lets a page of another
+  origin read unless it is told. The composer, or Resume's and Retry's note, says which cap was reached and when it
   frees, from the `conversation` catalogue, and keeps the draft.
 - **Staff are capped too**: the caps guard spend, not a release. The development backend lifts them,
   as it lifts the gates (`IS_USAGE_CAPPED`), since placeholder runs cost nothing and a developer

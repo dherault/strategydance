@@ -1,1 +1,4826 @@
-[]
+[
+  {
+    "name": "1000.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://1000.tools/",
+    "submissionUrl": "https://1000.tools/my/tools/create",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "10words",
+    "type": "WEBSITE",
+    "rootUrl": "https://app.10words.io/",
+    "submissionUrl": "https://app.10words.io/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "1payment.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://1payment.tools/",
+    "submissionUrl": "https://1payment.tools/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "360Quadrants",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.360quadrants.com/",
+    "submissionUrl": "https://www.360quadrants.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "A1 Gallery",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.a1.gallery/",
+    "submissionUrl": "https://www.a1.gallery/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Active Search Results",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.activesearchresults.com/",
+    "submissionUrl": "https://www.activesearchresults.com/addwebsite.php",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Add AI Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.addaidirectory.com/",
+    "submissionUrl": "https://www.addaidirectory.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AgentHunter",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.agenthunter.io/",
+    "submissionUrl": "https://www.agenthunter.io/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AgentMRR",
+    "type": "WEBSITE",
+    "rootUrl": "https://agentmrr.com/",
+    "submissionUrl": "https://agentmrr.com/docs/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AgentsIndex",
+    "type": "WEBSITE",
+    "rootUrl": "https://agentsindex.ai/",
+    "submissionUrl": "https://agentsindex.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Agent Store",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiagentstore.ai/",
+    "submissionUrl": "https://aiagentstore.ai/new-agent",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Agents Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiagentsdirectory.com/",
+    "submissionUrl": "https://aiagentsdirectory.com/submit-agent",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Agents List",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiagentslist.com/",
+    "submissionUrl": "https://aiagentslist.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Agents Live",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiagentslive.com/",
+    "submissionUrl": "https://aiagentslive.com/agents/submit/1",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Agents Marketplace",
+    "type": "WEBSITE",
+    "rootUrl": "https://trillionagent.com/",
+    "submissionUrl": "https://trillionagent.com/register-agent/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Agents Verse",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiagentsverse.com/",
+    "submissionUrl": "https://aiagentsverse.com/submit-ai-agent/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Center",
+    "type": "WEBSITE",
+    "rootUrl": "https://aicenter.ai/",
+    "submissionUrl": "https://aicenter.ai/submit-tools",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Collection",
+    "type": "WEBSITE",
+    "rootUrl": "https://thataicollection.com/",
+    "submissionUrl": "https://thataicollection.com/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Depot",
+    "type": "WEBSITE",
+    "rootUrl": "https://aidepot.co/",
+    "submissionUrl": "https://aidepot.co/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Directories",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aidirectori.es/",
+    "submissionUrl": "https://www.aidirectori.es/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Dreamthere",
+    "type": "WEBSITE",
+    "rootUrl": "https://ai.dreamthere.cn/",
+    "submissionUrl": "https://ai.dreamthere.cn/site/submit",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Findy",
+    "type": "WEBSITE",
+    "rootUrl": "https://aifindy.com/",
+    "submissionUrl": "https://aifindy.com/contacto/publica-tu-ia-en-aifindy",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI For Developers",
+    "type": "WEBSITE",
+    "rootUrl": "https://aifordevelopers.org/",
+    "submissionUrl": "https://aifordevelopers.org/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Headshot Hub",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiheadshothub.com/",
+    "submissionUrl": "https://aiheadshothub.com/listings/create/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Heron",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiheron.com/",
+    "submissionUrl": "https://aiheron.com/promote",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Hubs",
+    "type": "WEBSITE",
+    "rootUrl": "https://aihubs.ai/",
+    "submissionUrl": "https://aihubs.ai/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Hunt List",
+    "type": "WEBSITE",
+    "rootUrl": "https://aihuntlist.com/",
+    "submissionUrl": "https://aihuntlist.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Hustle",
+    "type": "WEBSITE",
+    "rootUrl": "https://aihustle.tools/",
+    "submissionUrl": "https://aihustle.tools/submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Journey",
+    "type": "WEBSITE",
+    "rootUrl": "https://aijourney.so/",
+    "submissionUrl": "https://aijourney.so/submit-ai-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Just Better",
+    "type": "WEBSITE",
+    "rootUrl": "https://aijustbetter.com/",
+    "submissionUrl": "https://aijustbetter.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Library",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.theailibrary.co/",
+    "submissionUrl": "https://www.theailibrary.co/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Marketing Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aimarketing.directory/",
+    "submissionUrl": "https://www.aimarketing.directory/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Mojo",
+    "type": "WEBSITE",
+    "rootUrl": "https://aimojo.io/",
+    "submissionUrl": "https://aimojo.io/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI NavHub",
+    "type": "WEBSITE",
+    "rootUrl": "https://ainavhub.com/",
+    "submissionUrl": "https://ainavhub.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Parabellum",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiparabellum.com/",
+    "submissionUrl": "https://aiparabellum.com/submit-your-ai-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Pulse",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aipulse.fyi/",
+    "submissionUrl": "https://www.aipulse.fyi/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Respo",
+    "type": "WEBSITE",
+    "rootUrl": "https://airespo.com/",
+    "submissionUrl": "https://airespo.com/submit-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Search",
+    "type": "WEBSITE",
+    "rootUrl": "https://ai-search.io/",
+    "submissionUrl": "https://ai-search.io/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI to Grow",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitogrow.com/",
+    "submissionUrl": "https://aitogrow.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tool Board",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolboard.com/",
+    "submissionUrl": "https://aitoolboard.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tool Center",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolcenter.com/",
+    "submissionUrl": "https://aitoolcenter.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tool Net",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aitoolnet.com/",
+    "submissionUrl": "https://www.aitoolnet.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tool Trek",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitooltrek.com/",
+    "submissionUrl": "https://aitooltrek.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitools.inc/",
+    "submissionUrl": "https://aitools.inc/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolsdirectory.com/",
+    "submissionUrl": "https://aitoolsdirectory.com/submit-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Explorer",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolsexplorer.com/",
+    "submissionUrl": "https://aitoolsexplorer.com/submit-ai-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools List",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolslist.io/",
+    "submissionUrl": "https://aitoolslist.io/submit-ai-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Magazine",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolsmagazine.com/",
+    "submissionUrl": "https://aitoolsmagazine.com/submit-listing/details/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Marketer",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolsmarketer.com/",
+    "submissionUrl": "https://aitoolsmarketer.com/submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Saver",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aitoolsaver.com/",
+    "submissionUrl": "https://www.aitoolsaver.com/submit-ai-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools SME",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aitoolssme.com/",
+    "submissionUrl": "https://www.aitoolssme.com/submit-your-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Submit",
+    "type": "WEBSITE",
+    "rootUrl": "https://submitaitools.org/",
+    "submissionUrl": "https://submitaitools.org/submit-your-ai-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Time",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolstime.com/",
+    "submissionUrl": "https://aitoolstime.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Up",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolsup.com/",
+    "submissionUrl": "https://aitoolsup.com/submit-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Tools Zone",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolszone.com/",
+    "submissionUrl": "https://aitoolszone.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Toolz Dir",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aitoolzdir.com/",
+    "submissionUrl": "https://www.aitoolzdir.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Top 10",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitop10.tools/",
+    "submissionUrl": "https://aitop10.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AI Trendz",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitrendz.xyz/",
+    "submissionUrl": "https://aitrendz.xyz/submit-ai-link/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI With Me",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiwith.me/",
+    "submissionUrl": "https://aiwith.me/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AI138",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.ai138.com/",
+    "submissionUrl": "https://www.ai138.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "AIBase",
+    "type": "WEBSITE",
+    "rootUrl": "https://app.aibase.com/",
+    "submissionUrl": "https://app.aibase.com/submission",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AIBestTop Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aibesttop.com/",
+    "submissionUrl": "https://aibesttop.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AIBoom.Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiboom.tools/",
+    "submissionUrl": "https://aiboom.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AIChief",
+    "type": "WEBSITE",
+    "rootUrl": "https://aichief.com/",
+    "submissionUrl": "https://aichief.com/submit-ai-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AIDirectory.org",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aidirectory.org/",
+    "submissionUrl": "https://www.aidirectory.org/user-submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Aidirs",
+    "type": "WEBSITE",
+    "rootUrl": "https://aidirs.best/",
+    "submissionUrl": "https://aidirs.best/pricing",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AIGC Navigation",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aigc.cn/",
+    "submissionUrl": "https://www.aigc.cn/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AiMatchPro",
+    "type": "WEBSITE",
+    "rootUrl": "https://aimatch.pro/",
+    "submissionUrl": "https://aimatch.pro/list",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AInav",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.ainav.cn/",
+    "submissionUrl": "https://www.ainav.cn/%e6%8f%90%e4%ba%a4%e7%bd%91%e7%ab%99",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AINave",
+    "type": "WEBSITE",
+    "rootUrl": "https://ainave.com/",
+    "submissionUrl": "https://ainave.com/submit/products",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "AINewTool",
+    "type": "WEBSITE",
+    "rootUrl": "https://ainewtool.site/",
+    "submissionUrl": "https://ainewtool.site/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "AIPURE",
+    "type": "WEBSITE",
+    "rootUrl": "https://aipure.ai/",
+    "submissionUrl": "https://aipure.ai/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AISO Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aisotools.com/",
+    "submissionUrl": "https://aisotools.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AIStage",
+    "type": "WEBSITE",
+    "rootUrl": "https://aistage.net/",
+    "submissionUrl": "https://aistage.net/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AIToolex",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolex.com/",
+    "submissionUrl": "https://aitoolex.com/submit",
+    "description": "",
+    "businessModel": "FREE_FOR_LIMITED_TIME",
+    "lastChecked": null
+  },
+  {
+    "name": "AIToolly",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolly.com/",
+    "submissionUrl": "https://aitoolly.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "aitools.fyi",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitools.fyi/",
+    "submissionUrl": "https://aitools.fyi/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AIToolsCapital",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolscapital.com/",
+    "submissionUrl": "https://aitoolscapital.com/submit-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "AIToolsHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolshunt.com/",
+    "submissionUrl": "https://aitoolshunt.com/submit-ai-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "AiToolsObserver",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoolsobserver.com/",
+    "submissionUrl": "https://aitoolsobserver.com/submit/add-url/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AITopTools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aitoptools.com/",
+    "submissionUrl": "https://aitoptools.com/claim-your-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AIWget",
+    "type": "WEBSITE",
+    "rootUrl": "https://aiwget.com/",
+    "submissionUrl": "https://aiwget.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Aixploria",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aixploria.com/",
+    "submissionUrl": "https://www.aixploria.com/en/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Aixuanfeng",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.aixuanfeng.com/",
+    "submissionUrl": "https://www.aixuanfeng.com/links/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "All My Faves",
+    "type": "WEBSITE",
+    "rootUrl": "https://allmyfaves.com/",
+    "submissionUrl": "https://allmyfaves.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "All Top Startups",
+    "type": "WEBSITE",
+    "rootUrl": "https://alltopstartups.com/",
+    "submissionUrl": "https://alltopstartups.com/submit-startup/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AllMCPs",
+    "type": "WEBSITE",
+    "rootUrl": "https://allmcps.com/",
+    "submissionUrl": "https://allmcps.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Alpha Digits",
+    "type": "WEBSITE",
+    "rootUrl": "https://alphadigits.com/",
+    "submissionUrl": "https://alphadigits.com/submit-app-for-review/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Alt Hunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://althunt.io/",
+    "submissionUrl": "https://althunt.io/new",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Altern",
+    "type": "WEBSITE",
+    "rootUrl": "https://altern.ai/",
+    "submissionUrl": "https://altern.ai/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Alternative.me",
+    "type": "WEBSITE",
+    "rootUrl": "https://alternative.me/",
+    "submissionUrl": "https://alternative.me/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AlternativeTo",
+    "type": "WEBSITE",
+    "rootUrl": "https://alternativeto.net/",
+    "submissionUrl": "https://alternativeto.net/manage-item/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "AnyFP",
+    "type": "WEBSITE",
+    "rootUrl": "https://anyfp.com/",
+    "submissionUrl": "https://anyfp.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "App Launcher",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.applauncher.io/",
+    "submissionUrl": "https://www.applauncher.io/launch/create",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "App Rater",
+    "type": "WEBSITE",
+    "rootUrl": "https://apprater.net/",
+    "submissionUrl": "https://apprater.net/add",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Appiod",
+    "type": "WEBSITE",
+    "rootUrl": "https://appiod.com/",
+    "submissionUrl": "https://appiod.com/submit-app-for-review/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Apps 400",
+    "type": "WEBSITE",
+    "rootUrl": "https://apps400.com/",
+    "submissionUrl": "https://apps400.com/submit-your-application-for-review",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Apps Listo",
+    "type": "WEBSITE",
+    "rootUrl": "https://appslisto.com/",
+    "submissionUrl": "https://appslisto.com/submit-your-app/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Apps Mamma",
+    "type": "WEBSITE",
+    "rootUrl": "https://appsmamma.com/",
+    "submissionUrl": "https://appsmamma.com/submit-your-app/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Apps Mirror",
+    "type": "WEBSITE",
+    "rootUrl": "https://appsmirror.com/",
+    "submissionUrl": "https://appsmirror.com/submit-your-app-for-review",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Appscribed",
+    "type": "WEBSITE",
+    "rootUrl": "https://appscribed.com/",
+    "submissionUrl": "https://appscribed.com/submit-ai-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "AppsThunder",
+    "type": "WEBSITE",
+    "rootUrl": "https://appsthunder.com/",
+    "submissionUrl": "https://appsthunder.com/submit-your-app/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Arctic Startup",
+    "type": "WEBSITE",
+    "rootUrl": "https://arcticstartup.com/",
+    "submissionUrl": "https://arcticstartup.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Ask AI For It",
+    "type": "WEBSITE",
+    "rootUrl": "https://askaiforit.com/",
+    "submissionUrl": "https://askaiforit.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Aura",
+    "type": "WEBSITE",
+    "rootUrl": "https://auraplusplus.com/",
+    "submissionUrl": "https://auraplusplus.com/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Awesome AI & SaaS Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://appsandwebsites.com/",
+    "submissionUrl": "https://appsandwebsites.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Awesome AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://awesomeaitools.com/",
+    "submissionUrl": "https://awesomeaitools.com/submit-your-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Awesome Indie",
+    "type": "WEBSITE",
+    "rootUrl": "https://awesomeindie.com/",
+    "submissionUrl": "https://awesomeindie.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "B2B Stack",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.b2bstack.com.br/",
+    "submissionUrl": "https://www.b2bstack.com.br/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "BAI.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://bai.tools/",
+    "submissionUrl": "https://bai.tools/submit-ai-tools",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Based Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.basedtools.ai/",
+    "submissionUrl": "https://www.basedtools.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Being Guru",
+    "type": "WEBSITE",
+    "rootUrl": "https://beingguru.com/",
+    "submissionUrl": "https://beingguru.com/submit-startup/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Best AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupaitools.com/",
+    "submissionUrl": "https://www.startupaitools.com/submit-ai-tools/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Best of AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://bestofai.io/",
+    "submissionUrl": "https://bestofai.io/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Best-AI.org",
+    "type": "WEBSITE",
+    "rootUrl": "https://best-ai.org/",
+    "submissionUrl": "https://best-ai.org/submit-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "BestWebsites",
+    "type": "WEBSITE",
+    "rootUrl": "https://bestwebsites.info/",
+    "submissionUrl": "https://bestwebsites.info/en/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Beta Bound",
+    "type": "WEBSITE",
+    "rootUrl": "https://betabound.com/",
+    "submissionUrl": "https://betabound.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Beta Testing",
+    "type": "WEBSITE",
+    "rootUrl": "https://betatesting.com/",
+    "submissionUrl": "https://betatesting.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "BetaList",
+    "type": "WEBSITE",
+    "rootUrl": "https://betalist.com/",
+    "submissionUrl": "https://betalist.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Better Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.betterlaunch.co/",
+    "submissionUrl": "https://www.betterlaunch.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Beyond AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.beyondaitools.com/",
+    "submissionUrl": "https://www.beyondaitools.com/product/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Bowora",
+    "type": "WEBSITE",
+    "rootUrl": "https://bowora.com/",
+    "submissionUrl": "https://bowora.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Bro Find AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://brofindai.com/",
+    "submissionUrl": "https://brofindai.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "BroUseAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.brouseai.com/",
+    "submissionUrl": "https://www.brouseai.com/submission/ai",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "BuildHop",
+    "type": "WEBSITE",
+    "rootUrl": "https://buildhop.io/",
+    "submissionUrl": "https://buildhop.io/app/create",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "BuildVoyage",
+    "type": "WEBSITE",
+    "rootUrl": "https://buildvoyage.com/",
+    "submissionUrl": "https://buildvoyage.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Built By Me",
+    "type": "WEBSITE",
+    "rootUrl": "https://builtbyme.io/",
+    "submissionUrl": "https://builtbyme.io/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "BuiltByIndies",
+    "type": "WEBSITE",
+    "rootUrl": "https://builtbyindies.com/",
+    "submissionUrl": "https://builtbyindies.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "BuiltInChicago",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.builtinchicago.org/",
+    "submissionUrl": "https://www.builtinchicago.org/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Business Tool Vault",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.businesstoolvault.com/",
+    "submissionUrl": "https://www.businesstoolvault.com/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "BusinessHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://businesshunt.co/",
+    "submissionUrl": "https://businesshunt.co/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Buy Sell Startups",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.buysellstartups.com/",
+    "submissionUrl": "https://www.buysellstartups.com/startup-index",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Capterra",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.capterra.com/",
+    "submissionUrl": "https://www.capterra.com/vendors/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "ChatDevelopers.com",
+    "type": "WEBSITE",
+    "rootUrl": "https://chatdevelopers.com/",
+    "submissionUrl": "https://chatdevelopers.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "CitedIndex",
+    "type": "WEBSITE",
+    "rootUrl": "https://citedindex.com/",
+    "submissionUrl": "https://citedindex.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Clapstorm",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.clapstorm.com/",
+    "submissionUrl": "https://www.clapstorm.com/submit",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Cloudfindr",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.cloudfindr.co/",
+    "submissionUrl": "https://www.cloudfindr.co/list-your-app",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "ComparaSoftware",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.comparasoftware.com/",
+    "submissionUrl": "https://www.comparasoftware.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "CompareCamp",
+    "type": "WEBSITE",
+    "rootUrl": "https://comparecamp.com/",
+    "submissionUrl": "https://comparecamp.com/request-a-review/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "ConfettiSaaS",
+    "type": "WEBSITE",
+    "rootUrl": "https://confettisaas.com/",
+    "submissionUrl": "https://confettisaas.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "craked.dev",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.craked.dev/",
+    "submissionUrl": "https://www.craked.dev/products",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "CrowdReviews",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.crowdreviews.com/",
+    "submissionUrl": "https://www.crowdreviews.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "CrozDesk",
+    "type": "WEBSITE",
+    "rootUrl": "https://vendor.crozdesk.com/",
+    "submissionUrl": "https://vendor.crozdesk.com/user/signup",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Crunchbase",
+    "type": "WEBSITE",
+    "rootUrl": "https://support.crunchbase.com/",
+    "submissionUrl": "https://support.crunchbase.com/hc/en-us/articles/115011823988-How-do-I-create-a-Crunchbase-profile",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "CtrlAlt.cc",
+    "type": "WEBSITE",
+    "rootUrl": "https://ctrlalt.cc/",
+    "submissionUrl": "https://ctrlalt.cc/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Curated.design",
+    "type": "WEBSITE",
+    "rootUrl": "https://curated.design/",
+    "submissionUrl": "https://curated.design/submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Cuspera",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.cuspera.com/",
+    "submissionUrl": "https://www.cuspera.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Daily Pings",
+    "type": "WEBSITE",
+    "rootUrl": "https://dailypings.com/",
+    "submissionUrl": "https://dailypings.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Dang.ai",
+    "type": "WEBSITE",
+    "rootUrl": "https://dang.ai/",
+    "submissionUrl": "https://dang.ai/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "DanielLaunches",
+    "type": "WEBSITE",
+    "rootUrl": "https://daniellaunches.com/",
+    "submissionUrl": "https://daniellaunches.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "DataLook.io",
+    "type": "WEBSITE",
+    "rootUrl": "https://datalook.io/",
+    "submissionUrl": "https://datalook.io/submit-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Days Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://dayslaunch.com/",
+    "submissionUrl": "https://dayslaunch.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "DeepLaunch.io",
+    "type": "WEBSITE",
+    "rootUrl": "https://deeplaunch.io/",
+    "submissionUrl": "https://deeplaunch.io/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "DesiFounder",
+    "type": "WEBSITE",
+    "rootUrl": "https://desifounder.com/",
+    "submissionUrl": "https://desifounder.com/spotlight",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "Dessign",
+    "type": "WEBSITE",
+    "rootUrl": "https://dessign.net/",
+    "submissionUrl": "https://dessign.net/submit-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Dev Resources",
+    "type": "WEBSITE",
+    "rootUrl": "https://devresourc.es/",
+    "submissionUrl": "https://devresourc.es/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "DevHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://devhunt.org/",
+    "submissionUrl": "https://devhunt.org/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "DevPages",
+    "type": "WEBSITE",
+    "rootUrl": "https://devpages.io/",
+    "submissionUrl": "https://devpages.io/submit-a-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "DevSuite",
+    "type": "WEBSITE",
+    "rootUrl": "https://devsuite.co/",
+    "submissionUrl": "https://devsuite.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Direct2App",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.direct2app.com/",
+    "submissionUrl": "https://www.direct2app.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Directory LDM Studio",
+    "type": "WEBSITE",
+    "rootUrl": "https://directory.ldmstudio.com/",
+    "submissionUrl": "https://directory.ldmstudio.com/add/add.php",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Directory Web Promotion",
+    "type": "WEBSITE",
+    "rootUrl": "https://promotebusinessdirectory.com/",
+    "submissionUrl": "https://promotebusinessdirectory.com/submit.php",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "DodoMRR",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.dodomrr.com/",
+    "submissionUrl": "https://www.dodomrr.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Dofollow.Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://dofollow.tools/",
+    "submissionUrl": "https://dofollow.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Dokey AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://dokeyai.com/",
+    "submissionUrl": "https://dokeyai.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "DomainRating.lol",
+    "type": "WEBSITE",
+    "rootUrl": "https://domainrating.lol/",
+    "submissionUrl": "https://domainrating.lol/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "DoMore",
+    "type": "WEBSITE",
+    "rootUrl": "https://domore.ai/",
+    "submissionUrl": "https://domore.ai/partners",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Dynamite AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.dynamite-ai.com/",
+    "submissionUrl": "https://www.dynamite-ai.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "e27",
+    "type": "WEBSITE",
+    "rootUrl": "https://e27.co/",
+    "submissionUrl": "https://e27.co/startup/create/profile/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "early.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.early.tools/",
+    "submissionUrl": "https://www.early.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "EarlyHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://earlyhunt.com/",
+    "submissionUrl": "https://earlyhunt.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Easy Save AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://easysaveai.com/",
+    "submissionUrl": "https://easysaveai.com/product/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Easy With AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://easywithai.com/",
+    "submissionUrl": "https://easywithai.com/submit-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "eBool",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.ebool.com/",
+    "submissionUrl": "https://www.ebool.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "EliteAI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://eliteai.tools/",
+    "submissionUrl": "https://eliteai.tools/tool/submit-new-tool?tab=launch",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Emoji Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://emojilaunch.com/",
+    "submissionUrl": "https://emojilaunch.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "EU-Startups",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.eu-startups.com/",
+    "submissionUrl": "https://www.eu-startups.com/directory/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Every AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://every-ai.com/",
+    "submissionUrl": "https://every-ai.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "EveryDev.ai",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.everydev.ai/",
+    "submissionUrl": "https://www.everydev.ai/create/tool",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "ExactSeek",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.exactseek.com/",
+    "submissionUrl": "https://www.exactseek.com/add.html",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "F6S",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.f6s.com/",
+    "submissionUrl": "https://www.f6s.com/submitmystartup.com",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "FalcoScan",
+    "type": "WEBSITE",
+    "rootUrl": "https://falcoscan.com/",
+    "submissionUrl": "https://falcoscan.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "FastLaunch",
+    "type": "WEBSITE",
+    "rootUrl": "https://fastlaunch.io/",
+    "submissionUrl": "https://fastlaunch.io/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Fazier",
+    "type": "WEBSITE",
+    "rootUrl": "https://fazier.com/",
+    "submissionUrl": "https://fazier.com/launch",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "FeaturedCustomers",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.featuredcustomers.com/",
+    "submissionUrl": "https://www.featuredcustomers.com/vendor-solutions",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Find My AI Tool",
+    "type": "WEBSITE",
+    "rootUrl": "https://findmyaitool.com/",
+    "submissionUrl": "https://findmyaitool.com/submit-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Find Your SaaS",
+    "type": "WEBSITE",
+    "rootUrl": "https://findyoursaas.com/",
+    "submissionUrl": "https://findyoursaas.com/pricing",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "Findly.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://findly.tools/",
+    "submissionUrl": "https://findly.tools/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Findstack",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.findstack.com/",
+    "submissionUrl": "https://www.findstack.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "FindThatSoftware",
+    "type": "WEBSITE",
+    "rootUrl": "https://findthatsoftware.com/",
+    "submissionUrl": "https://findthatsoftware.com/vendors",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "findyouragent.ai",
+    "type": "WEBSITE",
+    "rootUrl": "https://findyouragent.ai/",
+    "submissionUrl": "https://findyouragent.ai/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "FirstLook.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://firstlook.tools/",
+    "submissionUrl": "https://firstlook.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Firsto",
+    "type": "WEBSITE",
+    "rootUrl": "https://firsto.co/",
+    "submissionUrl": "https://firsto.co/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "FiveTaco",
+    "type": "WEBSITE",
+    "rootUrl": "https://fivetaco.com/",
+    "submissionUrl": "https://fivetaco.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "flowtools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.flowtools.co/",
+    "submissionUrl": "https://www.flowtools.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "founders.page",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.founders.page/",
+    "submissionUrl": "https://www.founders.page/signup",
+    "description": "",
+    "businessModel": "FREE_FOR_LIMITED_TIME",
+    "lastChecked": null
+  },
+  {
+    "name": "Foundr",
+    "type": "WEBSITE",
+    "rootUrl": "https://foundr.ai/",
+    "submissionUrl": "https://foundr.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Foundrlist",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.foundrlist.com/",
+    "submissionUrl": "https://www.foundrlist.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Free AI Apps",
+    "type": "WEBSITE",
+    "rootUrl": "https://freeappsai.com/",
+    "submissionUrl": "https://freeappsai.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "FreeAI.run",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.freeai.run/",
+    "submissionUrl": "https://www.freeai.run/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "FrogDR",
+    "type": "WEBSITE",
+    "rootUrl": "https://frogdr.com/",
+    "submissionUrl": "https://frogdr.com/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Funnel Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://funneldirectory.com/",
+    "submissionUrl": "https://funneldirectory.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Future AI Guide",
+    "type": "WEBSITE",
+    "rootUrl": "https://tools.futureaiguide.com/",
+    "submissionUrl": "https://tools.futureaiguide.com/tools/create/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Future Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://futuretools.io/",
+    "submissionUrl": "https://futuretools.io/submit-a-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Futurepedia",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.futurepedia.io/",
+    "submissionUrl": "https://www.futurepedia.io/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "FutureStack",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.usefuturestack.com/",
+    "submissionUrl": "https://www.usefuturestack.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "FWOL",
+    "type": "WEBSITE",
+    "rootUrl": "http://fwol.cn/",
+    "submissionUrl": "http://fwol.cn/infos_add.php",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "G2",
+    "type": "WEBSITE",
+    "rootUrl": "https://sell.g2.com/",
+    "submissionUrl": "https://sell.g2.com/create-a-profile",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "GeekWire",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.geekwire.com/",
+    "submissionUrl": "https://www.geekwire.com/submit-startup/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Genify",
+    "type": "WEBSITE",
+    "rootUrl": "https://genify.dev/",
+    "submissionUrl": "https://genify.dev/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "GetApp",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.getapp.com/",
+    "submissionUrl": "https://www.getapp.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "GetLatka",
+    "type": "WEBSITE",
+    "rootUrl": "https://getlatka.com/",
+    "submissionUrl": "https://getlatka.com/add",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Gets.Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://gets.tools/",
+    "submissionUrl": "https://gets.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Glama MCP Connectors",
+    "type": "WEBSITE",
+    "rootUrl": "https://glama.ai/",
+    "submissionUrl": "https://glama.ai/mcp/connectors",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "GoodFirms",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.goodfirms.co/",
+    "submissionUrl": "https://www.goodfirms.co/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "GPT Academy",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.gptacademy.co/",
+    "submissionUrl": "https://www.gptacademy.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "GptDemo.net",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.gptdemo.net/",
+    "submissionUrl": "https://www.gptdemo.net/gpt/add-tool?lg=en",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "GreenRocket",
+    "type": "WEBSITE",
+    "rootUrl": "https://greenrocket.app/",
+    "submissionUrl": "https://greenrocket.app/create",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "GroupifyAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://groupify.ai/",
+    "submissionUrl": "https://groupify.ai/new-tool-form",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Gust",
+    "type": "WEBSITE",
+    "rootUrl": "https://gust.com/",
+    "submissionUrl": "https://gust.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "HHLink",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.hhlink.com/",
+    "submissionUrl": "https://www.hhlink.com/%E6%8F%90%E4%BA%A4%E6%96%B0%E7%BD%91%E7%AB%99",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "High Rank Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://highrankdirectory.com/",
+    "submissionUrl": "https://highrankdirectory.com/submit.php",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Hot100",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.hot100.ai/",
+    "submissionUrl": "https://www.hot100.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "How to Buy SaaS",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.howtobuysaas.com/",
+    "submissionUrl": "https://www.howtobuysaas.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "HuntScreens",
+    "type": "WEBSITE",
+    "rootUrl": "https://huntscreens.com/",
+    "submissionUrl": "https://huntscreens.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Huzzler",
+    "type": "WEBSITE",
+    "rootUrl": "https://huzzler.so/",
+    "submissionUrl": "https://huzzler.so/products/create",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Idea Kiln",
+    "type": "WEBSITE",
+    "rootUrl": "https://ideakiln.com/",
+    "submissionUrl": "https://ideakiln.com/dashboard/submit-idea",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Inc42",
+    "type": "WEBSITE",
+    "rootUrl": "https://tally.so/",
+    "submissionUrl": "https://tally.so/r/w2poXD",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Index by Dodo Payments",
+    "type": "WEBSITE",
+    "rootUrl": "https://index.dodopayments.com/",
+    "submissionUrl": "https://index.dodopayments.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Indie Folio",
+    "type": "WEBSITE",
+    "rootUrl": "https://indiefol.io/",
+    "submissionUrl": "https://indiefol.io/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Indie Hackers",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.indiehackers.com/",
+    "submissionUrl": "https://www.indiehackers.com/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Indie Page",
+    "type": "WEBSITE",
+    "rootUrl": "https://indiepa.ge/",
+    "submissionUrl": "https://indiepa.ge/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Indie-Builds",
+    "type": "WEBSITE",
+    "rootUrl": "https://indie-builds.com/",
+    "submissionUrl": "https://indie-builds.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Indie.Deals",
+    "type": "WEBSITE",
+    "rootUrl": "https://indie.deals/",
+    "submissionUrl": "https://indie.deals/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Indiehacker Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.indiehacker.tools/",
+    "submissionUrl": "https://www.indiehacker.tools/list-indie-tool",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "IndieHub",
+    "type": "WEBSITE",
+    "rootUrl": "https://indiehub.best/",
+    "submissionUrl": "https://indiehub.best/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "IndieHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://indiehunt.io/",
+    "submissionUrl": "https://indiehunt.io/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "IndieHustles",
+    "type": "WEBSITE",
+    "rootUrl": "https://indiehustles.com/",
+    "submissionUrl": "https://indiehustles.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "IndieProducts.io",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.indieproducts.io/",
+    "submissionUrl": "https://www.indieproducts.io/",
+    "description": "",
+    "businessModel": "FREE_FOR_LIMITED_TIME",
+    "lastChecked": null
+  },
+  {
+    "name": "IndieTool",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.indietool.io/",
+    "submissionUrl": "https://www.indietool.io/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "InnMind",
+    "type": "WEBSITE",
+    "rootUrl": "https://app.innmind.com/",
+    "submissionUrl": "https://app.innmind.com/register",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Insidr AI Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.insidr.ai/",
+    "submissionUrl": "https://www.insidr.ai/submit-tools/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Intelligent Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://intelligenttools.co/",
+    "submissionUrl": "https://intelligenttools.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Invent List",
+    "type": "WEBSITE",
+    "rootUrl": "https://inventlist.com/",
+    "submissionUrl": "https://inventlist.com/submit",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "It's LaunchDay",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.itslaunchday.com/",
+    "submissionUrl": "https://www.itslaunchday.com/submit-product",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ITQlick",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.itqlick.com/",
+    "submissionUrl": "https://www.itqlick.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Joinly",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.joinly.xyz/",
+    "submissionUrl": "https://www.joinly.xyz/submit-startup",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "JustLaunched",
+    "type": "WEBSITE",
+    "rootUrl": "https://justlaunched.fyi/",
+    "submissionUrl": "https://justlaunched.fyi/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Kick Product",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.kickproduct.com/",
+    "submissionUrl": "https://www.kickproduct.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Lachief.io",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.lachief.io/",
+    "submissionUrl": "https://www.lachief.io/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Land-book",
+    "type": "WEBSITE",
+    "rootUrl": "https://land-book.com/",
+    "submissionUrl": "https://land-book.com/websites/new",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Landingfolio",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.landingfolio.com/",
+    "submissionUrl": "https://www.landingfolio.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Launch AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://trylaunch.ai/",
+    "submissionUrl": "https://trylaunch.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Launch List",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.launch-list.org/",
+    "submissionUrl": "https://www.launch-list.org/submit/product",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "Launch Llama",
+    "type": "WEBSITE",
+    "rootUrl": "https://tools.launchllama.co/",
+    "submissionUrl": "https://tools.launchllama.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "Launch Vault",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.launchvault.dev/",
+    "submissionUrl": "https://www.launchvault.dev/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "LaunchAF",
+    "type": "WEBSITE",
+    "rootUrl": "https://launchaf.com/",
+    "submissionUrl": "https://launchaf.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "LaunchBert",
+    "type": "WEBSITE",
+    "rootUrl": "https://launchbert.com/",
+    "submissionUrl": "https://launchbert.com/products/create",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "LaunchBoard.dev",
+    "type": "WEBSITE",
+    "rootUrl": "https://launchboard.dev/",
+    "submissionUrl": "https://launchboard.dev/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "LaunchIgniter",
+    "type": "WEBSITE",
+    "rootUrl": "https://launchigniter.com/",
+    "submissionUrl": "https://launchigniter.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Launching Next",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.launchingnext.com/",
+    "submissionUrl": "https://www.launchingnext.com/submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Launchory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.launchory.app/",
+    "submissionUrl": "https://www.launchory.app/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "LaunchPact",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.launchpact.io/",
+    "submissionUrl": "https://www.launchpact.io/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "LaunchPad India",
+    "type": "WEBSITE",
+    "rootUrl": "https://launchpadindia.co/",
+    "submissionUrl": "https://launchpadindia.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Launchpadly",
+    "type": "WEBSITE",
+    "rootUrl": "https://launchpadly.co/",
+    "submissionUrl": "https://launchpadly.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "LibHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.libhunt.com/",
+    "submissionUrl": "https://www.libhunt.com/repo/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Lifto",
+    "type": "WEBSITE",
+    "rootUrl": "https://liftoapp.com/",
+    "submissionUrl": "https://liftoapp.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "LineZine AI Tool Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://linezine.com/",
+    "submissionUrl": "https://linezine.com/list-your-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Link Centre",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.linkcentre.com/",
+    "submissionUrl": "https://www.linkcentre.com/addurl/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "List My SaaS",
+    "type": "WEBSITE",
+    "rootUrl": "https://listmysaas.xyz/",
+    "submissionUrl": "https://listmysaas.xyz/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "ListBulb",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.listbulb.com/",
+    "submissionUrl": "https://www.listbulb.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Listmyai",
+    "type": "WEBSITE",
+    "rootUrl": "https://listmyai.net/",
+    "submissionUrl": "https://listmyai.net/submit-ai-tools",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ListYourIdea",
+    "type": "WEBSITE",
+    "rootUrl": "https://listyouridea.com/",
+    "submissionUrl": "https://listyouridea.com/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ListYourTool",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.listyourtool.com/",
+    "submissionUrl": "https://www.listyourtool.com/submit-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "LLM Relevance",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.llmrelevance.com/",
+    "submissionUrl": "https://www.llmrelevance.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Lobsters",
+    "type": "WEBSITE",
+    "rootUrl": "https://lobste.rs/",
+    "submissionUrl": "https://lobste.rs/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Look AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://lookaitools.com/",
+    "submissionUrl": "https://lookaitools.com/submit-listing/details/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "MadGenius",
+    "type": "WEBSITE",
+    "rootUrl": "https://madgenius.co/",
+    "submissionUrl": "https://madgenius.co/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "MagicBox.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://magicbox.tools/",
+    "submissionUrl": "https://magicbox.tools/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "MAGNiTT",
+    "type": "WEBSITE",
+    "rootUrl": "https://magnitt.com/",
+    "submissionUrl": "https://magnitt.com/startups",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Make.rs",
+    "type": "WEBSITE",
+    "rootUrl": "https://make.rs/",
+    "submissionUrl": "https://make.rs/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Maker Move",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.makermove.com/",
+    "submissionUrl": "https://www.makermove.com/promote",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "MakerHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://makerhunt.io/",
+    "submissionUrl": "https://makerhunt.io/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Makerlist.io",
+    "type": "WEBSITE",
+    "rootUrl": "https://makerlist.io/",
+    "submissionUrl": "https://makerlist.io/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "MakerPad",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.makerpad.co/",
+    "submissionUrl": "https://www.makerpad.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Marketing Internet Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.marketinginternetdirectory.com/",
+    "submissionUrl": "https://www.marketinginternetdirectory.com/submit.php",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "MarketingDB",
+    "type": "WEBSITE",
+    "rootUrl": "https://marketingdb.live/",
+    "submissionUrl": "https://marketingdb.live/submit/plan",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "MCP Market",
+    "type": "WEBSITE",
+    "rootUrl": "https://mcpmarket.com/",
+    "submissionUrl": "https://mcpmarket.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "MCP Store",
+    "type": "WEBSITE",
+    "rootUrl": "https://mcpstore.co/",
+    "submissionUrl": "https://mcpstore.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "mcp.so",
+    "type": "WEBSITE",
+    "rootUrl": "https://mcp.so/",
+    "submissionUrl": "https://mcp.so/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "MCPBundles",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.mcpbundles.com/",
+    "submissionUrl": "https://www.mcpbundles.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "mcpservers.org",
+    "type": "WEBSITE",
+    "rootUrl": "https://mcpservers.org/",
+    "submissionUrl": "https://mcpservers.org/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "mcpub",
+    "type": "WEBSITE",
+    "rootUrl": "https://mcpub.dev/",
+    "submissionUrl": "https://mcpub.dev/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Mergeek",
+    "type": "WEBSITE",
+    "rootUrl": "https://mergeek.com/",
+    "submissionUrl": "https://mergeek.com/zh/publish_project",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Microlaunch",
+    "type": "WEBSITE",
+    "rootUrl": "https://microlaunch.net/",
+    "submissionUrl": "https://microlaunch.net/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Mydentify",
+    "type": "WEBSITE",
+    "rootUrl": "https://mydentify.com/",
+    "submissionUrl": "https://mydentify.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "NavFolders.com",
+    "type": "WEBSITE",
+    "rootUrl": "https://navfolders.com/",
+    "submissionUrl": "https://navfolders.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Navs.site",
+    "type": "WEBSITE",
+    "rootUrl": "https://navs.site/",
+    "submissionUrl": "https://navs.site/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "NavTools.ai",
+    "type": "WEBSITE",
+    "rootUrl": "https://navtools.ai/",
+    "submissionUrl": "https://navtools.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Neeed Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://neeed.directory/",
+    "submissionUrl": "https://neeed.directory/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "NeonRev",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.neonrev.com/",
+    "submissionUrl": "https://www.neonrev.com/advertise/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "New SaaSly",
+    "type": "WEBSITE",
+    "rootUrl": "https://newsaasly.com/",
+    "submissionUrl": "https://newsaasly.com/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "NewTool",
+    "type": "WEBSITE",
+    "rootUrl": "https://newtool.site/",
+    "submissionUrl": "https://newtool.site/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Next Big Product",
+    "type": "WEBSITE",
+    "rootUrl": "https://nextbigproduct.com/",
+    "submissionUrl": "https://nextbigproduct.com/list-fast",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Next Big What",
+    "type": "WEBSITE",
+    "rootUrl": "https://submit.nextbigwhat.com/",
+    "submissionUrl": "https://submit.nextbigwhat.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "NextGen Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.nxgntools.com/",
+    "submissionUrl": "https://www.nxgntools.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "NextPedia",
+    "type": "WEBSITE",
+    "rootUrl": "https://nextpedia.io/",
+    "submissionUrl": "https://nextpedia.io/submit-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Nick Launches",
+    "type": "WEBSITE",
+    "rootUrl": "https://nicklaunches.com/",
+    "submissionUrl": "https://nicklaunches.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "No Code Founders",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.nocodefounders.com/",
+    "submissionUrl": "https://www.nocodefounders.com/list-your-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "NoCode.Tech",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.nocode.tech/",
+    "submissionUrl": "https://www.nocode.tech/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Noon Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://noonlaunch.com/",
+    "submissionUrl": "https://noonlaunch.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Official MCP Registry",
+    "type": "WEBSITE",
+    "rootUrl": "https://registry.modelcontextprotocol.io/",
+    "submissionUrl": "https://registry.modelcontextprotocol.io/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "OGFolio",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.ogfolio.com/",
+    "submissionUrl": "https://www.ogfolio.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "OGimage.gallery",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.ogimage.gallery/",
+    "submissionUrl": "https://www.ogimage.gallery/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Open Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://open-launch.com/",
+    "submissionUrl": "https://open-launch.com/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Open Makers",
+    "type": "WEBSITE",
+    "rootUrl": "https://openmakers.io/",
+    "submissionUrl": "https://openmakers.io/add-product",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Open SaaS Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://opensaas.directory/",
+    "submissionUrl": "https://opensaas.directory/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Open Startup List",
+    "type": "WEBSITE",
+    "rootUrl": "https://openstartuplist.com/",
+    "submissionUrl": "https://openstartuplist.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "OpenAlternative",
+    "type": "WEBSITE",
+    "rootUrl": "https://openalternative.co/",
+    "submissionUrl": "https://openalternative.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "OpenFuture AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://openfuture.ai/",
+    "submissionUrl": "https://openfuture.ai/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "OpenHunts",
+    "type": "WEBSITE",
+    "rootUrl": "https://openhunts.com/",
+    "submissionUrl": "https://openhunts.com/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "OpenTools",
+    "type": "WEBSITE",
+    "rootUrl": "https://opentools.ai/",
+    "submissionUrl": "https://opentools.ai/friends/launch-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "osalt.com",
+    "type": "WEBSITE",
+    "rootUrl": "https://osalt.com/",
+    "submissionUrl": "https://osalt.com/suggest",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Outbid",
+    "type": "WEBSITE",
+    "rootUrl": "https://outbid.lol/",
+    "submissionUrl": "https://outbid.lol/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Owler",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.owler.com/",
+    "submissionUrl": "https://www.owler.com/owler-community",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Owwly",
+    "type": "WEBSITE",
+    "rootUrl": "https://owwly.com/",
+    "submissionUrl": "https://owwly.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "PayOnceApps",
+    "type": "WEBSITE",
+    "rootUrl": "https://payonceapps.com/",
+    "submissionUrl": "https://payonceapps.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Peerlist Launchpad",
+    "type": "WEBSITE",
+    "rootUrl": "https://peerlist.io/",
+    "submissionUrl": "https://peerlist.io/launchpad",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "PeerPush",
+    "type": "WEBSITE",
+    "rootUrl": "https://peerpush.com/",
+    "submissionUrl": "https://peerpush.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "PeerSpot",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.peerspot.com/",
+    "submissionUrl": "https://www.peerspot.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "PhotoToolFinder",
+    "type": "WEBSITE",
+    "rootUrl": "https://phototoolfinder.com/",
+    "submissionUrl": "https://phototoolfinder.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Phygital+ AI Library",
+    "type": "WEBSITE",
+    "rootUrl": "https://library.phygital.plus/",
+    "submissionUrl": "https://library.phygital.plus/tool-submission",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Pitchwall",
+    "type": "WEBSITE",
+    "rootUrl": "https://pitchwall.co/",
+    "submissionUrl": "https://pitchwall.co/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "PlatformsDirectory.com",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.platformsdirectory.com/",
+    "submissionUrl": "https://www.platformsdirectory.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Postmake",
+    "type": "WEBSITE",
+    "rootUrl": "https://postmake.io/",
+    "submissionUrl": "https://postmake.io/submit-badge-listing",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "PoweredByAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://poweredbyai.app/",
+    "submissionUrl": "https://poweredbyai.app/submit-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Pro Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://prolaunch.net/",
+    "submissionUrl": "https://prolaunch.net/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Prodpapa",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.prodpapa.com/",
+    "submissionUrl": "https://www.prodpapa.com/pricing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Product Inspire",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.productinspire.com/",
+    "submissionUrl": "https://www.productinspire.com/register",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Product Watch",
+    "type": "WEBSITE",
+    "rootUrl": "https://productwatch.io/",
+    "submissionUrl": "https://productwatch.io/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "ProductBurst",
+    "type": "WEBSITE",
+    "rootUrl": "https://productburst.com/",
+    "submissionUrl": "https://productburst.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "ProductFame",
+    "type": "WEBSITE",
+    "rootUrl": "https://productfame.com/",
+    "submissionUrl": "https://productfame.com/products/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Productivity Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://productivity.directory/",
+    "submissionUrl": "https://productivity.directory/s/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Profit Hunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://profithunt.co/",
+    "submissionUrl": "https://profithunt.co/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "PromoteProject",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.promoteproject.com/",
+    "submissionUrl": "https://www.promoteproject.com/submit-startup",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "ProofStories",
+    "type": "WEBSITE",
+    "rootUrl": "https://proofstories.io/",
+    "submissionUrl": "https://proofstories.io/submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Proven Expert",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.provenexpert.com/",
+    "submissionUrl": "https://www.provenexpert.com/en-us/register/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Quality Internet Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.qualityinternetdirectory.com/",
+    "submissionUrl": "https://www.qualityinternetdirectory.com/submit.php",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/AlphaandBetausers",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/alphaandbetausers/",
+    "submissionUrl": "https://www.reddit.com/r/alphaandbetausers/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/buildinpublic",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/buildinpublic/",
+    "submissionUrl": "https://www.reddit.com/r/buildinpublic/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/Design_Critiques",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/design_critiques/",
+    "submissionUrl": "https://www.reddit.com/r/design_critiques/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/Entrepreneur",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/Entrepreneur/",
+    "submissionUrl": "https://www.reddit.com/r/Entrepreneur/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/EntrepreneurRideAlong",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/EntrepreneurRideAlong/",
+    "submissionUrl": "https://www.reddit.com/r/EntrepreneurRideAlong/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/IMadeThis",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/IMadeThis/",
+    "submissionUrl": "https://www.reddit.com/r/IMadeThis/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/IndieBiz",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/indiebiz/",
+    "submissionUrl": "https://www.reddit.com/r/indiebiz/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/indiehackers",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/indiehackers/",
+    "submissionUrl": "https://www.reddit.com/r/indiehackers/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/LadyBusiness",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/ladybusiness/",
+    "submissionUrl": "https://www.reddit.com/r/ladybusiness/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/microsaas",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/microsaas/",
+    "submissionUrl": "https://www.reddit.com/r/microsaas/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/plugyourproduct",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/plugyourproduct/",
+    "submissionUrl": "https://www.reddit.com/r/plugyourproduct/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/RoastMyStartup",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/roastmystartup/",
+    "submissionUrl": "https://www.reddit.com/r/roastmystartup/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/SaaS",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/SaaS/",
+    "submissionUrl": "https://www.reddit.com/r/SaaS/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/SideProject",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/SideProject/",
+    "submissionUrl": "https://www.reddit.com/r/SideProject/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/SmallBusiness",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/smallbusiness/",
+    "submissionUrl": "https://www.reddit.com/r/smallbusiness/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "r/Startups",
+    "type": "REDDIT_COMMUNITY",
+    "rootUrl": "https://www.reddit.com/r/startups/",
+    "submissionUrl": "https://www.reddit.com/r/startups/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "ramen.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://ramen.tools/",
+    "submissionUrl": "https://ramen.tools/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "RankmyAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.rankmyai.com/",
+    "submissionUrl": "https://www.rankmyai.com/tool-addition",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "RankYourAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://rankyourai.com/",
+    "submissionUrl": "https://rankyourai.com/p/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Resource.fyi",
+    "type": "WEBSITE",
+    "rootUrl": "https://resource.fyi/",
+    "submissionUrl": "https://resource.fyi/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Revispy Launchpad",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.revispy.com/",
+    "submissionUrl": "https://www.revispy.com/launchpad",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Right AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://right-ai.com/",
+    "submissionUrl": "https://right-ai.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Romanian Startups",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.romanianstartups.com/",
+    "submissionUrl": "https://www.romanianstartups.com/register/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaS AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://saasaitools.com/",
+    "submissionUrl": "https://saasaitools.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaS Bison",
+    "type": "WEBSITE",
+    "rootUrl": "https://saasbison.com/",
+    "submissionUrl": "https://saasbison.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaS Curate",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.saascurate.com/",
+    "submissionUrl": "https://www.saascurate.com/promote",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaS Genius",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.saasgenius.com/",
+    "submissionUrl": "https://www.saasgenius.com/get-listed/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaS Page",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.saaspa.ge/",
+    "submissionUrl": "https://www.saaspa.ge/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaSBoard",
+    "type": "WEBSITE",
+    "rootUrl": "https://saasboard.app/",
+    "submissionUrl": "https://saasboard.app/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaSCity",
+    "type": "WEBSITE",
+    "rootUrl": "https://saascity.io/",
+    "submissionUrl": "https://saascity.io/saascity?submit=1",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaSFame",
+    "type": "WEBSITE",
+    "rootUrl": "https://saasfame.com/",
+    "submissionUrl": "https://saasfame.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaSHub",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.saashub.com/",
+    "submissionUrl": "https://www.saashub.com/services/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaasList",
+    "type": "WEBSITE",
+    "rootUrl": "https://saaslist.com/",
+    "submissionUrl": "https://saaslist.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Saaspo",
+    "type": "WEBSITE",
+    "rootUrl": "https://saaspo.com/",
+    "submissionUrl": "https://saaspo.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaStore",
+    "type": "WEBSITE",
+    "rootUrl": "https://saastore.ai/",
+    "submissionUrl": "https://saastore.ai/signup/seller",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "SaaSworthy",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.saasworthy.com/",
+    "submissionUrl": "https://www.saasworthy.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "ScrollLaunch",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.scrolllaunch.com/",
+    "submissionUrl": "https://www.scrolllaunch.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "See AI First",
+    "type": "WEBSITE",
+    "rootUrl": "https://seeaifirst.com/",
+    "submissionUrl": "https://seeaifirst.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "See What New AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.seewhatnewai.com/",
+    "submissionUrl": "https://www.seewhatnewai.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "SeekAIs",
+    "type": "WEBSITE",
+    "rootUrl": "https://seekais.com/",
+    "submissionUrl": "https://seekais.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "SelectHub",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.selecthub.com/",
+    "submissionUrl": "https://www.selecthub.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Serchen",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.serchen.com/",
+    "submissionUrl": "https://www.serchen.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Ship or Die",
+    "type": "WEBSITE",
+    "rootUrl": "https://shipordie.club/",
+    "submissionUrl": "https://shipordie.club/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Ship with No-Code",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.shno.co/",
+    "submissionUrl": "https://www.shno.co/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ShipBoost",
+    "type": "WEBSITE",
+    "rootUrl": "https://shipboost.io/",
+    "submissionUrl": "https://shipboost.io/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "ShipGrowth",
+    "type": "WEBSITE",
+    "rootUrl": "https://shipgrowth.dev/",
+    "submissionUrl": "https://shipgrowth.dev/submit/free-submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Shipybara",
+    "type": "WEBSITE",
+    "rootUrl": "https://shipybara.com/",
+    "submissionUrl": "https://shipybara.com/projects/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ShowMeBestAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://showmebest.ai/",
+    "submissionUrl": "https://showmebest.ai/submit/free-submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Side Projectors",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.sideprojectors.com/",
+    "submissionUrl": "https://www.sideprojectors.com/submit/type",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "SideHunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://sidehunt.io/",
+    "submissionUrl": "https://sidehunt.io/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "SimilarLabs",
+    "type": "WEBSITE",
+    "rootUrl": "https://similarlabs.com/",
+    "submissionUrl": "https://similarlabs.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Simple Lister",
+    "type": "WEBSITE",
+    "rootUrl": "https://simplelister.com/",
+    "submissionUrl": "https://simplelister.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Site Promotion Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.sitepromotiondirectory.com/",
+    "submissionUrl": "https://www.sitepromotiondirectory.com/submit.php",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Site Web Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.siteswebdirectory.com/",
+    "submissionUrl": "https://www.siteswebdirectory.com/submit.php",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Site-Plus",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.sites-plus.com/",
+    "submissionUrl": "https://www.sites-plus.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "SiteLike",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.sitelike.org/",
+    "submissionUrl": "https://www.sitelike.org/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "SmartCustomer",
+    "type": "WEBSITE",
+    "rootUrl": "https://biz.smartcustomer.com/",
+    "submissionUrl": "https://biz.smartcustomer.com/register",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Smithery",
+    "type": "WEBSITE",
+    "rootUrl": "https://smithery.ai/",
+    "submissionUrl": "https://smithery.ai/servers/new",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Smol Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://smollaunch.com/",
+    "submissionUrl": "https://smollaunch.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "SnapMunk",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.snapmunk.com/",
+    "submissionUrl": "https://www.snapmunk.com/submit-your-startup/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "SoftwareSuggest",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.softwaresuggest.com/",
+    "submissionUrl": "https://www.softwaresuggest.com/vendors",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "SoftwareWorld",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.softwareworld.co/",
+    "submissionUrl": "https://www.softwareworld.co/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "SoMuch",
+    "type": "WEBSITE",
+    "rootUrl": "https://somuch.com/",
+    "submissionUrl": "https://somuch.com/submit-links/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Space Bandits",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.spacebandits.io/",
+    "submissionUrl": "https://www.spacebandits.io/startups",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "Spectacle",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupvideos.com/",
+    "submissionUrl": "https://startupvideos.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Spiff.store",
+    "type": "WEBSITE",
+    "rootUrl": "https://spiff.store/",
+    "submissionUrl": "https://spiff.store/submit-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "SpotSaaS",
+    "type": "WEBSITE",
+    "rootUrl": "https://partners.spotsaas.com/",
+    "submissionUrl": "https://partners.spotsaas.com/register",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "StarTap",
+    "type": "WEBSITE",
+    "rootUrl": "https://startap.cc/",
+    "submissionUrl": "https://startap.cc/play",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Starter Best",
+    "type": "WEBSITE",
+    "rootUrl": "https://starterbest.com/",
+    "submissionUrl": "https://starterbest.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "StartFast",
+    "type": "WEBSITE",
+    "rootUrl": "https://startfa.st/",
+    "submissionUrl": "https://startfa.st/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup 88",
+    "type": "WEBSITE",
+    "rootUrl": "https://startup88.com/",
+    "submissionUrl": "https://startup88.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup AIdeas",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupaideas.com/",
+    "submissionUrl": "https://startupaideas.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "StartUp Beat",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupbeat.com/",
+    "submissionUrl": "https://startupbeat.com/startup-beat-featured-startup-pitch-guidelines/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Benchmarks",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupbenchmarks.com/",
+    "submissionUrl": "https://www.startupbenchmarks.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Buffer",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupbuffer.com/",
+    "submissionUrl": "https://startupbuffer.com/site/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Dope",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupdope.com/",
+    "submissionUrl": "https://startupdope.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Europe",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupeurope.net/",
+    "submissionUrl": "https://startupeurope.net/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Fame",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupfa.me/",
+    "submissionUrl": "https://startupfa.me/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Fast",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupfa.st/",
+    "submissionUrl": "https://www.startupfa.st/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Guys",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupguys.net/",
+    "submissionUrl": "https://www.startupguys.net/submit-startup/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Inspire",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupinspire.com/",
+    "submissionUrl": "https://www.startupinspire.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Ranked",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupranked.com/",
+    "submissionUrl": "https://startupranked.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Ranking",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupranking.com/",
+    "submissionUrl": "https://www.startupranking.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Sea",
+    "type": "WEBSITE",
+    "rootUrl": "http://www.startupsea.com/",
+    "submissionUrl": "http://www.startupsea.com/p/submit-startup.html",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Spotlight",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupspotlight.co/",
+    "submissionUrl": "https://www.startupspotlight.co/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Stash",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupstash.com/",
+    "submissionUrl": "https://startupstash.com/add-listing/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Tile",
+    "type": "WEBSITE",
+    "rootUrl": "https://startuptile.com/",
+    "submissionUrl": "https://startuptile.com/payg/pay",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup Tracker",
+    "type": "WEBSITE",
+    "rootUrl": "https://startuptracker.io/",
+    "submissionUrl": "https://startuptracker.io/crowdsourcing/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startup.sx",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startup.sx/",
+    "submissionUrl": "https://www.startup.sx/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "StartupBase",
+    "type": "WEBSITE",
+    "rootUrl": "https://startupbase.io/",
+    "submissionUrl": "https://startupbase.io/launch",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "StartupBlink",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startupblink.com/",
+    "submissionUrl": "https://www.startupblink.com/startups",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "StartupLibrary",
+    "type": "WEBSITE",
+    "rootUrl": "https://startuplibrary.net/",
+    "submissionUrl": "https://startuplibrary.net/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startuplist Africa",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startuplist.africa/",
+    "submissionUrl": "https://www.startuplist.africa/submit-startup",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startups Gallery",
+    "type": "WEBSITE",
+    "rootUrl": "https://startups.gallery/",
+    "submissionUrl": "https://startups.gallery/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Startups-List",
+    "type": "WEBSITE",
+    "rootUrl": "https://startups-list.com/",
+    "submissionUrl": "https://startups-list.com/cities",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Startups.fm",
+    "type": "WEBSITE",
+    "rootUrl": "https://startups.fm/",
+    "submissionUrl": "https://startups.fm/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Startups.fyi",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.startups.fyi/",
+    "submissionUrl": "https://www.startups.fyi/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Startups.watch",
+    "type": "WEBSITE",
+    "rootUrl": "https://startups.watch/",
+    "submissionUrl": "https://startups.watch/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "StartupTrusted",
+    "type": "WEBSITE",
+    "rootUrl": "https://startuptrusted.com/",
+    "submissionUrl": "https://startuptrusted.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Stellar Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.stellarlaunch.org/",
+    "submissionUrl": "https://www.stellarlaunch.org/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "StrictSeal",
+    "type": "WEBSITE",
+    "rootUrl": "https://strictseal.com/",
+    "submissionUrl": "https://strictseal.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "SubmitMySaas",
+    "type": "WEBSITE",
+    "rootUrl": "https://submitmysaas.com/",
+    "submissionUrl": "https://submitmysaas.com/projects/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Super Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.superlaun.ch/",
+    "submissionUrl": "https://www.superlaun.ch/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Superb Crew",
+    "type": "WEBSITE",
+    "rootUrl": "https://superbcrew.com/",
+    "submissionUrl": "https://superbcrew.com/your-voice/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "SuperLaunchList",
+    "type": "WEBSITE",
+    "rootUrl": "https://superlaunchlist.com/",
+    "submissionUrl": "https://superlaunchlist.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Taalk",
+    "type": "WEBSITE",
+    "rootUrl": "https://taalk.com/",
+    "submissionUrl": "https://taalk.com/submit-startup",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Tap4 AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://tap4.ai/",
+    "submissionUrl": "https://tap4.ai/submit/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Tapscape",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.tapscape.com/",
+    "submissionUrl": "https://www.tapscape.com/submit-app-review/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Tech Map",
+    "type": "WEBSITE",
+    "rootUrl": "https://techmap.me/",
+    "submissionUrl": "https://techmap.me/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tech Pluto",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.techpluto.com/",
+    "submissionUrl": "https://www.techpluto.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Techboard",
+    "type": "WEBSITE",
+    "rootUrl": "https://techboard.com.au/",
+    "submissionUrl": "https://techboard.com.au/get-listed/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Techendo",
+    "type": "WEBSITE",
+    "rootUrl": "https://techendo.com/",
+    "submissionUrl": "https://techendo.com/beta/add",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tekpon",
+    "type": "WEBSITE",
+    "rootUrl": "https://tekpon.com/",
+    "submissionUrl": "https://tekpon.com/get-listed/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Thank John",
+    "type": "WEBSITE",
+    "rootUrl": "https://thankjohn.com/",
+    "submissionUrl": "https://thankjohn.com/get-started",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "ThatsMyAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://thatsmy.ai/",
+    "submissionUrl": "https://thatsmy.ai/submit-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "The Agents Index",
+    "type": "WEBSITE",
+    "rootUrl": "https://theagentsindex.com/",
+    "submissionUrl": "https://theagentsindex.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "The AI Generation",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.theaigeneration.com/",
+    "submissionUrl": "https://www.theaigeneration.com/add/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "The Hack Stack",
+    "type": "WEBSITE",
+    "rootUrl": "https://thehackstack.com/",
+    "submissionUrl": "https://thehackstack.com/add-product",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "The Startup INC",
+    "type": "WEBSITE",
+    "rootUrl": "https://thestartupinc.com/",
+    "submissionUrl": "https://thestartupinc.com/submit-startup/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "TheAISurf",
+    "type": "WEBSITE",
+    "rootUrl": "https://theaisurf.com/",
+    "submissionUrl": "https://theaisurf.com/submit-listing/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "There's An AI For That",
+    "type": "WEBSITE",
+    "rootUrl": "https://theresanaiforthat.com/",
+    "submissionUrl": "https://theresanaiforthat.com/launch/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "TheSaaSDir",
+    "type": "WEBSITE",
+    "rootUrl": "https://thesaasdir.com/",
+    "submissionUrl": "https://thesaasdir.com/submit/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "TheSaaSDirectory",
+    "type": "WEBSITE",
+    "rootUrl": "https://thesaasdirectory.com/",
+    "submissionUrl": "https://thesaasdirectory.com/create-listing/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Thingtesting",
+    "type": "WEBSITE",
+    "rootUrl": "https://thingtesting.com/",
+    "submissionUrl": "https://thingtesting.com/submit-brand",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tiny Launch",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.tinylaunch.com/",
+    "submissionUrl": "https://www.tinylaunch.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tiny Startups",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.tinystartups.com/",
+    "submissionUrl": "https://www.tinystartups.com/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "TipSeason",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.tipseason.com/",
+    "submissionUrl": "https://www.tipseason.com/ai-tools/submit-free",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Today Launches",
+    "type": "WEBSITE",
+    "rootUrl": "https://todaylaunches.com/",
+    "submissionUrl": "https://todaylaunches.com/pricing",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tool AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.toolai.io/",
+    "submissionUrl": "https://www.toolai.io/submit/tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Tool Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://tooldirectory.ai/",
+    "submissionUrl": "https://tooldirectory.ai/submit-tool",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ToolDirs",
+    "type": "WEBSITE",
+    "rootUrl": "https://tooldirs.com/",
+    "submissionUrl": "https://tooldirs.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "ToolFame",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolfame.com/",
+    "submissionUrl": "https://toolfame.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolfio",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolfio.com/",
+    "submissionUrl": "https://toolfio.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolfolio",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolfolio.com/",
+    "submissionUrl": "https://toolfolio.com/boosted-listing",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolify.ai",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.toolify.ai/",
+    "submissionUrl": "https://www.toolify.ai/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolkitly",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.toolkitly.com/",
+    "submissionUrl": "https://www.toolkitly.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ToolPasta",
+    "type": "WEBSITE",
+    "rootUrl": "https://robopost.app/",
+    "submissionUrl": "https://robopost.app/en/toolpasta/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "ToolPilot",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.toolpilot.ai/",
+    "submissionUrl": "https://www.toolpilot.ai/pages/submit-your-ai-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tools AI Online",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.tools-ai.online/",
+    "submissionUrl": "https://www.tools-ai.online/submit-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tools NoCode",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolsnocode.com/",
+    "submissionUrl": "https://toolsnocode.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Tools.so",
+    "type": "WEBSITE",
+    "rootUrl": "https://tools.so/",
+    "submissionUrl": "https://tools.so/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolscout AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolscout.ai/",
+    "submissionUrl": "https://toolscout.ai/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolsfine",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolsfine.com/",
+    "submissionUrl": "https://toolsfine.com/submit-ai-tools-or-product",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Toolspedia",
+    "type": "WEBSITE",
+    "rootUrl": "https://toolspedia.io/",
+    "submissionUrl": "https://toolspedia.io/submit-tool/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Toools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.toools.design/",
+    "submissionUrl": "https://www.toools.design/suggest-a-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "TopAI.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://topai.tools/",
+    "submissionUrl": "https://topai.tools/submit",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "TopAITools4U",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.topaitools4u.site/",
+    "submissionUrl": "https://www.topaitools4u.site/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Tracxn",
+    "type": "WEBSITE",
+    "rootUrl": "https://tracxn.com/",
+    "submissionUrl": "https://tracxn.com/listyourstartup",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Trust Revenue",
+    "type": "WEBSITE",
+    "rootUrl": "https://trust-revenue.com/",
+    "submissionUrl": "https://trust-revenue.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "TrustMRR",
+    "type": "WEBSITE",
+    "rootUrl": "https://trustmrr.com/",
+    "submissionUrl": "https://trustmrr.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Trustpilot",
+    "type": "WEBSITE",
+    "rootUrl": "https://business.trustpilot.com/",
+    "submissionUrl": "https://business.trustpilot.com/signup",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "TrustRadius",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.trustradius.com/",
+    "submissionUrl": "https://www.trustradius.com/",
+    "description": "",
+    "businessModel": "UNKNOWN",
+    "lastChecked": null
+  },
+  {
+    "name": "TrustROAS",
+    "type": "WEBSITE",
+    "rootUrl": "https://trustroas.com/",
+    "submissionUrl": "https://trustroas.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Turbo0",
+    "type": "WEBSITE",
+    "rootUrl": "https://turbo0.com/",
+    "submissionUrl": "https://turbo0.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Twelve Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://twelve.tools/",
+    "submissionUrl": "https://twelve.tools/submit-your-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "ufind.best",
+    "type": "WEBSITE",
+    "rootUrl": "https://ufind.best/",
+    "submissionUrl": "https://ufind.best/pricing",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Uneed",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.uneed.best/",
+    "submissionUrl": "https://www.uneed.best/submit-a-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Unloc.tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://unloc.tools/",
+    "submissionUrl": "https://unloc.tools/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "Uno Directory",
+    "type": "WEBSITE",
+    "rootUrl": "https://uno.directory/",
+    "submissionUrl": "https://uno.directory/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Vantaige",
+    "type": "WEBSITE",
+    "rootUrl": "https://vantaige.io/",
+    "submissionUrl": "https://vantaige.io/list-your-ai-tool",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Verified Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.verifiedtools.info/",
+    "submissionUrl": "https://www.verifiedtools.info/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "VerifiedDR",
+    "type": "WEBSITE",
+    "rootUrl": "https://verifieddr.com/",
+    "submissionUrl": "https://verifieddr.com/",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Versily",
+    "type": "WEBSITE",
+    "rootUrl": "https://versily.com/",
+    "submissionUrl": "https://versily.com/start/product",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "VibeHacker",
+    "type": "WEBSITE",
+    "rootUrl": "https://vibehacker.com/",
+    "submissionUrl": "https://vibehacker.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "Victrays",
+    "type": "WEBSITE",
+    "rootUrl": "https://victrays.com/",
+    "submissionUrl": "https://victrays.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Viesearch",
+    "type": "WEBSITE",
+    "rootUrl": "https://viesearch.com/",
+    "submissionUrl": "https://viesearch.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Votekicker",
+    "type": "WEBSITE",
+    "rootUrl": "https://votekicker.com/",
+    "submissionUrl": "https://votekicker.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": null
+  },
+  {
+    "name": "WaildWorld",
+    "type": "WEBSITE",
+    "rootUrl": "https://waildworld.com/",
+    "submissionUrl": "https://waildworld.com/",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "We Like Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://weliketools.com/",
+    "submissionUrl": "https://weliketools.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Web App Rater",
+    "type": "WEBSITE",
+    "rootUrl": "https://webapprater.com/",
+    "submissionUrl": "https://webapprater.com/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Web Designer News",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.webdesignernews.com/",
+    "submissionUrl": "https://www.webdesignernews.com/advertise",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "WebCatalog",
+    "type": "WEBSITE",
+    "rootUrl": "https://webcatalog.io/",
+    "submissionUrl": "https://webcatalog.io/en/apps/submit",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Webcurate",
+    "type": "WEBSITE",
+    "rootUrl": "https://webcurate.co/",
+    "submissionUrl": "https://webcurate.co/",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Website Hunt",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.websitehunt.co/",
+    "submissionUrl": "https://www.websitehunt.co/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Webspot",
+    "type": "WEBSITE",
+    "rootUrl": "https://webspot.app/",
+    "submissionUrl": "https://webspot.app/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "WeekHack",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.weekhack.com/",
+    "submissionUrl": "https://www.weekhack.com/launches/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "Wellfound",
+    "type": "WEBSITE",
+    "rootUrl": "https://help.wellfound.com/",
+    "submissionUrl": "https://help.wellfound.com/article/720-how-can-i-create-a-new-company-or-access-an-existing-one",
+    "description": "",
+    "businessModel": "FREE",
+    "lastChecked": null
+  },
+  {
+    "name": "Welodge Pulse",
+    "type": "WEBSITE",
+    "rootUrl": "https://pulse.welodge.co.zw/",
+    "submissionUrl": "https://pulse.welodge.co.zw/app/startups/new",
+    "description": "",
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": null
+  },
+  {
+    "name": "What Is AI Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://whatisaitools.com/",
+    "submissionUrl": "https://whatisaitools.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "WhatLaunched.Today",
+    "type": "WEBSITE",
+    "rootUrl": "https://whatlaunched.today/",
+    "submissionUrl": "https://whatlaunched.today/",
+    "description": "",
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": null
+  },
+  {
+    "name": "WhatTheAI",
+    "type": "WEBSITE",
+    "rootUrl": "https://whattheai.tech/",
+    "submissionUrl": "https://whattheai.tech/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": null
+  },
+  {
+    "name": "Where2Go",
+    "type": "WEBSITE",
+    "rootUrl": "https://where2go.com/",
+    "submissionUrl": "https://where2go.com/binn/su.w2g?function=form",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "WIP",
+    "type": "WEBSITE",
+    "rootUrl": "https://wip.co/",
+    "submissionUrl": "https://wip.co/join",
+    "description": "",
+    "businessModel": "PAID",
+    "lastChecked": null
+  },
+  {
+    "name": "Wired Business",
+    "type": "WEBSITE",
+    "rootUrl": "https://wired.business/",
+    "submissionUrl": "https://wired.business/submit-your-website",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Xinquji",
+    "type": "WEBSITE",
+    "rootUrl": "https://xinquji.com/",
+    "submissionUrl": "https://xinquji.com/submit",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "YourStory",
+    "type": "WEBSITE",
+    "rootUrl": "https://yourstory.com/",
+    "submissionUrl": "https://yourstory.com/companies",
+    "description": "",
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": null
+  },
+  {
+    "name": "zPlatform.ai",
+    "type": "WEBSITE",
+    "rootUrl": "https://zplatform.ai/",
+    "submissionUrl": "https://zplatform.ai/submit-ai-tool/",
+    "description": "",
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": null
+  },
+  {
+    "name": "Zumvu",
+    "type": "WEBSITE",
+    "rootUrl": "https://zumvu.com/",
+    "submissionUrl": "https://zumvu.com/",
+    "description": "",
+    "businessModel": "FREE_FOR_LIMITED_TIME",
+    "lastChecked": null
+  }
+]

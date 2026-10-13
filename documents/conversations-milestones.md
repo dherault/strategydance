@@ -1693,6 +1693,39 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - Tests: a key sent as a bearer token and in a named header, and a reserved header name refused.
 - Verify: add a key-based server and see its tools; add an OAuth one and see its discovery pass and
   its tools wait for a connection; turn one off, delete and undo.
+- Built with these settled, on 2026-10-13:
+  - The list query checks membership alone, the page and the routes holding the staff gate, as David
+    chose (see Release gate). A failed add or edit saves nothing and says why beside the field to
+    fix, as David chose; the table's Error and Retry are for a server that failed a later try.
+  - The catalogue is its own package, strategydance-external-mcp-servers, a JSON list and lookups,
+    as David chose, with 59 servers he picked from those checked: each answers at its address as an
+    MCP server, a nonsense path on its host answering otherwise, and each OAuth one offers S256 and
+    dynamic registration or client ID metadata documents, without which M28 could never connect it.
+    The design's Google Calendar, Gmail and Google Drive addresses had no server; HubSpot's, Slack's,
+    Box's, Xero's, Zoom's and Asana's V2 authorization servers offer no way to register; GitHub's
+    neither, so GitHub is listed with a personal access token as a bearer, the catalogue's one
+    key-based server. `bun run probe:integrations` checks every entry through the backend's own
+    guard and discovery. Marks are Simple Icons glyphs in each brand's colour; Simple Icons has none
+    for 22, which draw their initial.
+  - Discovery never uses the SDK's `discoverOAuthServerInfo`, which takes the server's origin as its
+    authorization server on any failure: a passing outage would read as another issuer and clear
+    everything. The origin is taken only when every metadata address answered 404, as Atlassian's
+    server, which has no protected resource metadata, needs.
+  - Listing tools speaks a 2025 handshake first, as every remote server does today, and the
+    2026-07-28 revision when a server answers that it speaks only that.
+  - The OAuth client's columns, members' connections and pending authorizations are M28's, which adds
+    them to the writes that clear what was given for another server.
+  - A Data Connect rule found on the way: a nullable variable left out of a write keeps its column,
+    so the write that clears a key is called with every such variable, null included.
+  - Closing the MCP client aborts its stream of server events, which destroyed a TLS socket nothing
+    listened to under Bun and took the backend down: the request's socket is listened to now.
+  - Verified: the four checks; `check:integrations` against an emulator of the branch's schema;
+    `probe:integrations` on all 59 servers; in the browser at 1280 and 390 wide, against the
+    emulators, DeepWiki added by its address and its three tools listed, Linear added from the
+    gallery with its tools waiting, GitHub with a made-up token refused under the key field,
+    `metadata.google.internal` refused, a server turned off and on, deleted and restored, and a
+    member's read-only view. Not yet: a real key listing a key-based server's tools, which needs a
+    token, and Cloud KMS, which waits for setup step 9.
 
 ### M28: Integrations: members connect their accounts
 

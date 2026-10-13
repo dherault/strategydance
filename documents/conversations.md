@@ -2337,8 +2337,9 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
-  member started it, so the callback is gated through it. The integration list query checks
+  M27 and M28, the OAuth initiation and its finish included: an authorization's state only exists
+  once a staff member started it, so the callback is gated through it, and only that member's own
+  signed-in page finishes it. The integration list query checks
   membership alone, as David chose on 2026-10-13 (M27): the page's bouncer (`useCanUseIntegrations`)
   and the routes gate integrations as they gate conversations, the list holds nothing secret, and a
   connector cannot tell the emulators from production, so a staff filter would have broken the local

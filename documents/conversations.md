@@ -2423,9 +2423,9 @@ account, and until both exist every send in production answers 503.
    at 50%, 90% and 100% (done on 2026-10-04).
 9. For M27 to M29: a Cloud KMS key for integration secrets, with
    `roles/cloudkms.cryptoKeyEncrypterDecrypter` for the runtime service account, on that key alone.
-   Not done on 2026-10-13, when M27 was built: the API was not enabled on the project, so until this
-   step a key-based server's add answers 503 in production, while one taking OAuth or nothing works.
-   The backend names the key `INTEGRATION_KMS_KEY_NAME`:
+   Until it is done, a key-based server's add answers 503 in production, while one taking OAuth or
+   nothing works. Done on 2026-10-13, with the commands below: the key's first rotation falls on
+   2027-01-11. The backend names the key `INTEGRATION_KMS_KEY_NAME`:
 
    ```sh
    gcloud services enable cloudkms.googleapis.com --project strategydance

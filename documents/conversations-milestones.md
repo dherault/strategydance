@@ -1725,7 +1725,8 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     gallery with its tools waiting, GitHub with a made-up token refused under the key field,
     `metadata.google.internal` refused, a server turned off and on, deleted and restored, and a
     member's read-only view. Not yet: a real key listing a key-based server's tools, which needs a
-    token, and Cloud KMS, which waits for setup step 9.
+    token, and Cloud KMS in production, set up as step 9 says on 2026-10-13 and first used by the
+    release.
 
 ### M28: Integrations: members connect their accounts
 

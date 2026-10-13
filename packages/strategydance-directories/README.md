@@ -20,8 +20,10 @@ Each entry holds:
 - `rootUrl`: the site's origin, or a Reddit community's own page, since reddit.com itself is never
   down
 - `submissionUrl`: where a startup is submitted
-- `description`: empty for now
-- `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for every inactive one
+- `description`: what the directory lists and for whom, written by the daily check, empty until it
+  has been
+- `businessModel`: a `DirectoryBusinessModel`, `UNKNOWN` for those imported as inactive, while one
+  the daily check moves there keeps its own
 - `lastChecked`: the UTC day (`YYYY-MM-DD`) of the last check, whatever came of it, null until
   something checks the directory
 - `unreachableSince`: the UTC day of the first of the checks in a row that could not reach the

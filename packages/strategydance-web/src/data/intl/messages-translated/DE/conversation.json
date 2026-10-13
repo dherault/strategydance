@@ -188,7 +188,5 @@
   "conversation.undo": "Rückgängig machen",
   "conversation.updated": "Aktualisiert {time}",
   "conversation.updatedJustNow": "Gerade eben",
-  "conversation.viewError": "Fehler anzeigen",
-  "conversation.viewOutput": "Ausgabe anzeigen",
   "conversation.working": "Strategy Dance arbeitet: {step}"
 }

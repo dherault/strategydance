@@ -188,7 +188,5 @@
   "conversation.undo": "元に戻す",
   "conversation.updated": "更新: {time}",
   "conversation.updatedJustNow": "たった今",
-  "conversation.viewError": "エラーを表示",
-  "conversation.viewOutput": "出力を表示",
   "conversation.working": "Strategy Danceが処理中: {step}"
 }

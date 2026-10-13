@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { Directory, InactiveDirectory } from 'strategydance-directories'
+import { type Directory, DirectoryCategory, type InactiveDirectory } from 'strategydance-directories'
 
 import type { DirectoryCheck, DirectoryLists, DirectoryPage, DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
 
@@ -61,8 +61,18 @@ describe('applyDirectoryChecks', () => {
     const directory = createDirectory('tools', { lastChecked: '2026-09-01' })
     const { directories, outcome } = apply(createLists([directory]), createCheck(directory, { answer: {} }))
 
-    expect(directories).toEqual([{ ...directory, description: createAnswer().description!, lastChecked: TODAY }])
-    expect(outcome).toMatchObject({ result: 'active', changes: [expect.stringContaining('Description written')] })
+    expect(directories).toEqual([
+      {
+        ...directory,
+        description: createAnswer().description!,
+        categories: [DirectoryCategory.ANY_STARTUP],
+        lastChecked: TODAY,
+      },
+    ])
+    expect(outcome).toMatchObject({
+      result: 'active',
+      changes: [expect.stringContaining('Description written'), 'Categories written: ANY_STARTUP'],
+    })
   })
 
   test('keeps a description the review found right, and rewrites one it found wrong', () => {
@@ -75,6 +85,32 @@ describe('applyDirectoryChecks', () => {
       apply(createLists([directory]), createCheck(directory, { answer: { isCurrentDescriptionAccurate: false } }))
         .directories[0].description,
     ).toBe(createAnswer().description!)
+  })
+
+  test('keeps categories the review found right, and rewrites ones it found wrong', () => {
+    const directory = createDirectory('tools', { categories: [DirectoryCategory.AI_TOOLS] })
+    const categories = [DirectoryCategory.AI_TOOLS, DirectoryCategory.AI_AGENTS]
+
+    expect(apply(createLists([directory]), createCheck(directory, { answer: { categories } })).directories[0]).toEqual(
+      expect.objectContaining({ categories: [DirectoryCategory.AI_TOOLS] }),
+    )
+
+    const { directories, outcome } = apply(
+      createLists([directory]),
+      createCheck(directory, { answer: { categories, areCurrentCategoriesAccurate: false } }),
+    )
+
+    expect(directories[0].categories).toEqual(categories)
+    expect(outcome.changes).toContain('Categories AI_TOOLS → AI_TOOLS, AI_AGENTS')
+  })
+
+  test('writes no categories from an answer that named none', () => {
+    const directory = createDirectory('tools')
+
+    expect(
+      apply(createLists([directory]), createCheck(directory, { answer: { categories: null } })).directories[0]
+        .categories,
+    ).toEqual([])
   })
 
   test('changes a business model only on a quote found in what was read', () => {
@@ -253,7 +289,13 @@ describe('applyDirectoryChecks', () => {
 
     expect(inactiveDirectories).toEqual([])
     expect(directories).toEqual([
-      { ...fields, description: createAnswer().description!, lastChecked: TODAY, unreachableSince: null },
+      {
+        ...fields,
+        description: createAnswer().description!,
+        categories: [DirectoryCategory.ANY_STARTUP],
+        lastChecked: TODAY,
+        unreachableSince: null,
+      },
     ])
     expect(outcome.result).toBe('movedToActive')
   })

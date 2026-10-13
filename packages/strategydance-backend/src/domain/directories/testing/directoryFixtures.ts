@@ -1,6 +1,7 @@
 import {
   type Directory,
   DirectoryBusinessModel,
+  DirectoryCategory,
   DirectoryInactiveReason,
   DirectoryType,
   type InactiveDirectory,
@@ -55,6 +56,8 @@ export function createAnswer(fields: Partial<DirectoryReviewAnswer> = {}): Direc
     inactiveReason: null,
     description: 'Directory of tools for founders, where makers submit their own products.',
     isCurrentDescriptionAccurate: true,
+    categories: [DirectoryCategory.ANY_STARTUP],
+    areCurrentCategoriesAccurate: true,
     businessModel: null,
     evidence: null,
     submissionUrl: null,

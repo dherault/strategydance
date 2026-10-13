@@ -49,8 +49,8 @@ function applyDirectoryChecks(lists: DirectoryLists, checks: DirectoryCheck[], t
     bots, clears it
   - a root that redirected within its site, to https or to its `www.` or away from it, moves the
     entry's addresses with it; one that left its site is the review's to judge, never followed
-  - a review that answered ACTIVE writes a description where there is none or the review found it
-    wrong, and a business model or a submission page only on what proves it: a quote found in what
+  - a review that answered ACTIVE writes a description and categories where there are none or the
+    review found them wrong, and a business model or a submission page only on what proves it: a quote found in what
     was read, and a probe of the page that answered
   - one that answered INACTIVE moves the directory only on a quote found in what was read, and
     never takes the page the quote is on for one lacking a way to submit when its scripts draw it
@@ -152,8 +152,8 @@ function applyDirectoryCheck(lists: DirectoryLists, check: DirectoryCheck, today
   return keep(lists, next, 'inconclusive', changes, notes.join(' '))
 }
 
-// The entry an ACTIVE answer leaves: its description, business model and submission page, each
-// changed only on what proves it
+// The entry an ACTIVE answer leaves: its description, categories, business model and submission
+// page, each changed only on what proves it
 function describe(
   lists: DirectoryLists,
   directory: Directory,
@@ -173,6 +173,19 @@ function describe(
   ) {
     next.description = answer.description
     changes.push(`${entry.description ? 'Description rewritten' : 'Description written'}: “${answer.description}”`)
+  }
+
+  if (
+    answer.categories
+    && answer.categories.join() !== entry.categories.join()
+    && (!entry.categories.length || !answer.areCurrentCategoriesAccurate)
+  ) {
+    next.categories = answer.categories
+    changes.push(
+      entry.categories.length
+        ? `Categories ${entry.categories.join(', ')} → ${answer.categories.join(', ')}`
+        : `Categories written: ${answer.categories.join(', ')}`,
+    )
   }
 
   if (answer.businessModel && answer.businessModel !== entry.businessModel) {

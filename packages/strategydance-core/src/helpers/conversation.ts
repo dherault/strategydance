@@ -23,7 +23,26 @@ export function buildConversationPreview(source: ConversationPreviewSource): Con
     case 'TOOL_CALL':
       if (!source.toolName || !source.toolStatus) throw new Error('A tool call needs its name and status')
 
-      return { kind: source.kind, toolName: source.toolName, toolStatus: source.toolStatus }
+      return {
+        kind: source.kind,
+        toolName: source.toolName,
+        toolStatus: source.toolStatus,
+        ...(source.integrationName
+          ? { integrationName: takeGraphemes(source.integrationName, MAX_CONVERSATION_PREVIEW_LENGTH) }
+          : {}),
+      }
+    case 'APPROVAL':
+      if (!source.integrationName || !source.integrationToolName || !source.approvalState) {
+        throw new Error('An approval needs its server, its tool and its state')
+      }
+
+      return {
+        kind: source.kind,
+        integrationName: takeGraphemes(source.integrationName, MAX_CONVERSATION_PREVIEW_LENGTH),
+        integrationToolName: takeGraphemes(source.integrationToolName, MAX_CONVERSATION_PREVIEW_LENGTH),
+        approvalState: source.approvalState,
+        toolStatus: source.toolStatus ?? null,
+      }
     case 'QUESTION':
       return buildQuestionPreview(source)
     case 'NOTE':

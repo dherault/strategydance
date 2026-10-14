@@ -79,10 +79,15 @@ export type LinkPreviewData = {
   to typecheck wherever a row is passed
 */
 export type ConversationPreviewSource = {
-  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE'
+  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE' | 'APPROVAL'
   text?: string | null
   toolName?: string | null
   toolStatus?: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | null
+  // A call to an integration's, a tool call or an approval: the server's name and the tool's, as
+  // they were at call time, and an approval's state
+  integrationName?: string | null
+  integrationToolName?: string | null
+  approvalState?: 'PENDING' | 'ALLOWED' | 'DENIED' | null
   questionPrompt?: string | null
   answerSelected?: string[] | null
   answerOther?: string | null
@@ -110,6 +115,16 @@ export type ConversationPreview =
       kind: 'TOOL_CALL'
       toolName: string
       toolStatus: NonNullable<ConversationPreviewSource['toolStatus']>
+      // A call to an integration: the server it went to, which the list names, "Called Stripe"
+      integrationName?: string
+    }
+  | {
+      kind: 'APPROVAL'
+      integrationName: string
+      integrationToolName: string
+      approvalState: NonNullable<ConversationPreviewSource['approvalState']>
+      // Where the call stands once allowed, null until a run starts it
+      toolStatus: ConversationPreviewSource['toolStatus']
     }
   | {
       kind: 'QUESTION'

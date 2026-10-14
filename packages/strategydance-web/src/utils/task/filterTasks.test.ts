@@ -19,6 +19,8 @@ function makeTask(id: string, overrides: Partial<Task> = {}): Task {
     aspects: [],
     createdById: null,
     createdAt: '2026-10-09T10:00:00Z',
+    doneAt: null,
+    updatedAt: '2026-10-09T10:00:00Z',
     dependencies: [],
     linkCount: [{ _count: 0 }],
     ...overrides,

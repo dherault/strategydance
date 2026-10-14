@@ -721,6 +721,9 @@ query GetTasks($organizationId: UUID!)
     aspects
     createdById
     createdAt
+    # When a done task was finished, else its last change, which the build in public cards date it by
+    doneAt
+    updatedAt
     dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
       dependencyId
     }

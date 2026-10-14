@@ -1,16 +1,13 @@
+import type { RefObject } from 'react'
 import { useIntl } from 'react-intl'
 
 import type { ConversationRun } from '~types'
 
-import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationPendingMessages from '~hooks/conversation/useConversationPendingMessages'
 
-import getConversationThinkingStart from '~utils/conversation/getConversationThinkingStart'
-import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
-import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
+import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 
-import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
-import ConversationThinking from '~components/conversation/ConversationThinking'
+import ConversationDraftThreadMessages from '~components/conversation/ConversationDraftThreadMessages'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -20,6 +17,8 @@ type Props = {
   run: ConversationRun | null
   // The run the reader last started from the page, and what records it
   startedRun: StartedConversationRun | null
+  // The box the thread scrolls in, in a dock's window, or none on the page, where the window scrolls
+  scrollerRef?: RefObject<HTMLElement | null>
   // Small in a dock's window, which is narrow
   size?: 'sm' | 'md'
 }
@@ -27,16 +26,14 @@ type Props = {
 /*
   A draft's thread, until the conversation its first message stores is read: a line saying what to
   ask, then, from the moment the reader sends that message, the message as they sent it and the
-  thinking indicator under it, as `ConversationThread` goes on drawing them once the conversation
-  is read. Should the send fail, the message goes back to the composer and the line comes back
+  thinking indicator under it (`ConversationDraftThreadMessages`), as `ConversationThread` goes on
+  drawing them once the conversation is read. Should the send fail, the message goes back to the
+  composer and the line comes back. Only the messages follow the reader's scroll, so nothing moves
+  the page while the line is all there is
 */
-function ConversationDraftThread({ conversationId, run, startedRun, size = 'md' }: Props) {
+function ConversationDraftThread({ conversationId, run, startedRun, scrollerRef, size = 'md' }: Props) {
   const { formatMessage } = useIntl()
-  const { pendingMessages, isSending, sendingMessage } = useConversationPendingMessages(conversationId)
-  const documents = useConversationDocuments(pendingMessages.some(({ text }) => /doc:/i.test(text)))
-
-  const isWorking = isConversationRunGoing(run)
-  const isAwaiting = isAwaitingConversationRun(startedRun, run)
+  const { pendingMessages, sendingMessage } = useConversationPendingMessages(conversationId)
 
   if (!pendingMessages.length) {
     return (
@@ -47,35 +44,15 @@ function ConversationDraftThread({ conversationId, run, startedRun, size = 'md' 
   }
 
   return (
-    <div className="flex grow flex-col py-2">
-      <div
-        role="log"
-        aria-label={formatMessage(conversationMessages.threadLabel)}
-        className="flex flex-col gap-4"
-      >
-        {pendingMessages.map(({ id, text, attachments }) => (
-          <div
-            key={id}
-            data-entry-id={id}
-            className="flex min-w-0 flex-col"
-          >
-            <ConversationMemberMessage
-              conversationId={conversationId}
-              text={text}
-              attachments={attachments}
-              documents={documents}
-              size={size}
-            />
-          </div>
-        ))}
-        {isWorking || isSending || isAwaiting ? (
-          <ConversationThinking
-            step={null}
-            startedAt={getConversationThinkingStart({ run, isWorking, sendingMessage, startedRun, isAwaiting })}
-          />
-        ) : null}
-      </div>
-    </div>
+    <ConversationDraftThreadMessages
+      conversationId={conversationId}
+      pendingMessages={pendingMessages}
+      sendingMessage={sendingMessage}
+      run={run}
+      startedRun={startedRun}
+      scrollerRef={scrollerRef}
+      size={size}
+    />
   )
 }
 

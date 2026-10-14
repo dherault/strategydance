@@ -52,6 +52,7 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
             conversationId={conversationId}
             run={run}
             startedRun={startedRun}
+            scrollerRef={scrollerRef}
             size="sm"
           />
         )}

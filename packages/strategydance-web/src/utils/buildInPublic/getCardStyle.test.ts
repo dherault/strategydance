@@ -30,8 +30,33 @@ describe('getCardStyle', () => {
 
   it('draws the logo so that it stands apart from every tone', () => {
     expect(read(getCardStyle('white', '#0051A3'), '--card-logo-background')).toBe('var(--card-accent)')
-    expect(read(getCardStyle('accent', '#0051A3'), '--card-logo-background')).toBe('#ffffff')
+    expect(read(getCardStyle('accent', '#0051A3'), '--card-logo-background')).toBe('var(--card-on-accent)')
     expect(read(getCardStyle('dark', '#142A41'), '--card-logo-ring')).not.toBe('none')
+  })
+
+  it('keeps an inverted logo white on the accent alone', () => {
+    expect(read(getCardStyle('accent', '#FDE047'), '--card-inverted-logo-background')).toBe('#ffffff')
+    expect(read(getCardStyle('white', '#FDE047'), '--card-inverted-logo-background')).toBe('var(--card-accent)')
+  })
+
+  it('marks things in a shade of the accent that reads on the card', () => {
+    const light = getCardStyle('white', '#FDE047')
+    const dark = getCardStyle('dark', '#142A41')
+
+    expect(read(light, '--card-mark')).toBe('var(--card-accent-ink)')
+    expect(read(light, '--card-accent-ink')).not.toBe('#fde047')
+    expect(read(dark, '--card-eyebrow')).toBe('var(--card-accent-high)')
+  })
+
+  it('darkens the accent into a panel under white text, and lightens it under black', () => {
+    expect(read(getCardStyle('accent', '#0051A3'), '--card-accent-shade')).toBe('black')
+    expect(read(getCardStyle('accent', '#FDE047'), '--card-accent-shade')).toBe('white')
+  })
+
+  it('outlines a lit day only where its background can melt into the card', () => {
+    expect(read(getCardStyle('white', '#0051A3'), '--card-cell-ring')).toBe('none')
+    expect(read(getCardStyle('dark', '#0051A3'), '--card-cell-ring')).not.toBe('none')
+    expect(read(getCardStyle('dark', '#0051A3', 'warm'), '--card-cell-ring')).toBe('none')
   })
 
   it('draws a warm flame whatever the tone', () => {
@@ -40,5 +65,7 @@ describe('getCardStyle', () => {
 
     expect(read(accent, '--flame-outer')).toBe(read(white, '--flame-outer'))
     expect(read(accent, '--flame-outer')).not.toBe(read(getCardStyle('accent', '#0051A3'), '--flame-outer'))
+    expect(read(accent, '--flame-edge')).toBe('var(--card-on-accent)')
+    expect(read(white, '--flame-edge')).toBe('var(--flame-outer)')
   })
 })

@@ -9,7 +9,9 @@ import BuildInPublicWait from '~components/buildInPublic/BuildInPublicWait'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
 // At module scope so the reference is stable across renders
-const BUILD_IN_PUBLIC_MESSAGE_TYPES: MessageType[] = ['buildInPublic']
+// The task catalogue for the board's words the task cards share: its columns, its due dates and
+// Strategy Dance's name
+const BUILD_IN_PUBLIC_MESSAGE_TYPES: MessageType[] = ['buildInPublic', 'task']
 
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/build-in-public')({
   component: BuildInPublicRoute,

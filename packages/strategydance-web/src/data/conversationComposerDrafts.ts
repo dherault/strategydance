@@ -59,9 +59,9 @@ export type ConversationComposerDraft = {
   attachmentRefusal: ConversationAttachmentRefusal | null
   // The id of the message a send is taking, while it goes, which no other send may race
   sendingMessageId: string | null
-  // The message last sent, from its send until the thread holds it and its send has gone through, or
-  // its send fails
-  pendingMessage: ConversationPendingMessage | null
+  // The messages sent, oldest first, each from its send until the thread holds it with its body and
+  // no send goes, or until its send fails
+  pendingMessages: readonly ConversationPendingMessage[]
   // The send that failed, kept so that sending the same message again is the same send: its id,
   // the message as it was sent, its mentions links to their documents, the files it sent, and the
   // latest run the page had read when it was first sent
@@ -84,7 +84,7 @@ export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
   attachments: [],
   attachmentRefusal: null,
   sendingMessageId: null,
-  pendingMessage: null,
+  pendingMessages: [],
   failedSend: null,
   failure: null,
   startedRun: null,
@@ -109,7 +109,7 @@ const drafts = createTabStore(
     && !draft.attachments.length
     && !draft.attachmentRefusal
     && !draft.sendingMessageId
-    && !draft.pendingMessage
+    && !draft.pendingMessages.length
     && !draft.failedSend
     && !draft.failure
     && !draft.startedRun,

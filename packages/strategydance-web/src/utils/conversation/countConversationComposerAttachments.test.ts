@@ -34,7 +34,7 @@ describe('countConversationComposerAttachments', () => {
       countConversationComposerAttachments({
         attachments: [createAttachment('a'), createAttachment('b')],
         sendingMessageId: null,
-        pendingMessage: null,
+        pendingMessages: [],
       }),
     ).toBe(2)
   })
@@ -44,9 +44,19 @@ describe('countConversationComposerAttachments', () => {
       countConversationComposerAttachments({
         attachments: [createAttachment('a')],
         sendingMessageId: 'message-1',
-        pendingMessage: createPendingMessage('message-1', 3),
+        pendingMessages: [createPendingMessage('message-1', 3)],
       }),
     ).toBe(4)
+  })
+
+  test('leaves out the files of the messages sent before, whose bodies the thread has not read yet', () => {
+    expect(
+      countConversationComposerAttachments({
+        attachments: [],
+        sendingMessageId: 'message-2',
+        pendingMessages: [createPendingMessage('message-1', 4), createPendingMessage('message-2', 2)],
+      }),
+    ).toBe(2)
   })
 
   test('leaves out the files of a message sent, once its send has gone through', () => {
@@ -54,7 +64,7 @@ describe('countConversationComposerAttachments', () => {
       countConversationComposerAttachments({
         attachments: [createAttachment('a')],
         sendingMessageId: null,
-        pendingMessage: createPendingMessage('message-1', 3),
+        pendingMessages: [createPendingMessage('message-1', 3)],
       }),
     ).toBe(1)
   })

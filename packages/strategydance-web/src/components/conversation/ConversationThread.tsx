@@ -14,7 +14,7 @@ import type { Conversation, ConversationMessageAttachment, ConversationRun, Conv
 import useNow from '~hooks/common/useNow'
 import useConversationDeletedItems from '~hooks/conversation/useConversationDeletedItems'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
-import useConversationPendingMessage from '~hooks/conversation/useConversationPendingMessage'
+import useConversationPendingMessages from '~hooks/conversation/useConversationPendingMessages'
 import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
@@ -69,7 +69,7 @@ type Props = {
   A conversation's thread: each entry as the design draws its kind, oldest first, and the thinking
   indicator after them while a run goes, until its lease passes, when the backend is asked to
   reconcile it. The message the reader sends is drawn at its foot the moment they send it, and in
-  place of its body until that is read (`pendingMessage`), and the thinking indicator shows from the
+  place of its body until that is read (`pendingMessages`), and the thinking indicator shows from the
   same moment, as it does from any run the reader starts, before the read of the latest run has
   caught up. The questions of the turn the conversation waits on are answered in place, and a
   run waiting on questions all answered is reconciled too, in case its last answer could not carry
@@ -89,10 +89,10 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
-  const { pendingMessage, isSending, forgetPendingMessage } = useConversationPendingMessage(conversation.id)
+  const { pendingMessages, isSending, forgetPendingMessages } = useConversationPendingMessages(conversation.id)
   // Read as the reader sends a mention too, the composer's read, so it is drawn linked from the start
   const documents = useConversationDocuments(
-    needsConversationDocuments(entries, bodies) || /doc:/i.test(pendingMessage?.text ?? ''),
+    needsConversationDocuments(entries, bodies) || pendingMessages.some(({ text }) => /doc:/i.test(text)),
   )
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
@@ -108,19 +108,23 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   // The run the conversation waits on for the answers to its questions, while it does
   const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
 
-  // The message the reader just sent, while the tail does not hold it yet
-  const shownPendingMessage =
-    pendingMessage && !entries.some(({ id }) => id === pendingMessage.id) ? pendingMessage : null
-  // The message the reader just sent, once the thread holds it with its body, which it is drawn from,
-  // and its send has gone through: until then a failure can put it back, and the composer counts its
-  // files among those the next message may hold
-  const heldPendingMessageId = pendingMessage && !isSending && bodies.has(pendingMessage.id) ? pendingMessage.id : null
+  // The messages the reader sent that the tail does not hold yet, drawn at its foot
+  const shownPendingMessages = pendingMessages.filter(({ id }) => !entries.some(entry => entry.id === id))
+  // Those the thread holds with their bodies, which they are drawn from, once no send goes: until then
+  // a failure can put the one going back, and the composer counts its files among those the next
+  // message may hold. Joined, so the effect below runs when they change
+  const heldPendingMessageIds = isSending
+    ? ''
+    : pendingMessages
+        .filter(({ id }) => bodies.has(id))
+        .map(({ id }) => id)
+        .join()
 
-  const forgetHeldPendingMessage = useEffectEvent((id: string) => forgetPendingMessage(id))
+  const forgetHeldPendingMessages = useEffectEvent((ids: string[]) => forgetPendingMessages(ids))
 
   useEffect(() => {
-    if (heldPendingMessageId) forgetHeldPendingMessage(heldPendingMessageId)
-  }, [heldPendingMessageId])
+    if (heldPendingMessageIds) forgetHeldPendingMessages(heldPendingMessageIds.split(','))
+  }, [heldPendingMessageIds])
 
   useConversationThreadScroll(listRef, scrollerRef)
   useMarkConversationRead(conversation, isLatestShown)
@@ -182,7 +186,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
       !runId
       || runId !== run?.id
       || entry.id !== entries.at(-1)?.id
-      || shownPendingMessage
+      || shownPendingMessages.length
       || isWorking
       || isAwaiting
     ) {
@@ -240,13 +244,18 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
     const body = bodies.get(entry.id)
 
     switch (entry.kind) {
-      case ConversationMessageKind.MEMBER_TEXT:
+      case ConversationMessageKind.MEMBER_TEXT: {
         if (body) return renderMemberMessage(body.text ?? '', body.conversationAttachments_on_message)
 
         // The reader's own message, just sent, is drawn as they sent it until its body is read
-        if (entry.id === pendingMessage?.id) return renderMemberMessage(pendingMessage.text, pendingMessage.attachments)
+        const pending = pendingMessages.find(({ id }) => id === entry.id)
 
-        return <ConversationMessagePlaceholder isMember />
+        return pending ? (
+          renderMemberMessage(pending.text, pending.attachments)
+        ) : (
+          <ConversationMessagePlaceholder isMember />
+        )
+      }
       case ConversationMessageKind.AGENT_TEXT: {
         const piece = replies.get(entry.id)
 
@@ -343,17 +352,13 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
           && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL)
         || !!replies.get(entry.id)?.isContinuation,
     })),
-    // The message just sent, under its own id, so that it stays as it is drawn when its entry takes
-    // its place
-    ...(shownPendingMessage
-      ? [
-          {
-            id: shownPendingMessage.id,
-            content: renderMemberMessage(shownPendingMessage.text, shownPendingMessage.attachments),
-            isTight: false,
-          },
-        ]
-      : []),
+    // The messages just sent, under their own ids, so that each stays as it is drawn when its entry
+    // takes its place
+    ...shownPendingMessages.map(({ id, text, attachments }) => ({
+      id,
+      content: renderMemberMessage(text, attachments),
+      isTight: false,
+    })),
   ]
 
   return (

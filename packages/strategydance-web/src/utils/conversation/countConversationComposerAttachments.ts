@@ -7,12 +7,11 @@ import type { ConversationComposerDraft } from '~data/conversationComposerDrafts
 function countConversationComposerAttachments({
   attachments,
   sendingMessageId,
-  pendingMessage,
-}: Pick<ConversationComposerDraft, 'attachments' | 'sendingMessageId' | 'pendingMessage'>) {
-  const sending =
-    sendingMessageId !== null && pendingMessage?.id === sendingMessageId ? pendingMessage.attachments.length : 0
+  pendingMessages,
+}: Pick<ConversationComposerDraft, 'attachments' | 'sendingMessageId' | 'pendingMessages'>) {
+  const sending = pendingMessages.find(({ id }) => id === sendingMessageId)
 
-  return attachments.length + sending
+  return attachments.length + (sending?.attachments.length ?? 0)
 }
 
 export default countConversationComposerAttachments

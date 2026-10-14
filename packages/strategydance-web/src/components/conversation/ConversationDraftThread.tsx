@@ -3,7 +3,7 @@ import { useIntl } from 'react-intl'
 import type { ConversationRun } from '~types'
 
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
-import useConversationPendingMessage from '~hooks/conversation/useConversationPendingMessage'
+import useConversationPendingMessages from '~hooks/conversation/useConversationPendingMessages'
 
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
@@ -31,12 +31,12 @@ type Props = {
 */
 function ConversationDraftThread({ conversationId, run, startedRun, size = 'md' }: Props) {
   const { formatMessage } = useIntl()
-  const { pendingMessage, isSending } = useConversationPendingMessage(conversationId)
-  const documents = useConversationDocuments(/doc:/i.test(pendingMessage?.text ?? ''))
+  const { pendingMessages, isSending } = useConversationPendingMessages(conversationId)
+  const documents = useConversationDocuments(pendingMessages.some(({ text }) => /doc:/i.test(text)))
 
   const isWorking = isConversationRunGoing(run)
 
-  if (!pendingMessage) {
+  if (!pendingMessages.length) {
     return (
       <p className="my-auto px-2 py-6 text-center text-sm text-balance text-muted-foreground">
         {formatMessage(conversationMessages.threadEmpty)}
@@ -51,18 +51,21 @@ function ConversationDraftThread({ conversationId, run, startedRun, size = 'md' 
         aria-label={formatMessage(conversationMessages.threadLabel)}
         className="flex flex-col gap-4"
       >
-        <div
-          data-entry-id={pendingMessage.id}
-          className="flex min-w-0 flex-col"
-        >
-          <ConversationMemberMessage
-            conversationId={conversationId}
-            text={pendingMessage.text}
-            attachments={pendingMessage.attachments}
-            documents={documents}
-            size={size}
-          />
-        </div>
+        {pendingMessages.map(({ id, text, attachments }) => (
+          <div
+            key={id}
+            data-entry-id={id}
+            className="flex min-w-0 flex-col"
+          >
+            <ConversationMemberMessage
+              conversationId={conversationId}
+              text={text}
+              attachments={attachments}
+              documents={documents}
+              size={size}
+            />
+          </div>
+        ))}
         {isWorking || isSending || isAwaitingConversationRun(startedRun, run) ? (
           <ConversationThinking
             step={null}

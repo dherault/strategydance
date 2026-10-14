@@ -116,7 +116,7 @@ type Props = {
   every file it holds is up.
 
   A message sent leaves the field for the thread at once, which draws it, Strategy Dance thinking
-  under it, while its send goes and until the live read brings it in (`pendingMessage`), so the
+  under it, while its send goes and until the live read brings it in (`pendingMessages`), so the
   reader never waits to see it. Nothing is sent while a send or a run goes, nor once the
   conversation is full, though the reader can write meanwhile. A first send's run counts as going
   from the moment the backend answers, before the page's live read of it lands, so a second send
@@ -217,22 +217,25 @@ function ConversationComposer({
     }
 
     // The message leaves the field for the thread at once, which draws it while it goes
-    changeDraft(() => ({
+    changeDraft(current => ({
       text: '',
       mentions: new Map(),
       attachments: [],
       attachmentRefusal: null,
       sendingMessageId: messageId,
-      pendingMessage: {
-        id: messageId,
-        text: sentText,
-        attachments: sentAttachments.map(({ id, name, contentType, file }) => ({
-          id,
-          name,
-          contentType,
-          size: file.size,
-        })),
-      },
+      pendingMessages: [
+        ...current.pendingMessages.filter(({ id }) => id !== messageId),
+        {
+          id: messageId,
+          text: sentText,
+          attachments: sentAttachments.map(({ id, name, contentType, file }) => ({
+            id,
+            name,
+            contentType,
+            size: file.size,
+          })),
+        },
+      ],
       failure: null,
     }))
     mentions.reset()
@@ -280,7 +283,7 @@ function ConversationComposer({
           current,
         ),
         sendingMessageId: null,
-        pendingMessage: current.pendingMessage?.id === messageId ? null : current.pendingMessage,
+        pendingMessages: current.pendingMessages.filter(({ id }) => id !== messageId),
         failedSend: {
           messageId,
           text: sentText,

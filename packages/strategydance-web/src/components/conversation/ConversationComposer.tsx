@@ -42,6 +42,7 @@ import getConversationAttachmentQueryKey from '~utils/conversation/getConversati
 import getConversationSendFailure, {
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
+import getConversationSendStartedRun from '~utils/conversation/getConversationSendStartedRun'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
@@ -131,9 +132,10 @@ type Props = {
   the backend would answer with the first one. Files the backend no longer holds ready, as after
   they waited two days, go up again by themselves, under new ids, for the reader to send again.
   A message whose mentions take it past what a message may hold, though its words fit the field,
-  is not sent, and says so. A retry's answer is not waited on: it can name the
-  run the first send started, older than one another tab has started since, which the read would
-  never move on from. Only a message's first send is sure to start a run newer than any read
+  is not sent, and says so. A retry's run counts as going only while the read still shows the run
+  it showed when the message was first sent (`getConversationSendStartedRun`): once the read has
+  moved on, the retry can name the run the first send started, older than one another tab has
+  started since, which the read would never move on from
 
   It is the last thing on its page, or in its dock's window, so a draft keeps it, and what is written
   in it, when its first message stores it. That message carries the aspects the reader picked on the
@@ -257,7 +259,13 @@ function ConversationComposer({
 
       // The run is recorded before the send stops going, so no composer drawing the conversation
       // ever sees neither going, and lets a second send race it
-      onRunStart(isRetry ? null : { runId, previousRunId })
+      onRunStart(
+        getConversationSendStartedRun({
+          runId,
+          previousRunId,
+          firstPreviousRunId: isRetry ? failedSend.previousRunId : undefined,
+        }),
+      )
       // The message stays in the thread until the live read brings it in, which may come after
       changeDraft(() => ({ sendingMessageId: null, failedSend: null }))
     } catch (error) {
@@ -273,7 +281,13 @@ function ConversationComposer({
         ),
         sendingMessageId: null,
         pendingMessage: current.pendingMessage?.id === messageId ? null : current.pendingMessage,
-        failedSend: { messageId, text: sentText, attachmentIds: sentAttachmentIds },
+        failedSend: {
+          messageId,
+          text: sentText,
+          attachmentIds: sentAttachmentIds,
+          // The first send's, which a run any later send is answered with is newer than
+          previousRunId: isRetry ? failedSend.previousRunId : previousRunId,
+        },
         failure,
       }))
 

@@ -63,8 +63,14 @@ export type ConversationComposerDraft = {
   // its send fails
   pendingMessage: ConversationPendingMessage | null
   // The send that failed, kept so that sending the same message again is the same send: its id,
-  // the message as it was sent, its mentions links to their documents, and the files it sent
-  failedSend: { messageId: string; text: string; attachmentIds: readonly string[] } | null
+  // the message as it was sent, its mentions links to their documents, the files it sent, and the
+  // latest run the page had read when it was first sent
+  failedSend: {
+    messageId: string
+    text: string
+    attachmentIds: readonly string[]
+    previousRunId: string | null
+  } | null
   // Why the last send failed, until the reader writes again
   failure: ConversationSendFailure | null
   // The run the reader last started, by a send, a resume, a retry or an answer, which counts as

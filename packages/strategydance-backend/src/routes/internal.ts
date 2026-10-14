@@ -18,6 +18,7 @@ import publishDirectoryCheck from '~domain/directories/publishDirectoryCheck'
 import createGitHubAppToken from '~domain/github/createGitHubAppToken'
 import createGitHubClient from '~domain/github/createGitHubClient'
 import pruneDeletedIntegrations from '~domain/integrations/pruneDeletedIntegrations'
+import pruneIntegrationAuthorizations from '~domain/integrations/pruneIntegrationAuthorizations'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
@@ -89,11 +90,14 @@ function createInternalRouter() {
   /*
     Removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
     Scheduler asks once a day: the conversations, with their files, the board's tasks, the
-    documents and the organizations' MCP servers, with their keys, deleted over a day ago, and the files uploaded to conversations and never sent. A milestone that keeps something else deleted for a while adds its prune here. So does
-    one that keeps a count or a record for a while, as the conversation searches over a day old go,
-    the module call results past their expiry, and the authorization server's requests expired over
-    a day ago, its tokens past their expiry and the registrations nobody uses. Every step is
-    idempotent, so a sweep that failed is finished by the next. Takes no body
+    documents and the organizations' MCP servers, with their keys and members' connections, deleted
+    over a day ago, and the files uploaded to conversations and never sent. A milestone that keeps
+    something else deleted for a while adds its prune here. So does one that keeps a count or a
+    record for a while, as the conversation searches over a day old go, the module call results past
+    their expiry, members' Connects to MCP servers expired over an hour ago, and the authorization
+    server's requests expired over a day ago, its tokens past their expiry and the registrations
+    nobody uses. Every step is idempotent, so a sweep that failed is finished by the next. Takes no
+    body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     await pruneDeletedConversations()
@@ -102,6 +106,7 @@ function createInternalRouter() {
     await pruneDeletedTasks()
     await pruneDeletedDocuments()
     await pruneDeletedIntegrations()
+    await pruneIntegrationAuthorizations()
     await pruneModuleCallResults()
     await pruneOAuthAuthorizationRequests()
     await pruneAgentConnectionTokens()

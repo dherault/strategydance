@@ -19,6 +19,12 @@ export const SKIPPED_QUESTION_RESULT = 'The member skipped this question.'
 export const STOPPED_CALL_RESULT = 'The member stopped the response before this ran.'
 export const INTERRUPTED_CALL_RESULT = 'This call was interrupted and may have run. Check before you rely on it.'
 
+// What a call to an integration waiting for the member's approval is answered with when they deny
+// it, when they send a message instead, and when they send one before a call they allowed ran
+export const DENIED_CALL_RESULT = 'The member denied this call. Do not propose it again unless they ask.'
+export const UNAPPROVED_CALL_RESULT = 'The member did not approve this call and wrote instead.'
+export const UNRUN_ALLOWED_CALL_RESULT = 'The member wrote instead before this call ran.'
+
 export function toSucceededResult(toolUseId: string, content: string): ConversationToolResult {
   return { type: 'tool_result', tool_use_id: toolUseId, content }
 }

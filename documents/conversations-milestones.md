@@ -78,8 +78,8 @@ it discards them, so a release cut between the two would leave the daily sweep t
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
 | M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
-| M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
-| M29 | Integrations in conversations | database, backend, web | M11, M28 | |
+| M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
+| M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
 | M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | |
 | M32 | The Subagents module | core, backend, database, web | M31 | |
@@ -1758,6 +1758,59 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   refused; two concurrent refreshes spending a rotating refresh token once, the second reading the
   first's tokens; a lapsed refresh lease taken over; the first connection listing the tools.
 - Verify: connect two members to the same server as different accounts; disconnect one.
+- Built with these settled, on 2026-10-13:
+  - **The signed-in member finishes the exchange**, as David chose: the unauthenticated callback
+    consumes the state first, as above, but keeps the code, encrypted, for two minutes, and redirects
+    to an app page, `/integrations/connected`, which the member's own session finishes. The backend
+    exchanges the code only for the account that started the Connect, deleting the Connect under
+    `@check(this == 1)` before the exchange, so two finishes exchange once. Without it, anybody
+    administering an organization could start a Connect, send its sign-in to somebody else, and have
+    that person's account connected to their own membership (OAuth CSRF, RFC 9700 4.7), in one click
+    where a provider skips its consent for a client it knows, as the shared client ID metadata
+    document is.
+  - **The account's label is best effort**, as David chose: the email, username or name of an OpenID
+    ID token when the server sends one, unverified since it decides nothing and only its member reads
+    it; otherwise the page says when they connected. No scope is asked for it.
+  - **A member's Connect whose discovery names another issuer is refused**, as David chose: only an
+    administrator's Retry takes a new authorization server, since it disconnects everybody.
+  - `offline_access` is asked for wherever the authorization server lists it, so a connection gets a
+    refresh token rather than lapsing with its access token, the SDK then asking for consent again.
+  - `generation` is a UUID made at every connect, never a counter, so no disconnect, reconfiguration
+    or removal of the member ever brings one back: M29 stores it as text in
+    `approvalCredentialGeneration`, beside a key-based server's `keyGeneration`.
+  - The refresh's lease is claimed only while the connection holds the refresh token its caller read,
+    so a caller whose read another refresh overtook claims nothing, lasts two minutes, past every
+    request and encryption a refresh makes, and is written and released by its id alone. A refusal
+    for good marks the connection only while it holds the access token that refresh read; one with no
+    refresh token is marked on its refused token alone (`MarkIntegrationConnectionTokenRefused`, for
+    M29's 401).
+  - The changes that clear what was given for another server write the server's row first and delete
+    its connections and Connects after, which a Connect's own write locks against, so under read
+    committed none outlives them.
+  - A client the authorization server answers as unknown is forgotten, so the next Connect registers
+    again, and each connection issued to it is marked as needing its member at its own next refresh,
+    which the server refuses as it did. A registration asks for a public client wherever the server
+    lists one, else for `client_secret_basic`, else `client_secret_post`, and for `client_secret_basic`
+    where it lists none, as RFC 8414 reads a list left out; the method it answers is the one kept, and
+    the secret it gives is encrypted for the server alone. In development, whose callback is http, the
+    client is registered as a native one, and no metadata document is offered.
+  - The integration routes hand their operations canonical ids, since the page a sign-in ends on names
+    them hyphenated, and a live query's refresh compares its variables as text.
+  - The waiting dialog ends on the member's live connection appearing anew, the proof, or on the
+    landing page's word over a `BroadcastChannel`, a nudge; a blocked window is offered as a link; the
+    window's `closed` is never read, since a provider's Cross-Origin-Opener-Policy makes it lie.
+  - "Add and connect", the design's button for an OAuth server being added, is left for later: adding
+    one still adds it, and its row offers Connect.
+  - Verified: the four checks; 39 flow tests through the real SDK and guard against a fake MCP server
+    and authorization server, and the routes' own; `check:integrations` against an emulator of the
+    branch's schema; in the browser at 1280 and 390 wide, against the emulators and the same fake
+    provider served to the backend, an administrator adding an OAuth server and connecting as one
+    account, a member connecting the same server as another, each reading their own label, the tools
+    listed on the first connection, a disconnect revoking its refresh token, a Cancel followed by a
+    sign-in that connected nothing, a refusal, a sign-in the member started finished in the
+    administrator's browser and refused, a blocked window's link, and a server turned off; and
+    Linear's real authorization server registering Strategy Dance and showing its consent page. Not
+    yet: approving at a real server, which needs an account there.
 
 ### M29: Integrations in conversations
 
@@ -1766,7 +1819,8 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - **The schema change**, additive, with `APPROVAL` appended to the kinds: `ConversationMessage` gains
   `integration` (an optional reference, nulled if the server is pruned), `integrationName` (at call
   time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), `approvalConfigRevision`,
-  `approvalToolHash` and `approvalCredentialGeneration` (see below), and
+  `approvalToolHash` and `approvalCredentialGeneration` (see below; text, since an OAuth server's
+  connection's `generation` is a UUID), and
   `argumentsPreview` (display text, cut to 2000 characters), the live tail selecting the state and
   `GetConversationMessageBodies` the rest, both extended here; the
   warning strip matches the live integrations list by `integration`, never by name. A preview
@@ -1810,6 +1864,63 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   administrator…". The Integrations page handles `?open=`, `?connect=`, `?enable=` and `?add=`.
 - Verify: ask something that needs a connected server, then allow the call and deny another; let an
   administrator allow one tool and see it run straight away; turn the server off and ask again.
+- Built with these settled, on 2026-10-14:
+  - **A turn's other calls run beside an approval**, as David chose: as beside a question, every call
+    of the turn but the one waiting runs at once, its result kept on the run, and only the call the
+    member allows runs in the next run, so a later write can land before an earlier call the member
+    then allows.
+  - `list_integrations` and `describe_integration_tool` are strict, and `call_integration_tool` is
+    not: a strict schema sets `additionalProperties: false` on every object, which a call's
+    `arguments` cannot take. Its input is checked on the worker, as a module's tools' are. The three
+    are always in the tools list and always run, whatever the organization added.
+  - **The decision is made once, when a call is drawn**, from the server as it is then: refused,
+    drawn failed with the server it named, so the thread can say what fixes it; run at once,
+    auto-approved, drawn running with its binding; or drawn as an `APPROVAL`, pending. Planning stays
+    the transcript's alone, so a worker taking over plans the same and follows what was drawn. An
+    auto-approved call keeps its binding too, so a Resume hours later never calls a server whose
+    address, tool or auto-approval changed.
+  - **An approval is a tool call with an approval on top**: its `toolStatus` stays null until a run
+    starts its call, since a call is `RUNNING` only while a run holds it; a Deny, a send while it
+    waits, and an Allow after the binding changed each finish it failed, with the sentence its result
+    sends. `answeredAt` marks it answered, so every waiting count reads questions and approvals alike.
+  - **A continuation that carries an allowed call stores no entry**, since the call has not run:
+    `ContinueConversationRunWithCalls` anchors its run where the waiting run was, copies its results,
+    and answers the calls a stop kept from running as stopped, which a resumed run would otherwise
+    make. Its worker makes the allowed calls, checks the results entry with `checkTranscript`, stores
+    it and anchors the run on it, so Retry, the fifty calls and tagging treat it as an answer
+    continuation, and a Retry keeps a call that went to another company's server.
+  - **A call to an integration that started is never made again**: a crash or a stop leaves it to be
+    finished as interrupted, its result saying it may have run. Only a 401 marks the member's
+    connection; a 403 refuses the call for that account alone. A call has 30 seconds in all, its own
+    request the whole of what is left after the handshake, and marks its server used at most once a
+    minute, in a write no live query refreshes on.
+  - A send names the approvals it denies and the allowed calls it answers as not run, each by a list,
+    which a backend from before M29 leaves out and is refused for, rather than leave a call nothing
+    answers. A continuation names the calls it closes the same way.
+  - `list_integrations` stays under 40000 characters, its tools' descriptions cut first, then left
+    out, then each server listing fewer tools by name.
+  - The approval is built from the question's look, which the design leaves it: the server, the tool
+    and the start of what it sends, Deny, and Allow, which opens the whole input, escaped as the
+    output dialog escapes it, whose own Allow approves. Decided, it draws as the call it became,
+    "Allowed" until it runs and "Denied" once refused.
+  - The warning strip matches the live list by the server's id, and reads it, with the reader's
+    connections, only while the thread holds a call to an integration. `?connect=` opens the server's
+    dialog, whose Connect the member clicks, since a browser opens a sign-in window only inside a
+    click; `?enable=` turns the server on for an administrator, as designed; `?add=` opens the add
+    dialog from the catalogue by name. Ids go into the address hyphenated.
+  - Verified: the four checks; `check:integrations` and `check:conversation-runs` against an emulator
+    of the branch's schema; `probe:claude` on the real API, Claude calling `call_integration_tool`
+    with its arguments as an object; in the browser at 1280 and 390 wide, page and dock, against the
+    emulators and the real model, with DeepWiki added by its address: Claude listing the
+    integrations, reading a tool, saying what it proposes and waiting on the approval, raised in the
+    sidebar's badge and the list's "Needs your answer" with "Approval: DeepWiki · ask_wiki_question";
+    Allow opening the whole input, the call made in the next run and its answer used; Deny, and a
+    message sent instead, each drawn denied; an administrator letting one tool run without approval,
+    which then ran straight away; the server turned off, Claude saying so from the list, the strip
+    under an earlier call offering Turn on, which turned it on and cleared the address; and
+    `lastUsedAt` shown. Found on the way: the integration reads were handed a run's whole fence, which
+    Data Connect refuses, a variable the fake now refuses too. Not yet: an OAuth server's Connect in
+    the strip, which needs an account at a real OAuth server.
 
 ### M30: Subagent conversations and their runs
 

@@ -6,10 +6,12 @@ import {
   addTaskDependencyForAgent,
   connectorConfig,
   createTaskForAgent,
+  dateDoneTask,
   deleteTaskForAgent,
   getModuleCallResult,
   getTaskBoardForAgent,
   getTaskForAgent,
+  getUndatedDoneTasks,
   getUnindexedTasks,
   getUnindexedTasksForAgent,
   indexTaskText,
@@ -37,8 +39,9 @@ import { dataConnect } from '~firebase'
   module's tests run against a fake of these operations: this is what says the fake's conditions are
   the SQL's.
 
-  `GetUnindexedTasks` and `IndexTaskText`, the backfill's, take no organization, so they read and
-  write every unindexed task in the emulator; nothing else here reaches past the two organizations.
+  `GetUnindexedTasks` and `IndexTaskText`, the text backfill's, and `GetUndatedDoneTasks`, the
+  `doneAt` backfill's, take no organization, so they read and write every unindexed task in the
+  emulator, and read every unstamped one; nothing else here reaches past the two organizations.
 
   Like `checkKnowledgeModule.ts`, it refuses to run unless it points at the emulator
 */
@@ -72,6 +75,9 @@ const HOUR_MS = 60 * 60 * 1000
 // The createdAt of a membership that ended, which no operation finds
 const STALE = '2020-01-01T00:00:00Z'
 
+// When the agent says a task was done
+const DONE_AT = '2026-10-14T10:00:00.000Z'
+
 // What the agent's writes take for a call without a key
 const UNKEYED = {
   isKeyed: false,
@@ -103,6 +109,11 @@ async function read<Data>(query: string, variables: Variables = {}) {
   return data
 }
 
+// Whether a timestamp read back is the one written, which Data Connect writes back in microseconds
+function isSameTime(read: string | null | undefined, written: string) {
+  return read != null && Date.parse(read) === Date.parse(written)
+}
+
 // The cause of a refusal, which the Admin SDK puts on the first line of its message, or null when
 // the operation went through
 async function refusal(operation: Promise<unknown>) {
@@ -131,6 +142,7 @@ type StoredTask = {
   isAssignedToAgent: boolean
   dueDate: string | null
   aspects: string[]
+  doneAt: string | null
   deletedAt: string | null
   updatedAt: string
 }
@@ -159,7 +171,7 @@ async function readTask(id: string) {
   const data = await read<{ task: StoredTask | null }>(
     `query ReadTask($id: UUID!) {
       task(id: $id) {
-        name description descriptionText status position assigneeId isAssignedToAgent dueDate aspects deletedAt updatedAt
+        name description descriptionText status position assigneeId isAssignedToAgent dueDate aspects doneAt deletedAt updatedAt
       }
     }`,
     { id },
@@ -375,13 +387,26 @@ async function checkUpdating() {
     descriptionText: 'written',
     status: TaskStatus.DONE,
     position: 7,
+    doneAt: DONE_AT,
   })
 
   const moved = await readTask(id)
 
   check(
-    'a description is written with its plain text, a move with its column and place',
-    moved?.descriptionText === 'written' && moved.status === 'DONE' && moved.position === 7,
+    'a description is written with its plain text, a move with its column and place, a finish with its time',
+    moved?.descriptionText === 'written'
+      && moved.status === 'DONE'
+      && moved.position === 7
+      && isSameTime(moved.doneAt, DONE_AT),
+  )
+
+  await update({ updatedAt: moved?.updatedAt, status: TaskStatus.DONE, position: 8 })
+
+  const placed = await readTask(id)
+
+  check(
+    'a move within Done, which sends no doneAt, keeps the time it was done',
+    placed?.position === 8 && isSameTime(placed.doneAt, DONE_AT),
   )
   check(
     'an assignment to a member and to Strategy Dance at once is refused',
@@ -590,6 +615,34 @@ async function checkIndexing() {
   check('the backfill indexes it at the updatedAt it read', backfilled.task_updateMany === 1)
 }
 
+async function checkDating() {
+  const undated = await insertTask({ status: 'DONE' })
+  const open = await insertTask({ status: 'TODO' })
+  const { data } = await getUndatedDoneTasks(dataConnect, { skippedIds: [] })
+  const row = data.tasks.find(task => task.id === undated)
+
+  check(
+    'the doneAt backfill finds a task in Done nobody stamped, and no task out of Done',
+    row !== undefined && !data.tasks.some(task => task.id === open),
+  )
+
+  const { data: stamped } = await dateDoneTask(dataConnect, { id: undated, doneAt: row?.updatedAt ?? DONE_AT })
+  const dated = await readTask(undated)
+
+  check(
+    'the backfill stamps it with its last change, which stays as it was',
+    stamped.task_updateMany === 1
+      && isSameTime(dated?.doneAt, row?.updatedAt ?? '')
+      && dated?.updatedAt === row?.updatedAt,
+  )
+
+  const { data: again } = await dateDoneTask(dataConnect, { id: undated, doneAt: DONE_AT })
+  const { data: outOfDone } = await dateDoneTask(dataConnect, { id: open, doneAt: DONE_AT })
+
+  check('a task stamped already keeps its time', again.task_updateMany === 0)
+  check('a task out of Done is never stamped', outOfDone.task_updateMany === 0)
+}
+
 async function checkSearch() {
   const named = await insertTask({ name: 'Launch the Newsletter' })
   const described = await insertTask({
@@ -684,6 +737,57 @@ async function checkPageWrites() {
   )
 
   check('a save from an old page leaves the plain text null', (await readTask(withoutText))?.descriptionText === null)
+
+  const page = (operation: string, variables: Variables) =>
+    webConnector.executeMutation(operation, { organizationId, id: withText, ...variables }, impersonate)
+
+  check(
+    'a finish from a column the task has left is refused',
+    (await refusal(page('FinishTask', { position: 3, fromStatus: 'ONGOING' })))?.includes('column it was moved from')
+      ?? false,
+  )
+
+  await page('FinishTask', { position: 3, fromStatus: 'TODO' })
+
+  const finished = await readTask(withText)
+
+  check(
+    "a finish moves the task into Done and stamps the server's time",
+    finished?.status === 'DONE' && finished.position === 3 && finished.doneAt !== null,
+  )
+  check(
+    'a finish of a task in Done already is refused, so its time stays',
+    (await refusal(page('FinishTask', { position: 5, fromStatus: 'DONE' })))?.includes('column it was moved from')
+      ?? false,
+  )
+
+  await page('MoveTask', { status: 'DONE', position: 4, fromStatus: 'DONE' })
+
+  const placed = await readTask(withText)
+
+  check('a move within Done keeps the time it was done', placed?.position === 4 && placed.doneAt === finished?.doneAt)
+  check(
+    'a move from a column the task has left is refused, rather than moving it back',
+    (await refusal(page('MoveTask', { status: 'DONE', position: 6, fromStatus: 'ONGOING' })))?.includes(
+      'column it was moved from',
+    ) ?? false,
+  )
+
+  await page('MoveTask', { status: 'TODO', position: 1 })
+
+  check('a move from an old page, which names no column, goes through', (await readTask(withText))?.status === 'TODO')
+  check(
+    "a finish names the task's own organization",
+    (
+      await refusal(
+        webConnector.executeMutation(
+          'FinishTask',
+          { organizationId: fullOrganizationId, id: withText, position: 1, fromStatus: 'TODO' },
+          impersonate,
+        ),
+      )
+    )?.includes('No task by that id') ?? false,
+  )
 }
 
 try {
@@ -694,6 +798,7 @@ try {
   await checkLinking()
   await checkDeletingAndRestoring()
   await checkIndexing()
+  await checkDating()
   await checkSearch()
   await checkPageWrites()
 } finally {

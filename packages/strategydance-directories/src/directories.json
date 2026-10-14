@@ -1025,10 +1025,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://alltopstartups.com/",
     "submissionUrl": "https://alltopstartups.com/submit-startup/",
-    "description": "",
-    "categories": [],
+    "description": "Startup blog and directory where founders submit business and technology startups for directory listings and written product reviews.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -1217,10 +1219,10 @@
     "type": "WEBSITE",
     "rootUrl": "https://appsthunder.com/",
     "submissionUrl": "https://appsthunder.com/submit-your-app/",
-    "description": "",
+    "description": "App review blog that publishes reviews of iPhone, Android and web apps submitted by their developers.",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -1313,10 +1315,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://bai.tools/",
     "submissionUrl": "https://bai.tools/submit-ai-tools",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, such as video generation, writing and productivity, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -1937,10 +1941,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://promotebusinessdirectory.com/",
     "submissionUrl": "https://promotebusinessdirectory.com/submit.php",
-    "description": "",
-    "categories": [],
+    "description": "General web directory of business websites and articles, sorted into topic categories, where site owners submit their own links for staff review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -2069,10 +2075,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://easywithai.com/",
     "submissionUrl": "https://easywithai.com/submit-tool/",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Directory of AI tools sorted into over 50 categories, where developers submit their AI products for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -3689,10 +3697,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://nicklaunches.com/",
     "submissionUrl": "https://nicklaunches.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch platform where makers submit startups and products of any kind, which are ranked by builder votes and kept as permanent listings.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -4373,10 +4383,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://ramen.tools/",
     "submissionUrl": "https://ramen.tools/",
-    "description": "",
-    "categories": [],
+    "description": "Site where indie makers create free profiles that list the tools in their tech stack and the products they built, so others can browse the tools makers use.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -4600,11 +4612,13 @@
     "name": "SaaSworthy",
     "type": "WEBSITE",
     "rootUrl": "https://www.saasworthy.com/",
-    "submissionUrl": "https://www.saasworthy.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "submissionUrl": "https://www.saasworthy.com/offerings",
+    "description": "Directory of business software (SaaS) across hundreds of categories, with ratings, reviews and comparisons, where vendors can list their SaaS products.",
+    "categories": [
+      "SAAS"
+    ],
+    "businessModel": "FREE_WITH_GATE",
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -5164,11 +5178,13 @@
     "name": "Startup Ranking",
     "type": "WEBSITE",
     "rootUrl": "https://www.startupranking.com/",
-    "submissionUrl": "https://www.startupranking.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.startupranking.com/startup/create/url-validation",
+    "description": "Worldwide ranking and directory of startups sorted by country and score, where founders create a profile for their own startup.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {
@@ -5393,10 +5409,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://submitmysaas.com/",
     "submissionUrl": "https://submitmysaas.com/projects/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "description": "Weekly launch platform where makers submit SaaS tools and web products, which are ranked by upvotes in weekly and monthly leaderboards.",
+    "categories": [
+      "SAAS"
+    ],
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": "2026-10-14",
     "unreachableSince": null
   },
   {

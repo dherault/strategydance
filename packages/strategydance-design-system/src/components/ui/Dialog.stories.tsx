@@ -54,3 +54,21 @@ export const Open: Story = {
     defaultOpen: true,
   },
 }
+
+// Appears at once, as a dialog taking the place of another on screen does, and still fades as it closes
+export const WithoutOpeningAnimation: Story = {
+  render: args => (
+    <Dialog {...args}>
+      <DialogTrigger asChild>
+        <Button variant="outline">Open the task</Button>
+      </DialogTrigger>
+      <DialogContent isAnimatedOnOpen={false}>
+        <DialogHeader>
+          <DialogTitle>Prepare the launch</DialogTitle>
+          <DialogDescription>Added by Ada on June 4</DialogDescription>
+        </DialogHeader>
+        <DialogFooter showCloseButton />
+      </DialogContent>
+    </Dialog>
+  ),
+}

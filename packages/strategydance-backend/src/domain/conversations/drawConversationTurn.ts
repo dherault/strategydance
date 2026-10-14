@@ -1,8 +1,10 @@
 import { type ConversationCitation, buildConversationPreview } from 'strategydance-core'
 import {
+  ConversationApprovalState,
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
+  drawConversationApproval,
   drawConversationClientToolCall,
   drawConversationQuestion,
   drawConversationToolCall,
@@ -10,9 +12,16 @@ import {
 
 import type { ConversationContentBlock, ConversationRunFence } from '~types'
 
+import { MAX_INTEGRATION_ARGUMENTS_PREVIEW_LENGTH } from '~constants'
+
 import { dataConnect } from '~firebase'
 
+import type { ConversationIntegrationCall } from '~domain/agent/checkConversationIntegrationCall'
 import type { ConversationQuestion } from '~domain/agent/checkConversationQuestion'
+import decideConversationIntegrationCall, {
+  type DrawnIntegration,
+  type DrawnIntegrationBinding,
+} from '~domain/agent/decideConversationIntegrationCall'
 import type { ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import { toFailedOutput } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
@@ -23,6 +32,7 @@ import mergeConversationText, {
 import readPieceText from '~domain/conversations/readPieceText'
 import selectPieceCitations from '~domain/conversations/selectPieceCitations'
 import splitConversationText from '~domain/conversations/splitConversationText'
+import readConversationIntegration from '~domain/integrations/readConversationIntegration'
 
 // One part of the run's reply, stored as a transcript entry, with its blocks and its cursor
 export type ConversationDrawEntry = {
@@ -78,6 +88,8 @@ type Drawing =
       toolStatus: ConversationToolStatus
       toolInput: string
       toolOutput: string
+      // A call to an integration refused, with the server and the tool it named
+      integration?: DrawnIntegration
     }
   // A call to one of Strategy Dance's own tools, to run
   | {
@@ -88,6 +100,31 @@ type Drawing =
       toolUseId: string
       toolName: string
       toolInput: string
+      // A call to an integration's tool that runs without approval, and what that was bound to
+      integration?: DrawnIntegration & { binding: DrawnIntegrationBinding }
+    }
+  // A call to an integration's tool, before the server is read to say what it becomes
+  | {
+      kind: 'integrationCall'
+      fromBlock: number
+      toBlock: number
+      messageId: string
+      toolUseId: string
+      toolName: string
+      toolInput: string
+      integrationCall: ConversationIntegrationCall
+    }
+  // A call to an integration's tool that waits for the member's approval
+  | {
+      kind: 'approval'
+      fromBlock: number
+      toBlock: number
+      messageId: string
+      toolUseId: string
+      toolName: string
+      toolInput: string
+      integration: DrawnIntegration & { binding: DrawnIntegrationBinding }
+      argumentsPreview: string
     }
   | {
       kind: 'question'
@@ -113,6 +150,8 @@ type Drawing =
     result comes in the same part, or opens the next when `pause_turn` paused the turn between
   - a call to one of Strategy Dance's own tools as its plan says: a question the member answers, a
     call that runs, or a call refused, failed with why. A question past its bounds draws nothing
+  - a call to an integration's tool as the server read then says: a call that runs, an approval the
+    member answers, or a call refused, failed with why
   - nothing for thinking, Claude's own code execution and its results, and whatever else is not
     text or a web search, so a part ending on those is wholly drawn once its last text is
 
@@ -126,7 +165,9 @@ async function drawConversationTurn({ fence, lease, entries, plans, position }: 
     if (drawing.kind === 'none') continue
     if (drawing.kind === 'waiting') return 'waiting'
 
-    await lease.write(() => write(fence, entry.id, position, drawing))
+    const decided = drawing.kind === 'integrationCall' ? await decideIntegrationDrawing(fence, drawing) : drawing
+
+    await lease.write(() => write(fence, entry.id, position, decided))
 
     return 'drawn'
   }
@@ -225,6 +266,17 @@ function drawCall(
 
   if (plan.kind === 'run') return { kind: 'clientCall', ...move, toolUseId: call.id, toolName: call.name, toolInput }
 
+  if (plan.kind === 'integration') {
+    return {
+      kind: 'integrationCall',
+      ...move,
+      toolUseId: call.id,
+      toolName: call.name,
+      toolInput,
+      integrationCall: plan.integrationCall,
+    }
+  }
+
   return {
     kind: 'call',
     ...move,
@@ -234,6 +286,60 @@ function drawCall(
     toolInput,
     toolOutput: toFailedOutput(plan.reason),
   }
+}
+
+/*
+  What a call to an integration's tool is drawn as, from the server as the run's member reads it now:
+  decided once, since the message drawn keeps it for a worker taking over
+*/
+async function decideIntegrationDrawing(
+  fence: ConversationRunFence,
+  drawing: Extract<Drawing, { kind: 'integrationCall' }>,
+): Promise<Drawing> {
+  const { integrationCall, ...move } = drawing
+  const read = await readConversationIntegration(fence, integrationCall.integrationId)
+  const decided = decideConversationIntegrationCall(read, integrationCall)
+
+  switch (decided.kind) {
+    case 'refused':
+      return {
+        ...move,
+        kind: 'call',
+        toolStatus: ConversationToolStatus.FAILED,
+        toolOutput: toFailedOutput(decided.reason),
+        ...(decided.integration && { integration: decided.integration }),
+      }
+    case 'run':
+      return { ...move, kind: 'clientCall', integration: { ...decided.integration, binding: decided.binding } }
+    case 'approval':
+      return {
+        ...move,
+        kind: 'approval',
+        integration: { ...decided.integration, binding: decided.binding },
+        argumentsPreview: toArgumentsPreview(integrationCall.arguments),
+      }
+  }
+}
+
+/*
+  A call's arguments as its approval shows them at a glance: their JSON, which escapes U+0000, cut at
+  a grapheme's boundary, with an ellipsis when cut. It authorizes nothing: Allow shows them whole
+*/
+function toArgumentsPreview(args: Record<string, unknown>) {
+  const json = JSON.stringify(args)
+
+  if (json.length <= MAX_INTEGRATION_ARGUMENTS_PREVIEW_LENGTH) return json
+
+  const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+  let cut = ''
+
+  for (const { segment } of segmenter.segment(json)) {
+    if (cut.length + segment.length > MAX_INTEGRATION_ARGUMENTS_PREVIEW_LENGTH) break
+
+    cut += segment
+  }
+
+  return `${cut}…`
 }
 
 /*
@@ -331,10 +437,16 @@ async function write(fence: ConversationRunFence, entryId: string, position: num
       toolStatus: drawing.toolStatus,
       toolInput: drawing.toolInput,
       toolOutput: drawing.toolOutput,
+      ...(drawing.integration && {
+        integrationId: drawing.integration.id,
+        integrationName: drawing.integration.name,
+        integrationToolName: drawing.integration.toolName,
+      }),
       preview: buildConversationPreview({
         kind: 'TOOL_CALL',
         toolName: drawing.toolName,
         toolStatus: drawing.toolStatus,
+        integrationName: drawing.integration?.name,
       }),
     })
   }
@@ -350,10 +462,46 @@ async function write(fence: ConversationRunFence, entryId: string, position: num
       toolUseId: drawing.toolUseId,
       toolName: drawing.toolName,
       toolInput: drawing.toolInput,
+      ...(drawing.integration && {
+        integrationId: drawing.integration.id,
+        integrationName: drawing.integration.name,
+        integrationToolName: drawing.integration.toolName,
+        approvalConfigRevision: drawing.integration.binding.configRevision,
+        approvalToolHash: drawing.integration.binding.toolHash,
+        approvalCredentialGeneration: drawing.integration.binding.credentialGeneration,
+      }),
       preview: buildConversationPreview({
         kind: 'TOOL_CALL',
         toolName: drawing.toolName,
         toolStatus: ConversationToolStatus.RUNNING,
+        integrationName: drawing.integration?.name,
+      }),
+    })
+  }
+
+  if (drawing.kind === 'approval') {
+    await drawConversationApproval(dataConnect, {
+      ...fence,
+      entryId,
+      fromBlock: drawing.fromBlock,
+      toBlock: drawing.toBlock,
+      messageId: drawing.messageId,
+      position,
+      toolUseId: drawing.toolUseId,
+      toolName: drawing.toolName,
+      toolInput: drawing.toolInput,
+      integrationId: drawing.integration.id,
+      integrationName: drawing.integration.name,
+      integrationToolName: drawing.integration.toolName,
+      approvalConfigRevision: drawing.integration.binding.configRevision,
+      approvalToolHash: drawing.integration.binding.toolHash,
+      approvalCredentialGeneration: drawing.integration.binding.credentialGeneration,
+      argumentsPreview: drawing.argumentsPreview,
+      preview: buildConversationPreview({
+        kind: 'APPROVAL',
+        integrationName: drawing.integration.name,
+        integrationToolName: drawing.integration.toolName,
+        approvalState: ConversationApprovalState.PENDING,
       }),
     })
   }

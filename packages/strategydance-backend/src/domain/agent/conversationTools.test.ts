@@ -11,7 +11,7 @@ describe('CONVERSATION_TOOLS', () => {
   */
   test('keeps its bytes', () => {
     expect(createHash('sha256').update(JSON.stringify(CONVERSATION_TOOLS)).digest('hex')).toBe(
-      'd555af9b9e31b405d36a26bf9adf0e455f1e9a916879eacfddcce15fb3090cd1',
+      '1e9806cd795b18518148545b5b034c054012bc47c82ff4105c83398209cac5c9',
     )
   })
 

@@ -291,14 +291,15 @@ function BuildInPublicStreak({ settings }: Props) {
             className="text-(--flame-off)"
           />
           {/* The two share the line, the streak shrinking to what the name leaves it, as it runs long
-              in Portuguese or French, rather than squeezing the name out */}
+              in Portuguese or French, rather than squeezing the name out. Drawn into the flame's
+              box a little, since the flame leaves room on its sides */}
           <FitText
             as="p"
             isDisplay
             max={22}
             min={13}
             lineHeight={1}
-            className="flex-1"
+            className="-ml-1 flex-1"
           >
             {formatMessage(buildInPublicMessages.streakDays, { count: current })}
           </FitText>
@@ -308,6 +309,9 @@ function BuildInPublicStreak({ settings }: Props) {
             className="max-w-[45%] flex-none"
           />
         </div>
+        {/* A day a charge kept sits on the flame's background as a lit one does, its battery in what
+            reads there, and both are outlined where that background can melt into the card. Today
+            is ringed only while nothing has lit or charged it */}
         <div className="mt-auto grid grid-cols-7 gap-1.5">
           {week.map(day => (
             <span
@@ -327,10 +331,10 @@ function BuildInPublicStreak({ settings }: Props) {
                 'grid aspect-square place-items-center rounded-[2px]',
                 day.isFuture
                   ? 'shadow-[inset_0_0_0_1px_var(--card-square)]'
-                  : day.isOn
-                    ? 'bg-(--flame-background)'
+                  : day.isOn || day.isCharged
+                    ? 'bg-(--flame-background) text-(--flame-cell-foreground) shadow-(--card-cell-ring)'
                     : 'bg-(--card-square)',
-                day.isToday && 'shadow-[inset_0_0_0_1.5px_var(--flame-outer)]',
+                day.isToday && !day.isOn && !day.isCharged && 'shadow-[inset_0_0_0_1.5px_var(--flame-outer)]',
               )}
             >
               {day.isOn ? <BuildInPublicFlame size={16} /> : null}

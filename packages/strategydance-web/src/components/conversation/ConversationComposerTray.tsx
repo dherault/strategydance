@@ -7,14 +7,12 @@ import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
   attachments: readonly ConversationComposerAttachment[]
-  // Whether a file can be taken out of the message now: not while the message that sends it goes
-  canRemove: boolean
   onRemove: (id: string) => void
   onRetry: (id: string) => void
 }
 
 // The files attached to the message being written, above its field, in the order they were added
-function ConversationComposerTray({ attachments, canRemove, onRemove, onRetry }: Props) {
+function ConversationComposerTray({ attachments, onRemove, onRetry }: Props) {
   const { formatMessage } = useIntl()
 
   return (
@@ -29,7 +27,6 @@ function ConversationComposerTray({ attachments, canRemove, onRemove, onRetry }:
         >
           <ConversationComposerTrayItem
             attachment={attachment}
-            canRemove={canRemove}
             onRemove={() => onRemove(attachment.id)}
             onRetry={() => onRetry(attachment.id)}
           />

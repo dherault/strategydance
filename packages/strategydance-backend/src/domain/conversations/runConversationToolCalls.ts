@@ -1,15 +1,18 @@
 import { buildConversationPreview } from 'strategydance-core'
 import {
+  ConversationApprovalState,
   ConversationMessageKind,
   ConversationToolStatus,
   type GetConversationCallsData,
+  finishConversationIntegrationCall,
   finishConversationToolCall,
   getConversationCalls,
   getConversationRunStop,
+  startConversationIntegrationCall,
   startConversationToolCall,
 } from 'strategydance-database/backend'
 
-import type { ConversationRunFence, ConversationToolRunner } from '~types'
+import type { ConversationDrawnCall, ConversationRunFence, ConversationToolRunner } from '~types'
 
 import { CONVERSATION_READ_CALLS_AT_ONCE } from '~constants'
 
@@ -19,6 +22,7 @@ import type { ConversationToolCallPlan } from '~domain/agent/planConversationToo
 import type { ConversationToolCall } from '~domain/agent/readConversationToolCalls'
 import {
   type ConversationToolResult,
+  INTERRUPTED_CALL_RESULT,
   parsePendingToolResults,
   serializePendingToolResults,
   toFailedOutput,
@@ -27,6 +31,7 @@ import {
   toToolOutput,
 } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
+import IntegrationCallChanged from '~domain/integrations/IntegrationCallChanged'
 
 type RunConversationToolCallsInput = {
   fence: ConversationRunFence
@@ -64,6 +69,11 @@ export type ConversationToolCallsOutcome = {
   cancelled, which a resumed run runs. In the turn's order, consecutive calls that only read four at
   a time, side by side, and each that writes alone, so writes land in the order Claude made them.
 
+  A call to an integration runs only as the message it was drawn as allows: one that runs without
+  approval, or one the member allowed, and never one waiting for the member or denied. It went to
+  another company's server, which may have acted on it, so one that started and has no result is
+  never made again: it is finished as interrupted, its result saying it may have run.
+
   Each call starts in a fenced write, so a worker that lost its run never makes one, and finishes in
   another that records its result on its message and on the run, with the results kept before it,
   so a worker taking over runs none of them again. A call has 60 seconds: past them it fails, and
@@ -92,12 +102,21 @@ async function runConversationToolCalls({
   const pending = parsePendingToolResults(data.latestRuns[0]?.pendingToolResults)
   const messages = new Map(data.conversationMessages.map(message => [message.toolUseId, message]))
   const runnersByName = new Map(runners.map(runner => [runner.name, runner]))
-  const calls = plans.flatMap(plan => {
+  const calls = plans.flatMap((plan): GroupedCall[] => {
     const message = messages.get(plan.call.id)
     const runner = runnersByName.get(plan.call.name)
 
-    if (plan.kind !== 'run' || pending.has(plan.call.id) || !runner) return []
+    if ((plan.kind !== 'run' && plan.kind !== 'integration') || pending.has(plan.call.id) || !runner) return []
     if (!message) throw new Error(`Call ${plan.call.id} runs once it is drawn`)
+
+    if (plan.kind === 'integration') {
+      if (isInterruptedIntegrationCall(message)) {
+        return [{ call: plan.call, messageId: message.id, runner, message, isInterrupted: true }]
+      }
+
+      return isStartableIntegrationCall(message) ? [{ call: plan.call, messageId: message.id, runner, message }] : []
+    }
+
     if (!isUnfinished(message)) return []
 
     return [{ call: plan.call, messageId: message.id, runner }]
@@ -115,9 +134,7 @@ async function runConversationToolCalls({
     if (Date.now() >= deadline) return outcome('expired')
 
     const settled = await Promise.allSettled(
-      group.map(({ call, messageId, runner }) =>
-        runCall({ fence, lease, signal, call, messageId, runner, pending, timeoutMs }),
-      ),
+      group.map(grouped => runCall({ ...grouped, fence, lease, signal, pending, timeoutMs })),
     )
     const failure = settled.find(result => result.status === 'rejected')
 
@@ -131,6 +148,10 @@ type GroupedCall = {
   call: ConversationToolCall
   messageId: string
   runner: ConversationToolRunner
+  // A call to an integration's, drawn as this message, which the call reads what it is bound to from
+  message?: ConversationDrawnCall
+  // A call to an integration that started and has no result, finished as interrupted, never made again
+  isInterrupted?: boolean
 }
 
 // Consecutive calls that only read, four at most, and each other call alone
@@ -169,7 +190,10 @@ type RunCallInput = GroupedCall & {
   once the write that keeps it lands. Writes go through the lease one at a time, so each finishing
   write carries the results of those before it
 */
-async function runCall({ fence, lease, signal, call, messageId, runner, pending, timeoutMs }: RunCallInput) {
+async function runCall(input: RunCallInput) {
+  if (input.message) return runIntegrationCall({ ...input, message: input.message })
+
+  const { fence, lease, signal, call, messageId, runner, pending, timeoutMs } = input
   const { organizationId, userId, conversationId, runId } = fence
 
   await lease.write(() => startConversationToolCall(dataConnect, { ...fence, messageId }))
@@ -226,6 +250,120 @@ async function runCall({ fence, lease, signal, call, messageId, runner, pending,
 
     pending.set(call.id, result)
   })
+}
+
+/*
+  Makes a call to an integration's tool, as `runCall` makes any other, through the integration's own
+  start and finish: the start marks the server used, and only a call never started starts. A call
+  that started and has no result is finished as interrupted rather than made. An approval whose
+  server, tool or credential changed since the member saw it is denied as it is answered, so the
+  thread shows why
+*/
+async function runIntegrationCall({
+  fence,
+  lease,
+  signal,
+  call,
+  messageId,
+  runner,
+  pending,
+  timeoutMs,
+  message,
+  isInterrupted = false,
+}: RunCallInput & { message: ConversationDrawnCall }) {
+  const { organizationId, userId, conversationId, runId } = fence
+  const integrationId = message.integrationId ?? ''
+  const isApproval = message.kind === ConversationMessageKind.APPROVAL
+  const startedAt = Date.now()
+  let result: ConversationToolResult
+  let toolOutput: string
+  let isDenied = false
+
+  if (isInterrupted) {
+    toolOutput = toFailedOutput(INTERRUPTED_CALL_RESULT)
+    result = toFailedResult(call.id, INTERRUPTED_CALL_RESULT)
+  } else {
+    await lease.write(() => startConversationIntegrationCall(dataConnect, { ...fence, messageId, integrationId }))
+
+    const timeout = AbortSignal.timeout(timeoutMs)
+    const callSignal = AbortSignal.any([signal, timeout])
+
+    try {
+      const output = await untilAborted(
+        runner.run(call.input, {
+          signal: callSignal,
+          reference: { organizationId, userId, conversationId, runId },
+          toolUseId: call.id,
+          message,
+        }),
+        callSignal,
+      )
+
+      toolOutput = toToolOutput(output)
+      result = toSucceededResult(call.id, toolOutput)
+    } catch (error) {
+      if (signal.aborted) throw error
+
+      const reason = timeout.aborted
+        ? `The call took longer than ${timeoutMs / 1000} seconds and may still have run. Check before you call it again.`
+        : error instanceof Error && error.message
+          ? error.message
+          : 'The call failed.'
+
+      isDenied = isApproval && error instanceof IntegrationCallChanged
+      toolOutput = toFailedOutput(reason)
+      result = toFailedResult(call.id, reason)
+    }
+  }
+
+  const toolStatus = result.is_error ? ConversationToolStatus.FAILED : ConversationToolStatus.SUCCEEDED
+
+  await lease.write(async () => {
+    const kept = new Map(pending).set(call.id, result)
+
+    await finishConversationIntegrationCall(dataConnect, {
+      ...fence,
+      messageId,
+      toolStatus,
+      toolOutput,
+      ...(!isInterrupted && { toolDurationMs: Date.now() - startedAt }),
+      ...(isDenied && { approvalState: ConversationApprovalState.DENIED }),
+      pendingToolResults: serializePendingToolResults(kept),
+      preview: buildConversationPreview(
+        isApproval
+          ? {
+              kind: 'APPROVAL',
+              integrationName: message.integrationName,
+              integrationToolName: message.integrationToolName,
+              approvalState: isDenied ? ConversationApprovalState.DENIED : message.approvalState,
+              toolStatus,
+            }
+          : { kind: 'TOOL_CALL', toolName: call.name, toolStatus, integrationName: message.integrationName },
+      ),
+    })
+
+    pending.set(call.id, result)
+  })
+}
+
+// A call to an integration that never started: one that runs without approval, drawn running or
+// cancelled by a stop before it started, or an approval the member allowed
+function isStartableIntegrationCall(message: ConversationDrawnCall) {
+  if (message.toolStartedAt) return false
+  if (message.kind === ConversationMessageKind.APPROVAL) {
+    return message.approvalState === ConversationApprovalState.ALLOWED && message.toolStatus === null
+  }
+
+  return isUnfinished(message)
+}
+
+// A call to an integration that started and has no result, left by a crash or a stop
+function isInterruptedIntegrationCall(message: ConversationDrawnCall) {
+  return (
+    Boolean(message.toolStartedAt)
+    && (message.toolStatus === ConversationToolStatus.RUNNING
+      || message.toolStatus === ConversationToolStatus.CANCELLED)
+  )
 }
 
 // A call that runs and has not finished: drawn and never started, started by a worker that crashed,

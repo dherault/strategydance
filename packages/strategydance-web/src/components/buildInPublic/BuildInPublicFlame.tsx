@@ -17,8 +17,9 @@ type Props = {
 }
 
 /*
-  The streak cards' flame: three layers in the card's flame colors when lit, outside in, or an
-  outline when not. Decorative, since the number beside it says the same
+  The streak cards' flame: three layers in the card's flame colors when lit, outside in, the outer
+  one edged in its own color or in the text's where it would melt into the card, or an outline
+  when not. Decorative, since the number beside it says the same
 */
 function BuildInPublicFlame({ size, isLit = true, className }: Props) {
   return (
@@ -34,7 +35,7 @@ function BuildInPublicFlame({ size, isLit = true, className }: Props) {
           <path
             d={FLAME_PATH}
             fill="var(--flame-outer)"
-            stroke="var(--flame-outer)"
+            stroke="var(--flame-edge)"
             strokeWidth={1}
             strokeLinejoin="round"
           />

@@ -249,6 +249,24 @@ const conversationMessages = defineMessages({
     description:
       'A conversation\'s preview line when its last entry is something the AI did that was cancelled, because the reader stopped it. {label} says what it did, such as "Searching the web".',
   },
+  previewApproval: {
+    id: 'conversation.preview.approval',
+    defaultMessage: 'Approval: {server} · {tool}',
+    description:
+      "A conversation's preview line when its last entry is an action the AI wants to take in another company's service, waiting for the reader to allow it. {server} is the service's name, such as Stripe, and {tool} the action's technical name, such as create_payment_link, kept as it is.",
+  },
+  previewAllowed: {
+    id: 'conversation.preview.allowed',
+    defaultMessage: 'Allowed: {server} · {tool}',
+    description:
+      "A conversation's preview line when its last entry is an action in another company's service that the reader allowed and that has not run yet. {server} is the service's name, such as Stripe, and {tool} the action's technical name, kept as it is.",
+  },
+  previewDenied: {
+    id: 'conversation.preview.denied',
+    defaultMessage: 'Denied: {server} · {tool}',
+    description:
+      "A conversation's preview line when its last entry is an action in another company's service that was not allowed. {server} is the service's name, such as Stripe, and {tool} the action's technical name, kept as it is.",
+  },
 
   /* ---
     NOTES: what the thread says when a run ends otherwise than with an answer
@@ -492,6 +510,54 @@ const conversationMessages = defineMessages({
     description:
       "What the AI did once it brought back a task on the team's board, the shared list of work to do that was deleted. Past tense.",
   },
+  toolListIntegrationsRunning: {
+    id: 'conversation.tool.listIntegrations.running',
+    defaultMessage: 'Listing integrations',
+    description:
+      "What the AI is doing while it looks at the organization's integrations, the services of other companies, such as a payment or calendar service, that the organization connected to Strategy Dance.",
+  },
+  toolListIntegrationsDone: {
+    id: 'conversation.tool.listIntegrations.done',
+    defaultMessage: 'Listed integrations',
+    description:
+      "What the AI did once it looked at the organization's integrations, the services of other companies that the organization connected to Strategy Dance. Past tense.",
+  },
+  toolDescribeIntegrationToolRunning: {
+    id: 'conversation.tool.describeIntegrationTool.running',
+    defaultMessage: 'Reading an integration’s tool',
+    description:
+      'What the AI is doing while it reads how to use one of the actions an integration offers, an integration being the service of another company connected to Strategy Dance.',
+  },
+  toolDescribeIntegrationToolDone: {
+    id: 'conversation.tool.describeIntegrationTool.done',
+    defaultMessage: 'Read an integration’s tool',
+    description:
+      'What the AI did once it read how to use one of the actions an integration offers, an integration being the service of another company connected to Strategy Dance. Past tense.',
+  },
+  toolCallIntegrationRunning: {
+    id: 'conversation.tool.callIntegration.running',
+    defaultMessage: 'Calling an integration',
+    description:
+      "What the AI is doing while it uses one of the organization's integrations, the service of another company connected to Strategy Dance, when the service's name is not known.",
+  },
+  toolCallIntegrationDone: {
+    id: 'conversation.tool.callIntegration.done',
+    defaultMessage: 'Called an integration',
+    description:
+      "What the AI did once it used one of the organization's integrations, the service of another company connected to Strategy Dance, when the service's name is not known. Past tense.",
+  },
+  integrationCallRunning: {
+    id: 'conversation.integrationCall.running',
+    defaultMessage: 'Calling {server}',
+    description:
+      "What the AI is doing while it uses one of the organization's integrations, the service of another company connected to Strategy Dance. {server} is the service's name, such as Stripe.",
+  },
+  integrationCallDone: {
+    id: 'conversation.integrationCall.done',
+    defaultMessage: 'Called {server}',
+    description:
+      "What the AI did once it used one of the organization's integrations, the service of another company connected to Strategy Dance. {server} is the service's name, such as Stripe. Past tense.",
+  },
 
   /* ---
     PAGE: one conversation, its bar, its title and its aspects
@@ -658,6 +724,72 @@ const conversationMessages = defineMessages({
     description:
       'The state of a tool the AI was about to use, which stopped before it ran because the reader stopped the answer.',
   },
+  integrationBadge: {
+    id: 'conversation.integrationBadge',
+    defaultMessage: 'MCP',
+    description:
+      "Small badge beside an action the AI took in another company's service, one of the organization's integrations, to tell it from Strategy Dance's own tools. MCP is the name of the protocol such services are reached by, kept as it is.",
+  },
+  approvalStatusAllowed: {
+    id: 'conversation.approvalStatus.allowed',
+    defaultMessage: 'Allowed',
+    description:
+      "The state of an action in another company's service that the reader allowed the AI to take, which has not run yet.",
+  },
+  approvalStatusDenied: {
+    id: 'conversation.approvalStatus.denied',
+    defaultMessage: 'Denied',
+    description:
+      "The state of an action in another company's service that the AI wanted to take and that was not allowed: the reader denied it, wrote something else instead, or the service changed since.",
+  },
+  integrationMissing: {
+    id: 'conversation.integration.missing',
+    defaultMessage: '{server} is no longer one of your integrations.',
+    description:
+      "Under an action the AI took in another company's service, when that service is no longer connected to the organization. {server} is the service's name, such as Stripe.",
+  },
+  integrationMissingAskAdministrator: {
+    id: 'conversation.integration.missingAskAdministrator',
+    defaultMessage: '{server} is no longer one of your integrations. Ask an administrator to add it.',
+    description:
+      "Under an action the AI took in another company's service, when that service is no longer connected to the organization, for a reader who cannot add it. {server} is the service's name, such as Stripe.",
+  },
+  integrationOff: {
+    id: 'conversation.integration.off',
+    defaultMessage: '{server} is turned off.',
+    description:
+      "Under an action the AI took in another company's service, when an administrator turned that service off for the organization. {server} is the service's name, such as Stripe.",
+  },
+  integrationOffAskAdministrator: {
+    id: 'conversation.integration.offAskAdministrator',
+    defaultMessage: '{server} is turned off. Ask an administrator to turn it on.',
+    description:
+      "Under an action the AI took in another company's service, when that service is turned off, for a reader who cannot turn it on. {server} is the service's name, such as Stripe.",
+  },
+  integrationNotConnected: {
+    id: 'conversation.integration.notConnected',
+    defaultMessage: '{server} isn’t connected to your account.',
+    description:
+      "Under an action the AI took in another company's service, when the reader has not connected their own account at that service, or has to connect it again. {server} is the service's name, such as Stripe.",
+  },
+  integrationAdd: {
+    id: 'conversation.integration.add',
+    defaultMessage: 'Add',
+    description:
+      "Button under an action the AI took in another company's service that is no longer connected to the organization: opens the page where an administrator adds it again.",
+  },
+  integrationTurnOn: {
+    id: 'conversation.integration.turnOn',
+    defaultMessage: 'Turn on',
+    description:
+      "Button under an action the AI took in another company's service that is turned off: opens the page where an administrator turns it on.",
+  },
+  integrationConnect: {
+    id: 'conversation.integration.connect',
+    defaultMessage: 'Connect',
+    description:
+      "Button under an action the AI took in another company's service, when the reader's own account there is not connected: opens the page where they connect it.",
+  },
   documentGone: {
     id: 'conversation.documentGone',
     defaultMessage: "(no longer in the team's knowledge)",
@@ -699,6 +831,18 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Tool call · {name}',
     description:
       "Line under the title of the dialog showing a tool the AI used. {name} is the tool's technical name, such as search_documents, kept as it is.",
+  },
+  integrationToolCall: {
+    id: 'conversation.integrationToolCall',
+    defaultMessage: 'MCP server call',
+    description:
+      "Line under the title of the dialog showing an action the AI took in another company's service. MCP is the name of the protocol such services are reached by, kept as it is.",
+  },
+  integrationToolCallTitle: {
+    id: 'conversation.integrationToolCallTitle',
+    defaultMessage: '{server} · {tool}',
+    description:
+      "Title of the dialog showing an action the AI took in another company's service. {server} is the service's name, such as Stripe, and {tool} the action's technical name, such as create_payment_link, kept as it is.",
   },
   toolInput: {
     id: 'conversation.toolInput',
@@ -804,6 +948,88 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Your answer is kept. Strategy Dance will go on once one of your other conversations is done.',
     description:
       "Shown under a question when the reader's answer was saved, but the AI is already answering in as many of the reader's other conversations as it can at once, so it starts on this one later, by itself.",
+  },
+  approvalWaiting: {
+    id: 'conversation.approval.waiting',
+    defaultMessage: 'Waiting for your approval',
+    description:
+      "Small heading over an action the AI wants to take in another company's service as the reader, such as creating a payment link, which waits for the reader to allow or deny it.",
+  },
+  approvalUnanswered: {
+    id: 'conversation.approval.unanswered',
+    defaultMessage: 'Not answered',
+    description:
+      "Small heading over an action the AI wanted to take in another company's service that the reader cannot allow for now, because the response it belongs to was stopped or cut off. Resuming the response makes it answerable again.",
+  },
+  approvalPrompt: {
+    id: 'conversation.approval.prompt',
+    defaultMessage: 'Strategy Dance wants to use {server}.',
+    description:
+      "Says what the reader is asked to allow: the AI wants to take an action in another company's service, with the reader's own account there or the organization's key. {server} is the service's name, such as Stripe.",
+  },
+  approvalArguments: {
+    id: 'conversation.approval.arguments',
+    defaultMessage: 'What it sends',
+    description: "Label over what the AI would send to another company's service if the reader allows the action.",
+  },
+  approvalAllow: {
+    id: 'conversation.approval.allow',
+    defaultMessage: 'Allow',
+    description:
+      "Button to allow the AI to take an action in another company's service. It first shows everything the action sends, to allow there.",
+  },
+  approvalDeny: {
+    id: 'conversation.approval.deny',
+    defaultMessage: 'Deny',
+    description: "Button to refuse the AI an action in another company's service. The AI is told it was refused.",
+  },
+  approvalDialogTitle: {
+    id: 'conversation.approval.dialogTitle',
+    defaultMessage: 'Allow {server} · {tool}?',
+    description:
+      "Title of the dialog where the reader allows an action the AI wants to take in another company's service. {server} is the service's name, such as Stripe, and {tool} the action's technical name, such as create_payment_link, kept as it is.",
+  },
+  approvalDialogDescription: {
+    id: 'conversation.approval.dialogDescription',
+    defaultMessage: 'Strategy Dance will send exactly this. Read it before you allow it.',
+    description:
+      "Under the title of the dialog where the reader allows an action in another company's service, above everything the action sends.",
+  },
+  approvalDialogCancel: {
+    id: 'conversation.approval.dialogCancel',
+    defaultMessage: 'Cancel',
+    description:
+      "Button that closes the dialog where the reader allows an action in another company's service, without deciding anything.",
+  },
+  approvalConflict: {
+    id: 'conversation.approval.conflict',
+    defaultMessage: 'This action no longer waits for you.',
+    description:
+      "Shown under an action in another company's service when the reader's decision came too late: they wrote something else meanwhile, or it was decided elsewhere.",
+  },
+  approvalUnavailable: {
+    id: 'conversation.approval.unavailable',
+    defaultMessage: 'Your decision is kept, but Strategy Dance cannot go on right now. It will try again by itself.',
+    description:
+      "Shown under an action in another company's service when the reader's decision was saved but the AI could not start right away.",
+  },
+  approvalError: {
+    id: 'conversation.approval.error',
+    defaultMessage: 'Your decision could not be sent. Check your connection and try again.',
+    description: "Shown under an action in another company's service when the reader's Allow or Deny failed to send.",
+  },
+  approvalQueued: {
+    id: 'conversation.approval.queued',
+    defaultMessage: 'Your decision is kept. Strategy Dance will go on once one of your other conversations is done.',
+    description:
+      "Shown under an action in another company's service when the reader's decision was saved, but the AI is already answering in as many of the reader's other conversations as it can at once, so it goes on with this one later, by itself.",
+  },
+  approvalChanged: {
+    id: 'conversation.approval.changed',
+    defaultMessage:
+      '{server} changed since this was proposed, so it was not sent. Strategy Dance will propose it again if it still needs it.',
+    description:
+      "Shown under an action in another company's service when the reader allowed it, but the service, the action or the reader's account there changed after the AI proposed it, so it was refused instead. {server} is the service's name, such as Stripe.",
   },
   aspectsTagged: {
     id: 'conversation.aspectsNote.tagged',

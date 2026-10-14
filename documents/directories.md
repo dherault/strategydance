@@ -129,7 +129,8 @@ still found, and left, as any entry changed meanwhile is. A run changes only wha
 
 Both files are written sorted by name, as the package's `compareDirectoryNames` orders them, each
 entry's fields in the order its `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS` give, as
-`JSON.stringify(list, null, 2)` writes them, which is how oxfmt lays them out. The package's tests
+`JSON.stringify(list, null, 2)` writes them, which `.oxfmtrc.json` keeps oxfmt from rewriting,
+since oxfmt puts a short array, a directory's one category, on one line. The package's tests
 hold the files to that, and to what a run assumes of them: days that exist and have come,
 `unreachableSince` never after `lastChecked`, descriptions on one line within
 `MAX_DIRECTORY_DESCRIPTION_LENGTH`, and addresses without a fragment.

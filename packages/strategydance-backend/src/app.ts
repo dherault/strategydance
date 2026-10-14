@@ -13,6 +13,7 @@ import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
 import createConversationsRouter from '~routes/conversations'
+import createIntegrationOAuthRouter from '~routes/integrationOAuth'
 import createIntegrationsRouter from '~routes/integrations'
 import createInternalRouter from '~routes/internal'
 import createLinkPreviewsRouter from '~routes/linkPreviews'
@@ -77,6 +78,9 @@ function createApp({ isWorker }: Options) {
     // Ahead of the protocol's router, so the consent page's routes answer in the app's envelope
     app.use('/oauth/requests', createOAuthRequestsRouter())
     app.use('/oauth', createOAuthRouter())
+    // Where an organization's MCP servers send a member back after signing in, and Strategy Dance's
+    // client ID metadata document
+    app.use('/integrations/oauth', createIntegrationOAuthRouter())
     app.use(MODULES_PATH, createModulesRouter())
     // Ahead of the organizations' router, so their paths are matched first
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())

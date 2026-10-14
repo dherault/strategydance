@@ -19,6 +19,7 @@ import type {
   GetOrganizationDocumentsData,
   GetOrganizationInvitationData,
   GetOrganizationLogData,
+  GetIntegrationConnectionsData,
   GetOrganizationIntegrationsData,
   GetOrganizationTeamData,
   GetTasksData,
@@ -26,7 +27,7 @@ import type {
   TaskStatus,
 } from 'strategydance-database/web'
 
-import type { CARD_ACCENT_COLORS, MESSAGE_TYPES } from '~constants'
+import type { CARD_ACCENT_COLORS, CARD_INK_COLORS, MESSAGE_TYPES } from '~constants'
 
 export type MessageType = (typeof MESSAGE_TYPES)[number]
 
@@ -96,6 +97,9 @@ export type OrganizationTeam = GetOrganizationTeamData
 // One of the organization's MCP servers, as its Integrations page lists it: never its key
 export type OrganizationIntegration = GetOrganizationIntegrationsData['organizationIntegrations'][number]
 
+// The reader's own account at one of the organization's OAuth servers: never a token
+export type IntegrationConnection = GetIntegrationConnectionsData['integrationConnections'][number]
+
 // One member: what they may do, what they do, and who they are
 export type OrganizationMember = OrganizationTeam['userOrganizations'][number]
 
@@ -152,13 +156,16 @@ export type TaskSnapshot = {
 
 /*
   What history keeps for an address beside the router's own: whether the task board opened the task
-  it names, so closing the task steps back to the board's entry rather than adding one. Extended on
-  `@tanstack/history`, a dependency of the web package for this alone at the version the router
-  pins: a router bump that moves it fails the typecheck where the key is read, until it follows
+  it names, so closing the task steps back to the board's entry rather than adding one, and whether
+  the dialog the task was created in opened it in its own place, which the task's dialog then takes
+  without the opening animation. Extended on `@tanstack/history`, a dependency of the web package
+  for this alone at the version the router pins: a router bump that moves it fails the typecheck
+  where the key is read, until it follows
 */
 declare module '@tanstack/history' {
   interface HistoryState {
     isFromTaskBoard?: boolean
+    isFromNewTask?: boolean
   }
 }
 
@@ -231,7 +238,16 @@ export type CardFieldOption = {
   label: ReactNode
 }
 
-// One setting a card offers beside it: a pick of one option, or of several, up to `max`
+// Options of a card's field under a heading, such as a board's tasks by their column
+export type CardFieldGroup = {
+  label: string
+  options: CardFieldOption[]
+}
+
+/*
+  One setting a card offers beside it: a pick of one option, or of several, up to `max`, or of one
+  among options too many to scroll through, found by a search, whose labels it searches as text
+*/
 export type CardField =
   | {
       kind: 'select'
@@ -246,11 +262,27 @@ export type CardField =
       options: CardFieldOption[]
       max?: number
     }
+  | {
+      kind: 'combobox'
+      key: string
+      label: string
+      options: CardFieldGroup[]
+      searchPlaceholder: string
+      emptyText: string
+    }
 
-// The look every card shares once the reader picks one: what they are drawn on, and in which color
+// What a build in public card's text is written in when the reader forces it, rather than what reads
+// best on its background
+export type CardInk = keyof typeof CARD_INK_COLORS
+
+/*
+  The look every card shares once the reader picks one: what they are drawn on, in which color, and
+  what their text is written in, which follows the background unless an ink is picked
+*/
 export type CardLook = {
   tone?: CardTone
   accent?: CardAccent
+  ink?: CardInk
 }
 
 /*

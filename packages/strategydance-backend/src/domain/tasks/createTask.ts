@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { getPositionBetween, MAX_TASKS } from 'strategydance-core'
-import { type CompanyAspect, createTaskForAgent, type TaskStatus } from 'strategydance-database/backend'
+import { type CompanyAspect, createTaskForAgent, TaskStatus } from 'strategydance-database/backend'
 
 import type { ModuleCall, ModuleCaller, TaskAssignee, TasksWriteResult } from '~types'
 
@@ -92,6 +92,8 @@ async function createTask(
       ...assignment,
       dueDate: dueDate ?? null,
       aspects: aspects ?? [],
+      // A task created done was done as it was created
+      ...(status === TaskStatus.DONE && { doneAt: new Date().toISOString() }),
       ...toModuleCallVariables(caller, call, result),
     })
 

@@ -17,8 +17,8 @@ type Props = {
   letterClassName?: string
 }
 
-// A week of flames, each over its day's initial, today's in the text color and bold, the days to
-// come faded, and a battery for a day a charge kept. Each day is named for a screen reader, since
+// A week of flames, each over its day's initial, today's in the text color and bold, the flames of
+// the days to come faded, and a battery for a day a charge kept. Each day is named for a screen reader, since
 // its flame is the only sign it was active
 function BuildInPublicWeekFlames({ days, size, className, letterClassName = 'text-[11px]' }: Props) {
   const intl = useIntl()
@@ -46,7 +46,7 @@ function BuildInPublicWeekFlames({ days, size, className, letterClassName = 'tex
           )}
           <span
             aria-hidden="true"
-            className={cn(letterClassName, day.isToday ? 'font-bold' : 'font-medium opacity-70')}
+            className={cn(letterClassName, day.isToday ? 'font-bold' : 'font-medium')}
           >
             {intl.formatDate(toCalendarDate(day.date), { weekday: 'narrow', timeZone: 'UTC' })}
           </span>

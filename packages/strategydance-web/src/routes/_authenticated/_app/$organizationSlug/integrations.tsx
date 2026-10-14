@@ -4,6 +4,8 @@ import type { MessageType } from '~types'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import parseIntegrationsSearch from '~utils/integration/parseIntegrationsSearch'
+
 import Integrations from '~components/integration/Integrations'
 import IntegrationsReleaseBouncer from '~components/integration/IntegrationsReleaseBouncer'
 import IntegrationsWait from '~components/integration/IntegrationsWait'
@@ -13,6 +15,8 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 const INTEGRATION_MESSAGE_TYPES: MessageType[] = ['integration', 'externalMcpServer']
 
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/integrations')({
+  // A conversation's thread sends the reader here to open, connect, turn on or add a server
+  validateSearch: parseIntegrationsSearch,
   component: IntegrationsRoute,
 })
 

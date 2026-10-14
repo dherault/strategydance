@@ -249,6 +249,9 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     answerSelected
     answerOther
     isAnswerSkipped
+    integrationName
+    integrationToolName
+    approvalState
     run {
       id
     }
@@ -352,6 +355,9 @@ query GetConversationRetryContext(
     answerSelected
     answerOther
     isAnswerSkipped
+    integrationName
+    integrationToolName
+    approvalState
     # A message of files alone is previewed by their names, in the order it sends them
     conversationAttachments_on_message(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 10) {
       name
@@ -451,8 +457,9 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
 }
 
 # The calls of the turn a conversation's transcript ends on, by the ids Claude gave them, as the
-# thread draws them: the questions with their answers, and the calls to Strategy Dance's own tools
-# with their status, their output and whether they started. And the latest run, with the results of
+# thread draws them: the questions with their answers, the calls to Strategy Dance's own tools with
+# their status, their output and whether they started, and the calls to integrations with their
+# approval and what it was bound to. And the latest run, with the results of
 # the calls of that turn which finished, kept until the entry that sends them is stored. What the
 # worker reads before it runs a turn's calls, and what a send, a resume and a continuation read
 # before they answer them. Only the caller's conversation in that organization
@@ -461,7 +468,7 @@ query GetConversationCalls($organizationId: UUID!, $userId: String!, $conversati
   conversationMessages(
     where: {
       toolUseId: { in: $toolUseIds }
-      kind: { in: [TOOL_CALL, QUESTION] }
+      kind: { in: [TOOL_CALL, QUESTION, APPROVAL] }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
     orderBy: [{ position: ASC }]
@@ -480,6 +487,13 @@ query GetConversationCalls($organizationId: UUID!, $userId: String!, $conversati
     answerOther
     isAnswerSkipped
     answeredAt
+    integrationId
+    integrationName
+    integrationToolName
+    approvalState
+    approvalConfigRevision
+    approvalToolHash
+    approvalCredentialGeneration
   }
   latestRuns: conversationRuns(
     where: {
@@ -534,6 +548,9 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
     trigger
     status
     leaseExpiresAt
+    # Where the run that waits was anchored, which a run carrying its turn on to make the calls its
+    # member allowed is anchored on too, until it stores the turn's results
+    anchorPosition
   }
   conversationRuns(
     where: {
@@ -562,15 +579,45 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
     role
     content
   }
+  # The questions, and the calls waiting for the member's approval, of the turn: what the member
+  # answers before the conversation goes on
   waitingQuestions: conversationMessages(
     where: {
-      kind: { eq: QUESTION }
+      kind: { in: [QUESTION, APPROVAL] }
       answeredAt: { isNull: true }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
     limit: 1000
   ) {
     id
+  }
+}
+
+# A call to an integration waiting for the caller's approval, by its id, as Allow and Deny read it:
+# what the approval is bound to, which Allow checks against the server as it is, and its answer once
+# it has one, so a decision sent again is told from another
+query GetConversationApproval($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationMessages(
+    where: {
+      id: { eq: $messageId }
+      kind: { eq: APPROVAL }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    id
+    toolUseId
+    toolStatus
+    toolOutput
+    integrationId
+    integrationName
+    integrationToolName
+    approvalState
+    approvalConfigRevision
+    approvalToolHash
+    approvalCredentialGeneration
+    answeredAt
   }
 }
 
@@ -1623,6 +1670,17 @@ query GetUnindexedTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
   }
 }
 
+# The `doneAt` backfill's, run by hand after the release that added it: up to 100 tasks of any
+# organization in Done that nobody stamped, deleted ones included, each with its last change, which
+# the backfill stamps it with, leaving out those it could not stamp. A stamped one leaves the list,
+# so it pages through them and can stop and start again at any point
+query GetUndatedDoneTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
+  tasks(where: { status: { eq: DONE }, doneAt: { isNull: true }, id: { nin: $skippedIds } }, limit: 100) {
+    id
+    updatedAt
+  }
+}
+
 # The authorization server's operations follow, which the backend's OAuth endpoints run for the
 # external agents a member connects to a module (`documents/conversations.md`, Modules, External
 # agents).
@@ -1768,10 +1826,10 @@ query GetAgentConnectionTokenForRevocation($hash: String!) @auth(level: NO_ACCES
   }
 }
 
-# A server of an organization as its administrators' routes change it, deleted or not, its key's
-# ciphertext included: the one read of it, made after `organizationAdministratorMiddleware` has
-# checked the caller, and every write that follows checks it again. Null for a server of another
-# organization
+# A server of an organization as its administrators' routes change it, and its members' Connects
+# read it, deleted or not, its key's and its client secret's ciphertexts included: read after a
+# route's middleware has checked the caller, and every write that follows checks them again. Null for
+# a server of another organization
 query GetOrganizationIntegrationForAdministrator($organizationId: UUID!, $integrationId: UUID!)
 @auth(level: NO_ACCESS) {
   organizationIntegrations(where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId } }, limit: 1) {
@@ -1789,8 +1847,192 @@ query GetOrganizationIntegrationForAdministrator($organizationId: UUID!, $integr
     apiKeyScheme
     apiKeyHeader
     issuer
+    oauthClientId
+    encryptedOAuthClientSecret
+    oauthClientSecretExpiresAt
+    oauthClientAuthenticationMethod
+    toolCount
     toolDefinitionHashes
     lastError
     deletedAt
+  }
+}
+
+# The organization's live servers as a conversation's agent lists them for one member, with that
+# member's own connection to each: what works for them, each server's tools as last listed, and which
+# of them run without approval. No secret: a call reads its own server through
+# `GetConversationIntegration`. The membership is matched on the `createdAt` the run recorded, so a
+# member removed, or removed and invited back, reads nothing
+query GetConversationIntegrations($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  organizationIntegrations(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 50
+  ) {
+    id
+    name
+    authentication
+    isEnabled
+    configRevision
+    keyGeneration
+    apiKeyLastFour
+    tools
+    autoApprovedTools
+  }
+  integrationConnections(
+    where: {
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      integration: { deletedAt: { isNull: true } }
+    }
+    limit: 50
+  ) {
+    integrationId
+    generation
+    configRevision
+    status
+  }
+}
+
+# One live server of the organization as a conversation's agent calls it for one member, its key's
+# ciphertext included, which a call decrypts to reach it, with that member's own connection to it.
+# Read when a call is drawn, to decide whether it waits for the member's approval, and again right
+# before it is made, to check what the approval was bound to. Null for a server deleted or of
+# another organization, and nothing at all once the membership changed
+query GetConversationIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $integrationId: UUID!
+) @auth(level: NO_ACCESS) {
+  userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  organizationIntegrations(
+    where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    limit: 1
+  ) {
+    id
+    name
+    url
+    authentication
+    isEnabled
+    configRevision
+    keyGeneration
+    encryptedApiKey
+    apiKeyScheme
+    apiKeyHeader
+    tools
+    autoApprovedTools
+  }
+  integrationConnections(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+    limit: 1
+  ) {
+    integrationId
+    generation
+    configRevision
+    status
+  }
+}
+
+# The Connect a sign-in's state names, found by the state's hash alone, before anybody is known, as
+# the authorization server's own requests are: whoever holds a 256-bit state is whom the callback
+# trusts to bring its code back, and only the member's own page finishes it
+query GetIntegrationAuthorizationByState($stateHash: String!) @auth(level: NO_ACCESS) {
+  integrationAuthorizations(where: { stateHash: { eq: $stateHash } }, limit: 1) {
+    id
+    integrationId
+    membershipUserId
+    membershipOrganizationId
+    issuer
+    isIssuerParameterSupported
+  }
+}
+
+# A Connect of the organization's server by its id, whoever started it, so the finish can tell
+# another account's from one that is gone, and refuses both. Null once it is finished or replaced
+query GetIntegrationAuthorizationForMember($organizationId: UUID!, $integrationId: UUID!, $authorizationId: UUID!)
+@auth(level: NO_ACCESS) {
+  integrationAuthorizations(
+    where: {
+      id: { eq: $authorizationId }
+      integrationId: { eq: $integrationId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+    limit: 1
+  ) {
+    id
+    membershipUserId
+    encryptedCodeVerifier
+    encryptedCode
+    codeExpiresAt
+    configRevision
+    oauthClientId
+    oauthClientAuthenticationMethod
+    resource
+    scope
+    issuer
+    isIssuerParameterSupported
+    tokenEndpoint
+    revocationEndpoint
+    expiresAt
+  }
+}
+
+# A member's connection to a server, its tokens' ciphertexts included, with what of the server it is
+# used against, in one read: a token goes to the address read here, and only while the server is at
+# the revision the connection was made under. Null when they have none
+query GetIntegrationConnectionForMember($organizationId: UUID!, $userId: String!, $integrationId: UUID!)
+@auth(level: NO_ACCESS) {
+  integrationConnections(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+    limit: 1
+  ) {
+    id
+    generation
+    configRevision
+    status
+    accountLabel
+    oauthClientId
+    oauthClientAuthenticationMethod
+    resource
+    issuer
+    isIssuerParameterSupported
+    tokenEndpoint
+    revocationEndpoint
+    encryptedAccessToken
+    encryptedRefreshToken
+    accessTokenExpiresAt
+    scope
+    refreshingUntil
+    refreshLeaseId
+    integration {
+      url
+      authentication
+      configRevision
+      isEnabled
+      oauthClientId
+      encryptedOAuthClientSecret
+      deletedAt
+    }
   }
 }

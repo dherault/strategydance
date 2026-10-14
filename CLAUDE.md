@@ -48,8 +48,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   lists were read from the README of where-to-submit-your-startup, and a daily check, the
   backend's, keeps them true through a pull request a human merges
   ([directories.md](documents/directories.md)). Both files are written as `JSON.stringify(list,
-  null, 2)` writes them, sorted by name, which the tests hold them to, so a script's edit passes the
-  lint
+  null, 2)` writes them, sorted by name, which the tests hold them to, and oxfmt leaves them alone,
+  since it would put a short array on one line, which `JSON.stringify` never does
 - `packages/strategydance-external-mcp-servers` — the remote MCP servers an organization adds in a
   click from its Integrations page, as `EXTERNAL_MCP_SERVERS` from `src/externalMcpServers.json`,
   with `findExternalMcpServer` by slug and `findExternalMcpServerByUrl`: each with its address,
@@ -66,7 +66,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   inviting people, which emails them, storing the pictures of documents' text, reading what a
   web page says of itself for a link preview, sending and searching conversations, serving the
   modules to the agents members connect, through its own authorization server, and reaching the MCP
-  servers an organization adds, with their keys encrypted. Its image runs a second time as the
+  servers an organization adds, with their keys encrypted, as an OAuth client of those to which
+  members connect their own accounts. Its image runs a second time as the
   private worker, which runs conversations' runs as Cloud Tasks delivers them, sweeps what was
   deleted once a day, and checks the directories once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
@@ -191,7 +192,8 @@ extension.
   TypeScript ignores one that is not at the top of the file: keep it above the import that
   sorts first
 - **Markdown and HTML are not formatted**, nor are the files a generator writes
-  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock),
+  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock,
+  the directories' two lists),
   whose next run would rewrite them anyway. The schema and the connectors are formatted, and
   generate the same SDK
 - **An unused import is an error that `--fix` does not remove**: oxlint files that fix as
@@ -420,10 +422,15 @@ only way the app talks to them.
   lookup, and its comment says what that costs. The other exception is the authorization server's:
   its backend operations find a registered client, an authorization request, a code or a token by
   its id or its hash before any `$userId` is verified, since whoever holds a random UUID or a
-  256-bit token is whom the OAuth flow trusts, and only hashes are stored
+  256-bit token is whom the OAuth flow trusts, and only hashes are stored. So does the callback of
+  members' Connects to an organization's MCP servers, which finds a Connect by its state's hash
+  (`GetIntegrationAuthorizationByState`) and keeps the code it brought back, which only the member's
+  own signed-in page finishes
 - A table references the account and the organization apart, so removing a member, which deletes
-  the membership and nothing else, keeps what they wrote. `AgentConnection` alone references the
-  membership, since a connection is the membership's and goes with it, its tokens with it. Data
+  the membership and nothing else, keeps what they wrote. A connection is the exception, the
+  membership's, and goes with it, its tokens with it: `AgentConnection`, an external agent acting as
+  the member, `IntegrationConnection`, the member's own account at one of the organization's MCP
+  servers, and `IntegrationAuthorization`, a Connect of theirs under way. Data
   Connect cannot reference a key made of references, so `UserOrganization` names its columns,
   `userId` and `organizationId`, and the reference names them with `@ref`, its constraint named
   short of Postgres' 63 bytes
@@ -476,6 +483,22 @@ only way the app talks to them.
   either selects names itself in their refreshes, and the agent's `lastUsedAt` write (M29) never
   does. `bun run check:integrations`, in the backend's package, checks the operations against the
   emulators
+- A member's own account at an OAuth server is an `IntegrationConnection`, one per member and
+  server, and a Connect of theirs under way an `IntegrationAuthorization`, both the backend's alone to
+  write. Tokens, codes and PKCE verifiers are encrypted, each bound to its purpose, the server and the
+  member (`buildIntegrationSecretContext`), and no web operation selects one: the page reads its own
+  connections through `GetIntegrationConnections`, live, which no refresh of the tokens wakes. A
+  connection's `generation` is a UUID made at every connect and kept by a refresh, so no disconnect,
+  reconfiguration or removal ever repeats one, which M29's approvals bind to. A refresh claims a lease
+  on the connection, `refreshingUntil` from the database's clock, only while the connection holds the
+  refresh token its caller read, so a rotating refresh token is spent once, and writes and lets go by
+  the lease's id alone. A member's write on the server's row, a Connect's start or its connection,
+  locks the row at the revision and issuer it started under; `ReconfigureOrganizationIntegration` and
+  `ChangeOrganizationIntegrationIssuer` write the row first and delete the connections and Connects
+  after, so under read committed none outlives them, an order a change to either keeps
+- The ids a route hands an operation are canonical (`toCanonicalUuid`), whatever spelling its path
+  used: a live query's refresh condition compares the variables as text, and a page that names ids
+  hyphenated, as the page a sign-in ends on does, would otherwise refresh no other tab
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
@@ -668,7 +691,8 @@ A conversation is kept twice, once for Claude and once for the page, and
   against the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep it. A gate added for conversations keys off the same two, as the integrations' does
-  (`useCanUseIntegrations`, and `staffOnlyMiddleware` on their routes). The modules reach external agents under a gate of their own until they launch,
+  (`useCanUseIntegrations`, and `staffOnlyMiddleware` on their routes, a member's Connect's included,
+  whose callback needs none, since only a staff member's Connect leaves a state to find). The modules reach external agents under a gate of their own until they launch,
   `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
@@ -709,14 +733,20 @@ member's own, so a streak counts what members do themselves.
 The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
 organization changes, as its knowledge. Each field is written by a mutation of its own, so two
 members editing one task keep each other's changes, and a move writes the one task that moved,
-halfway between its new neighbours. `TaskDependency` links a task to those it waits on: the server
-refuses a task waiting on itself or on one waiting on it, and the page offers no pick that would
-close a longer loop, nor an Undo that would bring one back. The board keeps `GetTasks` live,
-without the descriptions, and reads them once for its search through `GetTaskDescriptions`, again
-on focus; a task's dialog keeps its own live through `GetTaskDescription`, and opens it for
-writing only once that read lands, since the search's copy can be older than a teammate's save. A
-query that held every description live would push them all to every open board at each save, and a
-drag would too. Removing a member takes them off the tasks they were doing.
+halfway between its new neighbours. A move into Done from another column goes through `FinishTask`,
+which stamps `doneAt` from the server's clock, since no write can stamp it only when its status
+variable is DONE and a move within Done sends that status too: a new way to finish a task stamps it,
+as the Tasks module's create and update do with `$doneAt`. Both moves name the column the page saw
+the task in, `$fromStatus`, and a task that has left it is refused rather than moved back, which
+keeps a teammate's move and never puts a task into Done unstamped. `TaskDependency` links a task to
+those it waits on: the server refuses a task waiting on itself or on one waiting on it, and the page
+offers no pick that would close a longer loop, nor an Undo that would bring one back. The board
+keeps `GetTasks` live, without the descriptions, and reads them once for its search through
+`GetTaskDescriptions`, again on focus; a task's dialog keeps its own live through
+`GetTaskDescription`, and opens it for writing only once that read lands, since the search's copy
+can be older than a teammate's save. A query that held every description live would push them all to
+every open board at each save, and a drag would too. Removing a member takes them off the tasks they
+were doing.
 
 Every write of a task's description writes its plain text beside it, `descriptionText`, which the
 Tasks module's `list_tasks` matches a query against, never the serialized blocks: the page through
@@ -761,6 +791,17 @@ there is never framed by another site dressing Allow up as something else. It re
 once, never again on focus, reconnecting or retry: a read is what has the backend fetch the client's
 metadata document, and a read after the member decided would find the request gone while the
 browser leaves.
+
+The page an OAuth MCP server's sign-in ends on, `/integrations/connected` (`INTEGRATION_CONNECTED_PATH`
+in strategydance-core), where the backend's callback sends the window the Integrations page opened,
+sits under `_authenticated` outside `_app` too, and `firebase.json` gives every path under
+`/integrations` the `/oauth` paths' headers. It finishes the Connect as the reader signed in, then
+says how it went on a `BroadcastChannel` (`INTEGRATION_CONNECTION_CHANNEL`) and closes itself where
+the browser lets it. The page that opened the window (`useIntegrationConnect`) opens it blank inside
+the click, sets its `opener` to null before sending it to the sign-in, an https address alone, takes
+the channel's `connected` as a nudge, since anybody can open the page, and the reader's live
+connection appearing anew as the proof, and never reads the window's `closed`, which an
+authorization server's Cross-Origin-Opener-Policy makes read true while the reader is still in it.
 
 TanStack parses each value of a query as JSON before `validateSearch` sees it, so 32 hex digits
 that happen to be decimal, or decimal around one `e`, arrive as a number that lost its digits. An
@@ -961,6 +1002,28 @@ in `utils/`, one concern per file.
   `createIntegrationDatabaseFake` with `reachIntegration` mocked, `bun run check:integrations`
   checks the operations against the emulators, and `bun run probe:integrations` reaches every
   server of strategydance-external-mcp-servers through the same code from this machine
+- Any member connects their own account to an OAuth server through the same router's
+  `…/:integrationId/connection` routes, `organizationMemberMiddleware` in place of the administrator's:
+  start, finish, cancel and disconnect. Strategy Dance is the OAuth client there, every request to the
+  server and its authorization server through `createIntegrationFetch`, the guarded fetch, and the MCP
+  SDK's `registerClient`, `startAuthorization`, `exchangeAuthorization` and `refreshAuthorization`,
+  never its `auth()`: the client presented is Strategy Dance's client ID metadata document,
+  `GET /integrations/oauth/client`, where the authorization server reads such documents and the
+  backend is https, else the dynamic registration recorded on its row, the first recorded when two
+  members' first Connects register at once, the other left unused. The
+  authorization server's callback, `GET /integrations/oauth/callback` on the public backend
+  (`routes/integrationOAuth.ts`), finds the Connect by its state's hash, keeps the code encrypted for
+  two minutes and always answers a 303 to the app's page, which finishes it as the signed-in member:
+  the code is exchanged for the account that started the Connect alone, so a sign-in somebody else
+  started and sent connects nothing (OAuth CSRF). A token is read through
+  `readIntegrationAccessToken`, refreshed under the connection's lease, and goes to the address of the
+  revision it was given for. The backend logs no code, state, token or anything a server answered,
+  the development logger leaving the callback's query out; Cloud Run's own request log keeps the
+  callback's address, code and state with it, unless the exclusion of setup step 12 in
+  conversations.md is in place, the code being worthless without the verifier the Connect keeps
+  encrypted. The flow's tests run the real SDK through the
+  guard against `createIntegrationOAuthServerFake`, an MCP server and its authorization server in
+  memory, with `createIntegrationFetch` mocked to reach it
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
   deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, each
@@ -974,8 +1037,9 @@ in `utils/`, one concern per file.
   and in production the files the Files API holds that no row names, a day old
   (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
-  organization's documents and MCP servers deleted over a day ago, the servers with their keys
-  (`PruneDeletedIntegrations`), the conversation searches over a day old, which
+  organization's documents and MCP servers deleted over a day ago, the servers with their keys and
+  members' connections (`PruneDeletedIntegrations`), members' Connects to them expired over an hour
+  ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
   nobody uses (`domain/oauth/prune…`). A milestone that keeps
@@ -1057,10 +1121,36 @@ in `utils/`, one concern per file.
   `buildConversationToolResults`, one result per call in the turn's order. `ask_user` is answered by
   the member instead: only the turn the transcript ends on holds questions without an answer, so
   what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
+- The organization's integrations, other companies' MCP servers, reach the agent through three tools
+  of its own, always in `CONVERSATION_TOOLS` and always run, whatever the organization added, so the
+  tools list never varies and a turn is replanned the same: `list_integrations` and
+  `describe_integration_tool`, strict, and `call_integration_tool`, which is not, since a strict
+  schema cannot leave its `arguments` open, its input checked by `checkConversationIntegrationCall`.
+  Their runners (`createConversationIntegrationRunners`) close over the run's fence, as the modules'
+  connection closes over its caller, and a call is made through `callIntegrationTool`, 30 seconds in
+  all, as the member, a 401 alone marking their connection
+- What a call to an integration becomes is decided once, when it is drawn, from the server as it is
+  then (`decideConversationIntegrationCall`): refused, drawn failed with the server it named; run at
+  once, when an administrator lets its tool run without approval; or an `APPROVAL` the member allows
+  or denies. Both of the last two are bound to the server's `configRevision`, the tool's definition
+  hash and the credential's generation, recorded on the message, which Allow and the call right
+  before it is made check again: a mismatch denies an approval, its result saying the server changed.
+  An approval waits as a question does, in every waiting count (`kind in [QUESTION, APPROVAL]`, not
+  answered), its `toolStatus` null until a run starts its call. A turn's other calls run beside it, as
+  David chose. A call to an integration that started is never made again: one a crash or a stop left
+  unfinished is finished as interrupted
+- A continuation that carries an allowed call stores no entry, since the call has not run:
+  `ContinueConversationRunWithCalls` starts its run anchored where the waiting run was, with its
+  results, and answers the calls a stop kept from running as stopped; the worker makes the calls,
+  then stores the turn's results and anchors the run on them (`StoreConversationToolResults`'
+  `$anchorPosition`), so a Retry keeps a call that went to another company's server. A send denies
+  the approvals waiting and answers an allowed call never run, each by a list it names, which a
+  backend from before leaves out and is refused for
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. It holds the modules' fake as `modules`, its operations in the same SDK,
-  since a run's worker loads every module's server, and adds or removes a member in both with one
+  conditions and refusals. It holds the modules' fake as `modules`, and the integrations' as
+  `integrations`, their operations in the same SDK, since a run's worker loads every module's server
+  and its agent reads the organization's servers, and adds or removes a member in all with one
   `createdAt`; a test bringing its own runners in passes `connectTestModules(runners)`. `bun run check:conversation-runs` and `bun run check:conversation-search`,
   in the backend's package, check those conditions against the emulators, the second also what
   Postgres' full-text search and LIKE match. An operation changed is changed in both
@@ -1176,9 +1266,11 @@ and why.
   strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge` and `claude mcp add
   --transport http strategydance-tasks-http-local http://localhost:3003/mcp/tasks`, then `/mcp` in
   Claude Code to sign in to each
-- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
-  backend's package, fill the plain text of documents stored before `contentText` existed and of
-  tasks stored before `descriptionText` did, each run by hand once, after the release that added it
+- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in
+  the backend's package, fill the plain text of documents stored before `contentText` existed and of
+  tasks stored before `descriptionText` did, and `bun run backfill:task-done-at --production` stamps
+  the tasks done before `doneAt` existed with their last change, each run by hand once, after the
+  release that added it
 
 ## Email conventions
 

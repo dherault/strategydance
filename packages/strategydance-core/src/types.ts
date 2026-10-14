@@ -79,10 +79,15 @@ export type LinkPreviewData = {
   to typecheck wherever a row is passed
 */
 export type ConversationPreviewSource = {
-  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE'
+  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE' | 'APPROVAL'
   text?: string | null
   toolName?: string | null
   toolStatus?: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | null
+  // A call to an integration's, a tool call or an approval: the server's name and the tool's, as
+  // they were at call time, and an approval's state
+  integrationName?: string | null
+  integrationToolName?: string | null
+  approvalState?: 'PENDING' | 'ALLOWED' | 'DENIED' | null
   questionPrompt?: string | null
   answerSelected?: string[] | null
   answerOther?: string | null
@@ -110,6 +115,16 @@ export type ConversationPreview =
       kind: 'TOOL_CALL'
       toolName: string
       toolStatus: NonNullable<ConversationPreviewSource['toolStatus']>
+      // A call to an integration: the server it went to, which the list names, "Called Stripe"
+      integrationName?: string
+    }
+  | {
+      kind: 'APPROVAL'
+      integrationName: string
+      integrationToolName: string
+      approvalState: NonNullable<ConversationPreviewSource['approvalState']>
+      // Where the call stands once allowed, null until a run starts it
+      toolStatus: ConversationPreviewSource['toolStatus']
     }
   | {
       kind: 'QUESTION'
@@ -154,6 +169,17 @@ export type ConversationAnswerCheck =
 // many runs going as they may, when the page's reconcile starts it later
 export type AnswerConversationQuestionData = {
   runId: string | null
+}
+
+/*
+  What deciding on a call waiting for the member's approval answers with: the run that carries the
+  conversation on, as an answer's does, and whether an Allow was denied instead because the server,
+  the tool or the account changed since the call was proposed, which the page says, the agent
+  proposing it again
+*/
+export type AnswerConversationApprovalData = {
+  runId: string | null
+  isChanged: boolean
 }
 
 // What sending a message answers with: the run it started, or the one a send retried with the same
@@ -299,4 +325,45 @@ export type IntegrationTool = {
 export type AddIntegrationData = {
   integrationId: string
   toolCount: number
+}
+
+/*
+  What starting a Connect answers: the address of the authorization server's sign-in, which the page
+  opens in the window it opened for it, an https one alone, and the Connect's id, which a Cancel names,
+  so it cancels that Connect and never one started since
+*/
+export type StartIntegrationConnectionData = {
+  authorizationUrl: string
+  authorizationId: string
+}
+
+/*
+  What came back to Strategy Dance's callback from an OAuth server's sign-in: a code, which the
+  member's page finishes, the member's refusal, or nothing it could use, an unknown or spent sign-in
+  included
+*/
+export type IntegrationAuthorizationOutcome = 'received' | 'denied' | 'failed'
+
+// The query the callback sends the browser to `INTEGRATION_CONNECTED_PATH` with, the ids hyphenated,
+// each present when the sign-in it came back from was known
+export type IntegrationConnectedSearch = {
+  outcome: IntegrationAuthorizationOutcome
+  organization?: string
+  integration?: string
+  authorization?: string
+}
+
+/*
+  What the page a sign-in ends on says to the window that opened it, on
+  `INTEGRATION_CONNECTION_CHANNEL`: which server and which Connect, when it knows, and how it went,
+  with the backend's error code when it failed. A window waiting on a Connect takes a failure or a
+  refusal for that Connect alone, so an older sign-in coming back late never ends a newer one. Anybody
+  can open that page with a made-up query, so it takes `connected` as a nudge to look, and only the
+  member's live connection as the proof
+*/
+export type IntegrationConnectionMessage = {
+  integrationId: string | null
+  authorizationId: string | null
+  outcome: 'connected' | 'denied' | 'failed'
+  code: string | null
 }

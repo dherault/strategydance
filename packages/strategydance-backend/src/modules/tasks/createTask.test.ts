@@ -42,6 +42,16 @@ describe('create_task', () => {
     expect(task.descriptionText).toBe('')
   })
 
+  it('stamps when a task created into Done was done, and no other', async () => {
+    const kit = await board.connect()
+
+    const done = await kit.answer<{ id: string }>('create_task', { name: 'Shipped', status: 'DONE' })
+    const open = await kit.answer<{ id: string }>('create_task', { name: 'Planned', status: 'TODO' })
+
+    expect(fake.tasks.get(done.id)!.doneAt).toEqual(expect.any(String))
+    expect(fake.tasks.get(open.id)!.doneAt).toBeNull()
+  })
+
   it('assigns a task as it is told, a member whose id is "agent" as a member', async () => {
     const kit = await board.connect()
 

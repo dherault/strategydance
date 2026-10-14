@@ -1,10 +1,12 @@
+import { PlugIcon } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { useIntl } from 'react-intl'
+import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Switch } from 'strategydance-design-system/components/ui/Switch'
 import { TableCell, TableRow } from 'strategydance-design-system/components/ui/Table'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import type { OrganizationIntegration } from '~types'
+import type { IntegrationConnection, OrganizationIntegration } from '~types'
 
 import getIntegrationAuthenticationMessage from '~utils/integration/getIntegrationAuthenticationMessage'
 import getIntegrationHost from '~utils/integration/getIntegrationHost'
@@ -18,22 +20,26 @@ import integrationMessages from '~data/intl/messages/integration'
 
 type Props = {
   integration: OrganizationIntegration
+  // The reader's own connection to the server, or null when they have none
+  connection: IntegrationConnection | null
   now: number
   isAdministrator: boolean
   onOpen: () => void
   onToggle: (isEnabled: boolean) => void
+  onConnect: () => void
 }
 
 /*
   One server of the organization: its mark, its name, its host and how it lets Strategy Dance in,
-  where it stands, under its name on a narrow table, the switch that turns it on or off, which only
-  administrators flip, and when it was last used, a column a narrow table leaves out. A click anywhere but on the switch opens its
-  dialog, as the design has it; the name is the button the keyboard reaches
+  where it stands for the reader, under its name on a narrow table, the switch that turns it on or
+  off, which only administrators flip, when it was last used, a column a narrow table leaves out, and
+  Connect, for any member, on a server turned on that waits for their own account. A click anywhere
+  but on a control opens its dialog, as the design has it; the name is the button the keyboard reaches
 */
-function IntegrationRow({ integration, now, isAdministrator, onOpen, onToggle }: Props) {
+function IntegrationRow({ integration, connection, now, isAdministrator, onOpen, onToggle, onConnect }: Props) {
   const { formatMessage } = useIntl()
 
-  const status = getIntegrationStatus(integration)
+  const status = getIntegrationStatus(integration, connection)
 
   function handleClick(event: MouseEvent<HTMLTableRowElement>) {
     if (event.target instanceof Element && event.target.closest('button, a, input, label')) return
@@ -98,6 +104,19 @@ function IntegrationRow({ integration, now, isAdministrator, onOpen, onToggle }:
           lastUsedAt={integration.lastUsedAt ?? null}
           now={now}
         />
+      </TableCell>
+      <TableCell align="right">
+        {status === 'needsAuthentication' ? (
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<PlugIcon />}
+            aria-label={formatMessage(integrationMessages.connectLabel, { name: integration.name })}
+            onClick={onConnect}
+          >
+            {formatMessage(integrationMessages.connect)}
+          </Button>
+        ) : null}
       </TableCell>
     </TableRow>
   )

@@ -603,6 +603,12 @@ query GetTasks($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "FinishTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "AssignTask"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -715,6 +721,8 @@ query GetTasks($organizationId: UUID!)
     aspects
     createdById
     createdAt
+    # When a done task was finished, which the build in public cards count from
+    doneAt
     dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
       dependencyId
     }
@@ -1257,7 +1265,19 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "AnswerConversationApproval"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRunWithCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
@@ -1336,6 +1356,12 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRunWithCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
@@ -1428,6 +1454,12 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "ContinueConversationRunWithCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "ResumeConversationRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1488,6 +1520,12 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "DrawConversationApproval"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1522,8 +1560,8 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
 # and empty once the conversation is deleted, as every conversation read is.
 #
 # The messages carry only what is small or changes in place: their kind and position, their run,
-# a tool call's name, status and duration, a question's answer, an aspects note's aspects and a
-# note's kind. Never their bodies, which never change once written: the page reads each body once,
+# a tool call's name, status and duration, a question's answer, an approval's state, an aspects
+# note's aspects and a note's kind. Never their bodies, which never change once written: the page reads each body once,
 # by id, through `GetConversationMessageBodies`, so a refresh carries a few hundred bytes a message
 # however long the replies. A call's input and output stay out too: its dialog reads them through
 # `GetConversationToolCall` as it opens. Older messages are read in pages through
@@ -1641,6 +1679,12 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "DrawConversationApproval"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "DrawConversationClientToolCall"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
@@ -1653,7 +1697,19 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "StartConversationIntegrationCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationIntegrationCall"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1677,7 +1733,19 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "AnswerConversationApproval"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRunWithCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1742,13 +1810,15 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
       aspects
       aspectsSetBy
       noteKind
+      approvalState
     }
   }
 }
 
 # The bodies of some of a conversation's messages, by id, which never change once written: a text's
-# Markdown and its citations, a question's prompt and options, and the files a member's message sent,
-# which the mutation inserting it sets. Read once per message, as its id first appears on the page,
+# Markdown and its citations, a question's prompt and options, a call to an integration's server and
+# tool and an approval's arguments at a glance, and the files a member's message sent, which the
+# mutation inserting it sets. Read once per message, as its id first appears on the page,
 # up to 50 at a time. Only the caller's own conversation's messages come back, so an id from anywhere
 # else reads nothing
 query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
@@ -1772,6 +1842,14 @@ query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageI
     questionPrompt
     questionOptions
     isMultipleChoice
+    # A call to an integration's: the server, as the warning strip matches it in the live list, its
+    # name and the tool's at call time, and an approval's arguments at a glance
+    integration {
+      id
+    }
+    integrationName
+    integrationToolName
+    argumentsPreview
     # The files a member's message sent, in the order Claude reads them: only their author's, the
     # only ones a send ever sets on its message, and never more than
     # `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
@@ -1838,11 +1916,18 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
     aspects
     aspectsSetBy
     noteKind
+    approvalState
     text
     citations
     questionPrompt
     questionOptions
     isMultipleChoice
+    integration {
+      id
+    }
+    integrationName
+    integrationToolName
+    argumentsPreview
     # The files a member's message sent, in the order Claude reads them: only their author's, the
     # only ones a send ever sets on its message, and never more than
     # `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
@@ -2013,6 +2098,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "DrawConversationApproval"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "DrawConversationClientToolCall"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
@@ -2025,7 +2116,19 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "StartConversationIntegrationCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "FinishConversationToolCall"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationIntegrationCall"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )
@@ -2044,6 +2147,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRunWithCalls"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )
@@ -2117,12 +2226,13 @@ query GetConversationToolOutputs($organizationId: UUID!, $id: UUID!, $messageIds
 
 # One tool call's input and output, as its dialog shows them, read each time the dialog opens since
 # a call's output arrives after its message. Both are JSON text, exactly as the call took and gave
-# them
+# them. A call waiting for the member's approval is read too, since Allow shows its whole input
+# before it approves
 query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(level: USER) {
   conversationMessages(
     where: {
       id: { eq: $messageId }
-      kind: { eq: TOOL_CALL }
+      kind: { in: [TOOL_CALL, APPROVAL] }
       conversation: {
         userId: { eq_expr: "auth.uid" }
         organizationId: { eq: $organizationId }
@@ -2247,6 +2357,12 @@ query GetOrganizationIntegrations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RecordFirstIntegrationTools"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RecordOrganizationIntegrationIssuer"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -2346,6 +2462,12 @@ query GetOrganizationIntegrationTools($organizationId: UUID!, $integrationId: UU
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RecordFirstIntegrationTools"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "ChangeOrganizationIntegrationIssuer"
     condition: "mutation.variables.integrationId == request.variables.integrationId"
   }
@@ -2399,5 +2521,89 @@ query GetOrganizationIntegrationTools($organizationId: UUID!, $integrationId: UU
     configRevision
     tools
     autoApprovedTools
+  }
+}
+
+# The reader's own accounts at the organization's servers, which the Integrations page reads to say,
+# for each OAuth server, whether it works for them, as whom, and since when, and to see a Connect
+# land. Never a token, which no web operation selects. Refreshed by the writes that make, mark or
+# delete one of the reader's, on the member they carry, and by those that delete everybody's or hide
+# a server, on the organization. Never by a refresh of the tokens, which changes nothing it selects.
+# At most one a server, so 50 rows (`MAX_INTEGRATIONS` in strategydance-core)
+query GetIntegrationConnections($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "ConnectIntegration"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DisconnectIntegration"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkIntegrationConnectionNeedsAuthentication"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkIntegrationConnectionTokenRefused"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ReconfigureOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ChangeOrganizationIntegrationIssuer"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  integrationConnections(
+    where: {
+      membershipUserId: { eq_expr: "auth.uid" }
+      membershipOrganizationId: { eq: $organizationId }
+      integration: { deletedAt: { isNull: true } }
+    }
+    limit: 50
+  ) {
+    id
+    integrationId
+    status
+    accountLabel
+    createdAt
   }
 }

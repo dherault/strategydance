@@ -51,7 +51,10 @@ M37 (see Usage caps); the parent's Stop reaches its own anchor's subagents alone
 agent can hand them over; and what the review found is closed where it applies: the promotion is a
 mutation of its own and every cascade keeps one lock order, a launch finalizes the member's dead
 subagent runs before it counts, a delete only asks, and what a Retry deleted is left out of the ten
-and of the batches. When a decision changes, change it here first.
+and of the batches. Revised on 2026-10-14, in M29, as David chose: a turn holding a call waiting for
+the member's approval runs its other calls at once, as beside a question; and with what building
+integrations in conversations settled, in The transcript and the milestone. When a decision changes,
+change it here first.
 
 ## The design
 
@@ -918,7 +921,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   one's mutation first locks the conversation's row, refuses if the run is no longer `WAITING`, then
   records the answer on its question's row and counts what is left, so two answers sent at once
   cannot both see the other missing. The request that sees none left starts the next run in a second
-  mutation. An approval (M29) is answered the same way. As M11 built it:
+  mutation. An approval (M29) is answered the same way, through `POST …/approvals`, and counts as a
+  question in every count of what waits. As M29 built it, an Allow leaves the call to the run that
+  carries the conversation on, which can store no entry before the call has run: that run starts
+  anchored where the waiting run was, makes the calls allowed, then stores the turn's results and
+  anchors itself on them, as a run its answers' entry started is. As M11 built it:
   - The answer is checked against its question before anything is recorded, by strategydance-core's
     `checkConversationAnswer`, which the page uses too: options of that question, each once, one at
     most for a single choice, own words on one line of at most 500 characters without a control
@@ -2337,8 +2344,9 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
-  member started it, so the callback is gated through it. The integration list query checks
+  M27 and M28, the OAuth initiation and its finish included: an authorization's state only exists
+  once a staff member started it, so the callback is gated through it, and only that member's own
+  signed-in page finishes it. The integration list query checks
   membership alone, as David chose on 2026-10-13 (M27): the page's bouncer (`useCanUseIntegrations`)
   and the routes gate integrations as they gate conversations, the list holds nothing secret, and a
   connector cannot tell the emulators from production, so a staff filter would have broken the local
@@ -2453,6 +2461,17 @@ account, and until both exist every send in production answers 503.
     on `conversation-runs` alone, grant them on this queue too. Until it exists, a launch in
     production queues nothing, and the parent's reconcile finalizes its subagents once their runs are
     twenty minutes old.
+12. For M28, before its release reaches production: keep the callback of members' Connects out of
+    Cloud Run's request log, whose `httpRequest.requestUrl` holds the code and the state an
+    authorization server sends in its query. The backend logs neither; the platform logs every
+    request's address. A code there is worth little, spent once and useless without the PKCE verifier
+    the Connect keeps encrypted, but a log is no place for it. An exclusion on the `_Default` sink
+    drops those entries, the backend's own line saying how each sign-in came back staying:
+
+    ```sh
+    gcloud logging sinks update _Default --project strategydance \
+      --add-exclusion='name=integration-oauth-callback,filter=logName="projects/strategydance/logs/run.googleapis.com%2Frequests" AND httpRequest.requestUrl:"/integrations/oauth/callback"'
+    ```
 
 ### Usage caps
 

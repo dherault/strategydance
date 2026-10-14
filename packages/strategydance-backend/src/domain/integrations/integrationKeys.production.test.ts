@@ -26,6 +26,8 @@ process.env.NODE_ENV = 'production'
 
 const { default: encryptIntegrationKey } = await import('./encryptIntegrationKey')
 const { default: decryptIntegrationKey } = await import('./decryptIntegrationKey')
+const { default: encryptIntegrationSecret } = await import('./encryptIntegrationSecret')
+const { default: decryptIntegrationSecret } = await import('./decryptIntegrationSecret')
 
 afterAll(() => {
   process.env.NODE_ENV = nodeEnvironment
@@ -53,6 +55,24 @@ describe('the keys of integrations in production', () => {
     )
   })
 
+  test("binds a member's token to its purpose, the connection's generation and the member", async () => {
+    encrypt.mockClear()
+
+    const owner = {
+      ...OWNER,
+      purpose: 'access-token',
+      generation: '3b241101-e2bb-4255-8caf-4136c566a962',
+      userId: 'uidOfMember',
+    } as const
+    const encrypted = await encryptIntegrationSecret('token', owner)
+
+    expect(encrypt.mock.calls[0][0].additionalAuthenticatedData.toString()).toBe(
+      'integration-access-token:0f8fad5bd9cb469fa16570867728950e:7c9e6679742540de944be07fc1f90ae7:3b241101e2bb42558caf4136c566a962:uidOfMember',
+    )
+    expect(await decryptIntegrationSecret(encrypted, owner)).toBe('token')
+    await expect(decryptIntegrationSecret(encrypted, { ...owner, purpose: 'refresh-token' })).rejects.toThrow()
+  })
+
   test("refuses to open a key in another server's row", async () => {
     const encrypted = await encryptIntegrationKey('key', OWNER)
 
@@ -64,7 +84,7 @@ describe('the keys of integrations in production', () => {
   test('refuses a key encrypted under the local key, without asking Cloud KMS', async () => {
     decrypt.mockClear()
 
-    await expect(decryptIntegrationKey('v1:local:AAAA', OWNER)).rejects.toThrow('A key not encrypted with Cloud KMS')
+    await expect(decryptIntegrationKey('v1:local:AAAA', OWNER)).rejects.toThrow('A secret not encrypted with Cloud KMS')
     expect(decrypt).not.toHaveBeenCalled()
   })
 })

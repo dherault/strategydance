@@ -5,11 +5,12 @@ import {
   type GetTaskDescriptionData,
   type GetTaskDescriptionsData,
   type GetTasksData,
-  type TaskStatus,
+  TaskStatus,
   addTaskDependency as addTaskDependencyMutation,
   assignTask as assignTaskMutation,
   createTaskWithText as createTaskMutation,
   deleteTask as deleteTaskMutation,
+  finishTask as finishTaskMutation,
   getTasks,
   moveTask as moveTaskMutation,
   removeTaskDependency as removeTaskDependencyMutation,
@@ -38,6 +39,7 @@ import getTaskRestoreLoops from '~utils/task/getTaskRestoreLoops'
 import restoreTaskWithoutLoops from '~utils/task/restoreTaskWithoutLoops'
 
 import { dataConnect } from '~data/firebase'
+import { updateTaskCreation } from '~data/taskCreations'
 
 type Change = {
   // The row it writes, whose writes queue behind each other
@@ -164,9 +166,14 @@ function useTaskChanges() {
   }
 
   // Adds a task past the last of its column, then links it. Its id comes back at once, so the page
-  // can point at it before the server has it
+  // can point at it before the server has it, and it counts as being created until then, for its
+  // dialog to wait on. `created` settles once the server has the task, `written` once it has its
+  // links too
   function createTask(draft: TaskDraft) {
     const id = createId()
+
+    updateTaskCreation(id, () => true)
+
     const task: Task = {
       id,
       name: draft.name,
@@ -181,6 +188,8 @@ function useTaskChanges() {
       aspects: draft.aspects,
       createdById: viewer?.uid ?? null,
       createdAt: new Date().toISOString(),
+      // Not stamped, even into Done, which a reader dates by `createdAt` instead
+      doneAt: null,
       dependencies: [],
       linkCount: [{ _count: 0 }],
     }
@@ -207,12 +216,16 @@ function useTaskChanges() {
           aspects: task.aspects,
         }),
     })
+
+    // Refused or not: a refusal reads the board again, which then holds no such task
+    created.catch(() => undefined).then(() => updateTaskCreation(id, () => false))
+
     const linked = [
       ...draft.dependencyIds.map(dependencyId => linkTasks(id, dependencyId)),
       ...draft.blockedIds.map(blockedId => linkTasks(blockedId, id)),
     ]
 
-    return { id, written: Promise.all([created, ...linked]).then(() => undefined) }
+    return { id, created, written: Promise.all([created, ...linked]).then(() => undefined) }
   }
 
   function renameTask(taskId: string, name: string) {
@@ -272,11 +285,34 @@ function useTaskChanges() {
     )
   }
 
+  /*
+    Writes where a task sits. Into Done from another column, as the board shows it, it is a finish,
+    which stamps when the task was done; any other move, one within Done included, leaves that as it
+    is. Either names the column the task was seen in, so a teammate's move landing first is kept
+    rather than undone, and the board read again
+  */
   function placeTask(taskId: string, status: TaskStatus, position: number) {
+    const current = readTasks().find(task => task.id === taskId)
+    const isFinishing = status === TaskStatus.DONE && current !== undefined && current.status !== TaskStatus.DONE
+
     return changeTask(
       taskId,
-      task => ({ ...task, status, position }),
-      () => moveTaskMutation(dataConnect, { organizationId: organizationId!, id: taskId, status, position }),
+      task => ({ ...task, status, position, ...(isFinishing && { doneAt: new Date().toISOString() }) }),
+      () =>
+        isFinishing
+          ? finishTaskMutation(dataConnect, {
+              organizationId: organizationId!,
+              id: taskId,
+              position,
+              fromStatus: current.status,
+            })
+          : moveTaskMutation(dataConnect, {
+              organizationId: organizationId!,
+              id: taskId,
+              status,
+              position,
+              ...(current && { fromStatus: current.status }),
+            }),
     )
   }
 

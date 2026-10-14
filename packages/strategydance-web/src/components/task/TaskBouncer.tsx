@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { type PropsWithChildren, useEffect } from 'react'
 
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+import useIsTaskBeingCreated from '~hooks/task/useIsTaskBeingCreated'
 import useTaskBoardReads from '~hooks/task/useTaskBoardReads'
 import useTasks from '~hooks/task/useTasks'
 
@@ -12,16 +13,19 @@ type Props = PropsWithChildren<{
 /*
   Sits under `TaskBoardWait`, so the board has landed: an address naming a task the board does not
   hold, never there or deleted since, by the reader or a teammate, goes back to the board in its
-  place rather than to a not found page. A board any of whose reads failed says so itself, under it,
-  and opens no task over that, whose description or people would read as nothing
+  place rather than to a not found page. A task the reader just created is there, as its dialog
+  opens at once, though the board may only hold it a moment later, or lose it to a read landing
+  before the server has it. A board any of whose reads failed says so itself, under it, and opens no
+  task over that, whose description or people would read as nothing
 */
 function TaskBouncer({ taskId, children }: Props) {
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: tasks } = useTasks()
   const { hasFailed } = useTaskBoardReads()
+  const isBeingCreated = useIsTaskBeingCreated(taskId)
 
-  const isGone = !hasFailed && !tasks.some(({ id }) => id === taskId)
+  const isGone = !hasFailed && !isBeingCreated && !tasks.some(({ id }) => id === taskId)
 
   useEffect(() => {
     if (isGone)

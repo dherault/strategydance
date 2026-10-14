@@ -1,4 +1,8 @@
-import { ConversationMessageKind, ConversationToolStatus } from 'strategydance-database/backend'
+import {
+  ConversationApprovalState,
+  ConversationMessageKind,
+  ConversationToolStatus,
+} from 'strategydance-database/backend'
 
 import checkConversationQuestion from '~domain/agent/checkConversationQuestion'
 import { ASK_USER_TOOL_NAME } from '~domain/agent/conversationTools'
@@ -8,6 +12,8 @@ import {
   INTERRUPTED_CALL_RESULT,
   SKIPPED_QUESTION_RESULT,
   STOPPED_CALL_RESULT,
+  UNAPPROVED_CALL_RESULT,
+  UNRUN_ALLOWED_CALL_RESULT,
   readFailedOutput,
   toAnswerResult,
   toFailedResult,
@@ -25,6 +31,7 @@ export type ConversationCallMessage = {
   answerOther?: string | null
   isAnswerSkipped?: boolean | null
   answeredAt?: string | null
+  approvalState?: ConversationApprovalState | null
 }
 
 type BuildConversationToolResultsInput = {
@@ -44,14 +51,16 @@ type BuildConversationToolResultsInput = {
   sends them opens. Each call is answered by what it came to:
 
   1. a call that finished, by the result its run kept, or by its output when the run kept none
-  2. a question, by its answer, or as skipped
+  2. a question, by its answer, or as skipped, and a call waiting for the member's approval as not
+     approved when they wrote instead, and one they allowed and wrote before it ran as not run
   3. a call that never finished, cancelled by a stop or left running by a crash, as stopped when it
      never started, and as interrupted and maybe run when it did, since nothing says whether it
      landed
   4. a call the thread never drew: a question past its bounds by why it was not asked, from its
      input alone, and anything else, which a crash kept from being drawn, as stopped
 
-  Throws for a question still waiting when nothing skips it, which only the member answers
+  Throws for a question or an approval still waiting when nothing skips it, which only the member
+  answers
 */
 function buildConversationToolResults({
   calls,
@@ -82,6 +91,16 @@ function buildConversationToolResults({
       if (!skipsQuestions) throw new Error(`Question ${call.id} waits for the member’s answer`)
 
       return toSucceededResult(call.id, SKIPPED_QUESTION_RESULT)
+    }
+
+    if (message.kind === ConversationMessageKind.APPROVAL && !message.toolStatus) {
+      if (message.approvalState === ConversationApprovalState.PENDING) {
+        if (!skipsQuestions) throw new Error(`Call ${call.id} waits for the member’s approval`)
+
+        return toFailedResult(call.id, UNAPPROVED_CALL_RESULT)
+      }
+
+      return toFailedResult(call.id, skipsQuestions ? UNRUN_ALLOWED_CALL_RESULT : STOPPED_CALL_RESULT)
     }
 
     if (message.toolStatus === ConversationToolStatus.SUCCEEDED) {

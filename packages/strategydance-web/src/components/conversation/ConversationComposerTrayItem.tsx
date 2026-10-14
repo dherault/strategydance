@@ -15,8 +15,6 @@ const SMALL_BUTTON_CLASS_NAME =
 
 type Props = {
   attachment: ConversationComposerAttachment
-  // Whether it can be taken out of the message now: not while the message that sends it goes
-  canRemove: boolean
   onRemove: () => void
   onRetry: () => void
 }
@@ -27,7 +25,7 @@ type Props = {
   along its foot says how far it has gone up, and one that failed is outlined in red, its icon, or
   its image, a button that uploads it again
 */
-function ConversationComposerTrayItem({ attachment, canRemove, onRemove, onRetry }: Props) {
+function ConversationComposerTrayItem({ attachment, onRemove, onRetry }: Props) {
   const { formatMessage } = useIntl()
   const { name, contentType, file, status, progress } = attachment
   const isImage = contentType.startsWith('image/')
@@ -82,7 +80,6 @@ function ConversationComposerTrayItem({ attachment, canRemove, onRemove, onRetry
       <button
         type="button"
         aria-label={formatMessage(conversationMessages.composerAttachmentRemove, { name })}
-        disabled={!canRemove}
         className={cn(
           SMALL_BUTTON_CLASS_NAME,
           'absolute bg-white/92',

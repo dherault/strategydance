@@ -9,7 +9,12 @@ import {
   normalizeIntegrationName,
   parseIntegrationUrl,
 } from 'strategydance-core'
-import { IntegrationApiKeyScheme, IntegrationAuthentication, IntegrationError } from 'strategydance-database/web'
+import {
+  IntegrationApiKeyScheme,
+  IntegrationAuthentication,
+  IntegrationConnectionStatus,
+  IntegrationError,
+} from 'strategydance-database/web'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
@@ -25,7 +30,7 @@ import { Select } from 'strategydance-design-system/components/ui/Select'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import type { ExternalMcpServer } from 'strategydance-external-mcp-servers'
 
-import type { OrganizationIntegration } from '~types'
+import type { IntegrationConnection, OrganizationIntegration } from '~types'
 
 import useNow from '~hooks/common/useNow'
 import useIntegrationRequests from '~hooks/integration/useIntegrationRequests'
@@ -37,6 +42,7 @@ import readIntegrationFailure, { type IntegrationFailure } from '~utils/integrat
 
 import PasswordInput from '~components/common/PasswordInput'
 import Spinner from '~components/common/Spinner'
+import IntegrationAccount from '~components/integration/IntegrationAccount'
 import IntegrationLastUsed from '~components/integration/IntegrationLastUsed'
 import IntegrationTools from '~components/integration/IntegrationTools'
 
@@ -50,8 +56,12 @@ type Props = {
   // Every server of the organization, whose names a name may not take
   integrations: OrganizationIntegration[]
   isAdministrator: boolean
+  // The reader's own connection to the server opened, or null when they have none
+  connection: IntegrationConnection | null
   onClose: () => void
   onDelete: (integration: OrganizationIntegration) => void
+  // Starts connecting the reader's own account to the server opened
+  onConnect: (integration: OrganizationIntegration) => void
 }
 
 // Failures that concern one field, said under it rather than above the form
@@ -60,7 +70,8 @@ const KEY_FAILURES: IntegrationFailure[] = [IntegrationError.KEY_REFUSED]
 /*
   A server's dialog: adding one, or reading and changing one, as designed. Its name, its address, how
   it lets Strategy Dance in, and for a key-based server the key and how it is sent; for a server
-  that exists, the error of its last try with Retry, its tools, and Delete.
+  that exists, the error of its last try with Retry, the reader's own account at it when it takes
+  OAuth, its tools, and Delete.
 
   The form checks what strategydance-core says each field may be before anything is sent, and what
   the backend answers lands beside the field it concerns: a key refused under the key, a name taken
@@ -68,9 +79,19 @@ const KEY_FAILURES: IntegrationFailure[] = [IntegrationError.KEY_REFUSED]
   stored one stays, unless the address or the authentication changed, since a key is never sent to
   another server than the one it was given for.
 
-  Members who do not administer the organization read it all and change nothing
+  Members who do not administer the organization read it all and change nothing but their own
+  account, which every member connects and disconnects
 */
-function IntegrationDialog({ integration, preset, integrations, isAdministrator, onClose, onDelete }: Props) {
+function IntegrationDialog({
+  integration,
+  preset,
+  integrations,
+  isAdministrator,
+  connection,
+  onClose,
+  onDelete,
+  onConnect,
+}: Props) {
   const { formatMessage } = useIntl()
   const now = useNow()
   const { addIntegration, editIntegration, retryIntegration } = useIntegrationRequests()
@@ -368,10 +389,18 @@ function IntegrationDialog({ integration, preset, integrations, isAdministrator,
               ) : null}
             </>
           ) : null}
+          {integration && !isServerChanged && integration.authentication === IntegrationAuthentication.OAUTH ? (
+            <IntegrationAccount
+              integration={integration}
+              connection={connection}
+              onConnect={() => onConnect(integration)}
+            />
+          ) : null}
           {integration && !isServerChanged ? (
             <IntegrationTools
               integration={integration}
               isAdministrator={isAdministrator}
+              isConnected={connection?.status === IntegrationConnectionStatus.CONNECTED}
             />
           ) : null}
           {isReadOnly ? null : (

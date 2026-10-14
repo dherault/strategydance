@@ -7,8 +7,8 @@ import pickDirectoryFields, { pickInactiveDirectoryFields } from '~domain/direct
 /*
   The text of the directories package's two files: each list sorted by name, each entry's fields in
   the package's order, so a moved entry keeps its lines, and the JSON written as `JSON.stringify`
-  writes it, which is how the formatter lays the files out. The package's tests hold the files to
-  all three
+  writes it, which the formatter leaves alone in these two files. The package's tests hold the files
+  to all three
 */
 function serializeDirectoryLists({ directories, inactiveDirectories }: DirectoryLists) {
   return {

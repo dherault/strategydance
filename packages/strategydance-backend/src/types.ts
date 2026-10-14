@@ -5,7 +5,7 @@ import type {
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ModuleScope } from 'strategydance-core'
-import type { CompanyAspect, TaskStatus } from 'strategydance-database/backend'
+import type { CompanyAspect, GetConversationCallsData, TaskStatus } from 'strategydance-database/backend'
 import type {
   Directory,
   DirectoryBusinessModel,
@@ -91,9 +91,19 @@ export type ConversationToolRunner = {
   isReadOnly: boolean
   run(
     input: unknown,
-    context: { signal: AbortSignal; reference: ConversationRunReference; toolUseId: string },
+    context: {
+      signal: AbortSignal
+      reference: ConversationRunReference
+      toolUseId: string
+      // The message the call was drawn as, which a call to an integration reads what its approval,
+      // or its running without one, was bound to from
+      message?: ConversationDrawnCall
+    },
   ): Promise<unknown>
 }
+
+// A call as the thread drew it, read before it runs
+export type ConversationDrawnCall = GetConversationCallsData['conversationMessages'][number]
 
 /*
   The modules a run's agent uses, as its worker connected to them for the run's member: their tools

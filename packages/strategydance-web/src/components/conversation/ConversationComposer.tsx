@@ -42,10 +42,12 @@ import getConversationAttachmentQueryKey from '~utils/conversation/getConversati
 import getConversationSendFailure, {
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
+import getConversationSendStartedRun from '~utils/conversation/getConversationSendStartedRun'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
 import readConversationPastedFiles from '~utils/conversation/readConversationPastedFiles'
+import restoreConversationFailedSend from '~utils/conversation/restoreConversationFailedSend'
 import scrollConversationToEnd from '~utils/conversation/scrollConversationToEnd'
 
 import Spinner from '~components/common/Spinner'
@@ -113,22 +115,27 @@ type Props = {
   (`useConversationComposerAttachments`): a message may hold files and no words, and is sent once
   every file it holds is up.
 
-  Nothing is sent while a run goes, nor once the conversation is full, though the reader can
-  write meanwhile. A first send's run counts as going from the moment the backend answers, before
-  the page's live read of it lands, so a second send never races it. While a run goes, Stop takes
-  the place of Send, and once the reader asked, in this tab or another, it waits for the run to
-  end.
+  A message sent leaves the field for the thread at once, which draws it, Strategy Dance thinking
+  under it, while its send goes and until the live read brings it in (`pendingMessages`), so the
+  reader never waits to see it. Nothing is sent while a send or a run goes, nor once the
+  conversation is full, though the reader can write meanwhile. A first send's run counts as going
+  from the moment the backend answers, before the page's live read of it lands, so a second send
+  never races it. From the send on, Stop takes the place of Send, though it stops nothing before the
+  backend has answered with the run, and once the reader asked, in this tab or another, it waits for
+  the run to end.
 
-  A send that fails keeps its words in the field, and its files in the tray, and says why. Sending
-  the same message again sends it under the same message's id, so a send that did reach the
+  A send that fails takes its message out of the thread and puts it back, its words in the field and
+  its files in the tray, ahead of anything written meanwhile, and says why. Sending the same
+  message again sends it under the same message's id, so a send that did reach the
   backend, and only lost its answer, is stored once. A message changed since, its words, the
   documents it mentions or its files, is a new message, with an id of its own, rather than a retry
   the backend would answer with the first one. Files the backend no longer holds ready, as after
   they waited two days, go up again by themselves, under new ids, for the reader to send again.
   A message whose mentions take it past what a message may hold, though its words fit the field,
-  is not sent, and says so. A retry's answer is not waited on: it can name the
-  run the first send started, older than one another tab has started since, which the read would
-  never move on from. Only a message's first send is sure to start a run newer than any read
+  is not sent, and says so. A retry's run counts as going only while the read still shows the run
+  it showed when the message was first sent (`getConversationSendStartedRun`): once the read has
+  moved on, the retry can name the run the first send started, older than one another tab has
+  started since, which the read would never move on from
 
   It is the last thing on its page, or in its dock's window, so a draft keeps it, and what is written
   in it, when its first message stores it. That message carries the aspects the reader picked on the
@@ -197,11 +204,10 @@ function ConversationComposer({
     const isRetry = failedSend?.text === sentText && failedSend.attachmentIds.join() === sentAttachmentIds.join()
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
-
-    changeDraft(() => ({ sendingMessageId: messageId, failure: null }))
+    const sentAt = new Date().toISOString()
 
     // The images sent are drawn in the thread from the bytes that went up, rather than read back:
-    // left in the cache before the send, whose message the live read can bring before its answer
+    // left in the cache before the message is drawn there, as it is at once
     for (const { id, contentType, file } of sentAttachments) {
       if (!contentType.startsWith('image/')) continue
 
@@ -210,6 +216,39 @@ function ConversationComposer({
         file,
       )
     }
+
+    // The message leaves the field for the thread at once, which draws it while it goes
+    changeDraft(current => ({
+      text: '',
+      mentions: new Map(),
+      attachments: [],
+      attachmentRefusal: null,
+      sendingMessageId: messageId,
+      pendingMessages: [
+        ...current.pendingMessages.filter(({ id }) => id !== messageId),
+        {
+          id: messageId,
+          text: sentText,
+          attachments: sentAttachments.map(({ id, name, contentType, file }) => ({
+            id,
+            name,
+            contentType,
+            size: file.size,
+          })),
+          sentAt,
+          position: conversation?.nextMessagePosition ?? 0,
+        },
+      ],
+      failure: null,
+    }))
+    mentions.reset()
+    textareaRef.current?.focus()
+
+    // The thread takes the reader to their message, wherever they had scrolled to, once it is drawn,
+    // unless they have left the page meanwhile, for one this must not move
+    requestAnimationFrame(() => {
+      if (textareaRef.current) scrollConversationToEnd(scrollerRef?.current ?? null)
+    })
 
     try {
       const { runId } = await sendConversationMessage({
@@ -226,43 +265,36 @@ function ConversationComposer({
 
       // The run is recorded before the send stops going, so no composer drawing the conversation
       // ever sees neither going, and lets a second send race it
-      onRunStart(isRetry ? null : { runId, previousRunId })
-
-      // What was written while it went, its words or a mention picked over words left as they were,
-      // is the reader's next message, which stays, as do files added meanwhile: only the message as
-      // it was sent is cleared
-      let isSentAsWritten = false
-
-      changeDraft(current => {
-        isSentAsWritten = current.text === sentValue && current.mentions === sentMentions
-
-        return {
-          sendingMessageId: null,
-          failedSend: null,
-          attachments: current.attachments.filter(({ id }) => !sentAttachmentIds.includes(id)),
-          attachmentRefusal: null,
-          ...(isSentAsWritten ? { text: '', mentions: new Map() } : {}),
-        }
-      })
-
-      if (isSentAsWritten) mentions.reset()
-
-      // Unless the reader has left the page while it went, for one this must not move
-      const textarea = textareaRef.current
-
-      if (textarea) {
-        textarea.focus()
-        // The thread follows what lands while the reader is at its foot, their own message included
-        scrollConversationToEnd(scrollerRef?.current ?? null)
-      }
+      onRunStart(
+        getConversationSendStartedRun({
+          runId,
+          previousRunId,
+          firstPreviousRunId: isRetry ? failedSend.previousRunId : undefined,
+          startedAt: sentAt,
+        }),
+      )
+      // The message stays in the thread until the live read brings it in, which may come after
+      changeDraft(() => ({ sendingMessageId: null, failedSend: null }))
     } catch (error) {
       console.error('The message could not be sent', error)
 
       const failure = getConversationSendFailure(error, sentAttachmentIds.length > 0)
 
-      changeDraft(() => ({
+      // The message leaves the thread for the field again, to be sent again
+      changeDraft(current => ({
+        ...restoreConversationFailedSend(
+          { text: sentValue, mentions: sentMentions, attachments: sentAttachments },
+          current,
+        ),
         sendingMessageId: null,
-        failedSend: { messageId, text: sentText, attachmentIds: sentAttachmentIds },
+        pendingMessages: current.pendingMessages.filter(({ id }) => id !== messageId),
+        failedSend: {
+          messageId,
+          text: sentText,
+          attachmentIds: sentAttachmentIds,
+          // The first send's, which a run any later send is answered with is newer than
+          previousRunId: isRetry ? failedSend.previousRunId : previousRunId,
+        },
         failure,
       }))
 
@@ -395,7 +427,6 @@ function ConversationComposer({
       {hasFiles ? (
         <ConversationComposerTray
           attachments={attachments.attachments}
-          canRemove={!isSending}
           onRemove={id => {
             attachments.remove(id)
             changeDraft(() => ({ failure: null }))
@@ -435,14 +466,15 @@ function ConversationComposer({
           onPaste={handlePaste}
           onBlur={mentions.close}
         />
-        {isRunGoing ? (
+        {isRunGoing || isSending ? (
           <Button
             type="button"
             variant="secondary"
             size="sm"
             icon={isStopping ? <Spinner tone="current" /> : <SquareIcon className="fill-current" />}
             aria-label={formatMessage(conversationMessages.composerStop)}
-            disabled={isStopping}
+            // Until the backend has answered with the run the send started, which is what it stops
+            disabled={isStopping || !goingRunId}
             onMouseDown={event => event.preventDefault()}
             onClick={stop}
           />
@@ -450,7 +482,7 @@ function ConversationComposer({
           <Button
             type="submit"
             size="sm"
-            icon={isSending ? <Spinner tone="current" /> : <ArrowUpIcon />}
+            icon={<ArrowUpIcon />}
             aria-label={formatMessage(conversationMessages.composerSend)}
             disabled={!canSend}
             // Keeps the field focused, so a touch screen keeps its keyboard up for the next message

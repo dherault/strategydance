@@ -4,6 +4,7 @@ import {
   DEVELOPMENT_API_PORT,
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
+  INTEGRATION_CONNECTED_PATH,
   MODULES,
   type ModuleName,
   PRODUCTION_API_URL,
@@ -310,7 +311,8 @@ export const OAUTH_CONSENT_URL = `${APP_URL}/oauth/consent`
   The protocol's own endpoints, which answer any origin without credentials, since no cookie is
   involved and no client could otherwise call them from a page: the metadata, the authorization
   server's and each served module's protected resource metadata (RFC 9728), registration,
-  authorization, the token endpoint and revocation. Every other route answers the app's origins
+  authorization, the token endpoint and revocation, and the client ID metadata document Strategy
+  Dance presents to an organization's MCP servers. Every other route answers the app's origins
   alone, the consent page's and the modules' endpoints included. Matched exactly, as Express routes
   them, ignoring case and one trailing slash
 */
@@ -321,6 +323,7 @@ export const OAUTH_PROTOCOL_PATHS = [
   '/oauth/authorize',
   '/oauth/token',
   '/oauth/revoke',
+  '/integrations/oauth/client',
 ]
 
 /*
@@ -421,6 +424,59 @@ export const DEVELOPMENT_INTEGRATION_KEY = 'R8LcZ+EtejprT21lOlRLjP9PXko8NVzfUbxD
 export const INTEGRATION_REQUEST_TIMEOUT_MS = 15_000
 export const INTEGRATION_OPERATION_TIMEOUT_MS = 30_000
 export const MAX_INTEGRATION_RESPONSE_BYTES = 4 * 1024 * 1024
+
+/*
+  How long a call's arguments may be, as JSON, in characters: a call past it is refused before it is
+  drawn, so no approval shows arguments the member could not read whole
+*/
+export const MAX_INTEGRATION_CALL_ARGUMENTS_LENGTH = 100_000
+
+// How much of a call's arguments its approval shows at a glance, in characters
+export const MAX_INTEGRATION_ARGUMENTS_PREVIEW_LENGTH = 2000
+
+/*
+  Strategy Dance as an OAuth client of an organization's MCP servers, which members connect their own
+  accounts to: where an authorization server sends the browser back, the address of Strategy Dance's
+  client ID metadata document, which is its `client_id` wherever a server reads such documents, and
+  the app's page a sign-in ends on. Off the backend's own address, as the issuer's are, so a
+  worktree's backend on another port names its own. An authorization server fetches the document
+  itself, so it is offered only at an https address, and development registers instead
+*/
+export const INTEGRATION_OAUTH_CALLBACK_URL = `${OAUTH_ISSUER}/integrations/oauth/callback`
+export const INTEGRATION_OAUTH_CLIENT_ID = `${OAUTH_ISSUER}/integrations/oauth/client`
+export const INTEGRATION_CONNECTED_URL = `${APP_URL}${INTEGRATION_CONNECTED_PATH}`
+export const IS_INTEGRATION_CLIENT_METADATA_DOCUMENT_SERVED = INTEGRATION_OAUTH_CLIENT_ID.startsWith('https://')
+
+/*
+  How long a member's Connect waits for its sign-in, and the code that sign-in brings back for the
+  member's page to finish it. Written out again in `StartIntegrationAuthorization` and
+  `ReceiveIntegrationAuthorizationCode`, which cannot import them: change them together
+*/
+export const INTEGRATION_AUTHORIZATION_LIFETIME_MS = 10 * 60 * 1000
+export const INTEGRATION_AUTHORIZATION_CODE_LIFETIME_MS = 2 * 60 * 1000
+
+/*
+  Refreshing a member's tokens: an access token is refreshed a minute before it expires; the refresh
+  takes a lease of two minutes, which outlasts its 30 seconds of requests and the encryption around
+  them, so a refresh that is still going never loses it (written out again in
+  `ClaimIntegrationConnectionRefresh`); and a caller who finds another refresh under way reads the
+  connection again every half second, for twenty seconds at most, rather than spend the refresh token
+  twice
+*/
+export const INTEGRATION_REFRESH_MARGIN_MS = 60 * 1000
+export const INTEGRATION_REFRESH_LEASE_MS = 2 * 60 * 1000
+export const INTEGRATION_REFRESH_WAIT_MS = 20 * 1000
+export const INTEGRATION_REFRESH_POLL_MS = 500
+
+// How long revoking a member's tokens at their authorization server may take, which a disconnect
+// tries and never waits on for longer
+export const INTEGRATION_REVOCATION_TIMEOUT_MS = 5000
+
+/*
+  How long a code or a token an authorization server gives may be, past which it is refused rather
+  than stored: far past any real one, so a response that is something else is not kept
+*/
+export const MAX_INTEGRATION_TOKEN_LENGTH = 16 * 1024
 
 /* ---
   SECRETS

@@ -138,8 +138,8 @@ type Organization @table {
 type UserOrganization @table(key: ["user", "organization"]) {
   # Cascade deleting, as is `organization`. Each reference's column is named here, as Data Connect
   # would name it anyway, since a table cannot reference a key made of references: naming them is
-  # what lets `AgentConnection` reference the membership by the two. `userId` is a String because
-  # `User.id` is a Firebase uid
+  # what lets `AgentConnection`, `IntegrationConnection` and `IntegrationAuthorization` reference the
+  # membership by the two. `userId` is a String because `User.id` is a Firebase uid
   user: User! @ref(fields: "userId")
   userId: String!
   organization: Organization! @ref(fields: "organizationId")
@@ -350,6 +350,13 @@ type Task @table @index(fields: ["organizationId", "status", "position"]) {
   isAssignedToAgent: Boolean! @default(value: false)
   # The day it should be done by, the same day for every member whatever their time zone
   dueDate: Date
+  # When it last reached Done, from the server's clock: `FinishTask` stamps it as the page moves it
+  # there, and the Tasks module's writes as an agent creates it done or finishes it. Kept when the
+  # task leaves Done, so it says something only while the status is DONE. A task done before it
+  # existed is stamped with its last change by `backfill:task-done-at`, run once by hand. Null where
+  # nobody stamped it, a task created straight into Done or finished by a page from before
+  # `FinishTask`, which a reader dates by `createdAt` instead, right for the first
+  doneAt: Timestamp
   # Which aspects of the company it is about, each once, in no particular order. The page shows
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")
@@ -494,6 +501,9 @@ enum ConversationMessageKind {
   ASPECTS
   # A line the thread draws on its own, such as "You stopped this response."
   NOTE
+  # A call to an integration that waits for the member's Allow, unless they answered it already:
+  # a tool call with an approval on top
+  APPROVAL
 }
 
 # Where a tool call stands. Append a value; never reorder
@@ -502,6 +512,17 @@ enum ConversationToolStatus {
   SUCCEEDED
   FAILED
   CANCELLED
+}
+
+# Where an approval stands. Append a value; never reorder
+enum ConversationApprovalState {
+  # Waiting for the member's Allow or Deny
+  PENDING
+  # Allowed: the call runs in the run that carries the conversation on
+  ALLOWED
+  # Denied by the member, by a message sent instead, or because the integration changed since the
+  # call was proposed
+  DENIED
 }
 
 # Which note the thread draws. Append a value; never reorder
@@ -748,6 +769,26 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   aspects: [CompanyAspect!]
   aspectsSetBy: ConversationActor
   noteKind: ConversationNoteKind
+  # A call to an integration's, a tool call or an approval: the server it went to, which the
+  # thread's warning strip matches the live list by, never by name. Implies an `integrationId: UUID`
+  # column, set to null when the server is pruned
+  integration: OrganizationIntegration
+  # The server's name and the tool's, as they were at call time
+  integrationName: String
+  integrationToolName: String
+  # An approval's state, then what it is bound to: the server's `configRevision`, the hash of the
+  # tool's definition as the server listed it, and the generation of the credential that makes the
+  # call, the key's `keyGeneration` as text or the member's connection's `generation`, null for a
+  # server without one. Allow, and the call right before it is made, check all three against the
+  # server as it is, so an approval given for one server, tool or account never runs as another.
+  # An auto-approved call keeps the same binding, without a state
+  approvalState: ConversationApprovalState
+  approvalConfigRevision: Int
+  approvalToolHash: String
+  approvalCredentialGeneration: String
+  # The arguments as the approval shows them at a glance, their JSON cut to 2000 characters, which
+  # authorizes nothing: Allow opens the whole `toolInput` first
+  argumentsPreview: String
   position: Int!
   createdAt: Timestamp! @default(expr: "request.time")
 }
@@ -924,10 +965,10 @@ type OAuthClient @table @index(fields: ["createdAt"]) {
 # An external agent a member allowed to act as them on one module in one organization, read only or
 # read and write, until they disconnect it, consent again, or stop being that member.
 #
-# The one table that references the membership rather than the account and the organization apart:
-# a connection belongs to the membership, so removing the member, or deleting the organization,
-# deletes it with its tokens, and a member invited back connects again rather than finding an
-# agent still acting as them.
+# It references the membership rather than the account and the organization apart, as a member's
+# accounts at the organization's MCP servers do (`IntegrationConnection`): a connection belongs to
+# the membership, so removing the member, or deleting the organization, deletes it with its tokens,
+# and a member invited back connects again rather than finding an agent still acting as them.
 #
 # Unique on its membership, its client and its module, so consenting again replaces the connection
 # rather than adding one: Allow locks the membership, deletes the earlier connection with its tokens
@@ -1080,9 +1121,9 @@ enum IntegrationError {
 #
 # Its address, its authentication and the authorization server it names are bound to everything
 # given for them: a change of either, or a discovery that resolves another issuer, clears the key,
-# the issuer, the tools and their approvals in the one write that bumps `configRevision`, and M28
-# adds the registered client, members' connections and pending authorizations to it, so no
-# credential or approval reaches a server it was not given for.
+# the issuer, the registered client, the tools and their approvals in the one write that bumps
+# `configRevision`, and deletes members' connections and their Connects under way in the same
+# mutation, so no credential or approval reaches a server it was not given for.
 #
 # The key is secret: `encryptedApiKey` is read by the backend alone, through
 # `GetOrganizationIntegrationForAdministrator`, and no web operation selects it. Everything else is
@@ -1130,6 +1171,17 @@ type OrganizationIntegration @table @index(fields: ["organizationId", "createdAt
   apiKeyHeader: String
   # The issuer of the authorization server an `OAUTH` server named, as its discovery validated it
   issuer: String
+  # The client Strategy Dance registered with that authorization server through dynamic registration
+  # (RFC 7591), which every member's Connect presents, registered by the first Connect that needed
+  # one: its `client_id`, its secret when the server gave one, encrypted as the key is and bound to
+  # this row, when that secret stops being taken, and how the token endpoint takes the client
+  # (`none`, `client_secret_post` or `client_secret_basic`). All null while none is needed: a server
+  # that reads client ID metadata documents takes Strategy Dance's own, which no row keeps. Cleared
+  # with the issuer it was registered with, and when the server refuses it
+  oauthClientId: String
+  encryptedOAuthClientSecret: String
+  oauthClientSecretExpiresAt: Timestamp
+  oauthClientAuthenticationMethod: String
   # The tools the server listed last, as JSON text of `IntegrationTool`s, at most 200 and 1 MiB
   # (`MAX_INTEGRATION_TOOLS`, `MAX_INTEGRATION_TOOLS_BYTES`): `String` rather than `Any`, which
   # Postgres' `jsonb` stores keeping one of two duplicate keys of a schema. Read by the dialog and
@@ -1151,5 +1203,141 @@ type OrganizationIntegration @table @index(fields: ["organizationId", "createdAt
   lastUsedAt: Timestamp
   deletedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
+  # Written by every change to the server, and by a member's Connect, which writes it to lock the row
+  # against a change made meanwhile
   updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Whether a member's account at an OAuth server still opens it: connected, or no longer taken, its
+# refresh refused or its token answered with a 401, which connecting again mends. Append a value;
+# never reorder
+enum IntegrationConnectionStatus {
+  CONNECTED
+  NEEDS_AUTHENTICATION
+}
+
+# A member's own account at one of the organization's OAuth MCP servers, which Strategy Dance's agent
+# acts as when it calls the server for them (M29): one per member and server, made when the member's
+# page finishes a Connect, and replaced by the next.
+#
+# It references the membership, as `AgentConnection` does: removing the member, or deleting the
+# organization, deletes it with its tokens. A deleted server's goes once the server is pruned, and a
+# change of the server's address, authentication or issuer deletes it in the very mutation that makes
+# the change (`ReconfigureOrganizationIntegration`, `ChangeOrganizationIntegrationIssuer`), so no
+# token reaches a server it was not given for.
+#
+# The tokens are secret: encrypted as a server's key is, each bound to the organization, the server,
+# the connection's `generation` and the member, read by the backend alone and selected by no web
+# operation. The member's page reads the rest of their own, through `GetIntegrationConnections`
+type IntegrationConnection @table @unique(fields: ["integration", "membership"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `integrationId: UUID!` column, cascade deleting
+  integration: OrganizationIntegration!
+  # Cascade deleting. Its columns are named here, as `AgentConnection`'s are, and its constraint is
+  # named short of Postgres' 63 bytes
+  membership: UserOrganization!
+    @ref(
+      fields: ["membershipUserId", "membershipOrganizationId"]
+      references: ["userId", "organizationId"]
+      constraintName: "integration_connection_membership_fkey"
+    )
+  membershipUserId: String!
+  membershipOrganizationId: UUID!
+  # Fresh on every connect, made by the backend, and kept by a refresh, so what M29 binds an approval
+  # to names the account it showed: a reconnect, to whichever account, is another generation, and no
+  # disconnect, reconfiguration or removal ever brings one back, as a counter starting again would
+  generation: UUID!
+  # The server's `configRevision` when the member connected, which every read of the tokens matches
+  # against the server's, so a token never goes to an address the server was given since
+  configRevision: Int!
+  status: IntegrationConnectionStatus! @default(value: CONNECTED)
+  # Who the member signed in as, the email or name the server's ID token gave when it sent one, which
+  # only that member reads: one line of at most 100 characters
+  # (`MAX_INTEGRATION_ACCOUNT_LABEL_LENGTH`), null when the server said nothing
+  accountLabel: String
+  # The client the tokens were issued to, which a refresh presents: the address of Strategy Dance's
+  # client ID metadata document, or the server's registered client's id, whose secret is read from the
+  # server's row only while the two ids match. How the token endpoint takes it beside it
+  oauthClientId: String!
+  oauthClientAuthenticationMethod: String!
+  # The resource the tokens are for, the server's own address as its protected resource metadata
+  # names it (RFC 8707), which a refresh names again
+  resource: String!
+  # What the authorization server's metadata said when the member connected, which a refresh and a
+  # revocation are made from without discovering it again: its issuer, whether it sends `iss` back
+  # (RFC 9207), its token endpoint and its revocation endpoint, if any
+  issuer: String!
+  isIssuerParameterSupported: Boolean!
+  tokenEndpoint: String!
+  revocationEndpoint: String
+  # The tokens, encrypted, both null once the connection needs authentication. A server may give no
+  # refresh token and say no expiry, which leaves `accessTokenExpiresAt` null
+  encryptedAccessToken: String
+  encryptedRefreshToken: String
+  accessTokenExpiresAt: Timestamp
+  # The scope granted, as the token answer said it
+  scope: String
+  # Set from the database's clock by the refresh that takes the connection, which every other waits
+  # on rather than spend a rotating refresh token twice, and written and released by the lease's id
+  # alone, never by its time
+  refreshingUntil: Timestamp
+  refreshLeaseId: UUID
+  createdAt: Timestamp! @default(expr: "request.time")
+  # When its tokens were last written, by a connect or a refresh
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# A member's Connect under way: started when they press Connect, its sign-in open in the window their
+# page opened, and finished by that page once the authorization server has sent the browser back to
+# the callback, within ten minutes. One per member and server: starting again replaces it.
+#
+# The callback knows it by its `state` alone, before anybody is known, so only the state's hash is
+# kept, and the callback finds it by that, as the authorization server's own requests are found. It
+# keeps the code it brought back, encrypted, for two minutes, and the member's own page, signed in,
+# finishes it: deleted by `ConsumeIntegrationAuthorization` before the code is exchanged, matched on
+# the member, so a sign-in another account started and sent connects nothing, and two finishes
+# exchange once.
+#
+# References the membership and the server, cascade deleting, and goes with the server's address,
+# authentication or issuer in the very mutation that changes them. The daily sweep deletes those
+# expired, which the index on `expiresAt` serves
+type IntegrationAuthorization @table @unique(fields: ["integration", "membership"]) @index(fields: ["expiresAt"]) {
+  # Made by the backend, since the secrets beside it are bound to it
+  id: UUID!
+  # Implies an `integrationId: UUID!` column, cascade deleting
+  integration: OrganizationIntegration!
+  # Cascade deleting, its columns named as `IntegrationConnection`'s are
+  membership: UserOrganization!
+    @ref(
+      fields: ["membershipUserId", "membershipOrganizationId"]
+      references: ["userId", "organizationId"]
+      constraintName: "integration_authorization_membership_fkey"
+    )
+  membershipUserId: String!
+  membershipOrganizationId: UUID!
+  # SHA-256 of the 256-bit `state` the sign-in was sent with, in base64url: the state itself is never
+  # stored, so a leaked table finishes nothing
+  stateHash: String! @unique
+  # The PKCE verifier the sign-in's challenge was made from, encrypted, bound to this authorization
+  # and the member
+  encryptedCodeVerifier: String!
+  # The code the callback brought back, encrypted likewise, and when it stops being taken, two
+  # minutes after it came. Null until the callback, which sets them once
+  encryptedCode: String
+  codeExpiresAt: Timestamp
+  # The server's `configRevision` when the Connect started, which the finish matches
+  configRevision: Int!
+  # The client, the resource, the scope and the authorization server's metadata the sign-in was
+  # started with, as `IntegrationConnection` keeps them, which the exchange and the connection take
+  oauthClientId: String!
+  oauthClientAuthenticationMethod: String!
+  resource: String!
+  scope: String
+  issuer: String!
+  isIssuerParameterSupported: Boolean!
+  tokenEndpoint: String!
+  revocationEndpoint: String
+  # Ten minutes after it started, from the database's clock
+  expiresAt: Timestamp!
+  createdAt: Timestamp! @default(expr: "request.time")
 }

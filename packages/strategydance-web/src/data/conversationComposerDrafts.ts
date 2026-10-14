@@ -39,7 +39,7 @@ export type ConversationAttachmentRefusal = {
 */
 export type ConversationPendingMessage = {
   id: string
-  // As it was sent, its mentions links to their documents
+  // As it was sent, each mention a link to its document
   text: string
   // The files it sent, as the message stored reads them
   attachments: readonly ConversationMessageAttachment[]

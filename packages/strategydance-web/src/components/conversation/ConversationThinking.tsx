@@ -22,8 +22,8 @@ type Props = {
 /*
   Shown while Strategy Dance works on an answer: its mark pulsing, what it is doing shimmering, and
   how long it has gone on the right. It keeps its own one-second clock, since `useNow` ticks once a
-  minute. It appears as the reader sends, before the run is read, and stays as it lands, counting
-  from it from then on. Without motion when the reader asks for less
+  minute. It appears as the reader sends, before the run is read, and stays as it lands. Without
+  motion when the reader asks for less
 */
 function ConversationThinking({ step, startedAt }: Props) {
   const { formatMessage } = useIntl()

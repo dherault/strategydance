@@ -12,9 +12,15 @@ import type { ConversationIntegrationCaller } from '~domain/integrations/readCon
   included, with the member's connection to it: `missing` once the membership the run was started
   under is gone, and `unknown` for a server deleted, of another organization, or that never was
 */
-async function readConversationIntegration(caller: ConversationIntegrationCaller, integrationId: string) {
+async function readConversationIntegration(
+  { organizationId, userId, membershipCreatedAt }: ConversationIntegrationCaller,
+  integrationId: string,
+) {
+  // Named one by one: a caller may be a run's whole fence, whose other fields the read does not take
   const { data } = await getConversationIntegration(dataConnect, {
-    ...caller,
+    organizationId,
+    userId,
+    membershipCreatedAt,
     integrationId: toCanonicalUuid(integrationId),
   })
   const [integration] = data.organizationIntegrations

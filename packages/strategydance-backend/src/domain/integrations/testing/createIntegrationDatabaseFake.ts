@@ -254,6 +254,13 @@ function createIntegrationDatabaseFake() {
     return row
   }
 
+  // Refuses a variable the operation does not declare, as Data Connect refuses it: "$x is not expected"
+  function checkVariables(variables: AnyVariables, declared: string[]) {
+    const unexpected = Object.keys(variables).filter(name => !declared.includes(name))
+
+    if (unexpected.length) throw new Error(unexpected.map(name => `$${name} is not expected`).join(' '))
+  }
+
   // Whether the variables name a membership as it was made, at the `createdAt` a run recorded
   function isMembership({ userId, organizationId, membershipCreatedAt }: AnyVariables) {
     const key = membershipKey(userId, organizationId)
@@ -745,6 +752,8 @@ function createIntegrationDatabaseFake() {
       return { organizationIntegration_updateMany: 1 }
     },
     GetConversationIntegrations: variables => {
+      checkVariables(variables, ['organizationId', 'userId', 'membershipCreatedAt'])
+
       if (!isMembership(variables))
         return { userOrganizations: [], organizationIntegrations: [], integrationConnections: [] }
 
@@ -768,6 +777,8 @@ function createIntegrationDatabaseFake() {
       }
     },
     GetConversationIntegration: variables => {
+      checkVariables(variables, ['organizationId', 'userId', 'membershipCreatedAt', 'integrationId'])
+
       if (!isMembership(variables))
         return { userOrganizations: [], organizationIntegrations: [], integrationConnections: [] }
 

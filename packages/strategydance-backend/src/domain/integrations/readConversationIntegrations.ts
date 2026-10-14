@@ -36,10 +36,13 @@ type ConversationIntegrationSummary = {
   they were added, each with that member's connection, or null once the membership the run was
   started under is gone
 */
-async function readConversationIntegrations(
-  caller: ConversationIntegrationCaller,
-): Promise<ConversationIntegrationSummary[] | null> {
-  const { data } = await getConversationIntegrations(dataConnect, caller)
+async function readConversationIntegrations({
+  organizationId,
+  userId,
+  membershipCreatedAt,
+}: ConversationIntegrationCaller): Promise<ConversationIntegrationSummary[] | null> {
+  // Named one by one: a caller may be a run's whole fence, whose other fields the read does not take
+  const { data } = await getConversationIntegrations(dataConnect, { organizationId, userId, membershipCreatedAt })
 
   if (!data.userOrganizations.length) return null
 

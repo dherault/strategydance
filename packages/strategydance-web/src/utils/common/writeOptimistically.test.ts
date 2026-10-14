@@ -85,7 +85,7 @@ describe('writeOptimistically', () => {
     expect(events).toEqual(['first', 'second', 'invalidate'])
   })
 
-  it('reads the query again at once when a write fails, and hands the error back', async () => {
+  it('reads the query again when a lone write fails, and hands the error back', async () => {
     const events: string[] = []
     const queryClient = createQueryClient(events)
 
@@ -102,6 +102,42 @@ describe('writeOptimistically', () => {
     ).rejects.toThrow('refused')
 
     await wait(40)
+
+    expect(events).toEqual(['invalidate'])
+  })
+
+  it('reads the query again after a refused write only once the writes beside it settle', async () => {
+    const events: string[] = []
+    const queryClient = createQueryClient(events)
+    let finishWrite = () => {}
+
+    const written = writeOptimistically({
+      queryClient,
+      queryKeys: [['refused-beside']],
+      rowKey: 'refused-beside-slow',
+      apply: () => {},
+      write: () =>
+        new Promise<void>(resolve => {
+          finishWrite = resolve
+        }),
+    })
+    const refused = writeOptimistically({
+      queryClient,
+      queryKeys: [['refused-beside']],
+      rowKey: 'refused-beside-refused',
+      apply: () => {},
+      write: async () => {
+        throw new Error('refused')
+      },
+    })
+
+    expect(refused).rejects.toThrow('refused')
+    await wait(40)
+
+    expect(events).toEqual([])
+
+    finishWrite()
+    await written
 
     expect(events).toEqual(['invalidate'])
   })

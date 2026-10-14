@@ -39,10 +39,11 @@ type Options = {
     one row are queued in that order, each sent once its change has landed, so they reach the
     server as the reader made them
   - Once the last write a query waits on settles, it is read again, which puts right anything a
-    later read overwrote and anything the server did differently. A write that fails reads it
-    again at once, so the page drops what the server refused, and the error goes to the caller.
-    Until then nothing else lands on it: a live query drops what it is sent, and no reader mounting,
-    focus or reconnect reads it again (`isAwaitingWrites`)
+    later read overwrote and anything the server did differently, and drops what the server
+    refused. Until then nothing else lands on it: a live query drops what it is sent, and no reader
+    mounting, focus or reconnect reads it again (`isAwaitingWrites`). A refused write reads it no
+    sooner either, since that read would also take back the writes still under way, and its error
+    goes to the caller at once
 */
 async function writeOptimistically({ queryClient, queryKeys, rowKey, after, apply, write }: Options) {
   const keys = queryKeys.map(queryKey => JSON.stringify(queryKey))
@@ -57,8 +58,6 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
 
   applying = applied.catch(() => undefined)
 
-  let hasFailed = false
-
   try {
     // Queued now, so the row's writes keep the order they were made in, and sent once applied
     await runInOrder(
@@ -70,10 +69,6 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
       },
       after,
     )
-  } catch (error) {
-    hasFailed = true
-
-    throw error
   } finally {
     queryKeys.forEach((queryKey, index) => {
       const key = keys[index]!
@@ -82,7 +77,7 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
       if (left > 0) pendingWrites.set(key, left)
       else pendingWrites.delete(key)
 
-      if (hasFailed || left <= 0) queryClient.invalidateQueries({ queryKey })
+      if (left <= 0) queryClient.invalidateQueries({ queryKey })
     })
   }
 }

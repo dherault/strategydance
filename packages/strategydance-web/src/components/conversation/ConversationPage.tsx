@@ -1,5 +1,4 @@
 import { useEffect, useEffectEvent, useState } from 'react'
-import { useIntl } from 'react-intl'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import useConversation from '~hooks/conversation/useConversation'
@@ -9,11 +8,10 @@ import useConversationStartedRun from '~hooks/conversation/useConversationStarte
 
 import ConversationBar from '~components/conversation/ConversationBar'
 import ConversationComposer from '~components/conversation/ConversationComposer'
+import ConversationDraftThread from '~components/conversation/ConversationDraftThread'
 import ConversationHead from '~components/conversation/ConversationHead'
 import ConversationLayout from '~components/conversation/ConversationLayout'
 import ConversationThread from '~components/conversation/ConversationThread'
-
-import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
   conversationId: string
@@ -22,7 +20,8 @@ type Props = {
 /*
   One conversation's page: the bar, the title and aspects, the thread, and the composer at its
   foot. Below `ConversationBouncer`, so the conversation is there, or the page is a draft not
-  stored yet, whose thread is empty and says what to ask.
+  stored yet, whose thread says what to ask, and draws its first message from the moment it is sent
+  (`ConversationDraftThread`).
 
   The composer stays where it is whichever the page draws, so a draft's first message, which
   stores the conversation, leaves it mounted with whatever is written in it. A draft holds the
@@ -37,7 +36,6 @@ type Props = {
   open twice
 */
 function ConversationPage({ conversationId }: Props) {
-  const { formatMessage } = useIntl()
   const { data: conversation } = useConversation(conversationId)
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useConversationStartedRun(conversationId)
@@ -72,9 +70,7 @@ function ConversationPage({ conversationId }: Props) {
           onRunStart={setStartedRun}
         />
       ) : (
-        <p className="my-auto px-2 py-6 text-center text-sm text-balance text-muted-foreground">
-          {formatMessage(conversationMessages.threadEmpty)}
-        </p>
+        <ConversationDraftThread conversationId={conversationId} />
       )}
       <ConversationComposer
         conversationId={conversationId}

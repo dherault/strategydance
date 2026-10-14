@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import {
   ConversationMessageKind,
@@ -9,11 +9,12 @@ import {
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import type { Conversation, ConversationRun, ConversationThreadEntry } from '~types'
+import type { Conversation, ConversationMessageAttachment, ConversationRun, ConversationThreadEntry } from '~types'
 
 import useNow from '~hooks/common/useNow'
 import useConversationDeletedItems from '~hooks/conversation/useConversationDeletedItems'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
+import useConversationPendingMessage from '~hooks/conversation/useConversationPendingMessage'
 import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
@@ -67,7 +68,8 @@ type Props = {
 /*
   A conversation's thread: each entry as the design draws its kind, oldest first, and the thinking
   indicator after them while a run goes, until its lease passes, when the backend is asked to
-  reconcile it. The questions of the turn the conversation waits on are answered in place, and a
+  reconcile it. The message the reader sends is drawn at its foot the moment they send it, and in
+  place of its body until that is read (`pendingMessage`). The questions of the turn the conversation waits on are answered in place, and a
   run waiting on questions all answered is reconciled too, in case its last answer could not carry
   it on. The note that ends the latest response, when it is the last entry and nothing goes,
   offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
@@ -85,7 +87,11 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
-  const documents = useConversationDocuments(needsConversationDocuments(entries, bodies))
+  const { pendingMessage, forgetPendingMessage } = useConversationPendingMessage(conversation.id)
+  // Read as the reader sends a mention too, the composer's read, so it is drawn linked from the start
+  const documents = useConversationDocuments(
+    needsConversationDocuments(entries, bodies) || /doc:/i.test(pendingMessage?.text ?? ''),
+  )
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
   // One clock for every row that offers Restore until its day is up
@@ -99,6 +105,18 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   )
   // The run the conversation waits on for the answers to its questions, while it does
   const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
+
+  // The message the reader just sent, while the tail does not hold it yet
+  const shownPendingMessage =
+    pendingMessage && !entries.some(({ id }) => id === pendingMessage.id) ? pendingMessage : null
+  // The message the reader just sent, once the thread holds it with its body, which it is drawn from
+  const heldPendingMessageId = pendingMessage && bodies.has(pendingMessage.id) ? pendingMessage.id : null
+
+  const forgetHeldPendingMessage = useEffectEvent((id: string) => forgetPendingMessage(id))
+
+  useEffect(() => {
+    if (heldPendingMessageId) forgetHeldPendingMessage(heldPendingMessageId)
+  }, [heldPendingMessageId])
 
   useConversationThreadScroll(listRef, scrollerRef)
   useMarkConversationRead(conversation, isLatestShown)
@@ -156,7 +174,16 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   function renderNoteActions(entry: ConversationThreadEntry) {
     const runId = entry.run?.id
 
-    if (!runId || runId !== run?.id || entry.id !== entries.at(-1)?.id || isWorking || isAwaiting) return null
+    if (
+      !runId
+      || runId !== run?.id
+      || entry.id !== entries.at(-1)?.id
+      || shownPendingMessage
+      || isWorking
+      || isAwaiting
+    ) {
+      return null
+    }
 
     return (
       <ConversationNoteActions
@@ -193,22 +220,29 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
     return null
   }
 
+  function renderMemberMessage(text: string, attachments: readonly ConversationMessageAttachment[]) {
+    return (
+      <ConversationMemberMessage
+        conversationId={conversation.id}
+        text={text}
+        attachments={attachments}
+        documents={documents}
+        size={size}
+      />
+    )
+  }
+
   function renderEntry(entry: ConversationThreadEntry) {
     const body = bodies.get(entry.id)
 
     switch (entry.kind) {
       case ConversationMessageKind.MEMBER_TEXT:
-        return body ? (
-          <ConversationMemberMessage
-            conversationId={conversation.id}
-            text={body.text ?? ''}
-            attachments={body.conversationAttachments_on_message}
-            documents={documents}
-            size={size}
-          />
-        ) : (
-          <ConversationMessagePlaceholder isMember />
-        )
+        if (body) return renderMemberMessage(body.text ?? '', body.conversationAttachments_on_message)
+
+        // The reader's own message, just sent, is drawn as they sent it until its body is read
+        if (entry.id === pendingMessage?.id) return renderMemberMessage(pendingMessage.text, pendingMessage.attachments)
+
+        return <ConversationMessagePlaceholder isMember />
       case ConversationMessageKind.AGENT_TEXT: {
         const piece = replies.get(entry.id)
 
@@ -294,6 +328,30 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
     )
   }
 
+  const rows = [
+    ...entries.map((entry, index) => ({
+      id: entry.id,
+      content: renderEntry(entry),
+      // Consecutive calls sit closer together, as one stretch of work, and a reply's pieces as the
+      // paragraphs of one reply
+      isTight:
+        (entry.kind === ConversationMessageKind.TOOL_CALL
+          && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL)
+        || !!replies.get(entry.id)?.isContinuation,
+    })),
+    // The message just sent, under its own id, so that it stays as it is drawn when its entry takes
+    // its place
+    ...(shownPendingMessage
+      ? [
+          {
+            id: shownPendingMessage.id,
+            content: renderMemberMessage(shownPendingMessage.text, shownPendingMessage.attachments),
+            isTight: false,
+          },
+        ]
+      : []),
+  ]
+
   return (
     <div className="flex grow flex-col py-2 [overflow-anchor:none]">
       {renderOlder()}
@@ -304,21 +362,13 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
         aria-busy={olderStatus === 'loading' || isFilling}
         className="flex flex-col gap-4"
       >
-        {entries.map((entry, index) => (
+        {rows.map(({ id, content, isTight }) => (
           <div
-            key={entry.id}
-            data-entry-id={entry.id}
-            className={cn(
-              'flex min-w-0 flex-col',
-              // Consecutive calls sit closer together, as one stretch of work, and a reply's pieces as
-              // the paragraphs of one reply
-              ((entry.kind === ConversationMessageKind.TOOL_CALL
-                && entries[index - 1]?.kind === ConversationMessageKind.TOOL_CALL)
-                || replies.get(entry.id)?.isContinuation)
-                && '-mt-2',
-            )}
+            key={id}
+            data-entry-id={id}
+            className={cn('flex min-w-0 flex-col', isTight && '-mt-2')}
           >
-            {renderEntry(entry)}
+            {content}
           </div>
         ))}
         {isWorking && run ? (

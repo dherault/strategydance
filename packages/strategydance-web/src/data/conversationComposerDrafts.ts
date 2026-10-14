@@ -1,3 +1,5 @@
+import type { ConversationMessageAttachment } from '~types'
+
 import createTabStore from '~utils/common/createTabStore'
 import type { ConversationAttachmentUploadRefusal } from '~utils/conversation/getConversationAttachmentUploadFailure'
 import type { ConversationSendFailure } from '~utils/conversation/getConversationSendFailure'
@@ -31,6 +33,19 @@ export type ConversationAttachmentRefusal = {
 }
 
 /*
+  A message the reader sent, drawn in the thread from the moment they send it, before the backend
+  has stored it and the live read brought it in, and in place of its body until the thread has read
+  it. Its id is the message's, which the backend keeps, so the message stored takes its place
+*/
+export type ConversationPendingMessage = {
+  id: string
+  // As it was sent, its mentions links to their documents
+  text: string
+  // The files it sent, as the message stored reads them
+  attachments: readonly ConversationMessageAttachment[]
+}
+
+/*
   The message the reader is writing to a conversation, and where its sending stands: what a
   composer holds that outlives the composer
 */
@@ -44,6 +59,8 @@ export type ConversationComposerDraft = {
   attachmentRefusal: ConversationAttachmentRefusal | null
   // The id of the message a send is taking, while it goes, which no other send may race
   sendingMessageId: string | null
+  // The message last sent, from its send until the thread holds it, or its send fails
+  pendingMessage: ConversationPendingMessage | null
   // The send that failed, kept so that sending the same message again is the same send: its id,
   // the message as it was sent, its mentions links to their documents, and the files it sent
   failedSend: { messageId: string; text: string; attachmentIds: readonly string[] } | null
@@ -60,6 +77,7 @@ export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
   attachments: [],
   attachmentRefusal: null,
   sendingMessageId: null,
+  pendingMessage: null,
   failedSend: null,
   failure: null,
   startedRun: null,
@@ -84,6 +102,7 @@ const drafts = createTabStore(
     && !draft.attachments.length
     && !draft.attachmentRefusal
     && !draft.sendingMessageId
+    && !draft.pendingMessage
     && !draft.failedSend
     && !draft.failure
     && !draft.startedRun,

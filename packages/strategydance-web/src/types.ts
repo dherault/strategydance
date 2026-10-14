@@ -238,7 +238,16 @@ export type CardFieldOption = {
   label: ReactNode
 }
 
-// One setting a card offers beside it: a pick of one option, or of several, up to `max`
+// Options of a card's field under a heading, such as a board's tasks by their column
+export type CardFieldGroup = {
+  label: string
+  options: CardFieldOption[]
+}
+
+/*
+  One setting a card offers beside it: a pick of one option, or of several, up to `max`, or of one
+  among options too many to scroll through, found by a search, whose labels it searches as text
+*/
 export type CardField =
   | {
       kind: 'select'
@@ -252,6 +261,14 @@ export type CardField =
       label: string
       options: CardFieldOption[]
       max?: number
+    }
+  | {
+      kind: 'combobox'
+      key: string
+      label: string
+      options: CardFieldGroup[]
+      searchPlaceholder: string
+      emptyText: string
     }
 
 // What a build in public card's text is written in when the reader forces it, rather than what reads

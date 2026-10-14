@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl'
+import { Combobox } from 'strategydance-design-system/components/ui/Combobox'
 import { MultiSelect } from 'strategydance-design-system/components/ui/MultiSelect'
 import { Select } from 'strategydance-design-system/components/ui/Select'
 import { isDarkColor } from 'strategydance-design-system/lib/isDarkColor'
@@ -129,6 +130,20 @@ function BuildInPublicCardSettings({
               label={field.label}
               value={values[field.key] as string}
               options={field.options}
+              onValueChange={value => change(field.key, value)}
+            />
+          )
+        }
+
+        if (field.kind === 'combobox') {
+          return (
+            <Combobox
+              key={field.key}
+              label={field.label}
+              value={values[field.key] as string}
+              options={field.options}
+              searchPlaceholder={field.searchPlaceholder}
+              emptyText={field.emptyText}
               onValueChange={value => change(field.key, value)}
             />
           )

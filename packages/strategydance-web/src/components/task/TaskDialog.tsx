@@ -65,6 +65,8 @@ function TaskDialog({ taskId }: Props) {
   const router = useRouter()
   // Whether the board opened this task, which its history entry keeps through a reload
   const isFromTaskBoard = useLocation({ select: location => location.state.isFromTaskBoard === true })
+  // Whether it takes the place of the dialog it was created in, where it appears without a fade
+  const isFromNewTask = useLocation({ select: location => location.state.isFromNewTask === true })
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: viewer } = useAuthentication()
   const { data: tasks } = useTasks()
@@ -125,6 +127,7 @@ function TaskDialog({ taskId }: Props) {
   return (
     <TaskDialogLayout
       isContentFocusedOnOpen
+      isAnimatedOnOpen={!isFromNewTask}
       onClose={close}
       header={
         <>

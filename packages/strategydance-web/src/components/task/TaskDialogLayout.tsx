@@ -14,6 +14,8 @@ type Props = {
   // Focuses the dialog itself as it opens rather than its first field, which would show the name
   // as being edited before anything is. A draft focuses its name field itself
   isContentFocusedOnOpen?: boolean
+  // False for a task taking the place of its draft, so the dialog seems to stay where it was
+  isAnimatedOnOpen?: boolean
   onClose: () => void
 }
 
@@ -23,7 +25,15 @@ type Props = {
   screen. Only the body scrolls, so a list or a calendar opened from a field, which lays itself over
   the dialog, is never cut off by it
 */
-function TaskDialogLayout({ header, main, side, footer, isContentFocusedOnOpen = false, onClose }: Props) {
+function TaskDialogLayout({
+  header,
+  main,
+  side,
+  footer,
+  isContentFocusedOnOpen = false,
+  isAnimatedOnOpen = true,
+  onClose,
+}: Props) {
   const { formatMessage } = useIntl()
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -39,6 +49,7 @@ function TaskDialogLayout({ header, main, side, footer, isContentFocusedOnOpen =
     >
       <DialogContent
         closeLabel={formatMessage(taskMessages.close)}
+        isAnimatedOnOpen={isAnimatedOnOpen}
         className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-190"
         ref={contentRef}
         onOpenAutoFocus={isContentFocusedOnOpen ? focusContent : undefined}

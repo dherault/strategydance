@@ -96,7 +96,8 @@ function TaskDialog({ taskId }: Props) {
 
   const task = tasks.find(({ id }) => id === taskId)
 
-  // `TaskBouncer` lets no other through, but a task deleted elsewhere can go before it moves on
+  // `TaskBouncer` lets no other through, but a task deleted elsewhere can go before it moves on, and
+  // one being created can be missing from the board for a moment
   if (!task) return null
 
   const members = team.userOrganizations

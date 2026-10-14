@@ -1864,6 +1864,50 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   administrator…". The Integrations page handles `?open=`, `?connect=`, `?enable=` and `?add=`.
 - Verify: ask something that needs a connected server, then allow the call and deny another; let an
   administrator allow one tool and see it run straight away; turn the server off and ask again.
+- Built with these settled, on 2026-10-14:
+  - **A turn's other calls run beside an approval**, as David chose: as beside a question, every call
+    of the turn but the one waiting runs at once, its result kept on the run, and only the call the
+    member allows runs in the next run, so a later write can land before an earlier call the member
+    then allows.
+  - `list_integrations` and `describe_integration_tool` are strict, and `call_integration_tool` is
+    not: a strict schema sets `additionalProperties: false` on every object, which a call's
+    `arguments` cannot take. Its input is checked on the worker, as a module's tools' are. The three
+    are always in the tools list and always run, whatever the organization added.
+  - **The decision is made once, when a call is drawn**, from the server as it is then: refused,
+    drawn failed with the server it named, so the thread can say what fixes it; run at once,
+    auto-approved, drawn running with its binding; or drawn as an `APPROVAL`, pending. Planning stays
+    the transcript's alone, so a worker taking over plans the same and follows what was drawn. An
+    auto-approved call keeps its binding too, so a Resume hours later never calls a server whose
+    address, tool or auto-approval changed.
+  - **An approval is a tool call with an approval on top**: its `toolStatus` stays null until a run
+    starts its call, since a call is `RUNNING` only while a run holds it; a Deny, a send while it
+    waits, and an Allow after the binding changed each finish it failed, with the sentence its result
+    sends. `answeredAt` marks it answered, so every waiting count reads questions and approvals alike.
+  - **A continuation that carries an allowed call stores no entry**, since the call has not run:
+    `ContinueConversationRunWithCalls` anchors its run where the waiting run was, copies its results,
+    and answers the calls a stop kept from running as stopped, which a resumed run would otherwise
+    make. Its worker makes the allowed calls, checks the results entry with `checkTranscript`, stores
+    it and anchors the run on it, so Retry, the fifty calls and tagging treat it as an answer
+    continuation, and a Retry keeps a call that went to another company's server.
+  - **A call to an integration that started is never made again**: a crash or a stop leaves it to be
+    finished as interrupted, its result saying it may have run. Only a 401 marks the member's
+    connection; a 403 refuses the call for that account alone. A call has 30 seconds in all, its own
+    request the whole of what is left after the handshake, and marks its server used at most once a
+    minute, in a write no live query refreshes on.
+  - A send names the approvals it denies and the allowed calls it answers as not run, each by a list,
+    which a backend from before M29 leaves out and is refused for, rather than leave a call nothing
+    answers. A continuation names the calls it closes the same way.
+  - `list_integrations` stays under 40000 characters, its tools' descriptions cut first, then left
+    out, then each server listing fewer tools by name.
+  - The approval is built from the question's look, which the design leaves it: the server, the tool
+    and the start of what it sends, Deny, and Allow, which opens the whole input, escaped as the
+    output dialog escapes it, whose own Allow approves. Decided, it draws as the call it became,
+    "Allowed" until it runs and "Denied" once refused.
+  - The warning strip matches the live list by the server's id, and reads it, with the reader's
+    connections, only while the thread holds a call to an integration. `?connect=` opens the server's
+    dialog, whose Connect the member clicks, since a browser opens a sign-in window only inside a
+    click; `?enable=` turns the server on for an administrator, as designed; `?add=` opens the add
+    dialog from the catalogue by name. Ids go into the address hyphenated.
 
 ### M30: Subagent conversations and their runs
 

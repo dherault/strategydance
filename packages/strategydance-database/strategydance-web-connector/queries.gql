@@ -603,6 +603,12 @@ query GetTasks($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "FinishTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "AssignTask"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }

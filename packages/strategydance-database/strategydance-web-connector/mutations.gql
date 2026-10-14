@@ -954,7 +954,9 @@ mutation UpdateTaskDescription($organizationId: UUID!, $id: UUID!, $description:
 
 # Moves a task on the board, to another column or another place in its own, its status and its
 # position written together. The page sends the position halfway between its new neighbours, and
-# renumbers the column one task at a time when they are too close for that
+# renumbers the column one task at a time when they are too close for that. It leaves `doneAt` as it
+# is: the page moves a task into Done from another column through `FinishTask`, so a move within
+# Done keeps the day it was finished
 mutation MoveTask($organizationId: UUID!, $id: UUID!, $status: TaskStatus!, $position: Float!)
 @auth(level: USER)
 @transaction {
@@ -967,6 +969,22 @@ mutation MoveTask($organizationId: UUID!, $id: UUID!, $status: TaskStatus!, $pos
   task_updateMany(
     where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
     data: { status: $status, position: $position, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+}
+
+# Moves a task into Done from another column, as `MoveTask` would, and stamps when it got there,
+# `doneAt`, from the server's clock, since no write can stamp it only when its status variable is
+# DONE. The page sends it when the task was in another column as it saw the board
+mutation FinishTask($organizationId: UUID!, $id: UUID!, $position: Float!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+  }
+  task_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { status: DONE, position: $position, doneAt_expr: "request.time", updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "No task by that id in the organization")
 }
 

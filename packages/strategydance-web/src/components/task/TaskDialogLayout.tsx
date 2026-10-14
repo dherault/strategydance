@@ -16,6 +16,9 @@ type Props = {
   isContentFocusedOnOpen?: boolean
   // False for a task taking the place of its draft, so the dialog seems to stay where it was
   isAnimatedOnOpen?: boolean
+  // Shown but out of reach, for a draft created and giving way to its task, where an edit would be
+  // lost. Escape still closes it
+  isInert?: boolean
   onClose: () => void
 }
 
@@ -32,6 +35,7 @@ function TaskDialogLayout({
   footer,
   isContentFocusedOnOpen = false,
   isAnimatedOnOpen = true,
+  isInert = false,
   onClose,
 }: Props) {
   const { formatMessage } = useIntl()
@@ -54,12 +58,27 @@ function TaskDialogLayout({
         ref={contentRef}
         onOpenAutoFocus={isContentFocusedOnOpen ? focusContent : undefined}
       >
-        <DialogHeader className="gap-1 px-6 pt-6 pr-14">{header}</DialogHeader>
-        <div className="grid min-h-0 gap-6 overflow-y-auto px-6 pt-5 pb-6 md:grid-cols-[minmax(0,1fr)_224px]">
+        <DialogHeader
+          inert={isInert}
+          className="gap-1 px-6 pt-6 pr-14"
+        >
+          {header}
+        </DialogHeader>
+        <div
+          inert={isInert}
+          className="grid min-h-0 gap-6 overflow-y-auto px-6 pt-5 pb-6 md:grid-cols-[minmax(0,1fr)_224px]"
+        >
           <div className="flex min-w-0 flex-col gap-5">{main}</div>
           <div className="flex min-w-0 flex-col gap-4">{side}</div>
         </div>
-        {footer ? <DialogFooter className="border-t border-border px-6 py-4">{footer}</DialogFooter> : null}
+        {footer ? (
+          <DialogFooter
+            inert={isInert}
+            className="border-t border-border px-6 py-4"
+          >
+            {footer}
+          </DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

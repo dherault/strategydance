@@ -52,8 +52,8 @@ type Props = {
   Create task goes back to the board. Enter in the name creates the task too, and opens it in its
   own dialog for the reader to carry on with it there: this one stays until that one is on screen,
   however long the task's page takes to load, and gives way to it before the browser paints, so the
-  board never shows between the two. A task the server refuses before then leaves the draft to the
-  reader again. Once the server has the task and its links, a notification says so, with a way to
+  board never shows between the two. Nothing in it can be changed meanwhile, as the task has been
+  sent, and a task the server refuses before then leaves the draft to the reader again. Once the server has the task and its links, a notification says so, with a way to
   open it unless it is open already.
 
   The links it is given are picked among the board's tasks, as an existing task's are, and stored
@@ -181,6 +181,7 @@ function NewTaskDialog({ status, onClose }: Props) {
 
   return (
     <TaskDialogLayout
+      isInert={openingTaskId !== null}
       onClose={onClose}
       header={
         <>

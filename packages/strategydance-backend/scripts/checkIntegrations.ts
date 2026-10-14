@@ -16,6 +16,8 @@ import {
   disallowOrganizationIntegrationTool,
   disconnectIntegration,
   forgetOrganizationIntegrationOAuthClient,
+  getConversationIntegration,
+  getConversationIntegrations,
   getIntegrationAuthorizationByState,
   getOrganizationIntegrationForAdministrator,
   IntegrationApiKeyScheme,
@@ -744,6 +746,107 @@ async function isRefusedEither(operation: Promise<unknown>, causes: string[]) {
   return isNamed
 }
 
+/*
+  What a conversation's agent reads of the organization's servers for its member: the live ones,
+  each with that member's own connection, and nothing once the membership the run was started under
+  changed
+*/
+async function checkConversationReads() {
+  const { userOrganization } = await read<{ userOrganization: { createdAt: string } | null }>(
+    `query ReadMembership($userId: String!, $organizationId: UUID!) {
+      userOrganization(key: { userId: $userId, organizationId: $organizationId }) { createdAt }
+    }`,
+    { userId: memberId, organizationId },
+  )
+  const membershipCreatedAt = userOrganization?.createdAt ?? ''
+  const oauthId = createId()
+  const keyId = createId()
+  const deletedId = await insertIntegration({ deletedAt: new Date().toISOString() })
+  const elsewhereId = await insertIntegration({}, otherOrganizationId)
+  const issuer = 'https://auth.example.com'
+
+  await create({
+    integrationId: oauthId,
+    authentication: IntegrationAuthentication.OAUTH,
+    encryptedApiKey: null,
+    apiKeyLastFour: null,
+    issuer,
+    tools: null,
+    toolCount: null,
+  })
+  await create({ integrationId: keyId })
+
+  for (const userId of [memberId, administratorId]) {
+    await connectIntegration(dataConnect, {
+      organizationId,
+      userId,
+      integrationId: oauthId,
+      configRevision: 0,
+      generation: createId(),
+      accountLabel: null,
+      encryptedAccessToken: 'v1:local:access',
+      encryptedRefreshToken: null,
+      accessTokenExpiresAt: null,
+      scope: null,
+      oauthClientId: 'client-a',
+      oauthClientAuthenticationMethod: 'none',
+      resource: 'https://mcp.example.com/mcp',
+      issuer,
+      isIssuerParameterSupported: false,
+      tokenEndpoint: `${issuer}/token`,
+      revocationEndpoint: null,
+    })
+  }
+
+  const caller = { organizationId, userId: memberId, membershipCreatedAt }
+  const { data: listed } = await getConversationIntegrations(dataConnect, caller)
+  const listedIds = listed.organizationIntegrations.map(({ id }) => id)
+
+  check('the agent reads the membership it acts in', listed.userOrganizations.length === 1)
+  check(
+    "the agent lists the organization's live servers, never one deleted or of another organization",
+    listedIds.includes(oauthId)
+      && listedIds.includes(keyId)
+      && !listedIds.includes(deletedId)
+      && !listedIds.includes(elsewhereId),
+  )
+  check(
+    "the agent reads its member's own connection alone",
+    listed.integrationConnections.length === 1 && listed.integrationConnections[0]?.integrationId === oauthId,
+  )
+
+  const { data: changed } = await getConversationIntegrations(dataConnect, {
+    ...caller,
+    membershipCreatedAt: new Date(Date.parse(membershipCreatedAt) + 1000).toISOString(),
+  })
+
+  check('a membership made at another time reads as none', changed.userOrganizations.length === 0)
+
+  const readOne = async (integrationId: string) =>
+    (await getConversationIntegration(dataConnect, { ...caller, integrationId })).data
+  const key = await readOne(keyId)
+  const oauth = await readOne(oauthId)
+
+  check(
+    "a call reads its server with the key's ciphertext",
+    key.organizationIntegrations[0]?.encryptedApiKey === 'v1:local:ciphertext',
+  )
+  check(
+    "a call reads the member's connection to its server",
+    oauth.integrationConnections.length === 1 && oauth.integrationConnections[0]?.configRevision === 0,
+  )
+  check('a call reads no server deleted', (await readOne(deletedId)).organizationIntegrations.length === 0)
+  check(
+    'a call reads no server of another organization',
+    (await readOne(elsewhereId)).organizationIntegrations.length === 0,
+  )
+
+  // Gone again, their connections with them, so the checks after count only what they make
+  for (const id of [oauthId, keyId, deletedId, elsewhereId]) {
+    await write(`mutation DeleteIntegration($id: UUID!) { organizationIntegration_delete(id: $id) }`, { id })
+  }
+}
+
 async function checkConnections() {
   const id = createId()
   const issuer = 'https://auth.example.com'
@@ -1226,6 +1329,7 @@ try {
   await checkIssuers()
   await checkEnabling()
   await checkDeletingAndRestoring()
+  await checkConversationReads()
   // Last, since it removes the checked member
   await checkConnections()
 } finally {

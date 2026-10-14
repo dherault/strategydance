@@ -123,8 +123,9 @@ const NO_CLIENT = {
 }
 
 function createIntegrationDatabaseFake() {
-  // Each member's role, by user and organization
+  // Each member's role, by user and organization, and when their membership was made
   const roles = new Map<string, string>()
+  const membershipsCreatedAt = new Map<string, string>()
   const staff = new Set<string>()
   const integrations = new Map<string, FakeIntegration>()
   // Members' Connects under way, by id, and their connections, by server and member
@@ -249,6 +250,36 @@ function createIntegrationDatabaseFake() {
     }
 
     return row
+  }
+
+  // Whether the variables name a membership as it was made, at the `createdAt` a run recorded
+  function isMembership({ userId, organizationId, membershipCreatedAt }: AnyVariables) {
+    const key = membershipKey(userId, organizationId)
+
+    return roles.has(key) && membershipsCreatedAt.get(key) === membershipCreatedAt
+  }
+
+  function toConversationIntegration(row: FakeIntegration) {
+    return {
+      id: row.id,
+      name: row.name,
+      authentication: row.authentication,
+      isEnabled: row.isEnabled,
+      configRevision: row.configRevision,
+      keyGeneration: row.keyGeneration,
+      apiKeyLastFour: row.apiKeyLastFour,
+      tools: row.tools,
+      autoApprovedTools: row.autoApprovedTools,
+    }
+  }
+
+  function toConversationConnection(connection: FakeConnection) {
+    return {
+      integrationId: connection.integrationId,
+      generation: connection.generation,
+      configRevision: connection.configRevision,
+      status: connection.status,
+    }
   }
 
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
@@ -711,6 +742,52 @@ function createIntegrationDatabaseFake() {
 
       return { organizationIntegration_updateMany: 1 }
     },
+    GetConversationIntegrations: variables => {
+      if (!isMembership(variables))
+        return { userOrganizations: [], organizationIntegrations: [], integrationConnections: [] }
+
+      const servers = live(variables.organizationId)
+
+      return {
+        userOrganizations: [{ userId: variables.userId }],
+        organizationIntegrations: servers.map(toConversationIntegration),
+        integrationConnections: [...connections.values()]
+          .filter(connection => {
+            const server = integrations.get(connection.integrationId)
+
+            return (
+              server
+              && !server.deletedAt
+              && connection.membershipUserId === variables.userId
+              && connection.membershipOrganizationId === id(variables.organizationId)
+            )
+          })
+          .map(toConversationConnection),
+      }
+    },
+    GetConversationIntegration: variables => {
+      if (!isMembership(variables))
+        return { userOrganizations: [], organizationIntegrations: [], integrationConnections: [] }
+
+      const row = findLive(variables)
+      const connection = findConnection(variables)
+
+      return {
+        userOrganizations: [{ userId: variables.userId }],
+        organizationIntegrations: row
+          ? [
+              {
+                ...toConversationIntegration(row),
+                url: row.url,
+                encryptedApiKey: row.encryptedApiKey,
+                apiKeyScheme: row.apiKeyScheme,
+                apiKeyHeader: row.apiKeyHeader,
+              },
+            ]
+          : [],
+        integrationConnections: connection ? [toConversationConnection(connection)] : [],
+      }
+    },
     GetIntegrationConnectionForMember: variables => {
       const connection = findConnection(variables)
       const row = connection && integrations.get(connection.integrationId)
@@ -879,12 +956,25 @@ function createIntegrationDatabaseFake() {
     calls,
     before,
     after,
-    addMember(userId: string, organizationId: string, role: string = OrganizationRole.MEMBER) {
+    // Adds a member, made now unless the membership's `createdAt` is given, as a conversation's fake
+    // gives the one it made
+    addMember(
+      userId: string,
+      organizationId: string,
+      role: string = OrganizationRole.MEMBER,
+      createdAt = new Date().toISOString(),
+    ) {
       roles.set(membershipKey(userId, organizationId), role)
+      membershipsCreatedAt.set(membershipKey(userId, organizationId), createdAt)
+    },
+    // When a member's membership was made, which a call made as them carries
+    membershipCreatedAt(userId: string, organizationId: string) {
+      return membershipsCreatedAt.get(membershipKey(userId, organizationId)) ?? null
     },
     // Removes a member, their connections and Connects going with the membership they reference
     removeMember(userId: string, organizationId: string) {
       roles.delete(membershipKey(userId, organizationId))
+      membershipsCreatedAt.delete(membershipKey(userId, organizationId))
 
       for (const [key, connection] of connections) {
         if (isMember(connection, { userId, organizationId, integrationId: connection.integrationId })) {
@@ -898,6 +988,7 @@ function createIntegrationDatabaseFake() {
     },
     reset() {
       roles.clear()
+      membershipsCreatedAt.clear()
       staff.clear()
       integrations.clear()
       authorizations.clear()

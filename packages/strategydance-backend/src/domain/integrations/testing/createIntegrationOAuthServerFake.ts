@@ -80,6 +80,8 @@ function createIntegrationOAuthServerFake({
     revocationClients: [] as (string | null)[],
     // The account each listing of the tools was made as
     listings: [] as string[],
+    // Each tool called, as the account it was called as and with the arguments as sent
+    calls: [] as { account: string; name: string; arguments: unknown }[],
   }
   /*
     What a test turns off: the token endpoint answering, refreshes, revocations, and the MCP server
@@ -90,6 +92,10 @@ function createIntegrationOAuthServerFake({
     isRefreshRefused: false,
     isRevocationDown: false,
     isEveryTokenRefused: false,
+    // The MCP server refusing every call with a 403, as one refusing this account the tool
+    isEveryCallForbidden: false,
+    // Its tools answering with an error, as a tool that ran and failed
+    isToolFailing: false,
   }
 
   const handler = createMcpHandler(
@@ -97,9 +103,14 @@ function createIntegrationOAuthServerFake({
       const server = new McpServer({ name: 'fake', version: '1.0.0' }, { capabilities: { tools: {} } })
 
       for (const name of ['list_issues', 'create_issue']) {
-        server.registerTool(name, { description: name, inputSchema: z.object({ query: z.string() }) }, async () => ({
-          content: [],
-        }))
+        server.registerTool(
+          name,
+          { description: name, inputSchema: z.object({ query: z.string() }) },
+          async ({ query }) => ({
+            content: [{ type: 'text', text: switches.isToolFailing ? 'The tracker is down' : `${name}: ${query}` }],
+            ...(switches.isToolFailing && { isError: true }),
+          }),
+        )
       }
 
       return server
@@ -229,6 +240,18 @@ function createIntegrationOAuthServerFake({
         const body = await request.clone().text()
 
         if (body.includes('"tools/list"')) recorded.listings.push(grant.account)
+
+        const message: unknown = JSON.parse(body)
+
+        if (isToolCall(message)) {
+          if (switches.isEveryCallForbidden) return new Response('Forbidden', { status: 403 })
+
+          recorded.calls.push({
+            account: grant.account,
+            name: message.params.name,
+            arguments: message.params.arguments,
+          })
+        }
 
         return handler.fetch(request)
       }
@@ -384,6 +407,19 @@ function readBasicCredentials(encoded: string) {
     && read.every((part, index) => new URLSearchParams({ value: part }).toString() === `value=${parts[index]}`)
 
   return isFormEncoded ? read : [null, null]
+}
+
+// Whether a JSON-RPC message calls a tool
+function isToolCall(message: unknown): message is { params: { name: string; arguments: unknown } } {
+  return (
+    typeof message === 'object'
+    && message !== null
+    && 'method' in message
+    && message.method === 'tools/call'
+    && 'params' in message
+    && typeof message.params === 'object'
+    && message.params !== null
+  )
 }
 
 // An ID token naming the account, unsigned, as the label reads it

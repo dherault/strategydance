@@ -89,6 +89,8 @@ function createIntegrationOAuthServerFake({
   */
   const switches = {
     isTokenEndpointDown: false,
+    // How long the token endpoint takes to answer, as a slow authorization server does
+    tokenEndpointDelayMs: 0,
     isRefreshRefused: false,
     isRevocationDown: false,
     isEveryTokenRefused: false,
@@ -169,6 +171,7 @@ function createIntegrationOAuthServerFake({
     recorded.tokenRequests.push(Object.fromEntries(form))
 
     if (switches.isTokenEndpointDown) return new Response('Down', { status: 503 })
+    if (switches.tokenEndpointDelayMs) await new Promise(resolve => setTimeout(resolve, switches.tokenEndpointDelayMs))
 
     const clientId = authenticate(request, form)
 

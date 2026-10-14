@@ -138,7 +138,11 @@ async function callIntegrationTool(
     }
     case IntegrationAuthentication.OAUTH: {
       const member = { organizationId: caller.organizationId, userId: caller.userId, integrationId: call.integrationId }
-      const access = checkAccess(name, call.binding, await readIntegrationAccessToken(member, { signal: budget }))
+      const access = checkAccess(
+        name,
+        call.binding,
+        await untilBudget(name, readIntegrationAccessToken(member, { signal: budget }), budget),
+      )
       const answered = await callWith(access.url, toBearer(access.accessToken))
 
       if (answered !== 'unauthorized') return answer(name, answered)
@@ -146,7 +150,11 @@ async function callIntegrationTool(
       const refreshed = checkAccess(
         name,
         call.binding,
-        await readIntegrationAccessToken(member, { refusedAccessToken: access.encryptedAccessToken, signal: budget }),
+        await untilBudget(
+          name,
+          readIntegrationAccessToken(member, { refusedAccessToken: access.encryptedAccessToken, signal: budget }),
+          budget,
+        ),
       )
       const again = await callWith(refreshed.url, toBearer(refreshed.accessToken))
 
@@ -162,6 +170,27 @@ async function callIntegrationTool(
       throw new Error(describeIntegrationUnavailability(name, 'needsAuthentication'))
     }
   }
+}
+
+/*
+  A member's token as it is read, or a sentence once the call's budget is up first. The read itself
+  goes on: a refresh under way is never cut off, since the server may have spent the refresh token
+  already, and the tokens it answers with are kept for the next call
+*/
+function untilBudget<T>(name: string, reading: Promise<T>, budget: AbortSignal) {
+  return new Promise<T>((resolve, reject) => {
+    const abort = () =>
+      reject(new Error(`The member's connection to ${name} could not be refreshed in time. Try the call again.`))
+
+    if (budget.aborted) {
+      abort()
+
+      return
+    }
+
+    budget.addEventListener('abort', abort, { once: true })
+    reading.then(resolve, reject).finally(() => budget.removeEventListener('abort', abort))
+  })
 }
 
 function toBearer(accessToken: string): IntegrationCredential {

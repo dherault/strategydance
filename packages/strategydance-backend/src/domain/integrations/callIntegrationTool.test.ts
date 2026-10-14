@@ -295,8 +295,31 @@ describe('callIntegrationTool with a member’s own account', () => {
     expect((withdrawn as Error).message).toContain('no longer lets this tool of Issues run without')
   })
 
-  test('says a call cut short may still have run', async () => {
+  test('stops waiting for a refresh at its budget, the refresh going on to keep its tokens', async () => {
     await connect()
+
+    const before = connection(ADA)!.encryptedAccessToken
+
+    connection(ADA)!.accessTokenExpiresAt = new Date(Date.now() + 10_000).toISOString()
+    provider.switches.tokenEndpointDelayMs = 300
+
+    const refused = await refusal(call(ADA, {}, AbortSignal.timeout(50)))
+
+    expect((refused as Error).message).toContain('could not be refreshed in time')
+    expect(provider.recorded.calls).toEqual([])
+
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    expect(connection(ADA)!.encryptedAccessToken).not.toBe(before)
+    expect(connection(ADA)!.status).toBe(IntegrationConnectionStatus.CONNECTED)
+  })
+
+  test('says a call cut short may still have run', async () => {
+    const server = createIntegrationServerFake()
+
+    network = server
+    addServer({ authentication: IntegrationAuthentication.NONE, issuer: null })
+    storeKeyServerTools(server)
 
     const refused = await refusal(call(ADA, {}, AbortSignal.abort()))
 

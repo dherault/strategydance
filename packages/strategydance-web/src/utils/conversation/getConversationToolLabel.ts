@@ -67,15 +67,44 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
     'restore_task',
     { running: conversationMessages.toolRestoreTaskRunning, done: conversationMessages.toolRestoreTaskDone },
   ],
+  [
+    'list_integrations',
+    { running: conversationMessages.toolListIntegrationsRunning, done: conversationMessages.toolListIntegrationsDone },
+  ],
+  [
+    'describe_integration_tool',
+    {
+      running: conversationMessages.toolDescribeIntegrationToolRunning,
+      done: conversationMessages.toolDescribeIntegrationToolDone,
+    },
+  ],
+  [
+    'call_integration_tool',
+    { running: conversationMessages.toolCallIntegrationRunning, done: conversationMessages.toolCallIntegrationDone },
+  ],
 ])
 
 /*
   What a tool call says it does, in the thread and in a conversation's preview: "Searching
   knowledge" until it has succeeded, and "Searched knowledge" once it has. A call that failed or was
-  cancelled says what it tried. A tool the page has no words for, one a later release added, goes by
-  its name
+  cancelled says what it tried. A call to an integration says which, "Calling Stripe", when its server
+  is known. A tool the page has no words for, one a later release added, goes by its name
 */
-function getConversationToolLabel({ formatMessage }: IntlShape, toolName: string, toolStatus: ToolStatus) {
+function getConversationToolLabel(
+  { formatMessage }: IntlShape,
+  toolName: string,
+  toolStatus: ToolStatus,
+  integrationName?: string | null,
+) {
+  if (integrationName) {
+    return formatMessage(
+      toolStatus === 'SUCCEEDED'
+        ? conversationMessages.integrationCallDone
+        : conversationMessages.integrationCallRunning,
+      { server: integrationName },
+    )
+  }
+
   const labels = TOOL_LABELS.get(toolName)
 
   if (!labels) return toolName

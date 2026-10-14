@@ -44,7 +44,7 @@ describe('buildConversationMessages', () => {
 })
 
 describe('buildConversationRequest', () => {
-  test('asks Opus 5.5 as the probe settled, with web search, its questions and the system prompt cached', () => {
+  test('asks Opus 5.5 as the probe settled, with web search, its questions, its integrations and the system prompt cached', () => {
     const request = buildConversationRequest([{ role: 'user', content: 'Hello' }], CONVERSATION_TOOLS)
 
     expect(request).toMatchObject({
@@ -62,6 +62,9 @@ describe('buildConversationRequest', () => {
       tools: [
         { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
         { name: 'ask_user', strict: true, eager_input_streaming: true },
+        { name: 'list_integrations', strict: true, eager_input_streaming: true },
+        { name: 'describe_integration_tool', strict: true, eager_input_streaming: true },
+        { name: 'call_integration_tool', eager_input_streaming: true },
       ],
     })
     expect(request.system).toEqual([expect.objectContaining({ cache_control: { type: 'ephemeral' } })])

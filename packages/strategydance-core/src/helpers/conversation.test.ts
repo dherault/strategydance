@@ -239,6 +239,58 @@ describe('buildConversationPreview', () => {
     }
   })
 
+  it('names the server of a call to an integration', () => {
+    expect(
+      buildConversationPreview({
+        kind: 'TOOL_CALL',
+        toolName: 'call_integration_tool',
+        toolStatus: 'SUCCEEDED',
+        integrationName: 'Stripe',
+        integrationToolName: 'list_prices',
+      }),
+    ).toEqual({
+      kind: 'TOOL_CALL',
+      toolName: 'call_integration_tool',
+      toolStatus: 'SUCCEEDED',
+      integrationName: 'Stripe',
+    })
+  })
+
+  it('keeps an approval’s server, tool and state, and where its call stands once allowed', () => {
+    const approval = {
+      kind: 'APPROVAL',
+      toolName: 'call_integration_tool',
+      integrationName: 'Stripe',
+      integrationToolName: 'create_payment_link',
+    } as const
+
+    expect(buildConversationPreview({ ...approval, approvalState: 'PENDING' })).toEqual({
+      kind: 'APPROVAL',
+      integrationName: 'Stripe',
+      integrationToolName: 'create_payment_link',
+      approvalState: 'PENDING',
+      toolStatus: null,
+    })
+    expect(buildConversationPreview({ ...approval, approvalState: 'ALLOWED', toolStatus: 'FAILED' })).toEqual({
+      kind: 'APPROVAL',
+      integrationName: 'Stripe',
+      integrationToolName: 'create_payment_link',
+      approvalState: 'ALLOWED',
+      toolStatus: 'FAILED',
+    })
+  })
+
+  it('cuts a server’s or a tool’s long name', () => {
+    const preview = buildConversationPreview({
+      kind: 'APPROVAL',
+      integrationName: 'Stripe',
+      integrationToolName: 'a'.repeat(MAX_CONVERSATION_PREVIEW_LENGTH + 10),
+      approvalState: 'DENIED',
+    })
+
+    expect(preview?.kind === 'APPROVAL' && preview.integrationToolName.length).toBe(MAX_CONVERSATION_PREVIEW_LENGTH)
+  })
+
   it('shows a question’s prompt while it waits and once it is skipped', () => {
     const question = { kind: 'QUESTION', questionPrompt: 'Which model should the beta start with?' } as const
 
@@ -289,6 +341,7 @@ describe('buildConversationPreview', () => {
   it('refuses a tool call or a note missing what its preview shows', () => {
     expect(() => buildConversationPreview({ kind: 'TOOL_CALL', toolStatus: 'RUNNING' })).toThrow()
     expect(() => buildConversationPreview({ kind: 'NOTE' })).toThrow()
+    expect(() => buildConversationPreview({ kind: 'APPROVAL', integrationName: 'Stripe' })).toThrow()
   })
 })
 

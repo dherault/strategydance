@@ -24,6 +24,7 @@ function toConversationThreadEntry(
     aspects: message.aspects ?? null,
     aspectsSetBy: message.aspectsSetBy ?? null,
     noteKind: message.noteKind ?? null,
+    approvalState: message.approvalState ?? null,
   }
 }
 

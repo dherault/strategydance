@@ -494,6 +494,9 @@ enum ConversationMessageKind {
   ASPECTS
   # A line the thread draws on its own, such as "You stopped this response."
   NOTE
+  # A call to an integration that waits for the member's Allow, unless they answered it already:
+  # a tool call with an approval on top
+  APPROVAL
 }
 
 # Where a tool call stands. Append a value; never reorder
@@ -502,6 +505,17 @@ enum ConversationToolStatus {
   SUCCEEDED
   FAILED
   CANCELLED
+}
+
+# Where an approval stands. Append a value; never reorder
+enum ConversationApprovalState {
+  # Waiting for the member's Allow or Deny
+  PENDING
+  # Allowed: the call runs in the run that carries the conversation on
+  ALLOWED
+  # Denied by the member, by a message sent instead, or because the integration changed since the
+  # call was proposed
+  DENIED
 }
 
 # Which note the thread draws. Append a value; never reorder
@@ -748,6 +762,26 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   aspects: [CompanyAspect!]
   aspectsSetBy: ConversationActor
   noteKind: ConversationNoteKind
+  # A call to an integration's, a tool call or an approval: the server it went to, which the
+  # thread's warning strip matches the live list by, never by name. Implies an `integrationId: UUID`
+  # column, set to null when the server is pruned
+  integration: OrganizationIntegration
+  # The server's name and the tool's, as they were at call time
+  integrationName: String
+  integrationToolName: String
+  # An approval's state, then what it is bound to: the server's `configRevision`, the hash of the
+  # tool's definition as the server listed it, and the generation of the credential that makes the
+  # call, the key's `keyGeneration` as text or the member's connection's `generation`, null for a
+  # server without one. Allow, and the call right before it is made, check all three against the
+  # server as it is, so an approval given for one server, tool or account never runs as another.
+  # An auto-approved call keeps the same binding, without a state
+  approvalState: ConversationApprovalState
+  approvalConfigRevision: Int
+  approvalToolHash: String
+  approvalCredentialGeneration: String
+  # The arguments as the approval shows them at a glance, their JSON cut to 2000 characters, which
+  # authorizes nothing: Allow opens the whole `toolInput` first
+  argumentsPreview: String
   position: Int!
   createdAt: Timestamp! @default(expr: "request.time")
 }

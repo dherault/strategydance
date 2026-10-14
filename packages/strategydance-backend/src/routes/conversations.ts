@@ -1,5 +1,6 @@
 import express, { type Request, type Response, Router } from 'express'
 import {
+  type AnswerConversationApprovalData,
   type AnswerConversationQuestionData,
   type ApiResponse,
   type ConversationAttachmentData,
@@ -49,6 +50,7 @@ import organizationMemberMiddleware from '~middleware/organizationMember'
 import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 
+import answerConversationApproval from '~domain/conversations/answerConversationApproval'
 import answerConversationQuestion from '~domain/conversations/answerConversationQuestion'
 import conversationAttachmentStorage from '~domain/conversations/conversationAttachmentStorage'
 import parseConversationMessageText from '~domain/conversations/parseConversationMessageText'
@@ -280,6 +282,77 @@ function createConversationsRouter() {
           return
         case 'answered':
           response.status(202).json({ status: 'success', data: { runId: result.runId } })
+      }
+    },
+  )
+
+  /* ---
+    APPROVALS
+  --- */
+
+  const approvalsBodySchema = z.object({
+    // The call waiting for the member's approval, a message of the conversation
+    messageId: z.string().regex(UUID_PATTERN),
+    // Allow, or Deny
+    isAllowed: z.boolean(),
+  })
+
+  type ApprovalsRequest = Request<
+    z.infer<typeof messagesParamsSchema>,
+    ApiResponse<AnswerConversationApprovalData>,
+    z.infer<typeof approvalsBodySchema>
+  >
+
+  /*
+    Allows or denies a call of the turn one of the caller's conversations waits on, which waits for
+    their approval, as a question is answered: 202 with the run that carries the conversation on once
+    nothing of the turn waits, or null, and whether an Allow was denied instead because the server,
+    the tool or the account changed since the call was proposed. The same decision sent again is
+    answered the same. Refused with a 409 when the approval was decided otherwise, denied by a message
+    sent instead, or waits for nothing any more, and answered with a 503 when the run is started but
+    could not be queued, which the same decision sent again queues again
+  */
+  router.post(
+    '/:conversationId/approvals',
+    express.json({ limit: '1kb' }),
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: messagesParamsSchema, body: approvalsBodySchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (request: ApprovalsRequest, response: Response<ApiResponse<AnswerConversationApprovalData>>) => {
+      const result = await answerConversationApproval({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+        messageId: toCanonicalUuid(request.body.messageId),
+        isAllowed: request.body.isAllowed,
+      })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This call is not in one of your conversations')
+
+          return
+        case 'conflict':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This call waits for no approval')
+
+          return
+        case 'unavailable':
+          respondError(
+            response,
+            503,
+            ERROR_CODE_SERVICE_UNAVAILABLE,
+            'The decision is kept, but cannot be followed now',
+          )
+
+          return
+        case 'answered':
+          response.status(202).json({ status: 'success', data: { runId: result.runId, isChanged: result.isChanged } })
       }
     },
   )

@@ -21,10 +21,13 @@ const NO_INTEGRATIONS: OrganizationIntegration[] = []
   `useQuery` rather than the generated hook, for the reason `useOrganizationTeam` gives, and no retry
   on mount, with `hasFailed` telling a list that could not be read from an empty one
 */
-function useOrganizationIntegrations(): DataSource<OrganizationIntegration[]> & { hasFailed: boolean } {
+function useOrganizationIntegrations({ isEnabled = true } = {}): DataSource<OrganizationIntegration[]> & {
+  hasFailed: boolean
+} {
   const { organization } = useCurrentOrganization()
 
-  const organizationId = organization?.id ?? null
+  // Nothing is read while the caller has no use for the list, as a thread with no call to a server
+  const organizationId = isEnabled ? (organization?.id ?? null) : null
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetOrganizationIntegrations', organizationId],

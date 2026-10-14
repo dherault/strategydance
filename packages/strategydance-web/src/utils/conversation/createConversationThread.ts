@@ -52,9 +52,25 @@ function toBody({
   questionPrompt,
   questionOptions,
   isMultipleChoice,
+  integration,
+  integrationName,
+  integrationToolName,
+  argumentsPreview,
   conversationAttachments_on_message,
 }: ConversationPageMessage): ConversationMessageBody {
-  return { id, text, citations, questionPrompt, questionOptions, isMultipleChoice, conversationAttachments_on_message }
+  return {
+    id,
+    text,
+    citations,
+    questionPrompt,
+    questionOptions,
+    isMultipleChoice,
+    integration,
+    integrationName,
+    integrationToolName,
+    argumentsPreview,
+    conversationAttachments_on_message,
+  }
 }
 
 /*
@@ -228,8 +244,11 @@ function createConversationThread({
 
     const ids = state.entries
       .filter(
-        ({ id, kind }) =>
-          hasConversationMessageBody(kind) && !bodies.has(id) && !bodiesInFlight.has(id) && !bodiesMissing.has(id),
+        entry =>
+          hasConversationMessageBody(entry)
+          && !bodies.has(entry.id)
+          && !bodiesInFlight.has(entry.id)
+          && !bodiesMissing.has(entry.id),
       )
       .map(({ id }) => id)
 

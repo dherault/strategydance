@@ -39,16 +39,29 @@ type ReadIntegrationAccessTokenOptions = {
   // The ciphertext of the access token a server just refused with a 401, which a refresh replaces
   // whatever its expiry says, once
   refusedAccessToken?: string
+  // Aborted once the caller stops waiting, as a call does past its 30 seconds: a caller waiting for
+  // another's refresh then stops, as busy
+  signal?: AbortSignal
 }
 
 /*
   A member's access token to a server, what it goes to and what it was read as: ready, or why not.
   `encryptedAccessToken` is what a caller hands back as `refusedAccessToken` when the server refuses
   the token, so the refresh that follows replaces that very token, and, with `generation`, what marks
-  the connection when even a refreshed token is refused (`MarkIntegrationConnectionTokenRefused`)
+  the connection when even a refreshed token is refused (`MarkIntegrationConnectionTokenRefused`).
+  `configRevision` and `isEnabled` are the server's as the token was read with it, which a call an
+  approval was bound to checks
 */
 type IntegrationAccess =
-  | { outcome: 'ready'; url: string; accessToken: string; encryptedAccessToken: string; generation: string }
+  | {
+      outcome: 'ready'
+      url: string
+      accessToken: string
+      encryptedAccessToken: string
+      generation: string
+      configRevision: number
+      isEnabled: boolean
+    }
   | { outcome: 'notConnected' | 'needsAuthentication' | 'busy' | 'keyUnavailable' }
   | { outcome: 'failed'; kind: IntegrationError }
 
@@ -76,7 +89,7 @@ type StoredConnection = NonNullable<Awaited<ReturnType<typeof readConnection>>>
 */
 async function readIntegrationAccessToken(
   caller: IntegrationCaller,
-  { refusedAccessToken }: ReadIntegrationAccessTokenOptions = {},
+  { refusedAccessToken, signal }: ReadIntegrationAccessTokenOptions = {},
 ): Promise<IntegrationAccess> {
   const deadline = Date.now() + INTEGRATION_REFRESH_WAIT_MS
 
@@ -124,7 +137,7 @@ async function readIntegrationAccessToken(
       })
 
       if (refreshed !== 'leaseLost') return refreshed
-    } else if (Date.now() >= deadline) {
+    } else if (Date.now() >= deadline || signal?.aborted) {
       return { outcome: 'busy' }
     } else {
       await new Promise(resolve => setTimeout(resolve, INTEGRATION_REFRESH_POLL_MS))
@@ -167,6 +180,8 @@ async function open(
       ),
       encryptedAccessToken,
       generation: connection.generation,
+      configRevision: connection.integration.configRevision,
+      isEnabled: connection.integration.isEnabled,
     }
   } catch (error) {
     logger.error("Integrations: a member's access token could not be decrypted", error)
@@ -311,6 +326,8 @@ async function refresh(
     accessToken: tokens.accessToken,
     encryptedAccessToken,
     generation: connection.generation,
+    configRevision: integration.configRevision,
+    isEnabled: integration.isEnabled,
   }
 
   try {

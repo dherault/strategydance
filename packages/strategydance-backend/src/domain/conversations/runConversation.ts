@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
+import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_CONVERSATION_MESSAGES, MAX_CONVERSATION_RUN_ENTRIES, buildConversationPreview } from 'strategydance-core'
 import {
   ConversationMessageKind,
   ConversationNoteKind,
   ConversationRunStatus,
+  ConversationRunTrigger,
   ConversationToolStatus,
   ConversationTranscriptRole,
   type GetConversationRunContextData,
   claimQueuedConversationRun,
+  getConversationCalls,
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
@@ -39,10 +42,13 @@ import {
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
+import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
+import createConversationIntegrationRunners from '~domain/agent/createConversationIntegrationRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
@@ -86,6 +92,8 @@ type Options = {
   // call may take
   connectModules?: (fence: ConversationRunFence) => Promise<ConversationModules>
   toolTimeoutMs?: number
+  // What runs its calls to the organization's integrations, for its member, which a test can bring in
+  createIntegrationRunners?: (fence: ConversationRunFence) => ConversationToolRunner[]
 }
 
 const LIMITS: ConversationRunLimits = {
@@ -141,6 +149,7 @@ async function runConversation(
     stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
     connectModules = connectConversationModules,
     toolTimeoutMs = CONVERSATION_TOOL_CALL_TIMEOUT_MS,
+    createIntegrationRunners = createConversationIntegrationRunners,
   }: Options = {},
 ): Promise<'finished' | 'held'> {
   const context = await readContext(reference)
@@ -207,7 +216,9 @@ async function runConversation(
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
       tools: buildConversationTools(modules.tools),
-      runners: modules.runners,
+      // The integration tools' runners always, whatever the organization added, so a turn is planned
+      // the same by whoever takes it over
+      runners: [...createIntegrationRunners(fence), ...modules.runners],
       toolTimeoutMs,
     })
   } finally {
@@ -384,7 +395,9 @@ async function takeStep({
     if (!pausedRequest) {
       const calls = readConversationToolCalls(parts.at(-1)?.blocks ?? [])
       const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
-      const isEnding = !calls.length || turnPlans.some(({ kind }) => kind === 'question')
+      // Read from what the thread drew, since an approval is drawn only once the server is read
+      const isWaiting = calls.length ? await isWaitingForMember(fence, calls) : false
+      const isEnding = !calls.length || isWaiting
 
       // The first exchange is whole, and the reply ends the run, done or waiting for an answer:
       // Claude tags the conversation first, before the calls beside a question run, so none runs
@@ -414,10 +427,10 @@ async function takeStep({
         timeoutMs: toolTimeoutMs,
       })
 
-      // A question is on the member's screen already, so the run waits for its answer whatever
-      // else happened: a call a stop or the run's time kept from running is answered as stopped,
-      // and cancelled, which the preview says when it shows that call
-      if (turnPlans.some(({ kind }) => kind === 'question')) {
+      // A question or an approval is on the member's screen already, so the run waits for its
+      // answer whatever else happened: a call a stop or the run's time kept from running is answered
+      // as stopped, and cancelled, which the preview says when it shows that call
+      if (isWaiting) {
         const shown = ran.messages.find(({ id }) => id === conversation.previewMessageId)
         const isShownCancelled =
           shown?.kind === ConversationMessageKind.TOOL_CALL
@@ -434,6 +447,7 @@ async function takeStep({
                   kind: 'TOOL_CALL',
                   toolName: shown.toolName,
                   toolStatus: ConversationToolStatus.CANCELLED,
+                  integrationName: shown.integrationName,
                 }),
               }
             : {}),
@@ -456,6 +470,25 @@ async function takeStep({
         pending: ran.pending,
         skipsQuestions: false,
       })
+      /*
+        A run an answer started that stores the results of a turn another run drew carried a waiting
+        turn on to make the calls its member allowed, and is anchored on those results from then on,
+        as a run its answers' entry started is: checked first, as that entry is checked before it is
+        stored. A resume carries on the turn of the run it resumes too, and keeps that run's anchor
+      */
+      const isReanchored =
+        run?.trigger === ConversationRunTrigger.ANSWER
+        && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
+
+      if (isReanchored) {
+        checkTranscript(
+          [
+            { role: 'assistant', content: parts.at(-1)?.blocks as BetaMessageParam['content'] },
+            { role: 'user', content: results as BetaMessageParam['content'] },
+          ],
+          { isRequest: false, isTail: true },
+        )
+      }
 
       await lease.write(() =>
         storeConversationToolResults(dataConnect, {
@@ -463,6 +496,7 @@ async function takeStep({
           entryId: randomUUID().replaceAll('-', ''),
           position: entry.position + 1,
           content: serializeTranscriptContent(results),
+          ...(isReanchored && { anchorPosition: entry.position + 1 }),
         }),
       )
 
@@ -634,6 +668,26 @@ function readOutcomeUsage(outcome: ConversationTurnOutcome | null) {
   if (outcome.kind === 'turn' || outcome.kind === 'tagging') return outcome.usage
 
   return outcome.ending.kind === 'interrupted' ? null : (outcome.ending.usage ?? null)
+}
+
+/*
+  Whether the turn the transcript ends on waits for the run's member: one of its questions not
+  answered, or one of its calls to an integration waiting for their approval, as the thread drew them
+*/
+async function isWaitingForMember(fence: ConversationRunFence, calls: { id: string }[]) {
+  const { organizationId, userId, conversationId } = fence
+  const { data } = await getConversationCalls(dataConnect, {
+    organizationId,
+    userId,
+    conversationId,
+    toolUseIds: calls.map(({ id }) => id),
+  })
+
+  return data.conversationMessages.some(
+    message =>
+      (message.kind === ConversationMessageKind.QUESTION || message.kind === ConversationMessageKind.APPROVAL)
+      && !message.answeredAt,
+  )
 }
 
 /*

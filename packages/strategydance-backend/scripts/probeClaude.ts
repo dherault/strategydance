@@ -36,7 +36,8 @@ import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
   and the agent will; sends the agent's own request, its system prompt and every tool it sends, the
   modules' included, as a run builds it, which the API refuses whole when a tool's schema is one it
   does not take, twice, the second reading what the first cached, counts what the modules' tools
-  add to every request, and has Claude call a module's tool, which is not strict; sends the
+  add to every request, and has Claude call a module's tool and the integration call tool, neither
+  strict, the second with its arguments as an object; sends the
   request that tags a conversation with its aspects, its answer held to a schema, and reads it as the
   worker does; and sends the first request and the replay straight to each model
   a refusal may fall back to. It prints what passed, what failed and what it found, and exits
@@ -657,6 +658,43 @@ await check("A module's tool, which is not strict, is called with an input its s
 
   return JSON.stringify(input)
 })
+
+await check(
+  'The integration call tool, which is not strict, is called with its arguments as an object its tool names',
+  async () => {
+    assert(agentTools.length, 'no tools listed')
+
+    const message = await client.beta.messages
+      .stream(
+        buildConversationRequest(
+          [
+            {
+              role: 'user',
+              content:
+                'Our issue tracker is the integration 7c9e6679742540de944be07fc1f90ae7. Its tool create_issue takes { "title": string, "labels": string[] }. Create an issue titled "Fix the login" labelled "bug" with it now: I know it, so do not list or describe anything first.',
+            },
+          ],
+          agentTools,
+        ),
+      )
+      .finalMessage()
+    const call = message.content.find((block): block is BetaToolUseBlock => block.type === 'tool_use')
+    const input = (call?.input ?? {}) as Record<string, unknown>
+    const args = input.arguments as Record<string, unknown> | undefined
+
+    finding('The call', call ? { name: call.name, input } : message.stop_reason)
+    assert(call?.name === 'call_integration_tool', `called ${call?.name ?? 'no tool'}`)
+    assert(input.integration === '7c9e6679742540de944be07fc1f90ae7', `named ${String(input.integration)}`)
+    assert(input.tool === 'create_issue', `named the tool ${String(input.tool)}`)
+    assert(
+      typeof args === 'object' && args !== null && !Array.isArray(args),
+      'sent its arguments otherwise than as an object',
+    )
+    assert(args?.title === 'Fix the login', `sent the title ${String(args?.title)}`)
+
+    return JSON.stringify(input)
+  },
+)
 
 /* ---
   THE TAGGING REQUEST

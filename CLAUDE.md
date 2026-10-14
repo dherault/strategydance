@@ -1115,10 +1115,36 @@ in `utils/`, one concern per file.
   `buildConversationToolResults`, one result per call in the turn's order. `ask_user` is answered by
   the member instead: only the turn the transcript ends on holds questions without an answer, so
   what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
+- The organization's integrations, other companies' MCP servers, reach the agent through three tools
+  of its own, always in `CONVERSATION_TOOLS` and always run, whatever the organization added, so the
+  tools list never varies and a turn is replanned the same: `list_integrations` and
+  `describe_integration_tool`, strict, and `call_integration_tool`, which is not, since a strict
+  schema cannot leave its `arguments` open, its input checked by `checkConversationIntegrationCall`.
+  Their runners (`createConversationIntegrationRunners`) close over the run's fence, as the modules'
+  connection closes over its caller, and a call is made through `callIntegrationTool`, 30 seconds in
+  all, as the member, a 401 alone marking their connection
+- What a call to an integration becomes is decided once, when it is drawn, from the server as it is
+  then (`decideConversationIntegrationCall`): refused, drawn failed with the server it named; run at
+  once, when an administrator lets its tool run without approval; or an `APPROVAL` the member allows
+  or denies. Both of the last two are bound to the server's `configRevision`, the tool's definition
+  hash and the credential's generation, recorded on the message, which Allow and the call right
+  before it is made check again: a mismatch denies an approval, its result saying the server changed.
+  An approval waits as a question does, in every waiting count (`kind in [QUESTION, APPROVAL]`, not
+  answered), its `toolStatus` null until a run starts its call. A turn's other calls run beside it, as
+  David chose. A call to an integration that started is never made again: one a crash or a stop left
+  unfinished is finished as interrupted
+- A continuation that carries an allowed call stores no entry, since the call has not run:
+  `ContinueConversationRunWithCalls` starts its run anchored where the waiting run was, with its
+  results, and answers the calls a stop kept from running as stopped; the worker makes the calls,
+  then stores the turn's results and anchors the run on them (`StoreConversationToolResults`'
+  `$anchorPosition`), so a Retry keeps a call that went to another company's server. A send denies
+  the approvals waiting and answers an allowed call never run, each by a list it names, which a
+  backend from before leaves out and is refused for
 - The conversation domain's tests run against `createConversationDatabaseFake`: the backend
   connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. It holds the modules' fake as `modules`, its operations in the same SDK,
-  since a run's worker loads every module's server, and adds or removes a member in both with one
+  conditions and refusals. It holds the modules' fake as `modules`, and the integrations' as
+  `integrations`, their operations in the same SDK, since a run's worker loads every module's server
+  and its agent reads the organization's servers, and adds or removes a member in all with one
   `createdAt`; a test bringing its own runners in passes `connectTestModules(runners)`. `bun run check:conversation-runs` and `bun run check:conversation-search`,
   in the backend's package, check those conditions against the emulators, the second also what
   Postgres' full-text search and LIKE match. An operation changed is changed in both

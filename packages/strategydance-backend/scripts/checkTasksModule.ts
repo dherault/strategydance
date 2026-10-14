@@ -707,7 +707,16 @@ async function checkPageWrites() {
 
   check('a save from an old page leaves the plain text null', (await readTask(withoutText))?.descriptionText === null)
 
-  await webConnector.executeMutation('FinishTask', { organizationId, id: withText, position: 3 }, impersonate)
+  const page = (operation: string, variables: Variables) =>
+    webConnector.executeMutation(operation, { organizationId, id: withText, ...variables }, impersonate)
+
+  check(
+    'a finish from a column the task has left is refused',
+    (await refusal(page('FinishTask', { position: 3, fromStatus: 'ONGOING' })))?.includes('column it was moved from')
+      ?? false,
+  )
+
+  await page('FinishTask', { position: 3, fromStatus: 'TODO' })
 
   const finished = await readTask(withText)
 
@@ -715,24 +724,34 @@ async function checkPageWrites() {
     "a finish moves the task into Done and stamps the server's time",
     finished?.status === 'DONE' && finished.position === 3 && finished.doneAt !== null,
   )
-
-  await webConnector.executeMutation(
-    'MoveTask',
-    { organizationId, id: withText, status: 'DONE', position: 4 },
-    impersonate,
-  )
-
   check(
-    'a move within Done keeps the time it was done',
-    (await readTask(withText))?.position === 4 && (await readTask(withText))?.doneAt === finished?.doneAt,
+    'a finish of a task in Done already is refused, so its time stays',
+    (await refusal(page('FinishTask', { position: 5, fromStatus: 'DONE' })))?.includes('column it was moved from')
+      ?? false,
   )
+
+  await page('MoveTask', { status: 'DONE', position: 4, fromStatus: 'DONE' })
+
+  const placed = await readTask(withText)
+
+  check('a move within Done keeps the time it was done', placed?.position === 4 && placed.doneAt === finished?.doneAt)
+  check(
+    'a move from a column the task has left is refused, rather than moving it back',
+    (await refusal(page('MoveTask', { status: 'DONE', position: 6, fromStatus: 'ONGOING' })))?.includes(
+      'column it was moved from',
+    ) ?? false,
+  )
+
+  await page('MoveTask', { status: 'TODO', position: 1 })
+
+  check('a move from an old page, which names no column, goes through', (await readTask(withText))?.status === 'TODO')
   check(
     "a finish names the task's own organization",
     (
       await refusal(
         webConnector.executeMutation(
           'FinishTask',
-          { organizationId: fullOrganizationId, id: withText, position: 1 },
+          { organizationId: fullOrganizationId, id: withText, position: 1, fromStatus: 'TODO' },
           impersonate,
         ),
       )

@@ -6,6 +6,9 @@ export type StartedConversationRun = {
   runId: string
   // The latest run the page had read when the send went, or null before the first
   previousRunId: string | null
+  // When the reader sent the message that started it, which the thinking indicator counts from until
+  // the run is read. Left out by what else starts a run
+  startedAt?: string
 }
 
 /*

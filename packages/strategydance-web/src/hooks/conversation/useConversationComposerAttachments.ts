@@ -7,6 +7,7 @@ import useUploadConversationAttachment from '~hooks/conversation/useUploadConver
 
 import createId from '~utils/common/createId'
 import runImageDrawing from '~utils/common/runImageDrawing'
+import countConversationComposerAttachments from '~utils/conversation/countConversationComposerAttachments'
 import getConversationAttachmentRefusal from '~utils/conversation/getConversationAttachmentRefusal'
 import getConversationAttachmentUploadFailure from '~utils/conversation/getConversationAttachmentUploadFailure'
 import readConversationAttachmentType from '~utils/conversation/readConversationAttachmentType'
@@ -124,7 +125,8 @@ function useConversationComposerAttachments(conversationId: string) {
     })
   }
 
-  // Adds files the reader picked or pasted, as many as a message holds, and uploads them
+  // Adds files the reader picked or pasted, as many as a message holds, and uploads them. The files of
+  // a message whose send is going count among them, since a failed send puts them back beside these
   function add(files: readonly File[]) {
     const added: ConversationComposerAttachment[] = []
 
@@ -145,7 +147,10 @@ function useConversationComposerAttachments(conversationId: string) {
         const kind = getConversationAttachmentRefusal(file, contentType)
 
         if (kind || !contentType) refusal = { kind: kind ?? 'unsupported', name }
-        else if (current.attachments.length + added.length >= MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE) {
+        else if (
+          countConversationComposerAttachments(current) + added.length
+          >= MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE
+        ) {
           refusal = { kind: 'perMessage', name }
         } else added.push({ id: createId(), name, contentType, file, status: 'uploading', progress: 0 })
       }

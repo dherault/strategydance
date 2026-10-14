@@ -171,6 +171,17 @@ export type AnswerConversationQuestionData = {
   runId: string | null
 }
 
+/*
+  What deciding on a call waiting for the member's approval answers with: the run that carries the
+  conversation on, as an answer's does, and whether an Allow was denied instead because the server,
+  the tool or the account changed since the call was proposed, which the page says, the agent
+  proposing it again
+*/
+export type AnswerConversationApprovalData = {
+  runId: string | null
+  isChanged: boolean
+}
+
 // What sending a message answers with: the run it started, or the one a send retried with the same
 // message's id started the first time
 export type SendConversationMessageData = {

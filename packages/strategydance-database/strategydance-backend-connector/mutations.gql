@@ -3745,6 +3745,13 @@ mutation IndexTaskText($id: UUID!, $updatedAt: Timestamp!, $descriptionText: Str
   )
 }
 
+# The `doneAt` backfill's: stamps a task done before `doneAt` existed with its last change, the
+# nearest the releases before it left, while it is still in Done and nobody has stamped it, as a
+# finish meanwhile would. Its `updatedAt` stays, since the task did not change
+mutation DateDoneTask($id: UUID!, $doneAt: Timestamp!) @auth(level: NO_ACCESS) {
+  task_updateMany(where: { id: { eq: $id }, status: { eq: DONE }, doneAt: { isNull: true } }, data: { doneAt: $doneAt })
+}
+
 # The authorization server's writes follow. Most of them run before any `$userId` has been
 # verified, finding a request, a code or a token by its id or its hash, as `queries.gql` says of its
 # reads. Every lifetime is written out here, since Data Connect takes no duration in a variable:

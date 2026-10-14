@@ -70,7 +70,11 @@ function ConversationPage({ conversationId }: Props) {
           onRunStart={setStartedRun}
         />
       ) : (
-        <ConversationDraftThread conversationId={conversationId} />
+        <ConversationDraftThread
+          conversationId={conversationId}
+          run={run}
+          startedRun={startedRun}
+        />
       )}
       <ConversationComposer
         conversationId={conversationId}

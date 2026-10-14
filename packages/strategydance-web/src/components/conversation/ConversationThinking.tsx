@@ -12,18 +12,22 @@ const TICK_INTERVAL_MS = 1000
 type Props = {
   // The progress line the run wrote, or what it is running, or null for neither
   step: string | null
-  // When the run was queued, which the time counts from whether a worker has claimed it yet or not
-  startedAt: string
+  // When the run was queued, which the time counts from whether a worker has claimed it yet or not,
+  // or null before the page has read the run the reader just started, which counts from the moment
+  // the indicator appeared
+  startedAt: string | null
 }
 
 /*
   Shown while Strategy Dance works on an answer: its mark pulsing, what it is doing shimmering, and
   how long it has gone on the right. It keeps its own one-second clock, since `useNow` ticks once a
-  minute. Without motion when the reader asks for less
+  minute. It appears as the reader sends, before the run is read, and stays as it lands, counting
+  from it from then on. Without motion when the reader asks for less
 */
 function ConversationThinking({ step, startedAt }: Props) {
   const { formatMessage } = useIntl()
   const [now, setNow] = useState(() => Date.now())
+  const [shownAt] = useState(() => Date.now())
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), TICK_INTERVAL_MS)
@@ -32,7 +36,7 @@ function ConversationThinking({ step, startedAt }: Props) {
   }, [])
 
   const label = step ?? formatMessage(conversationMessages.thinking)
-  const elapsed = getConversationElapsed(now - new Date(startedAt).getTime())
+  const elapsed = getConversationElapsed(now - (startedAt ? new Date(startedAt).getTime() : shownAt))
 
   function renderElapsed() {
     if (!elapsed) return null

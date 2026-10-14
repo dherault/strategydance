@@ -50,6 +50,8 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
         ) : (
           <ConversationDraftThread
             conversationId={conversationId}
+            run={run}
+            startedRun={startedRun}
             size="sm"
           />
         )}

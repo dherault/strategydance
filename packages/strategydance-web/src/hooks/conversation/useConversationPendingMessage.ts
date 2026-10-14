@@ -11,9 +11,9 @@ import {
 } from '~data/conversationComposerDrafts'
 
 /*
-  The message the reader last sent to a conversation, while the thread does not hold it yet, and
-  what forgets it once the thread does. Read apart from the rest of the composer's draft, so a
-  thread does not draw itself again at each key the reader types
+  The message the reader last sent to a conversation, while the thread does not hold it yet, whether
+  its send is still going, and what forgets it once the thread does. Read apart from the rest of the
+  composer's draft, so a thread does not draw itself again at each key the reader types
 */
 function useConversationPendingMessage(conversationId: string) {
   const { data: viewer } = useAuthentication()
@@ -25,6 +25,11 @@ function useConversationPendingMessage(conversationId: string) {
     () => readConversationComposerDraft(key).pendingMessage,
     () => null,
   )
+  const isSending = useSyncExternalStore(
+    subscribeToConversationComposerDrafts,
+    () => readConversationComposerDraft(key).sendingMessageId !== null,
+    () => false,
+  )
 
   // Unless another message has been sent since
   function forgetPendingMessage(id: string) {
@@ -33,7 +38,7 @@ function useConversationPendingMessage(conversationId: string) {
     )
   }
 
-  return { pendingMessage, forgetPendingMessage }
+  return { pendingMessage, isSending, forgetPendingMessage }
 }
 
 export default useConversationPendingMessage

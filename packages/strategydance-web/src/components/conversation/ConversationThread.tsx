@@ -69,7 +69,9 @@ type Props = {
   A conversation's thread: each entry as the design draws its kind, oldest first, and the thinking
   indicator after them while a run goes, until its lease passes, when the backend is asked to
   reconcile it. The message the reader sends is drawn at its foot the moment they send it, and in
-  place of its body until that is read (`pendingMessage`). The questions of the turn the conversation waits on are answered in place, and a
+  place of its body until that is read (`pendingMessage`), and the thinking indicator shows from the
+  same moment, as it does from any run the reader starts, before the read of the latest run has
+  caught up. The questions of the turn the conversation waits on are answered in place, and a
   run waiting on questions all answered is reconciled too, in case its last answer could not carry
   it on. The note that ends the latest response, when it is the last entry and nothing goes,
   offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
@@ -87,7 +89,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
-  const { pendingMessage, forgetPendingMessage } = useConversationPendingMessage(conversation.id)
+  const { pendingMessage, isSending, forgetPendingMessage } = useConversationPendingMessage(conversation.id)
   // Read as the reader sends a mention too, the composer's read, so it is drawn linked from the start
   const documents = useConversationDocuments(
     needsConversationDocuments(entries, bodies) || /doc:/i.test(pendingMessage?.text ?? ''),
@@ -371,10 +373,10 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
             {content}
           </div>
         ))}
-        {isWorking && run ? (
+        {isWorking || isSending || isAwaiting ? (
           <ConversationThinking
-            step={getStep()}
-            startedAt={run.createdAt}
+            step={isWorking ? getStep() : null}
+            startedAt={isWorking ? (run?.createdAt ?? null) : null}
           />
         ) : null}
       </div>

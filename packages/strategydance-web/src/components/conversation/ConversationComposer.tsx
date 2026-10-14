@@ -114,13 +114,14 @@ type Props = {
   (`useConversationComposerAttachments`): a message may hold files and no words, and is sent once
   every file it holds is up.
 
-  A message sent leaves the field for the thread at once, which draws it while its send goes and
-  until the live read brings it in (`pendingMessage`), so the reader never waits to see it. Nothing
-  is sent while a send or a run goes, nor once the conversation is full, though the reader can write
-  meanwhile. A first send's run counts as going from the moment the backend answers, before the
-  page's live read of it lands, so a second send never races it. From the send on, Stop takes the
-  place of Send, though it stops nothing before the backend has answered with the run, and once the
-  reader asked, in this tab or another, it waits for the run to end.
+  A message sent leaves the field for the thread at once, which draws it, Strategy Dance thinking
+  under it, while its send goes and until the live read brings it in (`pendingMessage`), so the
+  reader never waits to see it. Nothing is sent while a send or a run goes, nor once the
+  conversation is full, though the reader can write meanwhile. A first send's run counts as going
+  from the moment the backend answers, before the page's live read of it lands, so a second send
+  never races it. From the send on, Stop takes the place of Send, though it stops nothing before the
+  backend has answered with the run, and once the reader asked, in this tab or another, it waits for
+  the run to end.
 
   A send that fails takes its message out of the thread and puts it back, its words in the field and
   its files in the tray, ahead of anything written meanwhile, and says why. Sending the same

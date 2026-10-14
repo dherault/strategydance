@@ -1800,6 +1800,98 @@ query GetOrganizationIntegrationForAdministrator($organizationId: UUID!, $integr
   }
 }
 
+# The organization's live servers as a conversation's agent lists them for one member, with that
+# member's own connection to each: what works for them, each server's tools as last listed, and which
+# of them run without approval. No secret: a call reads its own server through
+# `GetConversationIntegration`. The membership is matched on the `createdAt` the run recorded, so a
+# member removed, or removed and invited back, reads nothing
+query GetConversationIntegrations($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  organizationIntegrations(
+    where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 50
+  ) {
+    id
+    name
+    authentication
+    isEnabled
+    configRevision
+    keyGeneration
+    apiKeyLastFour
+    tools
+    autoApprovedTools
+  }
+  integrationConnections(
+    where: {
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      integration: { deletedAt: { isNull: true } }
+    }
+    limit: 50
+  ) {
+    integrationId
+    generation
+    configRevision
+    status
+  }
+}
+
+# One live server of the organization as a conversation's agent calls it for one member, its key's
+# ciphertext included, which a call decrypts to reach it, with that member's own connection to it.
+# Read when a call is drawn, to decide whether it waits for the member's approval, and again right
+# before it is made, to check what the approval was bound to. Null for a server deleted or of
+# another organization, and nothing at all once the membership changed
+query GetConversationIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $integrationId: UUID!
+) @auth(level: NO_ACCESS) {
+  userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  organizationIntegrations(
+    where: { id: { eq: $integrationId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    limit: 1
+  ) {
+    id
+    name
+    url
+    authentication
+    isEnabled
+    configRevision
+    keyGeneration
+    encryptedApiKey
+    apiKeyScheme
+    apiKeyHeader
+    tools
+    autoApprovedTools
+  }
+  integrationConnections(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+    limit: 1
+  ) {
+    integrationId
+    generation
+    configRevision
+    status
+  }
+}
+
 # The Connect a sign-in's state names, found by the state's hash alone, before anybody is known, as
 # the authorization server's own requests are: whoever holds a 256-bit state is whom the callback
 # trusts to bring its code back, and only the member's own page finishes it

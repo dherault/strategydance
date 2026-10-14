@@ -53,5 +53,7 @@ describes:
 A directory is in one list or the other, never both: the tests hold ids, names, submission URLs
 and websites' roots unique across the two. Both files are sorted by name, as `compareDirectoryNames`
 orders them, each entry's fields in the order `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS`
-give, and written as `JSON.stringify(list, null, 2)` writes them, which is how the formatter lays
-them out. The daily check writes them through the same three, so its files pass the tests.
+give, and written as `JSON.stringify(list, null, 2)` writes them. The daily check writes them
+through the same three, so its files pass the tests. The formatter leaves both files alone: it would
+put a short array, such as a directory's one category, on one line, which `JSON.stringify` never
+does.

@@ -6,10 +6,12 @@ import {
   addTaskDependencyForAgent,
   connectorConfig,
   createTaskForAgent,
+  dateDoneTask,
   deleteTaskForAgent,
   getModuleCallResult,
   getTaskBoardForAgent,
   getTaskForAgent,
+  getUndatedDoneTasks,
   getUnindexedTasks,
   getUnindexedTasksForAgent,
   indexTaskText,
@@ -37,8 +39,9 @@ import { dataConnect } from '~firebase'
   module's tests run against a fake of these operations: this is what says the fake's conditions are
   the SQL's.
 
-  `GetUnindexedTasks` and `IndexTaskText`, the backfill's, take no organization, so they read and
-  write every unindexed task in the emulator; nothing else here reaches past the two organizations.
+  `GetUnindexedTasks` and `IndexTaskText`, the text backfill's, and `GetUndatedDoneTasks`, the
+  `doneAt` backfill's, take no organization, so they read and write every unindexed task in the
+  emulator, and read every unstamped one; nothing else here reaches past the two organizations.
 
   Like `checkKnowledgeModule.ts`, it refuses to run unless it points at the emulator
 */
@@ -612,6 +615,34 @@ async function checkIndexing() {
   check('the backfill indexes it at the updatedAt it read', backfilled.task_updateMany === 1)
 }
 
+async function checkDating() {
+  const undated = await insertTask({ status: 'DONE' })
+  const open = await insertTask({ status: 'TODO' })
+  const { data } = await getUndatedDoneTasks(dataConnect, { skippedIds: [] })
+  const row = data.tasks.find(task => task.id === undated)
+
+  check(
+    'the doneAt backfill finds a task in Done nobody stamped, and no task out of Done',
+    row !== undefined && !data.tasks.some(task => task.id === open),
+  )
+
+  const { data: stamped } = await dateDoneTask(dataConnect, { id: undated, doneAt: row?.updatedAt ?? DONE_AT })
+  const dated = await readTask(undated)
+
+  check(
+    'the backfill stamps it with its last change, which stays as it was',
+    stamped.task_updateMany === 1
+      && isSameTime(dated?.doneAt, row?.updatedAt ?? '')
+      && dated?.updatedAt === row?.updatedAt,
+  )
+
+  const { data: again } = await dateDoneTask(dataConnect, { id: undated, doneAt: DONE_AT })
+  const { data: outOfDone } = await dateDoneTask(dataConnect, { id: open, doneAt: DONE_AT })
+
+  check('a task stamped already keeps its time', again.task_updateMany === 0)
+  check('a task out of Done is never stamped', outOfDone.task_updateMany === 0)
+}
+
 async function checkSearch() {
   const named = await insertTask({ name: 'Launch the Newsletter' })
   const described = await insertTask({
@@ -767,6 +798,7 @@ try {
   await checkLinking()
   await checkDeletingAndRestoring()
   await checkIndexing()
+  await checkDating()
   await checkSearch()
   await checkPageWrites()
 } finally {

@@ -147,6 +147,8 @@ async function updateTask(
         ...(name !== undefined && { name }),
         ...(written && { description: written.description, descriptionText: written.descriptionText }),
         ...(placement && { status: placement.status, position: placement.position }),
+        // Stamped on the way into Done alone, so a move within Done keeps the day it was finished
+        ...(isFinishing && { doneAt: new Date().toISOString() }),
         ...assignment,
         ...(dueDate !== undefined && { dueDate }),
         ...(aspects !== undefined && { aspects }),

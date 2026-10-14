@@ -161,6 +161,26 @@ describe('update_task', () => {
     )
   })
 
+  it('stamps when a task was done on its way into Done, and keeps it on a move within Done or out of it', async () => {
+    const kit = await board.connect()
+    const task = board.add({ status: 'ONGOING' })
+    const other = board.add({ status: 'DONE', position: 1, doneAt: '2026-10-01T09:00:00.000Z' })
+
+    await kit.answer('update_task', { id: task.id, status: 'DONE' })
+
+    const { doneAt } = fake.tasks.get(task.id)!
+
+    expect(doneAt).toEqual(expect.any(String))
+
+    await kit.answer('update_task', { id: task.id, status: 'DONE', beforeId: other.id })
+
+    expect(fake.tasks.get(task.id)).toMatchObject({ status: 'DONE', doneAt })
+
+    await kit.answer('update_task', { id: other.id, status: 'TODO' })
+
+    expect(fake.tasks.get(other.id)).toMatchObject({ status: 'TODO', doneAt: '2026-10-01T09:00:00.000Z' })
+  })
+
   it('refuses a move into a gap too narrow for a float, nothing written', async () => {
     const kit = await board.connect()
     const after = board.add({ status: 'TODO', position: 1 + Number.EPSILON })

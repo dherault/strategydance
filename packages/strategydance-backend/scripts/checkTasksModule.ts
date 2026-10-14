@@ -72,6 +72,9 @@ const HOUR_MS = 60 * 60 * 1000
 // The createdAt of a membership that ended, which no operation finds
 const STALE = '2020-01-01T00:00:00Z'
 
+// When the agent says a task was done
+const DONE_AT = '2026-10-14T10:00:00.000Z'
+
 // What the agent's writes take for a call without a key
 const UNKEYED = {
   isKeyed: false,
@@ -103,6 +106,11 @@ async function read<Data>(query: string, variables: Variables = {}) {
   return data
 }
 
+// Whether a timestamp read back is the one written, which Data Connect writes back in microseconds
+function isSameTime(read: string | null | undefined, written: string) {
+  return read != null && Date.parse(read) === Date.parse(written)
+}
+
 // The cause of a refusal, which the Admin SDK puts on the first line of its message, or null when
 // the operation went through
 async function refusal(operation: Promise<unknown>) {
@@ -131,6 +139,7 @@ type StoredTask = {
   isAssignedToAgent: boolean
   dueDate: string | null
   aspects: string[]
+  doneAt: string | null
   deletedAt: string | null
   updatedAt: string
 }
@@ -159,7 +168,7 @@ async function readTask(id: string) {
   const data = await read<{ task: StoredTask | null }>(
     `query ReadTask($id: UUID!) {
       task(id: $id) {
-        name description descriptionText status position assigneeId isAssignedToAgent dueDate aspects deletedAt updatedAt
+        name description descriptionText status position assigneeId isAssignedToAgent dueDate aspects doneAt deletedAt updatedAt
       }
     }`,
     { id },
@@ -375,13 +384,26 @@ async function checkUpdating() {
     descriptionText: 'written',
     status: TaskStatus.DONE,
     position: 7,
+    doneAt: DONE_AT,
   })
 
   const moved = await readTask(id)
 
   check(
-    'a description is written with its plain text, a move with its column and place',
-    moved?.descriptionText === 'written' && moved.status === 'DONE' && moved.position === 7,
+    'a description is written with its plain text, a move with its column and place, a finish with its time',
+    moved?.descriptionText === 'written'
+      && moved.status === 'DONE'
+      && moved.position === 7
+      && isSameTime(moved.doneAt, DONE_AT),
+  )
+
+  await update({ updatedAt: moved?.updatedAt, status: TaskStatus.DONE, position: 8 })
+
+  const placed = await readTask(id)
+
+  check(
+    'a move within Done, which sends no doneAt, keeps the time it was done',
+    placed?.position === 8 && isSameTime(placed.doneAt, DONE_AT),
   )
   check(
     'an assignment to a member and to Strategy Dance at once is refused',
@@ -684,6 +706,38 @@ async function checkPageWrites() {
   )
 
   check('a save from an old page leaves the plain text null', (await readTask(withoutText))?.descriptionText === null)
+
+  await webConnector.executeMutation('FinishTask', { organizationId, id: withText, position: 3 }, impersonate)
+
+  const finished = await readTask(withText)
+
+  check(
+    "a finish moves the task into Done and stamps the server's time",
+    finished?.status === 'DONE' && finished.position === 3 && finished.doneAt !== null,
+  )
+
+  await webConnector.executeMutation(
+    'MoveTask',
+    { organizationId, id: withText, status: 'DONE', position: 4 },
+    impersonate,
+  )
+
+  check(
+    'a move within Done keeps the time it was done',
+    (await readTask(withText))?.position === 4 && (await readTask(withText))?.doneAt === finished?.doneAt,
+  )
+  check(
+    "a finish names the task's own organization",
+    (
+      await refusal(
+        webConnector.executeMutation(
+          'FinishTask',
+          { organizationId: fullOrganizationId, id: withText, position: 1 },
+          impersonate,
+        ),
+      )
+    )?.includes('No task by that id') ?? false,
+  )
 }
 
 try {

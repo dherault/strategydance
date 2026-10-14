@@ -2337,8 +2337,9 @@ worker's claim checks the role again, so a queued run stops too:
   around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
   page and any page added under `/conversations/` later are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M27 and M28, the OAuth initiation included: an authorization's state only exists once a staff
-  member started it, so the callback is gated through it. The integration list query checks
+  M27 and M28, the OAuth initiation and its finish included: an authorization's state only exists
+  once a staff member started it, so the callback is gated through it, and only that member's own
+  signed-in page finishes it. The integration list query checks
   membership alone, as David chose on 2026-10-13 (M27): the page's bouncer (`useCanUseIntegrations`)
   and the routes gate integrations as they gate conversations, the list holds nothing secret, and a
   connector cannot tell the emulators from production, so a staff filter would have broken the local
@@ -2453,6 +2454,17 @@ account, and until both exist every send in production answers 503.
     on `conversation-runs` alone, grant them on this queue too. Until it exists, a launch in
     production queues nothing, and the parent's reconcile finalizes its subagents once their runs are
     twenty minutes old.
+12. For M28, before its release reaches production: keep the callback of members' Connects out of
+    Cloud Run's request log, whose `httpRequest.requestUrl` holds the code and the state an
+    authorization server sends in its query. The backend logs neither; the platform logs every
+    request's address. A code there is worth little, spent once and useless without the PKCE verifier
+    the Connect keeps encrypted, but a log is no place for it. An exclusion on the `_Default` sink
+    drops those entries, the backend's own line saying how each sign-in came back staying:
+
+    ```sh
+    gcloud logging sinks update _Default --project strategydance \
+      --add-exclusion='name=integration-oauth-callback,filter=logName="projects/strategydance/logs/run.googleapis.com%2Frequests" AND httpRequest.requestUrl:"/integrations/oauth/callback"'
+    ```
 
 ### Usage caps
 

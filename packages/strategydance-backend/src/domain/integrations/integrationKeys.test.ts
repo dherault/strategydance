@@ -52,6 +52,8 @@ describe('the keys of integrations outside production', () => {
   })
 
   test('refuses a key encrypted with Cloud KMS, which only production opens', async () => {
-    await expect(decryptIntegrationKey('v1:kms:AAAA', OWNER)).rejects.toThrow('A key not encrypted with the local key')
+    await expect(decryptIntegrationKey('v1:kms:AAAA', OWNER)).rejects.toThrow(
+      'A secret not encrypted with the local key',
+    )
   })
 })

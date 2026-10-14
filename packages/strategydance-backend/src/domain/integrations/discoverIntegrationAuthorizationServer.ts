@@ -1,4 +1,5 @@
 import {
+  type AuthorizationServerMetadata,
   checkResourceAllowed,
   discoverAuthorizationServerMetadata,
   discoverOAuthProtectedResourceMetadata,
@@ -11,8 +12,26 @@ import { IntegrationError } from 'strategydance-database/backend'
 import IntegrationFailure from '~domain/integrations/IntegrationFailure'
 
 /*
-  The issuer of the authorization server an OAuth MCP server names, as MCP's authorization asks a
-  client to find it, every request through the guarded fetch.
+  What an OAuth MCP server's discovery found: the issuer of the authorization server it names, the
+  metadata that server published, which a Connect signs in and registers through, the resource a
+  token is asked for, the server's own address as its protected resource metadata names it (RFC
+  8707), and the scope to ask for, if any
+*/
+type IntegrationAuthorizationServer = {
+  issuer: string
+  metadata: AuthorizationServerMetadata
+  resource: string
+  scope: string | undefined
+}
+
+// The scope that asks an authorization server for a refresh token, which OpenID Connect names and
+// many OAuth servers take: without it some issue none, and a connection would lapse with its access
+// token
+const OFFLINE_ACCESS_SCOPE = 'offline_access'
+
+/*
+  The authorization server an OAuth MCP server names, as MCP's authorization asks a client to find
+  it, every request through the guarded fetch.
 
   An unauthenticated request to the server first, which has to answer as an MCP server taking OAuth
   does, challenging it or answering it, and whose 401 names its protected resource metadata (RFC
@@ -24,10 +43,17 @@ import IntegrationFailure from '~domain/integrations/IntegrationFailure'
   everything given for the one it has.
 
   The authorization server has to offer S256 and a way for Strategy Dance to register without a
-  human, dynamic registration or client ID metadata documents, or no member could ever connect it
-  (M28): refused otherwise, as a discovery that failed
+  human, dynamic registration or client ID metadata documents, or no member could ever connect it:
+  refused otherwise, as a discovery that failed.
+
+  The scope asked for is MCP's: the one the 401 challenged with, else every scope the protected
+  resource metadata lists, else none, and `offline_access` beside it whenever the authorization
+  server lists that, so a connection gets a refresh token
 */
-async function discoverIntegrationIssuer(url: string, fetch: FetchLike) {
+async function discoverIntegrationAuthorizationServer(
+  url: string,
+  fetch: FetchLike,
+): Promise<IntegrationAuthorizationServer> {
   const origin = new URL(url).origin
   const fail = (reason: string) => new IntegrationFailure(IntegrationError.DISCOVERY_FAILED, `${origin}: ${reason}`)
   const probe = await fetch(url, {
@@ -73,7 +99,8 @@ async function discoverIntegrationIssuer(url: string, fetch: FetchLike) {
     throw new IntegrationFailure(IntegrationError.NOT_MCP_SERVER, `${origin}: ${probe.status}, no MCP answer`)
   }
 
-  const { resourceMetadataUrl } = probe.status === 401 ? extractWWWAuthenticateParams(probe) : {}
+  const { resourceMetadataUrl, scope: challengedScope } =
+    probe.status === 401 ? extractWWWAuthenticateParams(probe) : {}
   const statuses: number[] = []
   const recording: FetchLike = async (input, init) => {
     const response = await fetch(input, init)
@@ -83,19 +110,23 @@ async function discoverIntegrationIssuer(url: string, fetch: FetchLike) {
     return response
   }
   let authorizationServerUrl: string
+  let resource = url
+  let resourceScopes: string[] = []
 
   try {
-    const resource = await discoverOAuthProtectedResourceMetadata(url, { resourceMetadataUrl }, recording)
+    const resourceMetadata = await discoverOAuthProtectedResourceMetadata(url, { resourceMetadataUrl }, recording)
 
-    if (!checkResourceAllowed({ requestedResource: url, configuredResource: resource.resource })) {
+    if (!checkResourceAllowed({ requestedResource: url, configuredResource: resourceMetadata.resource })) {
       throw fail('its protected resource metadata names another resource')
     }
 
-    const [first] = resource.authorization_servers ?? []
+    const [first] = resourceMetadata.authorization_servers ?? []
 
     if (!first) throw fail('its protected resource metadata names no authorization server')
 
     authorizationServerUrl = first
+    resource = resourceMetadata.resource
+    resourceScopes = resourceMetadata.scopes_supported ?? []
   } catch (error) {
     const isMissing = statuses.length > 0 && statuses.every(status => status === 404)
 
@@ -115,7 +146,22 @@ async function discoverIntegrationIssuer(url: string, fetch: FetchLike) {
 
   if (!isRegistrable) throw fail('its authorization server offers no way to register')
 
-  return metadata.issuer
+  return {
+    issuer: metadata.issuer,
+    metadata,
+    resource,
+    scope: chooseScope(challengedScope ?? resourceScopes.join(' '), metadata.scopes_supported ?? []),
+  }
+}
+
+// The scopes asked for, each once, `offline_access` added when the authorization server lists it, or
+// none at all
+function chooseScope(asked: string, supported: string[]) {
+  const scopes = new Set(asked.split(' ').filter(Boolean))
+
+  if (supported.includes(OFFLINE_ACCESS_SCOPE)) scopes.add(OFFLINE_ACCESS_SCOPE)
+
+  return scopes.size > 0 ? [...scopes].join(' ') : undefined
 }
 
 // How much of an answer to `initialize` is read for its result, which a server sends first
@@ -183,4 +229,6 @@ function readsClientMetadataDocuments(metadata: object) {
   return 'client_id_metadata_document_supported' in metadata && metadata.client_id_metadata_document_supported === true
 }
 
-export default discoverIntegrationIssuer
+export { type IntegrationAuthorizationServer }
+
+export default discoverIntegrationAuthorizationServer

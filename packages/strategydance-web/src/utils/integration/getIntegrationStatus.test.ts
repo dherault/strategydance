@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { IntegrationAuthentication, IntegrationError } from 'strategydance-database/web'
+import { IntegrationAuthentication, IntegrationConnectionStatus, IntegrationError } from 'strategydance-database/web'
 
 import getIntegrationStatus from './getIntegrationStatus'
 
@@ -24,10 +24,17 @@ describe('getIntegrationStatus', () => {
     expect(getIntegrationStatus({ ...WORKING, lastError: IntegrationError.UNREACHABLE })).toBe('error')
   })
 
-  test('says an OAuth server whose tools wait for a connection needs authentication', () => {
-    const waiting = { ...WORKING, authentication: IntegrationAuthentication.OAUTH, toolCount: null }
+  test("says an OAuth server works for the reader once their own account is connected, whoever else's is", () => {
+    const oauth = { ...WORKING, authentication: IntegrationAuthentication.OAUTH }
 
-    expect(getIntegrationStatus(waiting)).toBe('needsAuthentication')
-    expect(getIntegrationStatus({ ...waiting, toolCount: 4 })).toBe('connected')
+    expect(getIntegrationStatus(oauth)).toBe('needsAuthentication')
+    expect(getIntegrationStatus(oauth, { status: IntegrationConnectionStatus.CONNECTED })).toBe('connected')
+    expect(getIntegrationStatus(oauth, { status: IntegrationConnectionStatus.NEEDS_AUTHENTICATION })).toBe(
+      'needsAuthentication',
+    )
+  })
+
+  test("never reads a key-based server's status off the reader's connections", () => {
+    expect(getIntegrationStatus(WORKING, null)).toBe('connected')
   })
 })

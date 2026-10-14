@@ -4,6 +4,11 @@ import { IS_PRODUCTION } from '~constants'
 
 import logger from '~utils/logger'
 
+// The paths whose query holds a secret, which this log leaves out: the callback of members' Connects,
+// whose code and state an authorization server sends in it. In production Cloud Run's request log is
+// the one to keep it out of, by the exclusion setup step 12 of conversations.md adds
+const SECRET_QUERY_PATHS = ['/integrations/oauth/callback']
+
 // Each request and its status, in development only: Cloud Run logs every request itself
 function loggerMiddleware(request: Request, response: Response, next: NextFunction) {
   if (IS_PRODUCTION) {
@@ -12,7 +17,8 @@ function loggerMiddleware(request: Request, response: Response, next: NextFuncti
     return
   }
 
-  const requestString = `${request.method} ${request.originalUrl}`
+  const isQuerySecret = SECRET_QUERY_PATHS.includes(request.path.toLowerCase())
+  const requestString = `${request.method} ${isQuerySecret ? request.path : request.originalUrl}`
 
   logger.info(`→ ${requestString}`)
 

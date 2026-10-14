@@ -159,6 +159,21 @@ export const INTEGRATION_FAILURE_ERROR_CODES = {
   TOO_MANY_TOOLS: ERROR_CODE_INTEGRATION_TOO_MANY_TOOLS,
 } as const
 
+/*
+  Why a member could not connect their account to an OAuth server, beside the failures above: its
+  discovery named another authorization server than the one recorded, which only an administrator's
+  Retry takes (409); the sign-in it came back from expired or was finished already (410); it was
+  started by another account, as a link somebody else started and sent would be (403); or the
+  authorization server refused the code or answered no token Strategy Dance can use (422). An
+  administrator's Retry answers the last-but-one's sibling, a connection of theirs the server no
+  longer takes, which connecting again mends (409)
+*/
+export const ERROR_CODE_INTEGRATION_ISSUER_CHANGED = 'INTEGRATION_ISSUER_CHANGED' // 409
+export const ERROR_CODE_INTEGRATION_AUTHORIZATION_EXPIRED = 'INTEGRATION_AUTHORIZATION_EXPIRED' // 410
+export const ERROR_CODE_INTEGRATION_AUTHORIZATION_NOT_YOURS = 'INTEGRATION_AUTHORIZATION_NOT_YOURS' // 403
+export const ERROR_CODE_INTEGRATION_CONNECTION_REFUSED = 'INTEGRATION_CONNECTION_REFUSED' // 422
+export const ERROR_CODE_INTEGRATION_CONNECTION_EXPIRED = 'INTEGRATION_CONNECTION_EXPIRED' // 409
+
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
@@ -626,3 +641,19 @@ export const MAX_INTEGRATION_API_KEY_HEADER_LENGTH = 64
 */
 export const MAX_INTEGRATION_TOOLS = 200
 export const MAX_INTEGRATION_TOOLS_BYTES = 1024 * 1024
+
+/*
+  The app's page an OAuth server's sign-in ends on, in the window Connect opened: the backend's
+  callback sends the browser there with what came back (`IntegrationConnectedSearch`), the page,
+  signed in as the member, finishes the connection, and says how it went to the window that opened
+  it on this channel, which every tab of the app's origin hears
+*/
+export const INTEGRATION_CONNECTED_PATH = '/integrations/connected'
+
+export const INTEGRATION_CONNECTION_CHANNEL = 'strategydance-integration-connections'
+
+/*
+  How many characters of an account's label a connection keeps, the email or name an OAuth server's
+  ID token gave, which only the member who connected reads
+*/
+export const MAX_INTEGRATION_ACCOUNT_LABEL_LENGTH = 100

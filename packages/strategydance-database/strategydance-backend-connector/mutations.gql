@@ -4196,9 +4196,16 @@ mutation RenameOrganizationIntegration(
 # the external MCP server at its new address, if any, and its name, under the organization's row
 # lock, as a rename takes it.
 # Everything given for the old ones goes in the same write: the key, unless a new one is given, the
-# issuer, the tools and every approval, since another server could list identical tools. It bumps
-# `configRevision`, and `keyGeneration`, since whatever key it holds now was given for this server.
-# M28 deletes the registered client, members' connections and pending authorizations here too.
+# issuer, the registered client, the tools and every approval, since another server could list
+# identical tools. It bumps `configRevision`, and `keyGeneration`, since whatever key it holds now
+# was given for this server. Members' connections and their Connects under way go in the same
+# mutation.
+#
+# The server's own write comes first, the deletes after it: under read committed, a member's Connect
+# that locked the row first commits before this write takes it, and the deletes then see its
+# connection; one that comes after waits for this write and finds the revision moved, refused. The
+# other order would let a connection made between the deletes and the write outlive them. The
+# emulator runs one transaction at a time, so the order is reasoned here rather than tested.
 #
 # Every variable is passed, null to clear its column: one left out leaves the column as it was, the
 # old server's key included
@@ -4266,6 +4273,10 @@ mutation ReconfigureOrganizationIntegration(
       toolCount: $toolCount
       toolDefinitionHashes: $toolDefinitionHashes
       autoApprovedTools: []
+      oauthClientId: null
+      encryptedOAuthClientSecret: null
+      oauthClientSecretExpiresAt: null
+      oauthClientAuthenticationMethod: null
       configRevision_update: { inc: 1 }
       keyGeneration_update: { inc: 1 }
       lastError: null
@@ -4273,6 +4284,8 @@ mutation ReconfigureOrganizationIntegration(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+  integrationConnection_deleteMany(where: { integrationId: { eq: $integrationId } }) @redact
+  integrationAuthorization_deleteMany(where: { integrationId: { eq: $integrationId } }) @redact
 }
 
 # Replaces a key-based server's key, or how it is sent, at the same address, with the tools the
@@ -4416,8 +4429,9 @@ mutation RecordOrganizationIntegrationIssuer(
 
 # Takes the issuer an OAuth server's discovery resolved when it is another than the one it holds:
 # another authorization server, so everything given for the old one goes in this write, as an
-# address's change takes it, and `configRevision` is bumped. M28 deletes the registered client,
-# members' connections and pending authorizations here too
+# address's change takes it, the registered client included, and `configRevision` is bumped.
+# Members' connections and their Connects under way go in the same mutation, after the server's own
+# write, as `ReconfigureOrganizationIntegration` says why
 mutation ChangeOrganizationIntegrationIssuer(
   $organizationId: UUID!
   $userId: String!
@@ -4445,12 +4459,18 @@ mutation ChangeOrganizationIntegrationIssuer(
       toolCount: null
       toolDefinitionHashes: []
       autoApprovedTools: []
+      oauthClientId: null
+      encryptedOAuthClientSecret: null
+      oauthClientSecretExpiresAt: null
+      oauthClientAuthenticationMethod: null
       configRevision_update: { inc: 1 }
       lastError: null
       lastErrorAt: null
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+  integrationConnection_deleteMany(where: { integrationId: { eq: $integrationId } }) @redact
+  integrationAuthorization_deleteMany(where: { integrationId: { eq: $integrationId } }) @redact
 }
 
 # Records why a server could not be reached again, at the configuration it was reached with
@@ -4620,4 +4640,502 @@ mutation RestoreOrganizationIntegration(
 # finished by the next
 mutation PruneDeletedIntegrations @auth(level: NO_ACCESS) {
   organizationIntegration_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# --- Integration connections ---
+#
+# A member's own account at one of the organization's OAuth servers, which any member connects,
+# through the backend alone, since connecting reaches the server and keeps tokens no page may read.
+# Every operation takes the organization, the server and the member the backend verified, as
+# `$organizationId`, `$integrationId` and `$userId`, which the live queries' refreshes read; those of
+# more than one step check the membership in their redacted step, in words `isAdministratorRefusal`
+# reads, and those of one statement match the member on the row itself.
+#
+# A write a Connect makes on the server's row matches the `configRevision` and the issuer it started
+# under, and writes the row, which is the lock that orders it against an administrator's change of
+# the server: a change made first moves the revision and refuses it, and one made after deletes what
+# it wrote (see `ReconfigureOrganizationIntegration`)
+
+# Records the client a member's Connect registered with an OAuth server's authorization server, at
+# the configuration and issuer it registered under, where none is recorded yet. The backend reads the
+# count: a Connect that lost the race to another takes the client recorded first, so the members
+# present one. Every variable is passed, null included
+mutation RecordOrganizationIntegrationOAuthClient(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $issuer: String!
+  $oauthClientId: String!
+  $encryptedOAuthClientSecret: String
+  $oauthClientSecretExpiresAt: Timestamp
+  $oauthClientAuthenticationMethod: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
+      role
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      authentication: { eq: OAUTH }
+      configRevision: { eq: $configRevision }
+      issuer: { eq: $issuer }
+      oauthClientId: { isNull: true }
+      deletedAt: { isNull: true }
+    }
+    data: {
+      oauthClientId: $oauthClientId
+      encryptedOAuthClientSecret: $encryptedOAuthClientSecret
+      oauthClientSecretExpiresAt: $oauthClientSecretExpiresAt
+      oauthClientAuthenticationMethod: $oauthClientAuthenticationMethod
+    }
+  )
+}
+
+# Forgets the client a server's authorization server no longer takes, refusing it as an unknown
+# client or its secret as expired, matched on its id, so a client recorded meanwhile stays, and the
+# next Connect registers again. The backend reads the count
+mutation ForgetOrganizationIntegrationOAuthClient(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $oauthClientId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
+      role
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      oauthClientId: { eq: $oauthClientId }
+    }
+    data: {
+      oauthClientId: null
+      encryptedOAuthClientSecret: null
+      oauthClientSecretExpiresAt: null
+      oauthClientAuthenticationMethod: null
+    }
+  )
+}
+
+# Starts a member's Connect: locks the server's row at the configuration and issuer it was discovered
+# under, replaces the member's Connect under way for that server, and stores this one, which expires
+# in ten minutes (written out again in the backend's `INTEGRATION_AUTHORIZATION_LIFETIME_MS`: change
+# the two together)
+mutation StartIntegrationAuthorization(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $authorizationId: UUID!
+  $stateHash: String!
+  $encryptedCodeVerifier: String!
+  $oauthClientId: String!
+  $oauthClientAuthenticationMethod: String!
+  $resource: String!
+  $scope: String
+  $issuer: String!
+  $isIssuerParameterSupported: Boolean!
+  $tokenEndpoint: String!
+  $revocationEndpoint: String
+) @auth(level: NO_ACCESS) @transaction {
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      authentication: { eq: OAUTH }
+      configRevision: { eq: $configRevision }
+      issuer: { eq: $issuer }
+      deletedAt: { isNull: true }
+    }
+    data: { updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
+      role
+    }
+  }
+  integrationAuthorization_deleteMany(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+  ) @redact
+  integrationAuthorization_insert(
+    data: {
+      id: $authorizationId
+      integrationId: $integrationId
+      membershipUserId: $userId
+      membershipOrganizationId: $organizationId
+      stateHash: $stateHash
+      encryptedCodeVerifier: $encryptedCodeVerifier
+      configRevision: $configRevision
+      oauthClientId: $oauthClientId
+      oauthClientAuthenticationMethod: $oauthClientAuthenticationMethod
+      resource: $resource
+      scope: $scope
+      issuer: $issuer
+      isIssuerParameterSupported: $isIssuerParameterSupported
+      tokenEndpoint: $tokenEndpoint
+      revocationEndpoint: $revocationEndpoint
+      expiresAt_time: { now: true, add: { minutes: 10 } }
+    }
+  )
+}
+
+# The callback's, before anybody is known: keeps the code a sign-in brought back on the Connect its
+# state names, once, before it expires, and for two minutes (written out again in the backend's
+# `INTEGRATION_AUTHORIZATION_CODE_LIFETIME_MS`). A second callback with the same state, replayed or
+# concurrent, is refused
+mutation ReceiveIntegrationAuthorizationCode($authorizationId: UUID!, $stateHash: String!, $encryptedCode: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  integrationAuthorization_updateMany(
+    where: {
+      id: { eq: $authorizationId }
+      stateHash: { eq: $stateHash }
+      encryptedCode: { isNull: true }
+      expiresAt: { gt_time: { now: true } }
+    }
+    data: { encryptedCode: $encryptedCode, codeExpiresAt_time: { now: true, add: { minutes: 2 } } }
+  ) @check(expr: "this == 1", message: "The sign-in was finished already or has expired")
+}
+
+# The callback's, when the sign-in came back refused or broken: deletes the Connect its state names,
+# unless a code came back for it already. The backend reads the count
+mutation DeleteIntegrationAuthorizationByState($authorizationId: UUID!, $stateHash: String!) @auth(level: NO_ACCESS) {
+  integrationAuthorization_deleteMany(
+    where: { id: { eq: $authorizationId }, stateHash: { eq: $stateHash }, encryptedCode: { isNull: true } }
+  )
+}
+
+# Takes a member's Connect, by them alone, once its code came back and before that code expires,
+# deleting it before the code is exchanged, so two finishes exchange once and a sign-in another
+# account started finishes nothing
+mutation ConsumeIntegrationAuthorization(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $authorizationId: UUID!
+) @auth(level: NO_ACCESS) @transaction {
+  integrationAuthorization_deleteMany(
+    where: {
+      id: { eq: $authorizationId }
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      encryptedCode: { isNull: false }
+      codeExpiresAt: { gt_time: { now: true } }
+    }
+  ) @check(expr: "this == 1", message: "The sign-in was finished already or has expired")
+}
+
+# Cancels a member's Connect under way, by its id, so a sign-in finished in its window after connects
+# nothing, and a Connect they started since, which replaced it, is left alone. The backend reads the
+# count
+mutation CancelIntegrationAuthorization(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $authorizationId: UUID!
+) @auth(level: NO_ACCESS) {
+  integrationAuthorization_deleteMany(
+    where: {
+      id: { eq: $authorizationId }
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+  )
+}
+
+# Stores a member's connection once its code was exchanged: locks the server's row at the
+# configuration and issuer the Connect started under, replaces the member's earlier connection to it,
+# and stores the new one, under a fresh generation. A member removed meanwhile is refused by the
+# connection's reference to the membership, which Data Connect reports before the step's check. Every
+# variable is passed, null included
+mutation ConnectIntegration(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $generation: UUID!
+  $accountLabel: String
+  $oauthClientId: String!
+  $oauthClientAuthenticationMethod: String!
+  $resource: String!
+  $issuer: String!
+  $isIssuerParameterSupported: Boolean!
+  $tokenEndpoint: String!
+  $revocationEndpoint: String
+  $encryptedAccessToken: String!
+  $encryptedRefreshToken: String
+  $accessTokenExpiresAt: Timestamp
+  $scope: String
+) @auth(level: NO_ACCESS) @transaction {
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      authentication: { eq: OAUTH }
+      configRevision: { eq: $configRevision }
+      issuer: { eq: $issuer }
+      deletedAt: { isNull: true }
+    }
+    data: { updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The server was changed or deleted meanwhile")
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
+      role
+    }
+  }
+  integrationConnection_deleteMany(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+    }
+  ) @redact
+  integrationConnection_insert(
+    data: {
+      integrationId: $integrationId
+      membershipUserId: $userId
+      membershipOrganizationId: $organizationId
+      generation: $generation
+      configRevision: $configRevision
+      status: CONNECTED
+      accountLabel: $accountLabel
+      oauthClientId: $oauthClientId
+      oauthClientAuthenticationMethod: $oauthClientAuthenticationMethod
+      resource: $resource
+      issuer: $issuer
+      isIssuerParameterSupported: $isIssuerParameterSupported
+      tokenEndpoint: $tokenEndpoint
+      revocationEndpoint: $revocationEndpoint
+      encryptedAccessToken: $encryptedAccessToken
+      encryptedRefreshToken: $encryptedRefreshToken
+      accessTokenExpiresAt: $accessTokenExpiresAt
+      scope: $scope
+    }
+  )
+}
+
+# Stores the tools an OAuth server listed for the member who first connected, at the configuration
+# they connected under, only while it has none: a member's listing never writes over what an
+# administrator's Retry stored, or over another member's. The backend reads the count, and nothing
+# waits on it
+mutation RecordFirstIntegrationTools(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $configRevision: Int!
+  $tools: String!
+  $toolCount: Int!
+  $toolDefinitionHashes: [String!]!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
+      role
+    }
+  }
+  organizationIntegration_updateMany(
+    where: {
+      id: { eq: $integrationId }
+      organizationId: { eq: $organizationId }
+      authentication: { eq: OAUTH }
+      configRevision: { eq: $configRevision }
+      toolCount: { isNull: true }
+      deletedAt: { isNull: true }
+    }
+    data: {
+      tools: $tools
+      toolCount: $toolCount
+      toolDefinitionHashes: $toolDefinitionHashes
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# Takes the refresh of a member's connection, from the database's clock: only while it is the
+# generation and holds the refresh token the caller read, so a caller whose read another refresh has
+# overtaken takes nothing, and while no lease is held, or the one held has lapsed, as a crashed
+# refresh's has. The lease lasts two minutes (written out again in the backend's
+# `INTEGRATION_REFRESH_LEASE_MS`), which outlasts the refresh's every request. The backend reads the
+# count: one took it
+mutation ClaimIntegrationConnectionRefresh(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $generation: UUID!
+  $encryptedRefreshToken: String!
+  $refreshLeaseId: UUID!
+) @auth(level: NO_ACCESS) {
+  integrationConnection_updateMany(
+    where: {
+      _and: [
+        {
+          integrationId: { eq: $integrationId }
+          membershipUserId: { eq: $userId }
+          membershipOrganizationId: { eq: $organizationId }
+          generation: { eq: $generation }
+          encryptedRefreshToken: { eq: $encryptedRefreshToken }
+          status: { eq: CONNECTED }
+        }
+        { _or: [{ refreshingUntil: { isNull: true } }, { refreshingUntil: { lt_time: { now: true } } }] }
+      ]
+    }
+    data: { refreshingUntil_time: { now: true, add: { minutes: 2 } }, refreshLeaseId: $refreshLeaseId }
+  )
+}
+
+# Stores the tokens a refresh answered and lets go of its lease, matched on the lease alone: a
+# refresh whose lease another took over writes nothing. Every variable is passed, null included
+mutation RecordIntegrationConnectionTokens(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $refreshLeaseId: UUID!
+  $encryptedAccessToken: String!
+  $encryptedRefreshToken: String
+  $accessTokenExpiresAt: Timestamp
+  $scope: String
+) @auth(level: NO_ACCESS) @transaction {
+  integrationConnection_updateMany(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      refreshLeaseId: { eq: $refreshLeaseId }
+    }
+    data: {
+      encryptedAccessToken: $encryptedAccessToken
+      encryptedRefreshToken: $encryptedRefreshToken
+      accessTokenExpiresAt: $accessTokenExpiresAt
+      scope: $scope
+      refreshingUntil: null
+      refreshLeaseId: null
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The refresh lost its lease")
+}
+
+# Lets go of a refresh's lease when it failed for a reason another try can mend, matched on the lease
+# alone. The backend reads the count
+mutation ReleaseIntegrationConnectionRefresh(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $refreshLeaseId: UUID!
+) @auth(level: NO_ACCESS) {
+  integrationConnection_updateMany(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      refreshLeaseId: { eq: $refreshLeaseId }
+    }
+    data: { refreshingUntil: null, refreshLeaseId: null }
+  )
+}
+
+# Marks a member's connection as needing them to connect again, under the lease of the refresh the
+# authorization server refused, and only while it still holds the access token that refresh read, so
+# tokens written meanwhile are never dropped. The backend reads the count
+mutation MarkIntegrationConnectionNeedsAuthentication(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $generation: UUID!
+  $encryptedAccessToken: String!
+  $refreshLeaseId: UUID!
+) @auth(level: NO_ACCESS) {
+  integrationConnection_updateMany(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      generation: { eq: $generation }
+      encryptedAccessToken: { eq: $encryptedAccessToken }
+      refreshLeaseId: { eq: $refreshLeaseId }
+    }
+    data: {
+      status: NEEDS_AUTHENTICATION
+      encryptedAccessToken: null
+      encryptedRefreshToken: null
+      accessTokenExpiresAt: null
+      refreshingUntil: null
+      refreshLeaseId: null
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# Marks a member's connection as needing them to connect again when the server refused its access
+# token and no refresh can mend it: it holds no refresh token to try, or the token refused was the
+# one a refresh just gave. Only while it still holds the token refused, so a reconnect or a refresh
+# made meanwhile is never dropped, and while no refresh holds its lease. The backend reads the count
+mutation MarkIntegrationConnectionTokenRefused(
+  $organizationId: UUID!
+  $userId: String!
+  $integrationId: UUID!
+  $generation: UUID!
+  $encryptedAccessToken: String!
+) @auth(level: NO_ACCESS) {
+  integrationConnection_updateMany(
+    where: {
+      _and: [
+        {
+          integrationId: { eq: $integrationId }
+          membershipUserId: { eq: $userId }
+          membershipOrganizationId: { eq: $organizationId }
+          generation: { eq: $generation }
+          encryptedAccessToken: { eq: $encryptedAccessToken }
+        }
+        { _or: [{ refreshingUntil: { isNull: true } }, { refreshingUntil: { lt_time: { now: true } } }] }
+      ]
+    }
+    data: {
+      status: NEEDS_AUTHENTICATION
+      encryptedAccessToken: null
+      encryptedRefreshToken: null
+      accessTokenExpiresAt: null
+      refreshingUntil: null
+      refreshLeaseId: null
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+# Disconnects a member from a server: deletes the connection the backend read, by its generation, so
+# a reconnect made meanwhile, from another tab, is left as it is. The backend reads the count, and
+# revokes the tokens it read only when this deleted their connection
+mutation DisconnectIntegration($organizationId: UUID!, $userId: String!, $integrationId: UUID!, $generation: UUID!)
+@auth(level: NO_ACCESS) {
+  integrationConnection_deleteMany(
+    where: {
+      integrationId: { eq: $integrationId }
+      membershipUserId: { eq: $userId }
+      membershipOrganizationId: { eq: $organizationId }
+      generation: { eq: $generation }
+    }
+  )
+}
+
+# The daily sweep's: deletes the Connects that expired over an hour ago, finished or not, past any
+# finish still under way. Deleting what is gone already deletes nothing, so a sweep that failed is
+# finished by the next
+mutation PruneIntegrationAuthorizations @auth(level: NO_ACCESS) {
+  integrationAuthorization_deleteMany(where: { expiresAt: { lt_time: { now: true, sub: { hours: 1 } } } })
 }

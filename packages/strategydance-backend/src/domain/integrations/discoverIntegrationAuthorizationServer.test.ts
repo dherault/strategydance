@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'bun:test'
 import { IssuerMismatchError } from '@modelcontextprotocol/client'
 import { IntegrationError } from 'strategydance-database/backend'
 
-import discoverIntegrationIssuer from './discoverIntegrationIssuer'
+import discoverIntegrationAuthorizationServer from './discoverIntegrationAuthorizationServer'
 import IntegrationFailure from './IntegrationFailure'
 
 const URL = 'https://mcp.example.com/mcp'
@@ -48,6 +48,11 @@ function unauthorized(resourceMetadata?: string) {
     })
 }
 
+// The issuer a discovery found, which most of these tests are about
+async function discoverIssuer(url: string, fetch: Parameters<typeof discoverIntegrationAuthorizationServer>[1]) {
+  return (await discoverIntegrationAuthorizationServer(url, fetch)).issuer
+}
+
 async function failure(promise: Promise<unknown>) {
   try {
     await promise
@@ -58,7 +63,7 @@ async function failure(promise: Promise<unknown>) {
   return null
 }
 
-describe('discoverIntegrationIssuer', () => {
+describe('discoverIntegrationAuthorizationServer', () => {
   test('follows the metadata its 401 names to the authorization server, and keeps its issuer', async () => {
     const { fetch } = createNetwork({
       [`POST ${URL}`]: unauthorized('https://mcp.example.com/.well-known/oauth-protected-resource/mcp'),
@@ -67,7 +72,55 @@ describe('discoverIntegrationIssuer', () => {
       'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
     })
 
-    expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+    expect(await discoverIssuer(URL, fetch)).toBe('https://auth.example.com')
+  })
+
+  test("keeps the authorization server's metadata, the resource its metadata names and no scope", async () => {
+    const { fetch } = createNetwork({
+      [`POST ${URL}`]: unauthorized(),
+      'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+        json({ resource: URL, authorization_servers: ['https://auth.example.com'] }),
+      'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
+    })
+    const discovered = await discoverIntegrationAuthorizationServer(URL, fetch)
+
+    expect(discovered.metadata).toMatchObject(AUTHORIZATION_SERVER)
+    expect(discovered.resource).toBe(URL)
+    expect(discovered.scope).toBeUndefined()
+  })
+
+  test('asks for the scope the 401 challenged with, and for a refresh token when the server lists one', async () => {
+    const { fetch } = createNetwork({
+      [`POST ${URL}`]: () =>
+        new Response('Unauthorized', { status: 401, headers: { 'www-authenticate': 'Bearer scope="read write"' } }),
+      'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+        json({ resource: URL, authorization_servers: ['https://auth.example.com'], scopes_supported: ['admin'] }),
+      'GET https://auth.example.com/.well-known/oauth-authorization-server': () =>
+        json({ ...AUTHORIZATION_SERVER, scopes_supported: ['read', 'write', 'offline_access'] }),
+    })
+
+    expect((await discoverIntegrationAuthorizationServer(URL, fetch)).scope).toBe('read write offline_access')
+  })
+
+  test('asks for every scope the protected resource lists when the 401 named none', async () => {
+    const { fetch } = createNetwork({
+      [`POST ${URL}`]: unauthorized(),
+      'GET https://mcp.example.com/.well-known/oauth-protected-resource/mcp': () =>
+        json({ resource: URL, authorization_servers: ['https://auth.example.com'], scopes_supported: ['mcp:read'] }),
+      'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
+    })
+
+    expect((await discoverIntegrationAuthorizationServer(URL, fetch)).scope).toBe('mcp:read')
+  })
+
+  test('names the server itself as the resource when it has no protected resource metadata', async () => {
+    const { fetch } = createNetwork({
+      [`POST ${URL}`]: unauthorized(),
+      'GET https://mcp.example.com/.well-known/oauth-authorization-server': () =>
+        json({ ...AUTHORIZATION_SERVER, issuer: 'https://mcp.example.com' }),
+    })
+
+    expect((await discoverIntegrationAuthorizationServer(URL, fetch)).resource).toBe(URL)
   })
 
   test('reads the metadata at the root when the path holds none', async () => {
@@ -78,7 +131,7 @@ describe('discoverIntegrationIssuer', () => {
       'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
     })
 
-    expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+    expect(await discoverIssuer(URL, fetch)).toBe('https://auth.example.com')
   })
 
   test('takes the authorization server at its own origin only when no metadata exists anywhere', async () => {
@@ -88,7 +141,7 @@ describe('discoverIntegrationIssuer', () => {
         json({ ...AUTHORIZATION_SERVER, issuer: 'https://mcp.example.com' }),
     })
 
-    expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://mcp.example.com')
+    expect(await discoverIssuer(URL, fetch)).toBe('https://mcp.example.com')
   })
 
   test('never takes the origin for a metadata that failed otherwise, so an outage reads as no other issuer', async () => {
@@ -100,7 +153,7 @@ describe('discoverIntegrationIssuer', () => {
         json({ ...AUTHORIZATION_SERVER, issuer: 'https://mcp.example.com' }),
     })
 
-    await expect(discoverIntegrationIssuer(URL, fetch)).rejects.toThrow()
+    await expect(discoverIssuer(URL, fetch)).rejects.toThrow()
     expect(asked).not.toContain('GET https://mcp.example.com/.well-known/oauth-authorization-server')
   })
 
@@ -111,7 +164,7 @@ describe('discoverIntegrationIssuer', () => {
         json({ resource: 'https://elsewhere.example.com/mcp', authorization_servers: ['https://auth.example.com'] }),
     })
 
-    expect(await failure(discoverIntegrationIssuer(URL, fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
+    expect(await failure(discoverIssuer(URL, fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
   })
 
   test('refuses an authorization server naming another issuer', async () => {
@@ -123,7 +176,7 @@ describe('discoverIntegrationIssuer', () => {
         json({ ...AUTHORIZATION_SERVER, issuer: 'https://attacker.example.com' }),
     })
 
-    const error = await discoverIntegrationIssuer(URL, fetch).catch((thrown: unknown) => thrown)
+    const error = await discoverIssuer(URL, fetch).catch((thrown: unknown) => thrown)
 
     expect(IssuerMismatchError.isInstance(error)).toBe(true)
   })
@@ -140,7 +193,7 @@ describe('discoverIntegrationIssuer', () => {
         'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(metadata),
       })
 
-      expect(await failure(discoverIntegrationIssuer(URL, fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
+      expect(await failure(discoverIssuer(URL, fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
     }
   })
 
@@ -157,7 +210,7 @@ describe('discoverIntegrationIssuer', () => {
         }),
     })
 
-    expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+    expect(await discoverIssuer(URL, fetch)).toBe('https://auth.example.com')
   })
 
   test('takes a server answering initialize without a token, as JSON or as events', async () => {
@@ -178,7 +231,7 @@ describe('discoverIntegrationIssuer', () => {
         'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
       })
 
-      expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+      expect(await discoverIssuer(URL, fetch)).toBe('https://auth.example.com')
     }
   })
 
@@ -207,7 +260,7 @@ describe('discoverIntegrationIssuer', () => {
       'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
     })
 
-    expect(await discoverIntegrationIssuer(URL, fetch)).toBe('https://auth.example.com')
+    expect(await discoverIssuer(URL, fetch)).toBe('https://auth.example.com')
     expect(isClosed).toBe(true)
   })
 
@@ -224,7 +277,7 @@ describe('discoverIntegrationIssuer', () => {
         'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
       })
 
-      expect(await failure(discoverIntegrationIssuer(URL, fetch))).toBe(IntegrationError.NOT_MCP_SERVER)
+      expect(await failure(discoverIssuer(URL, fetch))).toBe(IntegrationError.NOT_MCP_SERVER)
       expect(asked).toHaveLength(1)
     }
   })
@@ -238,7 +291,7 @@ describe('discoverIntegrationIssuer', () => {
       'GET https://auth.example.com/.well-known/oauth-authorization-server': () => json(AUTHORIZATION_SERVER),
     })
 
-    expect(await discoverIntegrationIssuer(URL, named.fetch)).toBe('https://auth.example.com')
+    expect(await discoverIssuer(URL, named.fetch)).toBe('https://auth.example.com')
 
     const unnamed = createNetwork({
       [`POST ${URL}`]: bare,
@@ -246,12 +299,12 @@ describe('discoverIntegrationIssuer', () => {
         json({ ...AUTHORIZATION_SERVER, issuer: 'https://mcp.example.com' }),
     })
 
-    expect(await failure(discoverIntegrationIssuer(URL, unnamed.fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
+    expect(await failure(discoverIssuer(URL, unnamed.fetch))).toBe(IntegrationError.DISCOVERY_FAILED)
   })
 
   test('says an address with nothing behind it is no MCP server', async () => {
     const { fetch } = createNetwork({})
 
-    expect(await failure(discoverIntegrationIssuer(URL, fetch))).toBe(IntegrationError.NOT_MCP_SERVER)
+    expect(await failure(discoverIssuer(URL, fetch))).toBe(IntegrationError.NOT_MCP_SERVER)
   })
 })

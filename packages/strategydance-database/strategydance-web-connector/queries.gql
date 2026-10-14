@@ -2247,6 +2247,12 @@ query GetOrganizationIntegrations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RecordFirstIntegrationTools"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RecordOrganizationIntegrationIssuer"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -2346,6 +2352,12 @@ query GetOrganizationIntegrationTools($organizationId: UUID!, $integrationId: UU
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RecordFirstIntegrationTools"
+    condition: "mutation.variables.integrationId == request.variables.integrationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "ChangeOrganizationIntegrationIssuer"
     condition: "mutation.variables.integrationId == request.variables.integrationId"
   }
@@ -2399,5 +2411,89 @@ query GetOrganizationIntegrationTools($organizationId: UUID!, $integrationId: UU
     configRevision
     tools
     autoApprovedTools
+  }
+}
+
+# The reader's own accounts at the organization's servers, which the Integrations page reads to say,
+# for each OAuth server, whether it works for them, as whom, and since when, and to see a Connect
+# land. Never a token, which no web operation selects. Refreshed by the writes that make, mark or
+# delete one of the reader's, on the member they carry, and by those that delete everybody's or hide
+# a server, on the organization. Never by a refresh of the tokens, which changes nothing it selects.
+# At most one a server, so 50 rows (`MAX_INTEGRATIONS` in strategydance-core)
+query GetIntegrationConnections($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "ConnectIntegration"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DisconnectIntegration"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkIntegrationConnectionNeedsAuthentication"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkIntegrationConnectionTokenRefused"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ReconfigureOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ChangeOrganizationIntegrationIssuer"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreOrganizationIntegration"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  integrationConnections(
+    where: {
+      membershipUserId: { eq_expr: "auth.uid" }
+      membershipOrganizationId: { eq: $organizationId }
+      integration: { deletedAt: { isNull: true } }
+    }
+    limit: 50
+  ) {
+    id
+    integrationId
+    status
+    accountLabel
+    createdAt
   }
 }

@@ -19,6 +19,7 @@ import type {
   GetOrganizationDocumentsData,
   GetOrganizationInvitationData,
   GetOrganizationLogData,
+  GetIntegrationConnectionsData,
   GetOrganizationIntegrationsData,
   GetOrganizationTeamData,
   GetTasksData,
@@ -95,6 +96,9 @@ export type OrganizationTeam = GetOrganizationTeamData
 
 // One of the organization's MCP servers, as its Integrations page lists it: never its key
 export type OrganizationIntegration = GetOrganizationIntegrationsData['organizationIntegrations'][number]
+
+// The reader's own account at one of the organization's OAuth servers: never a token
+export type IntegrationConnection = GetIntegrationConnectionsData['integrationConnections'][number]
 
 // One member: what they may do, what they do, and who they are
 export type OrganizationMember = OrganizationTeam['userOrganizations'][number]

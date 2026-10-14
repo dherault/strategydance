@@ -2257,6 +2257,30 @@
       }
     },
     "integration": {
+      "integration.accountConnected": {
+        "hash": "8918b3f33cd4b1ee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.accountConnectedAs": {
+        "hash": "6e8dd99e50bb3330",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.accountConnectedSince": {
+        "hash": "fe3f9bf851c6aa0b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.accountExpiredHint": {
+        "hash": "acb0594a53ebee94",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.accountNotConnected": {
+        "hash": "38d40c562fcad177",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.accountNotConnectedHint": {
+        "hash": "50a221fdd7765de9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "integration.addCatalogueServer": {
         "hash": "d73ec720a26c5922",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2417,6 +2441,70 @@
         "hash": "7dcfe8733ed494c7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "integration.connect": {
+        "hash": "1103c9ec3f8fa966",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectBlocked": {
+        "hash": "c019f94cc0c25765",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectCanceled": {
+        "hash": "f9d8b4bf71f31f7c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectDenied": {
+        "hash": "58fbc2be3e6be13b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectDescription": {
+        "hash": "80f1842aaeb85f42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectLabel": {
+        "hash": "6e5239777b92725b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectOpen": {
+        "hash": "60a56879c21e5262",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectRetry": {
+        "hash": "d5dc1ee167b4161c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectTitle": {
+        "hash": "2efb83468e47fa95",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectWaiting": {
+        "hash": "eeb1c57b37174a6d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connected": {
+        "hash": "ba95cc9e6c8d039b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectedPageClose": {
+        "hash": "31c6386e8dd5a28a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectedPageConnected": {
+        "hash": "a6b482fc2f993e6c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectedPageConnecting": {
+        "hash": "4653974117182f4a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectedPageDenied": {
+        "hash": "b14d6419546223a8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.connectedPageFailed": {
+        "hash": "7ed0d5618630fccc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "integration.delete": {
         "hash": "60b03c2d70d67fc7",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2445,6 +2533,22 @@
         "hash": "a7947de8a8633e4e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "integration.disconnect": {
+        "hash": "6bbc902dadd84956",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.disconnectConfirm": {
+        "hash": "594d459ba84b86c9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.disconnectError": {
+        "hash": "326674ca8c4c279b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.disconnected": {
+        "hash": "dec5d18fbba8b2d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "integration.emptyText": {
         "hash": "17852ab802b937d8",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2461,8 +2565,24 @@
         "hash": "74016b8d30c3d919",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "integration.failureAuthorizationExpired": {
+        "hash": "2cc0d0d484ef1050",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureAuthorizationNotYours": {
+        "hash": "08968b85a1128673",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "integration.failureConflict": {
         "hash": "88e7165ad648d273",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureConnectionExpired": {
+        "hash": "8beb8070afcaf45d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureConnectionRefused": {
+        "hash": "47ade2ea21a1195d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.failureDiscoveryFailed": {
@@ -2475,6 +2595,10 @@
       },
       "integration.failureGone": {
         "hash": "1db23822e3985665",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.failureIssuerChanged": {
+        "hash": "3e3936ab0c4f0770",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.failureKeyRefused": {
@@ -2598,7 +2722,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.statusConnected": {
-        "hash": "c0a5dce636f5be25",
+        "hash": "4ca4263e7e3ab023",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.statusError": {
@@ -2606,7 +2730,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.statusNeedsAuthentication": {
-        "hash": "b7d9c89e8f587ddd",
+        "hash": "25fb2bc2c8e8137c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.statusOff": {
@@ -2638,7 +2762,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.toolsWaiting": {
-        "hash": "67ed0dc8230de3df",
+        "hash": "e224e64fd309e1f3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "integration.toolsWaitingConnected": {
+        "hash": "4af8b4b4659d7f37",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.turnOff": {

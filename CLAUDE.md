@@ -66,7 +66,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   inviting people, which emails them, storing the pictures of documents' text, reading what a
   web page says of itself for a link preview, sending and searching conversations, serving the
   modules to the agents members connect, through its own authorization server, and reaching the MCP
-  servers an organization adds, with their keys encrypted. Its image runs a second time as the
+  servers an organization adds, with their keys encrypted, as an OAuth client of those to which
+  members connect their own accounts. Its image runs a second time as the
   private worker, which runs conversations' runs as Cloud Tasks delivers them, sweeps what was
   deleted once a day, and checks the directories once a day. See below
 - `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
@@ -420,10 +421,15 @@ only way the app talks to them.
   lookup, and its comment says what that costs. The other exception is the authorization server's:
   its backend operations find a registered client, an authorization request, a code or a token by
   its id or its hash before any `$userId` is verified, since whoever holds a random UUID or a
-  256-bit token is whom the OAuth flow trusts, and only hashes are stored
+  256-bit token is whom the OAuth flow trusts, and only hashes are stored. So does the callback of
+  members' Connects to an organization's MCP servers, which finds a Connect by its state's hash
+  (`GetIntegrationAuthorizationByState`) and keeps the code it brought back, which only the member's
+  own signed-in page finishes
 - A table references the account and the organization apart, so removing a member, which deletes
-  the membership and nothing else, keeps what they wrote. `AgentConnection` alone references the
-  membership, since a connection is the membership's and goes with it, its tokens with it. Data
+  the membership and nothing else, keeps what they wrote. A connection is the exception, the
+  membership's, and goes with it, its tokens with it: `AgentConnection`, an external agent acting as
+  the member, `IntegrationConnection`, the member's own account at one of the organization's MCP
+  servers, and `IntegrationAuthorization`, a Connect of theirs under way. Data
   Connect cannot reference a key made of references, so `UserOrganization` names its columns,
   `userId` and `organizationId`, and the reference names them with `@ref`, its constraint named
   short of Postgres' 63 bytes
@@ -476,6 +482,22 @@ only way the app talks to them.
   either selects names itself in their refreshes, and the agent's `lastUsedAt` write (M29) never
   does. `bun run check:integrations`, in the backend's package, checks the operations against the
   emulators
+- A member's own account at an OAuth server is an `IntegrationConnection`, one per member and
+  server, and a Connect of theirs under way an `IntegrationAuthorization`, both the backend's alone to
+  write. Tokens, codes and PKCE verifiers are encrypted, each bound to its purpose, the server and the
+  member (`buildIntegrationSecretContext`), and no web operation selects one: the page reads its own
+  connections through `GetIntegrationConnections`, live, which no refresh of the tokens wakes. A
+  connection's `generation` is a UUID made at every connect and kept by a refresh, so no disconnect,
+  reconfiguration or removal ever repeats one, which M29's approvals bind to. A refresh claims a lease
+  on the connection, `refreshingUntil` from the database's clock, only while the connection holds the
+  refresh token its caller read, so a rotating refresh token is spent once, and writes and lets go by
+  the lease's id alone. A member's write on the server's row, a Connect's start or its connection,
+  locks the row at the revision and issuer it started under; `ReconfigureOrganizationIntegration` and
+  `ChangeOrganizationIntegrationIssuer` write the row first and delete the connections and Connects
+  after, so under read committed none outlives them, an order a change to either keeps
+- The ids a route hands an operation are canonical (`toCanonicalUuid`), whatever spelling its path
+  used: a live query's refresh condition compares the variables as text, and a page that names ids
+  hyphenated, as the page a sign-in ends on does, would otherwise refresh no other tab
 - `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
   read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
   stop agreeing. Add a locale to both
@@ -668,7 +690,8 @@ A conversation is kept twice, once for Claude and once for the page, and
   against the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep it. A gate added for conversations keys off the same two, as the integrations' does
-  (`useCanUseIntegrations`, and `staffOnlyMiddleware` on their routes). The modules reach external agents under a gate of their own until they launch,
+  (`useCanUseIntegrations`, and `staffOnlyMiddleware` on their routes, a member's Connect's included,
+  whose callback needs none, since only a staff member's Connect leaves a state to find). The modules reach external agents under a gate of their own until they launch,
   `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
@@ -761,6 +784,17 @@ there is never framed by another site dressing Allow up as something else. It re
 once, never again on focus, reconnecting or retry: a read is what has the backend fetch the client's
 metadata document, and a read after the member decided would find the request gone while the
 browser leaves.
+
+The page an OAuth MCP server's sign-in ends on, `/integrations/connected` (`INTEGRATION_CONNECTED_PATH`
+in strategydance-core), where the backend's callback sends the window the Integrations page opened,
+sits under `_authenticated` outside `_app` too, and `firebase.json` gives every path under
+`/integrations` the `/oauth` paths' headers. It finishes the Connect as the reader signed in, then
+says how it went on a `BroadcastChannel` (`INTEGRATION_CONNECTION_CHANNEL`) and closes itself where
+the browser lets it. The page that opened the window (`useIntegrationConnect`) opens it blank inside
+the click, sets its `opener` to null before sending it to the sign-in, an https address alone, takes
+the channel's `connected` as a nudge, since anybody can open the page, and the reader's live
+connection appearing anew as the proof, and never reads the window's `closed`, which an
+authorization server's Cross-Origin-Opener-Policy makes read true while the reader is still in it.
 
 TanStack parses each value of a query as JSON before `validateSearch` sees it, so 32 hex digits
 that happen to be decimal, or decimal around one `e`, arrive as a number that lost its digits. An
@@ -961,6 +995,28 @@ in `utils/`, one concern per file.
   `createIntegrationDatabaseFake` with `reachIntegration` mocked, `bun run check:integrations`
   checks the operations against the emulators, and `bun run probe:integrations` reaches every
   server of strategydance-external-mcp-servers through the same code from this machine
+- Any member connects their own account to an OAuth server through the same router's
+  `…/:integrationId/connection` routes, `organizationMemberMiddleware` in place of the administrator's:
+  start, finish, cancel and disconnect. Strategy Dance is the OAuth client there, every request to the
+  server and its authorization server through `createIntegrationFetch`, the guarded fetch, and the MCP
+  SDK's `registerClient`, `startAuthorization`, `exchangeAuthorization` and `refreshAuthorization`,
+  never its `auth()`: the client presented is Strategy Dance's client ID metadata document,
+  `GET /integrations/oauth/client`, where the authorization server reads such documents and the
+  backend is https, else the dynamic registration recorded on its row, the first recorded when two
+  members' first Connects register at once, the other left unused. The
+  authorization server's callback, `GET /integrations/oauth/callback` on the public backend
+  (`routes/integrationOAuth.ts`), finds the Connect by its state's hash, keeps the code encrypted for
+  two minutes and always answers a 303 to the app's page, which finishes it as the signed-in member:
+  the code is exchanged for the account that started the Connect alone, so a sign-in somebody else
+  started and sent connects nothing (OAuth CSRF). A token is read through
+  `readIntegrationAccessToken`, refreshed under the connection's lease, and goes to the address of the
+  revision it was given for. The backend logs no code, state, token or anything a server answered,
+  the development logger leaving the callback's query out; Cloud Run's own request log keeps the
+  callback's address, code and state with it, unless the exclusion of setup step 12 in
+  conversations.md is in place, the code being worthless without the verifier the Connect keeps
+  encrypted. The flow's tests run the real SDK through the
+  guard against `createIntegrationOAuthServerFake`, an MCP server and its authorization server in
+  memory, with `createIntegrationFetch` mocked to reach it
 - The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
   still deleted past its Undo window whether or not anybody comes back: today the conversations
   deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, each
@@ -974,8 +1030,9 @@ in `utils/`, one concern per file.
   and in production the files the Files API holds that no row names, a day old
   (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
-  organization's documents and MCP servers deleted over a day ago, the servers with their keys
-  (`PruneDeletedIntegrations`), the conversation searches over a day old, which
+  organization's documents and MCP servers deleted over a day ago, the servers with their keys and
+  members' connections (`PruneDeletedIntegrations`), members' Connects to them expired over an hour
+  ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
   nobody uses (`domain/oauth/prune…`). A milestone that keeps

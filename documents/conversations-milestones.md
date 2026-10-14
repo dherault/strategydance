@@ -78,7 +78,7 @@ it discards them, so a release cut between the two would leave the daily sweep t
 | M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
 | M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
-| M28 | Integrations: members connect their accounts | database, backend, web | M27 | |
+| M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | |
 | M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | |
@@ -1758,6 +1758,59 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
   refused; two concurrent refreshes spending a rotating refresh token once, the second reading the
   first's tokens; a lapsed refresh lease taken over; the first connection listing the tools.
 - Verify: connect two members to the same server as different accounts; disconnect one.
+- Built with these settled, on 2026-10-13:
+  - **The signed-in member finishes the exchange**, as David chose: the unauthenticated callback
+    consumes the state first, as above, but keeps the code, encrypted, for two minutes, and redirects
+    to an app page, `/integrations/connected`, which the member's own session finishes. The backend
+    exchanges the code only for the account that started the Connect, deleting the Connect under
+    `@check(this == 1)` before the exchange, so two finishes exchange once. Without it, anybody
+    administering an organization could start a Connect, send its sign-in to somebody else, and have
+    that person's account connected to their own membership (OAuth CSRF, RFC 9700 4.7), in one click
+    where a provider skips its consent for a client it knows, as the shared client ID metadata
+    document is.
+  - **The account's label is best effort**, as David chose: the email, username or name of an OpenID
+    ID token when the server sends one, unverified since it decides nothing and only its member reads
+    it; otherwise the page says when they connected. No scope is asked for it.
+  - **A member's Connect whose discovery names another issuer is refused**, as David chose: only an
+    administrator's Retry takes a new authorization server, since it disconnects everybody.
+  - `offline_access` is asked for wherever the authorization server lists it, so a connection gets a
+    refresh token rather than lapsing with its access token, the SDK then asking for consent again.
+  - `generation` is a UUID made at every connect, never a counter, so no disconnect, reconfiguration
+    or removal of the member ever brings one back: M29 stores it as text in
+    `approvalCredentialGeneration`, beside a key-based server's `keyGeneration`.
+  - The refresh's lease is claimed only while the connection holds the refresh token its caller read,
+    so a caller whose read another refresh overtook claims nothing, lasts two minutes, past every
+    request and encryption a refresh makes, and is written and released by its id alone. A refusal
+    for good marks the connection only while it holds the access token that refresh read; one with no
+    refresh token is marked on its refused token alone (`MarkIntegrationConnectionTokenRefused`, for
+    M29's 401).
+  - The changes that clear what was given for another server write the server's row first and delete
+    its connections and Connects after, which a Connect's own write locks against, so under read
+    committed none outlives them.
+  - A client the authorization server answers as unknown is forgotten, so the next Connect registers
+    again, and each connection issued to it is marked as needing its member at its own next refresh,
+    which the server refuses as it did. A registration asks for a public client wherever the server
+    lists one, else for `client_secret_basic`, else `client_secret_post`, and for `client_secret_basic`
+    where it lists none, as RFC 8414 reads a list left out; the method it answers is the one kept, and
+    the secret it gives is encrypted for the server alone. In development, whose callback is http, the
+    client is registered as a native one, and no metadata document is offered.
+  - The integration routes hand their operations canonical ids, since the page a sign-in ends on names
+    them hyphenated, and a live query's refresh compares its variables as text.
+  - The waiting dialog ends on the member's live connection appearing anew, the proof, or on the
+    landing page's word over a `BroadcastChannel`, a nudge; a blocked window is offered as a link; the
+    window's `closed` is never read, since a provider's Cross-Origin-Opener-Policy makes it lie.
+  - "Add and connect", the design's button for an OAuth server being added, is left for later: adding
+    one still adds it, and its row offers Connect.
+  - Verified: the four checks; 39 flow tests through the real SDK and guard against a fake MCP server
+    and authorization server, and the routes' own; `check:integrations` against an emulator of the
+    branch's schema; in the browser at 1280 and 390 wide, against the emulators and the same fake
+    provider served to the backend, an administrator adding an OAuth server and connecting as one
+    account, a member connecting the same server as another, each reading their own label, the tools
+    listed on the first connection, a disconnect revoking its refresh token, a Cancel followed by a
+    sign-in that connected nothing, a refusal, a sign-in the member started finished in the
+    administrator's browser and refused, a blocked window's link, and a server turned off; and
+    Linear's real authorization server registering Strategy Dance and showing its consent page. Not
+    yet: approving at a real server, which needs an account there.
 
 ### M29: Integrations in conversations
 
@@ -1766,7 +1819,8 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
 - **The schema change**, additive, with `APPROVAL` appended to the kinds: `ConversationMessage` gains
   `integration` (an optional reference, nulled if the server is pruned), `integrationName` (at call
   time), `integrationToolName`, `approvalState` (`PENDING`, `ALLOWED`, `DENIED`), `approvalConfigRevision`,
-  `approvalToolHash` and `approvalCredentialGeneration` (see below), and
+  `approvalToolHash` and `approvalCredentialGeneration` (see below; text, since an OAuth server's
+  connection's `generation` is a UUID), and
   `argumentsPreview` (display text, cut to 2000 characters), the live tail selecting the state and
   `GetConversationMessageBodies` the rest, both extended here; the
   warning strip matches the live integrations list by `integration`, never by name. A preview

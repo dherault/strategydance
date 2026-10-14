@@ -49,7 +49,7 @@
         ]
       },
       {
-        "regex": "(?i)^/oauth(/.*)?$",
+        "regex": "(?i)^/(oauth|integrations)(/.*)?$",
         "headers": [
           {
             "key": "Content-Security-Policy",

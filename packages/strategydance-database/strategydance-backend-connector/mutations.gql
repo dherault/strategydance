@@ -478,7 +478,9 @@ mutation SendConversationMessage(
 #   its turn, and a run that does not wait is left as it is
 # - the questions still waiting are skipped, exactly those the backend read as waiting
 #   (`$skippedQuestionIds`), so an answer recorded since it read them refuses the send, which reads
-#   again rather than tell Claude a question answered was skipped
+#   again rather than tell Claude a question answered was skipped, and so are the calls waiting for
+#   the member's approval, denied (`$deniedApprovalIds`), and those allowed that never ran, answered
+#   as not run (`$closedApprovalIds`)
 # - the conversation waits for no answer any more
 #
 # Its files are associated as `SendConversationMessage`'s are
@@ -499,6 +501,10 @@ mutation SendConversationMessageAnsweringCalls(
   $isLastRunWaiting: Boolean!
   $skippedQuestionIds: [UUID!]!
   $attachmentIds: [UUID!]
+  $deniedApprovalIds: [UUID!]
+  $deniedApprovalOutput: String
+  $closedApprovalIds: [UUID!]
+  $closedApprovalOutput: String
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -576,6 +582,43 @@ mutation SendConversationMessageAnsweringCalls(
     }
     data: { isAnswerSkipped: true, answeredAt_expr: "request.time" }
   ) @check(expr: "this == size(vars.skippedQuestionIds)", message: "The questions changed since the send read them")
+  # The calls still waiting for the member's approval, which the message denies, and those they
+  # allowed that never ran, which it answers as not run, exactly those the backend read so. A backend
+  # from before M29 names none: a conversation with any is refused it, rather than left with calls
+  # nothing answers
+  deniedApprovals: conversationMessage_updateMany(
+    where: {
+      id: { in: $deniedApprovalIds }
+      conversationId: { eq: $conversationId }
+      kind: { eq: APPROVAL }
+      approvalState: { eq: PENDING }
+      answeredAt: { isNull: true }
+    }
+    data: {
+      approvalState: DENIED
+      toolStatus: FAILED
+      toolOutput: $deniedApprovalOutput
+      answeredAt_expr: "request.time"
+    }
+  )
+    @check(
+      expr: "(!has(vars.deniedApprovalIds) || vars.deniedApprovalIds == null) ? this == 0 : this == size(vars.deniedApprovalIds)"
+      message: "The calls waiting for approval changed since the send read them"
+    )
+  closedApprovals: conversationMessage_updateMany(
+    where: {
+      id: { in: $closedApprovalIds }
+      conversationId: { eq: $conversationId }
+      kind: { eq: APPROVAL }
+      approvalState: { eq: ALLOWED }
+      toolStatus: { isNull: true }
+    }
+    data: { toolStatus: FAILED, toolOutput: $closedApprovalOutput }
+  )
+    @check(
+      expr: "(!has(vars.closedApprovalIds) || vars.closedApprovalIds == null) ? this == 0 : this == size(vars.closedApprovalIds)"
+      message: "The calls allowed changed since the send read them"
+    )
   conversationRun_insert(
     data: {
       id: $runId
@@ -641,9 +684,10 @@ mutation SendConversationMessageAnsweringCalls(
 # - the run the backend read waits still
 # - the question is answered, only while it waits, its options by their text and its own words on
 #   one line, as the backend checked them against it
-# - the other questions of the turn still waiting are read, after the lock, so an answer another
-#   request recorded first is seen. A step reading what its own mutation wrote does not see it, so
-#   the question answered is left out by its id rather than by its answer
+# - the other questions of the turn still waiting are read, after the lock, with its calls still
+#   waiting for the member's approval, so an answer another request recorded first is seen. A step
+#   reading what its own mutation wrote does not see it, so the question answered is left out by its
+#   id rather than by its answer
 #
 # The answer goes into the transcript as it is recorded, so it is bounded here too
 mutation AnswerConversationQuestion(
@@ -699,7 +743,90 @@ mutation AnswerConversationQuestion(
       where: {
         id: { ne: $messageId }
         conversationId: { eq: $conversationId }
-        kind: { eq: QUESTION }
+        kind: { in: [QUESTION, APPROVAL] }
+        answeredAt: { isNull: true }
+      }
+      limit: 1000
+    ) {
+      id
+    }
+  }
+}
+
+# Records the member's decision on a call of the turn their conversation waits on, which waits for
+# their approval, and answers with what of that turn still waits, as `AnswerConversationQuestion`
+# records an answer and serialized with it on the conversation's row:
+#
+# - the conversation's row is locked first, only while it is the caller's, not deleted, waits for an
+#   answer, and its preview still shows the message the backend read. `$preview` rebuilds it, given
+#   only when that message is the approval decided
+# - the run the backend read waits still
+# - the approval is decided, only while it waits: allowed, its call left to the run that carries the
+#   conversation on, or denied, answered as failed with `$toolOutput`, which says why, the member's
+#   Deny or the server having changed since the call was proposed, which the backend checked
+# - the questions and approvals of the turn still waiting are read, after the lock, the one decided
+#   left out by its id
+mutation AnswerConversationApproval(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $messageId: UUID!
+  $previewMessageId: UUID!
+  $preview: Any
+  $approvalState: ConversationApprovalState!
+  $toolStatus: ConversationToolStatus
+  $toolOutput: String
+) @auth(level: NO_ACCESS) @transaction {
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAwaitingAnswer: { eq: true }
+      previewMessageId: { eq: $previewMessageId }
+    }
+    data: { preview: $preview, updatedAt_expr: "request.time" }
+  )
+    @check(expr: "this == 1", message: "The conversation waits for no answer, or its preview moved")
+    @check(
+      expr: "(vars.approvalState == 'ALLOWED' && (!has(vars.toolStatus) || vars.toolStatus == null) && (!has(vars.toolOutput) || vars.toolOutput == null)) || (vars.approvalState == 'DENIED' && has(vars.toolStatus) && vars.toolStatus == 'FAILED' && has(vars.toolOutput) && vars.toolOutput != null)"
+      message: "An approval is allowed, its call left to run, or denied, failed with why"
+    )
+  query @redact {
+    waiting: conversationRuns(
+      where: {
+        id: { eq: $runId }
+        status: { eq: WAITING }
+        conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The run no longer waits for an answer") {
+      id
+    }
+  }
+  conversationMessage_updateMany(
+    where: {
+      id: { eq: $messageId }
+      conversationId: { eq: $conversationId }
+      kind: { eq: APPROVAL }
+      approvalState: { eq: PENDING }
+      answeredAt: { isNull: true }
+    }
+    data: {
+      approvalState: $approvalState
+      toolStatus: $toolStatus
+      toolOutput: $toolOutput
+      answeredAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The approval waits no more")
+  left: query {
+    conversationMessages(
+      where: {
+        id: { ne: $messageId }
+        conversationId: { eq: $conversationId }
+        kind: { in: [QUESTION, APPROVAL] }
         answeredAt: { isNull: true }
       }
       limit: 1000
@@ -717,7 +844,8 @@ mutation AnswerConversationQuestion(
 #
 # - the caller's membership row is locked, as a send locks it, and they hold fewer than 3 runs in
 #   flight in the organization: past them the continuation starts later, from the reconcile route
-# - no question waits any more
+# - no question waits any more, nor any call for the member's approval, and no call they allowed
+#   waits to run
 # - the waiting run moves from `WAITING` to `CONTINUED`, which a send consuming the turn also does,
 #   so only one of them carries it on, and a late one finds nothing to consume
 # - the conversation takes the run and waits for no answer any more. A full one too: the run then
@@ -760,9 +888,26 @@ mutation ContinueConversationRun(
       id
     }
     waitingQuestions: conversationMessages(
-      where: { conversationId: { eq: $conversationId }, kind: { eq: QUESTION }, answeredAt: { isNull: true } }
+      where: {
+        conversationId: { eq: $conversationId }
+        kind: { in: [QUESTION, APPROVAL] }
+        answeredAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 0", message: "A question of the turn still waits") {
+      id
+    }
+    # A call the member allowed has not run, so nothing can answer it yet: its run carries the turn
+    # on through `ContinueConversationRunWithCalls`
+    allowedCalls: conversationMessages(
+      where: {
+        conversationId: { eq: $conversationId }
+        kind: { eq: APPROVAL }
+        approvalState: { eq: ALLOWED }
+        toolStatus: { isNull: true }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "A call the member allowed waits to run") {
       id
     }
   }
@@ -809,6 +954,117 @@ mutation ContinueConversationRun(
       position: $transcriptPosition
       role: USER
       content: $content
+    }
+  )
+}
+
+# Carries a conversation on once every question and approval of the turn it waits on is answered,
+# as `ContinueConversationRun` does, when the member allowed a call of it: the call has not run, so
+# nothing can answer the turn yet. The run starts with no entry, anchored where the waiting run was
+# (`$anchorPosition`) and with the results of its calls that finished (`$pendingToolResults`), as a
+# resumed run carries on the run it resumes, so its worker makes the calls allowed before it stores
+# the entry that answers the turn, and anchors itself there. In one mutation, besides what
+# `ContinueConversationRun` checks and writes:
+#
+# - the calls of the turn a stop or the run's time kept from running, which a resumed run would make,
+#   are answered as stopped, `$stoppedCallIds`, failed with `$stoppedCallOutput`, exactly those named
+mutation ContinueConversationRunWithCalls(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $waitingRunId: UUID!
+  $runId: UUID!
+  $runNumber: Int!
+  $anchorPosition: Int!
+  $pendingToolResults: String
+  $stoppedCallIds: [UUID!]!
+  $stoppedCallOutput: String!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the continuation read it") {
+      userId
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    waitingQuestions: conversationMessages(
+      where: {
+        conversationId: { eq: $conversationId }
+        kind: { in: [QUESTION, APPROVAL] }
+        answeredAt: { isNull: true }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "A question of the turn still waits") {
+      id
+    }
+  }
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $waitingRunId }
+      status: { eq: WAITING }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    data: { status: CONTINUED }
+  ) @check(expr: "this == 1", message: "The run's turn was consumed already")
+  conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      nextRunNumber: { eq: $runNumber }
+    }
+    data: {
+      activeRunId: $runId
+      isAwaitingAnswer: false
+      nextRunNumber_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the run")
+  conversationMessage_updateMany(
+    where: {
+      id: { in: $stoppedCallIds }
+      conversationId: { eq: $conversationId }
+      kind: { eq: TOOL_CALL }
+      toolStatus: { eq: CANCELLED }
+      toolStartedAt: { isNull: true }
+    }
+    data: { toolStatus: FAILED, toolOutput: $stoppedCallOutput }
+  )
+    @check(
+      expr: "this == size(vars.stoppedCallIds)"
+      message: "The turn's calls changed since the continuation read them"
+    )
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: ANSWER
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      pendingToolResults: $pendingToolResults
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
     }
   )
 }

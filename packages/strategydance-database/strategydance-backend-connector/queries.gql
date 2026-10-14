@@ -249,6 +249,9 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     answerSelected
     answerOther
     isAnswerSkipped
+    integrationName
+    integrationToolName
+    approvalState
     run {
       id
     }
@@ -352,6 +355,9 @@ query GetConversationRetryContext(
     answerSelected
     answerOther
     isAnswerSkipped
+    integrationName
+    integrationToolName
+    approvalState
     # A message of files alone is previewed by their names, in the order it sends them
     conversationAttachments_on_message(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 10) {
       name
@@ -542,6 +548,9 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
     trigger
     status
     leaseExpiresAt
+    # Where the run that waits was anchored, which a run carrying its turn on to make the calls its
+    # member allowed is anchored on too, until it stores the turn's results
+    anchorPosition
   }
   conversationRuns(
     where: {
@@ -570,15 +579,45 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
     role
     content
   }
+  # The questions, and the calls waiting for the member's approval, of the turn: what the member
+  # answers before the conversation goes on
   waitingQuestions: conversationMessages(
     where: {
-      kind: { eq: QUESTION }
+      kind: { in: [QUESTION, APPROVAL] }
       answeredAt: { isNull: true }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
     limit: 1000
   ) {
     id
+  }
+}
+
+# A call to an integration waiting for the caller's approval, by its id, as Allow and Deny read it:
+# what the approval is bound to, which Allow checks against the server as it is, and its answer once
+# it has one, so a decision sent again is told from another
+query GetConversationApproval($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationMessages(
+    where: {
+      id: { eq: $messageId }
+      kind: { eq: APPROVAL }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    id
+    toolUseId
+    toolStatus
+    toolOutput
+    integrationId
+    integrationName
+    integrationToolName
+    approvalState
+    approvalConfigRevision
+    approvalToolHash
+    approvalCredentialGeneration
+    answeredAt
   }
 }
 

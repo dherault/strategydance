@@ -7,6 +7,8 @@ import useChecklist from '~hooks/checklist/useChecklist'
 import useRecentChecklistTicks from '~hooks/checklist/useRecentChecklistTicks'
 import useLogAuthors from '~hooks/log/useLogAuthors'
 import useMemberLatestLogEntries from '~hooks/log/useMemberLatestLogEntries'
+import useTaskDescriptions from '~hooks/task/useTaskDescriptions'
+import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import pickLogAuthor from '~utils/buildInPublic/pickLogAuthor'
@@ -32,6 +34,8 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
   const { data: authorIds, initialLoading: areAuthorsLoading } = useLogAuthors()
   const { initialLoading: isAuthorLogLoading } = useMemberLatestLogEntries(pickLogAuthor(pickedId, authorIds, viewerId))
   const { initialLoading: isOwnLogLoading } = useMemberLatestLogEntries(viewerId)
+  const { initialLoading: areTasksLoading } = useTasks()
+  const { initialLoading: areDescriptionsLoading } = useTaskDescriptions()
 
   if (
     areActivityDaysLoading
@@ -41,6 +45,8 @@ function BuildInPublicWait({ children }: PropsWithChildren) {
     || areAuthorsLoading
     || isAuthorLogLoading
     || isOwnLogLoading
+    || areTasksLoading
+    || areDescriptionsLoading
   ) {
     return <Loading source="BuildInPublicWait" />
   }

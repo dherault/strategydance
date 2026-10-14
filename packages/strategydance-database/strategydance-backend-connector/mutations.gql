@@ -3772,8 +3772,9 @@ mutation DeleteExpiredModuleCallResults @auth(level: NO_ACCESS) {
 
 # Adds a task an agent wrote, held to `CreateTask`'s bounds and to the 1000 tasks an organization
 # keeps, counted under the same lock on the organization's row, so an agent and a page adding at once
-# cannot pass it. `$position` is past the last of its column as the module read it, and
-# `$descriptionText` the plain text of `$description`
+# cannot pass it. `$position` is past the last of its column as the module read it,
+# `$descriptionText` the plain text of `$description`, and `$doneAt` when it was done, the module's
+# time, sent for a task created into Done alone
 mutation CreateTaskForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -3788,6 +3789,7 @@ mutation CreateTaskForAgent(
   $isAssignedToAgent: Boolean!
   $dueDate: Date
   $aspects: [CompanyAspect!]!
+  $doneAt: Timestamp
   $isKeyed: Boolean!
   $idempotencyScope: String!
   $idempotencyKey: String!
@@ -3868,6 +3870,7 @@ mutation CreateTaskForAgent(
       isAssignedToAgent: $isAssignedToAgent
       dueDate: $dueDate
       aspects: $aspects
+      doneAt: $doneAt
     }
   )
 }
@@ -3876,7 +3879,9 @@ mutation CreateTaskForAgent(
 # another field meanwhile keeps their change. An omitted variable leaves its column alone and a null
 # one clears it: `$dueDate` null clears the day, and `$assigneeId` null with `$isAssignedToAgent`
 # takes the task off whoever had it. A description comes with its plain text, a move with its column
-# and its place in it, an assignment with both its fields, which the module always sends together.
+# and its place in it, an assignment with both its fields, which the module always sends together. A
+# move into Done from another column comes with `$doneAt`, the module's time, and any other leaves
+# it as it is, so a move within Done keeps the day it was finished.
 #
 # Refused unless the task is still as the module read it, its `updatedAt` unmoved, which every
 # change of a task's fields moves: the module then reads again and reapplies, so a member's save
@@ -3897,6 +3902,7 @@ mutation UpdateTaskForAgent(
   $isAssignedToAgent: Boolean
   $dueDate: Date
   $aspects: [CompanyAspect!]
+  $doneAt: Timestamp
   $isKeyed: Boolean!
   $idempotencyScope: String!
   $idempotencyKey: String!
@@ -3982,6 +3988,7 @@ mutation UpdateTaskForAgent(
       isAssignedToAgent: $isAssignedToAgent
       dueDate: $dueDate
       aspects: $aspects
+      doneAt: $doneAt
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The task changed or was deleted since it was read")
@@ -4260,6 +4267,13 @@ mutation IndexTaskText($id: UUID!, $updatedAt: Timestamp!, $descriptionText: Str
     where: { id: { eq: $id }, updatedAt: { eq: $updatedAt }, descriptionText: { isNull: true } }
     data: { descriptionText: $descriptionText }
   )
+}
+
+# The `doneAt` backfill's: stamps a task done before `doneAt` existed with its last change, the
+# nearest the releases before it left, while it is still in Done and nobody has stamped it, as a
+# finish meanwhile would. Its `updatedAt` stays, since the task did not change
+mutation DateDoneTask($id: UUID!, $doneAt: Timestamp!) @auth(level: NO_ACCESS) {
+  task_updateMany(where: { id: { eq: $id }, status: { eq: DONE }, doneAt: { isNull: true } }, data: { doneAt: $doneAt })
 }
 
 # The authorization server's writes follow. Most of them run before any `$userId` has been

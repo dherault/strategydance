@@ -603,6 +603,12 @@ query GetTasks($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "FinishTask"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "AssignTask"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -715,6 +721,8 @@ query GetTasks($organizationId: UUID!)
     aspects
     createdById
     createdAt
+    # When a done task was finished, which the build in public cards count from
+    doneAt
     dependencies: taskDependencies_on_task(where: { dependency: { deletedAt: { isNull: true } } }, limit: 50) {
       dependencyId
     }

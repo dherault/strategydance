@@ -5,11 +5,12 @@ import {
   type GetTaskDescriptionData,
   type GetTaskDescriptionsData,
   type GetTasksData,
-  type TaskStatus,
+  TaskStatus,
   addTaskDependency as addTaskDependencyMutation,
   assignTask as assignTaskMutation,
   createTaskWithText as createTaskMutation,
   deleteTask as deleteTaskMutation,
+  finishTask as finishTaskMutation,
   getTasks,
   moveTask as moveTaskMutation,
   removeTaskDependency as removeTaskDependencyMutation,
@@ -187,6 +188,8 @@ function useTaskChanges() {
       aspects: draft.aspects,
       createdById: viewer?.uid ?? null,
       createdAt: new Date().toISOString(),
+      // Not stamped, even into Done, which a reader dates by `createdAt` instead
+      doneAt: null,
       dependencies: [],
       linkCount: [{ _count: 0 }],
     }
@@ -282,11 +285,34 @@ function useTaskChanges() {
     )
   }
 
+  /*
+    Writes where a task sits. Into Done from another column, as the board shows it, it is a finish,
+    which stamps when the task was done; any other move, one within Done included, leaves that as it
+    is. Either names the column the task was seen in, so a teammate's move landing first is kept
+    rather than undone, and the board read again
+  */
   function placeTask(taskId: string, status: TaskStatus, position: number) {
+    const current = readTasks().find(task => task.id === taskId)
+    const isFinishing = status === TaskStatus.DONE && current !== undefined && current.status !== TaskStatus.DONE
+
     return changeTask(
       taskId,
-      task => ({ ...task, status, position }),
-      () => moveTaskMutation(dataConnect, { organizationId: organizationId!, id: taskId, status, position }),
+      task => ({ ...task, status, position, ...(isFinishing && { doneAt: new Date().toISOString() }) }),
+      () =>
+        isFinishing
+          ? finishTaskMutation(dataConnect, {
+              organizationId: organizationId!,
+              id: taskId,
+              position,
+              fromStatus: current.status,
+            })
+          : moveTaskMutation(dataConnect, {
+              organizationId: organizationId!,
+              id: taskId,
+              status,
+              position,
+              ...(current && { fromStatus: current.status }),
+            }),
     )
   }
 

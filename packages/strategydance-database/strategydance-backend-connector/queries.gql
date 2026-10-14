@@ -1670,6 +1670,17 @@ query GetUnindexedTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
   }
 }
 
+# The `doneAt` backfill's, run by hand after the release that added it: up to 100 tasks of any
+# organization in Done that nobody stamped, deleted ones included, each with its last change, which
+# the backfill stamps it with, leaving out those it could not stamp. A stamped one leaves the list,
+# so it pages through them and can stop and start again at any point
+query GetUndatedDoneTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
+  tasks(where: { status: { eq: DONE }, doneAt: { isNull: true }, id: { nin: $skippedIds } }, limit: 100) {
+    id
+    updatedAt
+  }
+}
+
 # The authorization server's operations follow, which the backend's OAuth endpoints run for the
 # external agents a member connects to a module (`documents/conversations.md`, Modules, External
 # agents).

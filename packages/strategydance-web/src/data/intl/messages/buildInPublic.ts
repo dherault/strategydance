@@ -14,7 +14,7 @@ const buildInPublicMessages = defineMessages({
   lead: {
     id: 'buildInPublic.lead',
     defaultMessage:
-      'Cards made from your streak, top priority, checklist, log and company profile. Share them on X or wherever you post updates.',
+      'Cards made from your streak, top priority, checklist, tasks, log and company profile. Share them on X or wherever you post updates.',
     description:
       'Line under the title of the build in public page, which turns what the reader does into images to post on social networks.',
   },
@@ -194,6 +194,26 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.colorBlack',
     defaultMessage: 'Black',
     description: "Option of a card's accent color.",
+  },
+  textColor: {
+    id: 'buildInPublic.textColor',
+    defaultMessage: 'Text color',
+    description: "Label of the setting that picks what every card's text is written in.",
+  },
+  inkAutomatic: {
+    id: 'buildInPublic.inkAutomatic',
+    defaultMessage: 'Automatic',
+    description: "Option of a card's text color: whatever reads best on the card's background, picked for it.",
+  },
+  inkWhite: {
+    id: 'buildInPublic.inkWhite',
+    defaultMessage: 'White',
+    description: "Option of a card's text color.",
+  },
+  inkBlack: {
+    id: 'buildInPublic.inkBlack',
+    defaultMessage: 'Black',
+    description: "Option of a card's text color.",
   },
   buildingInPublic: {
     id: 'buildInPublic.buildingInPublic',
@@ -528,6 +548,275 @@ const buildInPublicMessages = defineMessages({
     id: 'buildInPublic.done',
     defaultMessage: 'done',
     description: 'Word after how many checklist habits were kept on a day, as in "3/4 done".',
+  },
+  tasksTitle: {
+    id: 'buildInPublic.tasksTitle',
+    defaultMessage: 'Tasks',
+    description: "Title of the build in public section of cards drawn from the team's task board.",
+  },
+  tasksDescription: {
+    id: 'buildInPublic.tasksDescription',
+    defaultMessage: 'From your board',
+    description: "Line under the title of the section of cards drawn from the team's task board.",
+  },
+  tasksLoadFailed: {
+    id: 'buildInPublic.tasksLoadFailed',
+    defaultMessage: 'Your board could not be loaded.',
+    description: "Shown in place of the task cards when the team's task board could not be read.",
+  },
+  statusCard: {
+    id: 'buildInPublic.statusCard',
+    defaultMessage: 'Status',
+    description: 'Name of the card showing one task and where it stands on the board.',
+  },
+  taskFocusCard: {
+    id: 'buildInPublic.taskFocusCard',
+    defaultMessage: 'Task focus',
+    description: 'Name of the card showing one task and how many days it has been on the board or took to finish.',
+  },
+  countdownCard: {
+    id: 'buildInPublic.countdownCard',
+    defaultMessage: 'Countdown',
+    description: "Name of the card counting the days to one task's due date.",
+  },
+  agentCard: {
+    id: 'buildInPublic.agentCard',
+    defaultMessage: 'AI teammate',
+    description: 'Name of the card showing a task the team gave to Strategy Dance, its AI.',
+  },
+  boardCard: {
+    id: 'buildInPublic.boardCard',
+    defaultMessage: 'Board snapshot',
+    description: "Name of the card showing the team's task board, its four columns and a few tasks in each.",
+  },
+  progressCard: {
+    id: 'buildInPublic.progressCard',
+    defaultMessage: 'Progress',
+    description: "Name of the card showing how much of the team's task board is done.",
+  },
+  aspectsCard: {
+    id: 'buildInPublic.aspectsCard',
+    defaultMessage: 'Aspects',
+    description:
+      "Name of the card showing which parts of the company, such as sales or legal, the board's tasks are about.",
+  },
+  workersCard: {
+    id: 'buildInPublic.workersCard',
+    defaultMessage: 'Humans and AI',
+    description: "Name of the card showing who does the board's tasks, the team's members and Strategy Dance, its AI.",
+  },
+  taskField: {
+    id: 'buildInPublic.taskField',
+    defaultMessage: 'Task',
+    description: 'Label of the setting that picks which task of the board a card shows.',
+  },
+  searchTasks: {
+    id: 'buildInPublic.searchTasks',
+    defaultMessage: 'Search tasks…',
+    description: "Placeholder of the search field in the list of the board's tasks a card can show.",
+  },
+  noTasksFound: {
+    id: 'buildInPublic.noTasksFound',
+    defaultMessage: 'No tasks found.',
+    description: "Shown in the list of the board's tasks when the search matches none.",
+  },
+  assigneeField: {
+    id: 'buildInPublic.assigneeField',
+    defaultMessage: 'Assignee',
+    description:
+      "Label of the setting that picks whose tasks a board card counts: everyone's, the AI's or one member's.",
+  },
+  everyone: {
+    id: 'buildInPublic.everyone',
+    defaultMessage: 'Everyone',
+    description: 'Option of the assignee setting: the tasks of everybody on the board.',
+  },
+  taskShipped: {
+    id: 'buildInPublic.taskShipped',
+    defaultMessage: 'Shipped',
+    description: 'Small uppercase line above a task that is done.',
+  },
+  taskInProgress: {
+    id: 'buildInPublic.taskInProgress',
+    defaultMessage: 'In progress',
+    description: 'Small uppercase line above a task that is being worked on.',
+  },
+  taskUpNext: {
+    id: 'buildInPublic.taskUpNext',
+    defaultMessage: 'Up next',
+    description: 'Small uppercase line above a task that is to be done next.',
+  },
+  taskOnRoadmap: {
+    id: 'buildInPublic.taskOnRoadmap',
+    defaultMessage: 'On the roadmap',
+    description: 'Small uppercase line above a task waiting in the backlog.',
+  },
+  taskNowBuilding: {
+    id: 'buildInPublic.taskNowBuilding',
+    defaultMessage: 'Now building',
+    description:
+      'Small uppercase line above a task the team is working on now, over how many days it has been on the board.',
+  },
+  taskNextUp: {
+    id: 'buildInPublic.taskNextUp',
+    defaultMessage: 'Next up',
+    description: 'Small uppercase line above a task to do next, over how many days it has been on the board.',
+  },
+  taskStatusDue: {
+    id: 'buildInPublic.taskStatusDue',
+    defaultMessage: '{status} · Due {date}',
+    description:
+      'Small uppercase line above a task that is not done: where it stands, then the day it should be done by, as in "In progress · Due Oct 20".',
+  },
+  taskDue: {
+    id: 'buildInPublic.taskDue',
+    defaultMessage: 'Due {date}',
+    description: 'The day a task should be done by, as in "Due Oct 20" or "Due Tomorrow".',
+  },
+  daysToShip: {
+    id: 'buildInPublic.daysToShip',
+    defaultMessage: '{count, plural, one {day to ship} other {days to ship}}',
+    description:
+      'Words under the big number of days a finished task took, from when it was added to the board to when it was done.',
+  },
+  daysOnBoard: {
+    id: 'buildInPublic.daysOnBoard',
+    defaultMessage: '{count, plural, one {day on the board} other {days on the board}}',
+    description: "Words under the big number of days a task has been on the team's board.",
+  },
+  shippingIn: {
+    id: 'buildInPublic.shippingIn',
+    defaultMessage: 'Shipping in',
+    description:
+      'Small uppercase line above the big number of days left until a task is due, as in "Shipping in" then "6 days".',
+  },
+  shippingToday: {
+    id: 'buildInPublic.shippingToday',
+    defaultMessage: 'Shipping',
+    description: 'Small uppercase line above the big word "Today" when a task is due today.',
+  },
+  pastDue: {
+    id: 'buildInPublic.pastDue',
+    defaultMessage: 'Past due by',
+    description: 'Small uppercase line above the big number of days since a task that is not done was due.',
+  },
+  shippedAhead: {
+    id: 'buildInPublic.shippedAhead',
+    defaultMessage: 'Shipped ahead of schedule by',
+    description: 'Small uppercase line above the big number of days a task was finished before its due date.',
+  },
+  shippedOnTime: {
+    id: 'buildInPublic.shippedOnTime',
+    defaultMessage: 'Shipped on time',
+    description: 'Small uppercase line above a task finished on its due date, over how long ago that was.',
+  },
+  daysAgo: {
+    id: 'buildInPublic.daysAgo',
+    defaultMessage: '{count, plural, one {day ago} other {days ago}}',
+    description: 'Words after the big number of days since a task was finished, as in "3" then "days ago".',
+  },
+  dayUnit: {
+    id: 'buildInPublic.dayUnit',
+    defaultMessage: '{count, plural, one {day} other {days}}',
+    description: 'Words after a big number of days, as in "6" then "days".',
+  },
+  delegatedToAi: {
+    id: 'buildInPublic.delegatedToAi',
+    defaultMessage: 'Delegated to AI',
+    description: 'Small uppercase line above a task the team gave to Strategy Dance, its AI, to do.',
+  },
+  agentRole: {
+    id: 'buildInPublic.agentRole',
+    defaultMessage: 'AI teammate',
+    description:
+      "What Strategy Dance, the app's AI, is shown as on a card, under its name, where a person's job title would be.",
+  },
+  agentQueued: {
+    id: 'buildInPublic.agentQueued',
+    defaultMessage: 'Queued',
+    description: 'Where a task given to the AI stands: in the backlog, not started.',
+  },
+  agentUpNext: {
+    id: 'buildInPublic.agentUpNext',
+    defaultMessage: 'Up next',
+    description: 'Where a task given to the AI stands: to be done next.',
+  },
+  agentWorking: {
+    id: 'buildInPublic.agentWorking',
+    defaultMessage: 'Working on it',
+    description: 'Where a task given to the AI stands: being done.',
+  },
+  agentDone: {
+    id: 'buildInPublic.agentDone',
+    defaultMessage: 'Done',
+    description: 'Where a task given to the AI stands: finished.',
+  },
+  agentStatus: {
+    id: 'buildInPublic.agentStatus',
+    defaultMessage: 'Strategy Dance · {status}',
+    description: 'Line saying where the AI, Strategy Dance, stands on a task, as in "Strategy Dance · Working on it".',
+  },
+  boardOn: {
+    id: 'buildInPublic.boardOn',
+    defaultMessage: 'Board · {date}',
+    description: 'Small uppercase line on the board card: the board as it is on a day, as in "Board · Oct 14".',
+  },
+  organizationAndMember: {
+    id: 'buildInPublic.organizationAndMember',
+    defaultMessage: '{organization} · {name}',
+    description: "The organization's name, then the member whose tasks a card counts.",
+  },
+  boardProgress: {
+    id: 'buildInPublic.boardProgress',
+    defaultMessage: 'Board progress',
+    description: "Small uppercase line above the share of the board's tasks that are done.",
+  },
+  boardProgressOf: {
+    id: 'buildInPublic.boardProgressOf',
+    defaultMessage: 'Board progress · {name}',
+    description:
+      'Small uppercase line above the share of one member\'s tasks that are done, as in "Board progress · Sam".',
+  },
+  tasksDoneOf: {
+    id: 'buildInPublic.tasksDoneOf',
+    defaultMessage: '{count, plural, one {of # task done} other {of # tasks done}}',
+    description: 'Words under the big share of tasks done, as in "40%" then "of 12 tasks done".',
+  },
+  acrossCompany: {
+    id: 'buildInPublic.acrossCompany',
+    defaultMessage: 'Across the company',
+    description: "Small uppercase line above the parts of the company the board's tasks are about.",
+  },
+  aspectsInMotion: {
+    id: 'buildInPublic.aspectsInMotion',
+    defaultMessage: '{count, plural, one {# aspect in motion} other {# aspects in motion}}',
+    description: "How many parts of the company, such as sales or legal, the board's tasks are about.",
+  },
+  whoDoesTheWork: {
+    id: 'buildInPublic.whoDoesTheWork',
+    defaultMessage: 'Who does the work',
+    description: "Small uppercase line above who does the board's tasks.",
+  },
+  peopleAndAi: {
+    id: 'buildInPublic.peopleAndAi',
+    defaultMessage: '{count, plural, one {# person and 1 AI} other {# people and 1 AI}}',
+    description: "How many members do the board's tasks, beside Strategy Dance, the AI.",
+  },
+  people: {
+    id: 'buildInPublic.people',
+    defaultMessage: '{count, plural, one {# person} other {# people}}',
+    description: "How many members do the board's tasks, when the AI does none.",
+  },
+  tasksForAi: {
+    id: 'buildInPublic.tasksForAi',
+    defaultMessage: 'of tasks assigned to AI',
+    description:
+      'Words under the big share of the board\'s tasks given to Strategy Dance, the AI, as in "25%" then "of tasks assigned to AI".',
+  },
+  taskCount: {
+    id: 'buildInPublic.taskCount',
+    defaultMessage: '{count, plural, one {# task} other {# tasks}}',
+    description: "How many of the board's tasks somebody is doing.",
   },
   logTitle: {
     id: 'buildInPublic.logTitle',

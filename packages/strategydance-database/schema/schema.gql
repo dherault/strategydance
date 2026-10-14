@@ -350,6 +350,13 @@ type Task @table @index(fields: ["organizationId", "status", "position"]) {
   isAssignedToAgent: Boolean! @default(value: false)
   # The day it should be done by, the same day for every member whatever their time zone
   dueDate: Date
+  # When it last reached Done, from the server's clock: `FinishTask` stamps it as the page moves it
+  # there, and the Tasks module's writes as an agent creates it done or finishes it. Kept when the
+  # task leaves Done, so it says something only while the status is DONE. A task done before it
+  # existed is stamped with its last change by `backfill:task-done-at`, run once by hand. Null where
+  # nobody stamped it, a task created straight into Done or finished by a page from before
+  # `FinishTask`, which a reader dates by `createdAt` instead, right for the first
+  doneAt: Timestamp
   # Which aspects of the company it is about, each once, in no particular order. The page shows
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")

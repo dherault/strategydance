@@ -1,6 +1,6 @@
 import type { BuildInPublicSettings, CardLook, CardValues } from '~types'
 
-import { CARD_ACCENT_COLORS, CARD_TONES } from '~constants'
+import { CARD_ACCENT_COLORS, CARD_INK_COLORS, CARD_TONES } from '~constants'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import usePersistedState from '~hooks/common/usePersistedState'
@@ -50,6 +50,9 @@ function parseLook(value: unknown): CardLook {
     || (typeof value.accent === 'string' && Object.hasOwn(CARD_ACCENT_COLORS, value.accent))
   ) {
     look.accent = value.accent as CardLook['accent']
+  }
+  if (typeof value.ink === 'string' && Object.hasOwn(CARD_INK_COLORS, value.ink)) {
+    look.ink = value.ink as CardLook['ink']
   }
 
   return look

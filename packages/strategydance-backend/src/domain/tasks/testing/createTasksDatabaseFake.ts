@@ -24,6 +24,7 @@ export type FakeTask = {
   isAssignedToAgent: boolean
   dueDate: string | null
   aspects: string[]
+  doneAt: string | null
   deletedAt: string | null
   createdAt: string
   updatedAt: string
@@ -64,6 +65,7 @@ function createTasksDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       isAssignedToAgent: false,
       dueDate: null,
       aspects: [],
+      doneAt: null,
       deletedAt: null,
       createdAt: time,
       updatedAt: time,
@@ -324,6 +326,7 @@ function createTasksDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         isAssignedToAgent: Boolean(variables.isAssignedToAgent),
         dueDate: (variables.dueDate as string | null | undefined) ?? null,
         aspects: [...variables.aspects],
+        doneAt: (variables.doneAt as string | null | undefined) ?? null,
       })
 
       return { task_insert: { id: id(variables.id) } }
@@ -369,6 +372,7 @@ function createTasksDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         'isAssignedToAgent',
         'dueDate',
         'aspects',
+        'doneAt',
       ] as const) {
         if (has(variables, field)) Object.assign(task, { [field]: variables[field] })
       }

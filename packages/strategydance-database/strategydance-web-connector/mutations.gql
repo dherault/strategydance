@@ -954,8 +954,14 @@ mutation UpdateTaskDescription($organizationId: UUID!, $id: UUID!, $description:
 
 # Moves a task on the board, to another column or another place in its own, its status and its
 # position written together. The page sends the position halfway between its new neighbours, and
-# renumbers the column one task at a time when they are too close for that
-mutation MoveTask($organizationId: UUID!, $id: UUID!, $status: TaskStatus!, $position: Float!)
+# renumbers the column one task at a time when they are too close for that. It leaves `doneAt` as it
+# is: the page moves a task into Done from another column through `FinishTask`, so a move within
+# Done keeps the day it was finished.
+#
+# `$fromStatus` is the column the page saw the task in, and a task that has left it since, moved by
+# a teammate, is refused rather than moved back, which would put a task into Done unstamped. A page
+# from before it sends none, which drops the filter
+mutation MoveTask($organizationId: UUID!, $id: UUID!, $status: TaskStatus!, $position: Float!, $fromStatus: TaskStatus)
 @auth(level: USER)
 @transaction {
   query @redact {
@@ -965,9 +971,39 @@ mutation MoveTask($organizationId: UUID!, $id: UUID!, $status: TaskStatus!, $pos
     }
   }
   task_updateMany(
-    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      status: { eq: $fromStatus }
+      deletedAt: { isNull: true }
+    }
     data: { status: $status, position: $position, updatedAt_expr: "request.time" }
-  ) @check(expr: "this == 1", message: "No task by that id in the organization")
+  ) @check(expr: "this == 1", message: "No task by that id in the organization, in the column it was moved from")
+}
+
+# Moves a task into Done from another column, as `MoveTask` would, and stamps when it got there,
+# `doneAt`, from the server's clock, since no write can stamp it only when its status variable is
+# DONE. The page sends it when the task was in another column as it saw the board, `$fromStatus`,
+# and a task that has left it since, or is in Done already, is refused, so only a task on its way
+# into Done is ever stamped
+mutation FinishTask($organizationId: UUID!, $id: UUID!, $position: Float!, $fromStatus: TaskStatus!)
+@auth(level: USER)
+@transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+  }
+  task_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      status: { eq: $fromStatus, ne: DONE }
+      deletedAt: { isNull: true }
+    }
+    data: { status: DONE, position: $position, doneAt_expr: "request.time", updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No task by that id in the organization, in the column it was moved from")
 }
 
 # Says who is doing a task: a member of the organization, Strategy Dance, or nobody, both written

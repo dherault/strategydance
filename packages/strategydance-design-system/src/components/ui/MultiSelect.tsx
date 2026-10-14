@@ -5,7 +5,6 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
-  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -13,6 +12,13 @@ import {
 } from 'react'
 import { Field, fieldLabelClassName } from 'strategydance-design-system/components/ui/Field'
 import { inputClassName } from 'strategydance-design-system/components/ui/Input'
+import useComboboxLayer from 'strategydance-design-system/hooks/useComboboxLayer'
+import {
+  type ComboboxGroup,
+  type ComboboxOption,
+  getComboboxSearchTexts,
+  toComboboxGroups,
+} from 'strategydance-design-system/lib/comboboxOptions'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 // The row that selects every option is not an option, but rides the list as one so the keyboard
@@ -30,18 +36,9 @@ const moreChipClassName = cn(chipClassName, 'bg-neutral-100 px-2 text-muted-fore
 const footerButtonClassName =
   'h-9 flex-1 cursor-pointer text-sm text-foreground outline-none transition-colors duration-150 ease-in-out hover:bg-neutral-50 hover:text-secondary focus-visible:bg-neutral-50 focus-visible:text-secondary'
 
-type MultiSelectOption = {
-  value: string
-  label: ReactNode
-  disabled?: boolean
-  /** More words the search matches, beside the label */
-  keywords?: string[]
-}
+type MultiSelectOption = ComboboxOption
 
-type MultiSelectGroup = {
-  label?: ReactNode
-  options: (MultiSelectOption | string)[]
-}
+type MultiSelectGroup = ComboboxGroup
 
 type Props = {
   /** Options, as strings or objects, or groups of them, which get a label and separators */
@@ -85,51 +82,11 @@ type Props = {
   className?: string
 }
 
-type OptionGroup = {
-  label?: ReactNode
-  options: MultiSelectOption[]
-}
-
 // The combobox's own items are the options' values, in groups when the list shows any
 type ItemGroup = {
   value: string
   label?: ReactNode
   items: string[]
-}
-
-function toOption(option: MultiSelectOption | string): MultiSelectOption {
-  return typeof option === 'string' ? { value: option, label: option } : option
-}
-
-function isGroup(option: MultiSelectOption | MultiSelectGroup | string): option is MultiSelectGroup {
-  return typeof option === 'object' && 'options' in option
-}
-
-// A run of loose options between groups becomes an unlabeled group of its own
-function toGroups(options: Props['options']) {
-  const groups: OptionGroup[] = []
-  let looseGroup: OptionGroup | null = null
-
-  for (const option of options) {
-    if (isGroup(option)) {
-      groups.push({ label: option.label, options: option.options.map(toOption) })
-      looseGroup = null
-    } else {
-      if (!looseGroup) {
-        looseGroup = { options: [] }
-        groups.push(looseGroup)
-      }
-
-      looseGroup.options.push(toOption(option))
-    }
-  }
-
-  return groups
-}
-
-// What the search reads an option by. A label that is not a string falls back to the value
-function toSearchText(option: MultiSelectOption) {
-  return typeof option.label === 'string' ? option.label : option.value
 }
 
 function preventFocusChange(event: MouseEvent) {
@@ -290,11 +247,11 @@ function MultiSelect({
   const valuesRef = useRef<HTMLSpanElement>(null)
   const chipsMeasureRef = useRef<HTMLSpanElement>(null)
   const countsMeasureRef = useRef<HTMLSpanElement>(null)
-  const portalContainerRef = useRef<HTMLElement>(null)
+  const { portalContainerRef, findPortalContainer } = useComboboxLayer(open)
   const [fitCount, setFitCount] = useState(currentValue.length)
   const { contains } = Combobox.useFilter()
 
-  const groups = toGroups(options)
+  const groups = toComboboxGroups(options)
   const allOptions = groups.flatMap(group => group.options)
   const optionsByValue = new Map(allOptions.map(option => [option.value, option]))
   const enabledValues = allOptions.filter(option => !option.disabled).map(option => option.value)
@@ -381,30 +338,6 @@ function MultiSelect({
     return () => observer.disconnect()
   }, [selectionKey, chipCap])
 
-  // A Radix dialog dismisses on an Escape that reaches the document, which it hears before the
-  // list does. It leaves a prevented one alone, and Base UI closes the list on it all the same, so
-  // while the list is open the key closes the list and nothing else
-  useEffect(() => {
-    if (!open) return
-
-    function claimEscape(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') event.preventDefault()
-    }
-
-    window.addEventListener('keydown', claimEscape, { capture: true })
-
-    return () => window.removeEventListener('keydown', claimEscape, { capture: true })
-  }, [open])
-
-  /*
-    The list portals into the dialog around the trigger, if any. A modal Radix dialog traps focus,
-    disables pointer events and hides from assistive technology everything outside itself, and a
-    list at the end of the body is outside it
-  */
-  function findPortalContainer(trigger: HTMLElement | null) {
-    portalContainerRef.current = trigger?.closest<HTMLElement>('[role="dialog"], [role="alertdialog"]') ?? null
-  }
-
   function changeOpen(nextOpen: boolean) {
     setOpen(nextOpen)
     onOpenChange?.(nextOpen)
@@ -442,7 +375,7 @@ function MultiSelect({
 
     if (!option) return false
 
-    return [toSearchText(option), ...(option.keywords ?? [])].some(text => contains(text, query))
+    return getComboboxSearchTexts(option).some(text => contains(text, query))
   }
 
   function handleTriggerKeyDown(event: KeyboardEvent) {

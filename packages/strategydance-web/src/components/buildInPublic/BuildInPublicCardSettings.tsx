@@ -1,10 +1,12 @@
 import { useIntl } from 'react-intl'
+import { Combobox } from 'strategydance-design-system/components/ui/Combobox'
 import { MultiSelect } from 'strategydance-design-system/components/ui/MultiSelect'
 import { Select } from 'strategydance-design-system/components/ui/Select'
+import { isDarkColor } from 'strategydance-design-system/lib/isDarkColor'
 
-import type { CardAccent, CardField, CardTone, CardValues } from '~types'
+import type { CardAccent, CardField, CardInk, CardTone, CardValues } from '~types'
 
-import { CARD_ACCENT_COLORS, CARD_TONES } from '~constants'
+import { CARD_ACCENT_COLORS, CARD_INK_COLORS, CARD_TONES } from '~constants'
 
 import buildInPublicMessages from '~data/intl/messages/buildInPublic'
 
@@ -34,6 +36,19 @@ const ACCENT_MESSAGES = {
   black: buildInPublicMessages.colorBlack,
 }
 
+const INK_MESSAGES = {
+  white: buildInPublicMessages.inkWhite,
+  black: buildInPublicMessages.inkBlack,
+}
+
+// What a tone writes its text in when no ink is forced, as `getCardStyle` does, for the automatic
+// option's swatch
+function getAutomaticInk(tone: CardTone, accentColor: string) {
+  if (tone === 'accent') return isDarkColor(accentColor) ? CARD_INK_COLORS.white : CARD_INK_COLORS.black
+
+  return tone === 'dark' ? CARD_INK_COLORS.white : 'var(--color-secondary-900)'
+}
+
 // An option's color, as a small square before its name
 function Swatch({ color, label }: { color: string; label: string }) {
   return (
@@ -57,14 +72,17 @@ type Props = {
   onToneChange: (tone: CardTone) => void
   accent: CardAccent
   onAccentChange: (accent: CardAccent) => void
+  // Forced, or what reads best on the tone when there is none
+  ink: CardInk | null
+  onInkChange: (ink: CardInk | null) => void
   // The hex the card's accent is now, and the organization's own
   accentColor: string
   organizationColor: string
 }
 
 /*
-  What a card lets the reader change, beside it: its own settings, then what it is drawn on and in
-  which color, which every card shares.
+  What a card lets the reader change, beside it: its own settings, then what it is drawn on, in
+  which color and what its text is written in, which every card shares.
 
   A pick of several keeps the options' order rather than the order they were picked in, never
   empties, since a card of nothing says nothing, and stops at its most: past it, the options not
@@ -79,6 +97,8 @@ function BuildInPublicCardSettings({
   onToneChange,
   accent,
   onAccentChange,
+  ink,
+  onInkChange,
   accentColor,
   organizationColor,
 }: Props) {
@@ -110,6 +130,20 @@ function BuildInPublicCardSettings({
               label={field.label}
               value={values[field.key] as string}
               options={field.options}
+              onValueChange={value => change(field.key, value)}
+            />
+          )
+        }
+
+        if (field.kind === 'combobox') {
+          return (
+            <Combobox
+              key={field.key}
+              label={field.label}
+              value={values[field.key] as string}
+              options={field.options}
+              searchPlaceholder={field.searchPlaceholder}
+              emptyText={field.emptyText}
               onValueChange={value => change(field.key, value)}
             />
           )
@@ -185,6 +219,31 @@ function BuildInPublicCardSettings({
           })),
         ]}
         onValueChange={value => onAccentChange(value as CardAccent)}
+      />
+      <Select
+        label={formatMessage(buildInPublicMessages.textColor)}
+        value={ink ?? 'automatic'}
+        options={[
+          {
+            value: 'automatic',
+            label: (
+              <Swatch
+                color={getAutomaticInk(tone, accentColor)}
+                label={formatMessage(buildInPublicMessages.inkAutomatic)}
+              />
+            ),
+          },
+          ...Object.entries(CARD_INK_COLORS).map(([name, color]) => ({
+            value: name,
+            label: (
+              <Swatch
+                color={color}
+                label={formatMessage(INK_MESSAGES[name as CardInk])}
+              />
+            ),
+          })),
+        ]}
+        onValueChange={value => onInkChange(value === 'automatic' ? null : (value as CardInk))}
       />
     </div>
   )

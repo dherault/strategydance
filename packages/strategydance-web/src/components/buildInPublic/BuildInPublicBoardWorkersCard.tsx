@@ -34,7 +34,8 @@ type Props = {
   Who does the board's tasks: how many members and whether Strategy Dance among them, the share of
   the tasks the AI does, large, and the busiest of them with how many each does, the AI's bar in the
   mark color. A member is named only by the name they gave, since the card is posted for anybody to
-  see. Nothing while nobody is doing any task
+  see, so one who gave none is counted among the people but listed nowhere. Nothing while nobody
+  is doing any task
 */
 function BuildInPublicBoardWorkersCard({ settings, tasks, members }: Props) {
   const { formatMessage, formatNumber } = useIntl()
@@ -49,7 +50,10 @@ function BuildInPublicBoardWorkersCard({ settings, tasks, members }: Props) {
 
   const agentCount = workers.find(({ worker }) => worker === 'agent')?.total ?? 0
   const peopleCount = workers.filter(({ worker }) => worker !== 'agent').length
-  const mostTasks = Math.max(...workers.map(({ total }) => total))
+  const listed = workers
+    .filter(({ worker }) => worker === 'agent' || membersByWorker.get(worker)?.user.displayName)
+    .slice(0, MAX_WORKERS)
+  const mostTasks = Math.max(...listed.map(({ total }) => total))
 
   return (
     <BuildInPublicCard
@@ -73,7 +77,7 @@ function BuildInPublicBoardWorkersCard({ settings, tasks, members }: Props) {
           <p className="mt-2.5 mb-0 text-sm font-medium">{formatMessage(buildInPublicMessages.tasksForAi)}</p>
         </div>
         <ul className="m-0 flex list-none flex-col justify-end gap-3 p-0">
-          {workers.slice(0, MAX_WORKERS).map(({ worker, total }) => {
+          {listed.map(({ worker, total }) => {
             const isAgent = worker === 'agent'
             const name = isAgent
               ? formatMessage(taskMessages.strategyDance)

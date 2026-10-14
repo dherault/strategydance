@@ -733,14 +733,18 @@ member's own, so a streak counts what members do themselves.
 The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
 organization changes, as its knowledge. Each field is written by a mutation of its own, so two
 members editing one task keep each other's changes, and a move writes the one task that moved,
-halfway between its new neighbours. `TaskDependency` links a task to those it waits on: the server
-refuses a task waiting on itself or on one waiting on it, and the page offers no pick that would
-close a longer loop, nor an Undo that would bring one back. The board keeps `GetTasks` live,
-without the descriptions, and reads them once for its search through `GetTaskDescriptions`, again
-on focus; a task's dialog keeps its own live through `GetTaskDescription`, and opens it for
-writing only once that read lands, since the search's copy can be older than a teammate's save. A
-query that held every description live would push them all to every open board at each save, and a
-drag would too. Removing a member takes them off the tasks they were doing.
+halfway between its new neighbours. A move into Done from another column goes through `FinishTask`,
+which stamps `doneAt` from the server's clock, since no write can stamp it only when its status
+variable is DONE and a move within Done sends that status too: a new way to finish a task stamps it,
+as the Tasks module's create and update do with `$doneAt`. `TaskDependency` links a task to those it
+waits on: the server refuses a task waiting on itself or on one waiting on it, and the page offers
+no pick that would close a longer loop, nor an Undo that would bring one back. The board keeps
+`GetTasks` live, without the descriptions, and reads them once for its search through
+`GetTaskDescriptions`, again on focus; a task's dialog keeps its own live through
+`GetTaskDescription`, and opens it for writing only once that read lands, since the search's copy
+can be older than a teammate's save. A query that held every description live would push them all to
+every open board at each save, and a drag would too. Removing a member takes them off the tasks they
+were doing.
 
 Every write of a task's description writes its plain text beside it, `descriptionText`, which the
 Tasks module's `list_tasks` matches a query against, never the serialized blocks: the page through

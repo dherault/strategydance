@@ -13,7 +13,7 @@ import {
 
 /*
   The messages the reader sent to a conversation that the thread does not hold with their bodies
-  yet, oldest first, whether a send is still going, and what forgets them once the thread does. Read
+  yet, oldest first, the one whose send is going, if any, and what forgets them once the thread does. Read
   apart from the rest of the composer's draft, so a thread does not draw itself again at each key the
   reader types
 */
@@ -27,11 +27,14 @@ function useConversationPendingMessages(conversationId: string) {
     () => readConversationComposerDraft(key).pendingMessages,
     () => EMPTY_CONVERSATION_COMPOSER_DRAFT.pendingMessages,
   )
-  const isSending = useSyncExternalStore(
+  const sendingMessageId = useSyncExternalStore(
     subscribeToConversationComposerDrafts,
-    () => readConversationComposerDraft(key).sendingMessageId !== null,
-    () => false,
+    () => readConversationComposerDraft(key).sendingMessageId,
+    () => null,
   )
+
+  const isSending = sendingMessageId !== null
+  const sendingMessage = pendingMessages.find(({ id }) => id === sendingMessageId) ?? null
 
   function forgetPendingMessages(ids: readonly string[]) {
     updateConversationComposerDraft(key, current =>
@@ -41,7 +44,7 @@ function useConversationPendingMessages(conversationId: string) {
     )
   }
 
-  return { pendingMessages, isSending, forgetPendingMessages }
+  return { pendingMessages, isSending, sendingMessage, forgetPendingMessages }
 }
 
 export default useConversationPendingMessages

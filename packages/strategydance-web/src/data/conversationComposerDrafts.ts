@@ -43,6 +43,8 @@ export type ConversationPendingMessage = {
   text: string
   // The files it sent, as the message stored reads them
   attachments: readonly ConversationMessageAttachment[]
+  // When the reader sent it, which the thinking indicator counts from while its send goes
+  sentAt: string
 }
 
 /*

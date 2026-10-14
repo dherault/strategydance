@@ -8,6 +8,8 @@ type Options = {
   // For a message sent again after a failure, the latest run the page had read when it was first
   // sent. Left out for a first send
   firstPreviousRunId?: string | null
+  // When the reader sent it
+  startedAt: string
 }
 
 /*
@@ -23,10 +25,11 @@ function getConversationSendStartedRun({
   runId,
   previousRunId,
   firstPreviousRunId,
+  startedAt,
 }: Options): StartedConversationRun | null {
   if (firstPreviousRunId !== undefined && firstPreviousRunId !== previousRunId) return null
 
-  return { runId, previousRunId }
+  return { runId, previousRunId, startedAt }
 }
 
 export default getConversationSendStartedRun

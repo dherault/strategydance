@@ -25,6 +25,7 @@ function createPendingMessage(id: string, attachmentCount: number): Conversation
       contentType: 'application/pdf',
       size: 4,
     })),
+    sentAt: '2026-10-14T10:00:00.000Z',
   }
 }
 

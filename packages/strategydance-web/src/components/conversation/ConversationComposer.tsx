@@ -204,6 +204,7 @@ function ConversationComposer({
     const isRetry = failedSend?.text === sentText && failedSend.attachmentIds.join() === sentAttachmentIds.join()
     const messageId = isRetry ? failedSend.messageId : createId()
     const previousRunId = run?.id ?? null
+    const sentAt = new Date().toISOString()
 
     // The images sent are drawn in the thread from the bytes that went up, rather than read back:
     // left in the cache before the message is drawn there, as it is at once
@@ -234,6 +235,7 @@ function ConversationComposer({
             contentType,
             size: file.size,
           })),
+          sentAt,
         },
       ],
       failure: null,
@@ -267,6 +269,7 @@ function ConversationComposer({
           runId,
           previousRunId,
           firstPreviousRunId: isRetry ? failedSend.previousRunId : undefined,
+          startedAt: sentAt,
         }),
       )
       // The message stays in the thread until the live read brings it in, which may come after

@@ -22,6 +22,7 @@ import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 
 import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
+import getConversationThinkingStart from '~utils/conversation/getConversationThinkingStart'
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import groupConversationReplies from '~utils/conversation/groupConversationReplies'
 import hasConversationMessageBody from '~utils/conversation/hasConversationMessageBody'
@@ -89,7 +90,9 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
-  const { pendingMessages, isSending, forgetPendingMessages } = useConversationPendingMessages(conversation.id)
+  const { pendingMessages, isSending, sendingMessage, forgetPendingMessages } = useConversationPendingMessages(
+    conversation.id,
+  )
   // Read as the reader sends a mention too, the composer's read, so it is drawn linked from the start
   const documents = useConversationDocuments(
     needsConversationDocuments(entries, bodies) || pendingMessages.some(({ text }) => /doc:/i.test(text)),
@@ -383,7 +386,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
         {isWorking || isSending || isAwaiting ? (
           <ConversationThinking
             step={isWorking ? getStep() : null}
-            startedAt={isWorking ? (run?.createdAt ?? null) : null}
+            startedAt={getConversationThinkingStart({ run, isWorking, sendingMessage, startedRun, isAwaiting })}
           />
         ) : null}
       </div>

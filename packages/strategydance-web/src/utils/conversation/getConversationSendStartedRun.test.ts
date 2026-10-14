@@ -3,33 +3,51 @@ import { describe, expect, test } from 'bun:test'
 import getConversationSendStartedRun from '~utils/conversation/getConversationSendStartedRun'
 import isAwaitingConversationRun from '~utils/conversation/isAwaitingConversationRun'
 
+const SENT_AT = '2026-10-14T10:00:00.000Z'
+
 describe('getConversationSendStartedRun', () => {
-  test("records a first send's run", () => {
-    expect(getConversationSendStartedRun({ runId: 'run-2', previousRunId: 'run-1' })).toEqual({
+  test("records a first send's run, and when it was sent", () => {
+    expect(getConversationSendStartedRun({ runId: 'run-2', previousRunId: 'run-1', startedAt: SENT_AT })).toEqual({
       runId: 'run-2',
       previousRunId: 'run-1',
+      startedAt: SENT_AT,
     })
-    expect(getConversationSendStartedRun({ runId: 'run-1', previousRunId: null })).toEqual({
+    expect(getConversationSendStartedRun({ runId: 'run-1', previousRunId: null, startedAt: SENT_AT })).toEqual({
       runId: 'run-1',
       previousRunId: null,
+      startedAt: SENT_AT,
     })
   })
 
   test('records the run of a message sent again while the read shows what it did at the first send', () => {
     expect(
-      getConversationSendStartedRun({ runId: 'run-2', previousRunId: 'run-1', firstPreviousRunId: 'run-1' }),
-    ).toEqual({ runId: 'run-2', previousRunId: 'run-1' })
-    expect(getConversationSendStartedRun({ runId: 'run-1', previousRunId: null, firstPreviousRunId: null })).toEqual({
-      runId: 'run-1',
-      previousRunId: null,
-    })
+      getConversationSendStartedRun({
+        runId: 'run-2',
+        previousRunId: 'run-1',
+        firstPreviousRunId: 'run-1',
+        startedAt: SENT_AT,
+      }),
+    ).toEqual({ runId: 'run-2', previousRunId: 'run-1', startedAt: SENT_AT })
+    expect(
+      getConversationSendStartedRun({
+        runId: 'run-1',
+        previousRunId: null,
+        firstPreviousRunId: null,
+        startedAt: SENT_AT,
+      }),
+    ).toEqual({ runId: 'run-1', previousRunId: null, startedAt: SENT_AT })
   })
 
   test('records nothing for a message sent again once the read has moved on, as the run may be older', () => {
     // The first send started run-2 and lost its answer, and another tab started run-3 since
-    expect(getConversationSendStartedRun({ runId: 'run-2', previousRunId: 'run-3', firstPreviousRunId: 'run-1' })).toBe(
-      null,
-    )
+    expect(
+      getConversationSendStartedRun({
+        runId: 'run-2',
+        previousRunId: 'run-3',
+        firstPreviousRunId: 'run-1',
+        startedAt: SENT_AT,
+      }),
+    ).toBe(null)
   })
 
   test('waits on nothing when a message sent again is answered with the run the read already shows', () => {
@@ -37,6 +55,7 @@ describe('getConversationSendStartedRun', () => {
       runId: 'run-2',
       previousRunId: 'run-1',
       firstPreviousRunId: 'run-1',
+      startedAt: SENT_AT,
     })
 
     // The read has caught up with the run the first send started, before the answer came

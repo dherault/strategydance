@@ -13,8 +13,9 @@ type Props = {
   // The progress line the run wrote, or what it is running, or null for neither
   step: string | null
   // When the run was queued, which the time counts from whether a worker has claimed it yet or not,
-  // or null before the page has read the run the reader just started, which counts from the moment
-  // the indicator appeared
+  // or before the page has read it, when the reader sent the message that starts it
+  // (`getConversationThinkingStart`). Null when nothing says, for a run started otherwise, which
+  // counts from when the indicator appeared
   startedAt: string | null
 }
 

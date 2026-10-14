@@ -5,6 +5,7 @@ import type { ConversationRun } from '~types'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationPendingMessages from '~hooks/conversation/useConversationPendingMessages'
 
+import getConversationThinkingStart from '~utils/conversation/getConversationThinkingStart'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 
@@ -31,10 +32,11 @@ type Props = {
 */
 function ConversationDraftThread({ conversationId, run, startedRun, size = 'md' }: Props) {
   const { formatMessage } = useIntl()
-  const { pendingMessages, isSending } = useConversationPendingMessages(conversationId)
+  const { pendingMessages, isSending, sendingMessage } = useConversationPendingMessages(conversationId)
   const documents = useConversationDocuments(pendingMessages.some(({ text }) => /doc:/i.test(text)))
 
   const isWorking = isConversationRunGoing(run)
+  const isAwaiting = isAwaitingConversationRun(startedRun, run)
 
   if (!pendingMessages.length) {
     return (
@@ -66,10 +68,10 @@ function ConversationDraftThread({ conversationId, run, startedRun, size = 'md' 
             />
           </div>
         ))}
-        {isWorking || isSending || isAwaitingConversationRun(startedRun, run) ? (
+        {isWorking || isSending || isAwaiting ? (
           <ConversationThinking
             step={null}
-            startedAt={isWorking ? (run?.createdAt ?? null) : null}
+            startedAt={getConversationThinkingStart({ run, isWorking, sendingMessage, startedRun, isAwaiting })}
           />
         ) : null}
       </div>

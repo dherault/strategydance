@@ -1157,6 +1157,70 @@
         "hash": "fd5ad4bc21fb59b9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.approval.allow": {
+        "hash": "090a897a8df6275a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.arguments": {
+        "hash": "aba1b590b1f910dc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.changed": {
+        "hash": "52cca1ff00125934",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.conflict": {
+        "hash": "1ce8a9d7d27c88dc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.deny": {
+        "hash": "c603b141216d1ef2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.dialogCancel": {
+        "hash": "18bfd3c531afac07",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.dialogDescription": {
+        "hash": "0999246b01a592e4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.dialogTitle": {
+        "hash": "6f73ca466341f255",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.error": {
+        "hash": "0c6717be9676e8fb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.prompt": {
+        "hash": "c925f1940ee3fb00",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.queued": {
+        "hash": "b0d4c5d8847d3af9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.unanswered": {
+        "hash": "45e1ceccfb152b42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.unavailable": {
+        "hash": "640d4afa3ae36743",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approval.waiting": {
+        "hash": "7b58aeb1152e3881",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approvalStatus.allowed": {
+        "hash": "3ffd9456340838a6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.approvalStatus.denied": {
+        "hash": "b8e22d1ada0b3ca0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.aspectsDescription": {
         "hash": "d1fda0fa98cf5e17",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1433,6 +1497,58 @@
         "hash": "632d821f3aba3d1d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.integration.add": {
+        "hash": "388d516f7d1a9548",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.connect": {
+        "hash": "32fb7b2c34b8a136",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.missing": {
+        "hash": "2d249b18d9afa275",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.missingAskAdministrator": {
+        "hash": "ea3b8a1918eca1d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.notConnected": {
+        "hash": "53d687d82d70b3fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.off": {
+        "hash": "60e6292243facf45",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.offAskAdministrator": {
+        "hash": "d47d60cd7d3c8b05",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integration.turnOn": {
+        "hash": "00698c301ee82985",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integrationBadge": {
+        "hash": "09d51c2b4a16bdf7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integrationCall.done": {
+        "hash": "6eaf90288dadc400",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integrationCall.running": {
+        "hash": "1b4f02c7f8b846a2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integrationToolCall": {
+        "hash": "d12733e2251f1d91",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.integrationToolCallTitle": {
+        "hash": "050606428b950e47",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.lead": {
         "hash": "3584b91c1972ed59",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1521,8 +1637,20 @@
         "hash": "8e30a80c83aa034b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.preview.allowed": {
+        "hash": "e911df0b51a3321f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.preview.answered": {
         "hash": "0de015f6556626f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.approval": {
+        "hash": "be5fe28b053985d5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.preview.denied": {
+        "hash": "ce8aa944cecdc5f8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.preview.empty": {
@@ -1721,6 +1849,14 @@
         "hash": "079c610b34e26d1c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.callIntegration.done": {
+        "hash": "bc98c869d8a7bb89",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.callIntegration.running": {
+        "hash": "7bcad804246a145d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.createKnowledge.done": {
         "hash": "af6c64105219dac1",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1753,12 +1889,28 @@
         "hash": "7a19be72e4465567",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.describeIntegrationTool.done": {
+        "hash": "7140416781a2cda0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.describeIntegrationTool.running": {
+        "hash": "8152483c9f173472",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.linkTasks.done": {
         "hash": "d24cd134aa3eecd3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.linkTasks.running": {
         "hash": "1c0ddc7dfbf801f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listIntegrations.done": {
+        "hash": "4e7a158477b39678",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listIntegrations.running": {
+        "hash": "d630fac0907144c5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.listKnowledge.done": {

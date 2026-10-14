@@ -3,10 +3,12 @@ import type { ConversationPreview } from 'strategydance-core'
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 type QuestionState = Extract<ConversationPreview, { kind: 'QUESTION' }>['questionState']
 type NoteKind = Extract<ConversationPreview, { kind: 'NOTE' }>['noteKind']
+type ApprovalState = Extract<ConversationPreview, { kind: 'APPROVAL' }>['approvalState']
 
 const TOOL_STATUSES: readonly unknown[] = ['RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED'] satisfies ToolStatus[]
 const QUESTION_STATES: readonly unknown[] = ['WAITING', 'ANSWERED', 'SKIPPED'] satisfies QuestionState[]
 const NOTE_KINDS: readonly unknown[] = ['STOPPED', 'FAILED', 'REFUSED', 'INTERRUPTED', 'FULL'] satisfies NoteKind[]
+const APPROVAL_STATES: readonly unknown[] = ['PENDING', 'ALLOWED', 'DENIED'] satisfies ApprovalState[]
 
 /*
   A conversation's `preview`, as strategydance-core's `buildConversationPreview` wrote it, read back
@@ -36,8 +38,27 @@ function parseConversationPreview(value: unknown): ConversationPreview | null {
     case 'AGENT_TEXT':
       return typeof preview.text === 'string' ? { kind: preview.kind, text: preview.text } : null
     case 'TOOL_CALL':
-      return typeof preview.toolName === 'string' && TOOL_STATUSES.includes(preview.toolStatus)
-        ? { kind: preview.kind, toolName: preview.toolName, toolStatus: preview.toolStatus as ToolStatus }
+      if (typeof preview.toolName !== 'string' || !TOOL_STATUSES.includes(preview.toolStatus)) return null
+
+      return {
+        kind: preview.kind,
+        toolName: preview.toolName,
+        toolStatus: preview.toolStatus as ToolStatus,
+        // The server a call to an integration went to, which names it
+        ...(typeof preview.integrationName === 'string' ? { integrationName: preview.integrationName } : {}),
+      }
+    case 'APPROVAL':
+      return typeof preview.integrationName === 'string'
+        && typeof preview.integrationToolName === 'string'
+        && APPROVAL_STATES.includes(preview.approvalState)
+        && (preview.toolStatus === null || TOOL_STATUSES.includes(preview.toolStatus))
+        ? {
+            kind: preview.kind,
+            integrationName: preview.integrationName,
+            integrationToolName: preview.integrationToolName,
+            approvalState: preview.approvalState as ApprovalState,
+            toolStatus: preview.toolStatus as ToolStatus | null,
+          }
         : null
     case 'QUESTION':
       return typeof preview.text === 'string' && QUESTION_STATES.includes(preview.questionState)

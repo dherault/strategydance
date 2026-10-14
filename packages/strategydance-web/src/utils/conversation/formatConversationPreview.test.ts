@@ -18,6 +18,38 @@ describe('formatConversationPreview', () => {
     expect(format(null, 'run')).toBe('Thinking…')
   })
 
+  it('names a call to an integration by its server, and an approval by its server and tool', () => {
+    const approval = (
+      approvalState: 'PENDING' | 'ALLOWED' | 'DENIED',
+      toolStatus: 'SUCCEEDED' | 'FAILED' | null = null,
+    ) =>
+      format(
+        buildConversationPreview({
+          kind: 'APPROVAL',
+          integrationName: 'Stripe',
+          integrationToolName: 'create_payment_link',
+          approvalState,
+          toolStatus,
+        }),
+      )
+
+    expect(
+      format(
+        buildConversationPreview({
+          kind: 'TOOL_CALL',
+          toolName: 'call_integration_tool',
+          toolStatus: 'SUCCEEDED',
+          integrationName: 'Stripe',
+        }),
+      ),
+    ).toBe('Called Stripe')
+    expect(approval('PENDING')).toBe('Approval: Stripe · create_payment_link')
+    expect(approval('ALLOWED')).toBe('Allowed: Stripe · create_payment_link')
+    expect(approval('ALLOWED', 'SUCCEEDED')).toBe('Called Stripe')
+    expect(approval('ALLOWED', 'FAILED')).toBe('Calling Stripe · Failed')
+    expect(approval('DENIED', 'FAILED')).toBe('Denied: Stripe · create_payment_link')
+  })
+
   it('says a conversation without a preview holds nothing yet', () => {
     expect(format(null)).toBe('No messages yet')
     expect(format(undefined)).toBe('No messages yet')
@@ -81,9 +113,7 @@ describe('formatConversationPreview', () => {
   })
 
   it('names a tool it has no words for by its name', () => {
-    expect(format({ kind: 'TOOL_CALL', toolName: 'call_integration_tool', toolStatus: 'SUCCEEDED' })).toBe(
-      'call_integration_tool',
-    )
+    expect(format({ kind: 'TOOL_CALL', toolName: 'send_invoice', toolStatus: 'SUCCEEDED' })).toBe('send_invoice')
   })
 
   it('words a question waiting, skipped and answered', () => {

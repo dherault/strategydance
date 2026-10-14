@@ -26,6 +26,9 @@ describe('getConversationToolLabel', () => {
       ['remove_task_dependency', 'Unlinking tasks', 'Unlinked tasks'],
       ['delete_task', 'Deleting a task', 'Deleted a task'],
       ['restore_task', 'Restoring a task', 'Restored a task'],
+      ['list_integrations', 'Listing integrations', 'Listed integrations'],
+      ['describe_integration_tool', 'Reading an integration’s tool', 'Read an integration’s tool'],
+      ['call_integration_tool', 'Calling an integration', 'Called an integration'],
     ] as const
 
     for (const [toolName, running, done] of tools) {
@@ -40,7 +43,12 @@ describe('getConversationToolLabel', () => {
   })
 
   it('names a tool it has no words for by its name, a key of an object included', () => {
-    expect(getConversationToolLabel(intl, 'call_integration_tool', 'SUCCEEDED')).toBe('call_integration_tool')
+    expect(getConversationToolLabel(intl, 'send_invoice', 'SUCCEEDED')).toBe('send_invoice')
     expect(getConversationToolLabel(intl, 'constructor', 'SUCCEEDED')).toBe('constructor')
+  })
+
+  it('names a call to an integration by its server', () => {
+    expect(getConversationToolLabel(intl, 'call_integration_tool', 'RUNNING', 'Stripe')).toBe('Calling Stripe')
+    expect(getConversationToolLabel(intl, 'call_integration_tool', 'SUCCEEDED', 'Stripe')).toBe('Called Stripe')
   })
 })

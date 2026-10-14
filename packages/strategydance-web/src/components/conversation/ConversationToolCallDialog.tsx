@@ -2,7 +2,6 @@ import { useIntl } from 'react-intl'
 import { ConversationToolStatus } from 'strategydance-database/web'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
-import { CopyButton } from 'strategydance-design-system/components/ui/CopyButton'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from 'strategydance-design-system/components/ui/Dialog'
-import { cn } from 'strategydance-design-system/lib/utils'
 
 import useConversationToolCall from '~hooks/conversation/useConversationToolCall'
 
@@ -18,6 +16,7 @@ import formatConversationToolJson from '~utils/conversation/formatConversationTo
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 
 import Spinner from '~components/common/Spinner'
+import ConversationToolCallBlock from '~components/conversation/ConversationToolCallBlock'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -26,42 +25,9 @@ type Props = {
   toolName: string
   // As the thread shows it, until the call's own read lands
   status: ConversationToolStatus
+  // A call to an integration's: the server it went to and its tool, which the title names
+  integration?: { name: string; toolName: string }
   onClose: () => void
-}
-
-type BlockProps = {
-  label: string
-  value: string
-  isError?: boolean
-  copy?: { label: string; copiedLabel: string }
-}
-
-// One of the call's two sides, its JSON laid out to read, scrolled by the keyboard as well when long
-function ConversationToolCallBlock({ label, value, isError = false, copy }: BlockProps) {
-  return (
-    <section className="flex min-w-0 flex-col gap-2">
-      <div className="flex min-h-8 items-center justify-between gap-2">
-        <h3 className="m-0 font-sans text-xs font-medium tracking-wider text-muted-foreground uppercase">{label}</h3>
-        {copy ? (
-          <CopyButton
-            value={value}
-            label={copy.label}
-            copiedLabel={copy.copiedLabel}
-          />
-        ) : null}
-      </div>
-      <pre
-        tabIndex={0}
-        aria-label={label}
-        className={cn(
-          'm-0 max-h-[280px] overflow-auto rounded-xs border p-3 font-mono text-xs leading-[1.6] whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary',
-          isError ? 'border-red-200 bg-danger-bg' : 'border-border bg-neutral-50',
-        )}
-      >
-        {value}
-      </pre>
-    </section>
-  )
 }
 
 /*
@@ -70,7 +36,7 @@ function ConversationToolCallBlock({ label, value, isError = false, copy }: Bloc
   tool, when it ran and for how long. Read each time it opens, since a call's output arrives after
   its row
 */
-function ConversationToolCallDialog({ messageId, toolName, status, onClose }: Props) {
+function ConversationToolCallDialog({ messageId, toolName, status, integration, onClose }: Props) {
   const intl = useIntl()
   const { formatMessage, formatDate, formatNumber } = intl
   const { data: toolCall, initialLoading, loading, hasFailed, refetch } = useConversationToolCall(messageId)
@@ -78,7 +44,9 @@ function ConversationToolCallDialog({ messageId, toolName, status, onClose }: Pr
   const isFailed = currentStatus === ConversationToolStatus.FAILED
 
   function getDetails() {
-    const name = formatMessage(conversationMessages.toolCall, { name: toolName })
+    const name = integration
+      ? formatMessage(conversationMessages.integrationToolCall)
+      : formatMessage(conversationMessages.toolCall, { name: toolName })
 
     if (!toolCall) return name
 
@@ -152,7 +120,14 @@ function ConversationToolCallDialog({ messageId, toolName, status, onClose }: Pr
         className="max-h-[calc(100dvh-3rem)] min-w-0 overflow-y-auto sm:max-w-[560px]"
       >
         <DialogHeader>
-          <DialogTitle>{getConversationToolLabel(intl, toolName, currentStatus)}</DialogTitle>
+          <DialogTitle>
+            {integration
+              ? formatMessage(conversationMessages.integrationToolCallTitle, {
+                  server: integration.name,
+                  tool: integration.toolName,
+                })
+              : getConversationToolLabel(intl, toolName, currentStatus)}
+          </DialogTitle>
           <DialogDescription>{getDetails()}</DialogDescription>
         </DialogHeader>
         {renderBody()}

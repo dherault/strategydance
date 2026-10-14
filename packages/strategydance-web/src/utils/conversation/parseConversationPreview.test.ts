@@ -38,6 +38,45 @@ describe('parseConversationPreview', () => {
     })
   })
 
+  it('reads the server of a call to an integration, and an approval', () => {
+    expect(
+      parseConversationPreview({
+        kind: 'TOOL_CALL',
+        toolName: 'call_integration_tool',
+        toolStatus: 'SUCCEEDED',
+        integrationName: 'Stripe',
+      }),
+    ).toEqual({
+      kind: 'TOOL_CALL',
+      toolName: 'call_integration_tool',
+      toolStatus: 'SUCCEEDED',
+      integrationName: 'Stripe',
+    })
+    expect(
+      parseConversationPreview({
+        kind: 'APPROVAL',
+        integrationName: 'Stripe',
+        integrationToolName: 'create_payment_link',
+        approvalState: 'PENDING',
+        toolStatus: null,
+      }),
+    ).toEqual({
+      kind: 'APPROVAL',
+      integrationName: 'Stripe',
+      integrationToolName: 'create_payment_link',
+      approvalState: 'PENDING',
+      toolStatus: null,
+    })
+    expect(
+      parseConversationPreview({
+        kind: 'APPROVAL',
+        integrationName: 'Stripe',
+        integrationToolName: 'x',
+        approvalState: 'LATER',
+      }),
+    ).toBeNull()
+  })
+
   it('reads nothing that has not its shape', () => {
     expect(parseConversationPreview(null)).toBeNull()
     expect(parseConversationPreview('AGENT_TEXT')).toBeNull()

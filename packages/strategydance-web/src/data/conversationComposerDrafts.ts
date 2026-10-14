@@ -45,6 +45,9 @@ export type ConversationPendingMessage = {
   attachments: readonly ConversationMessageAttachment[]
   // When the reader sent it, which the thinking indicator counts from while its send goes
   sentAt: string
+  // The conversation's next position when it was sent, which the message stored takes, or one after
+  // it, and which says when the thread no longer holds anything that old
+  position: number
 }
 
 /*

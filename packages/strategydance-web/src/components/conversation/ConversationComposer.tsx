@@ -236,6 +236,7 @@ function ConversationComposer({
             size: file.size,
           })),
           sentAt,
+          position: conversation?.nextMessagePosition ?? 0,
         },
       ],
       failure: null,

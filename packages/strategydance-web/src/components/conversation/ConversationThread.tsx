@@ -30,6 +30,7 @@ import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/c
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
 import needsConversationTasks, { DELETE_TASK_TOOL_NAME } from '~utils/conversation/needsConversationTasks'
+import placeConversationPendingMessages from '~utils/conversation/placeConversationPendingMessages'
 import readConversationDeletedCallIds from '~utils/conversation/readConversationDeletedCallIds'
 import readConversationViewport from '~utils/conversation/readConversationViewport'
 
@@ -111,23 +112,23 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   // The run the conversation waits on for the answers to its questions, while it does
   const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
 
-  // The messages the reader sent that the tail does not hold yet, drawn at its foot
-  const shownPendingMessages = pendingMessages.filter(({ id }) => !entries.some(entry => entry.id === id))
-  // Those the thread holds with their bodies, which they are drawn from, once no send goes: until then
-  // a failure can put the one going back, and the composer counts its files among those the next
-  // message may hold. Joined, so the effect below runs when they change
-  const heldPendingMessageIds = isSending
-    ? ''
-    : pendingMessages
-        .filter(({ id }) => bodies.has(id))
-        .map(({ id }) => id)
-        .join()
+  // The messages the reader sent that the tail does not hold yet, drawn at its foot, and those the
+  // thread no longer needs
+  const { shown: shownPendingMessages, needless: needlessPendingMessages } = placeConversationPendingMessages(
+    pendingMessages,
+    entries,
+    bodies,
+  )
+  // Those it no longer needs, once no send goes: until then a failure can put the one going back, and
+  // the composer counts its files among those the next message may hold. Joined, so the effect below
+  // runs when they change
+  const needlessPendingMessageIds = isSending ? '' : needlessPendingMessages.map(({ id }) => id).join()
 
-  const forgetHeldPendingMessages = useEffectEvent((ids: string[]) => forgetPendingMessages(ids))
+  const forgetNeedlessPendingMessages = useEffectEvent((ids: string[]) => forgetPendingMessages(ids))
 
   useEffect(() => {
-    if (heldPendingMessageIds) forgetHeldPendingMessages(heldPendingMessageIds.split(','))
-  }, [heldPendingMessageIds])
+    if (needlessPendingMessageIds) forgetNeedlessPendingMessages(needlessPendingMessageIds.split(','))
+  }, [needlessPendingMessageIds])
 
   useConversationThreadScroll(listRef, scrollerRef)
   useMarkConversationRead(conversation, isLatestShown)

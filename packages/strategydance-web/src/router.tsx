@@ -17,7 +17,7 @@ import { routeTree } from './routeTree.gen'
   A query with a change still on its way to the server is not read again as a reader mounts, the
   window takes the focus or the network comes back: the read would answer from before the change and
   take it back, as a task opened the moment it is created would lose it. `writeOptimistically` reads
-  it again once its writes settle
+  it again once its writes settle, and holds the rest back until that read lands
 */
 function shouldReadAgain(query: Query) {
   return !isAwaitingWrites(query.queryKey)

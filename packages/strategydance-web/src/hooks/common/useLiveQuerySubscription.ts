@@ -35,9 +35,9 @@ type Options<Data, Variables> = {
   and opens a new one after a delay that doubles each time, up to a minute, and starts over once a
   result arrives. The data stays as last read meanwhile.
 
-  While `writeOptimistically` has a write under way for the query, a result is dropped: it was read
-  before the change or after it, which nothing tells apart, and one from before would take the
-  change back. Subscribing is enough to bring one, since the SDK replays what it last read, cache
+  While `writeOptimistically` has a write under way for the query, or the read that follows it, a
+  result is dropped: it was read before the change or after it, which nothing tells apart, and one
+  from before would take the change back. Subscribing is enough to bring one, since the SDK replays what it last read, cache
   off or not, to every subscriber of a query whenever another one subscribes: a task opened the
   moment it is created mounts readers of the board, which would take the task off it. The read once
   the writes settle brings the entry up to date.

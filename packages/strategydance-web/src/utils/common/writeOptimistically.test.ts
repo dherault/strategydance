@@ -142,6 +142,31 @@ describe('writeOptimistically', () => {
     expect(events).toEqual(['invalidate'])
   })
 
+  it('keeps a query awaited until the read that follows its last write lands', async () => {
+    const queryClient = createQueryClient([])
+    let finishRead = () => {}
+
+    queryClient.invalidateQueries = (() =>
+      new Promise<void>(resolve => {
+        finishRead = resolve
+      })) as QueryClient['invalidateQueries']
+
+    await writeOptimistically({
+      queryClient,
+      queryKeys: [['reconciled']],
+      rowKey: 'reconciled',
+      apply: () => {},
+      write: async () => {},
+    })
+
+    expect(isAwaitingWrites(['reconciled'])).toBe(true)
+
+    finishRead()
+    await wait(0)
+
+    expect(isAwaitingWrites(['reconciled'])).toBe(false)
+  })
+
   it('says a query awaits writes from the moment one is asked for until the last settles, refused or not', async () => {
     const queryClient = createQueryClient([])
     let finishWrite = () => {}

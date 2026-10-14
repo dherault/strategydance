@@ -5,9 +5,24 @@ import runInOrder from '~utils/common/runInOrder'
 // How many writes each query is waiting on, by its serialized key
 const pendingWrites = new Map<string, number>()
 
-// Whether a change to this query is still on its way to the server, until when it is not read again
+// How many reads are bringing each query up to date once its writes settled, by its serialized key
+const pendingReads = new Map<string, number>()
+
+function count(counts: Map<string, number>, key: string, change: number) {
+  const next = (counts.get(key) ?? 0) + change
+
+  if (next > 0) counts.set(key, next)
+  else counts.delete(key)
+
+  return next
+}
+
+// Whether a change to this query is still on its way to the server, or the read that follows it on
+// its way back, until when nothing else is read into it
 export function isAwaitingWrites(queryKey: QueryKey) {
-  return pendingWrites.has(JSON.stringify(queryKey))
+  const key = JSON.stringify(queryKey)
+
+  return pendingWrites.has(key) || pendingReads.has(key)
 }
 
 // The changes still being applied, which the next one waits behind
@@ -40,15 +55,16 @@ type Options = {
     server as the reader made them
   - Once the last write a query waits on settles, it is read again, which puts right anything a
     later read overwrote and anything the server did differently, and drops what the server
-    refused. Until then nothing else lands on it: a live query drops what it is sent, and no reader
-    mounting, focus or reconnect reads it again (`isAwaitingWrites`). A refused write reads it no
-    sooner either, since that read would also take back the writes still under way, and its error
-    goes to the caller at once
+    refused. Until that read lands nothing else does: a live query drops what it is sent, and no
+    reader mounting, focus or reconnect reads it again (`isAwaitingWrites`), since a result from
+    before the change, which the SDK can still deliver once the write is answered, would take it
+    back. A refused write reads it no sooner either, since that read would also take back the writes
+    still under way, and its error goes to the caller at once
 */
 async function writeOptimistically({ queryClient, queryKeys, rowKey, after, apply, write }: Options) {
   const keys = queryKeys.map(queryKey => JSON.stringify(queryKey))
 
-  for (const key of keys) pendingWrites.set(key, (pendingWrites.get(key) ?? 0) + 1)
+  for (const key of keys) count(pendingWrites, key, 1)
 
   const applied = applying.then(async () => {
     await Promise.all(queryKeys.map(queryKey => queryClient.cancelQueries({ queryKey })))
@@ -72,12 +88,13 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
   } finally {
     queryKeys.forEach((queryKey, index) => {
       const key = keys[index]!
-      const left = (pendingWrites.get(key) ?? 1) - 1
 
-      if (left > 0) pendingWrites.set(key, left)
-      else pendingWrites.delete(key)
+      if (count(pendingWrites, key, -1) > 0) return
 
-      if (left <= 0) queryClient.invalidateQueries({ queryKey })
+      // Counted apart, so a write made meanwhile, which cancels this read and starts its own once it
+      // settles, never lets go of the query early
+      count(pendingReads, key, 1)
+      queryClient.invalidateQueries({ queryKey }).finally(() => count(pendingReads, key, -1))
     })
   }
 }

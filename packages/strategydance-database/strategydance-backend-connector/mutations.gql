@@ -844,7 +844,7 @@ mutation InterruptDeadConversationRun(
     data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is not dead")
   conversationMessage_updateMany(
-    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -1640,7 +1640,9 @@ mutation DrawConversationAgentTextPiece(
 # Draws a call to a tool that ran on Claude's side, a web search, as a finished `TOOL_CALL`: its
 # input and its output as JSON text, succeeded or failed, at a position claimed on the counter,
 # with the cursor moved past the call's block. It becomes the preview, and adds nothing to the
-# unread count. Fenced as `RenewConversationRunLease` is
+# unread count. A call the worker refused is drawn here too, failed: a call to an integration the
+# member cannot use carries the server and the tool it named, `$integrationId` and the names, so
+# the thread can say what fixes it. Fenced as `RenewConversationRunLease` is
 mutation DrawConversationToolCall(
   $organizationId: UUID!
   $userId: String!
@@ -1659,6 +1661,9 @@ mutation DrawConversationToolCall(
   $toolInput: String!
   $toolOutput: String!
   $preview: Any!
+  $integrationId: UUID
+  $integrationName: String
+  $integrationToolName: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -1714,6 +1719,9 @@ mutation DrawConversationToolCall(
       toolStatus: $toolStatus
       toolInput: $toolInput
       toolOutput: $toolOutput
+      integrationId: $integrationId
+      integrationName: $integrationName
+      integrationToolName: $integrationToolName
       position: $position
     }
   )
@@ -1806,8 +1814,12 @@ mutation DrawConversationQuestion(
 # `FinishConversationToolCall` records what it came to. At a position claimed on the counter, with
 # the cursor moved past the call's block. It becomes the preview, and adds nothing to the unread
 # count. A call the worker will not run, past a limit or to a tool it does not know, is drawn
-# finished and failed through `DrawConversationToolCall` instead. Fenced as
-# `RenewConversationRunLease` is
+# finished and failed through `DrawConversationToolCall` instead.
+#
+# A call to an integration's tool an administrator lets run without approval is drawn here too,
+# with the server and the tool it goes to, and what its running without approval was bound to, as
+# an approval is: the server's revision, the tool's definition and the credential's generation, all
+# checked again right before the call. Fenced as `RenewConversationRunLease` is
 mutation DrawConversationClientToolCall(
   $organizationId: UUID!
   $userId: String!
@@ -1824,6 +1836,12 @@ mutation DrawConversationClientToolCall(
   $toolName: String!
   $toolInput: String!
   $preview: Any!
+  $integrationId: UUID
+  $integrationName: String
+  $integrationToolName: String
+  $approvalConfigRevision: Int
+  $approvalToolHash: String
+  $approvalCredentialGeneration: String
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -1875,6 +1893,109 @@ mutation DrawConversationClientToolCall(
       toolName: $toolName
       toolStatus: RUNNING
       toolInput: $toolInput
+      integrationId: $integrationId
+      integrationName: $integrationName
+      integrationToolName: $integrationToolName
+      approvalConfigRevision: $approvalConfigRevision
+      approvalToolHash: $approvalToolHash
+      approvalCredentialGeneration: $approvalCredentialGeneration
+      position: $position
+    }
+  )
+}
+
+# Draws a call to an integration's tool that waits for the member's approval as an `APPROVAL`,
+# pending: the server and the tool it goes to, its input as JSON text, lossless, which Allow shows
+# whole, a preview of its arguments, and what the approval is bound to, the server's revision, the
+# tool's definition and the credential's generation, which Allow and the call check again. At a
+# position claimed on the counter, with the cursor moved past the call's block. Like a question, it
+# adds one to the unread count and becomes the preview, and its run ends `WAITING` on it. Fenced as
+# `RenewConversationRunLease` is
+mutation DrawConversationApproval(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $toolUseId: String!
+  $toolName: String!
+  $toolInput: String!
+  $integrationId: UUID!
+  $integrationName: String!
+  $integrationToolName: String!
+  $approvalConfigRevision: Int!
+  $approvalToolHash: String!
+  $approvalCredentialGeneration: String
+  $argumentsPreview: String!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.toBlock > vars.fromBlock && size(vars.argumentsPreview) <= 2001"
+      message: "An approval is drawn from its call, with a preview of at most 2000 characters and its ellipsis"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      unreadCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
+    data: { drawnBlocks: $toBlock }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: APPROVAL
+      toolUseId: $toolUseId
+      toolName: $toolName
+      toolInput: $toolInput
+      integrationId: $integrationId
+      integrationName: $integrationName
+      integrationToolName: $integrationToolName
+      approvalState: PENDING
+      approvalConfigRevision: $approvalConfigRevision
+      approvalToolHash: $approvalToolHash
+      approvalCredentialGeneration: $approvalCredentialGeneration
+      argumentsPreview: $argumentsPreview
       position: $position
     }
   )
@@ -1984,6 +2105,138 @@ mutation FinishConversationToolCall(
   )
 }
 
+# Starts a call to an integration's tool, before the worker makes it, so a worker fenced out never
+# makes one: `RUNNING`, with when it started, and the server marked used, at most once a minute,
+# in a write no live query refreshes on. Only a call that never started: an auto-approved one drawn
+# running, or cancelled by a stop before it started, or an approval the member allowed. A call that
+# started is never made again, since it went to another company's server, which may have acted on
+# it: whoever finds it unfinished answers it as interrupted. Fenced as `RenewConversationRunLease` is
+mutation StartConversationIntegrationCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $messageId: UUID!
+  $integrationId: UUID!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationMessage_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $messageId }
+          conversationId: { eq: $conversationId }
+          integrationId: { eq: $integrationId }
+          toolStartedAt: { isNull: true }
+        }
+        {
+          _or: [
+            { kind: { eq: TOOL_CALL }, toolStatus: { in: [RUNNING, CANCELLED] } }
+            { kind: { eq: APPROVAL }, approvalState: { eq: ALLOWED } }
+          ]
+        }
+      ]
+    }
+    data: { toolStatus: RUNNING, toolStartedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The call started already, or was never allowed")
+  organizationIntegration_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $integrationId }, organizationId: { eq: $organizationId } }
+        { _or: [{ lastUsedAt: { isNull: true } }, { lastUsedAt: { lt_time: { now: true, sub: { minutes: 1 } } } }] }
+      ]
+    }
+    data: { lastUsedAt_expr: "request.time" }
+  )
+}
+
+# Records what a call to an integration's tool came to, as `FinishConversationToolCall` does for
+# Strategy Dance's own tools, with what that one never sees: a call that started and was left
+# unfinished, by a crash or a stop, `CANCELLED` or still `RUNNING`, is finished here as interrupted,
+# never made again, and an approval whose server, tool or credential changed since the member saw it
+# is denied, `$approvalState`. `$toolDurationMs` is left out for a call that was not timed. Fenced as
+# `RenewConversationRunLease` is
+mutation FinishConversationIntegrationCall(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $messageId: UUID!
+  $toolStatus: ConversationToolStatus!
+  $toolOutput: String!
+  $toolDurationMs: Int
+  $approvalState: ConversationApprovalState
+  $pendingToolResults: String!
+  $preview: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { pendingToolResults: $pendingToolResults, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "(vars.toolStatus == 'SUCCEEDED' || vars.toolStatus == 'FAILED') && (!has(vars.approvalState) || vars.approvalState == null || vars.approvalState == 'DENIED')"
+      message: "A call finishes succeeded or failed, and an approval it finishes can only be denied"
+    )
+  conversationMessage_updateMany(
+    where: {
+      id: { eq: $messageId }
+      conversationId: { eq: $conversationId }
+      kind: { in: [TOOL_CALL, APPROVAL] }
+      integrationId: { isNull: false }
+      toolStatus: { in: [RUNNING, CANCELLED] }
+      toolStartedAt: { isNull: false }
+    }
+    data: {
+      toolStatus: $toolStatus
+      toolOutput: $toolOutput
+      toolDurationMs: $toolDurationMs
+      approvalState: $approvalState
+    }
+  ) @check(expr: "this == 1", message: "The call is no longer running")
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, previewMessageId: { eq: $messageId } }
+    data: { preview: $preview }
+  )
+}
+
 # Records a call to a module's write that a run left started and unfinished, cancelled when the run
 # ended, as what the module stored under its idempotency key once the backend found it there: the
 # write landed, and its output is the result the module answered. Only once the run has let go of
@@ -2020,7 +2273,12 @@ mutation SettleConversationToolCall(
 
 # Stores the results of a turn's calls in the transcript, after the turn, as the user entry that
 # answers them, in their order, then goes round to Claude. The run lets go of the results it kept
-# meanwhile, in the fenced write. Fenced as `RenewConversationRunLease` is
+# meanwhile, in the fenced write.
+#
+# A run that carried a waiting turn on to make the calls its member allowed stores that turn's
+# results, and is anchored on them from then on, `$anchorPosition`, as a run an answer started is
+# anchored on its answers: a Retry then keeps the calls it made, which went to other companies'
+# servers. Left out, the anchor stays as it is. Fenced as `RenewConversationRunLease` is
 mutation StoreConversationToolResults(
   $organizationId: UUID!
   $userId: String!
@@ -2031,6 +2289,7 @@ mutation StoreConversationToolResults(
   $entryId: UUID!
   $position: Int!
   $content: String!
+  $anchorPosition: Int
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -2049,8 +2308,17 @@ mutation StoreConversationToolResults(
         }
       }
     }
-    data: { pendingToolResults: null, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
-  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+    data: {
+      pendingToolResults: null
+      anchorPosition: $anchorPosition
+      leaseExpiresAt_time: { now: true, add: { seconds: 60 } }
+    }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "!has(vars.anchorPosition) || vars.anchorPosition == null || vars.anchorPosition == vars.position"
+      message: "A run is anchored on the results it stores, or where it was"
+    )
   conversationTranscriptEntry_insert(
     data: {
       id: $entryId
@@ -2170,7 +2438,7 @@ mutation FinishConversationRunWaiting(
     data: { status: WAITING, usage: $usage, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is no longer this worker's")
   conversationMessage_updateMany(
-    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -2219,7 +2487,7 @@ mutation FinishConversationRun(
       message: "A run ends this way completed or stopped"
     )
   conversationMessage_updateMany(
-    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -2277,7 +2545,7 @@ mutation FinishConversationRunWithNote(
       message: "A run ends with its own note: failed or full, stopped, or refused"
     )
   conversationMessage_updateMany(
-    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(
@@ -2336,7 +2604,7 @@ mutation InterruptConversationRun(
     data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is no longer this worker's")
   conversationMessage_updateMany(
-    where: { conversationId: { eq: $conversationId }, kind: { eq: TOOL_CALL }, toolStatus: { eq: RUNNING } }
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
   )
   conversation_updateMany(

@@ -451,8 +451,9 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
 }
 
 # The calls of the turn a conversation's transcript ends on, by the ids Claude gave them, as the
-# thread draws them: the questions with their answers, and the calls to Strategy Dance's own tools
-# with their status, their output and whether they started. And the latest run, with the results of
+# thread draws them: the questions with their answers, the calls to Strategy Dance's own tools with
+# their status, their output and whether they started, and the calls to integrations with their
+# approval and what it was bound to. And the latest run, with the results of
 # the calls of that turn which finished, kept until the entry that sends them is stored. What the
 # worker reads before it runs a turn's calls, and what a send, a resume and a continuation read
 # before they answer them. Only the caller's conversation in that organization
@@ -461,7 +462,7 @@ query GetConversationCalls($organizationId: UUID!, $userId: String!, $conversati
   conversationMessages(
     where: {
       toolUseId: { in: $toolUseIds }
-      kind: { in: [TOOL_CALL, QUESTION] }
+      kind: { in: [TOOL_CALL, QUESTION, APPROVAL] }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
     orderBy: [{ position: ASC }]
@@ -480,6 +481,13 @@ query GetConversationCalls($organizationId: UUID!, $userId: String!, $conversati
     answerOther
     isAnswerSkipped
     answeredAt
+    integrationId
+    integrationName
+    integrationToolName
+    approvalState
+    approvalConfigRevision
+    approvalToolHash
+    approvalCredentialGeneration
   }
   latestRuns: conversationRuns(
     where: {

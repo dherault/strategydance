@@ -86,9 +86,10 @@ function useLiveQuerySubscription<Data, Variables>({
       try {
         unsubscribe = subscribe(createRef(), {
           onNext: ({ data }) => {
+            reopenDelay = REOPEN_INITIAL_DELAY_MS
+
             if (isAwaitingWrites(pinnedQueryKey)) return
 
-            reopenDelay = REOPEN_INITIAL_DELAY_MS
             queryClient.setQueryData(pinnedQueryKey, data)
             handleNext(data)
           },

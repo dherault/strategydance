@@ -79,7 +79,7 @@ it discards them, so a release cut between the two would leave the daily sweep t
 | M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
-| M29 | Integrations in conversations | database, backend, web | M11, M28 | |
+| M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
 | M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | |
 | M32 | The Subagents module | core, backend, database, web | M31 | |
@@ -1908,6 +1908,19 @@ with nothing to authorize yet but a script: the consent page comes in M19 and th
     dialog, whose Connect the member clicks, since a browser opens a sign-in window only inside a
     click; `?enable=` turns the server on for an administrator, as designed; `?add=` opens the add
     dialog from the catalogue by name. Ids go into the address hyphenated.
+  - Verified: the four checks; `check:integrations` and `check:conversation-runs` against an emulator
+    of the branch's schema; `probe:claude` on the real API, Claude calling `call_integration_tool`
+    with its arguments as an object; in the browser at 1280 and 390 wide, page and dock, against the
+    emulators and the real model, with DeepWiki added by its address: Claude listing the
+    integrations, reading a tool, saying what it proposes and waiting on the approval, raised in the
+    sidebar's badge and the list's "Needs your answer" with "Approval: DeepWiki · ask_wiki_question";
+    Allow opening the whole input, the call made in the next run and its answer used; Deny, and a
+    message sent instead, each drawn denied; an administrator letting one tool run without approval,
+    which then ran straight away; the server turned off, Claude saying so from the list, the strip
+    under an earlier call offering Turn on, which turned it on and cleared the address; and
+    `lastUsedAt` shown. Found on the way: the integration reads were handed a run's whole fence, which
+    Data Connect refuses, a variable the fake now refuses too. Not yet: an OAuth server's Connect in
+    the strip, which needs an account at a real OAuth server.
 
 ### M30: Subagent conversations and their runs
 

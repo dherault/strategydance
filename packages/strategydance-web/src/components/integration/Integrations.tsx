@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
-import type { ExternalMcpServer } from 'strategydance-external-mcp-servers'
+import { EXTERNAL_MCP_SERVERS, type ExternalMcpServer } from 'strategydance-external-mcp-servers'
 
 import type { OrganizationIntegration } from '~types'
 
@@ -41,7 +42,13 @@ type OpenDialog = { integrationId: string } | { preset: ExternalMcpServer | null
   The dialog of a server is mounted only while open, around the server it shows, read from the live
   list, so another administrator's change reaches it, mounting it anew when it changes a setting its
   form edits (`getIntegrationFormKey`), and it closes when the server goes. A delete offers its Undo
-  in a toast, as conversations' does
+  in a toast, as conversations' does.
+
+  A conversation's thread sends the reader here from under a call to a server that does not work for
+  them, and the page does what its query says once, then takes it out of the address: opens a server's
+  dialog, the reader's own Connect in it, since a browser opens a sign-in window only inside a click;
+  turns a server on, for an administrator; or opens the dialog adding a server again, from the
+  catalogue when it lists one by that name
 */
 function Integrations() {
   const { formatMessage } = useIntl()
@@ -56,6 +63,8 @@ function Integrations() {
   const { setIntegrationEnabled, deleteIntegration, restoreIntegration } = useIntegrationRequests()
   const { attempt, connect, cancel } = useIntegrationConnect(connections)
   const [openDialog, setOpenDialog] = useState<OpenDialog | null>(null)
+  const search = useSearch({ from: '/_authenticated/_app/$organizationSlug/integrations' })
+  const navigate = useNavigate({ from: '/$organizationSlug/integrations' })
 
   const isAdministrator = role === OrganizationRole.ADMINISTRATOR
   const openIntegration =
@@ -69,6 +78,30 @@ function Integrations() {
   const available = integrations.filter(
     integration => getIntegrationStatus(integration, findConnection(integration.id)) === 'connected',
   ).length
+
+  useEffect(() => {
+    const { open, connect: connectId, enable, add } = search
+
+    if (!open && !connectId && !enable && !add) return
+
+    const findIntegration = (id: string | undefined) =>
+      id ? integrations.find(integration => integration.id === id.replaceAll('-', '').toLowerCase()) : undefined
+    const opened = findIntegration(open ?? connectId)
+    const enabled = isAdministrator ? findIntegration(enable) : undefined
+
+    if (opened) setOpenDialog({ integrationId: opened.id })
+    else if (add && isAdministrator) {
+      const name = add.trim().toLowerCase()
+
+      setOpenDialog({ preset: EXTERNAL_MCP_SERVERS.find(server => server.name.toLowerCase() === name) ?? null })
+    }
+
+    if (enabled && !enabled.isEnabled) toggle(enabled, true)
+
+    navigate({ search: {}, replace: true })
+    // Once for each query the thread sends, against the servers as they are then
+    // oxlint-disable-next-line react/exhaustive-deps
+  }, [search])
 
   // Connect from the server's dialog closes it, the connect dialog taking its place, as designed
   function startConnecting(integration: OrganizationIntegration) {

@@ -2,6 +2,8 @@ import { type QueryKey, useQueryClient } from '@tanstack/react-query'
 import { type QueryRef, subscribe } from 'firebase/data-connect'
 import { useEffect, useEffectEvent } from 'react'
 
+import { isAwaitingWrites } from '~utils/common/writeOptimistically'
+
 // How long a subscription that failed waits before it opens again, doubling up to the maximum
 const REOPEN_INITIAL_DELAY_MS = 1000
 const REOPEN_MAX_DELAY_MS = 60 * 1000
@@ -32,6 +34,13 @@ type Options<Data, Variables> = {
   to open the stream at all, which throws rather than reaching `onErr`, closes this subscription
   and opens a new one after a delay that doubles each time, up to a minute, and starts over once a
   result arrives. The data stays as last read meanwhile.
+
+  While `writeOptimistically` has a write under way for the query, a result is dropped: it was read
+  before the change or after it, which nothing tells apart, and one from before would take the
+  change back. Subscribing is enough to bring one, since the SDK replays what it last read, cache
+  off or not, to every subscriber of a query whenever another one subscribes: a task opened the
+  moment it is created mounts readers of the board, which would take the task off it. The read once
+  the writes settle brings the entry up to date.
 
   The two callbacks are effect events, so they read the caller's latest values without the
   subscription closing and opening each time those change: only a new key does that
@@ -77,6 +86,8 @@ function useLiveQuerySubscription<Data, Variables>({
       try {
         unsubscribe = subscribe(createRef(), {
           onNext: ({ data }) => {
+            if (isAwaitingWrites(pinnedQueryKey)) return
+
             reopenDelay = REOPEN_INITIAL_DELAY_MS
             queryClient.setQueryData(pinnedQueryKey, data)
             handleNext(data)

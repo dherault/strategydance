@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 
 import type { QueryClient } from '@tanstack/react-query'
 
-import writeOptimistically from '~utils/common/writeOptimistically'
+import writeOptimistically, { isAwaitingWrites } from '~utils/common/writeOptimistically'
 
 function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -104,5 +104,43 @@ describe('writeOptimistically', () => {
     await wait(40)
 
     expect(events).toEqual(['invalidate'])
+  })
+
+  it('says a query awaits writes from the moment one is asked for until the last settles, refused or not', async () => {
+    const queryClient = createQueryClient([])
+    let finishWrite = () => {}
+
+    const written = writeOptimistically({
+      queryClient,
+      queryKeys: [['awaited', 1]],
+      rowKey: 'awaited',
+      apply: () => {},
+      write: () =>
+        new Promise<void>(resolve => {
+          finishWrite = resolve
+        }),
+    })
+    const refused = writeOptimistically({
+      queryClient,
+      queryKeys: [['awaited', 1]],
+      rowKey: 'awaited-refused',
+      apply: () => {},
+      write: async () => {
+        throw new Error('refused')
+      },
+    })
+
+    expect(isAwaitingWrites(['awaited', 1])).toBe(true)
+    expect(isAwaitingWrites(['awaited', 2])).toBe(false)
+
+    expect(refused).rejects.toThrow('refused')
+    await wait(40)
+
+    expect(isAwaitingWrites(['awaited', 1])).toBe(true)
+
+    finishWrite()
+    await written
+
+    expect(isAwaitingWrites(['awaited', 1])).toBe(false)
   })
 })

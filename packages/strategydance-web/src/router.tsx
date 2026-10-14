@@ -1,5 +1,7 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { type Query, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
+
+import { isAwaitingWrites } from '~utils/common/writeOptimistically'
 
 import AuthenticationProvider from '~components/authentication/_AuthenticationProvider'
 import AspectChapterProvider from '~components/company/_AspectChapterProvider'
@@ -11,10 +13,28 @@ import UserOrganizationsProvider from '~components/userOrganization/_UserOrganiz
 
 import { routeTree } from './routeTree.gen'
 
+/*
+  A query with a change still on its way to the server is not read again as a reader mounts, the
+  window takes the focus or the network comes back: the read would answer from before the change and
+  take it back, as a task opened the moment it is created would lose it. `writeOptimistically` reads
+  it again once its writes settle
+*/
+function shouldReadAgain(query: Query) {
+  return !isAwaitingWrites(query.queryKey)
+}
+
 // Named `getRouter` and living at `src/router.tsx` because that is the entry
 // TanStack Start resolves by convention
 export function getRouter() {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnMount: shouldReadAgain,
+        refetchOnWindowFocus: shouldReadAgain,
+        refetchOnReconnect: shouldReadAgain,
+      },
+    },
+  })
 
   return createRouter({
     routeTree,

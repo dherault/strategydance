@@ -5,6 +5,11 @@ import runInOrder from '~utils/common/runInOrder'
 // How many writes each query is waiting on, by its serialized key
 const pendingWrites = new Map<string, number>()
 
+// Whether a change to this query is still on its way to the server, until when it is not read again
+export function isAwaitingWrites(queryKey: QueryKey) {
+  return pendingWrites.has(JSON.stringify(queryKey))
+}
+
 // The changes still being applied, which the next one waits behind
 let applying: Promise<unknown> = Promise.resolve()
 
@@ -35,7 +40,9 @@ type Options = {
     server as the reader made them
   - Once the last write a query waits on settles, it is read again, which puts right anything a
     later read overwrote and anything the server did differently. A write that fails reads it
-    again at once, so the page drops what the server refused, and the error goes to the caller
+    again at once, so the page drops what the server refused, and the error goes to the caller.
+    Until then nothing else lands on it: a live query drops what it is sent, and no reader mounting,
+    focus or reconnect reads it again (`isAwaitingWrites`)
 */
 async function writeOptimistically({ queryClient, queryKeys, rowKey, after, apply, write }: Options) {
   const keys = queryKeys.map(queryKey => JSON.stringify(queryKey))

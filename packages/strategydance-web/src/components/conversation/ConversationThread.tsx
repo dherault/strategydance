@@ -111,8 +111,10 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   // The message the reader just sent, while the tail does not hold it yet
   const shownPendingMessage =
     pendingMessage && !entries.some(({ id }) => id === pendingMessage.id) ? pendingMessage : null
-  // The message the reader just sent, once the thread holds it with its body, which it is drawn from
-  const heldPendingMessageId = pendingMessage && bodies.has(pendingMessage.id) ? pendingMessage.id : null
+  // The message the reader just sent, once the thread holds it with its body, which it is drawn from,
+  // and its send has gone through: until then a failure can put it back, and the composer counts its
+  // files among those the next message may hold
+  const heldPendingMessageId = pendingMessage && !isSending && bodies.has(pendingMessage.id) ? pendingMessage.id : null
 
   const forgetHeldPendingMessage = useEffectEvent((id: string) => forgetPendingMessage(id))
 

@@ -59,7 +59,8 @@ export type ConversationComposerDraft = {
   attachmentRefusal: ConversationAttachmentRefusal | null
   // The id of the message a send is taking, while it goes, which no other send may race
   sendingMessageId: string | null
-  // The message last sent, from its send until the thread holds it, or its send fails
+  // The message last sent, from its send until the thread holds it and its send has gone through, or
+  // its send fails
   pendingMessage: ConversationPendingMessage | null
   // The send that failed, kept so that sending the same message again is the same send: its id,
   // the message as it was sent, its mentions links to their documents, and the files it sent

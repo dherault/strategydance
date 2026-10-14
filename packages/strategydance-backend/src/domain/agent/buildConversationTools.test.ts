@@ -97,6 +97,9 @@ describe('buildConversationTools', () => {
     expect(tools.map(readName)).toEqual([
       'web_search',
       'ask_user',
+      'list_integrations',
+      'describe_integration_tool',
+      'call_integration_tool',
       'search_documents',
       'list_documents',
       'read_document',
@@ -115,7 +118,7 @@ describe('buildConversationTools', () => {
       'restore_task',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '6ad947b82795b5945e48afa906cf02576d308d10607bccb8d44727753b71320f',
+      'bf4f05c73fe450f58d4ee5a2c87b237013c27e4f509ff9b498fc953c380cf6fb',
     )
   })
 
@@ -132,7 +135,7 @@ describe('buildConversationTools', () => {
     let optional = 0
     let union = 0
 
-    expect(strict.map(readName)).toEqual(['ask_user'])
+    expect(strict.map(readName)).toEqual(['ask_user', 'list_integrations', 'describe_integration_tool'])
     expect(strict.length).toBeLessThanOrEqual(MAX_STRICT_TOOLS)
 
     for (const tool of strict) {
@@ -154,6 +157,17 @@ describe('buildConversationTools', () => {
 
     expect(optional).toBeLessThanOrEqual(MAX_OPTIONAL_PARAMETERS)
     expect(union).toBeLessThanOrEqual(MAX_UNION_PARAMETERS)
+  })
+
+  // A call's arguments are whatever the server's tool takes, an object strict schemas cannot leave open
+  it('sends call_integration_tool streamed and not strict, its arguments any object', () => {
+    const tool = CONVERSATION_TOOLS.find(item => readName(item) === 'call_integration_tool') as BetaTool
+
+    expect(tool).toMatchObject({ eager_input_streaming: true })
+    expect(tool).not.toHaveProperty('strict')
+    const { properties } = tool.input_schema as { properties: Record<string, Schema> }
+
+    expect(properties.arguments).toEqual({ type: 'object', description: expect.any(String) })
   })
 
   // A module's tools outgrow what strict tools take, so Claude reads their schemas and the module checks each call

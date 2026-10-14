@@ -61,6 +61,8 @@ export type FakeIntegration = {
   autoApprovedTools: string[]
   lastError: string | null
   deletedAt: string | null
+  // When the agent last called it, null until it does
+  lastUsedAt?: string | null
 }
 
 // What a Connect and a connection share: the client, the resource and the authorization server's

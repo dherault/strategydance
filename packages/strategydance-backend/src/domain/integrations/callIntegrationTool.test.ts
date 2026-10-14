@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-import { createMcpHandler, McpServer } from '@modelcontextprotocol/server'
-import { z } from 'zod'
-
-import type { OutboundRequest, OutboundStream, ResolvedAddress } from '~utils/requestOutbound'
+import type { ResolvedAddress } from '~utils/requestOutbound'
 
 import createIntegrationDatabaseFake, {
   type FakeIntegration,
@@ -12,6 +9,7 @@ import createIntegrationDatabaseFake, {
   OrganizationRole,
 } from './testing/createIntegrationDatabaseFake'
 import createIntegrationOAuthServerFake, { FAKE_ISSUER, FAKE_MCP_URL } from './testing/createIntegrationOAuthServerFake'
+import createIntegrationServerFake from './testing/createIntegrationServerFake'
 
 process.env.API_URL = 'https://api.strategydance.test'
 
@@ -41,7 +39,6 @@ const { default: startIntegrationConnection } = await import('./startIntegration
 const { default: receiveIntegrationAuthorizationCode } = await import('./receiveIntegrationAuthorizationCode')
 const { default: finishIntegrationConnection } = await import('./finishIntegrationConnection')
 const { default: encryptIntegrationKey } = await import('./encryptIntegrationKey')
-const { default: hashIntegrationToolDefinition } = await import('./hashIntegrationToolDefinition')
 const { default: IntegrationCallChanged } = await import('./IntegrationCallChanged')
 const { default: callIntegrationTool } = await import('./callIntegrationTool')
 
@@ -49,7 +46,6 @@ const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const INTEGRATION_ID = '7c9e6679742540de944be07fc1f90ae7'
 const ADA = 'ada'
 const BOB = 'bob'
-const PUBLIC = { address: '93.184.215.14', family: 4 }
 
 beforeEach(() => {
   fake.reset()
@@ -157,70 +153,12 @@ async function refusal(promise: Promise<unknown>) {
   throw new Error('The call went through')
 }
 
-/*
-  A server taking a key, built by the SDK's own handler: it answers a request carrying the key in the
-  header it names, and refuses anything else with a 401, recording each call's arguments
-*/
-function createKeyServer(isAuthorized: (headers: Headers) => boolean) {
-  const calls: unknown[] = []
-  const handler = createMcpHandler(
-    () => {
-      const mcp = new McpServer({ name: 'keyed', version: '1.0.0' }, { capabilities: { tools: {} } })
-
-      mcp.registerTool(
-        'list_issues',
-        { description: 'list_issues', inputSchema: z.object({ query: z.string() }) },
-        async ({ query }) => ({ content: [{ type: 'text', text: `keyed: ${query}` }] }),
-      )
-
-      return mcp
-    },
-    { responseMode: 'sse', legacy: 'stateless' },
-  )
-
-  async function send(
-    url: URL,
-    _address: ResolvedAddress,
-    headers: Record<string, string>,
-    signal: AbortSignal,
-    { method, body }: OutboundRequest,
-  ): Promise<OutboundStream> {
-    const request = new Request(url, { method, headers, body: body && new Uint8Array(body), signal })
-    const text = await request.clone().text()
-
-    if (text.includes('"tools/call"')) calls.push(JSON.parse(text).params.arguments)
-
-    const response = isAuthorized(request.headers)
-      ? await handler.fetch(request)
-      : new Response('Unauthorized', { status: 401 })
-
-    return {
-      status: response.status,
-      headers: Object.fromEntries(response.headers),
-      body: (async function* () {
-        if (!response.body) return
-
-        for await (const chunk of response.body) yield chunk
-      })(),
-    }
-  }
-
-  return { send, resolve: async () => [PUBLIC], calls }
-}
-
 // The tools a key server lists, stored as listing them would
-function storeKeyServerTools() {
-  const definition = {
-    name: 'list_issues',
-    description: 'list_issues',
-    inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
-  }
-  const definitionHash = hashIntegrationToolDefinition(definition)
-
+function storeKeyServerTools(keyServer: ReturnType<typeof createIntegrationServerFake>) {
   Object.assign(server(), {
-    tools: JSON.stringify([{ ...definition, definitionHash }]),
-    toolCount: 1,
-    toolDefinitionHashes: [definitionHash],
+    tools: keyServer.storedTools(),
+    toolCount: 2,
+    toolDefinitionHashes: [keyServer.hashOf('list_issues'), keyServer.hashOf('create_issue')],
   })
 }
 
@@ -399,7 +337,9 @@ describe('callIntegrationTool with a member’s own account', () => {
 
 describe('callIntegrationTool with the organization’s key', () => {
   test('sends the key as a bearer token', async () => {
-    const keyServer = createKeyServer(headers => headers.get('authorization') === 'Bearer secret-key')
+    const keyServer = createIntegrationServerFake({
+      isAuthorized: headers => headers.get('authorization') === 'Bearer secret-key',
+    })
 
     network = keyServer
     addServer({
@@ -412,14 +352,16 @@ describe('callIntegrationTool with the organization’s key', () => {
       }),
       keyGeneration: 2,
     })
-    storeKeyServerTools()
+    storeKeyServerTools(keyServer)
 
-    expect(await call(BOB)).toEqual({ content: [{ type: 'text', text: 'keyed: open' }] })
-    expect(keyServer.calls).toEqual([{ query: 'open' }])
+    expect(await call(BOB)).toEqual({ content: [{ type: 'text', text: 'list_issues: open' }] })
+    expect(keyServer.calls).toEqual([{ name: 'list_issues', arguments: { query: 'open' } }])
   })
 
   test('sends the key alone in the header named', async () => {
-    const keyServer = createKeyServer(headers => headers.get('x-api-key') === 'secret-key')
+    const keyServer = createIntegrationServerFake({
+      isAuthorized: headers => headers.get('x-api-key') === 'secret-key',
+    })
 
     network = keyServer
     addServer({
@@ -433,13 +375,15 @@ describe('callIntegrationTool with the organization’s key', () => {
         integrationId: INTEGRATION_ID,
       }),
     })
-    storeKeyServerTools()
+    storeKeyServerTools(keyServer)
 
-    expect(await call()).toEqual({ content: [{ type: 'text', text: 'keyed: open' }] })
+    expect(await call()).toEqual({ content: [{ type: 'text', text: 'list_issues: open' }] })
   })
 
   test('says the key was refused, and refuses a call bound to a key since replaced', async () => {
-    network = createKeyServer(() => false)
+    const keyServer = createIntegrationServerFake({ isAuthorized: () => false })
+
+    network = keyServer
     addServer({
       authentication: IntegrationAuthentication.API_KEY,
       issuer: null,
@@ -450,7 +394,7 @@ describe('callIntegrationTool with the organization’s key', () => {
       }),
       keyGeneration: 3,
     })
-    storeKeyServerTools()
+    storeKeyServerTools(keyServer)
 
     expect(((await refusal(call())) as Error).message).toBe(
       "Issues refused the organization's key. Tell the member an administrator can replace it.",

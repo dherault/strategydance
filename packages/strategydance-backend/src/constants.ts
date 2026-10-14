@@ -426,6 +426,15 @@ export const INTEGRATION_OPERATION_TIMEOUT_MS = 30_000
 export const MAX_INTEGRATION_RESPONSE_BYTES = 4 * 1024 * 1024
 
 /*
+  How long a call's arguments may be, as JSON, in characters: a call past it is refused before it is
+  drawn, so no approval shows arguments the member could not read whole
+*/
+export const MAX_INTEGRATION_CALL_ARGUMENTS_LENGTH = 100_000
+
+// How much of a call's arguments its approval shows at a glance, in characters
+export const MAX_INTEGRATION_ARGUMENTS_PREVIEW_LENGTH = 2000
+
+/*
   Strategy Dance as an OAuth client of an organization's MCP servers, which members connect their own
   accounts to: where an authorization server sends the browser back, the address of Strategy Dance's
   client ID metadata document, which is its `client_id` wherever a server reads such documents, and

@@ -1,7 +1,10 @@
 import { MAX_TOOL_CALLS_PER_RUN, MAX_TOOL_CALLS_PER_TURN } from 'strategydance-core'
 
+import checkConversationIntegrationCall, {
+  type ConversationIntegrationCall,
+} from '~domain/agent/checkConversationIntegrationCall'
 import checkConversationQuestion, { type ConversationQuestion } from '~domain/agent/checkConversationQuestion'
-import { ASK_USER_TOOL_NAME } from '~domain/agent/conversationTools'
+import { ASK_USER_TOOL_NAME, CALL_INTEGRATION_TOOL_TOOL_NAME } from '~domain/agent/conversationTools'
 import type { ConversationToolCall } from '~domain/agent/readConversationToolCalls'
 
 /*
@@ -9,12 +12,16 @@ import type { ConversationToolCall } from '~domain/agent/readConversationToolCal
 
   - `question`: an `ask_user` within its bounds, drawn as a question the member answers
   - `run`: a call to a tool the worker runs, drawn as a call that runs
+  - `integration`: a call to an integration's tool, within its bounds, drawn once the server is read:
+    as a call that runs when an administrator lets the tool run without approval, as an approval the
+    member answers otherwise, or as a call that failed when the member cannot use the server
   - `refused`: a call nothing runs, answered with `reason`, drawn as a call that failed when
     `isDrawn`, or not at all for a question past its bounds, so nothing of it reaches the thread
 */
 export type ConversationToolCallPlan =
   | { kind: 'question'; call: ConversationToolCall; question: ConversationQuestion }
   | { kind: 'run'; call: ConversationToolCall }
+  | { kind: 'integration'; call: ConversationToolCall; integrationCall: ConversationIntegrationCall }
   | { kind: 'refused'; call: ConversationToolCall; reason: string; isDrawn: boolean }
 
 type Options = {
@@ -58,6 +65,14 @@ function planConversationToolCalls(
     if (checked?.outcome === 'valid') return { kind: 'question', call, question: checked.question }
 
     if (!runnerNames.includes(call.name)) return refuse(call, `Not run: there is no tool called ${call.name}.`)
+
+    if (call.name === CALL_INTEGRATION_TOOL_TOOL_NAME) {
+      const integrationCall = checkConversationIntegrationCall(call.input)
+
+      if (integrationCall.outcome === 'invalid') return refuse(call, integrationCall.reason)
+
+      return { kind: 'integration', call, integrationCall: integrationCall.call }
+    }
 
     return { kind: 'run', call }
   })

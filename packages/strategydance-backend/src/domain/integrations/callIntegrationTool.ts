@@ -97,7 +97,7 @@ async function callIntegrationTool(
     throw new IntegrationCallChanged(name, { isApprovalWithdrawn: true })
   }
 
-  const fetch = createIntegrationFetch(network, budget)
+  const fetch = createIntegrationFetch(network, budget, INTEGRATION_OPERATION_TIMEOUT_MS)
   const callWith = (url: string, credential: IntegrationCredential | null) =>
     callServer({ name, url, credential, fetch, signal: budget, toolName: call.toolName, args: call.arguments })
 
@@ -214,7 +214,11 @@ async function callServer({ name, url, credential, fetch, signal, toolName, args
     const { client, requestOptions, close } = await connectIntegrationClient({ url, credential, fetch, signal })
 
     try {
-      return await client.callTool({ name: toolName, arguments: args }, requestOptions)
+      // The call takes whatever of the 30 seconds is left, where the handshake took 15 at most
+      return await client.callTool(
+        { name: toolName, arguments: args },
+        { ...requestOptions, timeout: INTEGRATION_OPERATION_TIMEOUT_MS },
+      )
     } finally {
       await close()
     }

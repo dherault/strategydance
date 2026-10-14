@@ -13,6 +13,7 @@ import {
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
+import createIntegrationDatabaseFake from '~domain/integrations/testing/createIntegrationDatabaseFake'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 /*
@@ -25,9 +26,11 @@ import createModuleDatabaseFake from '~domain/modules/testing/createModuleDataba
   needs, which the second checks against Postgres' own.
 
   It holds the modules' fake too, as `modules`, its operations in the same SDK, since a run's worker
-  loads every module's server, and Bun refuses an import the mock does not hold. A member is added
-  to and removed from both at once, with one `createdAt`, so a run and the modules it calls agree on
-  who its author is. Each keeps its own `calls` and `beforeOperation`
+  loads every module's server, and Bun refuses an import the mock does not hold, and the
+  integrations' fake, as `integrations`, since a run's agent lists and calls the organization's
+  servers. A member is added to and removed from all three at once, with one `createdAt`, so a run
+  and the modules and servers it calls agree on who its author is. Each keeps its own `calls` and
+  `beforeOperation`
 
   An operation checks everything before it changes anything, so it applies whole or not at all, as
   a transaction does, and runs without yielding, so two called at once take turns as two locked
@@ -54,6 +57,13 @@ export const ConversationMessageKind = {
   QUESTION: 'QUESTION',
   ASPECTS: 'ASPECTS',
   NOTE: 'NOTE',
+  APPROVAL: 'APPROVAL',
+} as const
+
+export const ConversationApprovalState = {
+  PENDING: 'PENDING',
+  ALLOWED: 'ALLOWED',
+  DENIED: 'DENIED',
 } as const
 
 export const ConversationNoteKind = {
@@ -171,6 +181,16 @@ export type FakeMessage = {
   // An aspects note's aspects, and who set them
   aspects?: string[] | null
   aspectsSetBy?: string | null
+  // A call to an integration's: its server and tool, an approval's state, what it is bound to, and
+  // its arguments at a glance
+  integrationId?: string | null
+  integrationName?: string | null
+  integrationToolName?: string | null
+  approvalState?: string | null
+  approvalConfigRevision?: number | null
+  approvalToolHash?: string | null
+  approvalCredentialGeneration?: string | null
+  argumentsPreview?: string | null
 }
 
 export type FakeEntry = {
@@ -255,10 +275,12 @@ function createConversationDatabaseFake() {
   // Every operation called, by name, in order
   const calls: string[] = []
   const modules = createModuleDatabaseFake()
+  const integrations = createIntegrationDatabaseFake()
   let stamps = 0
 
   const fake = {
     modules,
+    integrations,
     users,
     memberships,
     organizations,
@@ -316,6 +338,7 @@ function createConversationDatabaseFake() {
 
     memberships.set(membershipKey(userId, organizationId), { createdAt, role: 'MEMBER', jobTitle: null })
     modules.addMember(userId, organizationId, { createdAt })
+    integrations.addMember(userId, organizationId, 'MEMBER', createdAt)
 
     return createdAt
   }
@@ -323,6 +346,7 @@ function createConversationDatabaseFake() {
   function removeMember(userId: string, organizationId: string) {
     memberships.delete(membershipKey(userId, organizationId))
     modules.removeMember(userId, organizationId)
+    integrations.removeMember(userId, organizationId)
   }
 
   // Whether a conversation was deleted over a day ago, past its Undo
@@ -509,15 +533,27 @@ function createConversationDatabaseFake() {
     )
   }
 
+  // The server and tool a call to an integration was drawn with, none for any other call
+  function integrationFields(variables: AnyVariables) {
+    return {
+      integrationId: variables.integrationId ? id(variables.integrationId) : null,
+      integrationName: variables.integrationName ?? null,
+      integrationToolName: variables.integrationToolName ?? null,
+    }
+  }
+
   // A conversation's runs, latest first
   function latestRuns(conversationId: string) {
     return [...runs.values()].filter(run => run.conversationId === conversationId).sort((a, b) => b.number - a.number)
   }
 
-  // Cancels the calls still running in a conversation, which only its run in flight can have
+  // Cancels the calls still running in a conversation, which only its run in flight can have, an
+  // integration's an approval allowed included
   function cancelRunningCalls(conversationId: string) {
     for (const message of conversationMessages(conversationId)) {
-      if (message.kind === 'TOOL_CALL' && message.toolStatus === 'RUNNING') message.toolStatus = 'CANCELLED'
+      if (['TOOL_CALL', 'APPROVAL'].includes(message.kind) && message.toolStatus === 'RUNNING') {
+        message.toolStatus = 'CANCELLED'
+      }
     }
   }
 
@@ -1055,7 +1091,9 @@ function createConversationDatabaseFake() {
         conversationMessages: isTheirs
           ? conversationMessages(conversation.id)
               .filter(
-                message => ['TOOL_CALL', 'QUESTION'].includes(message.kind) && toolUseIds.has(message.toolUseId ?? ''),
+                message =>
+                  ['TOOL_CALL', 'QUESTION', 'APPROVAL'].includes(message.kind)
+                  && toolUseIds.has(message.toolUseId ?? ''),
               )
               .sort((a, b) => a.position - b.position)
               .slice(0, 1000)
@@ -1073,6 +1111,13 @@ function createConversationDatabaseFake() {
                 answerOther: message.answerOther ?? null,
                 isAnswerSkipped: message.isAnswerSkipped ?? false,
                 answeredAt: message.answeredAt ?? null,
+                integrationId: message.integrationId ?? null,
+                integrationName: message.integrationName ?? null,
+                integrationToolName: message.integrationToolName ?? null,
+                approvalState: message.approvalState ?? null,
+                approvalConfigRevision: message.approvalConfigRevision ?? null,
+                approvalToolHash: message.approvalToolHash ?? null,
+                approvalCredentialGeneration: message.approvalCredentialGeneration ?? null,
               }))
           : [],
         latestRuns: isTheirs
@@ -1986,6 +2031,7 @@ function createConversationDatabaseFake() {
         toolName: variables.toolName,
         toolInput: variables.toolInput,
         toolOutput: variables.toolOutput,
+        ...integrationFields(variables),
       })
       run.leaseExpiresAt = inSeconds(60)
       entry.drawnBlocks = variables.toBlock
@@ -2071,6 +2117,10 @@ function createConversationDatabaseFake() {
         toolInput: variables.toolInput,
         toolOutput: null,
         toolStartedAt: null,
+        ...integrationFields(variables),
+        approvalConfigRevision: variables.approvalConfigRevision ?? null,
+        approvalToolHash: variables.approvalToolHash ?? null,
+        approvalCredentialGeneration: variables.approvalCredentialGeneration ?? null,
       })
       run.leaseExpiresAt = inSeconds(60)
       entry.drawnBlocks = variables.toBlock
@@ -2079,6 +2129,52 @@ function createConversationDatabaseFake() {
         previewMessageId: id(variables.messageId),
         nextMessagePosition: conversation.nextMessagePosition + 1,
         messageCount: conversation.messageCount + 1,
+        updatedAt: now(),
+      })
+
+      return { conversationMessage_insert: { id: id(variables.messageId) } }
+    },
+
+    DrawConversationApproval: variables => {
+      const run = requireFencedRun(variables)
+
+      if (!(variables.toBlock > variables.fromBlock) || [...variables.argumentsPreview].length > 2001) {
+        refuse('An approval is drawn from its call, with a preview of at most 2000 characters and its ellipsis')
+      }
+
+      const conversation = requireDrawConversation(variables)
+      const entry = requireDrawEntry(run, variables)
+
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: conversation.id,
+        runId: run.id,
+        kind: 'APPROVAL',
+        text: null,
+        noteKind: null,
+        toolStatus: null,
+        position: variables.position,
+        toolUseId: variables.toolUseId,
+        toolName: variables.toolName,
+        toolInput: variables.toolInput,
+        toolOutput: null,
+        toolStartedAt: null,
+        ...integrationFields(variables),
+        approvalState: 'PENDING',
+        approvalConfigRevision: variables.approvalConfigRevision,
+        approvalToolHash: variables.approvalToolHash,
+        approvalCredentialGeneration: variables.approvalCredentialGeneration ?? null,
+        argumentsPreview: variables.argumentsPreview,
+        answeredAt: null,
+      })
+      run.leaseExpiresAt = inSeconds(60)
+      entry.drawnBlocks = variables.toBlock
+      Object.assign(conversation, {
+        preview: variables.preview,
+        previewMessageId: id(variables.messageId),
+        nextMessagePosition: conversation.nextMessagePosition + 1,
+        messageCount: conversation.messageCount + 1,
+        unreadCount: conversation.unreadCount + 1,
         updatedAt: now(),
       })
 
@@ -2134,6 +2230,71 @@ function createConversationDatabaseFake() {
       return { conversationMessage_updateMany: 1 }
     },
 
+    StartConversationIntegrationCall: variables => {
+      const run = requireFencedRun(variables)
+      const message = messages.get(id(variables.messageId))
+      const isStartable =
+        message
+        && message.conversationId === run.conversationId
+        && message.integrationId === id(variables.integrationId)
+        && !message.toolStartedAt
+        && ((message.kind === 'TOOL_CALL' && ['RUNNING', 'CANCELLED'].includes(message.toolStatus ?? ''))
+          || (message.kind === 'APPROVAL' && message.approvalState === 'ALLOWED'))
+
+      if (!isStartable) refuse('The call started already, or was never allowed')
+
+      run.leaseExpiresAt = inSeconds(60)
+      Object.assign(message, { toolStatus: 'RUNNING', toolStartedAt: now() })
+
+      const server = integrations.integrations.get(id(variables.integrationId))
+
+      if (
+        server
+        && server.organizationId === id(variables.organizationId)
+        && (!server.lastUsedAt || Date.parse(server.lastUsedAt) < Date.now() - 60_000)
+      ) {
+        server.lastUsedAt = now()
+      }
+
+      return { conversationMessage_updateMany: 1 }
+    },
+
+    FinishConversationIntegrationCall: variables => {
+      const run = requireFencedRun(variables)
+      const approvalState = variables.approvalState ?? null
+
+      if (!['SUCCEEDED', 'FAILED'].includes(variables.toolStatus) || ![null, 'DENIED'].includes(approvalState)) {
+        refuse('A call finishes succeeded or failed, and an approval it finishes can only be denied')
+      }
+
+      const message = messages.get(id(variables.messageId))
+
+      if (
+        !message
+        || message.conversationId !== run.conversationId
+        || !['TOOL_CALL', 'APPROVAL'].includes(message.kind)
+        || !message.integrationId
+        || !['RUNNING', 'CANCELLED'].includes(message.toolStatus ?? '')
+        || !message.toolStartedAt
+      ) {
+        refuse('The call is no longer running')
+      }
+
+      Object.assign(run, { pendingToolResults: variables.pendingToolResults, leaseExpiresAt: inSeconds(60) })
+      Object.assign(message, {
+        toolStatus: variables.toolStatus,
+        toolOutput: variables.toolOutput,
+        ...(variables.toolDurationMs === undefined ? {} : { toolDurationMs: variables.toolDurationMs }),
+        ...(approvalState === null ? {} : { approvalState }),
+      })
+
+      const conversation = conversations.get(run.conversationId)
+
+      if (conversation?.previewMessageId === message.id) conversation.preview = variables.preview
+
+      return { conversationMessage_updateMany: 1 }
+    },
+
     DeleteConversationModuleCallResults: variables => {
       const scopes = new Set(variables.scopes as string[])
       let deleted = 0
@@ -2174,6 +2335,11 @@ function createConversationDatabaseFake() {
 
     StoreConversationToolResults: variables => {
       const run = requireFencedRun(variables)
+      const anchorPosition = variables.anchorPosition ?? null
+
+      if (anchorPosition !== null && anchorPosition !== variables.position) {
+        refuse('A run is anchored on the results it stores, or where it was')
+      }
 
       insertEntry({
         id: id(variables.entryId),
@@ -2184,7 +2350,11 @@ function createConversationDatabaseFake() {
         content: variables.content,
         drawnBlocks: 0,
       })
-      Object.assign(run, { pendingToolResults: null, leaseExpiresAt: inSeconds(60) })
+      Object.assign(run, {
+        pendingToolResults: null,
+        leaseExpiresAt: inSeconds(60),
+        ...(anchorPosition === null ? {} : { anchorPosition }),
+      })
 
       return { conversationTranscriptEntry_insert: { id: id(variables.entryId) } }
     },
@@ -2731,8 +2901,10 @@ function createConversationDatabaseFake() {
 
   // The generated SDK's names: `startConversation(dataConnect, variables)` for `StartConversation`
   const sdk: Record<string, unknown> = {
+    ...integrations.sdk,
     ...modules.sdk,
     ConversationActor,
+    ConversationApprovalState,
     ConversationAttachmentStatus,
     ConversationMessageKind,
     ConversationNoteKind,
@@ -2761,6 +2933,7 @@ function createConversationDatabaseFake() {
     calls.length = 0
     fake.beforeOperation = async () => {}
     modules.reset()
+    integrations.reset()
   }
 
   return Object.assign(fake, { sdk, addMember, removeMember, restore, markRead, reset })

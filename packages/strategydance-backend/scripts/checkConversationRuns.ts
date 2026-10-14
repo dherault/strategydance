@@ -17,12 +17,14 @@ import {
   ConversationToolStatus,
   drawConversationAgentText,
   drawConversationAgentTextPiece,
+  drawConversationApproval,
   drawConversationClientToolCall,
   drawConversationQuestion,
   drawConversationToolCall,
   expireQueuedConversationRunLease,
   finishConversationRun,
   finishConversationRunWaiting,
+  finishConversationIntegrationCall,
   finishConversationRunWithNote,
   finishConversationToolCall,
   getClaimedConversations,
@@ -48,9 +50,11 @@ import {
   sendConversationMessageAnsweringCalls,
   settleConversationToolCall,
   startConversation,
+  startConversationIntegrationCall,
   startConversationToolCall,
   stopQueuedConversationRun,
   storeConversationTurn,
+  storeConversationToolResults,
   storeConversationTurnWithContext,
   tagConversationAspects,
 } from 'strategydance-database/backend'
@@ -113,6 +117,7 @@ const userIds = {
   asker: `check-conversation-runs-${checkId}-asker`,
   settler: `check-conversation-runs-${checkId}-settler`,
   tagger: `check-conversation-runs-${checkId}-tagger`,
+  integrator: `check-conversation-runs-${checkId}-integrator`,
 }
 
 const failures: string[] = []
@@ -2106,6 +2111,285 @@ type TaggedConversation = {
   previewMessageId: string | null
 }
 
+type StoredCall = {
+  id: string
+  kind: string
+  toolStatus: string | null
+  toolStartedAt: string | null
+  integrationId: string | null
+  integrationName: string | null
+  approvalState: string | null
+  approvalToolHash: string | null
+  argumentsPreview: string | null
+}
+
+async function readCall(id: string) {
+  const data = await read<{ conversationMessage: StoredCall | null }>(
+    `query ReadCall($id: UUID!) {
+      conversationMessage(id: $id) {
+        id kind toolStatus toolStartedAt integrationId integrationName approvalState approvalToolHash argumentsPreview
+      }
+    }`,
+    { id },
+  )
+
+  return data.conversationMessage
+}
+
+/*
+  Calls to an integration's tools: one that runs without approval drawn running with what that is
+  bound to, one that waits drawn as an approval, unread, and one refused drawn failed with its
+  server; a call started once only, never one waiting, and marking its server used; an approval
+  finished denied, an allowed one cancelled when its run ends; a run anchored on the results it
+  stores; and a server pruned leaving its calls in the thread
+*/
+async function checkIntegrationCalls() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.integrator)
+  const integrationId = createId()
+
+  await write(
+    `mutation InsertIntegration($id: UUID!, $organizationId: UUID!) {
+      organizationIntegration_insert(data: {
+        id: $id, organizationId: $organizationId, name: "Issues", normalizedName: "issues",
+        url: "https://mcp.example.com/mcp", authentication: NONE
+      })
+    }`,
+    { id: integrationId, organizationId },
+  )
+
+  const started = await start(userIds.integrator, membershipCreatedAt)
+  const entryId = createId()
+  const [autoId, approvalId, refusedId] = [createId(), createId(), createId()]
+  const callInput = (tool: string) => JSON.stringify({ integration: integrationId, tool, arguments: { query: 'open' } })
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+  await storeConversationTurnWithContext(dataConnect, {
+    ...fence(started, 1),
+    contextEntryId: createId(),
+    contextPosition: 1,
+    contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+    contextHash: 'hash',
+    entryId,
+    position: 2,
+    content: JSON.stringify(
+      [autoId, approvalId, refusedId].map(id => ({
+        type: 'tool_use',
+        id: `toolu_${id}`,
+        name: 'call_integration_tool',
+        input: {},
+      })),
+    ),
+  })
+
+  const integration = { integrationId, integrationName: 'Issues', integrationToolName: 'list_issues' }
+  const binding = { approvalConfigRevision: 0, approvalToolHash: 'a'.repeat(64), approvalCredentialGeneration: null }
+
+  check(
+    'a call that runs without approval is drawn running, with its server and what it is bound to',
+    (await refusal(
+      drawConversationClientToolCall(dataConnect, {
+        ...fence(started, 1),
+        entryId,
+        fromBlock: 0,
+        toBlock: 1,
+        messageId: autoId,
+        position: 1,
+        toolUseId: `toolu_${autoId}`,
+        toolName: 'call_integration_tool',
+        toolInput: callInput('list_issues'),
+        preview: {
+          kind: 'TOOL_CALL',
+          toolName: 'call_integration_tool',
+          toolStatus: 'RUNNING',
+          integrationName: 'Issues',
+        },
+        ...integration,
+        ...binding,
+      }),
+    )) === null
+      && (await readCall(autoId))?.integrationId === integrationId
+      && (await readCall(autoId))?.approvalToolHash === binding.approvalToolHash
+      && (await readCall(autoId))?.approvalState === null,
+  )
+
+  const approval = (overrides: Variables = {}) =>
+    drawConversationApproval(dataConnect, {
+      ...fence(started, 1),
+      entryId,
+      fromBlock: 1,
+      toBlock: 2,
+      messageId: approvalId,
+      position: 2,
+      toolUseId: `toolu_${approvalId}`,
+      toolName: 'call_integration_tool',
+      toolInput: callInput('create_issue'),
+      ...integration,
+      integrationToolName: 'create_issue',
+      ...binding,
+      argumentsPreview: '{"query":"open"}',
+      preview: {
+        kind: 'APPROVAL',
+        integrationName: 'Issues',
+        integrationToolName: 'create_issue',
+        approvalState: 'PENDING',
+        toolStatus: null,
+      },
+      ...overrides,
+    })
+  const unreadBefore = (await readConversation(started.conversationId))?.unreadCount ?? 0
+
+  check(
+    "an approval's preview of its arguments is held to 2000 characters and its ellipsis",
+    (await refusal(approval({ argumentsPreview: 'a'.repeat(2002) }))) !== null,
+  )
+  check(
+    'a call that waits is drawn as an approval, pending, unread, and the preview',
+    (await refusal(approval())) === null
+      && (await readCall(approvalId))?.approvalState === 'PENDING'
+      && (await readCall(approvalId))?.toolStatus === null
+      && (await readConversation(started.conversationId))?.unreadCount === unreadBefore + 1
+      && (await readConversation(started.conversationId))?.previewMessageId === approvalId,
+  )
+
+  check(
+    'a call refused is drawn failed, with the server it named',
+    (await refusal(
+      drawConversationToolCall(dataConnect, {
+        ...fence(started, 1),
+        entryId,
+        fromBlock: 2,
+        toBlock: 3,
+        messageId: refusedId,
+        position: 3,
+        toolUseId: `toolu_${refusedId}`,
+        toolName: 'call_integration_tool',
+        toolStatus: ConversationToolStatus.FAILED,
+        toolInput: callInput('list_issues'),
+        toolOutput: '{"error":"Issues is turned off."}',
+        preview: {
+          kind: 'TOOL_CALL',
+          toolName: 'call_integration_tool',
+          toolStatus: 'FAILED',
+          integrationName: 'Issues',
+        },
+        ...integration,
+      }),
+    )) === null && (await readCall(refusedId))?.integrationName === 'Issues',
+  )
+
+  const { data: calls } = await getConversationCalls(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    toolUseIds: [autoId, approvalId, refusedId].map(id => `toolu_${id}`),
+  })
+
+  check(
+    "a turn's calls are read with their approvals and what they are bound to",
+    calls.conversationMessages.length === 3
+      && calls.conversationMessages.some(
+        message => message.kind === 'APPROVAL' && message.approvalToolHash === binding.approvalToolHash,
+      ),
+  )
+
+  const startCall = (messageId: string) =>
+    startConversationIntegrationCall(dataConnect, { ...fence(started, 1), messageId, integrationId })
+  const readLastUsedAt = async () =>
+    (
+      await read<{ organizationIntegration: { lastUsedAt: string | null } | null }>(
+        `query ReadLastUsed($id: UUID!) { organizationIntegration(id: $id) { lastUsedAt } }`,
+        { id: integrationId },
+      )
+    ).organizationIntegration?.lastUsedAt ?? null
+  const finishCall = (messageId: string, overrides: Variables = {}) =>
+    finishConversationIntegrationCall(dataConnect, {
+      ...fence(started, 1),
+      messageId,
+      toolStatus: ConversationToolStatus.SUCCEEDED,
+      toolOutput: '{"content":[]}',
+      toolDurationMs: 40,
+      pendingToolResults: '[]',
+      preview: { kind: 'TOOL_CALL', toolName: 'call_integration_tool', toolStatus: 'SUCCEEDED' },
+      ...overrides,
+    })
+
+  check('a call waiting for its approval never starts', (await refusal(startCall(approvalId))) !== null)
+  check(
+    'a call that runs without approval starts, and marks its server used',
+    (await refusal(startCall(autoId))) === null && (await readLastUsedAt()) !== null,
+  )
+  check('a call that started never starts again', (await refusal(startCall(autoId))) !== null)
+  check(
+    'a call finishes, and its approval, if any, only denied',
+    (await refusal(finishCall(autoId, { approvalState: 'ALLOWED' }))) !== null
+      && (await refusal(finishCall(autoId))) === null
+      && (await readCall(autoId))?.toolStatus === ConversationToolStatus.SUCCEEDED,
+  )
+
+  // The member allows the approval, as answering it does, and the call starts
+  await write(
+    `mutation Allow($id: UUID!) { conversationMessage_update(id: $id, data: { approvalState: ALLOWED, answeredAt_expr: "request.time" }) }`,
+    { id: approvalId },
+  )
+
+  check('an approval allowed starts', (await refusal(startCall(approvalId))) === null)
+
+  const storeResults = (anchorPosition: number) =>
+    storeConversationToolResults(dataConnect, {
+      ...fence(started, 1),
+      entryId: createId(),
+      position: 3,
+      content: '[]',
+      anchorPosition,
+    })
+
+  check(
+    'a run is anchored only on the results it stores',
+    (await refusal(storeResults(2))) !== null
+      && (await refusal(storeResults(3))) === null
+      && (
+        await read<{ conversationRun: { anchorPosition: number } | null }>(
+          `query ReadAnchor($id: UUID!) { conversationRun(id: $id) { anchorPosition } }`,
+          { id: started.runId },
+        )
+      ).conversationRun?.anchorPosition === 3,
+  )
+
+  await finishConversationRunWaiting(dataConnect, { ...fence(started, 1) })
+
+  check(
+    'an allowed call still running is cancelled when its run ends',
+    (await readCall(approvalId))?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+
+  // Claimed again by the next worker, which finishes it as interrupted, denied
+  await write(
+    `mutation Requeue($id: UUID!) { conversationRun_update(id: $id, data: { status: RUNNING, attempts: 1 }) }`,
+    { id: started.runId },
+  )
+
+  check(
+    'a call left started is finished by the next worker, never started again',
+    (await refusal(startCall(approvalId))) !== null
+      && (await refusal(
+        finishCall(approvalId, {
+          toolStatus: ConversationToolStatus.FAILED,
+          toolOutput: '{"error":"This call was interrupted and may have run."}',
+          toolDurationMs: null,
+          approvalState: 'DENIED',
+        }),
+      )) === null
+      && (await readCall(approvalId))?.approvalState === 'DENIED',
+  )
+
+  await write(`mutation Prune($id: UUID!) { organizationIntegration_delete(id: $id) }`, { id: integrationId })
+
+  check(
+    'a server pruned leaves its calls in the thread, with its name',
+    (await readCall(autoId))?.integrationId === null && (await readCall(autoId))?.integrationName === 'Issues',
+  )
+}
+
 async function readTags(conversationId: string, runId: string, position: number) {
   return read<{
     conversation: TaggedConversation | null
@@ -2319,6 +2603,7 @@ try {
   await checkQuestions()
   await checkSettling()
   await checkTagging()
+  await checkIntegrationCalls()
 } finally {
   await tearDown()
 }

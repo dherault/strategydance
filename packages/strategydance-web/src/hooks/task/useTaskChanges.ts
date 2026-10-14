@@ -171,7 +171,6 @@ function useTaskChanges() {
   // links too
   function createTask(draft: TaskDraft) {
     const id = createId()
-    const now = new Date().toISOString()
 
     updateTaskCreation(id, () => true)
 
@@ -188,10 +187,9 @@ function useTaskChanges() {
       dueDate: draft.dueDate,
       aspects: draft.aspects,
       createdById: viewer?.uid ?? null,
-      createdAt: now,
-      // Not stamped, even into Done, which a reader dates by `updatedAt` instead
+      createdAt: new Date().toISOString(),
+      // Not stamped, even into Done, which a reader dates by `createdAt` instead
       doneAt: null,
-      updatedAt: now,
       dependencies: [],
       linkCount: [{ _count: 0 }],
     }

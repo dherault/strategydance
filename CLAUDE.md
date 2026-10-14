@@ -1240,9 +1240,11 @@ and why.
   strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge` and `claude mcp add
   --transport http strategydance-tasks-http-local http://localhost:3003/mcp/tasks`, then `/mcp` in
   Claude Code to sign in to each
-- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in the
-  backend's package, fill the plain text of documents stored before `contentText` existed and of
-  tasks stored before `descriptionText` did, each run by hand once, after the release that added it
+- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in
+  the backend's package, fill the plain text of documents stored before `contentText` existed and of
+  tasks stored before `descriptionText` did, and `bun run backfill:task-done-at --production` stamps
+  the tasks done before `doneAt` existed with their last change, each run by hand once, after the
+  release that added it
 
 ## Email conventions
 

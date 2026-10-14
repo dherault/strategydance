@@ -290,7 +290,8 @@ function useTaskChanges() {
   /*
     Writes where a task sits. Into Done from another column, as the board shows it, it is a finish,
     which stamps when the task was done; any other move, one within Done included, leaves that as it
-    is
+    is. Either names the column the task was seen in, so a teammate's move landing first is kept
+    rather than undone, and the board read again
   */
   function placeTask(taskId: string, status: TaskStatus, position: number) {
     const current = readTasks().find(task => task.id === taskId)
@@ -301,8 +302,19 @@ function useTaskChanges() {
       task => ({ ...task, status, position, ...(isFinishing && { doneAt: new Date().toISOString() }) }),
       () =>
         isFinishing
-          ? finishTaskMutation(dataConnect, { organizationId: organizationId!, id: taskId, position })
-          : moveTaskMutation(dataConnect, { organizationId: organizationId!, id: taskId, status, position }),
+          ? finishTaskMutation(dataConnect, {
+              organizationId: organizationId!,
+              id: taskId,
+              position,
+              fromStatus: current.status,
+            })
+          : moveTaskMutation(dataConnect, {
+              organizationId: organizationId!,
+              id: taskId,
+              status,
+              position,
+              ...(current && { fromStatus: current.status }),
+            }),
     )
   }
 

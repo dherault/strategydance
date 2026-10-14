@@ -736,10 +736,12 @@ members editing one task keep each other's changes, and a move writes the one ta
 halfway between its new neighbours. A move into Done from another column goes through `FinishTask`,
 which stamps `doneAt` from the server's clock, since no write can stamp it only when its status
 variable is DONE and a move within Done sends that status too: a new way to finish a task stamps it,
-as the Tasks module's create and update do with `$doneAt`. `TaskDependency` links a task to those it
-waits on: the server refuses a task waiting on itself or on one waiting on it, and the page offers
-no pick that would close a longer loop, nor an Undo that would bring one back. The board keeps
-`GetTasks` live, without the descriptions, and reads them once for its search through
+as the Tasks module's create and update do with `$doneAt`. Both moves name the column the page saw
+the task in, `$fromStatus`, and a task that has left it is refused rather than moved back, which
+keeps a teammate's move and never puts a task into Done unstamped. `TaskDependency` links a task to
+those it waits on: the server refuses a task waiting on itself or on one waiting on it, and the page
+offers no pick that would close a longer loop, nor an Undo that would bring one back. The board
+keeps `GetTasks` live, without the descriptions, and reads them once for its search through
 `GetTaskDescriptions`, again on focus; a task's dialog keeps its own live through
 `GetTaskDescription`, and opens it for writing only once that read lands, since the search's copy
 can be older than a teammate's save. A query that held every description live would push them all to

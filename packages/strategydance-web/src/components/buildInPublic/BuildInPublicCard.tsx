@@ -80,6 +80,7 @@ function BuildInPublicCard({
   const { look, changeLook, changeCard } = settings
   const tone = look.tone ?? defaultTone
   const accent = look.accent ?? 'organization'
+  const ink = look.ink ?? null
   const organizationColor = organization?.color ?? DEFAULT_ORGANIZATION_COLOR
   const accentColor = accent === 'organization' ? organizationColor : CARD_ACCENT_COLORS[accent]
   const { width, height, ratio } = FORMATS[format]
@@ -159,7 +160,7 @@ function BuildInPublicCard({
                 'relative box-border flex flex-none flex-col overflow-hidden rounded-xs font-sans antialiased',
                 isFlush ? 'p-0' : 'px-7 pt-7 pb-11',
               )}
-              style={{ ...getCardStyle(tone, accentColor, flameColor), width, height }}
+              style={{ ...getCardStyle(tone, accentColor, flameColor, ink ?? undefined), width, height }}
             >
               {children}
               <span className="absolute right-5 bottom-4 text-[11px] leading-none font-medium tracking-[0.02em] text-(--card-url)">
@@ -189,6 +190,8 @@ function BuildInPublicCard({
           onToneChange={nextTone => changeLook({ ...look, tone: nextTone })}
           accent={accent}
           onAccentChange={nextAccent => changeLook({ ...look, accent: nextAccent })}
+          ink={ink}
+          onInkChange={nextInk => changeLook({ ...look, ink: nextInk ?? undefined })}
           accentColor={accentColor}
           organizationColor={organizationColor}
         />

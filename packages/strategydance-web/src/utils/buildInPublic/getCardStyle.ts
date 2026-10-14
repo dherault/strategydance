@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react'
 import { isDarkColor } from 'strategydance-design-system/lib/isDarkColor'
 
-import type { CardTone, FlameColor } from '~types'
+import type { CardInk, CardTone, FlameColor } from '~types'
+
+import { CARD_INK_COLORS } from '~constants'
 
 import getAccentShades from '~utils/buildInPublic/getAccentShades'
 
@@ -195,11 +197,33 @@ function getFlameVariables(tone: CardTone, flameColor: FlameColor): Variables {
   }
 }
 
-// The style of a card drawn on a tone, in an accent color, with its flames in either color
-function getCardStyle(tone: CardTone, accent: string, flameColor: FlameColor = 'organization'): CSSProperties {
+/*
+  The text forced into an ink: on the accent, what is written on it, which its marks, its quiet
+  parts and its panel's shade follow; on any other tone, its text alone, the marks keeping the
+  accent's shades
+*/
+function getInkVariables(tone: CardTone, ink: CardInk): Variables {
+  const color = CARD_INK_COLORS[ink]
+
+  if (tone === 'accent') {
+    return { '--card-on-accent': color, '--card-accent-shade': ink === 'white' ? 'black' : 'white' }
+  }
+
+  return { '--card-foreground': color }
+}
+
+// The style of a card drawn on a tone, in an accent color, with its flames in either color, and its
+// text in what reads on the tone unless an ink is forced
+function getCardStyle(
+  tone: CardTone,
+  accent: string,
+  flameColor: FlameColor = 'organization',
+  ink?: CardInk,
+): CSSProperties {
   return {
     ...getAccentVariables(accent),
     ...TONE_VARIABLES[tone],
+    ...(ink ? getInkVariables(tone, ink) : {}),
     ...getFlameVariables(tone, flameColor),
     background: 'var(--card-background)',
     color: 'var(--card-foreground)',

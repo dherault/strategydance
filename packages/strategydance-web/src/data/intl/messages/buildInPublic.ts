@@ -195,6 +195,26 @@ const buildInPublicMessages = defineMessages({
     defaultMessage: 'Black',
     description: "Option of a card's accent color.",
   },
+  textColor: {
+    id: 'buildInPublic.textColor',
+    defaultMessage: 'Text color',
+    description: "Label of the setting that picks what every card's text is written in.",
+  },
+  inkAutomatic: {
+    id: 'buildInPublic.inkAutomatic',
+    defaultMessage: 'Automatic',
+    description: "Option of a card's text color: whatever reads best on the card's background, picked for it.",
+  },
+  inkWhite: {
+    id: 'buildInPublic.inkWhite',
+    defaultMessage: 'White',
+    description: "Option of a card's text color.",
+  },
+  inkBlack: {
+    id: 'buildInPublic.inkBlack',
+    defaultMessage: 'Black',
+    description: "Option of a card's text color.",
+  },
   buildingInPublic: {
     id: 'buildInPublic.buildingInPublic',
     defaultMessage: 'Building {organization} in public',

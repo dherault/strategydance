@@ -801,6 +801,18 @@
         "hash": "3b55c47919376e79",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "buildInPublic.inkAutomatic": {
+        "hash": "4bbc51601177cc36",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.inkBlack": {
+        "hash": "0befcc2961f7e326",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.inkWhite": {
+        "hash": "116a45b6dd407227",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "buildInPublic.itemStreak": {
         "hash": "02be51f70c9820f5",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -959,6 +971,10 @@
       },
       "buildInPublic.teammate": {
         "hash": "11beebe04e25b027",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "buildInPublic.textColor": {
+        "hash": "f79264136aa5fbf8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "buildInPublic.thisWeek": {

@@ -59,6 +59,17 @@ describe('getCardStyle', () => {
     expect(read(getCardStyle('dark', '#0051A3', 'warm'), '--card-cell-ring')).toBe('none')
   })
 
+  it('writes in the forced ink, which the accent tone marks things in too', () => {
+    const accent = getCardStyle('accent', '#0051A3', 'organization', 'black')
+    const white = getCardStyle('white', '#0051A3', 'organization', 'white')
+
+    expect(read(accent, '--card-on-accent')).toBe('#000000')
+    expect(read(accent, '--card-accent-shade')).toBe('white')
+    expect(read(white, '--card-foreground')).toBe('#ffffff')
+    expect(read(white, '--card-mark')).toBe('var(--card-accent-ink)')
+    expect(read(getCardStyle('white', '#0051A3'), '--card-foreground')).toBe('var(--color-secondary-900)')
+  })
+
   it('draws a warm flame whatever the tone', () => {
     const accent = getCardStyle('accent', '#0051A3', 'warm')
     const white = getCardStyle('white', '#0051A3', 'warm')

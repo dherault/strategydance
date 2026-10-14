@@ -219,6 +219,15 @@ export const CARD_ACCENT_COLORS = {
 } as const
 
 /*
+  The colors a build in public card's text can be forced into, rather than what reads best on its
+  background. Black rather than a near black, as `isDarkColor` writes on a light accent
+*/
+export const CARD_INK_COLORS = {
+  white: '#ffffff',
+  black: '#000000',
+} as const
+
+/*
   The most streak charges a member holds at once. Each day they are active earns one, and a day
   they are not uses one rather than breaking their streak: see `getStreakCharges`
 */

@@ -27,7 +27,7 @@ import type {
   TaskStatus,
 } from 'strategydance-database/web'
 
-import type { CARD_ACCENT_COLORS, MESSAGE_TYPES } from '~constants'
+import type { CARD_ACCENT_COLORS, CARD_INK_COLORS, MESSAGE_TYPES } from '~constants'
 
 export type MessageType = (typeof MESSAGE_TYPES)[number]
 
@@ -254,10 +254,18 @@ export type CardField =
       max?: number
     }
 
-// The look every card shares once the reader picks one: what they are drawn on, and in which color
+// What a build in public card's text is written in when the reader forces it, rather than what reads
+// best on its background
+export type CardInk = keyof typeof CARD_INK_COLORS
+
+/*
+  The look every card shares once the reader picks one: what they are drawn on, in which color, and
+  what their text is written in, which follows the background unless an ink is picked
+*/
 export type CardLook = {
   tone?: CardTone
   accent?: CardAccent
+  ink?: CardInk
 }
 
 /*

@@ -314,6 +314,23 @@ describe('callIntegrationTool with a member’s own account', () => {
     expect(connection(ADA)!.status).toBe(IntegrationConnectionStatus.CONNECTED)
   })
 
+  test('calls nothing when the server was turned off while its token refreshed, the tokens kept', async () => {
+    await connect()
+
+    const before = connection(ADA)!.encryptedAccessToken
+
+    connection(ADA)!.accessTokenExpiresAt = new Date(Date.now() + 10_000).toISOString()
+    fake.after.set('RecordIntegrationConnectionTokens', () => {
+      server().isEnabled = false
+    })
+
+    const refused = await refusal(call())
+
+    expect((refused as Error).message).toContain('Issues is turned off')
+    expect(provider.recorded.calls).toEqual([])
+    expect(connection(ADA)!.encryptedAccessToken).not.toBe(before)
+  })
+
   test('says a call cut short may still have run', async () => {
     const server = createIntegrationServerFake()
 

@@ -73,29 +73,8 @@ async function callIntegrationTool(
   { signal, network = {} }: CallIntegrationToolOptions,
 ): Promise<unknown> {
   const budget = AbortSignal.any([signal, AbortSignal.timeout(INTEGRATION_OPERATION_TIMEOUT_MS)])
-  const read = await readConversationIntegration(caller, call.integrationId)
-
-  if (read.outcome !== 'found') {
-    throw new Error("This integration no longer exists. Call list_integrations for the organization's integrations.")
-  }
-
-  const { integration, connection } = read
+  const { integration } = await readBoundServer(caller, call)
   const { name } = integration
-  const availability = readIntegrationAvailability(integration, connection)
-
-  if (availability.outcome !== 'available')
-    throw new Error(describeIntegrationUnavailability(name, availability.outcome))
-
-  const tool = integration.tools?.find(({ name: toolName }) => toolName === call.toolName)
-  const isBound =
-    integration.configRevision === call.binding.configRevision
-    && tool?.definitionHash === call.binding.toolHash
-    && availability.credentialGeneration === call.binding.credentialGeneration
-
-  if (!isBound) throw new IntegrationCallChanged(name)
-  if (call.isAutoApproved && !integration.autoApprovedTools.includes(call.binding.toolHash)) {
-    throw new IntegrationCallChanged(name, { isApprovalWithdrawn: true })
-  }
 
   const fetch = createIntegrationFetch(network, budget, INTEGRATION_OPERATION_TIMEOUT_MS)
   const callWith = (url: string, credential: IntegrationCredential | null) =>
@@ -143,6 +122,10 @@ async function callIntegrationTool(
         call.binding,
         await untilBudget(name, readIntegrationAccessToken(member, { signal: budget }), budget),
       )
+      // The server as it is now, a refresh having taken a while: turned off or changed meanwhile, it is
+      // not called, though the tokens the refresh got are kept
+      await readBoundServer(caller, call)
+
       const answered = await callWith(access.url, toBearer(access.accessToken))
 
       if (answered !== 'unauthorized') return answer(name, answered)
@@ -156,6 +139,8 @@ async function callIntegrationTool(
           budget,
         ),
       )
+      await readBoundServer(caller, call)
+
       const again = await callWith(refreshed.url, toBearer(refreshed.accessToken))
 
       if (again !== 'unauthorized') return answer(name, again)
@@ -191,6 +176,40 @@ function untilBudget<T>(name: string, reading: Promise<T>, budget: AbortSignal) 
     budget.addEventListener('abort', abort, { once: true })
     reading.then(resolve, reject).finally(() => budget.removeEventListener('abort', abort))
   })
+}
+
+/*
+  The server a call goes to, read as it is now, while it is what the call was bound to when it was
+  drawn: there, on, working for the member, at the revision, with the tool's definition and the
+  credential's generation the call was bound to, and, for a call that runs without approval, an
+  administrator still letting it. Throws the sentence the call is answered with otherwise
+*/
+async function readBoundServer(caller: ConversationIntegrationCaller, call: IntegrationCall) {
+  const read = await readConversationIntegration(caller, call.integrationId)
+
+  if (read.outcome !== 'found') {
+    throw new Error("This integration no longer exists. Call list_integrations for the organization's integrations.")
+  }
+
+  const { integration, connection } = read
+  const availability = readIntegrationAvailability(integration, connection)
+
+  if (availability.outcome !== 'available') {
+    throw new Error(describeIntegrationUnavailability(integration.name, availability.outcome))
+  }
+
+  const tool = integration.tools?.find(({ name }) => name === call.toolName)
+  const isBound =
+    integration.configRevision === call.binding.configRevision
+    && tool?.definitionHash === call.binding.toolHash
+    && availability.credentialGeneration === call.binding.credentialGeneration
+
+  if (!isBound) throw new IntegrationCallChanged(integration.name)
+  if (call.isAutoApproved && !integration.autoApprovedTools.includes(call.binding.toolHash)) {
+    throw new IntegrationCallChanged(integration.name, { isApprovalWithdrawn: true })
+  }
+
+  return read
 }
 
 function toBearer(accessToken: string): IntegrationCredential {

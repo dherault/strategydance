@@ -26,6 +26,7 @@ type CallMessage = {
   toolName?: string | null
   toolStatus?: ConversationToolStatus | null
   toolStartedAt?: string | null
+  integrationId?: string | null
 }
 
 type SettleConversationModuleWritesInput = {
@@ -65,6 +66,8 @@ async function settleConversationModuleWrites({
   const started = messages.filter(
     message =>
       message.kind === ConversationMessageKind.TOOL_CALL
+      // A call to an integration went to another company's server, which keeps no key of Strategy Dance's
+      && !message.integrationId
       && message.toolStartedAt
       && (message.toolStatus === ConversationToolStatus.RUNNING
         || message.toolStatus === ConversationToolStatus.CANCELLED)

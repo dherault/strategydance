@@ -149,6 +149,33 @@ describe('POST /:conversationId/messages', () => {
   })
 })
 
+describe('POST /:conversationId/approvals', () => {
+  function decide(origin: string, conversationId: string, body: unknown) {
+    return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${conversationId}/approvals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  }
+
+  test('refuses a decision that is not an Allow or a Deny of a call', async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Pricing')
+
+    for (const body of [{ messageId: 'call', isAllowed: true }, { messageId: crypto.randomUUID() }, {}]) {
+      expect((await decide(origin, conversationId, body)).status).toBe(400)
+    }
+  })
+
+  test('answers 404 for a call that is not one of the caller’s', async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Pricing')
+    const response = await decide(origin, conversationId, { messageId: crypto.randomUUID(), isAllowed: true })
+
+    expect(response.status).toBe(404)
+  })
+})
+
 describe('POST /search', () => {
   test('answers the conversations found, and how far it looked', async () => {
     const origin = await listen()

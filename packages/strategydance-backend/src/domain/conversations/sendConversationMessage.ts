@@ -24,6 +24,11 @@ import type { ConversationContentBlock } from '~types'
 import { dataConnect } from '~firebase'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
+import {
+  UNAPPROVED_CALL_RESULT,
+  UNRUN_ALLOWED_CALL_RESULT,
+  toFailedOutput,
+} from '~domain/conversations/conversationToolResults'
 import copyConversationAttachments from '~domain/conversations/copyConversationAttachments'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
@@ -266,6 +271,11 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
             lastRunId: lastRun.id,
             isLastRunWaiting: lastRun.status === ConversationRunStatus.WAITING,
             skippedQuestionIds: answering.waitingQuestionIds,
+            // The calls waiting for the member's approval, denied, and those allowed that never ran
+            deniedApprovalIds: answering.waitingApprovalIds,
+            deniedApprovalOutput: toFailedOutput(UNAPPROVED_CALL_RESULT),
+            closedApprovalIds: answering.allowedCallIds,
+            closedApprovalOutput: toFailedOutput(UNRUN_ALLOWED_CALL_RESULT),
           })
         } else {
           await sendConversationMessageMutation(dataConnect, sent)

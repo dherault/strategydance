@@ -1,7 +1,9 @@
 import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import {
+  ConversationApprovalState,
   ConversationMessageKind,
   type ConversationRunStatus,
+  ConversationToolStatus,
   ConversationTranscriptRole,
   getConversationCalls,
 } from 'strategydance-database/backend'
@@ -30,9 +32,12 @@ type Options = {
 /*
   The entry that answers the calls of the turn a conversation's transcript ends on, as a send or a
   continuation stores it after the turn: a result for each call, in their order, then whatever
-  follows, as JSON text. With it, the turn's questions still waiting, which a send skips, and the
-  conversation's latest run, which waits for their answers when its status says so. Null when the
-  transcript ends on anything but a turn that called Strategy Dance's own tools.
+  follows, as JSON text. With it, the turn's questions still waiting, which a send skips, its calls
+  waiting for the member's approval, which a send denies, those they allowed that never ran, which a
+  send answers as not run and a continuation runs, the calls a stop or the run's time kept from
+  running, which such a continuation answers as stopped, and the conversation's latest run, which
+  waits for their answers when its status says so, with the results it kept. Null when the transcript
+  ends on anything but a turn that called Strategy Dance's own tools.
 
   A call to a module's write that started and has no result is answered by what the module stored
   under its key, when it did, and recorded so (`settleConversationModuleWrites`): a write a worker
@@ -48,7 +53,10 @@ async function readConversationOpenCalls(
 ): Promise<{
   content: string
   waitingQuestionIds: string[]
-  latestRun: { id: string; status: ConversationRunStatus } | null
+  waitingApprovalIds: string[]
+  allowedCallIds: string[]
+  stoppedCallIds: string[]
+  latestRun: { id: string; status: ConversationRunStatus; pendingToolResults: string | null } | null
 } | null> {
   if (lastEntry?.role !== ConversationTranscriptRole.ASSISTANT) return null
 
@@ -94,7 +102,29 @@ async function readConversationOpenCalls(
         message => message.kind === ConversationMessageKind.QUESTION && !message.answeredAt && !message.isAnswerSkipped,
       )
       .map(({ id }) => id),
-    latestRun: latestRun ? { id: latestRun.id, status: latestRun.status } : null,
+    waitingApprovalIds: data.conversationMessages
+      .filter(message => message.kind === ConversationMessageKind.APPROVAL && !message.answeredAt)
+      .map(({ id }) => id),
+    allowedCallIds: data.conversationMessages
+      .filter(
+        message =>
+          message.kind === ConversationMessageKind.APPROVAL
+          && message.approvalState === ConversationApprovalState.ALLOWED
+          && !message.toolStatus,
+      )
+      .map(({ id }) => id),
+    stoppedCallIds: data.conversationMessages
+      .filter(
+        message =>
+          message.kind === ConversationMessageKind.TOOL_CALL
+          && message.toolStatus === ConversationToolStatus.CANCELLED
+          && !message.toolStartedAt
+          && !pending.has(message.toolUseId ?? ''),
+      )
+      .map(({ id }) => id),
+    latestRun: latestRun
+      ? { id: latestRun.id, status: latestRun.status, pendingToolResults: latestRun.pendingToolResults ?? null }
+      : null,
   }
 }
 

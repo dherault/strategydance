@@ -3,7 +3,9 @@ import { randomUUID } from 'node:crypto'
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
+  answerConversationApproval,
   CompanyAspect,
+  ConversationApprovalState,
   ConversationActor,
   ConversationNoteKind,
   ConversationRunStatus,
@@ -12,6 +14,7 @@ import {
   claimQueuedConversationRun,
   connectorConfig,
   continueConversationRun,
+  continueConversationRunWithCalls,
   deleteClaimedConversations,
   deleteConversationModuleCallResults,
   ConversationToolStatus,
@@ -118,6 +121,7 @@ const userIds = {
   settler: `check-conversation-runs-${checkId}-settler`,
   tagger: `check-conversation-runs-${checkId}-tagger`,
   integrator: `check-conversation-runs-${checkId}-integrator`,
+  approver: `check-conversation-runs-${checkId}-approver`,
 }
 
 const failures: string[] = []
@@ -178,6 +182,15 @@ type StoredConversation = {
   preview: unknown
   previewMessageId: string | null
   deletedAt: string | null
+}
+
+// Whether an operation was refused for the cause named, printing any other cause it was refused for
+async function isRefused(operation: Promise<unknown>, cause: string) {
+  const actual = await refusal(operation)
+
+  if (actual !== null && !actual.includes(cause)) console.log(`        refused otherwise: ${actual}`)
+
+  return actual?.includes(cause) ?? false
 }
 
 async function readConversation(id: string) {
@@ -2390,6 +2403,305 @@ async function checkIntegrationCalls() {
   )
 }
 
+/*
+  Approvals: an Allow or a Deny recorded once, under the conversation's lock, beside a question it
+  waits with; a continuation that answers the turn refused while a call the member allowed waits to
+  run, and the one that carries it on closing the calls a stop kept from running; and a send that
+  denies the approvals waiting, refused when it read them otherwise, or names none at all, in either
+  order against the member's decision
+*/
+async function checkApprovals() {
+  const membershipCreatedAt = await readMembershipCreatedAt(userIds.approver)
+  const integrationId = createId()
+
+  await write(
+    `mutation InsertIntegration($id: UUID!, $organizationId: UUID!) {
+      organizationIntegration_insert(data: {
+        id: $id, organizationId: $organizationId, name: "Issues", normalizedName: "issues",
+        url: "https://mcp.example.com/mcp", authentication: NONE
+      })
+    }`,
+    { id: integrationId, organizationId },
+  )
+
+  /*
+    A run that proposed a call, asked a question beside it, and drew a call to run that a stop kept
+    from starting, then waits. Each conversation is its own, and each run ends before the next starts,
+    so the member never holds 3 in flight
+  */
+  async function startWaiting() {
+    const started = await start(userIds.approver, membershipCreatedAt)
+    const entryId = createId()
+    const [approvalId, questionId, callId] = [createId(), createId(), createId()]
+
+    await claimQueuedConversationRun(dataConnect, fence(started, 0))
+    await storeConversationTurnWithContext(dataConnect, {
+      ...fence(started, 1),
+      contextEntryId: createId(),
+      contextPosition: 1,
+      contextContent: JSON.stringify([{ type: 'text', text: 'Context' }]),
+      contextHash: 'hash',
+      entryId,
+      position: 2,
+      content: JSON.stringify([
+        { type: 'tool_use', id: `toolu_${approvalId}`, name: 'call_integration_tool', input: {} },
+        { type: 'tool_use', id: `toolu_${questionId}`, name: 'ask_user', input: {} },
+        { type: 'tool_use', id: `toolu_${callId}`, name: 'read_log', input: {} },
+      ]),
+    })
+    await drawConversationApproval(dataConnect, {
+      ...fence(started, 1),
+      entryId,
+      fromBlock: 0,
+      toBlock: 1,
+      messageId: approvalId,
+      position: 1,
+      toolUseId: `toolu_${approvalId}`,
+      toolName: 'call_integration_tool',
+      toolInput: '{}',
+      integrationId,
+      integrationName: 'Issues',
+      integrationToolName: 'create_issue',
+      approvalConfigRevision: 0,
+      approvalToolHash: 'a'.repeat(64),
+      approvalCredentialGeneration: null,
+      argumentsPreview: '{}',
+      preview: { kind: 'APPROVAL' },
+    })
+    await drawConversationQuestion(dataConnect, {
+      ...fence(started, 1),
+      entryId,
+      fromBlock: 1,
+      toBlock: 2,
+      messageId: questionId,
+      position: 2,
+      toolUseId: `toolu_${questionId}`,
+      questionPrompt: 'Which price?',
+      questionOptions: ['A', 'B'],
+      isMultipleChoice: false,
+      preview: { kind: 'QUESTION' },
+    })
+    await drawConversationClientToolCall(dataConnect, {
+      ...fence(started, 1),
+      entryId,
+      fromBlock: 2,
+      toBlock: 3,
+      messageId: callId,
+      position: 3,
+      toolUseId: `toolu_${callId}`,
+      toolName: 'read_log',
+      toolInput: '{}',
+      preview: { kind: 'TOOL_CALL', toolName: 'read_log', toolStatus: 'RUNNING' },
+    })
+    await finishConversationRunWaiting(dataConnect, { ...fence(started, 1) })
+
+    return { started, approvalId, questionId, callId }
+  }
+
+  // The preview the lock is matched on, read as the backend reads it
+  const readPreviewMessageId = async (started: Started) =>
+    (await readConversation(started.conversationId))?.previewMessageId ?? ''
+  const decide = async (started: Started, approvalId: string, overrides: Variables = {}) =>
+    answerConversationApproval(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      runId: started.runId,
+      messageId: approvalId,
+      previewMessageId: await readPreviewMessageId(started),
+      approvalState: ConversationApprovalState.ALLOWED,
+      ...overrides,
+    })
+  const answerQuestion = async (started: Started, questionId: string) =>
+    answerConversationQuestion(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      runId: started.runId,
+      messageId: questionId,
+      previewMessageId: await readPreviewMessageId(started),
+      answerSelected: ['A'],
+    })
+  const send = (started: Started, overrides: Variables = {}) =>
+    sendConversationMessageAnsweringCalls(dataConnect, {
+      organizationId,
+      userId: started.userId,
+      conversationId: started.conversationId,
+      membershipCreatedAt,
+      messageId: createId(),
+      text: 'Instead',
+      preview: { kind: 'MEMBER_TEXT', text: 'Instead' },
+      position: 4,
+      runId: createId(),
+      runNumber: 1,
+      content: JSON.stringify([{ type: 'text', text: 'Instead' }]),
+      transcriptPosition: 3,
+      lastRunId: started.runId,
+      isLastRunWaiting: true,
+      skippedQuestionIds: [],
+      ...overrides,
+    })
+
+  // The call drawn to run is cancelled when the run waits, a stop having kept it from starting
+  const first = await startWaiting()
+
+  check(
+    'a call a stop kept from running is cancelled as its run waits',
+    (await readCall(first.callId))?.toolStatus === ConversationToolStatus.CANCELLED,
+  )
+  check(
+    'an Allow carries no failure, and a Deny carries one',
+    (await refusal(decide(first.started, first.approvalId, { toolStatus: 'FAILED', toolOutput: '{}' }))) !== null
+      && (await refusal(decide(first.started, first.approvalId, { approvalState: 'DENIED' }))) !== null,
+  )
+
+  const allowed = await decide(first.started, first.approvalId)
+
+  check(
+    'an Allow is recorded, the question beside it still waiting',
+    allowed.data.left?.conversationMessages.length === 1
+      && (await readCall(first.approvalId))?.approvalState === 'ALLOWED',
+  )
+  check('an approval is decided once', (await refusal(decide(first.started, first.approvalId))) !== null)
+
+  const answered = await answerQuestion(first.started, first.questionId)
+
+  check(
+    'the last answer reads nothing left, the approval decided included',
+    answered.data.left?.conversationMessages.length === 0,
+  )
+
+  const continuation = {
+    organizationId,
+    userId: first.started.userId,
+    conversationId: first.started.conversationId,
+    membershipCreatedAt,
+    waitingRunId: first.started.runId,
+    runId: createId(),
+    runNumber: 1,
+  }
+
+  check(
+    'a continuation answering the turn is refused while a call the member allowed waits to run',
+    await isRefused(
+      continueConversationRun(dataConnect, { ...continuation, content: '[]', transcriptPosition: 3 }),
+      'A call the member allowed waits to run',
+    ),
+  )
+
+  const withCalls = (overrides: Variables = {}) =>
+    continueConversationRunWithCalls(dataConnect, {
+      ...continuation,
+      anchorPosition: 0,
+      pendingToolResults: '[]',
+      stoppedCallIds: [first.callId],
+      stoppedCallOutput: '{"error":"The member stopped the response before this ran."}',
+      ...overrides,
+    })
+
+  check(
+    'a continuation carrying allowed calls is refused when it names a call of the turn no stop kept from running',
+    await isRefused(
+      withCalls({ stoppedCallIds: [first.callId, first.approvalId] }),
+      "The turn's calls changed since the continuation read them",
+    ),
+  )
+  check(
+    'a continuation carries the allowed calls on, with no entry, the calls a stop kept answered as stopped',
+    (await refusal(withCalls())) === null
+      && (await readCall(first.callId))?.toolStatus === ConversationToolStatus.FAILED
+      && (await readRun(first.started.runId))?.status === 'CONTINUED'
+      && (await readRun(continuation.runId))?.status === 'QUEUED',
+  )
+
+  await stopQueuedConversationRun(dataConnect, {
+    organizationId,
+    userId: first.started.userId,
+    conversationId: first.started.conversationId,
+    runId: continuation.runId,
+    noteId: createId(),
+    position: 4,
+    preview: { kind: 'NOTE', noteKind: 'STOPPED' },
+  })
+
+  check(
+    'an allowed call is left as it was when its queued run is stopped',
+    (await readCall(first.approvalId))?.toolStatus === null,
+  )
+
+  // A send denies an approval waiting, and refuses one it read otherwise
+  const second = await startWaiting()
+
+  check(
+    'a send that names no approval is refused while one waits, as an older backend sends',
+    await isRefused(
+      send(second.started, { skippedQuestionIds: [second.questionId] }),
+      'The calls waiting for approval changed since the send read them',
+    ),
+  )
+  check(
+    'a send denies the approvals waiting, as the member did not approve them',
+    (await refusal(
+      send(second.started, {
+        skippedQuestionIds: [second.questionId],
+        deniedApprovalIds: [second.approvalId],
+        deniedApprovalOutput: '{"error":"The member did not approve this call and wrote instead."}',
+        closedApprovalIds: [],
+      }),
+    )) === null && (await readCall(second.approvalId))?.approvalState === 'DENIED',
+  )
+  check(
+    'a decision after the send denied the approval is refused',
+    (await refusal(decide(second.started, second.approvalId, { previewMessageId: createId() }))) !== null,
+  )
+
+  // A Deny first, then a send that read the approval as waiting
+  const third = await startWaiting()
+
+  await decide(third.started, third.approvalId, {
+    approvalState: 'DENIED',
+    toolStatus: 'FAILED',
+    toolOutput: '{"error":"The member denied this call."}',
+  })
+
+  check(
+    'a send that read an approval as waiting is refused once the member decided it',
+    await isRefused(
+      send(third.started, {
+        skippedQuestionIds: [third.questionId],
+        deniedApprovalIds: [third.approvalId],
+        deniedApprovalOutput: '{}',
+        closedApprovalIds: [],
+      }),
+      'The calls waiting for approval changed since the send read them',
+    ),
+  )
+
+  // An Allow, then a send before any run made the call, which answers it as not run
+  const fourth = await startWaiting()
+
+  await decide(fourth.started, fourth.approvalId)
+
+  check(
+    'a send answers as not run a call allowed that never ran, refused when it names none, as an older backend sends',
+    (await refusal(
+      send(fourth.started, {
+        skippedQuestionIds: [fourth.questionId],
+        deniedApprovalIds: [],
+      }),
+    )) !== null
+      && (await refusal(
+        send(fourth.started, {
+          skippedQuestionIds: [fourth.questionId],
+          deniedApprovalIds: [],
+          closedApprovalIds: [fourth.approvalId],
+          closedApprovalOutput: '{"error":"The member wrote instead before this call ran."}',
+        }),
+      )) === null
+      && (await readCall(fourth.approvalId))?.toolStatus === ConversationToolStatus.FAILED,
+  )
+}
+
 async function readTags(conversationId: string, runId: string, position: number) {
   return read<{
     conversation: TaggedConversation | null
@@ -2604,6 +2916,7 @@ try {
   await checkSettling()
   await checkTagging()
   await checkIntegrationCalls()
+  await checkApprovals()
 } finally {
   await tearDown()
 }

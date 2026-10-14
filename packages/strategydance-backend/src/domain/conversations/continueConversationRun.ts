@@ -5,6 +5,7 @@ import {
   ConversationRunStatus,
   ConversationRunTrigger,
   continueConversationRun as continueConversationRunMutation,
+  continueConversationRunWithCalls,
   getConversationTurnContext,
 } from 'strategydance-database/backend'
 
@@ -12,6 +13,7 @@ import type { ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import { STOPPED_CALL_RESULT, toFailedOutput } from '~domain/conversations/conversationToolResults'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
@@ -45,7 +47,10 @@ export type ContinueConversationRunResult =
   - a question still waits: nothing starts
   - a run of the caller's in flight past its lease died with its worker, and is finalized before
     they are counted, and with 3 in flight nothing starts: the page's reconcile tries again
-  - then the entry answering the turn is built and checked, and the run started
+  - then the entry answering the turn is built and checked, and the run started. When the member
+    allowed a call of the turn, which has not run, nothing can answer the turn yet: the run starts
+    with no entry, carrying the turn on as a resumed run does, makes the calls allowed, then stores
+    the entry itself, and the calls a stop kept from running are answered as stopped
 
   A write refused anyway, because an answer, a send or a run got there in between, starts another
   round
@@ -98,28 +103,41 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
     if (!answering || !lastEntry) throw new Error(`Conversation ${conversationId} waits on a turn that called nothing`)
 
     const continuingRunId = randomUUID().replaceAll('-', '')
+    const started = {
+      organizationId,
+      userId,
+      conversationId,
+      membershipCreatedAt: membership.createdAt,
+      waitingRunId: runId,
+      runId: continuingRunId,
+      runNumber: conversation.nextRunNumber,
+    }
 
     try {
-      await continueConversationRunMutation(dataConnect, {
-        organizationId,
-        userId,
-        conversationId,
-        membershipCreatedAt: membership.createdAt,
-        waitingRunId: runId,
-        runId: continuingRunId,
-        runNumber: conversation.nextRunNumber,
-        content: answering.content,
-        transcriptPosition: lastEntry.position + 1,
-      })
+      if (answering.allowedCallIds.length) {
+        await continueConversationRunWithCalls(dataConnect, {
+          ...started,
+          anchorPosition: latest.anchorPosition,
+          pendingToolResults: answering.latestRun?.pendingToolResults ?? null,
+          stoppedCallIds: answering.stoppedCallIds,
+          stoppedCallOutput: toFailedOutput(STOPPED_CALL_RESULT),
+        })
+      } else {
+        await continueConversationRunMutation(dataConnect, {
+          ...started,
+          content: answering.content,
+          transcriptPosition: lastEntry.position + 1,
+        })
+      }
     } catch (error) {
       if (round === MAX_ROUNDS) throw error
 
       continue
     }
 
-    const started = { ...reference, runId: continuingRunId }
+    const queued = { ...reference, runId: continuingRunId }
 
-    if (!(await enqueueRun(started))) return { outcome: 'unavailable', runId: continuingRunId }
+    if (!(await enqueueRun(queued))) return { outcome: 'unavailable', runId: continuingRunId }
 
     return { outcome: 'continued', runId: continuingRunId }
   }

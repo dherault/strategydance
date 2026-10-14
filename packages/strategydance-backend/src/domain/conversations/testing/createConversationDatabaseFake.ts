@@ -525,12 +525,37 @@ function createConversationDatabaseFake() {
     return [...messages.values()].filter(message => message.conversationId === conversationId)
   }
 
-  // The questions of a conversation still waiting for an answer, which only the turn its transcript
-  // ends on can hold
+  // The questions of a conversation still waiting for an answer, and its calls waiting for the
+  // member's approval, which only the turn its transcript ends on can hold
   function waitingQuestions(conversationId: string) {
     return conversationMessages(conversationId).filter(
-      message => message.kind === 'QUESTION' && (message.answeredAt ?? null) === null,
+      message => ['QUESTION', 'APPROVAL'].includes(message.kind) && (message.answeredAt ?? null) === null,
     )
+  }
+
+  // The calls of a conversation the member allowed that have not started
+  function allowedCalls(conversationId: string) {
+    return conversationMessages(conversationId).filter(
+      message => message.kind === 'APPROVAL' && message.approvalState === 'ALLOWED' && !message.toolStatus,
+    )
+  }
+
+  /*
+    Applies a write to the rows a list variable names, which a write of the send's does for the calls
+    waiting for approval: exactly those named, and none when the list is left out, whose filter Data
+    Connect then drops, so any row matching refuses the call
+  */
+  function updateNamed(
+    rows: FakeMessage[],
+    ids: string[] | null | undefined,
+    message: string,
+    change: (row: FakeMessage) => void,
+  ) {
+    const named = ids ? rows.filter(row => ids.map(id).includes(row.id)) : rows
+
+    if (named.length !== (ids?.length ?? 0)) refuse(message)
+
+    return () => named.forEach(change)
   }
 
   // The server and tool a call to an integration was drawn with, none for any other call
@@ -1072,6 +1097,9 @@ function createConversationDatabaseFake() {
             answerSelected: message.answerSelected ?? null,
             answerOther: message.answerOther ?? null,
             isAnswerSkipped: message.isAnswerSkipped ?? false,
+            integrationName: message.integrationName ?? null,
+            integrationToolName: message.integrationToolName ?? null,
+            approvalState: message.approvalState ?? null,
             run: message.runId ? { id: message.runId } : null,
             conversationAttachments_on_message: messageAttachmentNames(message.id),
           })),
@@ -1143,12 +1171,13 @@ function createConversationDatabaseFake() {
         latestRuns: isTheirs
           ? latestRuns(conversation.id)
               .slice(0, 2)
-              .map(({ id: runId, number, trigger, status, leaseExpiresAt }) => ({
+              .map(({ id: runId, number, trigger, status, leaseExpiresAt, anchorPosition }) => ({
                 id: runId,
                 number,
                 trigger,
                 status,
                 leaseExpiresAt,
+                anchorPosition,
               }))
           : [],
         conversationRuns: runsInFlight(variables.userId, variables.organizationId)
@@ -1167,6 +1196,38 @@ function createConversationDatabaseFake() {
               .slice(0, 1000)
               .map(message => ({ id: message.id }))
           : [],
+      }
+    },
+
+    GetConversationApproval: variables => {
+      const message = messages.get(id(variables.messageId))
+      const conversation = message && conversations.get(message.conversationId)
+      const isTheirs =
+        conversation !== undefined
+        && conversation.id === id(variables.conversationId)
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+
+      return {
+        conversationMessages:
+          message && isTheirs && message.kind === 'APPROVAL'
+            ? [
+                {
+                  id: message.id,
+                  toolUseId: message.toolUseId ?? null,
+                  toolStatus: message.toolStatus,
+                  toolOutput: message.toolOutput ?? null,
+                  integrationId: message.integrationId ?? null,
+                  integrationName: message.integrationName ?? null,
+                  integrationToolName: message.integrationToolName ?? null,
+                  approvalState: message.approvalState ?? null,
+                  approvalConfigRevision: message.approvalConfigRevision ?? null,
+                  approvalToolHash: message.approvalToolHash ?? null,
+                  approvalCredentialGeneration: message.approvalCredentialGeneration ?? null,
+                  answeredAt: message.answeredAt ?? null,
+                },
+              ]
+            : [],
       }
     },
 
@@ -1240,6 +1301,9 @@ function createConversationDatabaseFake() {
           answerSelected: message.answerSelected ?? null,
           answerOther: message.answerOther ?? null,
           isAnswerSkipped: message.isAnswerSkipped ?? false,
+          integrationName: message.integrationName ?? null,
+          integrationToolName: message.integrationToolName ?? null,
+          approvalState: message.approvalState ?? null,
           conversationAttachments_on_message: messageAttachmentNames(message.id),
         })),
       }
@@ -1417,9 +1481,30 @@ function createConversationDatabaseFake() {
       }
 
       const skippedIds = new Set((variables.skippedQuestionIds as string[]).map(id))
-      const skipped = waitingQuestions(conversation.id).filter(message => skippedIds.has(message.id))
+      const skipped = waitingQuestions(conversation.id).filter(
+        message => message.kind === 'QUESTION' && skippedIds.has(message.id),
+      )
 
       if (skipped.length !== skippedIds.size) refuse('The questions changed since the send read them')
+
+      const denyApprovals = updateNamed(
+        waitingQuestions(conversation.id).filter(message => message.kind === 'APPROVAL'),
+        variables.deniedApprovalIds,
+        'The calls waiting for approval changed since the send read them',
+        message =>
+          Object.assign(message, {
+            approvalState: 'DENIED',
+            toolStatus: 'FAILED',
+            toolOutput: variables.deniedApprovalOutput ?? null,
+            answeredAt: now(),
+          }),
+      )
+      const closeApprovals = updateNamed(
+        allowedCalls(conversation.id),
+        variables.closedApprovalIds,
+        'The calls allowed changed since the send read them',
+        message => Object.assign(message, { toolStatus: 'FAILED', toolOutput: variables.closedApprovalOutput ?? null }),
+      )
 
       checkSend(conversation, variables)
 
@@ -1428,6 +1513,9 @@ function createConversationDatabaseFake() {
       if (lastRun && isLastRunWaiting) lastRun.status = 'CONTINUED'
 
       for (const message of skipped) Object.assign(message, { isAnswerSkipped: true, answeredAt: now() })
+
+      denyApprovals()
+      closeApprovals()
 
       conversation.isAwaitingAnswer = false
       writeSend(conversation, variables)
@@ -1509,6 +1597,7 @@ function createConversationDatabaseFake() {
       const conversationId = id(variables.conversationId)
 
       if (waitingQuestions(conversationId).length) refuse('A question of the turn still waits')
+      if (allowedCalls(conversationId).length) refuse('A call the member allowed waits to run')
 
       const conversation = conversations.get(conversationId)
       const waiting = runs.get(id(variables.waitingRunId))
@@ -1557,6 +1646,134 @@ function createConversationDatabaseFake() {
       })
       runs.set(runId, queuedRun(runId, conversationId, variables, 'ANSWER', variables.transcriptPosition))
       insertEntry(entry)
+
+      return { conversation_updateMany: 1 }
+    },
+
+    AnswerConversationApproval: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (
+        !conversation
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.deletedAt !== null
+        || !conversation.isAwaitingAnswer
+        || conversation.previewMessageId !== id(variables.previewMessageId)
+      ) {
+        refuse('The conversation waits for no answer, or its preview moved')
+      }
+
+      const toolStatus = variables.toolStatus ?? null
+      const toolOutput = variables.toolOutput ?? null
+      const isAllowed = variables.approvalState === 'ALLOWED' && toolStatus === null && toolOutput === null
+      const isDenied = variables.approvalState === 'DENIED' && toolStatus === 'FAILED' && toolOutput !== null
+
+      if (!isAllowed && !isDenied) refuse('An approval is allowed, its call left to run, or denied, failed with why')
+
+      const waiting = runs.get(id(variables.runId))
+
+      if (!waiting || waiting.status !== 'WAITING' || waiting.conversationId !== conversation.id) {
+        refuse('The run no longer waits for an answer')
+      }
+
+      const approval = messages.get(id(variables.messageId))
+
+      if (
+        !approval
+        || approval.conversationId !== conversation.id
+        || approval.kind !== 'APPROVAL'
+        || approval.approvalState !== 'PENDING'
+        || (approval.answeredAt ?? null) !== null
+      ) {
+        refuse('The approval waits no more')
+      }
+
+      assignGiven(conversation, { preview: variables.preview })
+      conversation.updatedAt = now()
+      Object.assign(approval, { approvalState: variables.approvalState, answeredAt: now() })
+      assignGiven(approval, { toolStatus: variables.toolStatus, toolOutput: variables.toolOutput })
+
+      return {
+        conversation_updateMany: 1,
+        conversationMessage_updateMany: 1,
+        left: {
+          conversationMessages: waitingQuestions(conversation.id)
+            .slice(0, 1000)
+            .map(message => ({ id: message.id })),
+        },
+      }
+    },
+
+    ContinueConversationRunWithCalls: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      if (!membership) refuse('Only a member of an organization can keep conversations in it')
+      if (membership.createdAt !== variables.membershipCreatedAt) {
+        refuse('The membership changed since the continuation read it')
+      }
+
+      if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
+        refuse('Somebody has at most 3 runs in flight in an organization')
+      }
+
+      const conversationId = id(variables.conversationId)
+
+      if (waitingQuestions(conversationId).length) refuse('A question of the turn still waits')
+
+      const conversation = conversations.get(conversationId)
+      const waiting = runs.get(id(variables.waitingRunId))
+
+      if (
+        !waiting
+        || !conversation
+        || waiting.status !== 'WAITING'
+        || waiting.conversationId !== conversation.id
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+      ) {
+        refuse("The run's turn was consumed already")
+      }
+
+      if (
+        conversation.deletedAt !== null
+        || conversation.activeRunId !== null
+        || conversation.nextRunNumber !== variables.runNumber
+      ) {
+        refuse('The conversation could not take the run')
+      }
+
+      const stoppedIds = (variables.stoppedCallIds as string[]).map(id)
+      const stopped = conversationMessages(conversationId).filter(
+        message =>
+          stoppedIds.includes(message.id)
+          && message.kind === 'TOOL_CALL'
+          && message.toolStatus === 'CANCELLED'
+          && !message.toolStartedAt,
+      )
+
+      if (stopped.length !== stoppedIds.length) refuse("The turn's calls changed since the continuation read them")
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      waiting.status = 'CONTINUED'
+      Object.assign(conversation, {
+        activeRunId: runId,
+        isAwaitingAnswer: false,
+        nextRunNumber: conversation.nextRunNumber + 1,
+        updatedAt: now(),
+      })
+
+      for (const message of stopped) {
+        Object.assign(message, { toolStatus: 'FAILED', toolOutput: variables.stoppedCallOutput })
+      }
+
+      runs.set(runId, {
+        ...queuedRun(runId, conversationId, variables, 'ANSWER', variables.anchorPosition),
+        pendingToolResults: variables.pendingToolResults ?? null,
+      })
 
       return { conversation_updateMany: 1 }
     },

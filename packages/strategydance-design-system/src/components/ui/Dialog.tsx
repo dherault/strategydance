@@ -41,13 +41,19 @@ function DialogClose(props: ComponentProps<typeof DialogPrimitive.Close>) {
   )
 }
 
+type DialogOverlayProps = ComponentProps<typeof DialogPrimitive.Overlay> & {
+  // False to appear at once, as `DialogContent` says
+  isAnimatedOnOpen?: boolean
+}
+
 // The design keeps transparency and blur for overlays, at its `blur-sm`
-function DialogOverlay({ className, ...props }: ComponentProps<typeof DialogPrimitive.Overlay>) {
+function DialogOverlay({ isAnimatedOnOpen = true, className, ...props }: DialogOverlayProps) {
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-50 bg-black/10 duration-150 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        'fixed inset-0 isolate z-50 bg-black/10 duration-150 supports-backdrop-filter:backdrop-blur-sm data-closed:animate-out data-closed:fade-out-0',
+        isAnimatedOnOpen && 'data-open:animate-in data-open:fade-in-0',
         className,
       )}
       {...props}
@@ -58,22 +64,27 @@ function DialogOverlay({ className, ...props }: ComponentProps<typeof DialogPrim
 type DialogContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
   closeLabel?: string
+  // False for a dialog taking the place of another on screen, which would otherwise fade out of
+  // sight for a moment between the two. It still fades as it closes
+  isAnimatedOnOpen?: boolean
 }
 
 function DialogContent({
   showCloseButton = true,
   closeLabel = 'Close',
+  isAnimatedOnOpen = true,
   className,
   children,
   ...props
 }: DialogContentProps) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay isAnimatedOnOpen={isAnimatedOnOpen} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xs border border-border bg-popover p-6 font-sans text-sm text-popover-foreground shadow-lg duration-150 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xs border border-border bg-popover p-6 font-sans text-sm text-popover-foreground shadow-lg duration-150 outline-none sm:max-w-md data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          isAnimatedOnOpen && 'data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95',
           className,
         )}
         {...props}

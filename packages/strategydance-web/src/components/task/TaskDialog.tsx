@@ -65,6 +65,8 @@ function TaskDialog({ taskId }: Props) {
   const router = useRouter()
   // Whether the board opened this task, which its history entry keeps through a reload
   const isFromTaskBoard = useLocation({ select: location => location.state.isFromTaskBoard === true })
+  // Whether it takes the place of the dialog it was created in, where it appears without a fade
+  const isFromNewTask = useLocation({ select: location => location.state.isFromNewTask === true })
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: viewer } = useAuthentication()
   const { data: tasks } = useTasks()
@@ -96,7 +98,8 @@ function TaskDialog({ taskId }: Props) {
 
   const task = tasks.find(({ id }) => id === taskId)
 
-  // `TaskBouncer` lets no other through, but a task deleted elsewhere can go before it moves on
+  // `TaskBouncer` lets no other through, but a task deleted elsewhere can go before it moves on, and
+  // one being created can be missing from the board for a moment
   if (!task) return null
 
   const members = team.userOrganizations
@@ -124,6 +127,7 @@ function TaskDialog({ taskId }: Props) {
   return (
     <TaskDialogLayout
       isContentFocusedOnOpen
+      isAnimatedOnOpen={!isFromNewTask}
       onClose={close}
       header={
         <>

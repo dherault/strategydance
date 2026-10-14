@@ -38,6 +38,7 @@ import getTaskRestoreLoops from '~utils/task/getTaskRestoreLoops'
 import restoreTaskWithoutLoops from '~utils/task/restoreTaskWithoutLoops'
 
 import { dataConnect } from '~data/firebase'
+import { updateTaskCreation } from '~data/taskCreations'
 
 type Change = {
   // The row it writes, whose writes queue behind each other
@@ -164,9 +165,14 @@ function useTaskChanges() {
   }
 
   // Adds a task past the last of its column, then links it. Its id comes back at once, so the page
-  // can point at it before the server has it
+  // can point at it before the server has it, and it counts as being created until then, for its
+  // dialog to wait on. `created` settles once the server has the task, `written` once it has its
+  // links too
   function createTask(draft: TaskDraft) {
     const id = createId()
+
+    updateTaskCreation(id, () => true)
+
     const task: Task = {
       id,
       name: draft.name,
@@ -207,12 +213,16 @@ function useTaskChanges() {
           aspects: task.aspects,
         }),
     })
+
+    // Refused or not: a refusal reads the board again, which then holds no such task
+    created.catch(() => undefined).then(() => updateTaskCreation(id, () => false))
+
     const linked = [
       ...draft.dependencyIds.map(dependencyId => linkTasks(id, dependencyId)),
       ...draft.blockedIds.map(blockedId => linkTasks(blockedId, id)),
     ]
 
-    return { id, written: Promise.all([created, ...linked]).then(() => undefined) }
+    return { id, created, written: Promise.all([created, ...linked]).then(() => undefined) }
   }
 
   function renameTask(taskId: string, name: string) {

@@ -450,7 +450,8 @@ const taskMessages = defineMessages({
   created: {
     id: 'task.created',
     defaultMessage: 'Task created',
-    description: 'Notification after a task was added to the board, with a button that opens it.',
+    description:
+      'Notification after a task was added to the board, with a button that opens it unless it is open already.',
   },
   open: {
     id: 'task.open',

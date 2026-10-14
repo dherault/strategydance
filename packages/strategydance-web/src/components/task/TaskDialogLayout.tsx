@@ -14,6 +14,11 @@ type Props = {
   // Focuses the dialog itself as it opens rather than its first field, which would show the name
   // as being edited before anything is. A draft focuses its name field itself
   isContentFocusedOnOpen?: boolean
+  // False for a task taking the place of its draft, so the dialog seems to stay where it was
+  isAnimatedOnOpen?: boolean
+  // Shown but out of reach, for a draft created and giving way to its task, where an edit would be
+  // lost. Escape still closes it
+  isInert?: boolean
   onClose: () => void
 }
 
@@ -23,7 +28,16 @@ type Props = {
   screen. Only the body scrolls, so a list or a calendar opened from a field, which lays itself over
   the dialog, is never cut off by it
 */
-function TaskDialogLayout({ header, main, side, footer, isContentFocusedOnOpen = false, onClose }: Props) {
+function TaskDialogLayout({
+  header,
+  main,
+  side,
+  footer,
+  isContentFocusedOnOpen = false,
+  isAnimatedOnOpen = true,
+  isInert = false,
+  onClose,
+}: Props) {
   const { formatMessage } = useIntl()
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -39,16 +53,32 @@ function TaskDialogLayout({ header, main, side, footer, isContentFocusedOnOpen =
     >
       <DialogContent
         closeLabel={formatMessage(taskMessages.close)}
+        isAnimatedOnOpen={isAnimatedOnOpen}
         className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-190"
         ref={contentRef}
         onOpenAutoFocus={isContentFocusedOnOpen ? focusContent : undefined}
       >
-        <DialogHeader className="gap-1 px-6 pt-6 pr-14">{header}</DialogHeader>
-        <div className="grid min-h-0 gap-6 overflow-y-auto px-6 pt-5 pb-6 md:grid-cols-[minmax(0,1fr)_224px]">
+        <DialogHeader
+          inert={isInert}
+          className="gap-1 px-6 pt-6 pr-14"
+        >
+          {header}
+        </DialogHeader>
+        <div
+          inert={isInert}
+          className="grid min-h-0 gap-6 overflow-y-auto px-6 pt-5 pb-6 md:grid-cols-[minmax(0,1fr)_224px]"
+        >
           <div className="flex min-w-0 flex-col gap-5">{main}</div>
           <div className="flex min-w-0 flex-col gap-4">{side}</div>
         </div>
-        {footer ? <DialogFooter className="border-t border-border px-6 py-4">{footer}</DialogFooter> : null}
+        {footer ? (
+          <DialogFooter
+            inert={isInert}
+            className="border-t border-border px-6 py-4"
+          >
+            {footer}
+          </DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

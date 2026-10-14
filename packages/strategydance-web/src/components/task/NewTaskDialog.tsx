@@ -1,5 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useMatch, useNavigate, useRouter } from '@tanstack/react-router'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
 import { MAX_TASK_DEPENDENCIES, MAX_TASK_DESCRIPTION_LENGTH, MAX_TASK_NAME_LENGTH } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/web'
@@ -49,12 +49,20 @@ type Props = {
   one too long to store keeps the dialog open, its editor saying why, rather than lose the draft to
   the server's refusal once it has closed.
 
+  Create task goes back to the board. Enter in the name creates the task too, and opens it in its
+  own dialog for the reader to carry on with it there: this one stays until that one is on screen,
+  however long the task's page takes to load, and gives way to it before the browser paints, so the
+  board never shows between the two. Nothing in it can be changed meanwhile, as the task has been
+  sent, and a task the server refuses before then leaves the draft to the reader again. Once the server has the task and its links, a notification says so, with a way to
+  open it unless it is open already.
+
   The links it is given are picked among the board's tasks, as an existing task's are, and stored
   once the task is
 */
 function NewTaskDialog({ status, onClose }: Props) {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
+  const router = useRouter()
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: viewer } = useAuthentication()
   const { data: tasks } = useTasks()
@@ -77,6 +85,13 @@ function NewTaskDialog({ status, onClose }: Props) {
     blockedIds: [],
   }))
   const [isNameMissing, setIsNameMissing] = useState(false)
+  // The task Enter created, while its dialog is on its way to take this one's place
+  const [openingTaskId, setOpeningTaskId] = useState<string | null>(null)
+  const openTaskId = useMatch({
+    from: '/_authenticated/_app/$organizationSlug/tasks/$taskId',
+    shouldThrow: false,
+    select: match => match.params.taskId,
+  })
   const nameRef = useRef<HTMLInputElement>(null)
   // What the description's editor holds unsaved, or null while it is closed
   const pendingDescriptionRef = useRef<string | null>(null)
@@ -89,11 +104,41 @@ function NewTaskDialog({ status, onClose }: Props) {
     tasks,
   )
 
+  // The task's dialog draws it from the board, so it is there once both have it
+  const isOpeningTaskShown = openingTaskId !== null && openTaskId === openingTaskId && tasksById.has(openingTaskId)
+
+  // Gives way once the task's dialog is there, before the browser paints
+  useLayoutEffect(() => {
+    if (isOpeningTaskShown) onClose()
+  }, [isOpeningTaskShown, onClose])
+
   function update(changes: Partial<TaskDraft>) {
     setDraft(current => ({ ...current, ...changes }))
   }
 
-  function create() {
+  function openTask(taskId: string, { isFromNewTask = false } = {}) {
+    navigate({
+      to: '/$organizationSlug/tasks/$taskId',
+      params: { organizationSlug, taskId },
+      state: { isFromTaskBoard: true, isFromNewTask },
+      resetScroll: false,
+    })
+  }
+
+  // Whether the reader is at the task's address, or on their way there while its page loads
+  function isTaskOpen(taskId: string) {
+    const { pathname } = router.buildLocation({
+      to: '/$organizationSlug/tasks/$taskId',
+      params: { organizationSlug, taskId },
+    })
+
+    return router.latestLocation.pathname === pathname
+  }
+
+  function create({ isOpening }: { isOpening: boolean }) {
+    // Created already, and on its way to its own dialog
+    if (openingTaskId !== null) return
+
     const name = draft.name.trim()
     const description = pendingDescriptionRef.current ?? draft.description
 
@@ -106,7 +151,7 @@ function NewTaskDialog({ status, onClose }: Props) {
       return
     }
 
-    const { id, written } = createTask({
+    const { id, created, written } = createTask({
       ...draft,
       name,
       description,
@@ -115,21 +160,20 @@ function NewTaskDialog({ status, onClose }: Props) {
       blockedIds: draft.blockedIds.filter(taskId => tasksById.has(taskId)),
     })
 
-    onClose()
+    if (isOpening) {
+      setOpeningTaskId(id)
+      openTask(id, { isFromNewTask: true })
+      // Refused while this dialog still shows, it lets the reader send the draft again
+      created.catch(() => setOpeningTaskId(current => (current === id ? null : current)))
+    } else {
+      onClose()
+    }
+
     // Once the server has it and its links, so Open never points at a task it refused
     report(
       written.then(() => {
         toast.success(formatMessage(taskMessages.created), {
-          action: {
-            label: formatMessage(taskMessages.open),
-            onClick: () =>
-              navigate({
-                to: '/$organizationSlug/tasks/$taskId',
-                params: { organizationSlug, taskId: id },
-                state: { isFromTaskBoard: true },
-                resetScroll: false,
-              }),
-          },
+          action: isTaskOpen(id) ? undefined : { label: formatMessage(taskMessages.open), onClick: () => openTask(id) },
         })
       }),
     )
@@ -137,6 +181,7 @@ function NewTaskDialog({ status, onClose }: Props) {
 
   return (
     <TaskDialogLayout
+      isInert={openingTaskId !== null}
       onClose={onClose}
       header={
         <>
@@ -157,7 +202,7 @@ function NewTaskDialog({ status, onClose }: Props) {
             onKeyDown={event => {
               if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                 event.preventDefault()
-                create()
+                create({ isOpening: true })
               }
             }}
           />
@@ -230,7 +275,7 @@ function NewTaskDialog({ status, onClose }: Props) {
           >
             {formatMessage(taskMessages.cancel)}
           </Button>
-          <Button onClick={create}>{formatMessage(taskMessages.createTask)}</Button>
+          <Button onClick={() => create({ isOpening: false })}>{formatMessage(taskMessages.createTask)}</Button>
         </>
       }
     />

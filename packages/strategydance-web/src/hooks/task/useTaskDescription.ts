@@ -4,6 +4,7 @@ import { getTaskDescriptionRef } from 'strategydance-database/web'
 
 import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+import useIsTaskBeingCreated from '~hooks/task/useIsTaskBeingCreated'
 
 import { dataConnect } from '~data/firebase'
 
@@ -12,13 +13,19 @@ import { dataConnect } from '~data/firebase'
   pushes this description alone. Undefined until the first read lands, or when it failed, where
   the dialog shows what the board read without letting it be edited; an empty string for a task
   with no description, or gone. A first read that fails says so through `hasFailed`, and `refetch`
-  tries it again
+  tries it again.
+
+  A task the reader just created is neither read nor subscribed to until the server has it, since
+  the server would answer that it has no description, and leaves the dialog the description the
+  board was given with it until then
 */
 function useTaskDescription(taskId: string) {
   const { organization } = useCurrentOrganization()
+  const isBeingCreated = useIsTaskBeingCreated(taskId)
 
   const organizationId = organization?.id ?? null
   const queryKey = ['GetTaskDescription', organizationId, taskId]
+  const isEnabled = Boolean(organizationId) && !isBeingCreated
 
   const { data, isError, isFetching, refetch } = useQuery({
     queryKey,
@@ -29,19 +36,19 @@ function useTaskDescription(taskId: string) {
 
       return result
     },
-    enabled: Boolean(organizationId),
+    enabled: isEnabled,
     retryOnMount: false,
   })
 
   useLiveQuerySubscription({
     name: 'task description',
-    queryKey: organizationId ? queryKey : null,
+    queryKey: isEnabled ? queryKey : null,
     createQueryRef: () => getTaskDescriptionRef(dataConnect, { organizationId: organizationId!, id: taskId }),
   })
 
   return {
     data: data && (data.tasks[0]?.description ?? ''),
-    hasFailed: Boolean(organizationId) && isError && data === undefined,
+    hasFailed: isEnabled && isError && data === undefined,
     isFetching,
     refetch: async () => {
       await refetch()

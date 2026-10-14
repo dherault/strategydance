@@ -5,6 +5,26 @@ import runInOrder from '~utils/common/runInOrder'
 // How many writes each query is waiting on, by its serialized key
 const pendingWrites = new Map<string, number>()
 
+// How many reads are bringing each query up to date once its writes settled, by its serialized key
+const pendingReads = new Map<string, number>()
+
+function count(counts: Map<string, number>, key: string, change: number) {
+  const next = (counts.get(key) ?? 0) + change
+
+  if (next > 0) counts.set(key, next)
+  else counts.delete(key)
+
+  return next
+}
+
+// Whether a change to this query is still on its way to the server, or the read that follows it on
+// its way back, until when nothing else is read into it
+export function isAwaitingWrites(queryKey: QueryKey) {
+  const key = JSON.stringify(queryKey)
+
+  return pendingWrites.has(key) || pendingReads.has(key)
+}
+
 // The changes still being applied, which the next one waits behind
 let applying: Promise<unknown> = Promise.resolve()
 
@@ -34,13 +54,17 @@ type Options = {
     one row are queued in that order, each sent once its change has landed, so they reach the
     server as the reader made them
   - Once the last write a query waits on settles, it is read again, which puts right anything a
-    later read overwrote and anything the server did differently. A write that fails reads it
-    again at once, so the page drops what the server refused, and the error goes to the caller
+    later read overwrote and anything the server did differently, and drops what the server
+    refused. Until that read lands nothing else does: a live query drops what it is sent, and no
+    reader mounting, focus or reconnect reads it again (`isAwaitingWrites`), since a result from
+    before the change, which the SDK can still deliver once the write is answered, would take it
+    back. A refused write reads it no sooner either, since that read would also take back the writes
+    still under way, and its error goes to the caller at once
 */
 async function writeOptimistically({ queryClient, queryKeys, rowKey, after, apply, write }: Options) {
   const keys = queryKeys.map(queryKey => JSON.stringify(queryKey))
 
-  for (const key of keys) pendingWrites.set(key, (pendingWrites.get(key) ?? 0) + 1)
+  for (const key of keys) count(pendingWrites, key, 1)
 
   const applied = applying.then(async () => {
     await Promise.all(queryKeys.map(queryKey => queryClient.cancelQueries({ queryKey })))
@@ -49,8 +73,6 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
   })
 
   applying = applied.catch(() => undefined)
-
-  let hasFailed = false
 
   try {
     // Queued now, so the row's writes keep the order they were made in, and sent once applied
@@ -63,19 +85,16 @@ async function writeOptimistically({ queryClient, queryKeys, rowKey, after, appl
       },
       after,
     )
-  } catch (error) {
-    hasFailed = true
-
-    throw error
   } finally {
     queryKeys.forEach((queryKey, index) => {
       const key = keys[index]!
-      const left = (pendingWrites.get(key) ?? 1) - 1
 
-      if (left > 0) pendingWrites.set(key, left)
-      else pendingWrites.delete(key)
+      if (count(pendingWrites, key, -1) > 0) return
 
-      if (hasFailed || left <= 0) queryClient.invalidateQueries({ queryKey })
+      // Counted apart, so a write made meanwhile, which cancels this read and starts its own once it
+      // settles, never lets go of the query early
+      count(pendingReads, key, 1)
+      queryClient.invalidateQueries({ queryKey }).finally(() => count(pendingReads, key, -1))
     })
   }
 }

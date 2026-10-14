@@ -48,8 +48,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   lists were read from the README of where-to-submit-your-startup, and a daily check, the
   backend's, keeps them true through a pull request a human merges
   ([directories.md](documents/directories.md)). Both files are written as `JSON.stringify(list,
-  null, 2)` writes them, sorted by name, which the tests hold them to, so a script's edit passes the
-  lint
+  null, 2)` writes them, sorted by name, which the tests hold them to, and oxfmt leaves them alone,
+  since it would put a short array on one line, which `JSON.stringify` never does
 - `packages/strategydance-external-mcp-servers` — the remote MCP servers an organization adds in a
   click from its Integrations page, as `EXTERNAL_MCP_SERVERS` from `src/externalMcpServers.json`,
   with `findExternalMcpServer` by slug and `findExternalMcpServerByUrl`: each with its address,
@@ -192,7 +192,8 @@ extension.
   TypeScript ignores one that is not at the top of the file: keep it above the import that
   sorts first
 - **Markdown and HTML are not formatted**, nor are the files a generator writes
-  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock),
+  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock,
+  the directories' two lists),
   whose next run would rewrite them anyway. The schema and the connectors are formatted, and
   generate the same SDK
 - **An unused import is an error that `--fix` does not remove**: oxlint files that fix as

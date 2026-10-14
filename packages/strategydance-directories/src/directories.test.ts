@@ -125,7 +125,7 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
     expect(names).toEqual(directories.toSorted(compareDirectoryNames).map(({ name }) => name))
   })
 
-  // As a script writes it, which is also how the formatter lays it out, so a written file passes the lint
+  // As a script writes it. The formatter would lay it out otherwise, so `.oxfmtrc.json` ignores it
   it('is written as JSON.stringify writes it', () => {
     expect(text).toBe(`${JSON.stringify(directories, null, 2)}\n`)
   })

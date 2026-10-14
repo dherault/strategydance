@@ -166,7 +166,8 @@ function useTaskChanges() {
 
   // Adds a task past the last of its column, then links it. Its id comes back at once, so the page
   // can point at it before the server has it, and it counts as being created until then, for its
-  // dialog to wait on
+  // dialog to wait on. `created` settles once the server has the task, `written` once it has its
+  // links too
   function createTask(draft: TaskDraft) {
     const id = createId()
 
@@ -221,7 +222,7 @@ function useTaskChanges() {
       ...draft.blockedIds.map(blockedId => linkTasks(blockedId, id)),
     ]
 
-    return { id, written: Promise.all([created, ...linked]).then(() => undefined) }
+    return { id, created, written: Promise.all([created, ...linked]).then(() => undefined) }
   }
 
   function renameTask(taskId: string, name: string) {

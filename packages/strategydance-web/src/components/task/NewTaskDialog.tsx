@@ -52,8 +52,9 @@ type Props = {
   Create task goes back to the board. Enter in the name creates the task too, and opens it in its
   own dialog for the reader to carry on with it there: this one stays until that one is on screen,
   however long the task's page takes to load, and gives way to it before the browser paints, so the
-  board never shows between the two. Once the server has the task and its links, a notification
-  says so, with a way to open it unless it is open already.
+  board never shows between the two. A task the server refuses before then leaves the draft to the
+  reader again. Once the server has the task and its links, a notification says so, with a way to
+  open it unless it is open already.
 
   The links it is given are picked among the board's tasks, as an existing task's are, and stored
   once the task is
@@ -103,10 +104,13 @@ function NewTaskDialog({ status, onClose }: Props) {
     tasks,
   )
 
+  // The task's dialog draws it from the board, so it is there once both have it
+  const isOpeningTaskShown = openingTaskId !== null && openTaskId === openingTaskId && tasksById.has(openingTaskId)
+
   // Gives way once the task's dialog is there, before the browser paints
   useLayoutEffect(() => {
-    if (openingTaskId !== null && openTaskId === openingTaskId) onClose()
-  }, [openingTaskId, openTaskId, onClose])
+    if (isOpeningTaskShown) onClose()
+  }, [isOpeningTaskShown, onClose])
 
   function update(changes: Partial<TaskDraft>) {
     setDraft(current => ({ ...current, ...changes }))
@@ -147,7 +151,7 @@ function NewTaskDialog({ status, onClose }: Props) {
       return
     }
 
-    const { id, written } = createTask({
+    const { id, created, written } = createTask({
       ...draft,
       name,
       description,
@@ -159,6 +163,8 @@ function NewTaskDialog({ status, onClose }: Props) {
     if (isOpening) {
       setOpeningTaskId(id)
       openTask(id, { isFromNewTask: true })
+      // Refused while this dialog still shows, it lets the reader send the draft again
+      created.catch(() => setOpeningTaskId(current => (current === id ? null : current)))
     } else {
       onClose()
     }

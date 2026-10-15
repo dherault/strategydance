@@ -58,6 +58,7 @@ export const ConversationMessageKind = {
   ASPECTS: 'ASPECTS',
   NOTE: 'NOTE',
   APPROVAL: 'APPROVAL',
+  BRIEF: 'BRIEF',
 } as const
 
 export const ConversationApprovalState = {
@@ -91,6 +92,7 @@ export const ConversationRunTrigger = {
   ANSWER: 'ANSWER',
   RESUME: 'RESUME',
   RETRY: 'RETRY',
+  LAUNCH: 'LAUNCH',
 } as const
 
 export const ConversationToolStatus = {
@@ -130,6 +132,17 @@ export type FakeConversation = {
   historyRevision?: number
   // Whether a question waits for the member, false until a run ends on one
   isAwaitingAnswer?: boolean
+  // A subagent's: the conversation that launched it, the run and the call that did, the parent's
+  // anchor it was launched on, and its report once written. Absent on every other conversation,
+  // so a check reads them with `== null`
+  parentId?: string | null
+  launchRunId?: string | null
+  launchToolUseId?: string | null
+  launchAnchorPosition?: number | null
+  report?: string | null
+  reportedAt?: string | null
+  // A parent's: the subagents it launched and are not pruned, 0 until a launch
+  subagentCount?: number
 }
 
 export type FakeRun = {
@@ -191,6 +204,8 @@ export type FakeMessage = {
   approvalToolHash?: string | null
   approvalCredentialGeneration?: string | null
   argumentsPreview?: string | null
+  // A brief's: the files of its parent's it hands over
+  attachmentIds?: string[] | null
 }
 
 export type FakeEntry = {
@@ -358,6 +373,11 @@ function createConversationDatabaseFake() {
   function deleteConversation(conversationId: string) {
     conversations.delete(conversationId)
 
+    // A subagent's parent is an optional reference, set to null on delete
+    for (const conversation of conversations.values()) {
+      if (conversation.parentId === conversationId) conversation.parentId = null
+    }
+
     // A file's message is an optional reference, set to null on delete
     for (const attachment of attachments.values()) {
       if (attachment.messageId && messages.get(attachment.messageId)?.conversationId === conversationId) {
@@ -388,6 +408,7 @@ function createConversationDatabaseFake() {
       || conversation.deletedAt === null
       || isPastUndo(conversation)
       || conversation.pruneClaimedAt !== null
+      || conversation.parentId != null
     ) {
       refuse('The conversation is gone for good')
     }
@@ -405,6 +426,7 @@ function createConversationDatabaseFake() {
       && conversation.deletedAt === null
       && conversation.previewMessageId === id(previewMessageId)
       && conversation.unreadCount > 0
+      && conversation.parentId == null
     ) {
       conversation.unreadCount = 0
     }
@@ -431,17 +453,19 @@ function createConversationDatabaseFake() {
         && conversation !== undefined
         && conversation.userId === userId
         && conversation.organizationId === id(organizationId)
+        && conversation.parentId == null
       )
     })
   }
 
-  // The caller's conversations in the organization, deleted ones aside
+  // The caller's conversations in the organization, deleted ones and subagents aside
   function keptConversations(variables: AnyVariables) {
     return [...conversations.values()].filter(
       conversation =>
         conversation.userId === variables.userId
         && conversation.organizationId === id(variables.organizationId)
-        && conversation.deletedAt === null,
+        && conversation.deletedAt === null
+        && conversation.parentId == null,
     )
   }
 
@@ -726,6 +750,16 @@ function createConversationDatabaseFake() {
     return findFencedRun(variables) ?? refuse("The run is no longer this worker's")
   }
 
+  // The fence of a conversation's own endings, which a subagent's run never passes: its endings
+  // write its report
+  function requireParentRun(variables: AnyVariables) {
+    const run = requireFencedRun(variables)
+
+    if (conversations.get(run.conversationId)?.parentId != null) refuse("The run is no longer this worker's")
+
+    return run
+  }
+
   // The conversation a note goes into, at the counter, naming the run or none, as the connector's
   // note steps hold it
   function requireNoteConversation(variables: AnyVariables) {
@@ -804,6 +838,7 @@ function createConversationDatabaseFake() {
       || conversation.userId !== variables.userId
       || conversation.organizationId !== id(variables.organizationId)
       || conversation.deletedAt !== null
+      || conversation.parentId != null
       || conversation.activeRunId !== null
       || conversation.isFull
       || conversation.messageCount >= MAX_CONVERSATION_MESSAGES
@@ -1533,6 +1568,7 @@ function createConversationDatabaseFake() {
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
         || conversation.deletedAt !== null
+        || conversation.parentId != null
         || !conversation.isAwaitingAnswer
         || conversation.previewMessageId !== id(variables.previewMessageId)
       ) {
@@ -1615,6 +1651,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
       ) {
@@ -1658,6 +1695,7 @@ function createConversationDatabaseFake() {
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
         || conversation.deletedAt !== null
+        || conversation.parentId != null
         || !conversation.isAwaitingAnswer
         || conversation.previewMessageId !== id(variables.previewMessageId)
       ) {
@@ -1737,6 +1775,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
       ) {
@@ -1790,6 +1829,7 @@ function createConversationDatabaseFake() {
         || conversation.id !== id(variables.conversationId)
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId != null
       ) {
         refuse('The run is not dead')
       }
@@ -1828,7 +1868,9 @@ function createConversationDatabaseFake() {
     RequestConversationRunStop: variables => {
       const run = findOwnedRun(variables, 'RUNNING')
 
-      if (!run || run.stopRequestedAt) return { conversationRun_updateMany: 0 }
+      if (!run || run.stopRequestedAt || conversations.get(run.conversationId)?.parentId != null) {
+        return { conversationRun_updateMany: 0 }
+      }
 
       run.stopRequestedAt = now()
 
@@ -1838,7 +1880,7 @@ function createConversationDatabaseFake() {
     StopQueuedConversationRun: variables => {
       const run = findQueuedRun(variables)
 
-      if (!run) refuse('The run is no longer queued')
+      if (!run || conversations.get(run.conversationId)?.parentId != null) refuse('The run is no longer queued')
 
       const conversation = requireNoteConversation(variables)
 
@@ -1892,6 +1934,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
         || conversation.nextMessagePosition !== variables.nextMessagePosition
@@ -1981,6 +2024,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
         || (conversation.historyRevision ?? 0) !== variables.historyRevision
@@ -2625,7 +2669,7 @@ function createConversationDatabaseFake() {
     },
 
     FinishConversationRunWaiting: variables => {
-      const run = requireFencedRun(variables)
+      const run = requireParentRun(variables)
 
       end(run, 'WAITING')
       assignGiven(run, { usage: variables.usage })
@@ -2642,7 +2686,7 @@ function createConversationDatabaseFake() {
     },
 
     FinishConversationRun: variables => {
-      const run = requireFencedRun(variables)
+      const run = requireParentRun(variables)
 
       if (variables.status !== 'COMPLETED' && variables.status !== 'STOPPED') {
         refuse('A run ends this way completed or stopped')
@@ -2660,7 +2704,7 @@ function createConversationDatabaseFake() {
     },
 
     FinishConversationRunWithNote: variables => {
-      const run = requireFencedRun(variables)
+      const run = requireParentRun(variables)
 
       const notes: Record<string, string[]> = { FAILED: ['FAILED', 'FULL'], STOPPED: ['STOPPED'], REFUSED: ['REFUSED'] }
 
@@ -2727,6 +2771,7 @@ function createConversationDatabaseFake() {
         || conversation.id !== id(variables.conversationId)
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId != null
       ) {
         refuse("The run is no longer this worker's")
       }
@@ -2848,6 +2893,7 @@ function createConversationDatabaseFake() {
               userId: conversation.userId,
               organizationId: conversation.organizationId,
               deletedAt: conversation.deletedAt,
+              parentId: conversation.parentId ?? null,
             }
           : null,
         conversationAttachment: attachment ? pickAttachment(attachment) : null,
@@ -2880,9 +2926,10 @@ function createConversationDatabaseFake() {
         conversation
         && (conversation.userId !== variables.userId
           || conversation.organizationId !== id(variables.organizationId)
-          || conversation.deletedAt !== null)
+          || conversation.deletedAt !== null
+          || conversation.parentId != null)
       ) {
-        refuse("The conversation is somebody else's, or deleted")
+        refuse("The conversation is somebody else's, deleted or a subagent")
       }
 
       if (

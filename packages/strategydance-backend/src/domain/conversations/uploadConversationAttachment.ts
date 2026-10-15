@@ -58,7 +58,7 @@ type UploadConversationAttachmentResult =
   | { outcome: 'stored'; attachment: ConversationAttachmentData }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
-  // The conversation is somebody else's, or deleted
+  // The conversation is somebody else's, deleted or a subagent
   | { outcome: 'missing' }
   // The id is another file's, or this one's with another name, type or size, or a prune took it
   | { outcome: 'conflict' }
@@ -109,7 +109,11 @@ async function uploadConversationAttachment(
 
   if (
     conversation
-    && (conversation.userId !== userId || conversation.organizationId !== organizationId || conversation.deletedAt)
+    && (conversation.userId !== userId
+      || conversation.organizationId !== organizationId
+      || conversation.deletedAt
+      // Nothing is sent to a subagent
+      || conversation.parentId)
   ) {
     return { outcome: 'missing' }
   }

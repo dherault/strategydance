@@ -388,6 +388,63 @@ describe('sendConversationMessage', () => {
     expect((await send(conversationId)).outcome).toBe('sent')
   })
 
+  // A subagent is the agent's, launched and run apart from what the member starts
+  test('counts subagents toward neither the thousand conversations nor the three runs, and refuses to send to one', async () => {
+    const parentId = createId()
+
+    await complete(parentId, await sent(parentId))
+
+    const subagentIds: string[] = []
+
+    for (let count = 0; count < 1000; count++) {
+      const id = createId()
+      const runId = createId()
+
+      subagentIds.push(id)
+      fake.conversations.set(id, {
+        id,
+        userId: AUTHOR,
+        organizationId: ORGANIZATION_ID,
+        title: 'Research',
+        activeRunId: count < 3 ? runId : null,
+        preview: null,
+        previewMessageId: null,
+        unreadCount: 0,
+        nextRunNumber: 1,
+        nextMessagePosition: 1,
+        messageCount: 1,
+        isFull: false,
+        deletedAt: null,
+        pruneClaimedAt: null,
+        updatedAt: new Date().toISOString(),
+        parentId,
+      })
+
+      if (count < 3) {
+        fake.runs.set(runId, {
+          id: runId,
+          conversationId: id,
+          number: 0,
+          trigger: 'LAUNCH',
+          status: 'RUNNING',
+          membershipCreatedAt: fake.memberships.get(`${AUTHOR}:${ORGANIZATION_ID}`)?.createdAt ?? '',
+          step: null,
+          anchorPosition: 0,
+          stopRequestedAt: null,
+          leaseExpiresAt: new Date(Date.now() + 60 * 1000).toISOString(),
+          attempts: 1,
+          createdAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          endedAt: null,
+        })
+      }
+    }
+
+    expect(await send(subagentIds[999] ?? '')).toEqual({ outcome: 'missing' })
+    expect((await send(createId())).outcome).toBe('sent')
+    expect((await send(parentId)).outcome).toBe('sent')
+  })
+
   test('answers conflict for a message’s id sent in another conversation', async () => {
     const messageId = createId()
 

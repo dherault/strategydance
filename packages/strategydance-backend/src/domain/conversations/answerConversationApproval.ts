@@ -40,7 +40,7 @@ export type AnswerConversationApprovalResult =
   | { outcome: 'answered'; runId: string | null; isChanged: boolean }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
-  // The conversation is somebody else's, or deleted, or holds no such approval
+  // The conversation is somebody else's, deleted or a subagent, or holds no such approval
   | { outcome: 'missing' }
   // The approval was decided otherwise, or waits for nothing any more
   | { outcome: 'conflict' }
@@ -86,6 +86,8 @@ async function answerConversationApproval({
       || conversation.userId !== userId
       || conversation.organizationId !== organizationId
       || conversation.deletedAt
+      // A subagent is its parent's, never acted on by its member
+      || conversation.parentId
       || !approval
     ) {
       return { outcome: 'missing' }

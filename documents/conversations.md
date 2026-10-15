@@ -1687,10 +1687,11 @@ authorization server from M18 and a consent page from M19:
 - **The endpoint** is `POST https://api.strategydance.com/mcp/knowledge`, and `…/mcp/tasks` for the
   Tasks module, each mounted the same way, on the public backend rather than the worker, since an
   MCP call is short and the worker is private. The module's handler, mounted with `toNodeHandler`,
-  builds a server per request from the verified caller, answering JSON (`responseMode: 'json'`),
-  stateless as the 2026-07-28 revision is, and serving the 2025 revisions' clients, which still open
-  sessions, statelessly too (`legacy: 'stateless'`), over SSE, as the SDK's fallback answers them
-  (M20). Around it:
+  builds a server per request from the verified caller, answering JSON, since no tool emits anything
+  before its result (the SDK's `auto` response mode, which would stream one that did), stateless as
+  the 2026-07-28 revision is, and serving the 2025 revisions' clients, which still open sessions,
+  statelessly too (`legacy: 'stateless'`), over SSE, as the SDK's fallback answers them (M20).
+  Around it:
   - `requireBearerAuth`, with Strategy Dance's verifier and the endpoint's address as
     `expectedResource`: a request without a valid token answers 401, its `WWW-Authenticate` naming
     the Protected Resource Metadata, `/.well-known/oauth-protected-resource/mcp/knowledge` (RFC

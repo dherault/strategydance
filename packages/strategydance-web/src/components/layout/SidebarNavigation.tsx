@@ -107,7 +107,7 @@ function SidebarNavigation() {
       {/* Conversations are all it holds, so a reader who may not have them is not shown its heading */}
       {canUseConversations ? (
         <SidebarGroup>
-          <SidebarGroupLabel>{formatMessage(navigationMessages.reflection)}</SidebarGroupLabel>
+          <SidebarGroupLabel>{formatMessage(navigationMessages.guidance)}</SidebarGroupLabel>
           <SidebarMenu>
             <ConversationsNavigationLink />
           </SidebarMenu>

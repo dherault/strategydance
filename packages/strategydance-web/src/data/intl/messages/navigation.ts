@@ -43,11 +43,11 @@ const navigationMessages = defineMessages({
     defaultMessage: 'Explore more aspects',
     description: 'Sidebar link to the page where the reader adds more aspects of their company to work on.',
   },
-  reflection: {
-    id: 'navigation.reflection',
-    defaultMessage: 'Reflection',
+  guidance: {
+    id: 'navigation.guidance',
+    defaultMessage: 'Guidance',
     description:
-      "Sidebar heading above the links to the reader's conversations with Strategy Dance, the app's AI, and to the knowledge their team wrote down about its company.",
+      "Sidebar heading above the link to the reader's conversations with Strategy Dance, the app's AI, which guides them as they build their company.",
   },
   conversations: {
     id: 'navigation.conversations',

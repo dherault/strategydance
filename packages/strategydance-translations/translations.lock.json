@@ -4185,6 +4185,10 @@
         "hash": "43a1d9ec8d9513c4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.guidance": {
+        "hash": "20e289441414d3d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.integrations": {
         "hash": "8122d2f707abcdb0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -4231,10 +4235,6 @@
       },
       "navigation.profile": {
         "hash": "7daadd2d0e2e55df",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "navigation.reflection": {
-        "hash": "84c655bf63091991",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.sidebar": {

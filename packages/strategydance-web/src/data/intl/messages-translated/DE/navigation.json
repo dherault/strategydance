@@ -32,7 +32,7 @@
   "navigation.githubStar": "Star",
   "navigation.githubStarLabel": "{repository} auf GitHub einen Stern geben",
   "navigation.githubStargazers": "{count, plural, one {# Stargazer} other {# Stargazer}} auf GitHub",
-  "navigation.guidance": "Beratung",
+  "navigation.guidance": "Führung",
   "navigation.integrations": "Integrationen",
   "navigation.knowledge": "Wissen",
   "navigation.logOut": "Abmelden",

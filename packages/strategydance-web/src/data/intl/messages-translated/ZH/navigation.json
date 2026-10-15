@@ -32,7 +32,7 @@
   "navigation.githubStar": "标星",
   "navigation.githubStarLabel": "在 GitHub 上为 {repository} 标星",
   "navigation.githubStargazers": "{count, plural, other {GitHub 上的 # 位标星者}}",
-  "navigation.guidance": "指导",
+  "navigation.guidance": "指引",
   "navigation.integrations": "集成",
   "navigation.knowledge": "知识",
   "navigation.logOut": "退出登录",

@@ -2,18 +2,17 @@ import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages
 
 import type { ClaudeClient } from '~types'
 
-import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
 import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
 import replaceConversationFiles, { type ConversationFileTokens } from '~domain/agent/replaceConversationFiles'
-import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import type { ConversationRequestUsage, ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 
 type MeasureConversationRequestInput = {
   client: ClaudeClient
   // The request's messages, its stored entries first
   messages: BetaMessageParam[]
-  // The tools it sends, the agent's own and its modules'
-  tools: ConversationRequestTools
+  // The system prompt and the tools it sends, the agent's own and its modules'
+  config: ConversationRequestConfig
   // The stored entries, in order, which the first messages are, each with its position and run
   entries: { position: number; runId: string }[]
   // The conversation's latest runs, latest first, each with its ledger, the current run's as it
@@ -26,7 +25,7 @@ type MeasureConversationRequestInput = {
   fileTokens?: ConversationFileTokens
 }
 
-// Each client's system prompt and tools, counted once per process for each list of tools, by its JSON
+// Each client's system prompt and tools, counted once per process for each of them, by their JSON
 const configTokens = new WeakMap<ClaudeClient, Map<string, Promise<number>>>()
 
 /*
@@ -49,13 +48,13 @@ const configTokens = new WeakMap<ClaudeClient, Map<string, Promise<number>>>()
 async function measureConversationRequest({
   client,
   messages,
-  tools,
+  config: requestConfig,
   entries,
   runs,
   pausedRequest,
   fileTokens = new Map(),
 }: MeasureConversationRequestInput) {
-  const config = await countConfigTokens(client, tools)
+  const config = await countConfigTokens(client, requestConfig)
 
   if (pausedRequest) return { inputTokens: sumRequest(pausedRequest), configTokens: config }
 
@@ -68,8 +67,8 @@ async function measureConversationRequest({
     const counted = replaceConversationFiles(messages, fileTokens)
     const inputTokens = await client.countTokens({
       model: CONVERSATION_MODEL,
-      system: CONVERSATION_SYSTEM_PROMPT,
-      tools,
+      system: requestConfig.system,
+      tools: requestConfig.tools,
       messages: counted.messages,
     })
 
@@ -113,8 +112,8 @@ export function sumRequest(request: ConversationRequestUsage) {
 }
 
 // The system prompt's and tools' share of a request: a request holding them, less one without
-export function countConfigTokens(client: ClaudeClient, tools: ConversationRequestTools) {
-  const key = JSON.stringify(tools)
+export function countConfigTokens(client: ClaudeClient, { system, tools }: ConversationRequestConfig) {
+  const key = JSON.stringify({ system, tools })
   let counts = configTokens.get(client)
 
   if (!counts) {
@@ -130,7 +129,7 @@ export function countConfigTokens(client: ClaudeClient, tools: ConversationReque
     count = Promise.all([
       client.countTokens({
         model: CONVERSATION_MODEL,
-        system: CONVERSATION_SYSTEM_PROMPT,
+        system,
         tools,
         messages,
       }),

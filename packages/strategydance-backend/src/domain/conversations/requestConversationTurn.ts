@@ -20,8 +20,10 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import buildConversationContext, { type ConversationContext } from '~domain/agent/buildConversationContext'
-import buildConversationRequest, { buildConversationMessages } from '~domain/agent/buildConversationRequest'
-import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import buildConversationRequest, {
+  type ConversationRequestConfig,
+  buildConversationMessages,
+} from '~domain/agent/buildConversationRequest'
 import checkTranscript from '~domain/agent/checkTranscript'
 import { MAX_CONVERSATION_PAUSES } from '~domain/agent/conversationRequestSettings'
 import measureConversationRequest from '~domain/agent/measureConversationRequest'
@@ -46,8 +48,8 @@ type RequestConversationTurnInput = {
   lease: ConversationRunLease
   signal: AbortSignal
   client: ClaudeClient
-  // The tools its requests send, the agent's own and its modules'
-  tools: ConversationRequestTools
+  // The system prompt and the tools its requests send, the agent's own and its modules'
+  config: ConversationRequestConfig
   // The run's context message as stored on it, JSON text, null until it is built
   runContext: string | null
   usage: ConversationRunUsage
@@ -130,7 +132,7 @@ async function requestConversationTurn({
   lease,
   signal,
   client,
-  tools,
+  config,
   runContext,
   usage: initialUsage,
   pausedRequest,
@@ -204,7 +206,7 @@ async function requestConversationTurn({
     const measured = await measureConversationRequest({
       client,
       messages,
-      tools,
+      config,
       entries: entries.map(({ position, runId }) => ({ position, runId })),
       runs: [{ id: fence.runId, usage }, ...otherRuns],
       pausedRequest: paused,
@@ -272,7 +274,7 @@ async function requestConversationTurn({
     })
 
     try {
-      message = await client.stream(buildConversationRequest(messages, tools), {
+      message = await client.stream(buildConversationRequest(messages, config), {
         signal: request.signal,
         onProgress: line => lease.setStep(line),
         onUsage: snapshot => {

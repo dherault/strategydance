@@ -581,7 +581,10 @@ await check(
 
     agentTools = buildConversationTools(modules.tools)
 
-    const request = buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], agentTools)
+    const request = buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], {
+      system: CONVERSATION_SYSTEM_PROMPT,
+      tools: agentTools,
+    })
     const message = await client.beta.messages.stream(request).finalMessage()
 
     finding("The agent's request's usage", message.usage)
@@ -637,10 +640,10 @@ await check("A module's tool, which is not strict, is called with an input its s
 
   const message = await client.beta.messages
     .stream(
-      buildConversationRequest(
-        [{ role: 'user', content: 'Which tasks are in the To do column of our board?' }],
-        agentTools,
-      ),
+      buildConversationRequest([{ role: 'user', content: 'Which tasks are in the To do column of our board?' }], {
+        system: CONVERSATION_SYSTEM_PROMPT,
+        tools: agentTools,
+      }),
     )
     .finalMessage()
   const call = message.content.find((block): block is BetaToolUseBlock => block.type === 'tool_use')
@@ -674,7 +677,7 @@ await check(
                 'Our issue tracker is the integration 7c9e6679742540de944be07fc1f90ae7. Its tool create_issue takes { "title": string, "labels": string[] }. Create an issue titled "Fix the login" labelled "bug" with it now: I know it, so do not list or describe anything first.',
             },
           ],
-          agentTools,
+          { system: CONVERSATION_SYSTEM_PROMPT, tools: agentTools },
         ),
       )
       .finalMessage()

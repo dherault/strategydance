@@ -44,13 +44,15 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
-import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
+import buildConversationTools from '~domain/agent/buildConversationTools'
 import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import createConversationIntegrationRunners from '~domain/agent/createConversationIntegrationRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
+import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
 import {
   type ConversationRunUsage,
@@ -215,7 +217,7 @@ async function runConversation(
       retryDelayMs,
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
-      tools: buildConversationTools(modules.tools),
+      config: { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       // The integration tools' runners always, whatever the organization added, so a turn is planned
       // the same by whoever takes it over
       runners: [...createIntegrationRunners(fence), ...modules.runners],
@@ -235,8 +237,8 @@ type StepsInput = {
   retryDelayMs: number
   limits: ConversationRunLimits
   stopCheckIntervalMs: number
-  // What the run's requests send, and what runs their calls
-  tools: ConversationRequestTools
+  // What the run's requests send besides their messages, and what runs their calls
+  config: ConversationRequestConfig
   runners: ConversationToolRunner[]
   toolTimeoutMs: number
 }
@@ -249,7 +251,7 @@ async function takeSteps({
   retryDelayMs,
   limits,
   stopCheckIntervalMs,
-  tools,
+  config,
   runners,
   toolTimeoutMs,
 }: StepsInput) {
@@ -273,7 +275,7 @@ async function takeSteps({
         client,
         limits,
         stopCheckIntervalMs,
-        tools,
+        config,
         runners,
         toolTimeoutMs,
         outcome,
@@ -322,7 +324,7 @@ async function takeStep({
   client,
   limits,
   stopCheckIntervalMs,
-  tools,
+  config,
   runners,
   toolTimeoutMs,
   outcome,
@@ -510,7 +512,7 @@ async function takeStep({
       lease,
       signal,
       client,
-      tools,
+      config,
       runContext: run?.context ?? null,
       usage,
       pausedRequest,
@@ -548,7 +550,7 @@ async function takeStep({
     lease,
     signal,
     client,
-    tools,
+    config,
     runContext: run?.context ?? null,
     usage,
     pausedRequest: null,

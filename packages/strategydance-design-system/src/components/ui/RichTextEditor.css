@@ -786,9 +786,12 @@
 /*
   The tooltip over a control, as `Tooltip` draws it: white, bordered, 12px, its shortcut after the
   name in a kbd chip rather than on a line of its own. Its arrow is a square straddling the edge,
-  white, with a border on the two sides that face out, so the tooltip's own border runs around it
+  white, with a border on the two sides that face out, so the tooltip's own border runs around it.
+  It portals into a zero-width anchor beside its toolbar, so it is as wide as its text, on one line,
+  rather than `w-fit`, which fits it to the room the anchor leaves and wraps every word
 */
 .rich-text-editor.bn-root [data-slot='tooltip-content'] {
+  width: max-content;
   flex-direction: row;
   align-items: center;
   gap: 0;

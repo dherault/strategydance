@@ -150,7 +150,7 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
 /*
   A rich text field: BlockNote's block editor, for a post of a few paragraphs. "/" opens a menu of
   the blocks it writes, the handle beside a block drags it, turns it into another or deletes it, and
-  a selection raises a toolbar of the four styles, a link and the block it is in. Markdown's
+  a selection raises a toolbar of the five styles, a link and the block it is in. Markdown's
   shortcuts work as typed.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline, strikethrough and inline code, which text typed

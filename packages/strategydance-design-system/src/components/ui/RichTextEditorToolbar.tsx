@@ -15,7 +15,7 @@ import { getRichTextBlockTypeSelectItems } from 'strategydance-design-system/lib
 const BLOCKS_WITHOUT_TOOLBAR = new Set(['videoEmbed', 'linkPreview'])
 
 /*
-  The toolbar over a selection in `RichTextEditor`: the block it is in, the four styles and a link,
+  The toolbar over a selection in `RichTextEditor`: the block it is in, the five styles and a link,
   or over a picture, its caption, another file or address in its place, and deleting it. BlockNote's
   own controls, each drawn only where it applies, and leaving out a block the schema does not hold.
   Over a video or a link preview, none would, so there is no toolbar
@@ -43,6 +43,7 @@ function RichTextEditorToolbar() {
       <BasicTextStyleButton basicTextStyle="italic" />
       <BasicTextStyleButton basicTextStyle="underline" />
       <BasicTextStyleButton basicTextStyle="strike" />
+      <BasicTextStyleButton basicTextStyle="code" />
       <CreateLinkButton />
     </FormattingToolbar>
   )

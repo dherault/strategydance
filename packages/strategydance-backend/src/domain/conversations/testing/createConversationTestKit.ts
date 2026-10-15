@@ -4,7 +4,7 @@ import type {
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationContentBlock, ConversationRunReference } from '~types'
 
 import createClaudeMessage from '~domain/agent/createClaudeMessage'
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
@@ -93,6 +93,38 @@ function createConversationTestKit(
     return { ...reference, runId }
   }
 
+  /*
+    A subagent of a conversation, launched as `launchSubagent` launches one, on the parent's latest
+    anchor, its run queued on its brief, the entry holding the files a test hands over before it
+  */
+  async function launch(
+    parent: ConversationRunReference,
+    {
+      brief = BRIEF,
+      attachmentIds = [],
+      files = [],
+    }: { brief?: string; attachmentIds?: string[]; files?: ConversationContentBlock[] } = {},
+  ): Promise<ConversationRunReference> {
+    const reference = { organizationId, userId: author, conversationId: createId(), runId: createId() }
+    const [latest] = [...fake.runs.values()]
+      .filter(run => run.conversationId === parent.conversationId)
+      .sort((a, b) => b.number - a.number)
+
+    await call('launchSubagent', {
+      ...reference,
+      membershipCreatedAt: readMembershipCreatedAt(),
+      parentId: parent.conversationId,
+      anchorPosition: latest?.anchorPosition ?? 0,
+      title: 'Research the competitors',
+      messageId: createId(),
+      text: brief,
+      content: serializeTranscriptContent([...files, { type: 'text', text: brief }]),
+      attachmentIds,
+    })
+
+    return reference
+  }
+
   // Claims a queued run as a worker that then crashes would, and answers its fence
   async function claim(reference: ConversationRunReference) {
     const fence = { ...reference, attempts: 0, membershipCreatedAt: readMembershipCreatedAt() }
@@ -150,6 +182,7 @@ function createConversationTestKit(
     call,
     start,
     send,
+    launch,
     claim,
     expireLease,
     readMembershipCreatedAt,
@@ -166,6 +199,8 @@ function createConversationTestKit(
 export const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
 export const REPLY = 'Flat 19 per month, then see who stays.'
+
+export const BRIEF = 'Compare the pricing pages of our three closest competitors, and say where we stand.'
 
 export function createId() {
   return crypto.randomUUID().replaceAll('-', '')

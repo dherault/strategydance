@@ -8,7 +8,9 @@ import {
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_SEARCHES,
   MAX_CONVERSATIONS,
+  MAX_CONVERSATION_SUBAGENTS,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
+  MAX_SUBAGENTS_PER_ACTION,
 } from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -2785,6 +2787,183 @@ function createConversationDatabaseFake() {
       writeNote(noteConversation, variables, 'INTERRUPTED')
 
       return { conversationRun_updateMany: 1 }
+    },
+
+    GetSubagentLaunchContext: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+      const parent = conversations.get(id(variables.parentId))
+      const subagent = conversations.get(id(variables.subagentId))
+      const isTheirs = (conversation: FakeConversation | undefined): conversation is FakeConversation =>
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const attachmentIds = (variables.attachmentIds as string[]).map(id)
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        parent: parent
+          ? {
+              userId: parent.userId,
+              organizationId: parent.organizationId,
+              deletedAt: parent.deletedAt,
+              parentId: parent.parentId ?? null,
+              subagentCount: parent.subagentCount ?? 0,
+            }
+          : null,
+        latestRuns: isTheirs(parent)
+          ? latestRuns(parent.id)
+              .slice(0, 1)
+              .map(({ anchorPosition }) => ({ anchorPosition }))
+          : [],
+        subagents: [...conversations.values()]
+          .filter(
+            conversation =>
+              conversation.parentId === id(variables.parentId)
+              && isTheirs(conversation)
+              && conversation.deletedAt === null,
+          )
+          .slice(0, 100)
+          .map(({ launchAnchorPosition }) => ({ launchAnchorPosition: launchAnchorPosition ?? null })),
+        files: [...attachments.values()]
+          .filter(
+            attachment =>
+              attachmentIds.includes(attachment.id)
+              && isAttachmentOf(attachment, { ...variables, conversationId: variables.parentId }),
+          )
+          .slice(0, 10)
+          .map(({ id: attachmentId, status, messageId, name, contentType, tokenCount, claudeFileId, createdAt }) => ({
+            id: attachmentId,
+            status,
+            messageId,
+            name,
+            contentType,
+            tokenCount,
+            claudeFileId,
+            createdAt,
+          })),
+        subagent: subagent
+          ? { userId: subagent.userId, organizationId: subagent.organizationId, parentId: subagent.parentId ?? null }
+          : null,
+        subagentRuns: isTheirs(subagent)
+          ? [...runs.values()]
+              .filter(run => run.conversationId === subagent.id && run.number === 0)
+              .map(({ id: runId, status, leaseExpiresAt }) => ({ id: runId, status, leaseExpiresAt }))
+          : [],
+      }
+    },
+
+    LaunchSubagent: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can launch subagents in it')
+      }
+
+      const attachmentIds = (variables.attachmentIds as string[]).map(id)
+
+      if ([...variables.title].length > 120 || [...variables.text].length > 20000 || attachmentIds.length > 10) {
+        refuse("A subagent's title holds at most 120 characters, its brief 20000, and its files 10")
+      }
+
+      const parentId = id(variables.parentId)
+      const parent = conversations.get(parentId)
+
+      if (
+        !parent
+        || parent.userId !== variables.userId
+        || parent.organizationId !== id(variables.organizationId)
+        || parent.deletedAt !== null
+        || parent.parentId != null
+        || (parent.subagentCount ?? 0) >= MAX_CONVERSATION_SUBAGENTS
+      ) {
+        refuse('The parent launches no more subagents: it is gone, a subagent, or holds 100')
+      }
+
+      if (
+        memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+        !== variables.membershipCreatedAt
+      ) {
+        refuse('The membership changed since the launch read it')
+      }
+
+      const subagentId = id(variables.conversationId)
+
+      if (conversations.has(subagentId)) refuse('The subagent exists already')
+
+      const onAnchor = [...conversations.values()].filter(
+        conversation =>
+          conversation.parentId === parentId
+          && conversation.launchAnchorPosition === variables.anchorPosition
+          && conversation.deletedAt === null,
+      )
+
+      if (onAnchor.length >= MAX_SUBAGENTS_PER_ACTION) refuse('A parent launches at most 10 subagents on one anchor')
+
+      const files = [...attachments.values()].filter(
+        attachment =>
+          attachmentIds.includes(attachment.id)
+          && isAttachmentOf(attachment, { ...variables, conversationId: parentId })
+          && attachment.status === 'READY'
+          && attachment.messageId !== null,
+      )
+
+      if (files.length !== attachmentIds.length) refuse('A subagent is handed only files its parent sent')
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+      if (messages.has(id(variables.messageId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      parent.subagentCount = (parent.subagentCount ?? 0) + 1
+      conversations.set(subagentId, {
+        id: subagentId,
+        userId: variables.userId,
+        organizationId: id(variables.organizationId),
+        title: variables.title,
+        activeRunId: runId,
+        preview: null,
+        previewMessageId: null,
+        unreadCount: 0,
+        nextRunNumber: 1,
+        nextMessagePosition: 1,
+        messageCount: 1,
+        isFull: false,
+        deletedAt: null,
+        pruneClaimedAt: null,
+        updatedAt: now(),
+        aspects: [],
+        aspectsSetBy: null,
+        parentId,
+        launchRunId: variables.launchRunId ? id(variables.launchRunId) : null,
+        launchToolUseId: variables.launchToolUseId ?? null,
+        launchAnchorPosition: variables.anchorPosition,
+        report: null,
+        reportedAt: null,
+        subagentCount: 0,
+      })
+      runs.set(runId, {
+        ...queuedRun(runId, subagentId, { ...variables, runNumber: 0 }, 'LAUNCH', 0),
+      })
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: subagentId,
+        runId,
+        kind: 'BRIEF',
+        text: variables.text,
+        noteKind: null,
+        toolStatus: null,
+        position: 0,
+        attachmentIds,
+      })
+      insertEntry({
+        id: crypto.randomUUID().replaceAll('-', ''),
+        conversationId: subagentId,
+        runId,
+        position: 0,
+        role: 'USER',
+        content: variables.content,
+        drawnBlocks: 0,
+      })
+
+      return { conversation_updateMany: 1 }
     },
 
     RecordConversationSearch: variables => {

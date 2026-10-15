@@ -62,8 +62,8 @@ type Node = { token: Token; children: Node[] }
   `[name](task:<id>)` as Strategy Dance's agent writes one, which is a mention of it, made with the
   link's words without their styles. A picture is a link to its address with its alternative text,
   so nothing is loaded from anywhere. Inline code is itself, without the styles around it, and its
-  text alone inside a link, as `normalizeRichText` keeps it, and a line break between two code spans
-  is inside it.
+  text alone inside a link, as `normalizeRichText` keeps it, and a line break after a code span is
+  inside it, as BlockNote adds a line break to the text before it.
 
   Never cut to a length: what holds a text to one is whatever stores it
 */
@@ -344,25 +344,19 @@ function pairUnderlines(nodes: Node[]) {
 }
 
 /*
-  The indexes of the line breaks among some nodes that sit between two code spans, which is how
-  `richTextToMarkdown` writes one inside inline code, since a code span reads one as a space
+  The indexes of the line breaks among some nodes that follow a code span, through other line
+  breaks, which are inside its code: BlockNote adds a line break to the text before it, so inline
+  code followed by one holds it, as `richTextToMarkdown` writes it after the code span
 */
 function findCodeBreaks(nodes: Node[]) {
   const breaks = new Set<number>()
-  let pending: number[] = []
   let isAfterCode = false
 
   nodes.forEach(({ token }, index) => {
-    if (token.type === 'softbreak' || token.type === 'hardbreak') {
-      if (isAfterCode) pending.push(index)
+    const isBreak = token.type === 'softbreak' || token.type === 'hardbreak'
 
-      return
-    }
-
-    if (token.type === 'code_inline') for (const pendingIndex of pending) breaks.add(pendingIndex)
-
-    pending = []
-    isAfterCode = token.type === 'code_inline'
+    if (isBreak && isAfterCode) breaks.add(index)
+    else isAfterCode = token.type === 'code_inline'
   })
 
   return breaks

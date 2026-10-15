@@ -54,8 +54,14 @@ describe('richTextToMarkdown', () => {
     )
   })
 
-  it('writes a line break in inline code between two code spans', () => {
+  it('writes a line break in inline code after a code span', () => {
     expect(richTextToMarkdown([paragraph(code('a\nb'))])).toBe('`a`\\\n`b`')
+  })
+
+  it('reads a line break opening inline code, which BlockNote never writes, as it would: with the text before it', () => {
+    expect(roundTrip([paragraph('a', code('\nb'), 'c', code('\n'), 'd')])).toEqual([
+      paragraph('a\n', code('b'), 'c\nd'),
+    ])
   })
 
   it("writes a mention as the agent's link to a document or a task, its words escaped", () => {
@@ -175,6 +181,11 @@ describe('richTextToMarkdown', () => {
           ],
         ],
         ['holding line breaks', [paragraph(code('a\nb\n\nc'), ' d')]],
+        [
+          'ending on line breaks, as Shift+Enter after it writes',
+          [paragraph(code('a\n'), 'b', code('c\n\n'), run('d', { bold: true }))],
+        ],
+        ['after text ending on a line break', [paragraph('a\n', code('b'))]],
         [
           'in a heading, a quote and a list item',
           [

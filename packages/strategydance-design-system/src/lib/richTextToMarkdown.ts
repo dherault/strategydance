@@ -45,7 +45,7 @@ type Piece = { styles: Style[]; nodes: PhrasingContent[] }
   and a link preview are a link, with the picture's caption or the page's title. A mention is the
   link Strategy Dance's agent writes, `[title](doc:<id>)` for a document and `[name](task:<id>)` for
   a task, with the words it was made with. Underline is `<u>…</u>`, inline code a code span, and a
-  line break inside a block a hard one, between two code spans in inline code
+  line break inside a block a hard one, after a code span in inline code
 */
 function richTextToMarkdown(blocks: readonly RichTextBlock[]): string {
   const children = writeBlocks(normalizeRichText(blocks))
@@ -187,7 +187,7 @@ function writeText(text: string): PhrasingContent[] {
     ])
 }
 
-// Inline code as code spans, its line breaks hard ones between them, since a code span reads one as a space
+// Inline code as code spans, each of its line breaks a hard one after them, since a code span reads one as a space
 function writeCode(text: string): PhrasingContent[] {
   return text
     .split('\n')

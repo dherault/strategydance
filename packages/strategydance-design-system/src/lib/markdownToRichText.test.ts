@@ -74,9 +74,9 @@ describe('markdownToRichText', () => {
         [paragraph(run('a\nb', { code: true }))],
       ],
       [
-        'a line break beside one code span, outside it',
-        '`a`\nb\n`c`',
-        [paragraph(run('a', { code: true }), '\nb\n', run('c', { code: true }))],
+        'line breaks after a code span, as inside it, and before one, as outside it',
+        '`a`\n\\\nb\n`c`',
+        [paragraph(run('a\n\n', { code: true }), 'b\n', run('c', { code: true }))],
       ],
     ]
 

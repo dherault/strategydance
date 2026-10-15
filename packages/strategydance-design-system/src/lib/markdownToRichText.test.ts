@@ -26,7 +26,7 @@ describe('markdownToRichText', () => {
     expect(markdownToRichText('\n\n  \n')).toEqual([])
   })
 
-  describe('reads the four styles', () => {
+  describe('reads the five styles', () => {
     const cases: [string, string, RichTextBlock[]][] = [
       ['bold', 'a **b** c', [paragraph('a ', run('b', { bold: true }), ' c')]],
       ['italic', 'a *b* c', [paragraph('a ', run('b', { italic: true }), ' c')]],
@@ -44,6 +44,40 @@ describe('markdownToRichText', () => {
         [paragraph(run('a ', { underline: true }), run('b', { underline: true, bold: true }))],
       ],
       ['underline nested in itself', '<u>a <u>b</u> c</u> d', [paragraph(run('a b c', { underline: true }), ' d')]],
+      ['inline code', 'run `bun test` now', [paragraph('run ', run('bun test', { code: true }), ' now')]],
+      ['inline code holding a backtick', 'a ``b`c`` d', [paragraph('a ', run('b`c', { code: true }), ' d')]],
+      [
+        'inline code holding Markdown and tags, as written',
+        '`**a** <u>b</u> [c](https://example.com)`',
+        [paragraph(run('**a** <u>b</u> [c](https://example.com)', { code: true }))],
+      ],
+      [
+        'inline code inside bold and underline, without them',
+        '**a `b` <u>`c`</u>**',
+        [
+          paragraph(
+            run('a ', { bold: true }),
+            run('b', { code: true }),
+            run(' ', { bold: true }),
+            run('c', { code: true }),
+          ),
+        ],
+      ],
+      [
+        'inline code inside a link, as its text',
+        '[`a` b](https://example.com)',
+        [paragraph({ type: 'link', href: 'https://example.com/', content: [run('a b')] })],
+      ],
+      [
+        'a line break between two code spans, as inside the code',
+        '`a`\\\n`b`',
+        [paragraph(run('a\nb', { code: true }))],
+      ],
+      [
+        'a line break beside one code span, outside it',
+        '`a`\nb\n`c`',
+        [paragraph(run('a', { code: true }), '\nb\n', run('c', { code: true }))],
+      ],
     ]
 
     for (const [name, markdown, expected] of cases) {
@@ -248,7 +282,6 @@ describe('markdownToRichText', () => {
         '![A cat](javascript:alert(1))',
         [paragraph('![A cat](javascript:alert(1))')],
       ],
-      ['inline code, to its text', 'run `bun test` now', [paragraph('run bun test now')]],
       ['a rule, to nothing', 'a\n\n---\n\nb', [paragraph('a'), paragraph('b')]],
       ['a footnote, to its label, its note a link to nowhere', 'a[^1]\n\n[^1]: Note', [paragraph('a^1')]],
     ]

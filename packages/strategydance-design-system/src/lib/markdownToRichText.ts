@@ -61,7 +61,9 @@ type Node = { token: Token; children: Node[] }
   anything else stays as written, but a link to a document or a task, `[title](doc:<id>)` or
   `[name](task:<id>)` as Strategy Dance's agent writes one, which is a mention of it, made with the
   link's words without their styles. A picture is a link to its address with its alternative text,
-  so nothing is loaded from anywhere, and inline code is its text.
+  so nothing is loaded from anywhere. Inline code is itself, without the styles around it, and its
+  text alone inside a link, as `normalizeRichText` keeps it, and a line break between two code spans
+  is inside it.
 
   Never cut to a length: what holds a text to one is whatever stores it
 */
@@ -230,6 +232,7 @@ function readPhrasing(
   if (depth >= MAX_DEPTH) return
 
   const paired = pairUnderlines(nodes)
+  const codeBreaks = findCodeBreaks(nodes)
   let underlines = 0
 
   const getStyles = (): RichTextStyles => (underlines ? { ...styles, underline: true } : styles)
@@ -268,13 +271,16 @@ function readPhrasing(
     switch (token.type) {
       case 'text':
       case 'text_special':
-      case 'code_inline':
         if (token.content) inline.push(createRun(token.content, getStyles()))
+
+        return
+      case 'code_inline':
+        if (token.content) inline.push(createRun(token.content, { code: true }))
 
         return
       case 'softbreak':
       case 'hardbreak':
-        inline.push(createRun('\n', getStyles()))
+        inline.push(createRun('\n', codeBreaks.has(index) ? { code: true } : getStyles()))
 
         return
       case 'strong_open':
@@ -335,6 +341,31 @@ function pairUnderlines(nodes: Node[]) {
   })
 
   return paired
+}
+
+/*
+  The indexes of the line breaks among some nodes that sit between two code spans, which is how
+  `richTextToMarkdown` writes one inside inline code, since a code span reads one as a space
+*/
+function findCodeBreaks(nodes: Node[]) {
+  const breaks = new Set<number>()
+  let pending: number[] = []
+  let isAfterCode = false
+
+  nodes.forEach(({ token }, index) => {
+    if (token.type === 'softbreak' || token.type === 'hardbreak') {
+      if (isAfterCode) pending.push(index)
+
+      return
+    }
+
+    if (token.type === 'code_inline') for (const pendingIndex of pending) breaks.add(pendingIndex)
+
+    pending = []
+    isAfterCode = token.type === 'code_inline'
+  })
+
+  return breaks
 }
 
 function isSameStyles(a: RichTextStyles | undefined, b: RichTextStyles | undefined) {

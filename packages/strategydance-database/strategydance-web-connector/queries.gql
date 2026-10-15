@@ -1310,6 +1310,8 @@ query GetConversations($organizationId: UUID!)
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      # A subagent is in no list: it is reached from its parent's thread
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
     # `id` breaks the tie between two conversations active in the same instant
@@ -1388,6 +1390,8 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      # A subagent never waits, and is no conversation of the member's
+      parentId: { isNull: true }
       isAwaitingAnswer: { eq: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
@@ -1542,6 +1546,8 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      # A subagent is never docked
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
     limit: 20

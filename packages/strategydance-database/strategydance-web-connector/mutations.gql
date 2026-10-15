@@ -1784,7 +1784,10 @@ mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: U
 # `$userId` is the caller's own, checked against the token: the conversations list's refresh
 # condition reads it, since a mutation's variables are all a condition can match. Nothing here
 # prunes, since a conversation's files live in Storage beside its rows: the backend removes what
-# was deleted over a day ago
+# was deleted over a day ago.
+#
+# A subagent is no conversation of the member's to delete: its id matches nothing here, neither the
+# row nor its runs, and the delete changes nothing, as for one gone already
 mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -1799,12 +1802,18 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
     }
     data: { deletedAt_expr: "request.time" }
   )
   conversationRun_updateMany(
     where: {
-      conversation: { id: { eq: $id }, userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }
+      conversation: {
+        id: { eq: $id }
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
       status: { in: [QUEUED, RUNNING] }
       stopRequestedAt: { isNull: true }
     }
@@ -1818,7 +1827,8 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
 #
 # A conversation brought back counts against the 1000 as a new one does, under the same lock: the
 # first step writes the caller's own membership, as starting a conversation does, so deleting one at
-# the cap, starting another and taking the delete back cannot keep 1001
+# the cap, starting another and taking the delete back cannot keep 1001. Subagents count toward
+# neither, and a subagent's id is refused as gone, since only its parent is the member's to restore
 mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
   userOrganization_update(
     key: { userId_expr: "auth.uid", organizationId: $organizationId }
@@ -1829,7 +1839,12 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
     @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone")
   query @redact {
     conversations(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        parentId: { isNull: true }
+      }
       limit: 1000
     ) @check(expr: "size(this) < 1000", message: "Somebody keeps at most 1000 conversations in an organization") {
       id
@@ -1842,6 +1857,7 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
       organizationId: { eq: $organizationId }
       deletedAt: { ge_time: { now: true, sub: { days: 1 } } }
       pruneClaimedAt: { isNull: true }
+      parentId: { isNull: true }
     }
     data: { deletedAt: null }
   ) @check(expr: "this == 1", message: "The conversation is gone for good")
@@ -1852,7 +1868,8 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
 # cleared only while that is still the conversation's latest, so a reply that lands meanwhile stays
 # unread until the page shows it too. Neither that nor a conversation read already is an error.
 #
-# `updatedAt` is left alone: reading is not activity, and the list would move the conversation up
+# `updatedAt` is left alone: reading is not activity, and the list would move the conversation up.
+# A subagent's id matches nothing, since nobody reads its thread as it comes
 mutation MarkConversationRead($organizationId: UUID!, $userId: String!, $id: UUID!, $previewMessageId: UUID!)
 @auth(level: USER)
 @transaction {
@@ -1871,6 +1888,7 @@ mutation MarkConversationRead($organizationId: UUID!, $userId: String!, $id: UUI
       deletedAt: { isNull: true }
       previewMessageId: { eq: $previewMessageId }
       unreadCount: { gt: 0 }
+      parentId: { isNull: true }
     }
     data: { unreadCount: 0 }
   )
@@ -1890,7 +1908,7 @@ mutation MarkConversationRead($organizationId: UUID!, $userId: String!, $id: UUI
 #
 # Nothing else moves: an aspects note never shows as the conversation's preview, so `preview` and
 # `unreadCount` stay, and neither does `updatedAt`, so retagging does not move the conversation up
-# the list
+# the list. A subagent's are refused, as a conversation gone is: it tags no aspects
 mutation UpdateConversationAspects(
   $organizationId: UUID!
   $userId: String!
@@ -1917,6 +1935,7 @@ mutation UpdateConversationAspects(
       deletedAt: { isNull: true }
       nextMessagePosition: { eq: $position }
       messageCount: { lt: 2000 }
+      parentId: { isNull: true }
     }
     data: {
       aspects: $aspects

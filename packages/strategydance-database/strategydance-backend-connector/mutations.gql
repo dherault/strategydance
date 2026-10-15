@@ -186,7 +186,8 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
 # somebody keeps at most 1000 conversations in an organization (`MAX_CONVERSATIONS` in
 # strategydance-core), and has at most 3 runs in flight there (`MAX_ACTIVE_RUNS_PER_MEMBER`), dead
 # ones included, which the backend finalizes before it sends. The membership has to be the one the
-# backend read, whose `createdAt` the run records.
+# backend read, whose `createdAt` the run records. Subagents count toward neither: they are the
+# agent's, launched and run apart from what the member starts.
 #
 # Conversations deleted over a day ago are left to the daily sweep, which claims them first and
 # deletes what they keep beside their rows, their module call results among them.
@@ -254,7 +255,12 @@ mutation StartConversation(
       id
     }
     kept: conversations(
-      where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        parentId: { isNull: true }
+      }
       limit: 1000
     ) @check(expr: "size(this) < 1000", message: "Somebody keeps at most 1000 conversations in an organization") {
       id
@@ -262,7 +268,7 @@ mutation StartConversation(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -387,7 +393,7 @@ mutation SendConversationMessage(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -400,6 +406,7 @@ mutation SendConversationMessage(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       activeRunId: { isNull: true }
       isFull: { eq: false }
       messageCount: { lt: 2000 }
@@ -535,7 +542,7 @@ mutation SendConversationMessageAnsweringCalls(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -548,6 +555,7 @@ mutation SendConversationMessageAnsweringCalls(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       activeRunId: { isNull: true }
       isFull: { eq: false }
       messageCount: { lt: 2000 }
@@ -707,6 +715,7 @@ mutation AnswerConversationQuestion(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       isAwaitingAnswer: { eq: true }
       previewMessageId: { eq: $previewMessageId }
     }
@@ -784,6 +793,7 @@ mutation AnswerConversationApproval(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       isAwaitingAnswer: { eq: true }
       previewMessageId: { eq: $previewMessageId }
     }
@@ -881,7 +891,7 @@ mutation ContinueConversationRun(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -925,6 +935,7 @@ mutation ContinueConversationRun(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       activeRunId: { isNull: true }
       nextRunNumber: { eq: $runNumber }
     }
@@ -999,7 +1010,7 @@ mutation ContinueConversationRunWithCalls(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -1030,6 +1041,7 @@ mutation ContinueConversationRunWithCalls(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       activeRunId: { isNull: true }
       nextRunNumber: { eq: $runNumber }
     }
@@ -1095,7 +1107,12 @@ mutation InterruptDeadConversationRun(
       id: { eq: $runId }
       status: { in: [QUEUED, RUNNING] }
       leaseExpiresAt: { lt_time: { now: true } }
-      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
     }
     data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is not dead")
@@ -1193,7 +1210,12 @@ mutation RequestConversationRunStop($organizationId: UUID!, $userId: String!, $c
       id: { eq: $runId }
       status: { eq: RUNNING }
       stopRequestedAt: { isNull: true }
-      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1219,7 +1241,12 @@ mutation StopQueuedConversationRun(
     where: {
       id: { eq: $runId }
       status: { eq: QUEUED }
-      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
     }
     data: {
       status: STOPPED
@@ -1328,7 +1355,7 @@ mutation ResumeConversationRun(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -1341,6 +1368,7 @@ mutation ResumeConversationRun(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       activeRunId: { isNull: true }
       nextRunNumber: { eq: $runNumber }
       nextMessagePosition: { eq: $nextMessagePosition }
@@ -1445,7 +1473,7 @@ mutation RetryConversationRun(
     inFlight: conversationRuns(
       where: {
         status: { in: [QUEUED, RUNNING] }
-        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
@@ -1458,6 +1486,7 @@ mutation RetryConversationRun(
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       activeRunId: { isNull: true }
       nextRunNumber: { eq: $runNumber }
       historyRevision: { eq: $historyRevision }
@@ -2684,6 +2713,7 @@ mutation FinishConversationRunWaiting(
         id: { eq: $conversationId }
         userId: { eq: $userId }
         organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
         organization: {
           userOrganizations_on_organization: {
             exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
@@ -2707,7 +2737,8 @@ mutation FinishConversationRunWaiting(
 # meanwhile, with `$usage` settling what its requests used, left as it was when omitted. A call the
 # deletion kept from finishing is cancelled. The conversation lets go of it only while it still
 # names it, deleted or not, so a conversation restored later is not stuck busy. Fenced as
-# `RenewConversationRunLease` is
+# `RenewConversationRunLease` is, on a conversation that is no subagent: a subagent's run ends through
+# the `…SubagentRun` endings, which write its report, and so do this one's three neighbours
 mutation FinishConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -2728,6 +2759,7 @@ mutation FinishConversationRun(
         id: { eq: $conversationId }
         userId: { eq: $userId }
         organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
         organization: {
           userOrganizations_on_organization: {
             exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
@@ -2786,6 +2818,7 @@ mutation FinishConversationRunWithNote(
         id: { eq: $conversationId }
         userId: { eq: $userId }
         organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
         organization: {
           userOrganizations_on_organization: {
             exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
@@ -2855,7 +2888,12 @@ mutation InterruptConversationRun(
       id: { eq: $runId }
       status: { in: [QUEUED, RUNNING] }
       attempts: { eq: $attempts }
-      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
     }
     data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   ) @check(expr: "this == 1", message: "The run is no longer this worker's")
@@ -3020,12 +3058,13 @@ mutation ReserveConversationAttachment(
               { userId: { ne: $userId } }
               { organizationId: { ne: $organizationId } }
               { deletedAt: { isNull: false } }
+              { parentId: { isNull: false } }
             ]
           }
         ]
       }
       limit: 1
-    ) @check(expr: "size(this) == 0", message: "The conversation is somebody else's, or deleted") {
+    ) @check(expr: "size(this) == 0", message: "The conversation is somebody else's, deleted or a subagent") {
       id
     }
     pending: conversationAttachments(

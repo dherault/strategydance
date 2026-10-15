@@ -82,6 +82,9 @@ query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
 #   one past the 1000 (`MAX_CONVERSATIONS`) is refused as such. `StartConversation` counts them again
 #   under its lock
 #
+# Subagents are left out of both counts, and a subagent's `parentId` refuses the send: no member
+# writes in one
+#
 # `$userId` is the uid the backend verified, never one a client sent
 query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
 @auth(level: NO_ACCESS) {
@@ -97,6 +100,9 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     nextRunNumber
     messageCount
     isFull
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   conversationTranscriptEntries(
     where: { conversationId: { eq: $conversationId } }
@@ -138,7 +144,7 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
   conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
-      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
     }
     limit: 3
   ) {
@@ -150,7 +156,12 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     }
   }
   keptConversations: conversations(
-    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+    }
   ) {
     _count
   }
@@ -200,6 +211,9 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     nextMessagePosition
     messageCount
     historyRevision
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   latestRuns: conversationRuns(
     where: {
@@ -219,7 +233,7 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
   conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
-      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
     }
     limit: 3
   ) {
@@ -412,6 +426,9 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     messageCount
     previewMessageId
     aspectsSetBy
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
@@ -535,6 +552,9 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
     isAwaitingAnswer
     previewMessageId
     nextRunNumber
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   latestRuns: conversationRuns(
     where: {
@@ -555,7 +575,7 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
   conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
-      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
     }
     limit: 3
   ) {
@@ -801,6 +821,7 @@ query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query:
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
     }
     limit: 1000
@@ -829,6 +850,7 @@ query SearchConversationMessages($organizationId: UUID!, $userId: String!, $quer
         userId: { eq: $userId }
         organizationId: { eq: $organizationId }
         deletedAt: { isNull: true }
+        parentId: { isNull: true }
         organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
       }
     }
@@ -847,6 +869,7 @@ query GetConversationSearchCorpus($organizationId: UUID!, $userId: String!) @aut
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
     }
     # `id` breaks the tie between two conversations active in the same instant
@@ -891,6 +914,7 @@ query SearchConversationsBySubstring(
           userId: { eq: $userId }
           organizationId: { eq: $organizationId }
           deletedAt: { isNull: true }
+          parentId: { isNull: true }
           organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
         }
         {
@@ -951,6 +975,8 @@ query GetConversationAttachmentUploadContext(
     userId
     organizationId
     deletedAt
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   # The status is selected at the top level of the operation, which is what has the generated SDK
   # declare its enum

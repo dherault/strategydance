@@ -32,7 +32,7 @@ type Props = {
 }
 
 // What narrows the board: words its tasks hold, whose they are, and what they are about, with a way
-// back to every task once any of them is set
+// back to every task once any of them is set. Laid in the page's toolbar, from its left
 function TaskBoardFilters({
   query,
   assignee,
@@ -62,7 +62,7 @@ function TaskBoardFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <>
       <div className="relative min-w-45 flex-[0_1_280px]">
         <SearchIcon
           aria-hidden="true"
@@ -114,7 +114,7 @@ function TaskBoardFilters({
           {formatMessage(taskMessages.clearFilters)}
         </Button>
       ) : null}
-    </div>
+    </>
   )
 }
 

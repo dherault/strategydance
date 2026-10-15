@@ -16,6 +16,7 @@ import KnowledgeDocumentGrid from '~components/knowledge/KnowledgeDocumentGrid'
 import KnowledgeLoadFailed from '~components/knowledge/KnowledgeLoadFailed'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
+import PageToolbar from '~components/layout/PageToolbar'
 import ModuleAgentsButton from '~components/module/ModuleAgentsButton'
 
 import knowledgeMessages from '~data/intl/messages/knowledge'
@@ -69,14 +70,18 @@ function KnowledgeDocuments() {
             ? formatMessage(knowledgeMessages.lead, { count: knowledgeDocuments.length })
             : undefined
         }
-        actions={
-          <>
-            <ModuleAgentsButton module="knowledge" />
-            <AddKnowledgeDocumentButton />
-          </>
-        }
       />
-      {renderBody()}
+      <div className="flex flex-col gap-3">
+        <PageToolbar
+          actions={
+            <>
+              <ModuleAgentsButton module="knowledge" />
+              <AddKnowledgeDocumentButton size="md" />
+            </>
+          }
+        />
+        {renderBody()}
+      </div>
     </ContainerLayout>
   )
 }

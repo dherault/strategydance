@@ -76,7 +76,7 @@ speech-to-speech measurement unless said otherwise.
 | **OpenAI GPT-Live-1** | Yes | Built for it (client delegation) | Unproven: voices listed for English and Portuguese only | 1.24 to 1.34 s; OpenAI's turn-taking figure 0.80 s | $0.50 | GA 2026-09-10, one month old |
 | **Google Gemini 3.8 Live** | No, turn-based with barge-in | Through a non-blocking function | Yes (99 languages on the Gemini API page, 24 on Google Cloud's) | 1.18 s | $0.12 nominal, about $0.40 to $0.80 realistic | Stable 2026-09-15 (Gemini API), GA 2026-09-24 (Google Cloud) |
 | OpenAI gpt-realtime-2.1 | No, turn-based with barge-in | Through a function | No language list published | 1.21 s (high reasoning) | About $0.45, over $1 when the cache misses; mini about $0.16 | GA, mature |
-| Cascade keeping Claude (LiveKit Agents, Deepgram Flux, Claude, Cartesia Sonic) | No, half duplex | Claude is the only brain | Flux lacks Chinese, which needs a second recognizer | About 1.0 to 1.5 s median, 2 to 3 s at p95 | About $0.21 to $0.32, Claude included | GA parts, our assembly |
+| Cascade keeping Claude (LiveKit Agents, Deepgram Flux, Claude, Cartesia Sonic) | No, half duplex | Claude is the only brain | Flux lacks Chinese, which needs a second recognizer | About 1.0 to 1.5 s median, 2 to 3 s at p95 | About $0.21 to $0.32, Haiku's spoken turns included, the Opus delegations not ($0.45 to $0.80 with them, see Cost) | GA parts, our assembly |
 | xAI Grok Voice 3.0 | No | Through a function or MCP | Listed, among 20+ | 0.81 s, best index | $0.80 | Released 2026-10-14 |
 | Amazon Nova 2.5 Sonic | No | Through an async tool | No Japanese, no Chinese | 1.14 s | About $0.09 nominal | GA 2026-10-05 |
 | Azure Voice Live with Claude | No, a cascade | Claude from Microsoft Foundry | Azure speech's | Not measured | Not measured | Claude mode in preview |
@@ -180,8 +180,10 @@ Speech to text, Claude, text to speech, each streamed. The best TypeScript assem
 
 - **LiveKit Agents for Node.js** (1.9.3, 2026-10-15), with its Anthropic plugin, WebRTC through
   LiveKit Cloud. Its audio turn detector and its adaptive interruption handling (telling a real
-  barge-in from "uh-huh") run free on LiveKit Cloud only. Nothing WebRTC can be hosted on Cloud Run,
-  which accepts no inbound UDP: self-hosting means GKE or Compute Engine.
+  barge-in from "uh-huh") run free on LiveKit Cloud only. The media server cannot run on Cloud Run,
+  which accepts no inbound UDP: it is LiveKit Cloud, or GKE or Compute Engine self-hosted. The agent
+  workers only dial out to it, and one deployment reports them working on Cloud Run, though their
+  shutdown, scaling and CPU allocation there are still to validate.
 - **Deepgram Flux** for speech to text with end of turn built in (about 260 ms, the vendor's claim,
   and an early "probably done" event to start Claude speculatively), in English, French, German,
   Spanish, Italian, Portuguese and Japanese, without Chinese, which would go to AssemblyAI's or
@@ -192,7 +194,8 @@ Speech to text, Claude, text to speech, each streamed. The best TypeScript assem
   timestamps that say exactly what was heard when the member cuts in.
 
 About 1.0 to 1.5 seconds per turn at the median and 2 to 3 seconds at the 95th percentile, the tail
-being Claude's first token; about $0.21 to $0.32 per ten minutes. Claude says every word, verbatim,
+being Claude's first token; about $0.21 to $0.32 per ten minutes with Haiku's turns, $0.45 to $0.80
+once the delegations to the full agent are counted. Claude says every word, verbatim,
 which is its strength. But it is half duplex, with no backchannels and interruptions decided by
 heuristics, and Claude's first token sits on every turn, small talk included. Anthropic's own
 cookbook is this design. It is the control group the probe measures the fronts against.
@@ -259,8 +262,9 @@ cookbook is this design. It is the control group the probe measures the fronts a
    locales later; route them to Gemini behind the same seam (one design, two integrations to keep);
    or take Gemini for everyone and give up full duplex.
 
-Not the cascade: it is half duplex, puts Claude's first token on every turn, and needs a WebRTC
-server we cannot run on Cloud Run. Not the rest, each for the reason given above.
+Not the cascade: it is half duplex, puts Claude's first token on every turn, small talk included,
+and adds a media platform (LiveKit Cloud) and agent workers to run beside Cloud Run. Not the rest,
+each for the reason given above.
 
 ## Latency
 
@@ -327,9 +331,12 @@ Each item is a question for the build, with what the code enforces today. None i
    why runs live on the worker today (`ARE_CONVERSATION_RUNS_IN_PROCESS` in `constants.ts`, and
    `enqueueRun.ts`, whose development path does not wait). Proposed: a third service from the same
    image, as the worker is (`SERVICE=voice`), public, with a 60-minute timeout, Cloud Run's maximum,
-   which bounds a call; the browser holds a request open to it for the call's life, which also
-   carries the call's state to the page, and its end closes the session, so no call outlives its
-   page. `runConversation` takes voice limits through its `limits` option (say 90 seconds and six
+   which bounds a call. The browser holds a WebSocket open to it for the call's life, which also
+   carries the call's state to the page. A WebSocket, not a long HTTP/1.1 response: Cloud Run passes
+   a client's disconnect on to the container for WebSockets and HTTP/2 only, and the disconnect is
+   what closes the provider's session, so no call outlives its page; a heartbeat the page sends
+   every few seconds, its absence closing the call, is the backstop. The backend has no WebSocket
+   server today. `runConversation` takes voice limits through its `limits` option (say 90 seconds and six
    requests a run), and the lease and the page's reconcile finish a run whose process died, as they
    do today. This reverses two decisions in `conversations.md` (no token streaming to the browser;
    runs off the public backend), which a yes revisits there.
@@ -355,10 +362,11 @@ Each item is a question for the build, with what the code enforces today. None i
    as text what was said since Claude last spoke: the member's transcribed words, the front's own
    small talk, labelled, and, after a barge-in, what Strategy Dance had actually said before the
    member cut in. Claude's turns are stored as sent and never trimmed: an edited turn breaks
-   preserved thinking (a 400 for accounts created from 2026-08-31). Two cases need care: a stop
-   drops an unfinished turn whole (`requestConversationTurn.ts`), and `stripBeforeFallback.ts`
-   removes the text a refused model wrote before its fallback took over, text the member may have
-   heard; the next `USER` entry quotes what was said in both.
+   preserved thinking (a 400 for accounts created from 2026-08-31). One case needs care: a stop
+   drops an unfinished turn whole (`requestConversationTurn.ts`), though the member heard its
+   beginning, so the next `USER` entry quotes what was said. A refusal does not: the text a declined
+   model wrote before its fallback took over stays in the stored turn (`stripBeforeFallback.ts`
+   keeps text), so it needs no quoting.
 5. **Barge-in while Claude works.** Either stop the run at once, through its stop, with no stopped
    note drawn for a call, the member's new words starting the next run; or let it finish and answer
    both. Stopping is the recommendation: it is what a person does. Words delivered into a running
@@ -373,9 +381,14 @@ Each item is a question for the build, with what the code enforces today. None i
 7. **The call itself.** A `VoiceSession` row: conversation, member, organization, provider, model,
    start, end, billed seconds or tokens, close reason. A voice run names it
    (`ConversationRun.voiceSessionId`) rather than a new `ConversationRunTrigger`, since the sends
-   write `MESSAGE` and M33 appends `REPORTS` first. No lock of its own on the conversation:
-   `activeRunId` already runs one run at a time, and a typed send during a call waits its turn like
-   any other. The caps of Cost, beside M35's.
+   write `MESSAGE` and M33 appends `REPORTS` first. `activeRunId` already runs one run at a time,
+   but nothing queues: a send while a run is active is refused as busy
+   (`ERROR_CODE_CONVERSATION_BUSY`, a 409), and between two delegations a typed send goes through
+   and its run then holds the conversation, so a delegation arriving meanwhile meets busy too.
+   Either the call holds the conversation (every run-starting route refusing typed starts while it
+   lasts, a lock somebody has to keep alive), or the voice service waits for the active run to end
+   before starting its own and the page keeps typing out of a call. The second is simpler. The caps
+   of Cost, beside M35's.
 8. **Routes.** Start a call (the WebRTC offer exchanged for GPT-Live; an ephemeral token with its
    configuration locked for Gemini), the call's open request, and, for Gemini, a delegation route the
    browser calls, idempotent through a message id derived from the call's and the delegation's ids.
@@ -411,8 +424,10 @@ audio and drops the microphone in a background tab, tested on real devices.
 - **A skipped delegation.** The front may answer a question about the company itself, from nothing.
   Its prompt forbids it and it knows nothing about the company beyond the profile; the probe
   measures how often it happens.
-- **Misheard words become Claude's input**, and can become writes to tasks and documents, which a
-  member can restore for a day.
+- **Misheard words become Claude's input**, and can become writes to tasks and documents. A delete
+  can be restored for a day (`RestoreDocumentForAgent` and `RestoreTaskForAgent` clear `deletedAt`
+  and nothing else); an overwritten text or a changed task field cannot, beyond what the document's
+  editor history or the member's memory holds. Hence decision 5.
 - **Prompt injection.** What Claude reads, documents, the web, integrations, can carry text meant for
   a model, which then reaches the front as commentary. The front has no tools (GPT-Live) or one
   (Gemini, which injected text could make call again and again, bounded by the caps), so it adds no
@@ -424,8 +439,8 @@ audio and drops the microphone in a background tab, tested on real devices.
 - **Mobile.** Safari's audio constraints and background tabs; the call ends when the page does.
 - **Cost runaway**: a call left open. Bounded by the maximum length, the minute caps, the call
   ending with its page, and the spend limits above them.
-- **A refusal mid-call.** Claude's fallback can replace text the member already heard (see What
-  would change, 4).
+- **A refusal mid-call.** When a model declines partway and its fallback carries on, the text
+  already written stays, as it does in a typed run, so the member may hear the answer start again.
 
 ## Validating before building
 
@@ -580,6 +595,7 @@ The rest
 
 Platform
 
-- Cloud Run WebSockets: https://docs.cloud.google.com/run/docs/triggering/websockets, container contract https://docs.cloud.google.com/run/docs/container-contract
+- Cloud Run WebSockets: https://docs.cloud.google.com/run/docs/triggering/websockets, container contract https://docs.cloud.google.com/run/docs/container-contract, client disconnects https://docs.cloud.google.com/run/docs/troubleshooting
+- LiveKit agent workers on Cloud Run, a deployment report: https://github.com/livekit/agents/issues/1692#issuecomment-3786694771
 - WebRTC over WebSocket for voice: https://livekit.com/blog/why-webrtc-beats-websockets-for-voice-ai-agents
 - Echo cancellation: https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints/echoCancellation, iOS Safari capture https://bugs.webkit.org/show_bug.cgi?id=311451

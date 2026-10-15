@@ -117,8 +117,8 @@ function KnowledgeDocuments() {
         <PageToolbar
           actions={
             <>
-              <ModuleAgentsButton module="knowledge" />
               <AddKnowledgeDocumentButton size="md" />
+              <ModuleAgentsButton module="knowledge" />
             </>
           }
         >

@@ -3771,10 +3771,6 @@
         "hash": "c52dbb98674d4f25",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "module.agentsButton": {
-        "hash": "5985490d66a173f8",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "module.agentsChatGpt": {
         "hash": "81dda9eab32b6cb9",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3935,6 +3931,10 @@
         "hash": "3fb0f5196115dc3b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.knowledgeAgentsButton": {
+        "hash": "9acba3475fbd19df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.knowledgeName": {
         "hash": "11870396e2df3f8a",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -4013,6 +4013,10 @@
       },
       "module.refusedTitle": {
         "hash": "1890892761cecc66",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.tasksAgentsButton": {
+        "hash": "3a3bd49e6fa23bcd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.tasksName": {

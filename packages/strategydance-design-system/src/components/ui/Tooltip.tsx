@@ -1,6 +1,7 @@
 import { Tooltip as TooltipPrimitive } from 'radix-ui'
 import {
   type ComponentProps,
+  type FocusEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
@@ -127,6 +128,13 @@ function ActiveTooltip({
     tapStartedOpenRef.current = null
   }
 
+  // Radix opens on any focus, and a dialog or a menu gives the focus back to its trigger as it
+  // closes, after a click as after a key. Only a focus the browser rings opens it, so a click that
+  // closed a dialog leaves no tooltip behind, away from the pointer, until something else is focused
+  function handleFocus(event: FocusEvent<HTMLElement>) {
+    if (!event.target.matches(':focus-visible')) event.preventDefault()
+  }
+
   function handleClick(event: MouseEvent) {
     const wasOpen = tapStartedOpenRef.current
 
@@ -179,6 +187,7 @@ function ActiveTooltip({
           asChild
           onPointerDown={handlePointerDown}
           onPointerCancel={handlePointerCancel}
+          onFocus={handleFocus}
           onClick={handleClick}
         >
           {trigger}

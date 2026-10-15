@@ -1319,6 +1319,9 @@ Then do what it asks as any other task, [Workflow](#workflow) included.
 - When the session has no `strategydance-tasks` tools, or they ask to sign in, say so and stop
   rather than guess the task: the person adds the server with `claude mcp add --transport http
   strategydance-tasks https://api.strategydance.com/mcp/tasks` and signs in with `/mcp`
+- Once the work starts, the task is under way: `update_task` moves it to `ONGOING`, from whatever
+  column it is in, before the first edit, so the team sees it taken up. One already in `ONGOING`
+  stays where it is
 - Once its pull request merges, the task is done: `update_task` moves it to `DONE` as soon as the
   session learns of the merge, from `bun run review open` reporting `MERGED` or from the person,
   and the person is told of the tasks its answer says can start now (`canStartNow`). Nothing else

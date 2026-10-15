@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "strategydance-tasks": {
+      "type": "http",
+      "url": "https://api.strategydance.com/mcp/tasks"
+    }
+  }
+}

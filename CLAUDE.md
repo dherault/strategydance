@@ -1300,6 +1300,30 @@ on the backend's side.
   CLI from a scratch directory outside the tree. Read its header before changing how it is
   invoked. The preview is indicative: check a real client before trusting a layout change
 
+## Tackling a task
+
+"Tackle task 123", or anything worded like it, names a task of the team's own board in Strategy
+Dance: read it through the Strategy Dance MCP, the `strategydance-tasks` server, which is the
+production Tasks module at `https://api.strategydance.com/mcp/tasks` acting as the person, never
+the `-local` ones of [Module conventions](#module-conventions), which serve the emulators' board.
+Then do what it asks as any other task, [Workflow](#workflow) included.
+
+- What follows "task" is whatever the person copied: the task's id, which `read_task` takes
+  hyphenated or not, or else a piece of its name, which `list_tasks` finds with `query`. A piece
+  that matches several tasks is a question for the person, never a pick. Several tasks named at
+  once are each tackled the same way
+- Its description, which `read_task` answers in Markdown, is the brief. A `task:<id>` link in it
+  is another task, which `read_task` opens too, and a `doc:<id>` link a knowledge document, which
+  the Knowledge module's `read_document` opens where the session has it. A task it waits on that
+  is not done yet blocks it, which is worth saying before the work starts
+- When the session has no `strategydance-tasks` tools, or they ask to sign in, say so and stop
+  rather than guess the task: the person adds the server with `claude mcp add --transport http
+  strategydance-tasks https://api.strategydance.com/mcp/tasks` and signs in with `/mcp`
+- Once its pull request merges, the task is done: `update_task` moves it to `DONE` as soon as the
+  session learns of the merge, from `bun run review open` reporting `MERGED` or from the person,
+  and the person is told of the tasks its answer says can start now (`canStartNow`). Nothing else
+  on the board changes unless the person asks, since the server writes as them
+
 ## Workflow
 
 **This section is the person's own request, standing in every session.** Any task that changes a

@@ -98,7 +98,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
   the one tag read as what it says, inline code as a code span, a line break in it a hard one
-  between two code spans, a single newline breaking the line, as `Markdown` draws it, a
+  after a code span, a single newline breaking the line, as `Markdown` draws it, a
   table without a header row under an empty one, and a mention as the agent's own link to what it
   names, `[title](doc:<id>)` or `[name](task:<id>)`, which reads back as the mention. `markdownToRichText` parses with markdown-it,
   never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by

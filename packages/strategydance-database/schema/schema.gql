@@ -504,6 +504,9 @@ enum ConversationMessageKind {
   # A call to an integration that waits for the member's Allow, unless they answered it already:
   # a tool call with an approval on top
   APPROVAL
+  # A subagent's brief, the first entry of its thread: what the agent that launched it wrote, and
+  # the files of its parent's it hands over
+  BRIEF
 }
 
 # Where a tool call stands. Append a value; never reorder
@@ -545,6 +548,8 @@ enum ConversationRunTrigger {
   ANSWER
   RESUME
   RETRY
+  # A subagent's first run, which its launch queued on its brief
+  LAUNCH
 }
 
 # Where a run stands. Append a value; never reorder
@@ -596,7 +601,13 @@ enum ConversationAttachmentStatus {
 # account or the organization cascades, to the messages, the runs and the transcript with it.
 #
 # Deleted by setting `deletedAt`, so an Undo is one update. A prune removes it a day later, after
-# claiming it with `pruneClaimedAt`
+# claiming it with `pruneClaimedAt`.
+#
+# A subagent is a conversation too, with a `parent`: a piece of work Strategy Dance's agent handed
+# off in the conversation that launched it, carried out by runs of its own and reported back. It is
+# its member's, as its parent is, and hidden from them: every read or count of a member's
+# conversations leaves subagents out, and every way a member acts on a conversation refuses one,
+# while a read of one conversation by its id reads it as it reads any
 type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"]) {
   # Made by the browser, as a document's is, so a draft has its address before anything is stored
   id: UUID! @default(expr: "uuidV4()")
@@ -656,6 +667,23 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   createdAt: Timestamp! @default(expr: "request.time")
   # Its last activity, which orders the list
   updatedAt: Timestamp! @default(expr: "request.time")
+  # A subagent's: the conversation that launched it, and null on every other. Implies a
+  # `parentId: UUID` column, set to null when the parent is deleted, so a prune deletes a parent's
+  # subagents before it
+  parent: Conversation
+  # A subagent's: the run and the call that launched it, null for one a script launched, and the
+  # parent's anchor it was launched on, which makes its batch
+  launchRunId: UUID
+  launchToolUseId: String
+  launchAnchorPosition: Int
+  # A subagent's report, its last reply cut to 8000 characters (`MAX_SUBAGENT_REPORT_LENGTH` in
+  # strategydance-core), led by how it ended when it did not complete, and when it was written: by
+  # the mutation that ends its run, however it ends
+  report: String
+  reportedAt: Timestamp
+  # A parent's: the subagents it launched and are not pruned yet, at most 100
+  # (`MAX_CONVERSATION_SUBAGENTS`), which a launch moves on as its lock on the parent
+  subagentCount: Int! @default(value: 0)
 }
 
 # One go of the agent in a conversation, from the member's action to its end: queued by the
@@ -789,6 +817,10 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   # The arguments as the approval shows them at a glance, their JSON cut to 2000 characters, which
   # authorizes nothing: Allow opens the whole `toolInput` first
   argumentsPreview: String
+  # A brief's: the files of its parent's it hands over, in the order the subagent reads them, at
+  # most 10. Each file's `message` names the parent's message that sent it, so the brief keeps
+  # which they are
+  attachmentIds: [UUID!]
   position: Int!
   createdAt: Timestamp! @default(expr: "request.time")
 }

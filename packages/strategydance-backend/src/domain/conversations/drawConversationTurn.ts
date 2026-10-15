@@ -26,12 +26,9 @@ import type { ConversationToolCallPlan } from '~domain/agent/planConversationToo
 import { toFailedOutput } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
-import mergeConversationText, {
-  type ConversationTextBlockWithCitations,
-} from '~domain/conversations/mergeConversationText'
+import readConversationText, { isConversationTextBlock } from '~domain/conversations/readConversationText'
 import readPieceText from '~domain/conversations/readPieceText'
 import selectPieceCitations from '~domain/conversations/selectPieceCitations'
-import splitConversationText from '~domain/conversations/splitConversationText'
 import readConversationIntegration from '~domain/integrations/readConversationIntegration'
 
 // One part of the run's reply, stored as a transcript entry, with its blocks and its cursor
@@ -183,7 +180,7 @@ function findNextDrawing(
   const { blocks, drawnBlocks: cursor, drawnPieces } = entry
 
   if (drawnPieces > 0) {
-    const { text, pieces, citations, toBlock } = readText(blocks, cursor)
+    const { text, pieces, citations, toBlock } = readConversationText(blocks, cursor)
     const piece = pieces[drawnPieces]
 
     if (!piece) throw new Error(`Part ${entry.id} has no piece ${drawnPieces} at block ${cursor}`)
@@ -205,8 +202,8 @@ function findNextDrawing(
   for (let index = cursor; index < blocks.length; index++) {
     const block = blocks[index]
 
-    if (isTextBlock(block)) {
-      const { text, pieces, citations, toBlock } = readText(blocks, index)
+    if (isConversationTextBlock(block)) {
+      const { text, pieces, citations, toBlock } = readConversationText(blocks, index)
       const [first] = pieces
 
       if (!first) return { kind: 'none' }
@@ -340,24 +337,6 @@ function toArgumentsPreview(args: Record<string, unknown>) {
   }
 
   return `${cut}…`
-}
-
-/*
-  The text run starting at `fromBlock`, merged, with its pieces and its citations. A fallback model
-  carries on the text a declining model left, so the run goes on across a `fallback` block between
-  two texts, as one reply
-*/
-function readText(blocks: ConversationContentBlock[], fromBlock: number) {
-  let toBlock = fromBlock
-
-  while (isTextBlock(blocks[toBlock]) || blocks[toBlock]?.type === 'fallback') toBlock++
-  while (toBlock > fromBlock && !isTextBlock(blocks[toBlock - 1])) toBlock--
-
-  const { text, blockEnds, citations } = mergeConversationText(
-    blocks.slice(fromBlock, toBlock).filter(isTextBlock) as ConversationTextBlockWithCitations[],
-  )
-
-  return { text, pieces: splitConversationText(text, blockEnds), citations, toBlock }
 }
 
 // A web search's result, `content` a list of results or an error object
@@ -521,10 +500,6 @@ async function write(fence: ConversationRunFence, entryId: string, position: num
       preview: buildConversationPreview({ kind: 'QUESTION', questionPrompt: drawing.question.prompt }),
     })
   }
-}
-
-function isTextBlock(block: ConversationContentBlock | undefined) {
-  return block?.type === 'text' && typeof block.text === 'string'
 }
 
 function isWebSearch(block: ConversationContentBlock | undefined): block is ConversationContentBlock & { id: string } {

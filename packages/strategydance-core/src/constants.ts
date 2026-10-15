@@ -564,6 +564,24 @@ export const CONVERSATION_SEARCH_WINDOW_MINUTES = 10
 export const MAX_SUBSTRING_SEARCH_MESSAGES = 20000
 export const MAX_SUBSTRING_SEARCH_DOCUMENTS = 100
 
+/*
+  How many subagents Strategy Dance's agent may launch: ten on one anchor, the member's action and
+  the runs carrying it on, those a retry deleted left out, so the run a retry starts can launch its
+  fan-out again; and a hundred in one conversation until they are pruned, which its
+  `subagentCount` counts. `LaunchSubagent` writes both out: change them together
+*/
+export const MAX_SUBAGENTS_PER_ACTION = 10
+export const MAX_CONVERSATION_SUBAGENTS = 100
+
+/*
+  How long a subagent's brief may be, in characters, all it knows of the conversation that launched
+  it, and how long its report is kept, its last reply cut short so a batch of ten never fills the
+  conversation it reports to. `LaunchSubagent` and the subagent endings write them out: change them
+  together
+*/
+export const MAX_SUBAGENT_BRIEF_LENGTH = 20000
+export const MAX_SUBAGENT_REPORT_LENGTH = 8000
+
 /* ---
   MODULES
 --- */

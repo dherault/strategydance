@@ -80,7 +80,7 @@ it discards them, so a release cut between the two would leave the daily sweep t
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
-| M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | |
+| M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | #184 |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | |
 | M32 | The Subagents module | core, backend, database, web | M31 | |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | |

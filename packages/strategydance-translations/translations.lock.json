@@ -3329,6 +3329,34 @@
         "hash": "252f9ce064fb4771",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.aspectsFilterClear": {
+        "hash": "30919fbb352264b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterClose": {
+        "hash": "1a13a4f70689f71f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterEmpty": {
+        "hash": "247e09989c0fc1a4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterLabel": {
+        "hash": "d4a0d8b24f4357e2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterMore": {
+        "hash": "84a2e6f799dfa287",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterPlaceholder": {
+        "hash": "b092b186f60c2ded",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterSearch": {
+        "hash": "baeaf518d700da0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.aspectsSelected": {
         "hash": "9ca4fc2514431ab3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3347,6 +3375,10 @@
       },
       "knowledge.cancel": {
         "hash": "7963065a998a0c17",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.clearFilters": {
+        "hash": "26c48b21e459dc88",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.close": {
@@ -3517,6 +3549,14 @@
         "hash": "0d8fef38e801c449",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.noMatchText": {
+        "hash": "62138b6ea8351391",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.noMatchTitle": {
+        "hash": "5f06808e0cfc66ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.notFoundText": {
         "hash": "f02845409afd6246",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3547,6 +3587,10 @@
       },
       "knowledge.saving": {
         "hash": "e1c88c25f4be6ca6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.searchPlaceholder": {
+        "hash": "de4a86fede42cf6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.stay": {

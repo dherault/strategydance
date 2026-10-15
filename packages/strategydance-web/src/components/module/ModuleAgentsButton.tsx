@@ -17,7 +17,8 @@ type Props = {
 /*
   A module's page's "Use with your agents", which opens the dialog telling how to connect an agent
   of the member's own to it, and takes the focus back once it closes. Nothing for a reader who may
-  not connect one yet, while modules are for Strategy Dance's administrators alone
+  not connect one yet, while modules are for Strategy Dance's administrators alone. It sits in the
+  page's toolbar, so it takes the fields' height
 */
 function ModuleAgentsButton({ module }: Props) {
   const { formatMessage } = useIntl()
@@ -30,7 +31,6 @@ function ModuleAgentsButton({ module }: Props) {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
           icon={<BotIcon />}
         >
           {formatMessage(moduleMessages.agentsButton)}

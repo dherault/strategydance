@@ -87,8 +87,8 @@ const richTextClasses = {
     strikethrough: 'line-through',
     underlineStrikethrough: '[text-decoration-line:underline_line-through]',
     // Inline code, in the monospace face a step smaller than the text around it, on the code block's
-    // fill, which each line of it keeps when it wraps
-    code: 'rounded-xs bg-neutral-100 px-[0.3em] py-[0.1em] font-mono text-[0.875em] box-decoration-clone',
+    // fill, which each line of it keeps when it wraps, and with its spaces as typed, as the editor keeps them
+    code: 'rounded-xs bg-neutral-100 px-[0.3em] py-[0.1em] font-mono text-[0.875em] whitespace-pre-wrap box-decoration-clone',
   },
 }
 

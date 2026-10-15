@@ -2215,8 +2215,9 @@ CommonMark would read as neither; `markdownToRichText` reads that comment as not
 is a code span, fenced past the backticks it holds, and goes alone: BlockNote's code mark excludes
 every other mark, a link's included, so `normalizeRichText` keeps a code run to that one style and
 drops it inside a link, and ``**`a`**`` reads back as code without the bold. A code span reads a line
-break as a space, so a line break in inline code is written as a hard one between two code spans,
-which `markdownToRichText` reads as inside the code. A document then keeps all five styles through
+break as a space, so a line break in inline code is written as a hard one after a code span, and
+`markdownToRichText` reads a line break after a code span as inside the code, as BlockNote adds a
+hard break to the text before it. A document then keeps all five styles through
 an agent's edit. The document blocks map onto Markdown too: code
 to a fenced block with its language, a table to a GFM table with its header row, written under an
 empty header row when it has none, which reads back as none, by David's choice on 2026-10-09, and a

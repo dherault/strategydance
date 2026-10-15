@@ -258,6 +258,17 @@ cookbook is this design. It is the control group the probe measures the fronts a
    and Google is already a processor (Cloud, and Gemini in the translations). It costs turn-taking
    quality (not full duplex), session plumbing, a browser that relays the function calls, a
    WebSocket audio path to make echo-safe, and EU residency only by proxying the audio.
+   **And, connected straight from the browser, the backend cannot end a call or see its usage.**
+   Gemini has no sideband: the browser's connection to Google is its own, closing the page's
+   WebSocket to us does not close it, and the usage it reports reaches us only through the
+   browser, which a member could alter. The only bound the backend sets is the ephemeral token:
+   one use, a short window to start, and an expiry at the longest call allowed, which the session's
+   resumptions every ten minutes cannot outlive. So the minute caps would charge each token at its
+   full lifetime when it is minted, crediting nothing back on the browser's word. Proxying the
+   audio through our voice service instead gives the backend the call, its end and its usage, as
+   GPT-Live's sideband does, and is what the EU region needs anyway, at the cost of the audio
+   crossing our service. The probe measures the direct path; production on Gemini means one of the
+   two, decided before it is built.
 3. **The tradeoff David asked to see.** If GPT-Live fails some locales, three ways: ship those
    locales later; route them to Gemini behind the same seam (one design, two integrations to keep);
    or take Gemini for everyone and give up full duplex.
@@ -335,8 +346,10 @@ Each item is a question for the build, with what the code enforces today. None i
    carries the call's state to the page. A WebSocket, not a long HTTP/1.1 response: Cloud Run passes
    a client's disconnect on to the container for WebSockets and HTTP/2 only, and the disconnect is
    what closes the provider's session, so no call outlives its page; a heartbeat the page sends
-   every few seconds, its absence closing the call, is the backstop. The backend has no WebSocket
-   server today. `runConversation` takes voice limits through its `limits` option (say 90 seconds and six
+   every few seconds, its absence closing the call, is the backstop. That bound holds for GPT-Live,
+   whose session the service closes over the sideband, and for Gemini proxied through the service,
+   not for Gemini connected from the browser (see The provider). The backend has no WebSocket server
+   today. `runConversation` takes voice limits through its `limits` option (say 90 seconds and six
    requests a run), and the lease and the page's reconcile finish a run whose process died, as they
    do today. This reverses two decisions in `conversations.md` (no token streaming to the browser;
    runs off the public backend), which a yes revisits there.
